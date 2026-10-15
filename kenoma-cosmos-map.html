@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="site.css">
 <script src="site.js" defer></script>
 </head>
-<body>
+<body data-static="1" data-fx="strings bars">
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* Layout: an old concentric world-chart on deep indigo, with the white light of the Fullness above it. Chart left, reading panel right; key list below. Single dark world on purpose. */
@@ -42,7 +42,8 @@ aside{background:var(--vellum);border:1px solid var(--rule);padding:18px 20px;bo
 aside h2{font-family:var(--display);font-weight:200;font-size:26px;margin:0 0 2px;color:var(--gilt);text-wrap:balance}
 aside .src{font-size:13px;color:var(--dim);margin:0 0 10px;letter-spacing:.03em}
 aside p{margin:0 0 10px}
-aside .auth{border-left:2px dotted var(--gilt);padding-left:10px;color:var(--gilt);font-style:italic}
+aside .auth{border-left:1px dotted var(--gilt);padding-left:10px;color:var(--gilt);font-style:italic}
+aside .auth .tag{font-style:normal}
 .tag{display:inline-block;font-size:12px;padding:1px 8px;border:1px solid var(--rule);border-radius:10px;margin-right:6px;color:var(--dim)}
 .tag.note{border-color:var(--gilt);color:var(--gilt)}
 .tag.open{border-style:dashed}
@@ -72,7 +73,7 @@ aside .auth{border-left:2px dotted var(--gilt);padding-left:10px;color:var(--gil
 <section class="key">
   <h3>Every layer</h3>
   <div class="keylist" id="keylist"></div>
-  <p class="unplaced"><b>Not drawn as rings:</b> the trees of Death and Life, which appear in spirit form (19, 22) and are listed above. The exact edge of the Kenoma is also not drawn. The text speaks of "the outer darkness of the Kenoma" (20) without marking where it ends.</p>
+  <p class="unplaced"><b>Not drawn as rings:</b> the trees of Death and Life, which appear in spirit form (19, 22) and are listed above. The exact edge of the Kenoma is also not drawn.</p>
 </section>
 
 <script>
@@ -347,10 +348,10 @@ const TAGS={text:["From the text",""],note:["Note","note"],open:["Order unconfir
 let cur=null;
 function show(id){
   if(cur&&bandG[cur])bandG[cur].classList.remove("on");cur=id;
-  if(!id){P.innerHTML=`<h2>Reading the map</h2><p>The Earth sits at the center as a plane, with Tartarus in its ocean. Around it are the planets in their old order (Moon, Mercury, Venus, Sun, Mars, Jupiter, Saturn), with Neptune beyond. Then come the dome of stars and the demiurge's heaven of memories, which closes creation.</p><p>Outside creation lie the layers of Limbo, then the three moats of the outer darkness, the third being the outermost. Past them is the outer darkness itself, made of Leviathan's shadow, where puppets and playground stairs sink into the dark. Above all of it, and apart from it, the Fullness sits as a ball of white light.</p><p><span class="tag">From the text</span><span class="tag note">Note</span><span class="tag open">Order unconfirmed</span></p><p class="src">Tap a ring, or use the list below the map.</p>`;return}
+  if(!id){P.innerHTML=`<h2>Reading the map</h2><p>The Earth sits at the center as a plane, with Tartarus in its ocean. Around it are the planets in their old order (Moon, Mercury, Venus, Sun, Mars, Jupiter, Saturn), with Neptune beyond. Then come the dome of stars and the demiurge's heaven of memories, which closes creation.</p><p>Outside creation lie the layers of Limbo, then the three moats of the outer darkness, the third being the outermost. Past them is the outer darkness itself, made of Leviathan's shadow, where puppets and playground stairs sink into the dark. Above all of it, and apart from it, the Fullness sits as a ball of white light.</p><p class="src">Tap a ring, or use the list below the map.</p>`;return}
   bandG[id]&&bandG[id].classList.add("on");
-  const L=byId[id],[tl,tc]=TAGS[L.tag];
-  P.innerHTML=`<h2>${esc(L.name)}</h2><p class="src">chapters ${esc(L.src)}</p><p><span class="tag ${tc}">${tl}</span></p><p>${esc(L.d)}</p>${L.auth?`<p class="auth">${esc(L.auth)}</p>`:""}`;
+  const L=byId[id];
+  P.innerHTML=`<h2>${esc(L.name)}</h2><p class="src">chapters ${esc(L.src)}</p><p>${esc(L.d)}</p>${L.auth?`<p class="auth"><span class="tag note">Note</span> ${esc(L.auth.replace(/^Note:\s*/,""))}</p>`:""}`;
 }
 Object.entries(bandG).forEach(([id,g])=>{
   g.addEventListener("click",e=>{e.stopPropagation();show(cur===id?null:id)});
