@@ -1,19 +1,14 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Kenoma Cosmology Map</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Spectral:ital,wght@0,400;0,500;1,400&display=swap">
 <style>
-/* Layout: an old concentric world-chart, engraved on night. Chart left, a reading panel right; key list below for phones. Single dark world on purpose. */
+/* Layout: an old concentric world-chart, engraved on night and framed in the white of the Fullness. Chart left, reading panel right; key list below. Single dark world on purpose. */
 :root{
   --ink:#0d0b15; --vellum:#1a1726; --bone:#e7dcc6; --dim:#9d93a8; --gilt:#c9a45c; --rule:#3a3350;
-  --earth:#6f8a63; --sea:#2a4256; --planet:#d8cdb4; --star:#efe6cf; --heaven:#8d78c4; --limbo:#5f9a80;
-  --fire:#c8642f; --tar:#1b1612; --deep:#050409; --outer:#221c38; --puppet:#8d7f98; --full:#f3e3b0;
+  --earth:#6f8a63; --sea:#24405a; --planet:#d8cdb4; --star:#efe6cf; --heaven:#8d78c4;
+  --fire:#c8642f; --tar:#1b1612; --deep:#050409; --outer:#221c38; --puppet:#8d7f98; --white:#ffffff;
   --display:"IM Fell English SC","IM Fell English",Georgia,serif;
   --body:"Spectral",Georgia,"Times New Roman",serif;
   color-scheme:dark;
@@ -23,21 +18,23 @@ body{font-family:var(--body);font-size:15px;line-height:1.55;padding-left:max(16
 header{max-width:1400px;margin:0 auto 14px}
 h1{font-family:var(--display);font-weight:400;font-size:clamp(26px,4vw,38px);margin:0;color:var(--gilt);letter-spacing:.02em;text-wrap:balance}
 .sub{color:var(--dim);font-style:italic;margin:2px 0 0;max-width:70ch}
-.wrap{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:18px;align-items:start}
+.back{color:var(--gilt);font-size:14px;text-decoration:none;border-bottom:1px solid var(--rule)}
+.wrap{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:18px;align-items:start}
 @media (max-width:980px){.wrap{grid-template-columns:minmax(0,1fr)}}
-.chartbox{overflow-x:auto;border:1px solid var(--rule);background:var(--deep);border-radius:2px}
+.chartbox{overflow-x:auto;border:1px solid var(--rule);background:var(--white);border-radius:2px}
 svg#cosmos{display:block;width:100%;min-width:760px;height:auto}
 .band{cursor:pointer}
-.band:hover .hit,.band:focus-visible .hit,.band.on .hit{stroke:var(--gilt);stroke-width:2;stroke-opacity:.9}
+.band:hover .hit,.band:focus-visible .hit,.band.on .hit{stroke:var(--gilt);stroke-width:2.5;stroke-opacity:.95}
 .band:focus{outline:none}
 .lab{font-family:var(--display);fill:var(--bone);font-size:15px;letter-spacing:.06em;paint-order:stroke;stroke:var(--deep);stroke-width:3.5px;pointer-events:none}
 .lab.small{font-size:12.5px;font-family:var(--body);letter-spacing:.02em}
-.lab.gilt{fill:var(--gilt)}
-aside{background:var(--vellum);border:1px solid var(--rule);padding:18px 20px;border-radius:2px;min-width:0;position:sticky;top:max(12px,env(safe-area-inset-top,0px))}
-@media (max-width:980px){aside{position:static}}
+.lab.ink{fill:#2a2438;stroke:var(--white);font-size:17px}
+aside{background:var(--vellum);border:1px solid var(--rule);padding:18px 20px;border-radius:2px;min-width:0;position:sticky;top:max(12px,env(safe-area-inset-top,0px));max-height:calc(100vh - 24px);overflow:auto}
+@media (max-width:980px){aside{position:static;max-height:none}}
 aside h2{font-family:var(--display);font-weight:400;font-size:26px;margin:0 0 2px;color:var(--gilt);text-wrap:balance}
 aside .src{font-size:13px;color:var(--dim);margin:0 0 10px;letter-spacing:.03em}
 aside p{margin:0 0 10px}
+aside .auth{border-left:2px dotted var(--gilt);padding-left:10px;color:var(--gilt);font-style:italic}
 .tag{display:inline-block;font-size:12px;padding:1px 8px;border:1px solid var(--rule);border-radius:10px;margin-right:6px;color:var(--dim)}
 .tag.author{border-color:var(--gilt);color:var(--gilt)}
 .tag.open{border-style:dashed}
@@ -52,13 +49,11 @@ aside p{margin:0 0 10px}
 .twinkle{animation:tw 4s ease-in-out infinite}
 @keyframes tw{50%{opacity:.35}}
 </style>
-</head>
-<body>
-
 
 <header>
+<!--BACK-->
   <h1>Nous Within Kenoma · The Cosmos</h1>
-  <p class="sub">From the plane of the Earth outward: the seven planets, the archons' stars, the demiurge's heaven of memories, the layers of Limbo, the three moats, and the outer darkness made of Leviathan's shadow. Tap any ring to read what the book says of it.</p>
+  <p class="sub">From the plane of the Earth outward: the planets, the archons' stars, the demiurge's heaven of memories, the layers of Limbo, the three moats, and the outer darkness made of Leviathan's shadow, all held within the white of the Fullness. Tap any ring to read what the book says of it.</p>
 </header>
 
 <div class="wrap">
@@ -69,7 +64,7 @@ aside p{margin:0 0 10px}
 <section class="key">
   <h3>Every layer</h3>
   <div class="keylist" id="keylist"></div>
-  <p class="unplaced"><b>Not placed on the map:</b> Sophia (17, 31), whose place the text doesn't give. Tartarus, Antony's prison whose keys Leviathan held (19, 20). Tree II and Tree I, which are chapters (32, 33) but not shown as places. Neptune, named in 11 and 18 but outside the seven old spheres. And the exact edge of the Kenoma. The text speaks of "the outer darkness of the Kenoma" (20), so the map does not draw a line for it.</p>
+  <p class="unplaced"><b>Not drawn as rings:</b> the trees of Death and Life, which appear in spirit form (19, 22) and are listed above. The exact edge of the Kenoma is also not drawn. The text speaks of "the outer darkness of the Kenoma" (20) without marking where it ends.</p>
 </section>
 
 <script>
@@ -77,97 +72,157 @@ const NS="http://www.w3.org/2000/svg",C=600;
 const svg=document.getElementById("cosmos");
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 function el(tag,attrs={},parent=svg){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);parent.appendChild(e);return e}
-// seeded random so the drawing is the same for everyone
-let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646};
+let seed=11;const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646};
 const pol=(r,a)=>[C+r*Math.cos(a),C+r*Math.sin(a)];
 function annulus(r1,r2){return `M${C+r2},${C} A${r2},${r2} 0 1,0 ${C-r2},${C} A${r2},${r2} 0 1,0 ${C+r2},${C} Z M${C+r1},${C} A${r1},${r1} 0 1,1 ${C-r1},${C} A${r1},${r1} 0 1,1 ${C+r1},${C} Z`}
 
 const LAYERS=[
- {id:"full",name:"The Fullness",tag:"text",src:"20, 21, 31, 33",d:"Beyond everything. The spirit of life roams “outside the limbo, the material world, the stars and planets, and even outside the outer darkness” and calls down “We are the same!” (33). Judgements come as “a command of the fullness above” (20). Leviathan's “only match is the fullness I fell from with purpose” (21). Wisdom's duty is “unto the fullness” (31)."},
- {id:"outer",name:"The Outer Darkness",tag:"author",src:"20, 21, 23",d:"Outside creation, made of Leviathan's shadow. Satan's prison: “one little room of this infinitude hotel of puppet machines,” stairs leading into stairs, marionettes singing “Row, row, row your boat” (23). Souls born in the demiurge's creation are fed into Leviathan here (23). After his death Leviathan rules “the outer darkness of the Kenoma,” a prison worse than the demiurge's, that “encircles even the heavens and the skies” (20).",auth:"Author's word: outside creation, made of the shadow of Leviathan; the three moats are three of its darkness."},
- {id:"moat3",name:"The Third Moat: the Outermost Darkness",tag:"author",src:"21, 33",d:"The outermost moat of the outer darkness. Fleeing the spirit's call, the Yaldabaoth trips and falls into it and finds no life to consume, “only the nothingness swallowing his imperfect flame” (33). Leviathan holds “keys of providence in this nothingness moat, which the demiurge will stumble into three times” (21).",auth:"Author's word: the third moat, around creation, is the outermost darkness."},
- {id:"moat2",name:"The Second Moat: the Tar",tag:"text",src:"36",d:"“The abyssal moat” of black tar. Yaldabaoth tears the Sun from the sky, drinks its flames, and throws it in “hoping to see.” The dark devours the light, the Sun sinks, and it drags the demiurge down face first. Lucifer pulls him out, but “the sun is missing and left behind” (36)."},
- {id:"titans",name:"The Titans' Watch",tag:"text",src:"36",d:"Past the first moat stand three titans, twelve times Yaldabaoth's height and covered in 777 eyes. Their purpose is “To see it through.” They “watch your pride unfold from your impurity for thirteen infinitudes” and promise his third mistake will be his last, every time. He swallows their souls (36)."},
- {id:"moat1",name:"The First Moat: the Burning River",tag:"text",src:"36",d:"“The river of dying memories,” burning black sludge whose substance is “the decay of reminiscence.” On the advice of 361 demons, Yaldabaoth crosses it on a hanging bridge made of his own angels, their wings torn, bones boiled, eyes and mouths sewn shut. He thanks them twice before slithering over them (36)."},
- {id:"limbo3",name:"Limbo: the Graveyard Crossroad (Tree III)",tag:"open",src:"31",d:"Fog over grey-purple ground, skulls whistling, gravestones to the horizon, dead trees leaking black under mycelium. The tree of both life and death, “always withering without loss,” where “Wisdom of the first of third Limbo” hangs. A crossroad of four forms (life, death, both, or none) and four ends (31).",auth:"Author's word: the layers of Limbo lie between the first moat and creation. Their order here follows Samson's walk (26, 29, 31). The text doesn't say which way is outward."},
- {id:"limbo2",name:"Limbo: the Gate of the Black Joker",tag:"open",src:"29",d:"Past “the winding green flats of the previous realm”: rich soil, a pond of lotus flowers and a fountain, a blue and golden glow rising from the ground, and a vast black sky that the water does not reflect. The goat-bull devil guards a wooden gate whose padlock reads “black joker.” The spine-spear is pulled from this pond (29).",auth:"Author's word: Limbo lies between the first moat and creation. Order follows Samson's walk."},
- {id:"limbo1",name:"Limbo: the Fool's Realm (Tree IV)",tag:"open",src:"26, 30",d:"Dark green fields, one curving path from horizon to horizon, a blank black sky with no sun, moon or stars, “in between the unreal realms of the material and the nothingness.” The Fool's single dead tree of neither life nor death, until Samson cuts it down. The only exit is north (26). Down a rabbit hole beneath, the Fool's circus tent, where Alice dies (30).",auth:"Author's word: Limbo lies between the first moat and creation. Order follows Samson's walk."},
- {id:"heaven",name:"The Heaven of the Demiurge",tag:"author",src:"10, 36",d:"Yaldabaoth's “land of memories” (36), “the land of memory forms; a part of this fake heaven,” “swirls of delusion lands without ground” (10). Home of his 361 angels. He breathes out a new star, Redemption, which heals 360 of them, and casts the one who refuses, Curse, down to Earth like a meteor (36).",auth:"Author's word: the heaven is made of memories of itself, and lies beyond the stars."},
- {id:"stars",name:"The Archons' Stars",tag:"text",src:"10, 18, 22",d:"“Shining chaos of infinite points, mad with the curse of the prison ruse.” Angels hang from them by the spine, while ancients dance in masks below (10). The archons glow in the night (18). The night sews the clouds and whispers the numbers to ten epinoias (22)."},
- {id:"saturn",name:"Saturn",tag:"text",src:"11, 22, 33",d:"“Resonant in sickness by the first moat,” its rings “like the first encircling darkness around creation” hidden on the seventh day (33). In conjunction with Jupiter behind the fallen moon, opposite Venus, Mars and the Sun (22). Squared Mars at Thomas's burial under a new moon (11)."},
- {id:"jupiter",name:"Jupiter",tag:"text",src:"4, 22",d:"“A serpent of a side from Jupiter never ending in light” (4). Joined to Saturn in conjunction (22)."},
- {id:"mars",name:"Mars",tag:"text",src:"16, 22, 31",d:"“I smell a waking God made of Mars,” says Wisdom to Samson (31). Kether's pride is seen “in the stinging of Mars' eyes” (16). Opposed to Saturn and Jupiter (22)."},
- {id:"sun",name:"The Sun",tag:"text",src:"22, 36",d:"The first Sun begged “My will is to be let free!” and was lost in the tar of the second moat. Yaldabaoth spat out a second Sun, “looking just the same as before” (36). Opposed to Saturn and Jupiter (22)."},
- {id:"venus",name:"Venus",tag:"text",src:"3, 16, 22",d:"“Follow me tonight, where Venus begins again” (3). Kether is called “a rising morning Venus” (16). Opposed to Saturn and Jupiter (22)."},
- {id:"mercury",name:"Mercury",tag:"text",src:"18",d:"In the desert rite, “the soul speaks like Mercury of the skies and alchemy” (18)."},
- {id:"moon",name:"The Moon",tag:"text",src:"18, 19, 20, 22, 36",d:"A shadow woman with crab claws stands on it, weaving fabrics out of the clouds (19, 20), and words are sewn from it into the sanity of Yaldabaoth (36). “Leviathan as Snake on the moon” (18). Leviathan knocks it from the sky, revealing Saturn and Jupiter behind it (22)."},
- {id:"earth",name:"The Earth",tag:"author",src:"1, 4, 10, 20, 36",d:"The material world, “your dream, your dead home,” fashioned by the Devil God from his dying memory (4; 1). Its sea held Leviathan until the battle at the north shore (10, 20). Curse falls into “the dirt of humankind” (36). Lucifer and Ouroboros are cast down into it (36).",auth:"Author's word: a plane of existence, not necessarily a sphere, with the planets and Sun around it as in old cosmology."}
+ {id:"full",name:"The Fullness",tag:"author",src:"4",
+  d:"The Fullness is perfect, without flaw and without suffering. The nameless one belongs to it: the true source that the demiurge imitates when “he calls himself the first and only God, a blasphemy against the nameless purity and its indescribable holiness” (4). Of what lives there, chapter 4 says simply: “What ought to be is always being, and of itself is complete light.” It is what the lost once knew “as a place called home” (4).",
+  auth:"Author's word: the Fullness is pure and perfect, without flaw or suffering, and the nameless one whom the demiurge imitates belongs to it. Unofficially, Sophia comes from the Fullness."},
+ {id:"outer",name:"The Outer Darkness",tag:"author",src:"4, 20, 21, 23",
+  d:"Outside creation, the dark that the three moats belong to. Chapter 4 names its rulers: the demons sick with hatred and blasphemy, “these tortured ones rule the outer darkness, of which is your Devil God,” who himself “was cast into the outer darkness, of a Mother's mistake.” In 23 it is Satan's prison, “one little room of this infinitude hotel of puppet machines,” stairs always leading into each other, rooms inside rooms, marionettes on strings singing “Row, row, row your boat” with guns at their heads. Souls born in the demiurge's creation are fed into Leviathan here. In 20 the dolls march on stairs that defy gravity “in the colors of a children's playground,” smiling faces hiding suffering, lit by a light “made of the outer darkness.” After his death Leviathan rules “the outer darkness of the Kenoma,” a prison worse than the demiurge's bondage that encircles even the heavens and the skies (20).",
+  auth:"Author's word: outside creation, made of the shadow of Leviathan. The puppets and stairs live inside it."},
+ {id:"moat3",name:"The Third Moat: the Outermost Darkness",tag:"author",src:"3, 4, 21, 33",
+  d:"The last ring of darkness around creation. Chapter 4 describes the shore where light gives out: “its shoreline into nothingness, where the darkness overtakes the light,” a shore that “is always stretching, always reaching further into the abyss, into the blindness of the outer darkness. It is eternally void.” Chapter 3 speaks from the bottom of it, with whispering knocks at quiet doors “hinting of its confinement to the outer darkness,” and a voice that lies “dead at the bottom of this shore of the abyss, on the cusp of nothingness.” Leviathan was given “keys of providence in this nothingness moat, which the demiurge will stumble into three times” (21). Fleeing the spirit's call, the Yaldabaoth trips into “the outermost moat of the outer darkness” and finds no life to consume, only nothingness swallowing his imperfect flame (33).",
+  auth:"Author's word: the third moat, around creation, is the outermost darkness."},
+ {id:"moat2",name:"The Second Moat: the Tar",tag:"text",src:"36",
+  d:"An abyss of black tar, twice as long to pass as the first moat. Yaldabaoth tears the Sun out of the sky, casting the Earth into darkness. The Sun begs “My will is to be let free!” and then gives in, “My God, your will is my own!” He drinks its flames and throws it into the moat “hoping to see.” The dark devours the light, the Sun sinks, and it pulls the demiurge down with it face first, thrashing “like a child drowning in the pool of oil.” His angels can't answer and the titans' souls are already inside him. Lucifer pulls him out with a ladder made of a word, but “the sun is missing and left behind” here (36)."},
+ {id:"titans",name:"The Titans' Watch",tag:"text",src:"36",
+  d:"Past the first moat stand three titans, twelve times Yaldabaoth's height, every slit of muscle fiber full of eyes, 777 eyes each. The one on the right says their purpose is “To see it through.” The one at the center judges: “We watch your pride unfold from your impurity for thirteen infinitudes.” The leftmost adds that his third mistake will be his last, every time, and that “the denial will chase you to the furthest corners of your sanity.” He swells over them and his shadow swallows their souls (36)."},
+ {id:"moat1",name:"The First Moat: the Burning River",tag:"text",src:"36",
+  d:"“The river of dying memories,” which scalds the skin into peels, a moat of thick tar boiling with “the decay of reminiscence.” A council of 361 demons advises: “Bridge over the burning black sludge liquid of withering remembrance.” Yaldabaoth drags his own angels through a portal, tears their wings, boils their bones, sews their eyes and mouths shut, and binds their hands and feet into a hanging bridge. He thanks them twice and slithers over them (36)."},
+ {id:"limbo3",name:"Limbo: the Graveyard Crossroad (Tree III)",tag:"open",src:"31",
+  d:"Fog over grey-purple ground. Wind whistles through the teeth of skulls, bones tick inside the walls, and gravestones run to a blue-purple horizon. Dead trees leak black under white mycelium. In the middle stands the tree of both life and death, “always withering without loss,” the form of transformation, where “Wisdom of the first of third Limbo” hangs upside down. A crossroad of four forms (life, death, both or none) and four ends (eternal life, eternal nothingness, both or none) (31).",
+  auth:"Author's word: the layers of Limbo lie between the first moat and creation. Their order here follows Samson's walk (26, 29, 31); the text doesn't say which way is outward."},
+ {id:"limbo2",name:"Limbo: the Gate of the Black Joker",tag:"open",src:"29",
+  d:"Past “the winding green flats of the previous realm”: rich bristled soil, a plentiful arcadium, lotus flowers drifting on a pond around a fountain, and a blue and golden glow rising from the ground in cycles. The black sky is not reflected in the water. A seven-foot goat-bull devil guards a tall wooden gate whose padlock bears the print “black joker.” From this pond Samson pulls the spine that becomes his spear (29).",
+  auth:"Author's word: Limbo lies between the first moat and creation. Order follows Samson's walk."},
+ {id:"limbo1",name:"Limbo: the Fool's Realm (Tree IV)",tag:"open",src:"26, 30",
+  d:"Short dark-green fields, one path curving from horizon to opposite horizon, and a blank black sky with no sun, moon or stars, “in between the unreal realms of the material and the nothingness.” Here stood the Fool's single dead tree of neither life nor death, his first tree, “given by God,” until Samson cut it down. The only exit is to the north (26). Down a rabbit hole beneath lies the Fool's black, white and red circus tent, where Alice is killed (30).",
+  auth:"Author's word: Limbo lies between the first moat and creation. Order follows Samson's walk."},
+ {id:"heaven",name:"The Heaven of the Demiurge",tag:"author",src:"10, 36",
+  d:"Yaldabaoth's heaven, “the land of memory forms; a part of this fake heaven,” “swirls of delusion lands without ground” (10). Antony pulls himself into it, rips his spine out as a spear and drags the fleeing demiurge back by the tail (10). After losing the Sun, Yaldabaoth swims back up through the firmament “finding his land of memories restful.” He breathes out a new star named Redemption, which heals 360 of his 361 angels, and casts the one who refuses, Curse, down to Earth like a meteor (36).",
+  auth:"Author's word: the heaven is made of memories of itself and lies beyond the stars."},
+ {id:"stars",name:"The Archons' Stars",tag:"text",src:"10, 18, 22",
+  d:"“Shining chaos of infinite points, mad with the curse of the prison ruse.” Angels hang by the spine from the archons' stars, through open neck wounds, while ancients dance in masks at their stones below. Their sparks are quiet “like sleeping giants,” many “waiting their dignities to return, after however many eternities in the snake pit; praying” (10). The archons glow in the night (18). The night sewing of clouds whispers the numbers to ten epinoias (22).",
+  auth:"Author's word: the angels hanging from the stars are true angels, from the Fullness."},
+ {id:"neptune",name:"Neptune",tag:"author",src:"11, 18, 39",
+  d:"Named in the book, though outside the seven old spheres. At Thomas's burial under a new moon, “Saturn squared off brightly with Mars and Neptune above” (11). In the desert rite: “Like a spirit of Columbus, but by a dissolve of Neptune's conjunction” (18). In the sky of the two suns, “sapphiric neptune haze” (39).",
+  auth:"Placed by the author beyond Saturn."},
+ {id:"saturn",name:"Saturn",tag:"text",src:"11, 22, 33",
+  d:"“Resonant in sickness by the first moat,” its rings “like the first encircling darkness around creation,” hidden on the seventh day as homage to the suffering of its God (33). Revealed behind the moon in conjunction with Jupiter, the two opposite Venus, Mars and the Sun (22). Squared Mars and Neptune at Thomas's burial (11)."},
+ {id:"jupiter",name:"Jupiter",tag:"text",src:"4, 22",
+  d:"“A serpent of a side from Jupiter never ending in light” (4). Revealed with Saturn in conjunction when Leviathan knocks the moon from the sky (22)."},
+ {id:"mars",name:"Mars",tag:"text",src:"16, 20, 22, 31",
+  d:"“I smell a waking God made of Mars,” says Wisdom to Samson (31). Kether's pride is “seen first and most in the stinging of Mars' eyes” (16). “A now-dead Mars look” crosses Samson's face (20). Opposed to Saturn and Jupiter (22)."},
+ {id:"sun",name:"The Sun",tag:"text",src:"22, 36",
+  d:"The first Sun begged “My will is to be let free!” and was lost in the tar of the second moat. Back home in a dark creation, Yaldabaoth swims through the night sky and spits out a second Sun, “the second Sun of creation, looking just the same as before” (36). Opposed to Saturn and Jupiter (22)."},
+ {id:"venus",name:"Venus",tag:"text",src:"3, 16, 22",
+  d:"“Follow me tonight, where Venus begins again” (3). Kether is called “a rising morning Venus” (16). Opposed to Saturn and Jupiter (22)."},
+ {id:"mercury",name:"Mercury",tag:"text",src:"18",
+  d:"In the desert rite, “the soul speaks like Mercury of the skies and alchemy. 'I will ignite'” (18)."},
+ {id:"moon",name:"The Moon",tag:"text",src:"2, 18, 19, 20, 22, 36",
+  d:"A shadow woman with crab claws stands on it as a stepping stool, weaving fabrics out of the clouds as creation; her breath blows over the north shore (19, 20). Words are sewn from it into the sanity of Yaldabaoth (36). “Leviathan as Snake on the moon” constricts a shadow over the desert (18). Leviathan knocks it from the sky, revealing Saturn and Jupiter behind it (22). “Under a dark crescent” (2)."},
+ {id:"earth",name:"The Earth",tag:"author",src:"1, 4, 10, 20, 36",
+  d:"The material world, “your dream, your dead home,” fashioned by the Devil God, his dying memory spewing corruption onto the material plane (4); “You're in a dead home, a dead curtain, go back” (1). Its sea held Leviathan until the battle at the north shore (10, 20). Curse falls into “the dirt of humankind” like a meteor, and Lucifer and Ouroboros are cast down into it together (36).",
+  auth:"Author's word: a plane of existence, not necessarily a sphere, with the planets and Sun around it as in old cosmology."},
+ {id:"tartarus",name:"Tartarus",tag:"author",src:"10, 19, 20",
+  d:"Antony is “the only angel to have been there and come back,” and calls it “a nightmare within nightmares, though dreadfully aware, even inside it, of its foreboding falsehood” (19). His head sank through the clouds into Leviathan's ocean (10), and “from the oceans they pulled another, this one missing its wings” (19). Leviathan was “the one who held the keys to his Tartarus prison” (20), and “Tartarus will celebrate this castration of the dark oceans” (19).",
+  auth:"Placed by the author in the ocean."},
+ {id:"trees",name:"The Trees of Death and Life",tag:"author",src:"19, 22, 32, 33",
+  d:"Not places on the map. Tree II (Death) and Tree I (Life) are chapter titles (32, 33) and appear in spirit form. In 19, on the mountain, “a crimson shroud appeared beneath a tree of death, standing like a tombstone that blotted out the sun”; through the portal, Samson stands “under a tree emanating life like a fountain, glowing like the sun from its heart.” In 22 a tree bursts up at the end of Kether's hallway, Antony wrestles Satan “under the tree of life,” and when the demon hangs from it, “the tree is no longer life, but death.”",
+  auth:"Author's word: Trees I and II are seen in implied spiritual form in 19 and 22."}
 ];
 const byId=Object.fromEntries(LAYERS.map(l=>[l.id,l]));
 
 /* ---------- defs ---------- */
 const defs=el("defs");
 const blur=(id,sd)=>{const f=el("filter",{id,x:"-50%",y:"-50%",width:"200%",height:"200%"},defs);el("feGaussianBlur",{stdDeviation:sd},f)};
-blur("b1",1.6);blur("b3",3.2);blur("b8",9);blur("b16",18);
+blur("b1",1);blur("bp",1.5);blur("b3",3.2);blur("b8",9);blur("b16",18);
 const rg=(id,stops,attrs={})=>{const g=el("radialGradient",Object.assign({id,cx:"50%",cy:"50%",r:"50%"},attrs),defs);stops.forEach(([o,c,op])=>el("stop",{offset:o,"stop-color":c,"stop-opacity":op??1},g))};
-rg("outerG",[["40%",css("--outer")],["75%","#171227"],["100%",css("--deep")]],{r:"71%"});
+rg("outerG",[["45%",css("--outer")],["80%","#171227"],["100%","#0c0a14"]],{r:"71%"});
+rg("veil",[["0%","#000",0],["66%","#000",0],["82%","#000",.22],["100%","#000",.5]],{r:"71%"});
 rg("fireG",[["0%",css("--fire"),0],["95.9%",css("--fire"),0],["96.3%",css("--fire"),.85],["98.2%","#5a2410",.9],["100%","#1a0a05",1]]);
-const frame=el("linearGradient",{id:"fullG",x1:"0",y1:"0",x2:"0",y2:"1"},defs);
-[["0%",css("--full"),.55],["8%",css("--full"),0],["92%",css("--full"),0],["100%",css("--full"),.35]].forEach(([o,c,op])=>el("stop",{offset:o,"stop-color":c,"stop-opacity":op},frame));
 
 /* ---------- radii ---------- */
-const R={earth:[0,70],moon:105,mercury:130,venus:155,sun:182,mars:208,jupiter:233,saturn:258,
- stars:[266,300],heaven:[304,346],edge:350,limbo1:[352,376],limbo2:[376,400],limbo3:[400,424],
- moat1:[430,448],titans:[448,462],moat2:[462,481],moat3:[481,502]};
+const R={moon:105,mercury:128,venus:151,sun:176,mars:200,jupiter:223,saturn:246,neptune:268,
+ stars:[278,310],heaven:[314,354],edge:358,limbo1:[360,384],limbo2:[384,408],limbo3:[408,432],
+ moat1:[438,456],titans:[456,470],moat2:[470,489],moat3:[489,510]};
+const F=34; // white frame of the Fullness
 
-/* ---------- the outer darkness, Leviathan's shadow, the Fullness ---------- */
 const bandG={};
-function band(id){const g=el("g",{class:"band",tabindex:0,role:"button","aria-label":byId[id].name});g.dataset.id=id;bandG[id]=g;return g}
-const gOuter=band("outer");
-el("rect",{x:0,y:0,width:1200,height:1200,fill:"url(#outerG)"},gOuter);
-// Leviathan's shadow: a vast coiled body that makes the dark
-const shadow=el("g",{filter:"url(#b16)",opacity:.95},gOuter);
-for(let k=0;k<2;k++){let d="";for(let i=0;i<=360;i++){const a=i/360*Math.PI*2;const r=600+k*120+38*Math.sin(a*5+k*1.7)+18*Math.sin(a*11);const [x,y]=pol(r,a);d+=(i?"L":"M")+x.toFixed(1)+","+y.toFixed(1)}
- el("path",{d,fill:"none",stroke:"#000",["stroke-width"]:110-k*30,["stroke-opacity"]:.85},shadow)}
-// scale sheen along the coil
-const sheen=el("g",{opacity:.16,filter:"url(#b1)"},gOuter);
-for(let i=0;i<220;i++){const a=rnd()*Math.PI*2,r=560+rnd()*90+38*Math.sin(a*5);const [x,y]=pol(r,a);el("path",{d:`M${x-5},${y} q5,-6 10,0`,fill:"none",stroke:css("--puppet"),"stroke-width":1},sheen)}
-// smudged puppets and stairs, rough and undetailed
-const pup=el("g",{filter:"url(#b3)",opacity:.42},gOuter);
-function puppet(x,y,s){const g=el("g",{transform:`translate(${x},${y}) scale(${s})`},pup);const c=css("--puppet");
- el("line",{x1:0,y1:-34,x2:0,y2:-60,stroke:c,"stroke-width":.8},g);el("line",{x1:-9,y1:-4,x2:-12,y2:-60,stroke:c,"stroke-width":.6},g);el("line",{x1:9,y1:-4,x2:12,y2:-60,stroke:c,"stroke-width":.6},g);
- el("circle",{cx:0,cy:-26,r:7,fill:c},g);el("path",{d:"M-8,-18 L8,-18 L11,6 L-11,6 Z",fill:c},g);
- el("path",{d:"M-11,0 L-15,10 M11,0 L15,10 M-5,6 L-6,20 M5,6 L6,20",stroke:c,"stroke-width":2.4,fill:"none"},g)}
-for(let i=0;i<46;i++){let x,y,r;do{x=rnd()*1200;y=rnd()*1200;r=Math.hypot(x-C,y-C)}while(r<528||x<20||x>1180||y<30||y>1180);puppet(x,y,.55+rnd()*.6)}
-const stairs=el("g",{filter:"url(#b3)",opacity:.25},gOuter);
-[[90,250],[1060,980],[150,1050],[1030,180],[600,1150]].forEach(([x,y],i)=>{let d=`M${x},${y}`;for(let s=0;s<7;s++)d+=` h${i%2?-14:14} v-12`;el("path",{d,fill:"none",stroke:css("--puppet"),"stroke-width":3},stairs)});
-// a ring of marionette heads: the marigold round
-const round=el("g",{filter:"url(#b1)",opacity:.35},gOuter);
-for(let i=0;i<14;i++){const a=i/14*Math.PI*2;el("circle",{cx:1035+40*Math.cos(a),cy:690+40*Math.sin(a),r:5,fill:css("--puppet")},round)}
-el("path",{d:annulus(502,1000),fill:"transparent",class:"hit",stroke:"none"},gOuter);
+function band(id,parent=svg){const g=el("g",{class:"band",tabindex:0,role:"button","aria-label":byId[id].name},parent);g.dataset.id=id;bandG[id]=g;return g}
 
-// The Fullness: light at the far edge of everything
+/* ---------- the Fullness: pure white around everything ---------- */
 const gFull=band("full");
-el("rect",{x:3,y:3,width:1194,height:1194,fill:"none",stroke:css("--full"),"stroke-opacity":.35,"stroke-width":2,filter:"url(#b8)"},gFull);
-el("rect",{x:0,y:0,width:1200,height:58,fill:"url(#fullG)",class:"hit"},gFull);
-el("rect",{x:0,y:1142,width:1200,height:58,fill:"url(#fullG)",opacity:.6},gFull);
+el("path",{d:`M0,0 H1200 V1200 H0 Z M${F},${F} V${1200-F} H${1200-F} V${F} Z`,fill:css("--white"),"fill-rule":"evenodd",class:"hit"},gFull);
+
+/* ---------- the outer darkness ---------- */
+const clip=el("clipPath",{id:"inner"},defs);el("rect",{x:F,y:F,width:1200-2*F,height:1200-2*F},clip);
+const gOuterB=band("outer");const gOuter=el("g",{"clip-path":"url(#inner)"},gOuterB);
+el("rect",{x:F,y:F,width:1200-2*F,height:1200-2*F,fill:"url(#outerG)",class:"hit"},gOuter);
+const art=el("g",{"pointer-events":"none"},gOuter);
+
+// playground stairs that lead into themselves
+const PLAY=["#c8433a","#e0b23a","#3b6fc4","#3f9a5a","#d06aa8"];
+function stairs(x,y,steps,dir,rot,s){
+  const g=el("g",{transform:`translate(${x},${y}) rotate(${rot}) scale(${s})`,filter:"url(#bp)",opacity:.62},art);
+  for(let i=0;i<steps;i++){const c=PLAY[(i+steps)%PLAY.length];
+    el("rect",{x:i*16*dir,y:-i*11,width:16,height:11+i*11,fill:c,opacity:.9},g);
+    el("rect",{x:i*16*dir,y:-i*11,width:16,height:3,fill:"#fff",opacity:.25},g)}
+}
+[[110,260,6,1,-8,1.1],[1015,215,5,-1,10,1],[150,980,7,1,6,1],[1060,1010,6,-1,-12,1.05],[600,1135,5,1,0,.9],[600,95,4,-1,180,.8],[70,620,5,1,-90,.9],[1130,560,5,-1,90,.9]].forEach(a=>stairs(...a));
+
+// marionettes: dark hair, black jacket, white shirt, red bow and sash, teal trousers, black shoes
+const PANTS=["#2a9a86","#2a9a86","#3b6fc4","#e0b23a","#2a9a86"];
+function puppet(x,y,s,rot,v){
+  const g=el("g",{transform:`translate(${x},${y}) rotate(${rot}) scale(${s})`,filter:"url(#bp)",opacity:.9},art);
+  const str="#cfc6b8";
+  [[-3,-46],[3,-46],[-15,-6],[15,-6],[-8,30],[8,30]].forEach(([sx,sy])=>el("line",{x1:sx,y1:sy,x2:sx*1.3,y2:-120,stroke:str,"stroke-width":.7,opacity:.55},g));
+  el("path",{d:"M-8,40 L-9,62 L-3,62 L-2,40 Z M2,40 L3,62 L9,62 L8,40 Z",fill:PANTS[v%PANTS.length]},g);
+  el("path",{d:"M-10,62 h8 v4 h-10 Z M2,62 h8 l2,4 h-10 Z",fill:"#111"},g);
+  el("path",{d:"M-11,18 Q0,24 11,18 L9,26 Q0,30 -9,26 Z",fill:"#c62f28"},g);
+  el("path",{d:"M-12,-22 L12,-22 L13,20 L9,40 L-9,40 L-13,20 Z",fill:PANTS[v%PANTS.length]},g);
+  el("path",{d:"M-13,-22 L13,-22 L12,10 L4,10 L0,-14 L-4,10 L-12,10 Z",fill:"#18161c"},g);
+  el("path",{d:"M-4,-22 L4,-22 L2,10 L-2,10 Z",fill:"#eee6d8"},g);
+  el("path",{d:"M-8,-24 L0,-19 L8,-24 L8,-15 L0,-19 L-8,-15 Z",fill:"#d22f26"},g);
+  el("path",{d:"M-13,-20 L-20,8 L-15,10 L-9,-12 Z M13,-20 L20,8 L15,10 L9,-12 Z",fill:"#18161c"},g);
+  el("circle",{cx:-18,cy:11,r:3,fill:"#e6b89a"},g);el("circle",{cx:18,cy:11,r:3,fill:"#e6b89a"},g);
+  el("ellipse",{cx:0,cy:-34,rx:9,ry:11,fill:"#e6b89a"},g);
+  el("path",{d:"M-10,-36 Q-11,-49 0,-48 Q11,-49 10,-36 Q7,-43 0,-43 Q-7,-43 -10,-36 Z",fill:"#3a2418"},g);
+  el("circle",{cx:-3.5,cy:-35,r:1.2,fill:"#111"},g);el("circle",{cx:3.5,cy:-35,r:1.2,fill:"#111"},g);
+  el("path",{d:"M-3,-28 Q0,-25 3,-28",stroke:"#b5221c","stroke-width":1.6,fill:"none"},g);
+}
+let placed=[];
+for(let i=0;i<900&&placed.length<30;i++){
+  let x=F+50+rnd()*(1200-2*F-100),y=F+60+rnd()*(1200-2*F-110);
+  if(Math.hypot(x-C,y-C)<575)continue;
+  if(placed.some(([px,py])=>Math.hypot(px-x,py-y)<85))continue;
+  placed.push([x,y]);puppet(x,y,.95+rnd()*.45,(rnd()-.5)*24,i);
+}
+// Leviathan's shadow: a vast coil that makes the dark
+const shadow=el("g",{filter:"url(#b16)","pointer-events":"none"},gOuter);
+for(let k=0;k<2;k++){let d="";for(let i=0;i<=360;i++){const a=i/360*Math.PI*2;const r=595+k*125+36*Math.sin(a*5+k*1.7)+16*Math.sin(a*11);const [x,y]=pol(r,a);d+=(i?"L":"M")+x.toFixed(1)+","+y.toFixed(1)}
+ el("path",{d,fill:"none",stroke:"#000","stroke-width":90-k*30,"stroke-opacity":.7},shadow)}
+el("rect",{x:F,y:F,width:1200-2*F,height:1200-2*F,fill:"url(#veil)","pointer-events":"none"},gOuter);
+// soft inner glow where darkness meets the white
+el("rect",{x:F,y:F,width:1200-2*F,height:1200-2*F,fill:"none",stroke:css("--white"),"stroke-opacity":.55,"stroke-width":6,filter:"url(#b8)","pointer-events":"none"},gOuter);
 
 /* ---------- the three moats and the titans ---------- */
 function ring(id,r1,r2,fill,op=1){const g=band(id);el("path",{d:annulus(r1,r2),fill,"fill-opacity":op,"fill-rule":"evenodd",class:"hit",stroke:css("--rule"),"stroke-width":.6},g);return g}
 const g3=ring("moat3",...R.moat3,"#030206");
-el("circle",{cx:C,cy:C,r:R.moat3[1],fill:"none",stroke:css("--rule"),"stroke-width":1.4},g3);
+el("circle",{cx:C,cy:C,r:R.moat3[1],fill:"none",stroke:"#4a4166","stroke-width":1.4},g3);
 const g2=ring("moat2",...R.moat2,css("--tar"));
-// tar sheen and the first Sun, sunk
-for(let i=0;i<40;i++){const a=rnd()*Math.PI*2;const [x,y]=pol(R.moat2[0]+4+rnd()*11,a);el("ellipse",{cx:x,cy:y,rx:6,ry:1.4,fill:"#3a2f24",opacity:.6,transform:`rotate(${a*180/Math.PI+90} ${x} ${y})`},g2)}
-const sunA=2.35;const [sx,sy]=pol(471,sunA);el("circle",{cx:sx,cy:sy,r:9,fill:"#7a3a14",opacity:.85,filter:"url(#b1)"},g2);
+for(let i=0;i<46;i++){const a=rnd()*Math.PI*2;const [x,y]=pol(R.moat2[0]+4+rnd()*11,a);el("ellipse",{cx:x,cy:y,rx:6,ry:1.4,fill:"#3a2f24",opacity:.6,transform:`rotate(${a*180/Math.PI+90} ${x} ${y})`},g2)}
+{const [sx,sy]=pol(479,2.35);el("circle",{cx:sx,cy:sy,r:9,fill:"#7a3a14",opacity:.85,filter:"url(#b1)"},g2)}
 const gt=ring("titans",...R.titans,"#0b0914");
-[-.35,-.15,.05].forEach((o,k)=>{for(let e=0;e<9;e++){const [x,y]=pol(450+rnd()*10,-Math.PI/2+1.25+o+e*.012);el("circle",{cx:x,cy:y,r:1.1,fill:css("--star"),opacity:.8},gt)}});
+[-.35,-.15,.05].forEach(o=>{for(let e=0;e<9;e++){const [x,y]=pol(459+rnd()*8,-Math.PI/2+1.25+o+e*.012);el("circle",{cx:x,cy:y,r:1.1,fill:css("--star"),opacity:.8},gt)}});
 const g1=ring("moat1",...R.moat1,"#1a0a05");
 el("path",{d:annulus(...R.moat1),fill:"url(#fireG)","fill-rule":"evenodd",opacity:.9,"pointer-events":"none"},g1);
-for(let i=0;i<120;i++){const a=rnd()*Math.PI*2;const r=R.moat1[0]+3+rnd()*12;const [x,y]=pol(r,a);const [x2,y2]=pol(r+2+rnd()*4,a+.01);el("line",{x1:x,y1:y,x2:x2,y2:y2,stroke:css("--fire"),"stroke-width":1.2,opacity:.7},g1)}
-// the bridge of bound angels across the first moat
-const bA=-0.95;for(let k=0;k<6;k++){const [x,y]=pol(R.moat1[0]+1+k*3.3,bA);el("circle",{cx:x,cy:y,r:1.6,fill:css("--bone")},g1)}
-{const [x1,y1]=pol(R.moat1[0]-2,bA),[x2,y2]=pol(R.moat1[1]+2,bA);el("line",{x1,y1,x2,y2,stroke:css("--bone"),"stroke-width":.8,opacity:.8},g1)}
+for(let i=0;i<130;i++){const a=rnd()*Math.PI*2;const r=R.moat1[0]+3+rnd()*12;const [x,y]=pol(r,a);const [x2,y2]=pol(r+2+rnd()*4,a+.01);el("line",{x1:x,y1:y,x2,y2,stroke:css("--fire"),"stroke-width":1.2,opacity:.7},g1)}
+{const bA=-0.95;for(let k=0;k<6;k++){const [x,y]=pol(R.moat1[0]+1+k*3.3,bA);el("circle",{cx:x,cy:y,r:1.6,fill:css("--bone")},g1)}
+ const [x1,y1]=pol(R.moat1[0]-2,bA),[x2,y2]=pol(R.moat1[1]+2,bA);el("line",{x1,y1,x2,y2,stroke:css("--bone"),"stroke-width":.8,opacity:.8},g1)}
 
 /* ---------- the layers of Limbo ---------- */
 const gl3=ring("limbo3",...R.limbo3,"#20262a");
@@ -178,57 +233,59 @@ for(let i=0;i<26;i++){const a=rnd()*Math.PI*2;const [x,y]=pol(R.limbo2[0]+12,a);
 const gl1=ring("limbo1",...R.limbo1,"#1d3324");
 {let d="";for(let i=0;i<=360;i++){const a=i/360*Math.PI*2;const [x,y]=pol(R.limbo1[0]+12+5*Math.sin(a*9),a);d+=(i?"L":"M")+x.toFixed(1)+","+y.toFixed(1)}el("path",{d,fill:"none",stroke:"#9fbf86","stroke-width":1,"stroke-dasharray":"4 4",opacity:.7},gl1)}
 {const [x,y]=pol(R.limbo1[0]+12,-Math.PI/2+.62);el("path",{d:`M${x},${y+6} L${x},${y-6} M${x},${y-3} l-5,-4 M${x},${y-4} l5,-5`,stroke:"#b39b78","stroke-width":1.4,fill:"none"},gl1)}
-// the edge of creation
 el("circle",{cx:C,cy:C,r:R.edge,fill:"none",stroke:css("--gilt"),"stroke-width":1.2,"stroke-opacity":.8});
 el("circle",{cx:C,cy:C,r:R.edge-3,fill:"none",stroke:css("--gilt"),"stroke-width":.5,"stroke-opacity":.6});
 
-/* ---------- creation: heaven of memories, stars, planets, Earth ---------- */
+/* ---------- creation ---------- */
 const gh=ring("heaven",...R.heaven,"#1b1630");
-for(let i=0;i<28;i++){const r=R.heaven[0]+3+rnd()*36;const a0=rnd()*Math.PI*2,a1=a0+.2+rnd()*.7;const [x0,y0]=pol(r,a0),[x1,y1]=pol(r,a1);
+for(let i=0;i<30;i++){const r=R.heaven[0]+3+rnd()*36;const a0=rnd()*Math.PI*2,a1=a0+.2+rnd()*.7;const [x0,y0]=pol(r,a0),[x1,y1]=pol(r,a1);
  el("path",{d:`M${x0},${y0} A${r},${r} 0 0,1 ${x1},${y1}`,fill:"none",stroke:css("--heaven"),"stroke-width":.9,opacity:.25+rnd()*.35,"stroke-dasharray":rnd()>.5?"2 4":"none"},gh)}
-{const [x,y]=pol(325,-Math.PI/2+.95);const s=el("g",{transform:`translate(${x},${y})`},gh);el("path",{d:"M0,-7 L1.8,-1.8 L7,0 L1.8,1.8 L0,7 L-1.8,1.8 L-7,0 L-1.8,-1.8 Z",fill:css("--full")},s)}
+{const [x,y]=pol(334,-Math.PI/2+.95);const s=el("g",{transform:`translate(${x},${y})`},gh);el("path",{d:"M0,-7 L1.8,-1.8 L7,0 L1.8,1.8 L0,7 L-1.8,1.8 L-7,0 L-1.8,-1.8 Z",fill:"#fff4d6"},s)}
 const gs=ring("stars",...R.stars,"#0d0c1c");
-for(let i=0;i<260;i++){const a=rnd()*Math.PI*2,r=R.stars[0]+2+rnd()*30;const [x,y]=pol(r,a);el("circle",{cx:x,cy:y,r:rnd()*1.3+.3,fill:css("--star"),opacity:.5+rnd()*.5,class:i%9===0?"twinkle":""},gs)}
-// angels hanging by the spine from the stars
-for(let i=0;i<10;i++){const a=-Math.PI/2+.3+i*.1;const [x,y]=pol(R.stars[1]-4,a);const [x2,y2]=pol(R.stars[0]+6,a);el("line",{x1:x,y1:y,x2:x2,y2:y2,stroke:css("--bone"),"stroke-width":.6,opacity:.55},gs);el("circle",{cx:x2,cy:y2,r:1.5,fill:css("--bone"),opacity:.7},gs)}
-const glyph={moon:"☾",mercury:"☿",venus:"♀",sun:"☉",mars:"♂",jupiter:"♃",saturn:"♄"};
-const pAng={moon:-.25,mercury:.05,venus:.35,sun:.62,mars:.9,jupiter:1.18,saturn:1.45};
-["saturn","jupiter","mars","sun","venus","mercury","moon"].forEach(id=>{
+for(let i=0;i<280;i++){const a=rnd()*Math.PI*2,r=R.stars[0]+2+rnd()*30;const [x,y]=pol(r,a);el("circle",{cx:x,cy:y,r:rnd()*1.3+.3,fill:css("--star"),opacity:.5+rnd()*.5,class:i%9===0?"twinkle":""},gs)}
+for(let i=0;i<10;i++){const a=-Math.PI/2+.3+i*.1;const [x,y]=pol(R.stars[1]-4,a);const [x2,y2]=pol(R.stars[0]+6,a);el("line",{x1:x,y1:y,x2,y2,stroke:css("--bone"),"stroke-width":.6,opacity:.55},gs);el("circle",{cx:x2,cy:y2,r:1.5,fill:"#fff",opacity:.85},gs)}
+const glyph={moon:"☾",mercury:"☿",venus:"♀",sun:"☉",mars:"♂",jupiter:"♃",saturn:"♄",neptune:"♆"};
+const pAng={moon:-.25,mercury:.05,venus:.35,sun:.62,mars:.9,jupiter:1.18,saturn:1.45,neptune:1.72};
+["neptune","saturn","jupiter","mars","sun","venus","mercury","moon"].forEach(id=>{
   const r=R[id],g=band(id);
-  el("path",{d:annulus(r-11,r+11),fill:"transparent","fill-rule":"evenodd",class:"hit",stroke:"none"},g);
-  el("circle",{cx:C,cy:C,r,fill:"none",stroke:css("--planet"),"stroke-width":id==="sun"?1.4:.8,"stroke-opacity":.55},g);
+  el("path",{d:annulus(r-10,r+10),fill:"transparent","fill-rule":"evenodd",class:"hit",stroke:"none"},g);
+  el("circle",{cx:C,cy:C,r,fill:"none",stroke:css("--planet"),"stroke-width":id==="sun"?1.4:.8,"stroke-opacity":id==="neptune"?.35:.55,"stroke-dasharray":id==="neptune"?"3 5":"none"},g);
   const [x,y]=pol(r,pAng[id]);
-  el("circle",{cx:x,cy:y,r:id==="sun"?10:7,fill:id==="sun"?"#d9a441":id==="moon"?"#d9d3c4":id==="mars"?"#b4583f":"#cdbf9d"},g);
+  el("circle",{cx:x,cy:y,r:id==="sun"?10:7,fill:{sun:"#d9a441",moon:"#d9d3c4",mars:"#b4583f",neptune:"#5b86c9"}[id]||"#cdbf9d"},g);
   const t=el("text",{x:x+(id==="sun"?14:11),y:y+5,class:"lab small"},g);t.textContent=glyph[id]+" "+byId[id].name.replace("The ","");
 });
-// the woman with crab claws on the moon, a shadow figure
 {const [x,y]=pol(R.moon,pAng.moon);const w=el("g",{transform:`translate(${x-4},${y-9})`,opacity:.9},bandG.moon);el("path",{d:"M0,0 L-2,-10 M0,0 L2,-10 M-2,-10 a2.2,2.2 0 1,1 4,0 M-3,-7 l-5,-3 l1,-3 M3,-7 l5,-3 l-1,-3",stroke:css("--puppet"),"stroke-width":1.2,fill:"none"},w)}
-// the Earth as a plane
+// the Earth as a plane, with Tartarus in its ocean
 const ge=band("earth");
-el("circle",{cx:C,cy:C,r:80,fill:"transparent",class:"hit",stroke:"none"},ge);
-el("ellipse",{cx:C,cy:C+6,rx:70,ry:19,fill:css("--earth"),opacity:.9},ge);
-el("ellipse",{cx:C-22,cy:C+8,rx:22,ry:6,fill:css("--sea")},ge);
-el("path",{d:`M${C-70},${C+6} Q${C},${C+40} ${C+70},${C+6}`,fill:"#2b2418",opacity:.9},ge);
-el("path",{d:`M${C-34},${C+8} q4,-3 8,0 q4,3 8,0`,fill:"none",stroke:"#0b1218","stroke-width":1.2},ge);
-{const t=el("text",{x:C,y:C+56,class:"lab small","text-anchor":"middle"},ge);t.textContent="The Earth"}
+el("circle",{cx:C,cy:C,r:82,fill:"transparent",class:"hit",stroke:"none"},ge);
+el("ellipse",{cx:C,cy:C+6,rx:72,ry:20,fill:css("--earth"),opacity:.9},ge);
+el("ellipse",{cx:C-20,cy:C+8,rx:30,ry:8,fill:css("--sea")},ge);
+el("path",{d:`M${C-72},${C+6} Q${C},${C+42} ${C+72},${C+6}`,fill:"#2b2418",opacity:.9},ge);
+{const t=el("text",{x:C,y:C+58,class:"lab small","text-anchor":"middle"},ge);t.textContent="The Earth"}
+const gT=band("tartarus");
+el("ellipse",{cx:C-20,cy:C+8,rx:12,ry:4,fill:"transparent",class:"hit",stroke:"none"},gT);
+el("path",{d:`M${C-20},${C+8} m-8,0 a8,3 0 1,0 16,0 a6,2.2 0 1,0 -12,0 a4,1.5 0 1,0 8,0`,fill:"none",stroke:"#0a0a12","stroke-width":1.4},gT);
+el("circle",{cx:C-20,cy:C+8,r:1.6,fill:"#000"},gT);
+{const t=el("text",{x:C-46,y:C-14,class:"lab small","text-anchor":"middle",style:"font-size:11px"},gT);t.textContent="Tartarus";
+ el("line",{x1:C-38,y1:C-10,x2:C-24,y2:C+5,stroke:css("--bone"),"stroke-width":.6,opacity:.7},gT)}
 
-/* ---------- ring labels along the top arcs ---------- */
+/* ---------- labels ---------- */
 function arcLabel(id,r,text,cls="lab",span=.5){
   const a0=-Math.PI/2-span,a1=-Math.PI/2+span;const [x0,y0]=pol(r,a0),[x1,y1]=pol(r,a1);
-  const p=el("path",{id:"arc-"+id,d:`M${x0},${y0} A${r},${r} 0 0,1 ${x1},${y1}`,fill:"none"},defs);
+  el("path",{id:"arc-"+id,d:`M${x0},${y0} A${r},${r} 0 0,1 ${x1},${y1}`,fill:"none"},defs);
   const t=el("text",{class:cls,"text-anchor":"middle",dy:"5"});const tp=el("textPath",{href:"#arc-"+id,startOffset:"50%"},t);tp.textContent=text;
 }
-arcLabel("st",283,"The Archons' Stars");
-arcLabel("hv",325,"Heaven of the Demiurge · land of memories");
-arcLabel("l1",364,"Limbo · the Fool's Realm (Tree IV)","lab small");
-arcLabel("l2",388,"Limbo · Gate of the Black Joker","lab small");
-arcLabel("l3",412,"Limbo · the Graveyard Crossroad (Tree III)","lab small");
-arcLabel("m1",439,"First Moat · the Burning River","lab small");
-arcLabel("ti",455,"the Titans' Watch","lab small",.3);
-arcLabel("m2",471.5,"Second Moat · the Tar","lab small");
-arcLabel("m3",491.5,"Third Moat · the Outermost Darkness","lab small");
-{const t=el("text",{x:C,y:80,class:"lab","text-anchor":"middle"});t.textContent="The Outer Darkness · the shadow of Leviathan"}
-{const t=el("text",{x:C,y:32,class:"lab gilt","text-anchor":"middle"});t.textContent="The Fullness"}
+arcLabel("st",295,"The Archons' Stars");
+arcLabel("hv",334,"Heaven of the Demiurge · land of memories");
+arcLabel("l1",372,"Limbo · the Fool's Realm (Tree IV)","lab small");
+arcLabel("l2",396,"Limbo · Gate of the Black Joker","lab small");
+arcLabel("l3",420,"Limbo · the Graveyard Crossroad (Tree III)","lab small");
+arcLabel("m1",447,"First Moat · the Burning River","lab small");
+arcLabel("ti",463,"the Titans' Watch","lab small",.3);
+arcLabel("m2",479.5,"Second Moat · the Tar","lab small");
+arcLabel("m3",499.5,"Third Moat · the Outermost Darkness","lab small");
+{const t=el("text",{x:C,y:78,class:"lab","text-anchor":"middle"});t.textContent="The Outer Darkness · the shadow of Leviathan"}
+{const t=el("text",{x:C,y:24,"text-anchor":"middle",fill:"#2a2438","font-family":"IM Fell English SC, Georgia, serif","font-size":"18","letter-spacing":"2","pointer-events":"none"});t.textContent="The Fullness"}
 
 /* ---------- interaction ---------- */
 const P=document.getElementById("panel");
@@ -237,19 +294,18 @@ const TAGS={text:["From the text",""],author:["Placed by the author","author"],o
 let cur=null;
 function show(id){
   if(cur&&bandG[cur])bandG[cur].classList.remove("on");cur=id;
-  if(!id){P.innerHTML=`<h2>Reading the map</h2><p>The Earth sits at the center as a plane. Around it are the seven planets in their old order (Moon, Mercury, Venus, Sun, Mars, Jupiter, Saturn), then the archons' stars, then the demiurge's heaven of memories, which closes creation.</p><p>Outside creation come the layers of Limbo, then the three moats of the outer darkness, the third being the outermost. Past them is the outer darkness itself, made of Leviathan's shadow and filled with smudged puppets. The Fullness is the light at the far edge.</p><p><span class="tag">From the text</span><span class="tag author">Placed by the author</span><span class="tag open">Order unconfirmed</span></p><p class="src">Tap a ring, or use the list below the map.</p>`;return}
+  if(!id){P.innerHTML=`<h2>Reading the map</h2><p>The Earth sits at the center as a plane, with Tartarus in its ocean. Around it are the planets in their old order (Moon, Mercury, Venus, Sun, Mars, Jupiter, Saturn), with Neptune beyond. Then come the archons' stars and the demiurge's heaven of memories, which closes creation.</p><p>Outside creation lie the layers of Limbo, then the three moats of the outer darkness, the third being the outermost. Past them is the outer darkness itself, made of Leviathan's shadow, where puppets and playground stairs sink into the dark. All of it is held within the white of the Fullness.</p><p><span class="tag">From the text</span><span class="tag author">Placed by the author</span><span class="tag open">Order unconfirmed</span></p><p class="src">Tap a ring, or use the list below the map.</p>`;return}
   bandG[id]&&bandG[id].classList.add("on");
   const L=byId[id],[tl,tc]=TAGS[L.tag];
-  P.innerHTML=`<h2>${esc(L.name)}</h2><p class="src">chapters ${esc(L.src)}</p><p><span class="tag ${tc}">${tl}</span></p><p>${esc(L.d)}</p>${L.auth?`<p class="src" style="font-style:italic;color:var(--gilt)">${esc(L.auth)}</p>`:""}`;
+  P.innerHTML=`<h2>${esc(L.name)}</h2><p class="src">chapters ${esc(L.src)}</p><p><span class="tag ${tc}">${tl}</span></p><p>${esc(L.d)}</p>${L.auth?`<p class="auth">${esc(L.auth)}</p>`:""}`;
 }
 Object.entries(bandG).forEach(([id,g])=>{
   g.addEventListener("click",e=>{e.stopPropagation();show(cur===id?null:id)});
   g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();show(id)}});
 });
 const KL=document.getElementById("keylist");
-LAYERS.forEach(L=>{const b=document.createElement("button");b.type="button";b.textContent=L.name;b.addEventListener("click",()=>{show(L.id);P.scrollIntoView({behavior:"smooth",block:"nearest"})});KL.appendChild(b)});
+LAYERS.forEach(L=>{const b=document.createElement("button");b.type="button";b.textContent=L.name;b.addEventListener("click",()=>{show(L.id);if(window.innerWidth<980)P.scrollIntoView({behavior:"smooth",block:"nearest"})});KL.appendChild(b)});
 show(null);
 </script>
 
-</body>
-</html>
+</body></html>
