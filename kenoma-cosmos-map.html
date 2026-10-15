@@ -3,40 +3,43 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>Kenoma Cosmology Map</title>
+<title>The Cosmos · Nous Within Kenoma</title>
+<link rel="preload" href="cascadia-code-latin-200-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="site.css">
+<script src="site.js" defer></script>
+</head>
+<body>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Spectral:ital,wght@0,400;0,500;1,400&display=swap">
 <style>
 /* Layout: an old concentric world-chart on deep indigo, with the white light of the Fullness above it. Chart left, reading panel right; key list below. Single dark world on purpose. */
 :root{
-  --ink:#110b2e; --vellum:#1b1442; --bone:#e7dcc6; --dim:#a69dc9; --gilt:#c9a45c; --rule:#3b3175;
+  --ink:#1b120b; --vellum:#24180f; --bone:#f3d6a6; --dim:#c9a274; --gilt:#e9a157; --rule:#4d331f;
   --earth:#6f8a63; --sea:#24405a; --planet:#d8cdb4; --star:#efe6cf; --heaven:#8d78c4;
-  --fire:#c8642f; --tar:#1b1612; --deep:#050409; --outer:#221c38; --puppet:#8d7f98; --white:#ffffff;
-  --display:"IM Fell English SC","IM Fell English",Georgia,serif;
-  --body:"Spectral",Georgia,"Times New Roman",serif;
+  --fire:#c8642f; --tar:#1b1612; --deep:#050409; --outer:#1e150d; --puppet:#8d7f98; --white:#ffffff;
+  --display:"Cascadia Code","Cascadia Mono",Consolas,"Courier New",monospace;
+  --body:"Cascadia Code","Cascadia Mono",Consolas,"Courier New",monospace;
   color-scheme:dark;
 }
-html,body{background:var(--ink);color:var(--bone)}
-body{font-family:var(--body);font-size:15px;line-height:1.55;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 36px}
+html{background:var(--ink);color:var(--bone)}
+body{background:transparent;margin:0}
+body{font-family:var(--body);font-weight:200;font-size:15px;line-height:1.55;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 36px}
 header{max-width:1400px;margin:0 auto 14px}
-h1{font-family:var(--display);font-weight:400;font-size:clamp(26px,4vw,38px);margin:0;color:var(--gilt);letter-spacing:.02em;text-wrap:balance}
+h1{font-family:var(--display);font-weight:200;font-size:clamp(26px,4vw,38px);margin:0;color:var(--gilt);letter-spacing:.02em;text-wrap:balance}
 .sub{color:var(--dim);font-style:italic;margin:2px 0 0;max-width:70ch}
 .back{color:var(--gilt);font-size:14px;text-decoration:none;border-bottom:1px solid var(--rule)}
 .wrap{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:18px;align-items:start}
 @media (max-width:980px){.wrap{grid-template-columns:minmax(0,1fr)}}
-.chartbox{overflow-x:auto;border:1px solid var(--rule);background:var(--ink);border-radius:2px}
+.chartbox{overflow-x:auto;border:1px solid var(--rule);background:var(--ink);border-radius:0}
 svg#cosmos{display:block;width:100%;min-width:760px;height:auto}
 .band{cursor:pointer}
 .band:hover .hit,.band:focus-visible .hit,.band.on .hit{stroke:var(--gilt);stroke-width:2.5;stroke-opacity:.95}
 .band:focus{outline:none}
-.lab{font-family:var(--display);fill:var(--bone);font-size:15px;letter-spacing:.06em;paint-order:stroke;stroke:var(--deep);stroke-width:3.5px;pointer-events:none}
-.lab.small{font-size:12.5px;font-family:var(--body);letter-spacing:.02em}
+.lab{font-family:var(--display);fill:var(--bone);font-size:14px;letter-spacing:.04em;paint-order:stroke;stroke:var(--deep);stroke-width:3.5px;pointer-events:none}
+.lab.small{font-size:11.5px;font-family:var(--body);letter-spacing:.02em}
 .lab.ink{fill:#2a2438;stroke:var(--white);font-size:17px}
-aside{background:var(--vellum);border:1px solid var(--rule);padding:18px 20px;border-radius:2px;min-width:0;position:sticky;top:max(12px,env(safe-area-inset-top,0px));max-height:calc(100vh - 24px);overflow:auto}
+aside{background:var(--vellum);border:1px solid var(--rule);padding:18px 20px;border-radius:0;min-width:0;position:sticky;top:max(12px,env(safe-area-inset-top,0px));max-height:calc(100vh - 24px);overflow:auto}
 @media (max-width:980px){aside{position:static;max-height:none}}
-aside h2{font-family:var(--display);font-weight:400;font-size:26px;margin:0 0 2px;color:var(--gilt);text-wrap:balance}
+aside h2{font-family:var(--display);font-weight:200;font-size:26px;margin:0 0 2px;color:var(--gilt);text-wrap:balance}
 aside .src{font-size:13px;color:var(--dim);margin:0 0 10px;letter-spacing:.03em}
 aside p{margin:0 0 10px}
 aside .auth{border-left:2px dotted var(--gilt);padding-left:10px;color:var(--gilt);font-style:italic}
@@ -44,26 +47,21 @@ aside .auth{border-left:2px dotted var(--gilt);padding-left:10px;color:var(--gil
 .tag.note{border-color:var(--gilt);color:var(--gilt)}
 .tag.open{border-style:dashed}
 .key{max-width:1400px;margin:22px auto 0}
-.key h3{font-family:var(--display);font-weight:400;font-size:19px;color:var(--bone);margin:0 0 8px;border-bottom:1px solid var(--rule);padding-bottom:4px;letter-spacing:.05em}
+.key h3{text-transform:uppercase;letter-spacing:.18em;font-size:14px;font-family:var(--display);font-weight:200;font-size:19px;color:var(--bone);margin:0 0 8px;border-bottom:1px solid var(--rule);padding-bottom:4px;letter-spacing:.05em}
 .keylist{display:flex;flex-wrap:wrap;gap:8px}
-.keylist button{font-family:var(--body);font-size:14px;background:var(--vellum);color:var(--bone);border:1px solid var(--rule);padding:5px 11px;border-radius:2px;cursor:pointer}
+.keylist button{font-family:var(--body);font-size:14px;background:var(--vellum);color:var(--bone);border:1px solid var(--rule);padding:5px 11px;border-radius:0;cursor:pointer}
 .keylist button:hover,.keylist button:focus-visible{border-color:var(--gilt);color:var(--gilt);outline:none}
 .unplaced{margin-top:16px;color:var(--dim);max-width:90ch}
 .unplaced b{color:var(--bone);font-weight:500}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 .twinkle{animation:tw 4s ease-in-out infinite}
 @keyframes tw{50%{opacity:.35}}
-.back{color:var(--gilt);font-size:14px;text-decoration:none;border-bottom:1px solid var(--rule)}
-.back:hover,.back:focus-visible{color:var(--bone);border-color:var(--gilt);outline:none}
 </style>
-</head>
-<body>
-
 
 <header>
 <p style="margin:0 0 6px;flex-basis:100%"><a class="back" href="index.html">← Nous Within Kenoma</a></p>
   <h1>Nous Within Kenoma · The Cosmos</h1>
-  <p class="sub">From the plane of the Earth outward: the planets, the archons' stars, the demiurge's heaven of memories, the layers of Limbo, the three moats, and the outer darkness made of Leviathan's shadow, with the Fullness above it all as a ball of white light. Tap any ring to read what the book says of it.</p>
+  <p class="sub">From the plane of the Earth outward: the planets, the dome of stars, the demiurge's heaven of memories, the layers of Limbo, the three moats, and the outer darkness made of Leviathan's shadow, with the Fullness above it all as a ball of white light. Tap any ring to read what the book says of it.</p>
 </header>
 
 <div class="wrap">
@@ -117,8 +115,8 @@ const LAYERS=[
  {id:"heaven",name:"The Heaven of the Demiurge",tag:"note",src:"10, 36",
   d:"Yaldabaoth's heaven, “the land of memory forms; a part of this fake heaven,” “swirls of delusion lands without ground” (10). Antony pulls himself into it, rips his spine out as a spear and drags the fleeing demiurge back by the tail (10). After losing the Sun, Yaldabaoth swims back up through the firmament “finding his land of memories restful.” He breathes out a new star named Redemption, which heals 360 of his 361 angels, and casts the one who refuses, Curse, down to Earth like a meteor (36).",
   auth:"Note: the heaven is made of memories of itself and lies beyond the stars."},
- {id:"stars",name:"The Archons' Stars",tag:"text",src:"10, 18, 22",
-  d:"“Shining chaos of infinite points, mad with the curse of the prison ruse.” Angels hang by the spine from the archons' stars, through open neck wounds, while ancients dance in masks at their stones below. Their sparks are quiet “like sleeping giants,” many “waiting their dignities to return, after however many eternities in the snake pit; praying” (10). The archons glow in the night (18). The night sewing of clouds whispers the numbers to ten epinoias (22).",
+ {id:"stars",name:"The Dome of Stars",tag:"text",src:"10, 18, 22",
+  d:"“Shining chaos of infinite points, mad with the curse of the prison ruse.” “The star-stricken dome above” (10), “swirling star domes” (18). Angels hang by the spine from these stars, which chapter 10 calls the archons' stars, through open neck wounds, while ancients dance in masks at their stones below. Their sparks are quiet “like sleeping giants,” many “waiting their dignities to return, after however many eternities in the snake pit; praying” (10). The archons glow in the night (18), though the text says little about who the archons are. The night sewing of clouds whispers the numbers to ten epinoias (22).",
   auth:"Note: the angels hanging from the stars are true angels, from the Fullness."},
  {id:"neptune",name:"Neptune",tag:"note",src:"11, 18, 39",
   d:"Named in the book, though outside the seven old spheres. At Thomas's burial under a new moon, “Saturn squared off brightly with Mars and Neptune above” (11). In the desert rite: “Like a spirit of Columbus, but by a dissolve of Neptune's conjunction” (18). In the sky of the two suns, “sapphiric neptune haze” (39).",
@@ -152,9 +150,9 @@ const byId=Object.fromEntries(LAYERS.map(l=>[l.id,l]));
 /* ---------- defs ---------- */
 const defs=el("defs");
 const blur=(id,sd)=>{const f=el("filter",{id,x:"-50%",y:"-50%",width:"200%",height:"200%"},defs);el("feGaussianBlur",{stdDeviation:sd},f)};
-blur("b1",1);blur("bpa",2.4);blur("bpb",3.6);blur("b3",3.2);blur("b8",9);blur("b16",18);
+blur("b1",1);blur("bpa",3.6);blur("bpb",5.2);blur("b3",3.2);blur("b8",9);blur("b16",18);
 const rg=(id,stops,attrs={})=>{const g=el("radialGradient",Object.assign({id,cx:"50%",cy:"50%",r:"50%"},attrs),defs);stops.forEach(([o,c,op])=>el("stop",{offset:o,"stop-color":c,"stop-opacity":op??1},g))};
-rg("outerG",[["45%",css("--outer")],["80%","#171227"],["100%","#0c0a14"]],{r:"71%"});
+rg("outerG",[["45%",css("--outer")],["80%","#110b07"],["100%","#070403"]],{r:"71%"});
 rg("veil",[["0%","#000",0],["66%","#000",0],["82%","#000",.22],["100%","#000",.5]],{r:"71%"});
 rg("fireG",[["0%",css("--fire"),0],["95.9%",css("--fire"),0],["96.3%",css("--fire"),.85],["98.2%","#5a2410",.9],["100%","#1a0a05",1]]);
 
@@ -191,11 +189,18 @@ const art=el("g",{"pointer-events":"none"},gOuter);
 
 // playground stairs that lead into themselves
 const PLAY=["#c8433a","#e0b23a","#3b6fc4","#3f9a5a","#d06aa8"];
+function shadeHex(h,t){const n=parseInt(h.slice(1),16),c=[n>>16,(n>>8)&255,n&255].map(v=>Math.round(t>0?v+(255-v)*t:v*(1+t)));return "#"+c.map(v=>v.toString(16).padStart(2,"0")).join("")}
+{const lg=el("linearGradient",{id:"stepShade",x1:0,y1:0,x2:0,y2:1},defs);[["0","#fff",.18],[".45","#fff",0],["1","#000",.35]].forEach(([o,c,op])=>el("stop",{offset:o,"stop-color":c,"stop-opacity":op},lg));
+ const ps=el("linearGradient",{id:"pShade",x1:0,y1:0,x2:1,y2:0},defs);[["0","#fff",.22],["0.45","#fff",0],["0.55","#000",0],["1","#000",.5]].forEach(([o,c,op])=>el("stop",{offset:o,"stop-color":c,"stop-opacity":op},ps));
+ const ph=el("radialGradient",{id:"pHead",cx:".35",cy:".3",r:".75"},defs);[["0","#fff",.35],["0.45","#fff",0],["1","#000",.4]].forEach(([o,c,op])=>el("stop",{offset:o,"stop-color":c,"stop-opacity":op},ph));}
 function stairs(x,y,steps,dir,rot,s){
   const g=el("g",{transform:`translate(${x},${y+TOP}) rotate(${rot}) scale(${s})`,filter:"url(#bpb)",opacity:.5},art);
-  for(let i=0;i<steps;i++){const c=PLAY[(i+steps)%PLAY.length];
-    el("rect",{x:i*16*dir,y:-i*11,width:16,height:11+i*11,fill:c,opacity:.9},g);
-    el("rect",{x:i*16*dir,y:-i*11,width:16,height:3,fill:"#fff",opacity:.25},g)}
+  const dx=7,dy=-6,w=16;
+  for(let i=0;i<steps;i++){const c=PLAY[(i+steps)%PLAY.length],x0=i*w*dir,y0=-i*11,h=11+i*11;
+    el("path",{d:`M${x0+w},${y0} l${dx},${dy} v${h} l${-dx},${-dy} Z`,fill:shadeHex(c,-.45)},g);
+    el("rect",{x:x0,y:y0,width:w,height:h,fill:c},g);
+    el("rect",{x:x0,y:y0,width:w,height:h,fill:"url(#stepShade)"},g);
+    el("path",{d:`M${x0},${y0} l${dx},${dy} h${w} l${-dx},${-dy} Z`,fill:shadeHex(c,.35)},g);}
 }
 [[110,260,6,1,-8,1.1],[1015,215,5,-1,10,1],[150,980,7,1,6,1],[1060,1010,6,-1,-12,1.05],[600,1135,5,1,0,.9],[70,620,5,1,-90,.9],[1130,560,5,-1,90,.9]].forEach(a=>stairs(...a));
 
@@ -203,7 +208,7 @@ function stairs(x,y,steps,dir,rot,s){
 const PANTS=["#2a9a86","#2a9a86","#3b6fc4","#e0b23a","#2a9a86"];
 function puppet(x,y,s,rot,v){
   const far=s<1.15;
-  const g=el("g",{transform:`translate(${x},${y}) rotate(${rot}) scale(${s})`,filter:far?"url(#bpb)":"url(#bpa)",opacity:far?.42:.56},art);
+  const g=el("g",{transform:`translate(${x},${y}) rotate(${rot}) scale(${s})`,filter:far?"url(#bpb)":"url(#bpa)",opacity:far?.38:.5},art);
   const wood="#7a5536",str="#d8cfc0",skin="#efc7a8",jacket="#17151b",pant=PANTS[v%PANTS.length];
   el("path",{d:"M-26,-128 H26 M0,-140 V-110 M-14,-118 H14",stroke:wood,"stroke-width":3,"stroke-linecap":"round",fill:"none"},g);
   [[-26,-128,-9,-46],[26,-128,9,-46],[-14,-118,-18,15],[14,-118,18,15],[0,-110,-5.5,53],[0,-110,5.5,53]].forEach(([a,b,c,d])=>el("line",{x1:a,y1:b,x2:c,y2:d,stroke:str,"stroke-width":.6,opacity:.6},g));
@@ -238,6 +243,11 @@ function puppet(x,y,s,rot,v){
   el("circle",{cx:-6.3,cy:-33.5,r:2.4,fill:"#e0706a",opacity:.55},g);el("circle",{cx:6.3,cy:-33.5,r:2.4,fill:"#e0706a",opacity:.55},g);
   el("path",{d:"M-4.5,-31.5 Q0,-26.5 4.5,-31.5",stroke:"#b5221c","stroke-width":1.4,fill:"none","stroke-linecap":"round"},g);
   el("path",{d:"M-4.8,-31 v4.5 M4.8,-31 v4.5",stroke:"#000","stroke-opacity":.3,"stroke-width":.5},g);
+  // shading: light from the upper left, shadow to the right
+  el("path",{d:"M-13,-22 L13,-22 L13,20 L9,38 L-9,38 L-13,20 Z",fill:"url(#pShade)"},g);
+  [-1,1].forEach(k=>{el("path",{d:`M${k*2},38 L${k*9},38 L${k*8},66 L${k*3},66 Z`,fill:"url(#pShade)"},g);
+    el("path",{d:`M${k*12},-20 L${k*17},-4 L${k*19},12 L${k*16},13 L${k*12},1 L${k*9},-14 Z`,fill:"url(#pShade)"},g)});
+  el("ellipse",{cx:0,cy:-38,rx:10,ry:12,fill:"url(#pHead)"},g);
 }
 let placed=[];
 for(let i=0;i<1400&&placed.length<32;i++){
@@ -318,8 +328,8 @@ function arcLabel(id,r,text,cls="lab",span=.5){
   el("path",{id:"arc-"+id,d:`M${x0},${y0} A${r},${r} 0 0,1 ${x1},${y1}`,fill:"none"},defs);
   const t=el("text",{class:cls,"text-anchor":"middle",dy:"5"});const tp=el("textPath",{href:"#arc-"+id,startOffset:"50%"},t);tp.textContent=text;
 }
-arcLabel("st",295,"The Archons' Stars");
-arcLabel("hv",334,"Heaven of the Demiurge · land of memories");
+arcLabel("st",295,"The Dome of Stars");
+arcLabel("hv",334,"Heaven of the Demiurge · land of memories","lab",.78);
 arcLabel("l1",372,"Limbo · the Fool's Realm (Tree IV)","lab small");
 arcLabel("l2",396,"Limbo · Gate of the Black Joker","lab small");
 arcLabel("l3",420,"Limbo · the Graveyard Crossroad (Tree III)","lab small");
@@ -337,7 +347,7 @@ const TAGS={text:["From the text",""],note:["Note","note"],open:["Order unconfir
 let cur=null;
 function show(id){
   if(cur&&bandG[cur])bandG[cur].classList.remove("on");cur=id;
-  if(!id){P.innerHTML=`<h2>Reading the map</h2><p>The Earth sits at the center as a plane, with Tartarus in its ocean. Around it are the planets in their old order (Moon, Mercury, Venus, Sun, Mars, Jupiter, Saturn), with Neptune beyond. Then come the archons' stars and the demiurge's heaven of memories, which closes creation.</p><p>Outside creation lie the layers of Limbo, then the three moats of the outer darkness, the third being the outermost. Past them is the outer darkness itself, made of Leviathan's shadow, where puppets and playground stairs sink into the dark. Above all of it, and apart from it, the Fullness sits as a ball of white light.</p><p><span class="tag">From the text</span><span class="tag note">Note</span><span class="tag open">Order unconfirmed</span></p><p class="src">Tap a ring, or use the list below the map.</p>`;return}
+  if(!id){P.innerHTML=`<h2>Reading the map</h2><p>The Earth sits at the center as a plane, with Tartarus in its ocean. Around it are the planets in their old order (Moon, Mercury, Venus, Sun, Mars, Jupiter, Saturn), with Neptune beyond. Then come the dome of stars and the demiurge's heaven of memories, which closes creation.</p><p>Outside creation lie the layers of Limbo, then the three moats of the outer darkness, the third being the outermost. Past them is the outer darkness itself, made of Leviathan's shadow, where puppets and playground stairs sink into the dark. Above all of it, and apart from it, the Fullness sits as a ball of white light.</p><p><span class="tag">From the text</span><span class="tag note">Note</span><span class="tag open">Order unconfirmed</span></p><p class="src">Tap a ring, or use the list below the map.</p>`;return}
   bandG[id]&&bandG[id].classList.add("on");
   const L=byId[id],[tl,tc]=TAGS[L.tag];
   P.innerHTML=`<h2>${esc(L.name)}</h2><p class="src">chapters ${esc(L.src)}</p><p><span class="tag ${tc}">${tl}</span></p><p>${esc(L.d)}</p>${L.auth?`<p class="auth">${esc(L.auth)}</p>`:""}`;
