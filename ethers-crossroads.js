@@ -414,6 +414,7 @@ async function fullMoonToll(){
 /* ---------------- turns ---------------- */
 async function startTurn(){
   G.turnNo++;Object.assign(G,{spent:false,spentOther:false,blessed:false,ritual:0,sel:null,selHand:null,mode:null,noDraw:false,sevSum:0});
+  rollPrices();
   for(const {st} of stacksOf(G.active)){st.moved=false;st.attacked=false;if(st.hypo){st.hypo--;if(!st.hypo)log(`Hypostasis fades from ${plName(G.active)}'s stack.`)}}
   me().sevArmed=false;
   if(survival()&&isHorde(G.active))G.round++;
@@ -422,6 +423,7 @@ async function startTurn(){
   log(`— ${plName(G.active)}'s turn${survival()?` · round ${roman(G.round)}`:""} · ${MOON[G.moon.i]} —`,"turn");
   if(newRound){G.phase="moon";G.busy=true;render();await moonStart();G.busy=false;if(G.over)return}
   G.noDraw=fullDrawbacks();
+  if(!isHorde(G.active))log(`Spell prices for ${plName(G.active)} this turn: ${SPELLS.filter(s=>s.dice).map(s=>`${s.name} ${spellCost(s)}`).join(", ")}.`,"ai");
   G.phase=(G.turnNo===1||G.noDraw)?"prep":"draw";
   G.busy=false;render();
   if(me().cpu)runCpu();
@@ -581,16 +583,16 @@ const SPELLS=[
  {id:"bless",name:"Grave Blessing",cost:0,school:"Necromancy",text:"Free, once a turn, before any other mana is spent. Roll 1d6, +1d6 per Ace you have on the field, +2d6 from Ritual Dice, 6 dice at most. Each natural 6 raises a card from the grave. Every card you overdrew to the grave takes 1d6 off the maximum.",ok:()=>!G.blessed&&!G.spentOther&&G.grave.length>0&&blessCap(G.active)>0,run:blessing},
  {id:"suicide",name:"Sacrificial Suicide",cost:0,school:"Necromancy",text:"Select your stack with a Joker. The Joker dies and the souls it captured go to your soul pile (6 mana at most; the surplus goes to the grave). Under a Blood Moon, the Joker and all its souls go to the Outer Darkness instead.",ok:()=>!G.spent&&selOwnJoker(),run:suicideSpell},
  {id:"sever",name:"Flesh Severance",cost:0,school:"Necromancy",text:"Arm for this turn: an enemy killed next to your Joker is exiled to the Ether for its conjuring cost instead of being captured.",ok:()=>true,run:async()=>{me().sevArmed=!me().sevArmed;log(`Flesh Severance ${me().sevArmed?"armed":"disarmed"}.`)}},
- {id:"resur",name:"Resurrection",cost:6,school:"Necromancy",text:"Choose one card from the grave and bring it back into your hand.",ok:()=>G.grave.length>0&&me().hand.length<HAND_CAP,run:async()=>{await pickGrave(G.active,1,"Resurrection")}},
- {id:"divine",name:"Divine Odds",cost:3,school:"Enchantment",text:"Select your stack: advantage on all its dice for its next combat.",ok:()=>selOwn()&&!selStack().odds,run:async()=>{selStack().odds="adv";log("Divine Odds marks a stack.")}},
+ {id:"resur",dice:"1d2+1",name:"Resurrection",cost:6,school:"Necromancy",text:"Choose one card from the grave and bring it back into your hand.",ok:()=>G.grave.length>0&&me().hand.length<HAND_CAP,run:async()=>{await pickGrave(G.active,1,"Resurrection")}},
+ {id:"divine",dice:"1d2+1",name:"Divine Odds",cost:3,school:"Enchantment",text:"Select your stack: advantage on all its dice for its next combat.",ok:()=>selOwn()&&!selStack().odds,run:async()=>{selStack().odds="adv";log("Divine Odds marks a stack.")}},
  {id:"hypo",name:"Hypostasis",cost:3,school:"Enchantment",text:"Select your stack: it cannot be attacked for two turns. While it lasts it cannot attack or step toward the enemy, only sideways or back. Costs 3 for one card, +1 for each more card in the stack. Needs at least two of your stacks on the field.",ok:()=>selOwn()&&!selStack().hypo&&stacksOf(G.active).length>=2,run:async()=>{const st=selStack();st.hypo=2;log(`Hypostasis: ${plName(G.active)}'s stack of ${st.cards.length} becomes untouchable for two turns.`)}},
- {id:"forced",name:"Forced Hand",cost:2,school:"Curse",text:"The other player draws 1d2 cards; any over the hand limit go to the grave (and cut their Grave Blessing).",ok:()=>!survival(),run:async()=>{const n=R(2);tray(G.active,"Forced Hand",[{s:2,v:n}],`draw ${n}`);draw(1-G.active,n,"Forced Hand")}},
- {id:"hexed",name:"Hexed Odds",cost:3,school:"Curse",text:"Select an enemy stack: disadvantage on all its dice for its next combat.",ok:()=>selEnemy()&&!selStack().odds,run:async()=>{selStack().odds="dis";log("Hexed Odds marks an enemy stack.")}},
+ {id:"forced",dice:"1d2",name:"Forced Hand",cost:2,school:"Curse",text:"The other player draws 1d2 cards; any over the hand limit go to the grave (and cut their Grave Blessing).",ok:()=>!survival(),run:async()=>{const n=R(2);tray(G.active,"Forced Hand",[{s:2,v:n}],`draw ${n}`);draw(1-G.active,n,"Forced Hand")}},
+ {id:"hexed",dice:"1d2+1",name:"Hexed Odds",cost:3,school:"Curse",text:"Select an enemy stack: disadvantage on all its dice for its next combat.",ok:()=>selEnemy()&&!selStack().odds,run:async()=>{selStack().odds="dis";log("Hexed Odds marks an enemy stack.")}},
  {id:"double",name:"Double Edged Sword",cost:1,school:"Curse",text:"Roll 3d6. Each 1 burns a card from your deck; each 6 burns a card from the enemy's deck.",ok:()=>!survival(),run:doubleEdge},
- {id:"three",name:"Three of Swords",cost:3,school:"Curse",text:"Roll 1d2. A 1 destroys one random card in the enemy's hand and one in yours; a 2 destroys two of each. If your hand runs short, the rest comes from your deck. The enemy loses nothing from the deck.",ok:()=>!survival(),run:threeSwords},
- {id:"clair",name:"Clairvoyance",cost:3,school:"Sorcery",text:"Look at 2d6 cards from your deck, take one into your hand, then reshuffle. 6 mana at the New Moon, 2 at the Full Moon.",ok:()=>me().deck.length>0&&me().hand.length<HAND_CAP,run:clairvoyance},
+ {id:"three",dice:"1d3",name:"Three of Swords",cost:3,school:"Curse",text:"Roll 1d2. A 1 destroys one random card in the enemy's hand and one in yours; a 2 destroys two of each. If your hand runs short, the rest comes from your deck. The enemy loses nothing from the deck.",ok:()=>!survival(),run:threeSwords},
+ {id:"clair",dice:"2+1d2",name:"Clairvoyance",cost:3,school:"Sorcery",text:"Look at 2d6 cards from your deck, take one into your hand, then reshuffle. 6 mana at the New Moon, 2 at the Full Moon.",ok:()=>me().deck.length>0&&me().hand.length<HAND_CAP,run:clairvoyance},
  {id:"tele",name:"Teleport",cost:2,school:"Sorcery",text:"Select your stack in your own two lines with no enemy beside it and leave exactly one card checked; that card returns to your hand.",ok:teleOk,run:teleport},
- {id:"naked",name:"Naked Hand",cost:3,school:"Sorcery",text:"The other player's hand is shown to you for the rest of this turn, and both players are told it has been seen. 6 mana at the New Moon, free at the Full Moon.",ok:()=>!survival()&&foe().hand.length>0,run:nakedHand},
+ {id:"naked",dice:"1d2",name:"Naked Hand",cost:3,school:"Sorcery",text:"The other player's hand is shown to you for the rest of this turn, and both players are told it has been seen. 6 mana at the New Moon, free at the Full Moon.",ok:()=>!survival()&&foe().hand.length>0,run:nakedHand},
  {id:"cj",name:"Jack Conjure",cost:1,school:"Conjuring",text:"A Jack's soul comes from the Ether into your deck.",ok:()=>etherHas("jack"),run:()=>conjure("jack")},
  {id:"cjk",name:"Joker Conjure",cost:2,school:"Conjuring",text:"A Joker's soul comes from the Ether into your deck.",ok:()=>etherHas("joker"),run:()=>conjure("joker")},
  {id:"cq",name:"Queen Conjure",cost:2,school:"Conjuring",text:"A Queen's soul comes from the Ether into your deck.",ok:()=>etherHas("queen"),run:()=>conjure("queen")},
@@ -599,9 +601,14 @@ const SPELLS=[
  {id:"cs",name:"Soldier Conjure",cost:1,school:"Conjuring",text:"A soldier's soul (2 to 10) comes from the Ether into your deck.",ok:()=>etherHas("soldier"),run:()=>conjure("soldier")}
 ];
 const SP=id=>SPELLS.find(s=>s.id===id);
+/* spells with a dice price roll it at the start of each turn; the moon's prices replace the roll while that phase lasts */
+const PRICE={resur:()=>R(2)+1,divine:()=>R(2)+1,hexed:()=>R(2)+1,forced:()=>R(2),three:()=>R(3),clair:()=>2+R(2),naked:()=>R(2)};
+function rollPrices(){G.prices={};for(const k in PRICE)G.prices[k]=PRICE[k]()}
 function spellCost(sp){
-  if(sp.id==="clair")return newPrices()?6:fullPrices()?2:3;
-  if(sp.id==="naked")return newPrices()?6:G.moon.blood?1:fullPrices()?0:3;
+  if(sp.id==="clair"&&newPrices())return 6;
+  if(sp.id==="clair"&&fullPrices())return 2;
+  if(sp.id==="naked")return newPrices()?6:G.moon.blood?1:fullPrices()?0:(G.prices?G.prices.naked:2);
+  if(G.prices&&G.prices[sp.id]!=null)return G.prices[sp.id];
   if(sp.id==="hypo"){const st=selOwn()?selStack():null;return 3+(st?st.cards.length-1:0)}
   return sp.cost;
 }
@@ -634,9 +641,10 @@ async function conjure(k){
 async function blessing(){
   const pl=G.active,aces=stacksOf(pl).filter(x=>hasK(x.st,"ace")).length;
   const want=Math.min(6,1+aces+G.ritual),cap=blessCap(pl),n=Math.min(want,cap);
+  const why=`1${aces?` + ${aces} for Ace${aces>1?"s":""} on the field`:""}${G.ritual?` + ${G.ritual} from Ritual Dice`:""}${1+aces+G.ritual>6?", 6 at most":""}${cap<want?`, cut to ${cap} by overdrawing`:""}`;
   const d=rollN(n,6),six=d.filter(x=>x.v===6).length;G.blessed=true;
   tray(pl,"Grave Blessing",d,`${six} six${six===1?"":"es"}`);
-  log(`Grave Blessing: ${n}d6${cap<want?` (overdraw cap ${cap})`:""} → ${d.map(x=>x.v).join(", ")}. ${six?six+" card"+(six>1?"s":"")+" may rise.":"Nothing rises."}`);
+  log(`Grave Blessing: ${n}d6 (${why}) → ${d.map(x=>x.v).join(", ")}. ${six?six+" card"+(six>1?"s":"")+" may rise.":"Nothing rises."}`);
   render();
   if(six)await pickGrave(pl,six,"Grave Blessing");
 }
@@ -1263,6 +1271,7 @@ function render(){
   if(live&&G.phase!=="moon")ctl.push(`<button class="btn ghost" id="next">${G.phase==="setup"?"Done setting up":G.phase==="draw"?"To prep phase →":G.phase==="prep"?"To attack phase →":"End turn →"}</button>`);
   ctl.push(`<button class="btn ghost sm" id="snd" aria-pressed="${SND.on}">sound: ${SND.on?"on":"off"}</button>`);
   $("#controls").innerHTML=ctl.join("");
+  const ap=$("#actph");if(ap)ap.innerHTML=G.over?"Game over":G.passing?"":me().cpu?`${esc(me().name)} is playing…`:G.phase==="setup"?"<b>Setup</b>":G.phase==="moon"?"<b>Moon</b>":`<b>${({draw:"Draw",prep:"Prep",attack:"Attack"})[G.phase]||""}</b> · ${esc(me().name)}`;
   if($("#d4"))$("#d4").onclick=()=>{if(!canAct())return;rollDraw();render()};
   if($("#next"))$("#next").onclick=nextPhase;
   $("#snd").onclick=()=>{SND.toggle();render()};
@@ -1280,7 +1289,10 @@ function renderSpells(live){
   box.innerHTML=head+SCHOOLS.map(sc=>`<h4>${sc}</h4>`+SPELLS.filter(s=>s.school===sc&&!(survival()&&["forced","double","three","naked"].includes(s.id))).map(s=>{
     const ok=live&&spellReady(s),cost=spellCost(s);
     let moon="";if((s.id==="clair"||s.id==="naked")){if(newPrices())moon="moon-dark";else if(fullPrices())moon="moon-bright"}
-    let extra="";if(s.id==="bless"&&od)extra=`<small class="odpen ${od>6?"big":""}">−${od}d6 max</small>`;
+    let extra="";
+    if(s.id==="bless"){const aces=stacksOf(G.active).filter(x=>hasK(x.st,"ace")).length,n=Math.min(6,1+aces+G.ritual,blessCap(G.active));extra=`<small class="dc">${n}d6</small>`+(od?`<small class="odpen ${od>6?"big":""}">−${od}d6 max</small>`:"")}
+    const moonPrice=(s.id==="clair"&&(newPrices()||fullPrices()))||(s.id==="naked"&&(newPrices()||fullPrices()));
+    if(s.dice)extra+=`<small class="dc" title="${moonPrice?"moon price this phase":"rolled at the start of this turn"}">${moonPrice?"moon":s.dice}</small>`;
     const block=spellBlock(s);
     return `<button class="spell ${ok?"":"off"} ${moon} ${s.school==="Necromancy"?"nec":""} ${s.id==="sever"&&P.sevArmed?"armed":""}" data-s="${s.id}" title="${esc(block||s.text)}"><span>${esc(s.name)}${extra}</span><em>${s.id==="hypo"&&!selOwn()?"3+":cost?cost+" mana":"free"}</em></button>`}).join("")+(sc==="Conjuring"?`<button class="link souls-l" id="showsouls">show available souls</button>`:"")).join("");
   box.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{if(!canAct())return;cast(SP(b.dataset.s))});
@@ -1337,7 +1349,7 @@ const INFO={
 };
 function infoHTML(){
   const tabs=Object.keys(INFO).map((k,i)=>`<button class="itab ${i===0?"on":""}" data-k="${k}">${INFO[k][0]}</button>`).join("");
-  const spells=SCHOOLS.map(sc=>`<h4>${sc}</h4><dl>`+SPELLS.filter(s=>s.school===sc).map(s=>`<dt>${esc(s.name)} <span>${s.id==="hypo"?"3 + 1 per extra card":s.cost?s.cost+" mana":"free"}</span></dt><dd>${esc(s.text)}</dd>`).join("")+"</dl>").join("");
+  const spells=SCHOOLS.map(sc=>`<h4>${sc}</h4><dl>`+SPELLS.filter(s=>s.school===sc).map(s=>`<dt>${esc(s.name)} <span>${s.id==="hypo"?"3 + 1 per extra card":s.dice?s.dice+" mana, rolled each turn":s.cost?s.cost+" mana":"free"}</span></dt><dd>${esc(s.text)}</dd>`).join("")+"</dl>").join("");
   return `<details class="cinfo"><summary>Card info</summary><div class="itabs">${tabs}</div><div id="ibody"></div></details>
 <details class="cinfo"><summary>Spells explained</summary><div class="spellinfo">${spells}<p class="dim">New Moon: Clairvoyance and Naked Hand cost 6. Full Moon: Clairvoyance costs 2, Naked Hand is free, and no necromancy is cast. Blood Moon: Full Moon prices with no Full Moon drawbacks; necromancy is allowed. The moon turns one phase per round, once every player has had a turn.</p></div></details>`;
 }
@@ -1380,7 +1392,7 @@ ${chk("olock","Optional Ace rule","Cards inside an Ace must match its color.",fa
 </fieldset>
 <fieldset class="pf"><legend>Mana</legend>
 <label class="f">Starting mana <select id="omana"><option value="3d2" selected>3d2 (default)</option><option value="1d6">1d6</option><option value="none">None</option>${[1,2,3,4,5,6].map(n=>`<option value="${n}">${n}</option>`).join("")}</select></label>
-${chk("oeach","Each player rolls their own","Off: one roll sets the same starting mana for everyone.",false)}
+${chk("oeach","Each player rolls their own","On by default with one deck; off by default otherwise, when one roll sets the same starting mana for everyone.",false)}
 <p class="dim">Starting souls come from the Ether as soldier souls, worth 1 mana each.</p>
 </fieldset>
 <fieldset class="pf"><legend>Moon and spells</legend>
@@ -1389,8 +1401,14 @@ ${chk("oatk","Spells in the attack phase","Enchantments, curses and sorcery can 
 ${chk("oblood","Blood Moon mode","The game opens on a Blood Moon. Each deck is shuffled and two thirds of it go to the grave; each player starts with a Joker in hand.",false)}
 </fieldset>`;
   const display=`<fieldset class="pf"><legend>Your hand</legend><div class="opts">
-<label class="opt"><input type="radio" name="dhand" value="side" ${PREF.hand!=="below"?"checked":""}><span>Beside the field<small>In the right-hand column, above the spells.</small></span></label>
-<label class="opt"><input type="radio" name="dhand" value="below" ${PREF.hand==="below"?"checked":""}><span>Under your deck and mana<small>Right below your own bars, with your dice box.</small></span></label></div></fieldset>
+<label class="opt"><input type="radio" name="dhand" value="below" ${PREF.hand!=="side"?"checked":""}><span>Under your deck and mana<small>Right below your own bars, with your dice box. (default)</small></span></label>
+<label class="opt"><input type="radio" name="dhand" value="side" ${PREF.hand==="side"?"checked":""}><span>Beside the field<small>In the right-hand column, above the spells.</small></span></label></div></fieldset>
+<fieldset class="pf"><legend>Selected stack box</legend><div class="opts">
+<label class="opt"><input type="radio" name="dsel" value="bottom" ${PREF.sel!=="top"?"checked":""}><span>Below the spells<small>Under "show available souls". (default)</small></span></label>
+<label class="opt"><input type="radio" name="dsel" value="top" ${PREF.sel==="top"?"checked":""}><span>Above the spells<small>At the top of the right-hand column.</small></span></label></div></fieldset>
+<fieldset class="pf"><legend>Turn buttons</legend><div class="opts">
+<label class="opt"><input type="radio" name="dctl" value="bottom" ${PREF.ctl!=="top"?"checked":""}><span>Bar at the bottom of the screen<small>Roll, next phase and end turn stay in reach without scrolling. (default)</small></span></label>
+<label class="opt"><input type="radio" name="dctl" value="top" ${PREF.ctl==="top"?"checked":""}><span>At the top, under the moon<small>Where they were before.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({"":"the burnt amber of the site",jester:"black, after chapter 26",ten:"white on indigo, after chapters 1–4",satan:"crimson, after chapter 23"})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, hand position and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
   const suitSel=`<div id="suitpick" hidden><p class="dim">${mode==="local"?"Player One picks; Player Two gets the other two suits.":mode==="cpu"?"You pick; the computer gets the other two suits.":"You pick; the other two suits wait in the Ether."}</p>
 <label class="f">Red suit <select id="osuitR"><option value="H">♥ Hearts</option><option value="D">♦ Diamonds</option></select></label>
@@ -1425,6 +1443,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
   document.querySelectorAll(".stab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".stab").forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-selected",x===b)});document.querySelectorAll(".spanel").forEach(p=>p.hidden=p.dataset.p!==b.dataset.t)});
   const sumUp=()=>{
     const d=+val("odecks"),sp=val("ospecials"),js=$("#ojoker").checked,np=mode==="survival"?1:2;
+    if(!$("#oeach").dataset.touched)$("#oeach").checked=d===1;
     $("#suitmode").hidden=d!==1;$("#suitpick").hidden=d!==1||val("osuitmode")!=="choose";
     const s=d===1?2:4,j=d===1?1:2,keptSp=sp==="all"?4*s+j:sp==="half"?4*s/2+Math.floor(j/2):0;
     const keptJ=sp==="all"?j:sp==="half"?Math.floor(j/2):0;
@@ -1433,6 +1452,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     const ether=outPer*np+(d===3?54:0)+(d===1&&np===1?26:0);
     $("#decksum").textContent=`Each deck starts with ${deck} cards, plus the opening Ace and Jack on the field. The Ether starts with ${ether} souls to conjure.`;
   };
+  $("#oeach").addEventListener("change",()=>$("#oeach").dataset.touched=1);
   document.querySelectorAll('input[name=odecks],input[name=ospecials],input[name=osuitmode],#ojoker').forEach(i=>i.addEventListener("change",sumUp));sumUp();
   const mapUp=()=>{const rv=val("omap")==="river";$("#bridgeopt").hidden=!rv;$("#rivernote").hidden=!rv;
     document.querySelectorAll('#sizeset input').forEach(i=>i.disabled=rv);};
@@ -1446,7 +1466,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
       const tribe=a.tribe==="binah"?"tiph":"binah",color=pick(COLORS.map(c=>c[1]).filter(c=>c!==a.color)),solid=pick(Object.keys(SOLIDS).filter(s=>s!==a.solid));
       players=[a,{name:`The ${TRIBES[tribe].name} computer`,tribe,color,solid,cpu:d}]}
     else{const a=pl(1);players=[a,{name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>s!==a.solid)),cpu:"horde"}]}
-    PREF.hand=val("dhand")||PREF.hand;PREF.theme=val("dtheme")??PREF.theme;savePrefs();applyPrefs();
+    PREF.hand=val("dhand")||PREF.hand;PREF.sel=val("dsel")||PREF.sel;PREF.ctl=val("dctl")||PREF.ctl;PREF.theme=val("dtheme")??PREF.theme;savePrefs();applyPrefs();
     startGame({mode,players,mid:mode==="survival"||!!($("#omid")&&$("#omid").checked),aceLock:$("#olock").checked,bloodStart:$("#oblood").checked,
       map:val("omap"),cols:+val("ocols"),corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
       decks:+val("odecks"),specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:+val("odecks")===1&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
@@ -1465,8 +1485,8 @@ window.__EC={get G(){return G},startGame,stackLegal,canPlace,nextPhase,render,AI
   force(o){G.forceMoon=o},runCpu,jokerSuicide,mk};
 
 /* ---------------- display preferences, page themes, leave warning, quotes ---------------- */
-const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs")||"{}")}catch(e){}return Object.assign({hand:"side",ci:1,ui:1,theme:""},p)})();
-function savePrefs(){try{localStorage.setItem("ec-prefs",JSON.stringify(PREF))}catch(e){}}
+const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){}return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,theme:""},p)})();
+function savePrefs(){try{localStorage.setItem("ec-prefs2",JSON.stringify(PREF))}catch(e){}}
 const THEMES={"":["Kenoma",[]],jester:["Jester",["th-black","th-jester"]],ten:["Ten",["th-indigo","th-blue"]],satan:["Disturbed Satan",["th-crimson"]]};
 function applyMoonTheme(){
   const h=document.documentElement,b=!!(G&&G.moon.blood&&!G.over);
@@ -1482,6 +1502,11 @@ function applyPrefs(){
   const wrap=$("#handwrap"),slot=$("#handslot"),side=$("#sidehand");
   if(wrap&&slot&&side){const dest=PREF.hand==="below"?slot:side;if(wrap.parentNode!==dest)dest.appendChild(wrap)}
   document.body.classList.toggle("hand-below",PREF.hand==="below");
+  const mv=(el,dest)=>{if(el&&dest&&el.parentNode!==dest)dest.appendChild(el)};
+  mv($("#selwrap"),PREF.sel==="bottom"?$("#selbottom"):$("#seltop"));
+  mv($("#controls"),PREF.ctl==="bottom"?$("#ctlbottom"):$("#ctltop"));
+  if($("#actbar"))$("#actbar").hidden=PREF.ctl!=="bottom";
+  document.body.classList.toggle("ctl-bottom",PREF.ctl==="bottom");
   const bar=$("#gbar");
   if(bar){$("#ciV").textContent=Math.round(PREF.ci*100)+"%";$("#uiV").textContent=Math.round(PREF.ui*100)+"%";$("#pHand").textContent="Hand: "+(PREF.hand==="below"?"under your deck":"side");$("#pTheme").value=PREF.theme}
   applyMoonTheme();
