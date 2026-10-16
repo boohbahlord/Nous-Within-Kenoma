@@ -10,7 +10,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 const sleep=ms=>{const g=G;return new Promise(r=>setTimeout(()=>{if(G===g)r()},G&&G.opts.fast?0:ms))}; // a new game silently ends the old game's waits
 const SUITS={S:"♠",H:"♥",D:"♦",C:"♣"};
 const SUITNAME={S:"Spades",H:"Hearts",D:"Diamonds",C:"Clubs"};
-const COLS=5, SOUL_CAP=6, HAND_CAP=6;
+let COLS=5;const SOUL_CAP=6, HAND_CAP=6;   // COLS is set by the map for each game
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
@@ -65,8 +65,8 @@ function mkPlayer(i,o){return{i,name:o.name,tribe:o.tribe||null,color:o.color,so
   deck:[],hand:[],souls:[],sevArmed:false,start:0,od:0,shownUntil:0,seen:false,tray:null}}
 function newGame(opts){
   uid=0;
-  const rows=(opts.mid||opts.mode==="survival")?5:4;
-  G={opts,rows,board:Array.from({length:rows},()=>Array(COLS).fill(null)),
+  const M=mapPlan(opts);COLS=M.cols;const rows=M.rows;
+  G={opts,rows,map:M,void:M.void,board:Array.from({length:rows},()=>Array(COLS).fill(null)),
      p:opts.players.map((o,i)=>mkPlayer(i,o)),grave:[],ether:[],dark:[],
      turnNo:0,active:0,first:0,phase:"setup",setupStep:"ace",setupDone:[false,false],
      spent:false,spentOther:false,blessed:false,ritual:0,log:[],sel:null,selHand:null,mode:null,over:false,
@@ -107,7 +107,8 @@ function buildDecks(){
     const ace=take(deck,"ace")||take(out,"ace")||mk("A",mySuits[0]);
     const jack=take(deck,"jack")||take(out,"jack")||mk("J",mySuits[0]);
     if(o.jokerSure!==false&&!deck.some(c=>kind(c)==="joker"))deck.push(take(out,"joker")||mk("JK",null,pick(["red","black"])));
-    P.opening=[ace,jack];
+    P.opening=[ace,jack];P.opening2=[];
+    if(o.hq&&o.mode!=="survival"){const a2=take(deck,"ace")||take(out,"ace")||mk("A",mySuits[mySuits.length-1]);a2.owner=pl;P.opening2=[a2]}
     for(const c of [...deck,ace,jack])c.owner=pl;
     P.deck=shuffle(deck);G.ether.push(...out);
   });
@@ -129,6 +130,9 @@ function frontRow(pl){return pl===0?G.rows-2:1}
 const ownLines=(pl,r)=>r===backRow(pl)||r===frontRow(pl);
 function stacksOf(pl){const out=[];G.board.forEach((row,r)=>row.forEach((st,c)=>{if(st&&st.owner===pl)out.push({st,r,c})}));return out}
 function at(r,c){return r>=0&&r<G.rows&&c>=0&&c<COLS?G.board[r][c]:undefined}
+const isVoid=(r,c)=>!!(G.void&&G.void[r]&&G.void[r][c]);
+const hq=()=>!!G.opts.hq&&!survival();
+const centerOut=()=>{const m=(COLS-1)/2;return [...Array(COLS).keys()].sort((a,b)=>Math.abs(a-m)-Math.abs(b-m)||a-b)};
 function log(html,cls=""){G.log.unshift({html,cls});G.log=G.log.slice(0,400)}
 const plName=pl=>esc(G.p[pl].name);
 
@@ -256,7 +260,7 @@ function attack(r1,c1,r2,c2){
   const fxA=A.odds||null,fxD=D.odds||null;
   const bothSoloJokers=A.cards.length===1&&D.cards.length===1&&kind(A.cards[0])==="joker"&&kind(D.cards[0])==="joker";
   const ra=rollStack(A,"atk",D,fxA),rd=rollStack(D,"def",A,fxD);
-  A.odds=null;D.odds=null;A.attacked=true;
+  A.odds=null;D.odds=null;A.attacked=true;G.lastAttack=G.turnNo;
   if(G.opts.moonBonus!==false&&!bothSoloJokers){   // the moon lends a die: Full Moon to the attacker, New Moon to the defender
     if(G.moon.i===4){const v=R(2);ra.total+=v;ra.dice.push({s:2,v});ra.parts.push(`${G.moon.blood?"Blood":"Full"} Moon +${v}`)}
     if(G.moon.i===0){const v=R(2);rd.total+=v;rd.dice.push({s:2,v});rd.parts.push(`New Moon +${v}`)}
@@ -325,6 +329,7 @@ function checkWin(){
   if(G.over||G.phase==="setup")return;
   if(survival()){if(!stacksOf(0).length)endSurvival();return}
   for(const pl of [0,1]){
+    if(hq()){if(!stacksOf(pl).some(x=>hasK(x.st,"ace"))){end(1-pl,`every base ${plName(pl)} had is destroyed`);return}continue}
     if(!stacksOf(pl).length){end(1-pl,`every card ${plName(pl)} had on the field is destroyed`);return}
   }
 }
@@ -493,16 +498,17 @@ async function opening(){
 }
 function placeOpening(pl,r,c){
   const P=G.p[pl];
-  G.board[r][c]={owner:pl,cards:P.opening.splice(0),moved:true,attacked:false};
-  G.setupStep="more";
-  log(`${plName(pl)} raises the opening Ace with its Jack on the backline.`);
+  if(P.opening.length){G.board[r][c]={owner:pl,cards:P.opening.splice(0),moved:true,attacked:false};log(`${plName(pl)} raises the opening Ace with its Jack on the backline.`)}
+  else{G.board[r][c]={owner:pl,cards:P.opening2.splice(0),moved:true,attacked:false};log(`${plName(pl)} raises a second Ace as a base.`)}
+  G.setupStep=P.opening.length||(P.opening2&&P.opening2.length)?"ace":"more";
 }
 
 /* ---------------- actions ---------------- */
 function canPlace(card,r,c){
-  if(!ownLines(G.active,r))return false;
+  if(!ownLines(G.active,r)||isVoid(r,c))return false;
   const st=G.board[r][c],k=kind(card);
   if(k==="ace")return !st&&r===backRow(G.active);
+  if(hq()&&!(st&&st.owner===G.active&&hasK(st,"ace")))return false;   // Headquarters: troops spawn only inside your Aces
   if(k==="joker"){if(!st||st.owner!==G.active)return false;return st.cards.some(x=>x.color===card.color)&&stackLegal([...st.cards,card])}
   if(!st)return true;
   return st.owner===G.active&&stackLegal([...st.cards,card]);
@@ -523,12 +529,12 @@ function moveTargets(){
   if(!stackLegal(grp))return[];
   const out=[];const jack=grp.every(c=>kind(c)==="jack");const fwd=st.owner===0?-1:1;
   for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){
-    if(r===s.r&&c===s.c)continue;
+    if(r===s.r&&c===s.c||isVoid(r,c))continue;
     if(st.hypo&&(r-s.r)*fwd>0)continue;                 // Hypostasis: no step toward the enemy
     const dr=Math.abs(r-s.r),dc=Math.abs(c-s.c);
     const okStep=(dr+dc===1)||(jack&&((dr+dc===2&&(dr===0||dc===0))||(dr===1&&dc===1)));
     if(!okStep)continue;
-    if(jack&&dr+dc===2&&(dr===0||dc===0)){const mr=(r+s.r)/2,mc=(c+s.c)/2,mid=G.board[mr][mc];if(mid&&mid.owner!==st.owner)continue}
+    if(jack&&dr+dc===2&&(dr===0||dc===0)){const mr=(r+s.r)/2,mc=(c+s.c)/2,mid=G.board[mr][mc];if(isVoid(mr,mc)||mid&&mid.owner!==st.owner)continue}
     const t=G.board[r][c];
     if(!t)out.push([r,c]);
     else if(t.owner===st.owner&&!t.moved&&!t.hypo&&stackLegal([...t.cards,...grp])&&!(grp.some(x=>kind(x)==="joker")&&!t.cards.some(x=>grp.find(g=>kind(g)==="joker").color===x.color)))out.push([r,c]);
@@ -718,7 +724,7 @@ const AI=(()=>{
   const L=pl=>LV[G.p[pl].cpu]||LV.medium;
   const lvl=pl=>G.p[pl].cpu;
   const jit=pl=>1+(Math.random()*2-1)*L(pl).noise;
-  const OFF={atk:1.3,def:.7,dist:.35,ally:.1},DEF={atk:.8,def:1.35,dist:.06,ally:.35},HORDE={atk:1.5,def:.35,dist:.7,ally:.05};
+  const PUSH={atk:1.5,def:.2,dist:1.1,ally:0},OFF={atk:1.3,def:.7,dist:.35,ally:.1},DEF={atk:.8,def:1.35,dist:.06,ally:.35},HORDE={atk:1.5,def:.35,dist:.7,ally:.05};
   let cache=new Map();
   const key=st=>st.cards.map(c=>c.id).join(".")+(st.odds||"");
   function winP(A,D,n){
@@ -734,9 +740,19 @@ const AI=(()=>{
     const j=st.cards.find(c=>kind(c)==="joker");if(j)t+=2.5+capMana(j);
     return t;
   }
-  const gain=E=>(killsOnHit(E)?value(E):value(E)/E.cards.length)+threat(E)*.35;
+  const gain=E=>((killsOnHit(E)?value(E):value(E)/E.cards.length)+threat(E)*.35)*(hq()&&hasK(E,"ace")?3:1);   // in Headquarters the enemy bases are the prize
   const loss=S=>killsOnHit(S)?value(S):value(S)/S.cards.length;
   const dist=(r1,c1,r2,c2)=>Math.abs(r1-r2)+Math.abs(c1-c2);
+  /* walking distance around the river and cut corners (straight steps over open tiles) */
+  let pcache=new Map();
+  function walk(r1,c1,r2,c2){
+    if(!G.void||!G.void.some(row=>row.some(Boolean)))return dist(r1,c1,r2,c2);
+    const key=r2*16+c2;let F=pcache.get(key);
+    if(!F){F=Array.from({length:G.rows},()=>Array(COLS).fill(99));const q=[[r2,c2]];F[r2][c2]=0;
+      while(q.length){const [r,c]=q.shift();for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){const a=r+dr,b=c+dc;if(a<0||b<0||a>=G.rows||b>=COLS||isVoid(a,b)||F[a][b]<=F[r][c]+1)continue;F[a][b]=F[r][c]+1;q.push([a,b])}}
+      pcache.set(key,F)}
+    return F[r1][c1];
+  }
   function enemiesOf(pl){return stacksOf(1-pl)}
   /* how good it is for stack S (owned by pl) to stand at r,c */
   function tileScore(pl,S,r,c,W,canHit){
@@ -744,7 +760,7 @@ const AI=(()=>{
     const diag=jackOnly(S),hits=canHit&&canAttackFrom({cards:S.cards,attacked:false,hypo:S.hypo});
     let near=99;
     for(const e of enemiesOf(pl)){
-      const E=e.st,d=dist(r,c,e.r,e.c);near=Math.min(near,d);
+      const E=e.st,d=walk(r,c,e.r,e.c);near=Math.min(near,d);
       if(hits&&!E.hypo&&adjacent(r,c,e.r,e.c,diag)){
         const p=winP(S,E,n);let sc=p*gain(E)-(1-p)*loss(S);
         const ring=stacksOf(pl).filter(x=>x.st!==S&&adjacent(x.r,x.c,e.r,e.c,false)).length;sc+=ring*.3;
@@ -762,11 +778,12 @@ const AI=(()=>{
   }
   function stance(pl){
     if(isHorde(pl))return HORDE;
+    if(G.turnNo-(G.lastAttack||0)>10)return PUSH;   // nobody has fought for five rounds: break the stalemate
     const my=stacksOf(pl).reduce((a,x)=>a+value(x.st),0),th=stacksOf(1-pl).reduce((a,x)=>a+value(x.st),0);
     const deckAdv=(G.p[pl].deck.length-G.p[1-pl].deck.length)/40;
     let o=my/(th+1)+deckAdv+L(pl).bias;
     if(lvl(pl)==="easy")o+=Math.random()*.6-.3;
-    if(!G.p[pl].deck.length||!G.p[1-pl].deck.length||G.turnNo>90)return OFF;   // a dry deck ends the waiting game
+    if(!G.p[pl].deck.length||!G.p[1-pl].deck.length||G.turnNo>90||hq()&&G.turnNo>8)return OFF;   // a dry deck ends the waiting game
     return o>1?OFF:DEF;
   }
   function withSel(r,c,ids,fn){const old=G.sel;G.sel={r,c,pick:new Set(ids)};try{return fn()}finally{G.sel=old}}
@@ -776,7 +793,7 @@ const AI=(()=>{
   function placeScore(pl,card,r,c,W){
     const t=G.board[r][c];const S={cards:t?[...t.cards,card]:[card],owner:pl,hypo:t?t.hypo:0};
     const k=kind(card);
-    if(t&&hasK(t,"ace")&&k!=="ace")return ((W===DEF?.7:.2)-t.cards.length*.3)*jit(pl);   // cards inside an Ace cannot fight, and die with it
+    if(t&&hasK(t,"ace")&&k!=="ace")return (hq()?1.2+rate(card)/12-t.cards.length*.15:(W===DEF?.7:.2)-t.cards.length*.3)*jit(pl);   // cards inside an Ace cannot fight, and die with it
     let s=tileScore(pl,S,r,c,W,false)-(t?tileScore(pl,t,r,c,W,false):0)+value(S)-(t?value(t):0);
     if(k==="ace")s+=lvl(pl)==="hard"?4:2;
     if(k==="queen"&&t&&hasK(t,"king"))s+=W===DEF?3:1.5;
@@ -806,9 +823,11 @@ const AI=(()=>{
       if(G.over)return;
       const st=G.board[o.r][o.c];if(!st||st!==o.st||st.owner!==pl||st.moved)continue;
       if(Math.random()<lv.skipMove)continue;
-      const grp=st.cards.filter(c=>kind(c)!=="ace");if(!grp.length)continue;
+      let grp=st.cards.filter(c=>kind(c)!=="ace");if(!grp.length)continue;
+      if(!stackLegal(grp)){ // too many to leave together (a full Ace): send out the strongest group that can stand on its own
+        const g2=[];for(const c of [...grp].sort((a,b)=>rate(b)-rate(a)))if(stackLegal([...g2,c]))g2.push(c);grp=g2;if(!grp.length)continue}
       const inAce=hasK(st,"ace");const S={cards:grp,owner:pl,hypo:st.hypo};
-      let stay=inAce?(W===DEF?.6:0):tileScore(pl,S,o.r,o.c,W,true);
+      let stay=inAce?tileScore(pl,S,o.r,o.c,W,false)+(hq()?-1:W===DEF?.6:0):tileScore(pl,S,o.r,o.c,W,true);
       const tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets);
       let best=null;
       for(const [r,c] of tg){
@@ -843,7 +862,7 @@ const AI=(()=>{
   }
   async function attacks(pl){
     for(let guard=0;guard<24;guard++){
-      if(G.over)return;cache.clear();
+      if(G.over)return;cache.clear();pcache.clear();
       const b=bestAttack(pl);if(!b)return;
       attack(b.r,b.c,b.r2,b.c2);await sleep(isHorde(pl)?420:650);render();
     }
@@ -929,13 +948,13 @@ const AI=(()=>{
   }
   /* ---------- whole turns ---------- */
   async function turn(pl){
-    cache.clear();
+    cache.clear();pcache.clear();
     if(G.phase==="draw"){
       for(let n=0;n<3&&shouldDraw(pl);n++){rollDraw();await step()}
       G.phase="prep";await step();
     }
     const W=stance(pl),lv=lvl(pl);
-    log(`${plName(pl)} leans to ${W===OFF?"offense":"defense"}.`,"ai");
+    log(`${plName(pl)} ${W===PUSH?"pushes to break the standoff":"leans to "+(W===DEF?"defense":"offense")}.`,"ai");
     await suicides(pl);
     await sacrifices(pl,lv==="hard"?5:lv==="medium"?4:2,lv==="hard"?2:1);
     await necro(pl);
@@ -948,9 +967,12 @@ const AI=(()=>{
     await attacks(pl);
   }
   async function setup(pl){
-    const W=DEF,cols=lvl(pl)==="easy"?[0,1,2,3,4]:[1,2,3];
-    const c=pick(cols.filter(c=>!G.board[backRow(pl)][c]));
-    await sleep(300);placeOpening(pl,backRow(pl),c);render();await sleep(300);
+    const W=DEF,co=centerOut(),cols=lvl(pl)==="easy"?co:co.slice(0,3);
+    while(G.setupStep==="ace"){
+      const free=cols.filter(c=>!G.board[backRow(pl)][c]&&!isVoid(backRow(pl),c)),all=co.filter(c=>!G.board[backRow(pl)][c]&&!isVoid(backRow(pl),c));
+      const c=pick(free.length?free:all);
+      await sleep(300);placeOpening(pl,backRow(pl),c);render();await sleep(200);
+    }
     const prev=G.phase;G.phase="setup";
     await placements(pl,W,lvl(pl)==="hard"?2:1);
     G.phase=prev;
@@ -1020,9 +1042,9 @@ function hordeSpawn(){
 function hordePlace(c){
   const pl=1,rows=[frontRow(pl),backRow(pl)];
   // stack onto its own stacks when it can, front line first
-  for(const r of rows)for(const col of [2,1,3,0,4]){const st=G.board[r][col];
+  for(const r of rows)for(const col of centerOut()){const st=G.board[r][col];
     if(st&&st.owner===pl&&!hasK(st,"ace")&&stackLegal([...st.cards,c])){st.cards.push(c);return true}}
-  for(const r of rows){const free=[0,1,2,3,4].filter(col=>!G.board[r][col]);if(free.length){
+  for(const r of rows){const free=centerOut().filter(col=>!G.board[r][col]&&!isVoid(r,col));if(free.length){
     // lean toward the columns where the player's stacks are
     const mine=stacksOf(0);free.sort((a,b)=>Math.min(9,...mine.map(x=>Math.abs(x.c-a)))-Math.min(9,...mine.map(x=>Math.abs(x.c-b))));
     G.board[r][free[0]]={owner:pl,cards:[c],moved:false,attacked:false};return true}}
@@ -1177,7 +1199,7 @@ function render(){
   // round (survival)
   const rd=$("#round");rd.hidden=!survival();if(survival())rd.innerHTML=`<span class="label">Round</span><b class="bl">${roman(Math.max(1,G.round))}</b>`;
   // phases
-  if(G.phase==="setup")$("#phases").innerHTML=`<span class="ph-c on"><b>Setup</b><em>${G.setupStep==="ace"?"click a backline tile for your Ace and Jack":"place any opening cards, then press Done"}</em></span>`;
+  if(G.phase==="setup")$("#phases").innerHTML=`<span class="ph-c on"><b>Setup</b><em>${G.setupStep==="ace"?(hq()&&!G.p[G.active].opening.length?"click a backline tile for your second base Ace":"click a backline tile for your Ace and Jack"):"place any opening cards, then press Done"}</em></span>`;
   else if(G.phase==="moon")$("#phases").innerHTML=`<span class="ph-c on"><b>Moon</b><em>the ${MOON[m.i]} takes effect</em></span>`;
   else $("#phases").innerHTML=PHASES.map(([id,n,help])=>`<span class="ph-c ${G.phase===id?"on":""}${id==="draw"&&(G.turnNo===1||G.noDraw)?" skip":""}"><b>${n}</b><em>${help}</em></span>`).join('<i>→</i>');
   const who=me();
@@ -1189,15 +1211,21 @@ function render(){
   if(live&&G.sel&&G.mode==="move")tgt=moveTargets();
   if(live&&G.sel&&G.mode==="attack")tgt=attackTargets();
   const placeT=[];
-  if(live&&G.phase==="setup"&&G.setupStep==="ace"){for(let c=0;c<COLS;c++)if(!G.board[backRow(G.active)][c])placeT.push([backRow(G.active),c])}
+  if(live&&G.phase==="setup"&&G.setupStep==="ace"){for(let c=0;c<COLS;c++)if(!G.board[backRow(G.active)][c]&&!isVoid(backRow(G.active),c))placeT.push([backRow(G.active),c])}
   else if(live&&G.selHand)for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(canPlace(G.selHand,r,c))placeT.push([r,c]);
   const isT=(r,c,list)=>list.some(([a,b])=>a===r&&b===c);
-  $("#board").style.setProperty("--rows",G.rows);
-  $("#board").innerHTML=rows.map(r=>{
-    const lineName=r===backRow(V)?"your backline":r===frontRow(V)?"your frontline":r===backRow(T)?"enemy backline":r===frontRow(T)?"enemy frontline":"midline";
-    const nm=G.opts.mode==="cpu"||survival()?lineName.replace("enemy",survival()?"Horde":"computer's").replace("your","your"):lineName;
+  const B=$("#board");B.style.setProperty("--rows",G.rows);B.style.setProperty("--cols",COLS);B.classList.toggle("mapped",G.map.theme!=="none");B.dataset.map=G.map.theme;
+  if(!G.map.ground)G.map.ground=mapGround();G.map.art=G.map.art||{};
+  const river=G.map.theme==="river";
+  B.innerHTML=`<div class="mapbg">${G.map.ground}</div>`+rows.map((r,ri)=>{
+    const lineName=r===backRow(V)?"your backline":r===frontRow(V)?"your frontline":r===backRow(T)?"enemy backline":r===frontRow(T)?"enemy frontline":river?"river":"midline";
+    let nm=G.opts.mode==="cpu"||survival()?lineName.replace("enemy",survival()?"Horde":"computer's"):lineName;
+    if(river&&lineName==="river")nm=`river · bridge on the ${G.map.bridge}`;
+    const edge=ri===0?"top":"bottom";
     return `<div class="row ${lineName.replace(/\s/g,"-")}"><span class="rl">${nm}</span>`+cols.map(c=>{
-      const st=G.board[r][c];
+      const st=G.board[r][c],role=tileRole(r,c),key=r+"."+c+"."+edge;
+      const art=G.map.art[key]||(G.map.art[key]=tileArt(r,c,role,edge));
+      if(role==="void"||role==="water")return `<div class="tile ${role}" aria-hidden="true">${art}</div>`;
       const cls=["tile"];if(G.sel&&G.sel.r===r&&G.sel.c===c)cls.push("sel");
       if(isT(r,c,tgt))cls.push(G.mode==="attack"?"tatk":"tmove");if(isT(r,c,placeT))cls.push("tplace");
       let inner="";
@@ -1207,10 +1235,10 @@ function render(){
         const cap=st.cards.reduce((a,x)=>a+capMana(x),0);
         inner=`<div class="stack ${mine?"mine":"theirs"} ${lead.color}" style="--pc:${P.color}"><span class="so">${solidSVG(P.solid,P.color,16)}</span>${st.cards.length>1?`<span class="cnt">×${st.cards.length}</span>`:""}<span class="lead"><b class="rk${lead.rank==="JK"?" jk":""}">${lead.rank==="JK"?"Joker":lead.rank}</b><i>${lead.rank==="JK"?"✶":SUITS[lead.suit]}</i></span><span class="mini">${st.cards.length>1?st.cards.map(short).join(" "):""}</span><em class="ty">${TYPEWORD[kind(lead)]}</em>${st.odds?`<span class="odds ${st.odds}">${st.odds==="adv"?"▲":"▼"}</span>`:""}${st.hypo?`<span class="hypo" title="Hypostasis: untouchable">◈${st.hypo}</span>`:""}${cap?`<span class="souls" title="captured souls">✦${cap}</span>`:""}${st.owner===G.active&&(st.moved||st.attacked)&&G.phase!=="setup"?`<span class="used">${st.attacked?"atk":"mv"}</span>`:""}</div>`;
       }
-      return `<button class="${cls.join(" ")}" data-r="${r}" data-c="${c}" aria-label="${lineName} column ${c+1}${st?", "+st.cards.map(nameOf).join(", "):", empty"}">${inner}</button>`;
+      return `<button class="${cls.join(" ")}${role==="bridge"?" bridge":""}" data-r="${r}" data-c="${c}" aria-label="${lineName}${role==="bridge"?" bridge":""} column ${c+1}${st?", "+st.cards.map(nameOf).join(", "):", empty"}">${art}${inner}</button>`;
     }).join("")+"</div>";
   }).join("");
-  $("#board").querySelectorAll(".tile").forEach(b=>b.onclick=()=>tileClick(+b.dataset.r,+b.dataset.c));
+  $("#board").querySelectorAll("button.tile").forEach(b=>b.onclick=()=>tileClick(+b.dataset.r,+b.dataset.c));
   // player boxes
   $("#foe").innerHTML=pboxHTML(T,true);$("#me").innerHTML=pboxHTML(V,false);
   $("#me").style.setProperty("--pc",G.p[V].color);$("#foe").style.setProperty("--pc",G.p[T].color);
@@ -1287,7 +1315,7 @@ function tileClick(r,c){
   if(!G||G.over||G.passing)return;
   const live=canAct();
   if(live&&G.phase==="setup"&&G.setupStep==="ace"){
-    if(r===backRow(G.active)&&!G.board[r][c]){placeOpening(G.active,r,c);render()}else flash("Your Ace goes on an empty tile of your backline.");return}
+    if(r===backRow(G.active)&&!G.board[r][c]&&!isVoid(r,c)){placeOpening(G.active,r,c);render()}else flash("Your Ace goes on an empty tile of your backline.");return}
   if(live&&G.selHand){if(canPlace(G.selHand,r,c)){place(G.selHand,r,c);render()}else flash("That card can't be placed there.");return}
   if(live&&G.sel&&G.mode==="move"&&moveTargets().some(([a,b])=>a===r&&b===c)){doMove(r,c);render();return}
   if(live&&G.sel&&G.mode==="attack"&&attackTargets().some(([a,b])=>a===r&&b===c)){attack(G.sel.r,G.sel.c,r,c);G.mode=null;if(G.sel&&!G.board[G.sel.r][G.sel.c])G.sel=null;render();return}
@@ -1348,7 +1376,6 @@ function showStart(){
   const forms=mode==="local"?`<div class="pgrid">${playerForm(1,"Player One",0,"tetra","binah")+playerForm(2,"Player Two",3,"icosa","tiph")}</div>`:playerForm(1,mode==="survival"?"Survivor":"Player One",0,"tetra","binah");
   const diff=mode==="cpu"?`<fieldset class="pf"><legend>Computer</legend><div class="opts">${[["easy","Easy","an easier version: it plays loosely and misses chances"],["medium","Medium","balanced, and a real fight"],["hard","Hard","goes all out on your field and your deck"]].map(([k,t,s],i)=>`<label class="opt"><input type="radio" name="diff" value="${k}" ${i===1?"checked":""}><span>${t}<small>${s}</small></span></label>`).join("")}</div></fieldset>`:"";
   const rules=`<fieldset class="pf"><legend>Field</legend>
-${mode==="survival"?'<p class="dim">Survival always uses the midline.</p>':chk("omid","Use the midline","An empty line between the two armies.",true)}
 ${chk("olock","Optional Ace rule","Cards inside an Ace must match its color.",false)}
 </fieldset>
 <fieldset class="pf"><legend>Mana</legend>
@@ -1377,7 +1404,20 @@ ${[["none","None","Only your opening Ace and its Jack. Every other special waits
 ${chk("ojoker","At least one Joker","Every player's deck holds at least one Joker, taken from the Ether if needed.",true)}
 <p class="dim" id="decksum"></p>
 </fieldset>`;
-  const tabs=[["players",mode==="cpu"?"Players":"Player",forms+diff],["deck","Deck",deckTab],["rules","Rules",rules],["display","Display",display]];
+  const mapTab=`<fieldset class="pf"><legend>Battle map</legend><div class="opts">
+<label class="opt"><input type="radio" name="omap" value="random" checked><span>Random<small>One of the maps below, picked at the start. (default)</small></span></label>
+${Object.entries(MAPS).filter(([k])=>!(mode==="survival"&&k==="river")).map(([k,m])=>`<label class="opt"><input type="radio" name="omap" value="${k}"><span>${m.name}<small>${m.sub}</small></span></label>`).join("")}</div>
+<div class="f" id="bridgeopt" hidden><span>Bridge</span><div class="opts"><label class="opt"><input type="radio" name="obridge" value="left" checked><span>Left<small>Two tiles wide, on the left of the river.</small></span></label><label class="opt"><input type="radio" name="obridge" value="right"><span>Right<small>Two tiles wide, on the right.</small></span></label></div></div>
+</fieldset>
+<fieldset class="pf" id="sizeset"><legend>Size</legend>
+<div class="f"><span>Width</span><div class="opts">${[5,6,7].map(w=>`<label class="opt"><input type="radio" name="ocols" value="${w}" ${w===5?"checked":""}><span>${w} wide${w===5?" (default)":""}</span></label>`).join("")}</div></div>
+${mode==="survival"?'<p class="dim">Survival always uses the midline: the field is 5 tall.</p>':chk("omid","Use the midline","An empty line between the two armies: 5 tall with it, 4 without.",true)}
+${chk("ocorners","Cut off the corners","The four corner tiles are removed from play.",false)}
+<p class="dim mapnote" id="rivernote" hidden>The River map is always 7 wide and 5 tall with the midline, and keeps its corners.</p>
+<p class="dim">On a phone, 5 wide is the largest size that stays easy to read.</p>
+</fieldset>
+${mode==="survival"?"":`<fieldset class="pf"><legend>Victory</legend>${chk("ohq","Headquarters","Each side opens with two Aces as bases, and troops can only be spawned inside your Aces. The only ways to win are destroying every enemy base or an economic victory.",false)}</fieldset>`}`;
+  const tabs=[["players",mode==="cpu"?"Players":"Player",forms+diff],["map","Map",mapTab],["deck","Deck",deckTab],["rules","Rules",rules],["display","Display",display]];
   ovShow(`<div class="ovbox setup"><div class="shead"><h2>${M[1]}</h2><p class="dim">${M[2]}</p></div>
 <div class="stabs" role="tablist">${tabs.map(([k,t],i)=>`<button type="button" role="tab" class="stab ${i?"":"on"}" data-t="${k}" aria-selected="${!i}">${t}</button>`).join("")}</div>
 ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"hidden":""}>${h}</div>`).join("")}
@@ -1394,6 +1434,9 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     $("#decksum").textContent=`Each deck starts with ${deck} cards, plus the opening Ace and Jack on the field. The Ether starts with ${ether} souls to conjure.`;
   };
   document.querySelectorAll('input[name=odecks],input[name=ospecials],input[name=osuitmode],#ojoker').forEach(i=>i.addEventListener("change",sumUp));sumUp();
+  const mapUp=()=>{const rv=val("omap")==="river";$("#bridgeopt").hidden=!rv;$("#rivernote").hidden=!rv;
+    document.querySelectorAll('#sizeset input').forEach(i=>i.disabled=rv);};
+  document.querySelectorAll('input[name=omap]').forEach(i=>i.addEventListener("change",mapUp));mapUp();
   $("#back").onclick=()=>{startMode=null;history.replaceState(null,"",location.pathname);showStart()};
   $("#go").onclick=()=>{
     const pl=n=>({name:($("#nm"+n).value.trim()||(n===1?"Player One":"Player Two")).slice(0,20),tribe:val("tr"+n),color:val("co"+n),solid:val("so"+n)});
@@ -1405,6 +1448,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     else{const a=pl(1);players=[a,{name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>s!==a.solid)),cpu:"horde"}]}
     PREF.hand=val("dhand")||PREF.hand;PREF.theme=val("dtheme")??PREF.theme;savePrefs();applyPrefs();
     startGame({mode,players,mid:mode==="survival"||!!($("#omid")&&$("#omid").checked),aceLock:$("#olock").checked,bloodStart:$("#oblood").checked,
+      map:val("omap"),cols:+val("ocols"),corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
       decks:+val("odecks"),specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:+val("odecks")===1&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
       startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,atkSpells:$("#oatk").checked});
   };
@@ -1471,6 +1515,113 @@ function mountQuotes(){
   const show=()=>{let i;do{i=Math.floor(Math.random()*Q.length)}while(Q.length>1&&i===last);last=i;const q=Q[i];
     $("#qtext").textContent=q.t;$("#qsrc").textContent=`Chapter ${q.n} · ${q.title}`;$("#qtext").parentNode.scrollTop=0};
   $("#qnext").onclick=show;show();setInterval(()=>{if(!document.hidden)show()},75000);
+}
+
+/* ---------------- maps: size, shape and battle-map art (all drawn in code, all at night) ---------------- */
+const MAPS={
+  keep:  {name:"Keep",           sub:"a stone keep, a graveyard on the midline, the enemy's barracks"},
+  sahel: {name:"Sahel",          sub:"red laterite and dry grass of the far north at night; mud-brick walls, thatched huts"},
+  forest:{name:"Forest",         sub:"a clearing in deep woods; a palisade keep and a camp of tents"},
+  dungeon:{name:"Dungeon",       sub:"flagstones, pillars and torchlight; no castle and no barracks"},
+  river: {name:"River",          sub:"a wide brown river like the Ogun near Lagos, crossed by one bridge; 7 wide, always with the midline"},
+  none:  {name:"No map",         sub:"plain tiles"}
+};
+function mapPlan(o){
+  let theme=o.map||"random";
+  if(theme==="random")theme=pick(["keep","sahel","forest","dungeon","river"]);
+  if(o.mode==="survival"&&theme==="river")theme="keep";   // Survival needs every midline tile open
+  let cols=Math.max(5,Math.min(7,+o.cols||5)),mid=o.mode==="survival"||o.mid!==false,corners=!!o.corners,bridge=o.bridge==="right"?"right":"left";
+  if(theme==="river"){cols=7;mid=true;corners=false}
+  const rows=mid?5:4,V=Array.from({length:rows},()=>Array(cols).fill(false));
+  if(corners)for(const r of [0,rows-1])for(const c of [0,cols-1])V[r][c]=true;
+  if(theme==="river"){const r=2;for(let c=0;c<cols;c++)V[r][c]=!(bridge==="left"?c<2:c>=cols-2)}
+  return{theme,cols,rows,mid,corners,bridge,void:V,seed:(Math.random()*1e9)|0};
+}
+function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const PAL={
+  keep:  {ground:"#26321e",patch:["#2d3a23","#1f2a18","#34432a"],tuft:"#5c703e",stone:"#6a6962",stone2:"#4f4e48",wood:"#5e4328",wood2:"#3e2c1a",tent:"#7a6646",dirt:"#3a2e20",grave:"#8a897f"},
+  sahel: {ground:"#4c2d1b",patch:["#573421","#3f2516","#62402a"],tuft:"#8a7746",stone:"#8f5a33",stone2:"#6a4026",wood:"#7a5530",wood2:"#55391e",tent:"#937a45",dirt:"#52331e",grave:"#9a856c"},
+  forest:{ground:"#1d3020",patch:["#233a26","#172719","#2a452c"],tuft:"#46683e",stone:"#57604f",stone2:"#3f463a",wood:"#5e4228",wood2:"#3e2b19",tent:"#66603f",dirt:"#2f2619",grave:"#7c8276"},
+  dungeon:{ground:"#232229",patch:["#2a2931","#1b1a20","#323039"],tuft:"#3b3a42",stone:"#4f4e58",stone2:"#3b3a43",wood:"#4a3622",wood2:"#2f2216",tent:"#4a443c",dirt:"#28252a",grave:"#77757f"},
+  river: {ground:"#4a2819",patch:["#55301e","#3d2114",""+"#5e3a24"],tuft:"#55783a",stone:"#6e4a30",stone2:"#503420",wood:"#6e4c2a",wood2:"#4a3018",tent:"#6e5c3a",dirt:"#4a2a1a",grave:"#86745e",water:"#3b3622",water2:"#6a6040"}
+};
+const f1=n=>n.toFixed(1);
+/* the ground under the whole board, seen through the gaps between tiles */
+function mapGround(){
+  const M=G.map;if(M.theme==="none")return "";
+  const P=PAL[M.theme],W=COLS*100,H=G.rows*100,rnd=rng(M.seed);let s=`<rect width="${W}" height="${H}" fill="${P.ground}"/>`;
+  for(let i=0;i<COLS*G.rows*5;i++)s+=`<ellipse cx="${f1(rnd()*W)}" cy="${f1(rnd()*H)}" rx="${f1(14+rnd()*40)}" ry="${f1(8+rnd()*26)}" fill="${P.patch[Math.floor(rnd()*P.patch.length)]}" opacity=".7"/>`;
+  if(M.theme==="dungeon")for(let x=0;x<W;x+=25)s+=`<path d="M${x},0V${H}" stroke="#0c0b0e" stroke-width="1.2"/>`;
+  return `<svg class="mapground" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">${s}<rect width="${W}" height="${H}" fill="#14204a" opacity=".14"/></svg>`;
+}
+/* the art inside one tile. role: fort | barracks | field | grave | water | bridge | void ; edge: "top" | "bottom" (the outer side of a backline) */
+function tileArt(r,c,role,edge){
+  const M=G.map;if(M.theme==="none")return "";
+  const P=PAL[M.theme],T=M.theme,rnd=rng(M.seed+r*131+c*17);let s="";
+  const rr=(a,b)=>a+rnd()*(b-a);
+  const tufts=n=>{for(let i=0;i<n;i++){const x=rr(6,94),y=rr(6,84);s+=`<path d="M${f1(x)},${f1(y)}l-2,-5M${f1(x)},${f1(y)}l0,-6M${f1(x)},${f1(y)}l2,-5" stroke="${P.tuft}" stroke-width="1.1" stroke-linecap="round"/>`}};
+  const rocks=n=>{for(let i=0;i<n;i++)s+=`<ellipse cx="${f1(rr(8,92))}" cy="${f1(rr(8,82))}" rx="${f1(rr(2,5))}" ry="${f1(rr(1.5,4))}" fill="${P.stone2}"/>`};
+  const flags=(col1,col2)=>{for(let y=0;y<90;y+=18)for(let x=-(y/18%2)*12;x<100;x+=24)s+=`<rect x="${f1(x+1)}" y="${f1(y+1)}" width="22" height="16" rx="1.5" fill="${rnd()<.5?col1:col2}" stroke="#0008" stroke-width=".8"/>`};
+  const tree=(x,y,R,col)=>{s+=`<circle cx="${f1(x+2)}" cy="${f1(y+3)}" r="${f1(R)}" fill="#0007"/><circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(R)}" fill="${col}"/><circle cx="${f1(x-R*.3)}" cy="${f1(y-R*.3)}" r="${f1(R*.45)}" fill="#ffffff0d"/>`};
+  const palm=(x,y,R)=>{for(let k=0;k<7;k++){const a=k/7*Math.PI*2+rnd()*.4;s+=`<path d="M${f1(x)},${f1(y)}q${f1(Math.cos(a+.4)*R*.6)},${f1(Math.sin(a+.4)*R*.6)} ${f1(Math.cos(a)*R)},${f1(Math.sin(a)*R)}" stroke="#2f4a22" stroke-width="2.4" fill="none" stroke-linecap="round"/>`}s+=`<circle cx="${f1(x)}" cy="${f1(y)}" r="2.2" fill="#3a2a18"/>`};
+  const acacia=(x,y,R)=>{s+=`<ellipse cx="${f1(x+2)}" cy="${f1(y+2)}" rx="${f1(R)}" ry="${f1(R*.7)}" fill="#0006"/><ellipse cx="${f1(x)}" cy="${f1(y)}" rx="${f1(R)}" ry="${f1(R*.7)}" fill="#3a3a1e"/><ellipse cx="${f1(x)}" cy="${f1(y)}" rx="${f1(R*.55)}" ry="${f1(R*.38)}" fill="#47462a"/>`};
+  const wallY=edge==="top"?0:78;
+  if(role==="void"){
+    if(T==="forest"||T==="river")for(let i=0;i<4;i++)tree(rr(10,90),rr(10,80),rr(10,18),T==="river"?"#203a1c":"#173018");
+    else{s+=`<rect width="100" height="90" fill="#0006"/>`;rocks(9)}
+  }else if(role==="water"){
+    s+=`<rect width="100" height="90" fill="${P.water}"/>`;
+    for(let i=0;i<7;i++){const y=rr(8,82),x=rr(-10,70);s+=`<path d="M${f1(x)},${f1(y)}q8,-3 16,0t16,0" stroke="${P.water2}" stroke-width="1.4" fill="none"/>`}
+    for(let i=0;i<2;i++){const x=rr(10,90),y=rr(15,75);s+=`<ellipse cx="${f1(x)}" cy="${f1(y)}" rx="${f1(rr(8,16))}" ry="2" fill="#c8d4ff" opacity=".06"/>`}
+    s+=`<path d="M0,2Q50,${f1(rr(5,10))} 100,2" stroke="#5a3a22" stroke-width="3" fill="none" opacity=".7"/><path d="M0,88Q50,${f1(rr(80,85))} 100,88" stroke="#5a3a22" stroke-width="3" fill="none" opacity=".7"/>`;
+  }else if(role==="bridge"){
+    s+=`<rect width="100" height="90" fill="${P.water}"/>`;
+    for(let x=6;x<94;x+=11)s+=`<rect x="${x}" y="0" width="10" height="90" fill="${rnd()<.5?P.wood:P.wood2}" stroke="#0008" stroke-width=".8"/>`;
+    s+=`<path d="M3,0V90M97,0V90" stroke="#2a1a0e" stroke-width="3"/>`;
+  }else if(role==="fort"&&T!=="dungeon"&&T!=="river"){
+    if(T==="sahel"){flags("#5a3520","#4f2e1b");s+=`<rect x="0" y="${wallY}" width="100" height="12" fill="${P.stone}"/>`;for(let x=2;x<100;x+=12)s+=`<path d="M${x},${edge==="top"?12:78}l5,${edge==="top"?5:-5}l5,${edge==="top"?-5:5}z" fill="${P.stone}"/>`}
+    else if(T==="forest"){for(let y=0;y<90;y+=12)s+=`<rect x="0" y="${y}" width="100" height="11" fill="${rnd()<.5?P.wood:P.wood2}" opacity=".85"/>`;s+=`<rect x="0" y="${wallY}" width="100" height="12" fill="#3a2614"/>`;for(let x=3;x<100;x+=9)s+=`<circle cx="${x}" cy="${wallY+6}" r="4" fill="#4a3220" stroke="#0007"/>`}
+    else{flags(P.stone,P.stone2);s+=`<rect x="0" y="${wallY}" width="100" height="12" fill="#5a5a55" stroke="#0009"/>`;for(let x=0;x<100;x+=14)s+=`<rect x="${x+2}" y="${edge==="top"?12:72}" width="8" height="6" fill="#5a5a55" stroke="#0009" stroke-width=".8"/>`}
+    if(c===0||c===COLS-1){const x=c===0?14:86;s+=`<circle cx="${x}" cy="${edge==="top"?14:76}" r="12" fill="${T==="sahel"?P.stone:"#5f5f59"}" stroke="#000a" stroke-width="1.2"/><circle cx="${x}" cy="${edge==="top"?14:76}" r="6" fill="#0006"/>`}
+  }else if(role==="barracks"&&T!=="dungeon"&&T!=="river"){
+    s+=`<rect width="100" height="90" fill="${P.dirt}" opacity=".7"/>`;
+    if(T==="sahel"){for(let i=0;i<2;i++){const x=rr(25,75),y=rr(25,65),R=rr(12,16);s+=`<circle cx="${f1(x+2)}" cy="${f1(y+2)}" r="${f1(R)}" fill="#0007"/><circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(R)}" fill="${P.tent}"/>`;for(let k=0;k<12;k++){const a=k/12*Math.PI*2;s+=`<path d="M${f1(x)},${f1(y)}L${f1(x+Math.cos(a)*R)},${f1(y+Math.sin(a)*R)}" stroke="#4a3a1e" stroke-width=".8"/>`}}}
+    else{const n=rnd()<.5?1:2;for(let i=0;i<n;i++){const R=n===1?rr(20,24):rr(14,17),x=n===1?rr(38,62):(i?rr(66,78):rr(22,34)),y=rr(34,56);
+      s+=`<circle cx="${f1(x+3)}" cy="${f1(y+3)}" r="${f1(R)}" fill="#0008"/><circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(R)}" fill="${P.tent}" stroke="#000a" stroke-width="1"/>`;
+      for(let k=0;k<8;k++){const a=k/8*Math.PI*2;s+=`<path d="M${f1(x)},${f1(y)}L${f1(x+Math.cos(a)*R)},${f1(y+Math.sin(a)*R)}" stroke="#0005" stroke-width="1"/>`}
+      s+=`<circle cx="${f1(x)}" cy="${f1(y)}" r="2.2" fill="#2a1e12"/>`;
+      for(let k=0;k<4;k++){const a=k/4*Math.PI*2+.4;s+=`<path d="M${f1(x+Math.cos(a)*R)},${f1(y+Math.sin(a)*R)}l${f1(Math.cos(a)*6)},${f1(Math.sin(a)*6)}" stroke="#a89878" stroke-width=".7"/>`}}
+      for(let i=0;i<2;i++){const x=rr(8,88),y=rr(72,84);s+=`<rect x="${f1(x)}" y="${f1(y)}" width="9" height="6" fill="${P.wood}" stroke="#0008" stroke-width=".7"/>`}}
+    if(rnd()<.4){const x=rr(70,88),y=rr(60,80);s+=`<circle cx="${f1(x)}" cy="${f1(y)}" r="7" fill="#ff8a2a" opacity=".18"/><circle cx="${f1(x)}" cy="${f1(y)}" r="2.6" fill="#ffb24a" opacity=".8"/>`}
+  }else if(role==="grave"&&T!=="river"){
+    s+=`<rect width="100" height="90" fill="${P.dirt}" opacity=".55"/>`;
+    const n=2+Math.floor(rnd()*3);
+    for(let i=0;i<n;i++){const x=rr(10,82),y=rr(10,70);
+      if(T==="sahel")s+=`<circle cx="${f1(x)}" cy="${f1(y)}" r="5" fill="${P.grave}"/><circle cx="${f1(x+4)}" cy="${f1(y+3)}" r="4" fill="#5d4c3c"/><circle cx="${f1(x+1)}" cy="${f1(y+6)}" r="3.5" fill="#6a5848"/>`;
+      else if(rnd()<.3)s+=`<path d="M${f1(x+4)},${f1(y)}v14M${f1(x)},${f1(y+4)}h8" stroke="${P.grave}" stroke-width="2.2"/>`;
+      else s+=`<rect x="${f1(x+1.5)}" y="${f1(y+1.5)}" width="10" height="14" rx="4" fill="#0008"/><rect x="${f1(x)}" y="${f1(y)}" width="10" height="14" rx="4" fill="${P.grave}"/><rect x="${f1(x+2)}" y="${f1(y+16)}" width="6" height="7" fill="#1a140e" opacity=".7"/>`}
+    if(T==="dungeon")s+=`<path d="M${f1(rr(10,40))},${f1(rr(40,80))}l12,-4m-6,-3l3,8" stroke="#a8a294" stroke-width="1.6"/>`;
+    else rocks(2);
+  }else if(T==="dungeon"){
+    flags(P.stone,P.stone2);
+    if(rnd()<.35)s+=`<path d="M${f1(rr(10,60))},${f1(rr(10,40))}l9,7l-3,8l10,6" stroke="#0b0a0d" stroke-width="1.2" fill="none"/>`;
+    if((role==="fort"||role==="barracks")&&rnd()<.5){const x=c%2?84:16;s+=`<circle cx="${x}" cy="45" r="9" fill="#2a292f" stroke="#000" stroke-width="1.2"/>`}
+    if(rnd()<.18){const x=rr(10,90);s+=`<circle cx="${f1(x)}" cy="${edge==="top"?6:84}" r="14" fill="#ff9a3a" opacity=".12"/><circle cx="${f1(x)}" cy="${edge==="top"?6:84}" r="2.4" fill="#ffc06a"/>`}
+  }else{ // open ground: frontlines, and the backlines of the river map
+    if(T==="sahel"){tufts(5);for(let i=0;i<3;i++){const y=rr(10,80);s+=`<path d="M${f1(rr(0,40))},${f1(y)}q12,-3 24,0" stroke="#4a2c1a" stroke-width="1.2" fill="none"/>`}if(rnd()<.3)acacia(rr(18,82),rr(18,72),rr(9,13))}
+    else if(T==="forest"){tufts(4);if(rnd()<.5)tree(c%2?rr(78,92):rr(8,22),rr(10,80),rr(8,13),"#173018");rocks(1)}
+    else if(T==="river"){tufts(4);rocks(1);if(rnd()<.45)palm(rr(15,85),rr(15,75),rr(12,17));if(role!=="field"&&rnd()<.5)tree(rr(10,90),rr(10,80),rr(7,11),"#203a1c")}
+    else{tufts(6);rocks(2);if(rnd()<.25)s+=`<path d="M0,${f1(rr(30,60))}q50,${f1(rr(-10,10))} 100,0" stroke="#2c2618" stroke-width="5" fill="none" opacity=".6"/>`}
+  }
+  return `<svg class="tart" viewBox="0 0 100 90" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${s}<rect width="100" height="90" fill="#14204a" opacity=".12"/></svg>`;
+}
+function tileRole(r,c){
+  if(G.map.theme==="river"&&r===2)return isVoid(r,c)?"water":"bridge";
+  if(isVoid(r,c))return "void";
+  if(r===backRow(0))return "fort";
+  if(r===backRow(1))return "barracks";
+  if(G.rows===5&&r===2)return "grave";
+  return "field";
 }
 
 })();

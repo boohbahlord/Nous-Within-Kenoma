@@ -305,3 +305,26 @@ body:has(.game){padding-bottom:96px}
 /* ---- Jester theme: black like chapter 26, with blackletter titles ---- */
 html.th-jester .game h1,html.th-jester .ovbox h2{font-family:"Grenze Gotisch","Old English Text MT",serif;font-weight:500;letter-spacing:.02em}
 html.th-jester .game h1{font-size:clamp(30px,5vw,42px)}
+/* ---- battle maps ---- */
+#board{position:relative}
+#board .row{grid-template-columns:repeat(var(--cols,5),minmax(0,1fr));z-index:1}
+#board .mapbg{position:absolute;inset:-6px;z-index:0;pointer-events:none;overflow:hidden;border:1px solid #000}
+#board .mapbg svg{display:block;width:100%;height:100%}
+#board.mapped .rl{color:#e6d6bd;text-shadow:0 1px 2px #000,0 0 4px #000}
+#board.mapped .tile{background:transparent;border-color:#00000088}
+#board.mapped .row.midline .tile{background:transparent}
+.tile .tart{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+.tile .stack{z-index:2}
+.tile.void,.tile.water{cursor:default;border-color:transparent!important}
+#board.mapped .row.river{gap:0}
+#board.mapped .row.river .tile{border-color:transparent}
+#board.mapped .row.river .tile.bridge{border-color:#00000088}
+#board:not(.mapped) .tile.void{visibility:hidden}
+#board:not(.mapped) .tile.water{background:#1b2a3a}
+.tile.tmove::after,.tile.tplace::after,.tile.tatk::after,.tile.sel::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none}
+.tile.tmove::after{background:#e9a15738;box-shadow:inset 0 0 0 2px var(--amber)}
+.tile.tplace::after{background:#8fbf7440;box-shadow:inset 0 0 0 2px #8fbf74}
+.tile.tatk::after{background:#ff7a6640;box-shadow:inset 0 0 0 2px #ff7a66}
+.tile.sel::after{box-shadow:inset 0 0 0 2px var(--amber-hi)}
+.tile:hover::before{content:"";position:absolute;inset:0;z-index:1;box-shadow:inset 0 0 0 1px var(--amber);pointer-events:none}
+.mapnote{border-left:2px solid var(--amber);padding-left:10px}
