@@ -16,7 +16,7 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
 /* ---------------- tribes, colors, symbols ---------------- */
-const TRIBES={binah:{name:"Binah",sub:"the Southern tribe of the Euclids"},tiph:{name:"Tiphareth",sub:"the Northern tribe of the Euclids"}};
+const TRIBES={binah:{name:"Binah",sub:"The Southern tribe of the Euclids."},tiph:{name:"Tiphareth",sub:"The Northern tribe of the Euclids."}};
 const COLORS=[["Ember","#ee7a3c"],["Gold","#e3b944"],["Verdigris","#45b89c"],["Azure","#4c92e6"],["Violet","#a77de8"],["Rose","#e4648f"],["Bone","#e9dfc4"],["Crimson","#d7333b"]];
 const SOLIDS={tetra:"Tetrahedron",cube:"Cube",octa:"Octahedron",dodeca:"Dodecahedron",icosa:"Icosahedron"};
 const HORDE_COLOR="#97a487";
@@ -63,7 +63,7 @@ const hasK=(st,k)=>st.cards.some(c=>kind(c)===k);
 /* ---------------- state ---------------- */
 let G=null;
 function mkPlayer(i,o){return{i,name:o.name,tribe:o.tribe||null,color:o.color,solid:o.solid,cpu:o.cpu||null,team:o.team!=null?o.team:i,
-  deck:[],hand:[],souls:[],sevArmed:false,start:0,od:0,shownUntil:0,seen:false,tray:null,out:false,ctx:null}}
+  deck:[],hand:[],souls:[],sevArmed:false,start:0,od:0,shownUntil:0,seen:false,tray:null,out:false,ctx:null,hist:[],lastSpell:null}}
 function newGame(opts){
   uid=0;
   const M=mapPlan(opts);COLS=M.cols;const rows=M.rows;
@@ -181,6 +181,10 @@ function setActive(pl){
   G.active=pl;const Q=G.p[pl];if(Q.ctx)for(const k of TURNKEYS)G[k]=Q.ctx[k];
 }
 /* every action a player takes goes through here: it is recorded, so a later online version can send it to the table */
+/* tile names, like chess squares: columns A, B, C… from the left of the field, rows 1, 2, 3… from the bottom */
+const coord=(r,c)=>"ABCDEFGHIJ"[c]+(G.rows-r);
+/* each player's history of rolls and spells, for the dice box */
+function hist(pl,e){const P=G.p[pl];if(!P)return;e.t=Date.now();e.round=G.moon.round;(P.hist=P.hist||[]).unshift(e);if(P.hist.length>80)P.hist.length=80;if(e.kind==="spell")P.lastSpell=e}
 function journal(type,args){G.journal.push({t:G.turnNo,pl:G.active,type,args});if(G.journal.length>2000)G.journal.shift()}
 function log(html,cls=""){G.log.unshift({html,cls});G.log=G.log.slice(0,400)}
 const plName=pl=>esc(G.p[pl].name);
@@ -256,6 +260,7 @@ const sum=d=>d.reduce((a,x)=>a+(x.x?0:x.v),0);
 /* show a roll in a player's dice box. dice: [{s,v,x?}] (x = discarded by advantage/disadvantage) */
 function tray(pl,label,dice,line,quiet){
   G.p[pl].tray={label,dice,line:line||"",t:Date.now()};
+  hist(pl,{kind:"roll",name:label,dice:dice.map(d=>d.v!=null?`d${d.s}:${d.v}`:"").filter(Boolean),line:line||"",tile:G.histTile||null});
   if(!quiet&&dice.length)SND.dice(dice.length);
 }
 function rollStack(st,mode,enemy,fx){ // mode: "atk" | "def"
@@ -309,6 +314,7 @@ function attack(r1,c1,r2,c2){
   const fxA=A.odds||null,fxD=D.odds||null;
   const bothSoloJokers=A.cards.length===1&&D.cards.length===1&&kind(A.cards[0])==="joker"&&kind(D.cards[0])==="joker";
   const ra=rollStack(A,"atk",D,fxA),rd=rollStack(D,"def",A,fxD);
+  G.histTile=`${coord(r1,c1)} → ${coord(r2,c2)}`;
   A.odds=null;D.odds=null;A.attacked=true;G.lastAttack=G.turnNo;
   if(G.opts.moonBonus!==false&&!bothSoloJokers){   // the moon lends a die: Full Moon to the attacker, New Moon to the defender
     if(G.moon.i===4){const v=R(2);ra.total+=v;ra.dice.push({s:2,v});ra.parts.push(`${G.moon.blood?"Blood":"Full"} Moon +${v}`)}
@@ -329,7 +335,7 @@ function attack(r1,c1,r2,c2){
   if(rd.kingRoll===20&&dmgA>0){dmgA*=2;notes.push("Defending King rolls 20: double damage back.")}
   if(rd.aceRoll===1&&dmgA>0){dmgA=0;notes.push("The Ace rolls 1: it does no damage.")}
   const line=`${ra.total}${cmpSign(ra.total,rd.total)}${rd.total}`;
-  tray(atkPl,"Attack",ra.dice,line);tray(defPl,"Defense",rd.dice,line,true);
+  tray(atkPl,"Attack",ra.dice,line);tray(defPl,"Defense",rd.dice,line,true);G.histTile=null;
   log(`<b>${plName(atkPl)}</b> attacks: <span class="dice">${ra.parts.join(", ")}</span> = <b>${ra.total}</b> vs <span class="dice">${rd.parts.join(", ")}</span> = <b>${rd.total}</b> <span class="tot">(${esc(line)})</span>. ${notes.join(" ")} ${dmgD?`Defender takes ${dmgD} damage.`:""}${dmgA?`Attacker takes ${dmgA} damage.`:""}${!dmgA&&!dmgD?"No damage.":""}`,"combat");
   if(dmgD)damage(r2,c2,dmgD,true);
   if(dmgA&&G.board[r1][c1])damage(r1,c1,dmgA,false);
@@ -712,7 +718,7 @@ const selStack=()=>G.sel&&G.board[G.sel.r]&&G.board[G.sel.r][G.sel.c];
 const selOwn=()=>selStack()&&selStack().owner===G.active;
 const selEnemy=()=>selStack()&&isEnemy(selStack().owner,G.active);
 /* spells aimed at another player: with several enemies, the caster picks one */
-async function pickFoe(id,title){const es=enemiesOf(G.active).filter(pl=>!isHorde(pl));if(es.length<=1)return es[0];return ask(G.active,{kind:"player",id,title,players:es})}
+async function pickFoe(id,title){const es=enemiesOf(G.active).filter(pl=>!isHorde(pl));const t=es.length<=1?es[0]:await ask(G.active,{kind:"player",id,title,players:es});G.histTarget=t;return t}
 const selOwnJoker=()=>selOwn()&&hasK(selStack(),"joker");
 const SCHOOLS=["Necromancy","Enchantment","Curse","Sorcery","Conjuring"];
 const SPELLS=[
@@ -764,9 +770,11 @@ async function cast(sp){
   if(!sp.ok()){flash("That spell can't be cast right now.");return}
   const cost=spellCost(sp);
   if(mana(G.active)<cost){flash("Not enough mana.");return}
-  const wasBusy=G.busy;G.busy=true;
+  const wasBusy=G.busy;G.busy=true;const caster=G.active;
+  const tile=G.sel&&["suicide","divine","hypo","hexed","tele"].includes(sp.id)?coord(G.sel.r,G.sel.c):null;G.histTarget=null;G.histTile=tile;
   if(cost){if(sp.id!=="ritual")G.spentOther=true;pay(G.active,cost)}
-  await sp.run();
+  try{await sp.run()}finally{G.histTile=null}
+  hist(caster,{kind:"spell",name:sp.name,tile,cost,target:G.histTarget!=null?G.p[G.histTarget].name:null});G.histTarget=null;
   G.busy=wasBusy;render();checkWin();
 }
 const etherHas=k=>G.ether.some(c=>k==="soldier"?/^\d+$/.test(c.rank):kind(c)===k);
@@ -1265,11 +1273,14 @@ function face(c,o={}){
   return `<span class="cf ${c.color} ${o.cls||""}" style="--pc:${col}" title="${esc(nameOf(c))}"><span class="cx"><b class="rk${c.rank==="JK"?" jk":""}">${rk}</b>${c.rank==="JK"?"":`<i>${su}</i>`}</span><i class="su">${su}</i>${P?`<span class="so">${solidSVG(P.solid,col,sm?12:17)}</span>`:""}${sm?"":`<em class="ty">${TYPEWORD[k]}</em>`}${o.price?`<span class="price">${costOf(c)} mana</span>`:""}</span>`;
 }
 function back(pl){const P=G.p[pl];return `<span class="cb" style="--pc:${P.color}">${solidSVG(P.solid,P.color,18)}</span>`}
+const clock=t=>new Date(t).toLocaleTimeString([],{hour:"numeric",minute:"2-digit",second:"2-digit"});
+function lastSpellNote(P){const e=P.lastSpell;if(!e)return "";return `<span class="lastsp">(last spell: ${esc(e.name)}${e.tile?" on "+e.tile:""}${e.target?" at "+esc(e.target):""}, ${e.round?"round "+e.round:"setup"}, ${clock(e.t)})</span>`}
 function trayHTML(P,pl){
-  const t=P.tray;
-  if(!t)return `<div class="tray empty" style="--pc:${P.color}"><span class="tl">${esc(P.name)}'s dice</span><div class="dice"><span class="dim">no rolls yet</span></div></div>`;
-  return `<div class="tray" style="--pc:${P.color}"><span class="tl">${esc(t.label)}</span><div class="dice">${t.dice.length?t.dice.map(d=>dieSVG(d,P.color)).join(""):'<span class="dim">no dice</span>'}</div></div>${t.line?`<p class="tline">${esc(t.line)}</p>`:""}`;
+  const t=P.tray,head=`<span class="tl">${t?esc(t.label):esc(P.name)+"'s dice"} ${lastSpellNote(P)}</span>`;
+  const body=!t?'<span class="dim">No rolls yet.</span>':t.dice.length?t.dice.map(d=>dieSVG(d,P.color)).join(""):'<span class="dim">No dice.</span>';
+  return `<button type="button" class="tray${t?"":" empty"}" data-hist="${pl}" style="--pc:${P.color}" title="Show the history of rolls and spells" aria-label="${esc(P.name)}'s dice box: show history">${head}<span class="dice">${body}</span><span class="hhint">history ▾</span></button>${t&&t.line?`<p class="tline">${esc(t.line)}</p>`:""}`;
 }
+
 
 /* ---------------- UI ---------------- */
 let flashT;
@@ -1403,7 +1414,7 @@ function render(){
         inner=`<div class="stack ${mine?"mine":isEnemy(st.owner,V)?"theirs":"ally"} ${lead.color}" style="--pc:${P.color}"><span class="so">${solidSVG(P.solid,P.color,16)}</span>${st.cards.length>1?`<span class="cnt">×${st.cards.length}</span>`:""}<span class="lead"><b class="rk${lead.rank==="JK"?" jk":""}">${lead.rank==="JK"?"Joker":lead.rank}</b><i>${lead.rank==="JK"?"✶":SUITS[lead.suit]}</i></span><span class="mini">${st.cards.length>1?st.cards.map(short).join(" "):""}</span><em class="ty">${TYPEWORD[kind(lead)]}</em>${st.odds?`<span class="odds ${st.odds}">${st.odds==="adv"?"▲":"▼"}</span>`:""}${st.hypo?`<span class="hypo" title="Hypostasis: untouchable">◈${st.hypo}</span>`:""}${cap?`<span class="souls" title="captured souls">✦${cap}</span>`:""}${st.owner===G.active&&(st.moved||st.attacked)&&G.phase!=="setup"?`<span class="used">${st.attacked?"atk":"mv"}</span>`:""}</div>`;
       }
       const zc=!duel&&z>=0?` style="--zc:${G.p[z].color}"`:"";
-      return `<button class="${cls.join(" ")}${role==="bridge"?" bridge":""}"${zc} data-r="${r}" data-c="${c}" aria-label="${lineName||(z>=0?G.p[z].name+"'s ground":"open ground")}${role==="bridge"?" bridge":""}, row ${r+1} column ${c+1}${st?", "+st.cards.map(nameOf).join(", "):", empty"}">${art}${inner}</button>`;
+      return `<button class="${cls.join(" ")}${role==="bridge"?" bridge":""}"${zc} data-r="${r}" data-c="${c}" aria-label="${coord(r,c)}, ${lineName||(z>=0?G.p[z].name+"'s ground":"open ground")}${role==="bridge"?" bridge":""}${st?", "+st.cards.map(nameOf).join(", "):", empty"}">${art}${PREF.coords?`<span class="coord">${coord(r,c)}</span>`:""}${inner}</button>`;
     }).join("")+"</div>";
   }).join("");
   $("#board").querySelectorAll("button.tile").forEach(b=>b.onclick=()=>tileClick(+b.dataset.r,+b.dataset.c));
@@ -1440,6 +1451,8 @@ function render(){
   $("#snd").onclick=()=>{SND.toggle();render()};
   renderSel(live);
   renderSpells(live);
+  document.querySelectorAll("[data-hist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.hist,b)});
+  if(histOpen!=null)fillHist();
   $("#log").innerHTML=G.log.map(l=>`<li class="${l.cls}">${l.html}</li>`).join("");
 }
 function renderSpells(live){
@@ -1500,6 +1513,35 @@ function tileClick(r,c){
   G.sel={r,c,pick:new Set(st.cards.filter(x=>kind(x)!=="ace").map(x=>x.id))};G.mode=autoMode(st);render();
 }
 
+/* the history behind a dice box: every roll and spell, with the tile and the time on this computer */
+let histOpen=null;
+function histLine(e){
+  const bits=[];
+  if(e.kind==="spell"){if(e.tile)bits.push(e.tile);if(e.target)bits.push("at "+esc(e.target));if(e.cost)bits.push(`${e.cost} mana`)}
+  else{if(e.tile)bits.push(e.tile);if(e.dice&&e.dice.length)bits.push(e.dice.map(d=>d.replace(":"," ")).join(" "));if(e.line)bits.push(esc(e.line))}
+  return `<li class="${e.kind}"><b>${esc(e.name)}</b>${bits.length?": "+bits.join(", "):""}, <time>${clock(e.t)}</time> <small>${e.round?"round "+e.round:"setup"}</small></li>`;
+}
+function fillHist(){
+  const box=$("#histpop");if(!box||!G||histOpen==null){if(box)box.hidden=true;return}
+  const P=G.p[histOpen],list=(P.hist||[]);
+  box.innerHTML=`<div class="hhead"><div class="htabs">${G.p.map(Q=>`<button type="button" class="htab ${Q.i===histOpen?"on":""}" data-ht="${Q.i}" style="--pc:${Q.color}">${solidSVG(Q.solid,Q.color,13)} ${esc(Q.name)}</button>`).join("")}</div><button type="button" class="hx" aria-label="Close the history">×</button></div>
+<ol class="hlist">${list.length?list.map(histLine).join(""):'<li class="dim">Nothing yet.</li>'}</ol>`;
+  box.querySelectorAll("[data-ht]").forEach(b=>b.onclick=e=>{e.stopPropagation();histOpen=+b.dataset.ht;fillHist()});
+  box.querySelector(".hx").onclick=closeHist;
+}
+function openHist(pl,anchor){
+  let box=$("#histpop");
+  if(!box){box=document.createElement("div");box.id="histpop";box.setAttribute("role","dialog");box.setAttribute("aria-label","History of rolls and spells");document.body.appendChild(box);
+    box.addEventListener("click",e=>e.stopPropagation());
+    document.addEventListener("click",()=>{if(histOpen!=null)closeHist()});
+    document.addEventListener("keydown",e=>{if(e.key==="Escape"&&histOpen!=null)closeHist()})}
+  if(histOpen===pl&&!box.hidden){closeHist();return}
+  histOpen=pl;box.hidden=false;fillHist();
+  const r=anchor.getBoundingClientRect(),w=Math.min(420,innerWidth-20);
+  box.style.width=w+"px";box.style.left=Math.max(10,Math.min(r.left,innerWidth-w-10))+scrollX+"px";box.style.top=r.bottom+scrollY+4+"px";
+}
+function closeHist(){histOpen=null;const b=$("#histpop");if(b)b.hidden=true}
+
 /* ---------------- card and spell info ---------------- */
 const INFO={
  grunt:["Grunt","2 to 6",[["Score","its number + 1d6 on attack; its number alone on defense (+1d6 with a Queen)"],["Dice Max / MSV","6 / 24: four Grunts stack together"],["Soul","1 mana"],["Conjure","Soldier Conjure, 1 mana"],["Moves","one tile straight per turn"]],"The foot soldiers. Every card in a stack is one more hit it can take, and damage always removes the lowest card first."],
@@ -1530,19 +1572,22 @@ const MODES=[
 let startMode=null;
 const ORD=["One","Two","Three","Four"],SEATCOL=[0,3,2,5],SEATSOL=["tetra","icosa","cube","octa"];
 const LAYOUTS={
- duel:["One on one","The 5 by 5 field (or your chosen size), one army at each end."],
- ffa:["Free-for-all","7 by 7 with the corners cut. Everyone for themselves; each player spawns only on their own edge."],
- "team-side":["2v2, side by side","7 by 7 with the corners cut. Teammates hold two neighboring edges."],
- "team-across":["2v2, across","7 by 7 with the corners cut. Teammates face each other from opposite edges, with the enemy on both flanks."],
- "team-same":["2v2, same side","6 by 6, laid out like one on one: each team shares an end of the field, three columns each."]};
+ duel:["One on one","Two players, one army at each end of the field. Needs exactly 2 players."],
+ ffa:["Free-for-all","Everyone for themselves, one player to each edge of the field. Needs 3 or 4 players."],
+ "team-side":["2v2, side by side","Teammates hold two neighboring edges. Needs 4 players."],
+ "team-across":["2v2, across","Teammates face each other from opposite edges, with the enemy on both flanks. Needs 4 players."],
+ "team-same":["2v2, same side","Laid out like one on one: each team shares one end of the field, half its columns each. Needs 4 players."]};
+const LAYNEED={duel:[2],ffa:[3,4],"team-side":[4],"team-across":[4],"team-same":[4]};
+const LAYDEF={2:"duel",3:"ffa",4:"ffa"};
 function seatForm(i,S,mode,L){
-  const n=i+1,team=L.startsWith("team")?`<span class="sidetag s${i%2}">${i%2?"Side B":"Side A"}</span>`:"";
+  const n=i+1,tm=L.startsWith("team"),team=tm?`<span class="sidetag s${S.team}">${S.team?"Side B":"Side A"}</span>`:"";
   let type;
   if(mode==="survival"||mode==="cpu"&&i===0)type=`<span class="dim">${mode==="cpu"?"You":"Human"}</span>`;
   else type=`<label class="f">Plays as <select data-seat="${i}" data-k="type">${(mode==="cpu"?[]:[["human","Human"]]).concat([["easy","Computer · Easy"],["medium","Computer · Medium"],["hard","Computer · Hard"]]).map(([v,t])=>`<option value="${v}" ${S.type===v?"selected":""}>${t}</option>`).join("")}</select></label>`;
   return `<fieldset class="pf seat" style="--pc:${S.color}"><legend>Player ${ORD[i]} ${team}</legend>
 <div class="srow"><label class="f">Name <input data-seat="${i}" data-k="name" value="${esc(S.name)}" maxlength="20"></label>${type}</div>
-<details class="look" ${S.type==="human"?"open":""}><summary>Substance, color and symbol</summary>
+<details class="look" ${S.type==="human"||tm?"open":""}><summary>${tm?"Team, Substance, color and symbol":"Substance, color and symbol"}</summary>
+${tm?`<div class="f"><span>Team</span><div class="opts">${[0,1].map(t=>`<label class="opt"><input type="radio" name="tm${n}" data-seat="${i}" data-k="team" value="${t}" ${S.team===t?"checked":""}><span>${t?"Side B":"Side A"}<small>${t?"Plays against Side A.":"Plays against Side B."} Each side needs two players.</small></span></label>`).join("")}</div></div>`:""}
 <div class="f"><span>Substance</span><div class="opts">${Object.entries(TRIBES).map(([k,t])=>`<label class="opt"><input type="radio" name="tr${n}" data-seat="${i}" data-k="tribe" value="${k}" ${k===S.tribe?"checked":""}><span>${t.name}<small>${t.sub}</small></span></label>`).join("")}</div></div>
 <div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex])=>`<label class="sw" title="${nm}"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="${hex}" ${hex===S.color?"checked":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}</div></div>
 <div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="${k}" ${k===S.solid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}</div></div>
@@ -1561,11 +1606,12 @@ function showStart(){
   }
   const mode=startMode,M=MODES.find(m=>m[0]===mode);
   const seatsS=[0,1,2,3].map(i=>({name:mode==="survival"&&i===0?"Survivor":`Player ${ORD[i]}`,type:mode==="survival"||i===0?"human":mode==="cpu"?"medium":"human",
-    tribe:i%2?"tiph":"binah",color:COLORS[SEATCOL[i]][1],solid:SEATSOL[i],named:false}));
+    tribe:i%2?"tiph":"binah",color:COLORS[SEATCOL[i]][1],solid:SEATSOL[i],team:i%2,named:false}));
+  let curLayout=null;
   const counts=mode==="survival"?[1,2,3,4]:[2,3,4];
   const forms=`<fieldset class="pf"><legend>Table</legend>
 <label class="f">${mode==="survival"?"Players against the Horde":"Players"} <select id="pcount">${counts.map(c=>`<option value="${c}" ${c===counts[0]?"selected":""}>${c}</option>`).join("")}</select></label>
-<div class="f" id="layoutf" hidden><span>Layout</span><div class="opts">${Object.entries(LAYOUTS).filter(([k])=>k!=="duel").map(([k,[t,d]],i)=>`<label class="opt" data-lay="${k}"><input type="radio" name="olayout" value="${k}" ${i===0?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
+<div class="f" id="layoutf" ${mode==="survival"?"hidden":""}><span>Layout</span><div class="opts">${Object.entries(LAYOUTS).map(([k,[t,d]],i)=>`<label class="opt" data-lay="${k}"><input type="radio" name="olayout" value="${k}" ${i===0?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
 <p class="dim" id="laynote"></p></fieldset><div id="seats"></div>`;
   const diff="";
   const rules=`<fieldset class="pf"><legend>Turns</legend>
@@ -1576,7 +1622,7 @@ function showStart(){
 <label class="f">Computer speed <select id="ospeed"><option value="slow">Slow</option><option value="normal" selected>Normal (default)</option><option value="fast">Fast</option></select></label>
 </fieldset>
 <fieldset class="pf" id="elimset" hidden><legend>When a player falls</legend><div class="opts">
-<label class="opt"><input type="radio" name="oelim" value="grave" checked><span>To the grave<small>Their deck and hand go to the grave, and the grave is shuffled. (default)</small></span></label>
+<label class="opt"><input type="radio" name="oelim" value="grave" checked><span>To the grave (default)<small>Their deck and hand go to the grave, and the grave is shuffled.</small></span></label>
 <label class="opt"><input type="radio" name="oelim" value="dark"><span>To the Outer Darkness<small>Their deck and hand are gone for good.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Field</legend>
 ${chk("olock","Optional Ace rule","Cards inside an Ace must match its color.",false)}
@@ -1587,49 +1633,58 @@ ${chk("oeach","Each player rolls their own","On by default with one deck; off by
 <p class="dim">Starting souls come from the Ether as soldier souls, worth 1 mana each.</p>
 </fieldset>
 <fieldset class="pf"><legend>Moon and spells</legend>
-${chk("omoon","Moon combat bonus","+1d2 to every attack at the Full Moon, +1d2 to every defense at the New Moon.",true)}
+${chk("omoon","Moon combat bonus","Every attack adds 1d2 at the Full Moon, and every defense adds 1d2 at the New Moon.",true)}
 ${chk("oatk","Spells in the attack phase","Enchantments, curses and sorcery can also be cast while attacking. Necromancy, conjuring and sacrifices stay in prep.",false)}
 ${chk("oblood","Blood Moon mode","The game opens on a Blood Moon. Each deck is shuffled and two thirds of it go to the grave; each player starts with a Joker in hand.",false)}
 </fieldset>`;
   const display=`<fieldset class="pf"><legend>Your hand</legend><div class="opts">
-<label class="opt"><input type="radio" name="dhand" value="below" ${PREF.hand!=="side"?"checked":""}><span>Under your deck and mana<small>Right below your own bars, with your dice box. (default)</small></span></label>
+<label class="opt"><input type="radio" name="dhand" value="below" ${PREF.hand!=="side"?"checked":""}><span>Under your deck and mana (default)<small>Right below your own bars, with your dice box.</small></span></label>
 <label class="opt"><input type="radio" name="dhand" value="side" ${PREF.hand==="side"?"checked":""}><span>Beside the field<small>In the right-hand column, above the spells.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Selected stack box</legend><div class="opts">
-<label class="opt"><input type="radio" name="dsel" value="bottom" ${PREF.sel!=="top"?"checked":""}><span>Below the spells<small>Under "show available souls". (default)</small></span></label>
+<label class="opt"><input type="radio" name="dsel" value="bottom" ${PREF.sel!=="top"?"checked":""}><span>Below the spells (default)<small>Under "show available souls".</small></span></label>
 <label class="opt"><input type="radio" name="dsel" value="top" ${PREF.sel==="top"?"checked":""}><span>Above the spells<small>At the top of the right-hand column.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Turn buttons</legend><div class="opts">
-<label class="opt"><input type="radio" name="dctl" value="bottom" ${PREF.ctl!=="top"?"checked":""}><span>Bar at the bottom of the screen<small>Roll, next phase and end turn stay in reach without scrolling. (default)</small></span></label>
-<label class="opt"><input type="radio" name="dctl" value="top" ${PREF.ctl==="top"?"checked":""}><span>At the top, under the moon<small>Where they were before.</small></span></label></div></fieldset>
-<fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({"":"the burnt amber of the site",jester:"black, after chapter 26",ten:"white on indigo, after chapters 1–4",satan:"crimson, after chapter 23"})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, hand position and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
+<label class="opt"><input type="radio" name="dctl" value="bottom" ${PREF.ctl!=="top"?"checked":""}><span>Under the field (default)<small>Roll, next phase and end turn sit in a bar right below the board, on the page.</small></span></label>
+<label class="opt"><input type="radio" name="dctl" value="top" ${PREF.ctl==="top"?"checked":""}><span>At the top, under the moon<small>Beside the moon and the phases.</small></span></label></div></fieldset>
+<fieldset class="pf"><legend>Tile names</legend><div class="opts">
+<label class="opt"><input type="radio" name="dcoord" value="0" ${PREF.coords?"":"checked"}><span>Off (default)<small>Like a chessboard without its letters and numbers.</small></span></label>
+<label class="opt"><input type="radio" name="dcoord" value="1" ${PREF.coords?"checked":""}><span>On<small>Each tile shows its name in a corner: columns A, B, C from the left, rows 1, 2, 3 from the bottom.</small></span></label></div>
+<p class="dim">Tile names are always used in the dice box history, either way.</p></fieldset>
+<fieldset class="pf pc-only"><legend>Page width</legend><div class="opts">
+<label class="opt"><input type="radio" name="dfull" value="0" ${PREF.full?"":"checked"}><span>Standard (default)<small>The page keeps the width of the rest of the site.</small></span></label>
+<label class="opt"><input type="radio" name="dfull" value="1" ${PREF.full?"checked":""}><span>Full width<small>The page fills the whole width of a wide screen, and the field grows with it.</small></span></label></div></fieldset>
+<fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({"":"The burnt amber of the site.",jester:"Black, after chapter 26.",ten:"White on indigo, after chapters 1–4.",satan:"Crimson, after chapter 23."})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, text size, hand position, tile names, page width and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
   const suitSel=`<div id="suitpick" hidden><p class="dim">${mode==="local"?"Player One picks; Player Two gets the other two suits.":mode==="cpu"?"You pick; the computer gets the other two suits.":"You pick; the other two suits wait in the Ether."}</p>
 <label class="f">Red suit <select id="osuitR"><option value="H">♥ Hearts</option><option value="D">♦ Diamonds</option></select></label>
 <label class="f">Black suit <select id="osuitB"><option value="S">♠ Spades</option><option value="C">♣ Clubs</option></select></label></div>`;
   const deckTab=`<fieldset class="pf" id="ffadecks" hidden><legend>Decks</legend><div class="opts">
-<label class="opt"><input type="radio" name="offa" value="full" checked><span>A whole deck each<small>Every player has all four suits. (default)</small></span></label>
+<label class="opt"><input type="radio" name="offa" value="full" checked><span>A whole deck each (default)<small>Every player has all four suits.</small></span></label>
 <label class="opt"><input type="radio" name="offa" value="half"><span>Half a deck each<small>One red and one black suit each; the rest wait in the Ether.</small></span></label></div></fieldset>
 <fieldset class="pf" id="teamdecks" hidden><legend>Decks</legend><p class="dim">Each team has one deck: every teammate takes one red and one black suit of it, and one of its Jokers.</p>
 ${chk("oshare","Shared team deck","Teammates draw from one deck and spend from one soul pile, but keep their own hands.",false)}</fieldset>
 <fieldset class="pf" id="dueldecks"><legend>Decks</legend><div class="opts">
-${[["1","One deck",mode==="survival"?"You take one red and one black suit; the other half of the deck waits in the Ether.":"Both players split one deck: each takes one red and one black suit."],["2","Two decks","Each player has a full deck of all four suits. (default)"],["3","Three decks","A full deck each, and a whole third deck waits in the Ether."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="odecks" value="${v}" ${v==="2"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
-<div class="f" id="suitmode" hidden><span>Suits (one deck)</span><div class="opts"><label class="opt"><input type="radio" name="osuitmode" value="random" checked><span>Random<small>Each player is dealt one red and one black suit at random. (default)</small></span></label><label class="opt"><input type="radio" name="osuitmode" value="choose"><span>Choose<small>Pick the two suits below.</small></span></label></div>${suitSel}</div>
+${[["1","One deck",mode==="survival"?"You take one red and one black suit; the other half of the deck waits in the Ether.":"Both players split one deck: each takes one red and one black suit."],["2","Two decks (default)","Each player has a full deck of all four suits."],["3","Three decks","A full deck each, and a whole third deck waits in the Ether."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="odecks" value="${v}" ${v==="2"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
+<div class="f" id="suitmode" hidden><span>Suits (one deck)</span><div class="opts"><label class="opt"><input type="radio" name="osuitmode" value="random" checked><span>Random (default)<small>Each player is dealt one red and one black suit at random.</small></span></label><label class="opt"><input type="radio" name="osuitmode" value="choose"><span>Choose<small>Pick the two suits below.</small></span></label></div>${suitSel}</div>
 </fieldset>
 <fieldset class="pf"><legend>Specials (Jacks, Queens, Kings, Aces, Jokers)</legend><div class="opts">
-${[["none","None","Only your opening Ace and its Jack. Every other special waits in the Ether to be conjured. (default)"],["half","Half","The specials of half your suits; the rest wait in the Ether."],["all","All","Every special of your suits is in your deck."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="ospecials" value="${v}" ${v==="none"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
+${[["none","None (default)","Only your opening Ace and its Jack. Every other special waits in the Ether to be conjured."],["half","Half","The specials of half your suits; the rest wait in the Ether."],["all","All","Every special of your suits is in your deck."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="ospecials" value="${v}" ${v==="none"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
 ${chk("ojoker","At least one Joker","Every player's deck holds at least one Joker, taken from the Ether if needed.",true)}
 <p class="dim" id="decksum"></p>
 </fieldset>`;
   const mapTab=`<fieldset class="pf"><legend>Battle map</legend><div class="opts">
-<label class="opt"><input type="radio" name="omap" value="random" checked><span>Random<small>One of the maps below, picked at the start. (default)</small></span></label>
-${Object.entries(MAPS).filter(([k])=>!(mode==="survival"&&k==="river")).map(([k,m])=>`<label class="opt"><input type="radio" name="omap" value="${k}"><span>${m.name}<small>${m.sub}</small></span></label>`).join("")}</div>
+<label class="opt"><input type="radio" name="omap" value="random"><span>Random<small>One of the four maps below, picked at the start.</small></span></label>
+${["keep","sahel","forest","dungeon"].map(k=>`<label class="opt"><input type="radio" name="omap" value="${k}"><span>${MAPS[k].name}<small>${MAPS[k].sub}</small></span></label>`).join("")}
+<span class="optgroup">Special Maps</span>
+${["river","none"].filter(k=>!(mode==="survival"&&k==="river")).map(k=>`<label class="opt"><input type="radio" name="omap" value="${k}" ${k==="none"?"checked":""}><span>${MAPS[k].name}${k==="none"?" (default)":""}<small>${MAPS[k].sub}</small></span></label>`).join("")}</div>
 <div class="f" id="bridgeopt" hidden><span>Bridge</span><div class="opts"><label class="opt"><input type="radio" name="obridge" value="left" checked><span>Left<small>Two tiles wide, on the left of the river.</small></span></label><label class="opt"><input type="radio" name="obridge" value="right"><span>Right<small>Two tiles wide, on the right.</small></span></label></div></div>
 </fieldset>
 <fieldset class="pf" id="sizeset"><legend>Size</legend>
-<div id="sizeduel"><div class="f"><span>Width</span><div class="opts">${[5,6,7].map(w=>`<label class="opt"><input type="radio" name="ocols" value="${w}" ${w===5?"checked":""}><span>${w} wide${w===5?" (default)":""}</span></label>`).join("")}</div></div>
+<div id="sizeduel"><p class="dim">On a phone, 5 wide is the largest size that stays easy to read.</p><div class="f"><span>Width</span><div class="opts">${[5,6,7].map(w=>`<label class="opt"><input type="radio" name="ocols" value="${w}" ${w===5?"checked":""}><span>${w} wide${w===5?" (default)":""}</span></label>`).join("")}</div></div>
 ${mode==="survival"?'<p class="dim">Survival always uses the midline: the field is 5 tall.</p>':chk("omid","Use the midline","An empty line between the two armies: 5 tall with it, 4 without.",true)}
-</div>${chk("ocorners","Cut off the corners","The four corner tiles are removed from play. On by default for the 7 by 7 layouts.",false)}
-<p class="dim" id="sizenote" hidden></p>
+</div>${chk("ocorners","Cut off the corners","The four corner tiles are removed from play. On by default for free-for-all and the 2v2 layouts on the edges.",false)}
+<div id="sizeother" class="sizesel" hidden></div>
 <p class="dim mapnote" id="rivernote" hidden>The River map is always 7 wide and 5 tall with the midline, and keeps its corners.</p>
-<p class="dim">On a phone, 5 wide is the largest size that stays easy to read.</p>
+
 </fieldset>
 ${mode==="survival"?"":`<fieldset class="pf"><legend>Victory</legend>${chk("ohq","Headquarters","Each side opens with two Aces as bases, and troops can only be spawned inside your Aces. The only ways to win are destroying every enemy base or an economic victory.",false)}</fieldset>`}`;
   const tabs=[["players","Players",forms],["map","Map",mapTab],["deck","Deck",deckTab],["rules","Rules",rules],["display","Display",display]];
@@ -1639,24 +1694,26 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
 <p class="acts sfoot"><button class="btn" id="go">${mode==="survival"?"Raise your Ace":"Roll for the opening"}</button> <button class="btn ghost" id="back">← Other modes</button> <a class="dim" href="ethers-crossroads-rules.html#modes">How the modes work</a></p></div>`);
   document.querySelectorAll(".stab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".stab").forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-selected",x===b)});document.querySelectorAll(".spanel").forEach(p=>p.hidden=p.dataset.p!==b.dataset.t)});
   const count=()=>+$("#pcount").value;
-  const layout=()=>{const n=count();if(mode==="survival")return n===1?"duel":"coop";return n===2?"duel":n===3?"ffa":val("olayout")||"ffa"};
+  const layout=()=>{const n=count();if(mode==="survival")return n===1?"duel":"coop";const v=val("olayout");return v&&LAYNEED[v].includes(n)?v:LAYDEF[n]};
   const humans=()=>mode==="survival"?count():seatsS.slice(0,count()).filter(S=>S.type==="human").length;
   const drawSeats=()=>{
     const n=count(),L=layout();
-    $("#layoutf").hidden=n!==4||mode==="survival";
-    $("#laynote").textContent=mode==="survival"?(n===1?"One survivor on the usual field.":`${n} survivors share the bottom of a ${n===2?"6 by 5":n===3?"9 by 6":"8 by 6"} field; the Horde spawns once for each of you. You take your turns one after another on this device, and the Horde moves first each round.`):n===3?LAYOUTS.ffa[1]:n===2?"":"";
+    if(mode!=="survival"){
+      document.querySelectorAll("#layoutf [data-lay]").forEach(o=>{const ok=LAYNEED[o.dataset.lay].includes(n);o.classList.toggle("off",!ok);const inp=o.querySelector("input");inp.disabled=!ok;inp.checked=o.dataset.lay===L})}
+    const key=L+(L==="coop"?n:"");if(key!==curLayout){curLayout=key;sizeUp()}
+    $("#laynote").textContent=mode==="survival"?(n===1?"One survivor on the usual field.":`${n} survivors share the bottom of the field, and the Horde spawns once for each of you. You take your turns one after another on this device, and the Horde moves first each round.`):"";
     $("#seats").innerHTML=seatsS.slice(0,n).map((S,i)=>seatForm(i,S,mode,L)).join("");
     $("#seats").querySelectorAll("[data-seat]").forEach(el=>el.addEventListener(el.tagName==="INPUT"&&el.type==="text"?"input":"change",()=>{
       const S=seatsS[+el.dataset.seat],k=el.dataset.k;S[k]=el.value;if(k==="name")S.named=true;
       if(k==="color")el.closest(".seat").style.setProperty("--pc",el.value);
       if(k==="type"){el.closest(".seat").querySelector(".look").open=el.value==="human";turnUp()}
+      if(k==="team"){S.team=+el.value;drawSeats()}
     }));
     const big=["ffa","team-side","team-across"].includes(L);
-    $("#sizeduel").hidden=L!=="duel";$("#sizenote").hidden=L==="duel";
-    $("#sizenote").textContent=L==="duel"?"":L==="team-same"?"This layout is always 6 by 6.":L==="coop"?"Co-op Survival sets its own field size from the number of players.":"These layouts are always 7 by 7.";
+    $("#sizeduel").hidden=L!=="duel";
     if(!$("#ocorners").dataset.touched)$("#ocorners").checked=big;
     $("#ocorners").disabled=L==="coop";
-    document.querySelectorAll('input[name=omap][value=river]').forEach(i=>{i.disabled=L!=="duel";if(i.disabled&&i.checked)document.querySelector('input[name=omap][value=random]').checked=true});
+    document.querySelectorAll('input[name=omap][value=river]').forEach(i=>{i.disabled=L!=="duel";i.closest(".opt").classList.toggle("off",i.disabled);if(i.disabled&&i.checked)document.querySelector('input[name=omap][value=none]').checked=true});
     $("#dueldecks").hidden=L!=="duel";$("#ffadecks").hidden=!(L==="ffa"||L==="coop");$("#teamdecks").hidden=!L.startsWith("team");
     $("#elimset").hidden=(mode==="survival"?n:n)<(mode==="survival"?2:3);
     turnUp();mapUp&&mapUp();sumUp();
@@ -1672,6 +1729,14 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
   $("#pcount").addEventListener("change",drawSeats);
   document.querySelectorAll('input[name=olayout]').forEach(i=>i.addEventListener("change",drawSeats));
   let mapUp=null;
+  function sizeUp(){
+    const L=layout(),box=$("#sizeother"),n=count();box.hidden=L==="duel";if(L==="duel"){box.innerHTML="";return}
+    const sel=(id,label,opts,def)=>`<label class="f">${label} <select id="${id}">${opts.map(v=>`<option value="${v}" ${v===def?"selected":""}>${v}${v===def?" (default)":""}</option>`).join("")}</select></label>`;
+    const rng=(a,b)=>Array.from({length:b-a+1},(_,i)=>a+i);
+    if(L==="ffa"||L==="team-side"||L==="team-across")box.innerHTML=sel("osize","Size (tiles on each side)",rng(5,9),7)+'<p class="dim">The field is square so every edge is the same. On a phone, 7 is the largest size that stays easy to read.</p>';
+    else if(L==="team-same")box.innerHTML=sel("ocols2","Width",[6,7,8],6)+sel("orows2","Height",[4,5,6],6)+'<p class="dim">Each team holds two lines at one end. Height 4 has no midline, 5 has one line between the teams, and 6 has two.</p>';
+    else{const h=n,dc=h===2?6:h===3?9:8,dr=h===2?5:6;box.innerHTML=sel("ocols2","Width",rng(Math.max(5,h*2),9),dc)+sel("orows2","Height",[5,6],dr)+'<p class="dim">The survivors split the bottom two lines; the Horde holds the top two.</p>'}
+  }
   const sumUp=()=>{
     const d=+val("odecks"),sp=val("ospecials"),js=$("#ojoker").checked,np=mode==="survival"?1:2;
     if(layout()!=="duel"){$("#decksum").textContent="";return}
@@ -1700,10 +1765,15 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
       return{name,tribe:S.tribe,color:S.color,solid:S.solid,cpu};
     });
     if(new Set(players.map(p=>p.color)).size<players.length){flash("Every player needs a different color.");return}
+    if(L.startsWith("team")){ // seats alternate sides: A, B, A, B
+      const A=players.filter((p,i)=>!seatsS[i].team),B=players.filter((p,i)=>seatsS[i].team);
+      if(A.length!==2){flash("Each side needs two players.");return}
+      players=[A[0],B[0],A[1],B[1]];
+    }
     if(mode==="survival")players.push({name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>!players.some(p=>p.solid===s)))||"dodeca",cpu:"horde"});
-    PREF.hand=val("dhand")||PREF.hand;PREF.sel=val("dsel")||PREF.sel;PREF.ctl=val("dctl")||PREF.ctl;PREF.theme=val("dtheme")??PREF.theme;savePrefs();applyPrefs();
+    PREF.hand=val("dhand")||PREF.hand;PREF.sel=val("dsel")||PREF.sel;PREF.ctl=val("dctl")||PREF.ctl;PREF.theme=val("dtheme")??PREF.theme;PREF.coords=val("dcoord")==="1";PREF.full=val("dfull")==="1";savePrefs();applyPrefs();
     startGame({mode,players,mid:mode==="survival"||!!($("#omid")&&$("#omid").checked),aceLock:$("#olock").checked,bloodStart:$("#oblood").checked,
-      map:val("omap"),cols:+val("ocols"),corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
+      map:val("omap"),cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
       decks:+val("odecks"),specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:+val("odecks")===1&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
       startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,atkSpells:$("#oatk").checked,
       layout:L,turns:$("#oturns").value,timer:+$("#otimer").value,cpuSpeed:$("#ospeed").value,elimDark:val("oelim")==="dark",ffaDeck:val("offa"),shareDeck:$("#oshare").checked});
@@ -1721,7 +1791,7 @@ window.__EC={get G(){return G},startGame,stackLegal,canPlace,nextPhase,render,AI
   force(o){G.forceMoon=o},jokerSuicide,mk};
 
 /* ---------------- display preferences, page themes, leave warning, quotes ---------------- */
-const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){}return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,theme:""},p)})();
+const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){}return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:false,full:false,theme:""},p)})();
 function savePrefs(){try{localStorage.setItem("ec-prefs2",JSON.stringify(PREF))}catch(e){}}
 const THEMES={"":["Kenoma",[]],jester:["Jester",["th-black","th-jester"]],ten:["Ten",["th-indigo","th-blue"]],satan:["Disturbed Satan",["th-crimson"]]};
 function applyMoonTheme(){
@@ -1732,8 +1802,20 @@ function applyMoonTheme(){
   else for(const c of THEMES[PREF.theme]?THEMES[PREF.theme][1]:[])h.classList.add(c);
   if(window.nwkStatic)window.nwkStatic.level(b?3:1);
 }
+/* Text Size scales the words only: every font size in the stylesheets is multiplied, except on cards, stacks and dice */
+const TZ_SKIP=/\.(card|cf|cx|stack|die|pk|cback|ecount|mini|gbar|gctl|gtog)\b|svg|#board \.rl|#gbar/;
+let tzRules=null;
+function applyTextScale(f){
+  if(!tzRules){tzRules=[];
+    for(const sh of document.styleSheets){let rs;try{rs=sh.cssRules}catch(e){continue}
+      const walk=list=>{for(const r of list){if(r.cssRules&&!r.style)walk(r.cssRules);else if(r.style&&r.style.fontSize&&!TZ_SKIP.test(r.selectorText||"")&&/px|rem|vw|vh/.test(r.style.fontSize)&&!/em|%/.test(r.style.fontSize.replace(/rem/g,"")))tzRules.push([r,r.style.fontSize])}};
+      walk(rs)}}
+  for(const [r,orig] of tzRules)r.style.fontSize=f===1?orig:`calc(${orig} * ${f})`;
+}
 function applyPrefs(){
   const h=document.documentElement;
+  applyTextScale(PREF.tz);
+  document.body.classList.toggle("fullw",!!PREF.full);
   h.style.setProperty("--ci",PREF.ci);h.style.setProperty("--uiz",PREF.ui);
   const wrap=$("#handwrap"),slot=$("#handslot"),side=$("#sidehand");
   if(wrap&&slot&&side){const dest=PREF.hand==="below"?slot:side;if(wrap.parentNode!==dest)dest.appendChild(wrap)}
@@ -1744,18 +1826,23 @@ function applyPrefs(){
   if($("#actbar"))$("#actbar").hidden=PREF.ctl!=="bottom";
   document.body.classList.toggle("ctl-bottom",PREF.ctl==="bottom");
   const bar=$("#gbar");
-  if(bar){$("#ciV").textContent=Math.round(PREF.ci*100)+"%";$("#uiV").textContent=Math.round(PREF.ui*100)+"%";$("#pHand").textContent="Hand: "+(PREF.hand==="below"?"under your deck":"side");$("#pTheme").value=PREF.theme}
+  if(bar){$("#ciV").textContent=Math.round(PREF.ci*100)+"%";$("#uiV").textContent=Math.round(PREF.ui*100)+"%";$("#tzV").textContent=Math.round(PREF.tz*100)+"%";
+    $("#pHand").textContent="Hand: "+(PREF.hand==="below"?"Under your deck":"Side");$("#pTheme").value=PREF.theme;
+    $("#pCoord").textContent="Tile names: "+(PREF.coords?"On":"Off");$("#pCoord").setAttribute("aria-pressed",PREF.coords);
+    $("#pFull").textContent="Page: "+(PREF.full?"Full width":"Standard");$("#pFull").setAttribute("aria-pressed",PREF.full)}
   applyMoonTheme();
 }
 function mountBar(){
   const L=document.createElement("div");L.id="gbarL";L.className="gbar";
   L.innerHTML=`<label>Theme <select id="pTheme">${Object.entries(THEMES).map(([k,[n]])=>`<option value="${k}">${n}</option>`).join("")}</select></label>`;
   const Rb=document.createElement("div");Rb.id="gbar";Rb.className="gbar";
-  Rb.innerHTML=`<span class="gctl">Card Icons <button type="button" data-z="ci" data-d="-1" aria-label="Smaller card icons">−</button><b id="ciV"></b><button type="button" data-z="ci" data-d="1" aria-label="Bigger card icons">+</button></span><span class="gctl">UI Size <button type="button" data-z="ui" data-d="-1" aria-label="Smaller interface">−</button><b id="uiV"></b><button type="button" data-z="ui" data-d="1" aria-label="Bigger interface">+</button></span><button type="button" id="pHand" class="gtog"></button>`;
+  Rb.innerHTML=`<span class="gctl">Card Icons <button type="button" data-z="ci" data-d="-1" aria-label="Smaller card icons">−</button><b id="ciV"></b><button type="button" data-z="ci" data-d="1" aria-label="Bigger card icons">+</button></span><span class="gctl">UI Size <button type="button" data-z="ui" data-d="-1" aria-label="Smaller interface">−</button><b id="uiV"></b><button type="button" data-z="ui" data-d="1" aria-label="Bigger interface">+</button></span><span class="gctl">Text Size <button type="button" data-z="tz" data-d="-1" aria-label="Smaller text">−</button><b id="tzV"></b><button type="button" data-z="tz" data-d="1" aria-label="Bigger text">+</button></span><button type="button" id="pHand" class="gtog"></button><button type="button" id="pCoord" class="gtog"></button><button type="button" id="pFull" class="gtog pc-only"></button>`;
   document.body.append(L,Rb);
   $("#pTheme").onchange=e=>{PREF.theme=e.target.value;savePrefs();applyPrefs()};
-  Rb.querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{const k=b.dataset.z,lim=k==="ci"?[.8,1.8]:[.8,1.4];PREF[k]=Math.round(Math.min(lim[1],Math.max(lim[0],PREF[k]+ +b.dataset.d*.1))*10)/10;savePrefs();applyPrefs()});
+  Rb.querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{const k=b.dataset.z,lim=k==="ci"?[.8,1.8]:k==="tz"?[.8,1.8]:[.8,1.4];PREF[k]=Math.round(Math.min(lim[1],Math.max(lim[0],PREF[k]+ +b.dataset.d*.1))*10)/10;savePrefs();applyPrefs()});
   $("#pHand").onclick=()=>{PREF.hand=PREF.hand==="below"?"side":"below";savePrefs();applyPrefs()};
+  $("#pCoord").onclick=()=>{PREF.coords=!PREF.coords;savePrefs();applyPrefs();if(G)render()};
+  $("#pFull").onclick=()=>{PREF.full=!PREF.full;savePrefs();applyPrefs()};
 }
 /* leaving mid-game asks first */
 const inGame=()=>G&&!G.over;
@@ -1780,12 +1867,12 @@ function mountQuotes(){
 
 /* ---------------- maps: size, shape and battle-map art (all drawn in code, all at night) ---------------- */
 const MAPS={
-  keep:  {name:"Keep",           sub:"a stone keep, a graveyard on the midline, the enemy's barracks"},
-  sahel: {name:"Sahel",          sub:"red laterite and dry grass of the far north at night; mud-brick walls, thatched huts"},
-  forest:{name:"Forest",         sub:"a clearing in deep woods; a palisade keep and a camp of tents"},
-  dungeon:{name:"Dungeon",       sub:"flagstones, pillars and torchlight; no castle and no barracks"},
-  river: {name:"River",          sub:"a wide brown river like the Ogun near Lagos, crossed by one bridge; 7 wide, always with the midline"},
-  none:  {name:"No map",         sub:"plain tiles"}
+  keep:  {name:"Keep",           sub:"A stone keep, a graveyard on the midline and the enemy's barracks."},
+  sahel: {name:"Sahel",          sub:"Red laterite and dry grass of the far north at night, with mud-brick walls and thatched huts."},
+  forest:{name:"Forest",         sub:"A clearing in deep woods, with a palisade keep and a camp of tents."},
+  dungeon:{name:"Dungeon",       sub:"Flagstones, pillars and torchlight, with no castle and no barracks."},
+  river: {name:"River",          sub:"A wide brown river like the Ogun near Lagos, crossed by one bridge. Always 7 wide with the midline, and one on one only."},
+  none:  {name:"No map",         sub:"Plain tiles."}
 };
 /* layouts: duel (two sides), ffa (3 or 4 players, one to each edge), team-side / team-across (2v2 on the edges),
    team-same (2v2, teammates side by side on one side), coop (Survival with several players on one side) */
@@ -1794,13 +1881,14 @@ function edgeTiles(side,rows,cols){const o=[];if(side==="bottom")for(let c=0;c<c
 function mapPlan(o){
   const n=o.players.length,L=o.layout||"duel";
   let theme=o.map||"random";
-  if(theme==="random")theme=pick(L==="duel"&&o.mode!=="survival"?["keep","sahel","forest","dungeon","river"]:["keep","sahel","forest","dungeon"]);
+  if(theme==="random")theme=pick(["keep","sahel","forest","dungeon"]);   // the special maps (River, no map) are only played when chosen
   if((o.mode==="survival"||L!=="duel")&&theme==="river")theme="keep";   // the river needs a two-sided field with every midline tile in play
   let cols=Math.max(5,Math.min(7,+o.cols||5)),mid=o.mode==="survival"||o.mid!==false,corners=!!o.corners,bridge=o.bridge==="right"?"right":"left",rows;
   if(theme==="river"){cols=7;mid=true;corners=false}
-  if(L==="ffa"||L==="team-side"||L==="team-across"){cols=7;rows=7;corners=o.corners!==false;mid=true}
-  else if(L==="team-same"){cols=6;rows=6;mid=true}
-  else if(L==="coop"){const h=n-1;cols=h===2?6:h===3?9:8;rows=h===2?5:6;mid=true;corners=false}
+  const clamp=(v,a,b,d)=>{v=+v;return v>=a&&v<=b?Math.round(v):d};
+  if(L==="ffa"||L==="team-side"||L==="team-across"){cols=rows=clamp(o.size,5,9,7);corners=o.corners!==false;mid=true}
+  else if(L==="team-same"){cols=clamp(o.cols,6,8,6);rows=clamp(o.rows,4,6,6);mid=rows>4}
+  else if(L==="coop"){const h=n-1;cols=clamp(o.cols,Math.max(5,h*2),9,h===2?6:h===3?9:8);rows=clamp(o.rows,5,6,h===2?5:6);mid=true;corners=false}
   else rows=mid?5:4;
   const V=Array.from({length:rows},()=>Array(cols).fill(false));
   if(corners)for(const r of [0,rows-1])for(const c of [0,cols-1])V[r][c]=true;
@@ -1816,7 +1904,7 @@ function mapPlan(o){
     const sides=L==="ffa"?(n===3?["bottom","left","right"]:["bottom","left","top","right"]):L==="team-side"?["bottom","right","left","top"]:["bottom","left","top","right"];
     sides.slice(0,n).forEach((sd,i)=>{const t=edgeTiles(sd,rows,cols);seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:t,zone:t});teams.push(L==="ffa"?i:i%2)});
   }else if(L==="team-same"){
-    const lo=[0,1,2],hi=[3,4,5];
+    const half=Math.floor(cols/2),lo=allc.slice(0,half),hi=allc.slice(half);
     seats.push(mk2("bottom",lo,2),mk2("top",hi,2),mk2("bottom",hi,2),mk2("top",lo,2));teams.push(0,1,0,1);
   }else if(L==="coop"){
     const h=n-1,w=Math.floor(cols/h);

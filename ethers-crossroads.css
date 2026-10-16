@@ -283,14 +283,14 @@ main.game,#ov>.ovbox,#leavebox>.ovbox{zoom:var(--uiz)}
 #leavebox[hidden]{display:none}
 #leavebox .ovbox{max-width:480px}
 /* ---- bottom controls ---- */
-.gbar{position:fixed;bottom:max(10px,env(safe-area-inset-bottom,0px));z-index:50;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);background:rgba(0,0,0,.6);border:1px solid var(--rule);padding:3px 8px}
+.gbar{position:fixed;bottom:max(10px,env(safe-area-inset-bottom,0px));z-index:50;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);background:rgba(0,0,0,.78);border:1px solid var(--rule);padding:3px 8px}
 #gbarL{left:max(10px,env(safe-area-inset-left,0px))}
 #gbar{right:calc(max(10px,env(safe-area-inset-right,0px)) + 112px)}
-.gbar select{font-family:var(--mono);font-size:11px;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:2px 4px;text-transform:none;letter-spacing:0}
+.gbar select{font-family:var(--mono);font-size:12.5px;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:2px 4px;text-transform:none;letter-spacing:0}
 .gctl{display:inline-flex;align-items:center;gap:4px}
 .gctl b{font-weight:400;color:var(--text);min-width:3.2em;text-align:center}
-.gctl button,.gtog{font-family:var(--mono);font-size:12px;line-height:1;color:var(--amber);background:transparent;border:1px solid var(--rule);padding:3px 7px;cursor:pointer}
-.gtog{font-size:11px;letter-spacing:.06em;text-transform:none}
+.gctl button,.gtog{font-family:var(--mono);font-size:14px;line-height:1;color:var(--amber);background:transparent;border:1px solid var(--rule);padding:4px 8px;cursor:pointer}
+.gtog{font-size:12.5px;letter-spacing:.04em;text-transform:none}
 .gctl button:hover,.gtog:hover{color:var(--amber-hi);border-color:var(--amber)}
 body:has(.game){padding-bottom:96px}
 @media (max-width:760px){#gbar{right:max(10px,env(safe-area-inset-right,0px));bottom:44px;max-width:calc(100vw - 20px)}#gbarL{bottom:78px}}
@@ -329,17 +329,17 @@ html.th-jester .game h1{font-size:clamp(30px,5vw,42px)}
 .tile:hover::before{content:"";position:absolute;inset:0;z-index:1;box-shadow:inset 0 0 0 1px var(--amber);pointer-events:none}
 .mapnote{border-left:2px solid var(--amber);padding-left:10px}
 /* ---- turn buttons in a bar at the bottom ---- */
-#actbar{position:fixed;left:50%;transform:translateX(-50%) scale(var(--uiz));transform-origin:bottom center;bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 40px);z-index:55;display:flex;align-items:center;gap:12px;background:rgba(10,7,4,.94);border:1px solid var(--amber);padding:7px 12px;box-shadow:0 4px 18px #000c;max-width:calc(100vw - 20px);flex-wrap:wrap;justify-content:center}
+#actbar{position:static;display:flex;align-items:center;gap:12px;background:rgba(10,7,4,.94);border:1px solid var(--amber);padding:7px 12px;margin:2px 0 10px;flex-wrap:wrap;justify-content:center}
 #actbar[hidden]{display:none}
 #actph{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
 #actph b{font-weight:400;color:var(--amber-hi)}
 #actbar #controls{justify-content:center}
-body.ctl-bottom:has(.game){padding-bottom:150px}
+
 #ctltop:empty{display:none}
 .spell small.dc{margin-left:7px;font-size:10px;color:var(--dim)}
 #selbottom #selwrap{margin-top:18px}
 #selbottom #selwrap h3,#seltop #selwrap h3{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin:0 0 8px;border-bottom:1px solid #000;padding-bottom:4px;font-weight:200}
-@media (max-width:760px){#actbar{bottom:112px}body.ctl-bottom:has(.game){padding-bottom:200px}}
+
 #ctltop{grid-column:1/-1}
 /* ---- more players: opponent boxes, teams, zones, timer ---- */
 #foe.multi{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:4px 14px;border-left:0;padding-left:0}
@@ -366,3 +366,36 @@ body.ctl-bottom:has(.game){padding-bottom:150px}
 .seat details.look summary{cursor:pointer;color:var(--dim);font-size:13px;margin:6px 0}
 .seat details.look[open] summary{color:var(--amber)}
 @media (max-width:760px){#board[style*="--cols:7"] .tile,#board[style*="--cols:8"] .tile,#board[style*="--cols:9"] .tile{min-height:36px}#foe.multi{grid-template-columns:1fr}}
+
+/* ---- v9: dice-box history, tile names, full width, setup details ---- */
+button.tray{display:block;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;position:relative}
+button.tray:hover,button.tray:focus-visible{border-color:var(--pc,var(--amber));outline:none}
+.tray .dice{display:flex}
+.tray .lastsp{text-transform:none;letter-spacing:.02em;font-size:10.5px;color:var(--dim);margin-left:4px}
+.tray .hhint{position:absolute;right:7px;top:4px;font-size:10px;letter-spacing:.08em;color:var(--dim)}
+#histpop{position:absolute;z-index:80;background:#0b0806;border:1px solid var(--amber);box-shadow:0 8px 26px #000d;max-height:min(60vh,420px);display:flex;flex-direction:column}
+#histpop[hidden]{display:none}
+#histpop .hhead{display:flex;align-items:flex-start;gap:6px;border-bottom:1px solid var(--rule);padding:6px}
+#histpop .htabs{display:flex;flex-wrap:wrap;gap:4px;flex:1}
+#histpop .htab{font-family:var(--mono);font-size:12px;background:transparent;color:var(--dim);border:1px solid var(--rule);padding:3px 7px;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+#histpop .htab.on{color:var(--text);border-color:var(--pc)}
+#histpop .hx{font-size:18px;line-height:1;background:transparent;border:1px solid var(--rule);color:var(--amber);cursor:pointer;padding:2px 8px}
+#histpop .hlist{list-style:none;margin:0;padding:6px 10px 10px;overflow:auto;font-size:13px}
+#histpop .hlist li{padding:3px 0;border-bottom:1px solid #ffffff0d}
+#histpop .hlist li.spell b{color:var(--amber-hi)}
+#histpop .hlist li b{font-weight:400}
+#histpop time{font-size:11px;color:var(--dim)}
+#histpop small{font-size:10.5px;color:var(--dim);margin-left:4px}
+.tile .coord{position:absolute;left:3px;top:2px;z-index:3;font-size:9px;line-height:1;letter-spacing:.04em;color:#f3e6cf;text-shadow:0 0 3px #000,0 1px 2px #000;pointer-events:none;opacity:.85}
+body.fullw .game.wide{max-width:none;padding-left:clamp(12px,2vw,32px);padding-right:clamp(12px,2vw,32px)}
+@media (max-width:900px){.pc-only{display:none}}
+.opt.off{opacity:.38;cursor:not-allowed;filter:grayscale(.4)}
+.opt.off:hover{border-color:var(--rule)}
+.optgroup{flex:1 0 100%;margin:8px 0 0;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.sizesel{display:flex;flex-wrap:wrap;gap:6px 18px}
+.sizesel select{font-family:var(--mono);font-size:14px;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:4px 6px}
+.ovbox [hidden],#histpop[hidden]{display:none!important}
+#histpop .hlist li{display:block;grid-template-columns:none}
+body.fullw #board{max-width:calc((100vh - 150px - var(--rows,5) * 19px) * var(--cols,5) / (0.9 * var(--rows,5)));margin-left:auto;margin-right:auto}
+body.fullw #actbar{max-width:max-content;margin-left:auto;margin-right:auto}
+@media (max-width:760px){.gbar,#gbar,#gbarL{position:static;margin:8px 16px;max-width:none;justify-content:flex-start}body:has(.game){padding-bottom:16px}}
