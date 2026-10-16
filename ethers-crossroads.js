@@ -70,7 +70,7 @@ function newGame(opts){
      p:opts.players.map((o,i)=>mkPlayer(i,o)),grave:[],ether:[],dark:[],
      turnNo:0,active:0,first:0,phase:"setup",setupStep:"ace",setupDone:[false,false],
      spent:false,spentOther:false,blessed:false,ritual:0,log:[],sel:null,selHand:null,mode:null,over:false,
-     moon:{i:0,blood:false,lev:false,woman:false,union:false,crossing:false,levT:0,womanT:0,crossed:0},
+     moon:{i:0,blood:false,round:0},
      noDraw:false,round:0,busy:false,passing:false};
   G.ether=shuffle([...freshDeck(),...freshDeck()]);
   G.p.forEach((P,i)=>{if(P.cpu!=="horde"){P.deck=freshDeck();P.deck.forEach(c=>c.owner=i)}});
@@ -96,7 +96,7 @@ function toDark(c){if(c.captured&&c.captured.length){for(const s of c.captured)t
 function toGrave(c,cause){
   if(!c)return;
   const m=G.moon;
-  if((m.lev&&(cause==="death"||cause==="spent"))||(m.blood&&!m.crossing&&cause==="death")){toDark(c);return}
+  if(m.blood&&cause==="death"){toDark(c);return}
   if(c.owner!=null&&G.p[c.owner]&&isHorde(c.owner))return;   // the Horde keeps no grave: its dead simply vanish
   G.grave.push(c);
 }
@@ -131,7 +131,7 @@ const SND=(()=>{
   try{on=localStorage.getItem("ec-sound")!=="off"}catch(e){}
   function ctx(){
     if(!on||G&&G.opts.fast)return null;
-    try{if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();master=ac.createGain();master.gain.value=.5;master.connect(ac.destination)}
+    try{if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();master=ac.createGain();master.gain.value=1;master.connect(ac.destination)}
       if(ac.state==="suspended")ac.resume();}catch(e){return null}
     return ac;
   }
@@ -146,7 +146,7 @@ const SND=(()=>{
     get on(){return on},
     toggle(){on=!on;try{localStorage.setItem("ec-sound",on?"on":"off")}catch(e){}return on},
     dice(n){const a=ctx();if(!a)return;let t=a.currentTime+.01;const k=Math.min(9,3+Math.ceil(n*.8));
-      for(let i=0;i<k;i++){click(a,t,.09*(1-i/(k+1))+.015,1800+Math.random()*2600);t+=.035+Math.random()*.07*(1+i/k)}},
+      for(let i=0;i<k;i++){click(a,t,.2*(1-i/(k+1))+.04,1800+Math.random()*2600);t+=.035+Math.random()*.07*(1+i/k)}},
     gun(){const a=ctx();if(!a)return;const t=a.currentTime+.01;
       const s=noise(a,.45),f=a.createBiquadFilter(),g=a.createGain();f.type="lowpass";f.frequency.setValueAtTime(2600,t);f.frequency.exponentialRampToValueAtTime(300,t+.35);
       g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.32,t+.003);g.gain.exponentialRampToValueAtTime(.001,t+.42);
@@ -297,30 +297,21 @@ const MOON=["New Moon","Waxing Crescent","First Quarter","Waxing Gibbous","Full 
 const isFull=()=>G.moon.i===4;
 const fullPrices=()=>G.moon.i===4;                       // Full Moon prices also hold under a Blood Moon
 const newPrices=()=>G.moon.i===0;
-const fullDrawbacks=()=>G.moon.i===4&&!G.moon.blood&&!G.moon.crossing;
-function odds(){return G.opts.insanity?{blood:.10,lev:.05,woman:.05}:{blood:.05,lev:.01,woman:.01}}
+const fullDrawbacks=()=>G.moon.i===4&&!G.moon.blood;
+/* the moon turns once every round: after every player has taken a turn */
 async function moonStart(){
-  const m=G.moon;m.blood=false;m.crossing=false;
-  if(survival()){
-    if(m.lev&&--m.levT<=0){m.lev=false;log("Leviathan slides off the moon.","event")}
-    if(m.woman&&--m.womanT<=0){m.woman=false;log("The Shadow Woman leaves the moon.","event")}
-    if(!(m.lev&&m.woman))m.union=false;
-  }
+  const m=G.moon;m.blood=false;
   if(G.turnNo===1&&G.opts.bloodStart){m.i=4;m.blood=true;log("The game opens under a <b>Blood Moon</b>.","event")}
   else if(m.i===4){
-    const o=G.forceMoon||odds();G.forceMoon=null;
-    if(Math.random()<o.blood){m.blood=true;log("The Full Moon turns red: a <b>Blood Moon</b>. Every card killed this turn falls into the Outer Darkness.","event")}
-    if(!m.lev&&Math.random()<o.lev){m.lev=true;m.levT=3;log("<b>Leviathan</b> crawls onto the moon. From now on, every card that dies or is sacrificed goes to the Outer Darkness.","event")}
-    if(!m.woman&&Math.random()<o.woman){m.woman=true;m.womanT=3;log("<b>The Shadow Woman</b> stands on the moon. A Joker's suicide may now return its souls to the deck.","event")}
+    const p=G.forceMoon!=null?G.forceMoon:.05;G.forceMoon=null;
+    if(Math.random()<p){m.blood=true;log("The Full Moon turns red: a <b>Blood Moon</b>. Every card killed this round falls into the Outer Darkness.","event")}
   }
   applyMoonTheme();render();
-  if(m.i===4&&m.blood&&m.lev&&m.woman&&!survival()){m.crossing=true;log("A Blood Moon with Leviathan and the Shadow Woman: <b>the Crossing</b>. No other moon effect happens; at the end of this turn the players switch sides.","event");return}
-  if(m.lev&&m.woman&&!m.union){m.union=true;await unionRite();if(G.over)return}
   if(m.blood){await newMoonGift();return}
   if(m.i===4){
     await fullMoonToll();if(G.over)return;
     for(const P of G.p)shuffle(P.deck);
-    G.noDraw=true;log("The Full Moon shuffles every deck. No cards are drawn and no necromancy is cast this turn.");
+    log("The Full Moon shuffles every deck. No cards are drawn and no necromancy is cast this round.");
     return;
   }
   if(m.i===0)await newMoonGift();
@@ -366,47 +357,25 @@ async function fullMoonToll(){
     render();checkWin();if(G.over)return;
   }
 }
-async function unionRite(){
-  log("Leviathan and the Shadow Woman share the moon. Each player rolls 6d6 for the grave, then the grave empties into the Outer Darkness.","event");
-  for(const pl of order()){
-    const d=rollN(6,6),six=d.filter(x=>x.v===6).length;
-    tray(pl,"6d6 Grave Rite",d,`${six} six${six===1?"":"es"}`);
-    log(`${plName(pl)} rolls 6d6: ${d.map(x=>x.v).join(", ")} = ${sum(d)}; ${six} six${six===1?"":"es"}.`);render();
-    if(six)await pickGrave(pl,six,"Grave Rite");
-  }
-  const n=G.grave.length;for(const c of G.grave.splice(0))toDark(c);
-  log(`${n} card${n===1?"":"s"} from the grave fall into the Outer Darkness.`,"event");
-}
-function crossSides(){
-  const B=G.board,nb=Array.from({length:G.rows},()=>Array(COLS).fill(null));
-  for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){const st=B[r][c];if(!st)continue;
-    st.owner=1-st.owner;for(const x of st.cards){x.owner=st.owner;for(const s of x.captured||[])s.owner=1-s.owner}
-    nb[G.rows-1-r][COLS-1-c]=st}
-  G.board=nb;G.moon.lev=false;G.moon.woman=false;G.moon.union=false;G.moon.crossing=false;G.moon.crossed++;
-  log("<b>The Crossing</b>: the players switch sides and take each other's armies. Leviathan and the Shadow Woman leave the moon.","event");
-}
-
 /* ---------------- turns ---------------- */
 async function startTurn(){
   G.turnNo++;Object.assign(G,{spent:false,spentOther:false,blessed:false,ritual:0,sel:null,selHand:null,mode:null,noDraw:false});
   for(const {st} of stacksOf(G.active)){st.moved=false;st.attacked=false;if(st.hypo){st.hypo--;if(!st.hypo)log(`Hypostasis fades from ${plName(G.active)}'s stack.`)}}
   me().sevArmed=false;
   if(survival()&&isHorde(G.active))G.round++;
-  if(G.turnNo>1)G.moon.i=(G.moon.i+1)%8;
+  const newRound=G.active===G.first;          // the first player's turn opens a new round of the moon
+  if(newRound){G.moon.round++;if(G.moon.round>1)G.moon.i=(G.moon.i+1)%8}
   log(`— ${plName(G.active)}'s turn${survival()?` · round ${roman(G.round)}`:""} · ${MOON[G.moon.i]} —`,"turn");
-  G.phase="moon";G.busy=true;render();
-  await moonStart();
-  G.busy=false;
-  if(G.over)return;
+  if(newRound){G.phase="moon";G.busy=true;render();await moonStart();G.busy=false;if(G.over)return}
+  G.noDraw=fullDrawbacks();
   G.phase=(G.turnNo===1||G.noDraw)?"prep":"draw";
-  render();
+  G.busy=false;render();
   if(me().cpu)runCpu();
 }
 async function finishTurn(){
   checkEconomic(G.active);if(G.over)return;
   const P=me();P.od=Math.max(0,P.od-6);
   foe().shownUntil=0;
-  if(G.moon.crossing)crossSides();
   G.active=1-G.active;G.sel=null;G.selHand=null;G.mode=null;
   if(G.opts.mode==="local")await passScreen(`${me().name}'s turn`);
   await startTurn();
@@ -436,7 +405,7 @@ function deal(){
     const ji=P.deck.findIndex(c=>kind(c)==="jack");const jack=P.deck.splice(ji,1)[0];
     P.opening=[ace,jack];
     if(G.opts.bloodStart){shuffle(P.deck);const k=Math.floor(P.deck.length*2/3);for(const c of P.deck.splice(0,k))G.grave.push(c);log(`Blood Moon mode: ${k} of ${plName(pl)}'s cards go to the grave.`)}
-    if(G.opts.bloodStart||G.opts.insanity){const j=G.ether.findIndex(c=>kind(c)==="joker");if(j>=0){const c=G.ether.splice(j,1)[0];c.owner=pl;P.hand.push(c);log(`A Joker comes from the Ether into ${plName(pl)}'s hand.`)}}
+    if(G.opts.bloodStart){const j=G.ether.findIndex(c=>kind(c)==="joker");if(j>=0){const c=G.ether.splice(j,1)[0];c.owner=pl;P.hand.push(c);log(`A Joker comes from the Ether into ${plName(pl)}'s hand.`)}}
     const d=rollN(2,4);tray(pl,"Opening hand",d,`draw ${sum(d)}`,true);
     log(`${plName(pl)} rolls 2d4: ${d[0].v} + ${d[1].v} = ${sum(d)}.`);draw(pl,sum(d),"opening hand",true);
   });
@@ -622,42 +591,18 @@ async function jokerSuicide(r,c,st,pl){
     log(`A Horde Joker shoots itself: ${souls.length} of your souls fall into the Outer Darkness${lost?" and you lose 1 mana":""}.`,"event");
     flash("A Horde Joker shoots itself.");checkWin();return;
   }
-  const m=G.moon;let mode="normal";
-  if(m.woman&&!m.crossing){
-    const yes=await ask(pl,{kind:"yesno",id:"woman",souls,title:"The Shadow Woman",text:`The Shadow Woman offers a choice. Send this Joker to the Outer Darkness and return its ${souls.length} captured card${souls.length===1?"":"s"} straight to your deck, then roll 1d4 for grave cards shuffled into your deck and take one soul from the Ether? Or let the souls go to your soul pile as usual?`,yes:"Return them to my deck",no:"Soul pile"});
-    if(yes)mode="woman";
-  }
-  if(mode==="woman"){
-    toDark(j);const P=G.p[pl];
-    for(const s of souls){s.owner=pl;P.deck.push(s)}
-    const k=R(4);tray(pl,"Shadow Woman",[{s:4,v:k}],`${k} from the grave`);let got=0;
-    for(let i=0;i<k&&G.grave.length;i++){const g=G.grave.splice(Math.floor(Math.random()*G.grave.length),1)[0];g.owner=pl;P.deck.push(g);got++}
-    let eth=null;if(G.ether.length){eth=G.ether.splice(Math.floor(Math.random()*G.ether.length),1)[0];eth.owner=pl;P.deck.push(eth)}
-    shuffle(P.deck);
-    log(`Sacrificial Suicide under the Shadow Woman: the Joker falls into the Outer Darkness; ${souls.length} captured card${souls.length===1?"":"s"}, ${got} grave card${got===1?"":"s"} (1d4: ${k})${eth?" and one soul from the Ether":""} go into ${plName(pl)}'s deck.`,"event");
-  }else if(m.blood&&!m.crossing){
+  const m=G.moon;
+  if(m.blood){
     toDark(j);for(const s of souls)toDark(s);
     log(`Sacrificial Suicide under the Blood Moon: the Joker and its ${souls.length} soul${souls.length===1?"":"s"} fall into the Outer Darkness.`,"event");
   }else{
     let moved=0,lost=0;
     for(const s of souls){if(addSoul(pl,s))moved++;else{toGrave(s,"spent");lost++}}
     toGrave(j,"death");
-    log(`Sacrificial Suicide: the Joker ${m.lev?"falls into the Outer Darkness":"goes to the grave"}; ${moved} soul${moved===1?"":"s"} join the soul pile${lost?`, ${lost} surplus ${m.lev?"to the Outer Darkness":"to the grave"}`:""}.`);
+    log(`Sacrificial Suicide: the Joker goes to the grave; ${moved} soul${moved===1?"":"s"} join the soul pile${lost?`, ${lost} surplus to the grave`:""}.`);
   }
   render();
-  if(m.union&&G.dark.length)await darkShop(pl);
   checkWin();
-}
-async function darkShop(pl){
-  log("Leviathan and the Shadow Woman open the Outer Darkness for trade.","event");
-  for(;;){
-    const i=await ask(pl,{kind:"cards",id:"shop",title:"The Outer Darkness: buy souls back",sub:`Each card costs its conjuring price. You have ${mana(pl)} mana.`,cards:G.dark,cancel:"Leave the shop",box:"outer",price:true});
-    if(i==null||!G.dark[i])break;
-    const c=G.dark[i],cost=costOf(c);
-    if(mana(pl)<cost){if(human(pl))flash("Not enough mana.");else break;continue}
-    pay(pl,cost);G.dark.splice(i,1);c.owner=pl;delete c.darkOwner;G.p[pl].deck.push(c);shuffle(G.p[pl].deck);
-    log(`${plName(pl)} buys ${esc(nameOf(c))} back from the Outer Darkness for ${cost} mana.`);render();
-  }
 }
 async function doubleEdge(){
   const d=rollN(3,6);let mine=0,theirs=0;
@@ -859,8 +804,8 @@ const AI=(()=>{
       const j=st.cards.find(x=>kind(x)==="joker");if(!j||!j.captured||!j.captured.length)continue;
       const cm=capMana(j),room=SOUL_CAP-mana(pl);
       let danger=0;for(const e of enemiesOf(pl))if(dist(e.r,e.c,r,c)<=2&&canAttackFrom({cards:e.st.cards,attacked:false}))danger=Math.max(danger,winP(e.st,st,24));
-      const want=(cm>=4&&room>=cm-1)||(cm>=2&&danger>.55)||(lv==="hard"&&G.moon.woman&&cm>=2)||(lv==="hard"&&G.moon.union&&G.dark.length>2&&mana(pl)>=2);
-      if(want&&!(G.moon.blood&&!G.moon.woman)){await tryCast("suicide",r,c,[]);return}
+      const want=(cm>=4&&room>=cm-1)||(cm>=2&&danger>.55)||(lv==="hard"&&cm>=3&&mana(pl)<=2);
+      if(want&&!G.moon.blood){await tryCast("suicide",r,c,[]);return}
     }
   }
   async function sacrifices(pl,target,keep){
@@ -979,7 +924,6 @@ const AI=(()=>{
         const refuse=mana(pl)*1.1+Math.min(5,G.p[pl].deck.length)*(G.p[pl].deck.length<15?1.4:.7);
         return value(st)<refuse+2;
       }
-      if(spec.id==="woman")return G.p[pl].deck.length<Math.max(18,G.p[pl].start*.6);
       return true;
     }
     return null;
@@ -1049,18 +993,19 @@ function solidPath(s){
   return "";
 }
 function solidSVG(s,color,size){const d=solidPath(s);return `<svg class="sol" viewBox="-11 -11 22 22" width="${size||14}" height="${size||14}" aria-hidden="true"><path d="${d}" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="3.4" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/></svg>`}
-function dieSVG(d){
-  const s=d.s;let shape;
-  if(s===2)shape=`<circle r="9.4"/><circle r="7" class="in"/>`;
-  else if(s===4)shape=`<path d="${ring(poly(3,11,-90,0,2))}"/>`;
-  else if(s===6)shape=`<rect x="-8.6" y="-8.6" width="17.2" height="17.2" rx="1.6"/>`;
-  else if(s===8)shape=`<path d="${ring(poly(4,10.6,-90))}"/><path class="in" d="${seg([-7.5,0],[7.5,0])}"/>`;
-  else if(s===12)shape=`<path d="${ring(poly(5,10.2,-90,0,.6))}"/><path class="in" d="${ring(poly(5,5.6,-90,0,.6))}"/>`;
-  else if(s===20){const h=poly(6,10.4,-90),t=poly(3,6.2,-90,0,.8);let k="";t.forEach((v,i)=>{k+=seg(v,h[2*i])});shape=`<path d="${ring(h)}"/><path class="in" d="${ring(t)+k}"/>`}
-  else shape=`<path d="${ring(poly(4,10,-90))}"/>`;
-  const ty=s===4?4.6:s===12?1.1:s===20?1.3:0;
-  const hi=d.v===s?" max":d.v===1&&s>2?" min":"";
-  return `<svg class="die d${s}${d.x?" x":""}${hi}" viewBox="-12 -12 24 24" width="30" height="30" role="img" aria-label="d${s} rolled ${d.v}">${shape}<text x="0" y="${ty}" dominant-baseline="central" text-anchor="middle">${d.v}</text></svg>`;
+function dieSVG(d,col){
+  const s=d.s,st=col||"#c9a274",hi=d.v===s,lo=d.v===1&&s>2;
+  const fill=hi?"#3a2a14":"#1a120b",A=`fill="${fill}" stroke="${st}" stroke-width="1.3" stroke-linejoin="round"`,I=`fill="none" stroke="${st}" stroke-opacity=".45" stroke-width=".7"`;
+  let shape;
+  if(s===2)shape=`<circle r="10" ${A}/><circle r="7.4" ${I}/>`;
+  else if(s===4)shape=`<path d="${ring(poly(3,12,-90,0,2.5))}" ${A}/>`;
+  else if(s===6)shape=`<rect x="-9.5" y="-9.5" width="19" height="19" rx="2" ${A}/>`;
+  else if(s===8)shape=`<path d="${ring(poly(4,11.4,-90))}" ${A}/><path d="${seg([-8,0],[8,0])}" ${I}/>`;
+  else if(s===12)shape=`<path d="${ring(poly(5,11.2,-90,0,.6))}" ${A}/><path d="${ring(poly(5,6.4,-90,0,.6))}" ${I}/>`;
+  else if(s===20){const h=poly(6,11.4,-90),t=poly(3,7,-90,0,.8);let k="";t.forEach((v,i)=>{k+=seg(v,h[2*i])});shape=`<path d="${ring(h)}" ${A}/><path d="${ring(t)+k}" ${I}/>`}
+  else shape=`<path d="${ring(poly(4,11,-90))}" ${A}/>`;
+  const ty=s===4?5.2:s===12?1.2:s===20?1.4:0,fs=d.v>=10?7.6:9;
+  return `<svg class="die${d.x?" x":""}" viewBox="-13 -13 26 26" width="36" height="36" role="img" aria-label="d${s} rolled ${d.v}"${d.x?' opacity=".32"':""}>${shape}<text x="0" y="${ty}" dominant-baseline="central" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="${fs}" font-weight="400" fill="${hi?"#ffffff":lo?"#ff8f86":"#f3d6a6"}">${d.v}</text></svg>`;
 }
 function moonPath(i,r){
   const f=i/8;if(i===0)return "";if(i===4)return `<circle r="${r}"/>`;
@@ -1069,26 +1014,27 @@ function moonPath(i,r){
   return `<path d="M0,${-r}A${r},${r} 0 0 0 0,${r}A${rx},${r} 0 0 ${f>.75?1:0} 0,${-r}Z"/>`;
 }
 function moonSVG(){
-  const m=G.moon,r=24,red=m.blood;
-  const serp=m.lev?`<g clip-path="url(#mclip)" class="serp-wrap"><g class="serp"><path d="M-60,4 q6,-9 12,0 t12,0 t12,0 t12,0 t12,0 t12,0 t12,0 t12,0 t12,0 t12,0" fill="none" stroke="#06140f" stroke-width="3.6" stroke-linecap="round" opacity=".78"/><circle cx="62" cy="4" r="3.2" fill="#06140f" opacity=".8"/></g></g>`:"";
-  const fig=`<circle cx="0" cy="-19" r="3"/><path d="M-1.7,-16 L1.7,-16 L2.8,-10 L5.6,0 L-5.6,0 L-2.8,-10 Z"/><path d="M-1.9,-14.5 L-5,-8 M1.9,-14.5 L4.6,-8.6" stroke-width="1.2" stroke-linecap="round" fill="none"/>`;
-  const woman=m.woman?`<g transform="translate(6,${(r*.55).toFixed(1)})"><g class="woman-rim">${fig}</g><g class="woman">${fig}</g></g>`:"";
-  return `<svg class="moon${red?" red":""}" viewBox="-34 -54 68 86" width="64" height="81" aria-hidden="true">
-<defs><clipPath id="mclip"><circle r="${r}"/></clipPath><radialGradient id="mglow"><stop offset="55%" stop-color="${red?"#ff2a2a":"#fff6dc"}" stop-opacity=".35"/><stop offset="100%" stop-color="${red?"#ff2a2a":"#fff6dc"}" stop-opacity="0"/></radialGradient></defs>
-<circle r="${r+8}" fill="url(#mglow)" class="glow"/>
-<g class="disc"><circle r="${r}" class="dark"/><g class="lit">${moonPath(m.i,r)}</g></g>${serp}${woman}</svg>`;
+  const m=G.moon,r=30,red=m.blood,lit=red?"#d3171e":"#f2ebd8",dark=red?"#3b0608":"#1f1913",glow=red?"#ff2a2a":"#fff2cf";
+  return `<svg class="moon${red?" red":""}" viewBox="-44 -44 88 88" width="88" height="88" aria-hidden="true">
+<defs><radialGradient id="mglow"><stop offset="50%" stop-color="${glow}" stop-opacity=".42"/><stop offset="100%" stop-color="${glow}" stop-opacity="0"/></radialGradient><filter id="mblur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation=".9"/></filter></defs>
+<circle r="${r+13}" fill="url(#mglow)"/>
+<g filter="url(#mblur)"><circle r="${r}" fill="${dark}" stroke="${red?"#8a1418":"#8a7a66"}" stroke-width="1"/><g fill="${lit}">${moonPath(m.i,r)}</g></g></svg>`;
+}
+function moonStrip(){
+  const m=G.moon;
+  return `<div class="mstrip" aria-label="Moon phases">${MOON.map((n,i)=>`<span class="${i===m.i?"on":""}" title="${n}"><svg viewBox="-9 -9 18 18" width="18" height="18"><circle r="7" fill="${m.blood&&i===4?"#3b0608":"#1f1913"}" stroke="#5a4a3a" stroke-width=".6"/><g fill="${m.blood&&i===4?"#d3171e":"#e9e1cc"}">${moonPath(i,7)}</g></svg></span>`).join("")}</div>`;
 }
 function face(c,o={}){
   const own=o.owner!==undefined?o.owner:c.owner,P=own!=null&&G.p[own]?G.p[own]:null;
-  const col=P?P.color:"#8a8a8a",k=kind(c);
+  const col=P?P.color:"#8a8a8a",k=kind(c),sm=o.cls==="sm";
   const rk=c.rank==="JK"?"Joker":c.rank,su=c.rank==="JK"?"✶":SUITS[c.suit];
-  return `<span class="cf ${c.color} ${o.cls||""}" style="--pc:${col}" title="${esc(nameOf(c))}"><b class="rk${c.rank==="JK"?" jk":""}">${rk}</b><em class="ty">${TYPEWORD[k]}</em><i class="su">${su}</i>${P?`<span class="so">${solidSVG(P.solid,col,o.cls==="sm"?11:13)}</span>`:""}${o.price?`<span class="price">${costOf(c)} mana</span>`:""}</span>`;
+  return `<span class="cf ${c.color} ${o.cls||""}" style="--pc:${col}" title="${esc(nameOf(c))}"><span class="cx"><b class="rk${c.rank==="JK"?" jk":""}">${rk}</b>${c.rank==="JK"?"":`<i>${su}</i>`}</span><i class="su">${su}</i>${P?`<span class="so">${solidSVG(P.solid,col,sm?12:17)}</span>`:""}${sm?"":`<em class="ty">${TYPEWORD[k]}</em>`}${o.price?`<span class="price">${costOf(c)} mana</span>`:""}</span>`;
 }
-function back(pl){const P=G.p[pl];return `<span class="cb" style="--pc:${P.color}">${solidSVG(P.solid,P.color,15)}</span>`}
+function back(pl){const P=G.p[pl];return `<span class="cb" style="--pc:${P.color}">${solidSVG(P.solid,P.color,18)}</span>`}
 function trayHTML(P,pl){
   const t=P.tray;
   if(!t)return `<div class="tray empty" style="--pc:${P.color}"><span class="tl">${esc(P.name)}'s dice</span><div class="dice"><span class="dim">no rolls yet</span></div></div>`;
-  return `<div class="tray" style="--pc:${P.color}"><span class="tl">${esc(t.label)}</span><div class="dice">${t.dice.length?t.dice.map(dieSVG).join(""):'<span class="dim">no dice</span>'}</div></div>${t.line?`<p class="tline">${esc(t.line)}</p>`:""}`;
+  return `<div class="tray" style="--pc:${P.color}"><span class="tl">${esc(t.label)}</span><div class="dice">${t.dice.length?t.dice.map(d=>dieSVG(d,P.color)).join(""):'<span class="dim">no dice</span>'}</div></div>${t.line?`<p class="tline">${esc(t.line)}</p>`:""}`;
 }
 
 /* ---------------- UI ---------------- */
@@ -1101,7 +1047,7 @@ function askHuman(pl,spec){
   return new Promise(res=>{
     const who=G.opts.mode==="local"?`<p class="dim">${esc(G.p[pl].name)} chooses.</p>`:"";
     if(spec.kind==="yesno"){
-      ovShow(`<div class="ovbox ${spec.id==="woman"?"womanbox":""}"><h2>${spec.title}</h2>${who}<p>${spec.text}</p><p class="acts"><button class="btn" id="qy">${esc(spec.yes)}</button> <button class="btn ghost" id="qn">${esc(spec.no)}</button></p></div>`);
+      ovShow(`<div class="ovbox"><h2>${spec.title}</h2>${who}<p>${spec.text}</p><p class="acts"><button class="btn" id="qy">${esc(spec.yes)}</button> <button class="btn ghost" id="qn">${esc(spec.no)}</button></p></div>`);
       $("#qy").onclick=()=>{ovHide();res(true)};$("#qn").onclick=()=>{ovHide();res(false)};return;
     }
     const cards=spec.cards;
@@ -1141,10 +1087,10 @@ function applyMoonTheme(){
 function bars(P){
   const N=Math.max(1,P.start||P.deck.length||1),n=P.deck.length,fill=Math.min(n,N),extra=Math.max(0,n-N);
   const blocks=Array.from({length:N},(_,i)=>`<i class="${i<fill?"f":""}"></i>`).join("");
-  const over=extra?`<span class="surplus" style="width:${Math.min(100,extra/N*100).toFixed(2)}%;grid-template-columns:repeat(${Math.min(extra,N)},1fr)">${"<i></i>".repeat(Math.min(extra,N))}</span>`:"";
+  const over=extra?`<span class="surplus" style="width:calc(${Math.min(100,extra/N*100).toFixed(2)}% - 4px);grid-template-columns:repeat(${Math.min(extra,N)},1fr)">${"<i></i>".repeat(Math.min(extra,N))}</span>`:"";
   const m=mana(P.i);
-  return `<div class="barrow"><span class="bk">Deck</span><div class="deckbar" style="--pc:${P.color};grid-template-columns:repeat(${N},1fr)" role="img" aria-label="Deck ${n} of ${N}">${blocks}${over}</div><b>${n}${extra?` <small>+${extra}</small>`:""}</b></div>
-<div class="barrow"><span class="bk">Mana</span><div class="manabar" role="img" aria-label="Mana ${m} of ${SOUL_CAP}">${Array.from({length:SOUL_CAP},(_,i)=>`<i class="${i<m?"f":""}"></i>`).join("")}</div><b>${m}/${SOUL_CAP}</b></div>`;
+  return `<div class="meters"><div class="meter"><span class="bk">Deck</span><div class="deckbar" style="--pc:${P.color};grid-template-columns:repeat(${N},1fr)" role="img" aria-label="Deck ${n} cards of ${N}">${blocks}${over}</div><b class="mv">${n}${extra?` <small>+${extra}</small>`:""}</b></div>
+<div class="meter mana"><span class="bk">Mana</span><div class="manabar" role="img" aria-label="Mana ${m} of ${SOUL_CAP}">${Array.from({length:SOUL_CAP},(_,i)=>`<i class="${i<m?"f":""}"></i>`).join("")}</div><b class="mv">${m}/${SOUL_CAP}</b></div></div>`;
 }
 function pboxHTML(pl,top){
   const P=G.p[pl],act=pl===G.active&&G.phase!=="setup";
@@ -1171,11 +1117,9 @@ function render(){
   // moon
   const m=G.moon,tags=[];
   if(m.blood)tags.push('<span class="tag blood">Blood Moon</span>');
-  if(m.lev)tags.push(`<span class="tag lev">Leviathan${survival()?" · "+m.levT:""}</span>`);
-  if(m.woman)tags.push(`<span class="tag woman">Shadow Woman${survival()?" · "+m.womanT:""}</span>`);
-  if(m.crossing)tags.push('<span class="tag cross">The Crossing</span>');
-  const eff=m.crossing?"Players switch sides at the end of this turn":m.blood?"New Moon gifts, Full Moon prices; the dead go to the Outer Darkness":m.i===4?"Toll paid, decks shuffled; no drawing, no necromancy":m.i===0?"1d2 cards from the grave; Clairvoyance and Naked Hand cost 6":"";
-  $("#moon").innerHTML=`${moonSVG()}<div><span class="mname">${MOON[m.i]}</span>${tags.join("")}${eff?`<span class="meff">${eff}</span>`:""}</div>`;
+  const eff=m.blood?"New Moon gifts at Full Moon prices; the dead go to the Outer Darkness":m.i===4?"Toll paid, decks shuffled; no drawing, no necromancy":m.i===0?"1d2 cards from the grave; Clairvoyance and Naked Hand cost 6":"";
+  const rn=G.moon.round||1;
+  $("#moon").innerHTML=`${moonSVG()}<div class="minfo"><span class="mname">${MOON[m.i]}</span>${tags.join("")}${moonStrip()}<span class="meff">${eff||`moon round ${rn} · the moon turns when every player has had a turn`}</span></div>`;
   // round (survival)
   const rd=$("#round");rd.hidden=!survival();if(survival())rd.innerHTML=`<span class="label">Round</span><b class="bl">${roman(Math.max(1,G.round))}</b>`;
   // phases
@@ -1207,7 +1151,7 @@ function render(){
         const lead=st.cards.find(x=>kind(x)==="ace")||[...st.cards].sort((a,b)=>nat(b)-nat(a)||kind(b).localeCompare(kind(a)))[0];
         const P=G.p[st.owner],mine=st.owner===V;
         const cap=st.cards.reduce((a,x)=>a+capMana(x),0);
-        inner=`<div class="stack ${mine?"mine":"theirs"} ${lead.color}" style="--pc:${P.color}"><span class="lead"><b class="rk${lead.rank==="JK"?" jk":""}">${lead.rank==="JK"?"Joker":lead.rank}</b><i>${lead.rank==="JK"?"✶":SUITS[lead.suit]}</i></span><em class="ty">${TYPEWORD[kind(lead)]}</em>${st.cards.length>1?`<span class="cnt">×${st.cards.length}</span>`:""}<span class="mini">${st.cards.map(short).join(" ")}</span><span class="so">${solidSVG(P.solid,P.color,12)}</span>${st.odds?`<span class="odds ${st.odds}">${st.odds==="adv"?"▲":"▼"}</span>`:""}${st.hypo?`<span class="hypo" title="Hypostasis: untouchable">◈${st.hypo}</span>`:""}${cap?`<span class="souls" title="captured souls">✦${cap}</span>`:""}${st.owner===G.active&&(st.moved||st.attacked)&&G.phase!=="setup"?`<span class="used">${st.attacked?"atk":"mv"}</span>`:""}</div>`;
+        inner=`<div class="stack ${mine?"mine":"theirs"} ${lead.color}" style="--pc:${P.color}"><span class="so">${solidSVG(P.solid,P.color,16)}</span>${st.cards.length>1?`<span class="cnt">×${st.cards.length}</span>`:""}<span class="lead"><b class="rk${lead.rank==="JK"?" jk":""}">${lead.rank==="JK"?"Joker":lead.rank}</b><i>${lead.rank==="JK"?"✶":SUITS[lead.suit]}</i></span><span class="mini">${st.cards.length>1?st.cards.map(short).join(" "):""}</span><em class="ty">${TYPEWORD[kind(lead)]}</em>${st.odds?`<span class="odds ${st.odds}">${st.odds==="adv"?"▲":"▼"}</span>`:""}${st.hypo?`<span class="hypo" title="Hypostasis: untouchable">◈${st.hypo}</span>`:""}${cap?`<span class="souls" title="captured souls">✦${cap}</span>`:""}${st.owner===G.active&&(st.moved||st.attacked)&&G.phase!=="setup"?`<span class="used">${st.attacked?"atk":"mv"}</span>`:""}</div>`;
       }
       return `<button class="${cls.join(" ")}" data-r="${r}" data-c="${c}" aria-label="${lineName} column ${c+1}${st?", "+st.cards.map(nameOf).join(", "):", empty"}">${inner}</button>`;
     }).join("")+"</div>";
@@ -1219,7 +1163,7 @@ function render(){
   $("#shared").innerHTML=`<button class="link limbo-l" id="seegrave">Grave <b>${G.grave.length}</b></button><button class="link" id="seeether">Ether <b>${G.ether.length}</b></button><button class="link dark-l" id="seedark">Outer Darkness <b>${G.dark.length}</b></button>`;
   $("#seegrave").onclick=()=>viewBox("The Grave",G.grave,"limbo","Shared by both players. The dead sleep here until something raises them.");
   $("#seeether").onclick=showEther;
-  $("#seedark").onclick=()=>viewBox("The Outer Darkness",G.dark,"outer","Nothing here returns, except through the shop that opens when Leviathan and the Shadow Woman share the moon. Each card bears the symbol of the player who held it when it fell.",true);
+  $("#seedark").onclick=()=>viewBox("The Outer Darkness",G.dark,"outer","Nothing here returns. Each card bears the symbol of the player who held it when it fell.",true);
   // hand
   const P=G.p[V];
   $("#handh").textContent=G.opts.mode==="local"?`${P.name}'s hand`:"Your hand";
@@ -1304,13 +1248,13 @@ const INFO={
  queen:["Queen","Q",[["Score","0, no die of her own"],["Gift","everyone stacked with her rolls their dice on defense as well as attack"],["King","a King stacked with her takes no penalty for rolling a 1"],["Limits","one Queen per stack; no Dice Max or MSV; she cannot attack alone"],["Soul","2 mana · Queen Conjure, 2 mana"]],"The heart of a defensive stack. Pair her with a King to bunker down."],
  king:["King","K",[["Score","11 + 1d20 on attack"],["Rolls","a 20 deals double damage (or takes none on a failed attack); a 1 deals no damage on a win and takes two on a loss, unless a Queen is with him"],["Alone","cannot attack"],["Defeated in defense","every card stacked with him dies"],["Dice Max / MSV","20 / 28: lower cards adopt his MSV"],["Soul","2 mana · King Conjure, 2 mana · can't be sacrificed from a stack"]],"The strongest attacker, and the most dangerous to lose."],
  ace:["Ace","A",[["Defense","11 + 1d20 when attacked; cards inside it don't roll on defense"],["Limits","cannot move or attack; only on an empty backline tile; holds up to six cards"],["Falls","if the Ace takes damage, it and every card inside it are destroyed; on a roll of 1 it deals no damage back"],["Grave Blessing","+1d6 for each Ace you have on the field"],["Soul","3 mana · Ace Conjure, 3 mana · can't be sacrificed on the field, except to the Full Moon"],["Opening","each player starts with an Ace from their deck on a backline tile of their choice, holding a Jack"]],"A fortress and a grave-caller. Hard computers stack Aces to roll more Grave Blessing dice."],
- joker:["Joker (Necromancer)","Joker",[["Score","alone, copies the score and die of the enemy's leading card; Jokers can't kill Jokers"],["Spawns","only onto your stack holding a card of the same color (red or black)"],["Soul Capture","enemies that die on the 8 tiles around it, or its own tile, are held inside it, up to 6 mana of souls"],["Held souls","it keeps them until it dies (it and its souls go to the grave, unless an enemy Joker beside it steals them) or until Sacrificial Suicide moves them to your soul pile"],["Blood Moon","a Joker that shoots itself under a Blood Moon sends itself and every soul it held to the Outer Darkness"],["Leviathan","its suicide still pays the mana, but the Joker and its souls end in the Outer Darkness"],["Shadow Woman","its suicide can instead return its souls to your deck, with 1d4 grave cards and one soul from the Ether"],["Both on the moon","a suicide opens the Outer Darkness shop"],["Survival","Horde Jokers capture your souls; when one shoots itself those cards go to the Outer Darkness and you lose 1 mana"],["Soul","1 mana · Joker Conjure, 2 mana"]],"The necromancer of the deck, and the only way to turn kills into mana."]
+ joker:["Joker (Necromancer)","Joker",[["Score","alone, copies the score and die of the enemy's leading card; Jokers can't kill Jokers"],["Spawns","only onto your stack holding a card of the same color (red or black)"],["Soul Capture","enemies that die on the 8 tiles around it, or its own tile, are held inside it, up to 6 mana of souls"],["Held souls","it keeps them until it dies (it and its souls go to the grave, unless an enemy Joker beside it steals them) or until Sacrificial Suicide moves them to your soul pile"],["Blood Moon","a Joker that shoots itself under a Blood Moon sends itself and every soul it held to the Outer Darkness"],["Survival","Horde Jokers capture your souls; when one shoots itself those cards go to the Outer Darkness and you lose 1 mana"],["Soul","1 mana · Joker Conjure, 2 mana"]],"The necromancer of the deck, and the only way to turn kills into mana."]
 };
 function infoHTML(){
   const tabs=Object.keys(INFO).map((k,i)=>`<button class="itab ${i===0?"on":""}" data-k="${k}">${INFO[k][0]}</button>`).join("");
   const spells=SCHOOLS.map(sc=>`<h4>${sc}</h4><dl>`+SPELLS.filter(s=>s.school===sc).map(s=>`<dt>${esc(s.name)} <span>${s.id==="hypo"?"3 + 1 per extra card":s.cost?s.cost+" mana":"free"}</span></dt><dd>${esc(s.text)}</dd>`).join("")+"</dl>").join("");
   return `<details class="cinfo"><summary>Card info</summary><div class="itabs">${tabs}</div><div id="ibody"></div></details>
-<details class="cinfo"><summary>Spells explained</summary><div class="spellinfo">${spells}<p class="dim">New Moon: Clairvoyance and Naked Hand cost 6. Full Moon: Clairvoyance costs 2, Naked Hand is free, and no necromancy is cast. Blood Moon: Full Moon prices with no Full Moon drawbacks; necromancy is allowed.</p></div></details>`;
+<details class="cinfo"><summary>Spells explained</summary><div class="spellinfo">${spells}<p class="dim">New Moon: Clairvoyance and Naked Hand cost 6. Full Moon: Clairvoyance costs 2, Naked Hand is free, and no necromancy is cast. Blood Moon: Full Moon prices with no Full Moon drawbacks; necromancy is allowed. The moon turns one phase per round, once every player has had a turn.</p></div></details>`;
 }
 function infoBody(k){const [t,rk,rows,note]=INFO[k];return `<h4>${t} <span class="bl">${rk}</span></h4><table>${rows.map(([a,b])=>`<tr><th>${a}</th><td>${b}</td></tr>`).join("")}</table><p class="dim">${note}</p>`}
 function mountInfo(){
@@ -1348,7 +1292,6 @@ function showStart(){
   const options=`<fieldset class="pf"><legend>Rule options</legend>
 ${mode==="survival"?'<p class="dim">Survival always uses the midline.</p>':'<label class="chk"><input type="checkbox" id="omid" checked> Use the midline</label>'}
 <label class="chk"><input type="checkbox" id="olock"> Optional Ace rule: cards inside an Ace must match its color</label>
-<label class="chk"><input type="checkbox" id="oins"> <span><b>Insanity</b> <em class="warn">not for beginners</em><small>Blood Moon 10%, Leviathan 5%, Shadow Woman 5% at every Full Moon, and each player starts with a Joker from the Ether in hand.</small></span></label>
 <label class="chk"><input type="checkbox" id="oblood"> <span><b>Blood Moon mode</b><small>The game opens on a Blood Moon. Each deck is shuffled and two thirds of it go to the grave; each player starts with a Joker in hand.</small></span></label>
 </fieldset>`;
   ovShow(`<div class="ovbox wide"><h2>${M[1]}</h2><p class="dim">${M[2]}</p>${forms}${diff}${options}<p class="acts"><button class="btn" id="go">${mode==="survival"?"Raise your Ace":"Roll for the opening"}</button> <button class="btn ghost" id="back">← Other modes</button> <a class="dim" href="ethers-crossroads-rules.html#modes">How the modes work</a></p></div>`);
@@ -1361,7 +1304,7 @@ ${mode==="survival"?'<p class="dim">Survival always uses the midline.</p>':'<lab
       const tribe=a.tribe==="binah"?"tiph":"binah",color=pick(COLORS.map(c=>c[1]).filter(c=>c!==a.color)),solid=pick(Object.keys(SOLIDS).filter(s=>s!==a.solid));
       players=[a,{name:`The ${TRIBES[tribe].name} computer`,tribe,color,solid,cpu:d}]}
     else{const a=pl(1);players=[a,{name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>s!==a.solid)),cpu:"horde"}]}
-    startGame({mode,players,mid:mode==="survival"||!!($("#omid")&&$("#omid").checked),aceLock:$("#olock").checked,insanity:$("#oins").checked,bloodStart:$("#oblood").checked});
+    startGame({mode,players,mid:mode==="survival"||!!($("#omid")&&$("#omid").checked),aceLock:$("#olock").checked,bloodStart:$("#oblood").checked});
   };
 }
 function startGame(opts){

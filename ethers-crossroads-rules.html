@@ -167,7 +167,7 @@
 <p>Each conjure purchases a soul to materialize into your deck from the Ethereal Realm. The souls waiting in the Ether can be previewed with <b>show available souls</b>, under the conjure spells: The Ether, Souls to Materially Conjure.</p>
 
 <h2 id="moon">The Moon</h2>
-<p>Every turn sits under one phase of the moon, shown at the top of the table. Each player's turn, with all its phases, is one phase of the moon, in this order, and then it repeats:</p>
+<p>Every round sits under one phase of the moon, shown at the top of the table. A round is one turn for each player, every turn with all its phases (draw, prep, attack); when every player has finished their turn, the moon moves to its next phase, in this order, and then it repeats:</p>
 <p class="formula flow">New Moon → Waxing Crescent → First Quarter → Waxing Gibbous → Full Moon → Waning Gibbous → Last (Third) Quarter → Waning Crescent</p>
 <h3>New Moon</h3>
 <ul><li>Players get to choose 1d2 cards from the grave for free.</li><li>Clairvoyance and Naked Hand cost six mana, and their spell options turn dark grey.</li></ul>
@@ -177,15 +177,6 @@
 <ul><li>Every Full Moon may turn into a Blood Moon. The moon turns red, and so does every necromancy spell, and the table turns the crimson of the Disturbed Satan chapter and starts to glitch.</li><li>New Moon effects take place: players pick cards from the grave. The Full Moon's drawbacks (the toll, the shuffle, no drawing, no necromancy) are void, but its cheaper prices stay.</li><li>Every card killed during the Blood Moon is sent to the <b>Outer Darkness</b> and can never be returned. A Joker that kills itself during it sends all the cards it held to the Outer Darkness.</li></ul>
 <h3>The Outer Darkness</h3>
 <p>Cards in the Outer Darkness can be viewed at any time, in a box the red of the Disturbed Satan chapter. Each card carries the symbol of the player it belonged to at the time of its death.</p>
-<h3>Leviathan on the Moon</h3>
-<p>Leviathan crawls onto the moon and stays the entire game, through every phase. Every card that dies or is sacrificed goes to the Outer Darkness, including the Joker's suicide. Mana is still awarded. A blurred serpent slithers across the moon.</p>
-<h3>The Shadow Woman on the Moon</h3>
-<p>A blurred, transparent shadow of a woman stands on the moon for the rest of the game. Every Joker who commits suicide may give all the cards it captured straight back to your deck while the Joker goes to the Outer Darkness, and for every Joker suicide in this event you roll for grave cards shuffled back into your deck, plus one soul from the Ether.</p>
-<h3>Leviathan and the Shadow Woman together</h3>
-<p>Both players roll 6d6, which works like the Grave Blessing: one card from the grave for every six. After both have rolled once, every card in the grave goes to the Outer Darkness, and then the effects of both take place. From then on a Joker's suicide opens a shop, where each card in the Outer Darkness costs its conjuring price in mana and can be bought back into your deck.</p>
-<h3>A Blood Moon with Leviathan and the Shadow Woman</h3>
-<p>None of the effects above happen. Instead, the players switch sides by the end of their own turns, and then the phases go back to normal, the moon continuing from the phase it was at.</p>
-
 <h2 id="digital">How the digital table reads the rules</h2>
 <p>Some rules leave room for the players to decide. Play Game uses these readings:</p>
 <ul>
@@ -201,17 +192,12 @@
 <li>Stacks attack an enemy stack next to them (not diagonal, except Jack-only stacks). Aces and a King standing alone don't attack.</li>
 <li>Paying mana spends your smallest souls first; any mana overpaid is lost, and spent souls go to the grave. Sacrifices happen before any mana is spent, and the Grave Blessing must come before spending too (Ritual Dice excepted).</li>
 <li>A Joker's captured souls hold six mana at most. Double Edged Sword has no listed cost, so it costs 1 mana here.</li>
-<li>The Ether is a shared pool of two full decks. A conjure takes a random soul of that kind from it, and Flesh Severance sends exiled souls back into it. The Jokers of Insanity and Blood Moon mode come from it.</li>
+<li>The Ether is a shared pool of two full decks. A conjure takes a random soul of that kind from it, and Flesh Severance sends exiled souls back into it. The Jokers of Blood Moon mode come from it.</li>
 <li>Overdrawing counts every card burned by a full hand, including draws forced by Forced Hand, but not the opening hand. At the end of each of your turns six of the count are used up and the rest carries on.</li>
-<li>Resurrection brings the card into your hand. Three of Swords destroys cards into the grave (or the Outer Darkness under a Blood Moon or Leviathan). Naked Hand lasts until the caster's turn ends.</li>
+<li>Resurrection brings the card into your hand. Three of Swords destroys cards into the grave (or the Outer Darkness under a Blood Moon). Naked Hand lasts until the caster's turn ends.</li>
 <li>Hypostasis lasts through the enemy's next two turns and ends at the start of your second turn after casting. A stack under it can't be targeted by attacks or by the Full Moon's toll.</li>
-<li>The moon moves one phase with every player's turn. Its New Moon gift and Full Moon toll reach both players at the start of the turn, the player whose turn it is first; the spell prices apply to whoever casts that turn.</li>
+<li>The moon moves one phase each round, at the start of the first player's turn. Its New Moon gift and Full Moon toll reach both players at the start of the round, the first player first; the moon's prices, draw ban and Blood Moon last the whole round, and the spell prices apply to whoever casts that turn.</li>
 <li>The Full Moon's most powerful stack is the one whose best card has the highest point rating (its value plus the top of its die), with more cards breaking ties. A sacrificed stack's souls go to the soul pile up to six mana; the rest go to the grave.</li>
-<li>The Blood Moon, Leviathan and the Shadow Woman are each rolled at every Full Moon; once Leviathan or the Shadow Woman is on the moon, it is not rolled again. A Blood Moon lasts its one turn.</li>
-<li>Under Leviathan, cards that die and souls that are spent go to the Outer Darkness; cards burned from a deck or a full hand still go to the grave.</li>
-<li>The Shadow Woman's roll is 1d4: that many random grave cards are shuffled into your deck, with one random soul from the Ether.</li>
-<li>The 6d6 rite of Leviathan and the Shadow Woman happens once, when both are first on the moon together.</li>
-<li>The Crossing: at the end of that turn the field turns around and each player takes over the other's army, keeping their own deck, hand and soul pile. Leviathan and the Shadow Woman then leave the moon, and the phases continue from where they were.</li>
 <li>Not yet in the digital table: the Queen's protection from being surrounded, and placing same-suit cards inside a defending King. A King can't be sacrificed from a stack that holds other cards.</li>
 </ul>
 
@@ -221,7 +207,7 @@
 <h3>Versus Computer</h3>
 <p>A coded opponent, not a language model, at three difficulties. Each turn it chooses between offense and defense from the field and the decks: defense bunkers (Kings with Queens, Aces held back, Hypostasis over a threatened stack); offense surrounds enemy stacks and casts curses. Easy plays an easier version of this, Medium is balanced, and Hard goes all out on your field and your deck, plays the Joker for souls, stacks Aces for the Grave Blessing and keeps its own deck high.</p>
 <h3>Survival</h3>
-<p>A single-player tower defense, always played with the midline. You open with an Ace and its Jack; the Horde takes the first turn. Each round the Horde spawns a group from a fresh deck on its two lines, stacking where it can, then moves on you and attacks the stacks that threaten it most. It has no spells, hand, deck or grave: its dead vanish, unless your Joker captures them. Spells that only touch a hand or a deck (Forced Hand, Double Edged Sword, Three of Swords, Naked Hand) are off. The moon still turns and Blood Moons still rise; Leviathan and the Shadow Woman stay only three turns, and the Crossing can't happen. When a Horde Joker shoots itself, the cards it captured from you go to the Outer Darkness and you lose 1 mana. You lose when your last card on the field falls, and the round count, in Roman numerals, is your score.</p>
+<p>A single-player tower defense, always played with the midline. You open with an Ace and its Jack; the Horde takes the first turn. Each round the Horde spawns a group from a fresh deck on its two lines, stacking where it can, then moves on you and attacks the stacks that threaten it most. It has no spells, hand, deck or grave: its dead vanish, unless your Joker captures them. Spells that only touch a hand or a deck (Forced Hand, Double Edged Sword, Three of Swords, Naked Hand) are off. The moon still turns and Blood Moons still rise. When a Horde Joker shoots itself, the cards it captured from you go to the Outer Darkness and you lose 1 mana. You lose when your last card on the field falls, and the round count, in Roman numerals, is your score.</p>
 <table>
 <tr><th>Rounds</th><th>Grunts</th><th>Infantry</th><th>Jacks, Queens, Kings (random)</th><th>Most spawns</th></tr>
 <tr><td>1–5</td><td>1d4 + round</td><td>1d2 − 2 + round</td><td>none</td><td>4, growing as round ÷ 2 (rounded up)</td></tr>
@@ -232,7 +218,6 @@
 <p>Aces never spawn. When the Horde's own two lines are full, a new card takes the place of the weakest Horde stack still standing there, which fades back into the Ether. Each spawn keeps its highest cards first (Jokers, then Kings, Jacks, Queens, then soldiers from 10 down) until the limit is reached. From round 11 the Joker spawns first: roll 1d4, and on a 4 a Joker spawns and you roll again, two Jokers a round at most.</p>
 <h3>Rule options</h3>
 <ul>
-<li><b>Insanity</b> (not for beginners): Blood Moon 10%, Leviathan 5% and Shadow Woman 5% at every Full Moon, and each player starts with one Joker from the Ether in hand. It has to be checked before the game starts.</li>
 <li><b>Blood Moon mode</b>: the game begins on a Blood Moon. Each player's deck is shuffled before two thirds of it go to the graveyard, and each player starts with one Joker in hand.</li>
 <li><b>Midline</b>: on by default; can be removed outside Survival.</li>
 <li><b>Optional Ace rule</b>: the cards inside an Ace must match its color.</li>
@@ -241,13 +226,9 @@
 <h2 id="events">Events and their rarity</h2>
 <table>
 <tr><th>Event</th><th>Chance</th><th>What it does</th></tr>
-<tr><td>New Moon</td><td>every 8 turns</td><td>Players choose 1d2 cards from the grave for free. Clairvoyance and Naked Hand cost 6 mana.</td></tr>
-<tr><td>Full Moon</td><td>every 8 turns</td><td>Sacrifice your most powerful stack, or lose all your mana and five deck cards. Decks shuffle; no drawing or necromancy. Naked Hand is free, Clairvoyance costs 2.</td></tr>
-<tr><td>Blood Moon</td><td>5% of Full Moons (10% in Insanity)</td><td>New Moon gifts with Full Moon prices and no Full Moon drawbacks. Every card killed goes to the Outer Darkness, and a Joker's suicide sends it and its cards there too. The table turns crimson and glitches.</td></tr>
-<tr><td>Leviathan on the Moon</td><td>1% of Full Moons (5% in Insanity)</td><td>Stays the whole game (three turns in Survival). Every card that dies or is sacrificed goes to the Outer Darkness, the Joker's suicide included; mana is still awarded.</td></tr>
-<tr><td>The Shadow Woman on the Moon</td><td>1% of Full Moons (5% in Insanity)</td><td>Stays the whole game (three turns in Survival). A Joker's suicide can return its captured cards to your deck while the Joker goes to the Outer Darkness, with 1d4 grave cards and one soul from the Ether.</td></tr>
-<tr><td>Leviathan and the Shadow Woman together</td><td>both must arrive</td><td>Each player rolls 6d6 for the grave, then the grave empties into the Outer Darkness. A Joker's suicide opens the Outer Darkness shop.</td></tr>
-<tr><td>The Crossing</td><td>a Blood Moon while both are on the moon</td><td>No other moon effects. At the end of the turn the players switch sides, then the phases continue.</td></tr>
+<tr><td>New Moon</td><td>every 8 rounds</td><td>Players choose 1d2 cards from the grave for free. Clairvoyance and Naked Hand cost 6 mana.</td></tr>
+<tr><td>Full Moon</td><td>every 8 rounds</td><td>Sacrifice your most powerful stack, or lose all your mana and five deck cards. Decks shuffle; no drawing or necromancy. Naked Hand is free, Clairvoyance costs 2.</td></tr>
+<tr><td>Blood Moon</td><td>5% of Full Moons</td><td>New Moon gifts with Full Moon prices and no Full Moon drawbacks. Every card killed goes to the Outer Darkness, and a Joker's suicide sends it and its cards there too. The table turns crimson and glitches.</td></tr>
 </table>
 </main>
 </body>
