@@ -192,7 +192,7 @@
 <li>Stacks attack an enemy stack next to them (not diagonal, except Jack-only stacks). Aces and a King standing alone don't attack.</li>
 <li>Paying mana spends your smallest souls first; any mana overpaid is lost, and spent souls go to the grave. Sacrifices happen before any mana is spent, and the Grave Blessing must come before spending too (Ritual Dice excepted).</li>
 <li>A Joker's captured souls hold six mana at most. Double Edged Sword has no listed cost, so it costs 1 mana here.</li>
-<li>The Ether is a shared pool of two full decks. A conjure takes a random soul of that kind from it, and Flesh Severance sends exiled souls back into it. The Jokers of Blood Moon mode come from it.</li>
+<li>The Ether is shared. It holds every special the players do not start with, the unused half of the deck in a one-deck Survival game, and the whole third deck in a three-deck game. A conjure takes a random soul of that kind from it, and Flesh Severance sends exiled souls back into it. A conjure whose kind is not in the Ether cannot be cast. Starting mana takes soldier souls from it; when it has none, new soldier souls are made.</li>
 <li>Overdrawing counts every card burned by a full hand, including draws forced by Forced Hand, but not the opening hand. At the end of each of your turns six of the count are used up and the rest carries on.</li>
 <li>Resurrection brings the card into your hand. Three of Swords destroys cards into the grave (or the Outer Darkness under a Blood Moon). Naked Hand lasts until the caster's turn ends.</li>
 <li>Hypostasis lasts through the enemy's next two turns and ends at the start of your second turn after casting. A stack under it can't be targeted by attacks or by the Full Moon's toll.</li>
@@ -215,12 +215,15 @@
 <tr><td>11–15</td><td>1d4</td><td>1d4 + (round − 5)</td><td>1d2 − 1 + (round − 5) ÷ 2</td><td>3d2 + 2</td></tr>
 <tr><td>16 on</td><td colspan="3">as 11–15</td><td>3d2 + 2, +1 every five rounds</td></tr>
 </table>
-<p>Aces never spawn. When the Horde's own two lines are full, a new card takes the place of the weakest Horde stack still standing there, which fades back into the Ether. Each spawn keeps its highest cards first (Jokers, then Kings, Jacks, Queens, then soldiers from 10 down) until the limit is reached. From round 11 the Joker spawns first: roll 1d4, and on a 4 a Joker spawns and you roll again, two Jokers a round at most.</p>
+<p>Aces never spawn. The Horde ignores two limits: a King or a Queen standing alone can still attack. When the Horde's own two lines are full, a new card takes the place of the weakest Horde stack still standing there, which fades back into the Ether. Each spawn keeps its highest cards first (Jokers, then Kings, Jacks, Queens, then soldiers from 10 down) until the limit is reached. From round 11 the Joker spawns first: roll 1d4, and on a 4 a Joker spawns and you roll again, two Jokers a round at most.</p>
 <h3>Rule options</h3>
 <ul>
 <li><b>Blood Moon mode</b>: the game begins on a Blood Moon. Each player's deck is shuffled before two thirds of it go to the graveyard, and each player starts with one Joker in hand.</li>
 <li><b>Midline</b>: on by default; can be removed outside Survival.</li>
-<li><b>Starting mana</b>: each player starts with souls in their soul pile, taken from the Ether as soldier souls. Default 3d2; it can be 1d6, a fixed number, or none, and the players can share one roll or each roll their own.</li>
+<li><b>Decks</b>: one deck between the two players (each takes one red and one black suit, dealt at random or chosen), two decks (default; a full deck each), or three decks (a full deck each and a whole third deck waiting in the Ether).</li>
+<li><b>Specials</b> (Jacks, Queens, Kings, Aces and Jokers): none besides the opening Ace and its Jack (default), half (the specials of half your suits), or all. Every special a player does not start with waits in the Ether, ready to be conjured.</li>
+<li><b>At least one Joker</b> (on by default): every player's deck holds at least one Joker, taken from the Ether when the specials setting would leave none.</li>
+<li><b>Starting mana</b>: each player starts with souls in their soul pile, taken from the Ether as soldier souls (or newly made when the Ether has none). Default 3d2; it can be 1d6, a fixed number, or none, and the players can share one roll or each roll their own.</li>
 <li><b>Moon combat bonus</b> (on by default): at the Full Moon every attack adds 1d2 to its score; at the New Moon every defense adds 1d2.</li>
 <li><b>Spells in the attack phase</b> (off by default): enchantments, curses and sorcery can also be cast during the attack phase. Necromancy, conjuring and sacrifices stay in the prep phase.</li>
 <li><b>Optional Ace rule</b>: the cards inside an Ace must match its color.</li>

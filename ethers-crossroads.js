@@ -72,8 +72,49 @@ function newGame(opts){
      spent:false,spentOther:false,blessed:false,ritual:0,log:[],sel:null,selHand:null,mode:null,over:false,
      moon:{i:0,blood:false,round:0},
      noDraw:false,round:0,busy:false,passing:false};
-  G.ether=shuffle([...freshDeck(),...freshDeck()]);
-  G.p.forEach((P,i)=>{if(P.cpu!=="horde"){P.deck=freshDeck();P.deck.forEach(c=>c.owner=i)}});
+  buildDecks();
+}
+/* ---------------- decks and the Ether ----------------
+   decks: 1 (the two players split one deck: one red and one black suit each), 2 (a full deck each), 3 (a full deck each and a whole third deck in the Ether)
+   specials (J Q K A Joker): none (only the opening Ace; the rest wait in the Ether), half (the specials of half your suits), all
+   Every player keeps at least one Joker unless that option is off. Whatever specials a player does not start with go to the Ether. */
+const RED=["H","D"],BLACK=["S","C"],RANKS=["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
+const isSpecial=c=>["jack","queen","king","ace","joker"].includes(kind(c));
+function deckPlan(o,nPlayers){
+  const n=o.decks||2;let suits;
+  if(n===1){
+    if(o.suits&&o.suits.length===2){const a=o.suits,b=[RED.find(s=>!a.includes(s)),BLACK.find(s=>!a.includes(s))];suits=[a,b]}
+    else{const r=shuffle([...RED]),b=shuffle([...BLACK]);suits=[[r[0],b[0]],[r[1],b[1]]]}
+  }else suits=[["S","H","D","C"],["S","H","D","C"]];
+  return{n,suits:suits.slice(0,nPlayers),jokers:n===1?shuffle(["red","black"]).map(c=>[c]):[["red","black"],["red","black"]],spare:n===1&&nPlayers<2?suits[1]:null};
+}
+function buildDecks(){
+  const o=G.opts,pls=G.p.map((P,i)=>i).filter(i=>!isHorde(i)),plan=deckPlan(o,pls.length),sp=o.specials||"none";
+  G.ether=[];
+  pls.forEach((pl,k)=>{
+    const P=G.p[pl],mySuits=plan.suits[k];
+    let cards=[];for(const s of mySuits)for(const r of RANKS)cards.push(mk(r,s));
+    for(const col of plan.jokers[k])cards.push(mk("JK",null,col));
+    let keepSuits=sp==="all"?mySuits:sp==="half"?(mySuits.length===4?[pick(RED),pick(BLACK)]:[pick(mySuits)]):[];
+    const keepJokers=sp==="all"?9:sp==="half"?Math.floor(plan.jokers[k].length/2):0;let jk=0;
+    const deck=[],out=[];
+    for(const c of cards){
+      if(!isSpecial(c)){deck.push(c);continue}
+      if(kind(c)==="joker"){if(jk<keepJokers){deck.push(c);jk++}else out.push(c);continue}
+      (keepSuits.includes(c.suit)?deck:out).push(c);
+    }
+    const take=(list,k2)=>{const i=list.findIndex(c=>kind(c)===k2);return i<0?null:list.splice(i,1)[0]};
+    const ace=take(deck,"ace")||take(out,"ace")||mk("A",mySuits[0]);
+    const jack=take(deck,"jack")||take(out,"jack")||mk("J",mySuits[0]);
+    if(o.jokerSure!==false&&!deck.some(c=>kind(c)==="joker"))deck.push(take(out,"joker")||mk("JK",null,pick(["red","black"])));
+    P.opening=[ace,jack];
+    for(const c of [...deck,ace,jack])c.owner=pl;
+    P.deck=shuffle(deck);G.ether.push(...out);
+  });
+  if(plan.spare)for(const s of plan.spare)for(const r of RANKS)G.ether.push(mk(r,s));   // one deck in Survival: the other half waits in the Ether
+  if(plan.n===3)G.ether.push(...freshDeck());
+  for(const c of G.ether)c.owner=null;
+  shuffle(G.ether);
 }
 const survival=()=>G.opts.mode==="survival";
 const isHorde=pl=>G.p[pl].cpu==="horde";
@@ -204,8 +245,9 @@ const jackOnly=st=>st.cards.every(c=>kind(c)==="jack");
 function canAttackFrom(st){
   if(st.attacked||st.hypo)return false;
   if(hasK(st,"ace"))return false;
-  if(st.cards.length===1&&kind(st.cards[0])==="king")return false;
-  if(st.cards.every(c=>kind(c)==="queen"))return false;
+  const horde=G&&st.owner!=null&&G.p[st.owner]&&isHorde(st.owner);   // the Horde ignores the lone-King and lone-Queen limits
+  if(!horde&&st.cards.length===1&&kind(st.cards[0])==="king")return false;
+  if(!horde&&st.cards.every(c=>kind(c)==="queen"))return false;
   return true;
 }
 const cmpSign=(a,b)=>a>b?">":a<b?"<":"=";
@@ -410,7 +452,7 @@ function startMana(pl,shared){
   let d=shared;
   if(!d)d=sm==="3d2"?rollN(3,2):sm==="1d6"?rollN(1,6):[];
   const n=d.length?sum(d):Math.min(SOUL_CAP,+sm||0);let got=0;
-  for(let i=0;i<n&&mana(pl)<SOUL_CAP;i++){const j=G.ether.findIndex(c=>/^\d+$/.test(c.rank));if(j<0)break;const c=G.ether.splice(j,1)[0];addSoul(pl,c);got++}
+  for(let i=0;i<n&&mana(pl)<SOUL_CAP;i++){const j=G.ether.findIndex(c=>/^\d+$/.test(c.rank));const c=j>=0?G.ether.splice(j,1)[0]:mk(String(1+R(9)),pick(["S","H","D","C"]));addSoul(pl,c);got++}
   if(d.length)tray(pl,"Starting mana",d,`${got} mana`,true);
   log(`${plName(pl)} starts with ${got} mana${d.length?` (${sm}: ${d.map(x=>x.v).join(" + ")})`:""}.`);
 }
@@ -418,11 +460,9 @@ function deal(){
   const sm=G.opts.startMana||"3d2",shared=!G.opts.manaEach&&(sm==="3d2"||sm==="1d6")?(sm==="3d2"?rollN(3,2):rollN(1,6)):null;
   G.p.forEach((P,pl)=>{
     if(P.cpu==="horde")return;
-    const ai=P.deck.findIndex(c=>kind(c)==="ace");const ace=P.deck.splice(ai,1)[0];
-    const ji=P.deck.findIndex(c=>kind(c)==="jack");const jack=P.deck.splice(ji,1)[0];
-    P.opening=[ace,jack];
     if(G.opts.bloodStart){shuffle(P.deck);const k=Math.floor(P.deck.length*2/3);for(const c of P.deck.splice(0,k))G.grave.push(c);log(`Blood Moon mode: ${k} of ${plName(pl)}'s cards go to the grave.`)}
-    if(G.opts.bloodStart){const j=G.ether.findIndex(c=>kind(c)==="joker");if(j>=0){const c=G.ether.splice(j,1)[0];c.owner=pl;P.hand.push(c);log(`A Joker comes from the Ether into ${plName(pl)}'s hand.`)}}
+    if(G.opts.bloodStart){let c=null,from="the Ether";const j=G.ether.findIndex(c=>kind(c)==="joker");if(j>=0)c=G.ether.splice(j,1)[0];else{const d=P.deck.findIndex(c=>kind(c)==="joker");if(d>=0){c=P.deck.splice(d,1)[0];from="the deck"}else{c=mk("JK",null,pick(["red","black"]));from="the moon"}}
+      c.owner=pl;P.hand.push(c);log(`A Joker comes from ${from} into ${plName(pl)}'s hand.`)}
     const d=rollN(2,4);tray(pl,"Opening hand",d,`draw ${sum(d)}`,true);
     log(`${plName(pl)} rolls 2d4: ${d[0].v} + ${d[1].v} = ${sum(d)}.`);draw(pl,sum(d),"opening hand",true);
     startMana(pl,shared);
@@ -795,7 +835,7 @@ const AI=(()=>{
         const sc=(p*gain(E)-(1-p)*loss(st))*jit(pl);
         const late=isHorde(pl)?0:G.turnNo>90?Math.min(.25,.1+(G.turnNo-90)/200):!G.p[pl].deck.length?.1:0;
         const jam=isHorde(pl)&&!withSel(r,c,st.cards.filter(x=>kind(x)!=="ace").map(x=>x.id),moveTargets).length;
-        const go=p>=(lv.thr-late)*(lvl(pl)==="easy"?(.7+Math.random()*.6):1)||(lvl(pl)!=="easy"&&sc>.4)||(isHorde(pl)&&(killsOnHit(E)&&p>=.2||jam));
+        const go=p>=(lv.thr-late)*(lvl(pl)==="easy"?(.7+Math.random()*.6):1)||(lvl(pl)!=="easy"&&sc>.4)||isHorde(pl);   // the Horde never holds back: whatever it can reach, it hits
         if(go&&(!best||sc>best.sc))best={r,c,r2,c2,sc,p};
       }
     }
@@ -1325,12 +1365,35 @@ ${chk("oblood","Blood Moon mode","The game opens on a Blood Moon. Each deck is s
 <label class="opt"><input type="radio" name="dhand" value="side" ${PREF.hand!=="below"?"checked":""}><span>Beside the field<small>In the right-hand column, above the spells.</small></span></label>
 <label class="opt"><input type="radio" name="dhand" value="below" ${PREF.hand==="below"?"checked":""}><span>Under your deck and mana<small>Right below your own bars, with your dice box.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({"":"the burnt amber of the site",jester:"black, after chapter 26",ten:"white on indigo, after chapters 1–4",satan:"crimson, after chapter 23"})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, hand position and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
-  const tabs=[["players",mode==="cpu"?"Players":"Player",forms+diff],["rules","Rules",rules],["display","Display",display]];
+  const suitSel=`<div id="suitpick" hidden><p class="dim">${mode==="local"?"Player One picks; Player Two gets the other two suits.":mode==="cpu"?"You pick; the computer gets the other two suits.":"You pick; the other two suits wait in the Ether."}</p>
+<label class="f">Red suit <select id="osuitR"><option value="H">♥ Hearts</option><option value="D">♦ Diamonds</option></select></label>
+<label class="f">Black suit <select id="osuitB"><option value="S">♠ Spades</option><option value="C">♣ Clubs</option></select></label></div>`;
+  const deckTab=`<fieldset class="pf"><legend>Decks</legend><div class="opts">
+${[["1","One deck",mode==="survival"?"You take one red and one black suit; the other half of the deck waits in the Ether.":"Both players split one deck: each takes one red and one black suit."],["2","Two decks","Each player has a full deck of all four suits. (default)"],["3","Three decks","A full deck each, and a whole third deck waits in the Ether."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="odecks" value="${v}" ${v==="2"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
+<div class="f" id="suitmode" hidden><span>Suits (one deck)</span><div class="opts"><label class="opt"><input type="radio" name="osuitmode" value="random" checked><span>Random<small>Each player is dealt one red and one black suit at random. (default)</small></span></label><label class="opt"><input type="radio" name="osuitmode" value="choose"><span>Choose<small>Pick the two suits below.</small></span></label></div>${suitSel}</div>
+</fieldset>
+<fieldset class="pf"><legend>Specials (Jacks, Queens, Kings, Aces, Jokers)</legend><div class="opts">
+${[["none","None","Only your opening Ace and its Jack. Every other special waits in the Ether to be conjured. (default)"],["half","Half","The specials of half your suits; the rest wait in the Ether."],["all","All","Every special of your suits is in your deck."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="ospecials" value="${v}" ${v==="none"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
+${chk("ojoker","At least one Joker","Every player's deck holds at least one Joker, taken from the Ether if needed.",true)}
+<p class="dim" id="decksum"></p>
+</fieldset>`;
+  const tabs=[["players",mode==="cpu"?"Players":"Player",forms+diff],["deck","Deck",deckTab],["rules","Rules",rules],["display","Display",display]];
   ovShow(`<div class="ovbox setup"><div class="shead"><h2>${M[1]}</h2><p class="dim">${M[2]}</p></div>
 <div class="stabs" role="tablist">${tabs.map(([k,t],i)=>`<button type="button" role="tab" class="stab ${i?"":"on"}" data-t="${k}" aria-selected="${!i}">${t}</button>`).join("")}</div>
 ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"hidden":""}>${h}</div>`).join("")}
 <p class="acts sfoot"><button class="btn" id="go">${mode==="survival"?"Raise your Ace":"Roll for the opening"}</button> <button class="btn ghost" id="back">← Other modes</button> <a class="dim" href="ethers-crossroads-rules.html#modes">How the modes work</a></p></div>`);
   document.querySelectorAll(".stab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".stab").forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-selected",x===b)});document.querySelectorAll(".spanel").forEach(p=>p.hidden=p.dataset.p!==b.dataset.t)});
+  const sumUp=()=>{
+    const d=+val("odecks"),sp=val("ospecials"),js=$("#ojoker").checked,np=mode==="survival"?1:2;
+    $("#suitmode").hidden=d!==1;$("#suitpick").hidden=d!==1||val("osuitmode")!=="choose";
+    const s=d===1?2:4,j=d===1?1:2,keptSp=sp==="all"?4*s+j:sp==="half"?4*s/2+Math.floor(j/2):0;
+    const keptJ=sp==="all"?j:sp==="half"?Math.floor(j/2):0;
+    const deck=9*s+keptSp-(keptSp?2:0)+(js&&!keptJ?1:0);
+    const outPer=4*s+j-keptSp-(keptSp?0:2)-(js&&!keptJ?1:0);
+    const ether=outPer*np+(d===3?54:0)+(d===1&&np===1?26:0);
+    $("#decksum").textContent=`Each deck starts with ${deck} cards, plus the opening Ace and Jack on the field. The Ether starts with ${ether} souls to conjure.`;
+  };
+  document.querySelectorAll('input[name=odecks],input[name=ospecials],input[name=osuitmode],#ojoker').forEach(i=>i.addEventListener("change",sumUp));sumUp();
   $("#back").onclick=()=>{startMode=null;history.replaceState(null,"",location.pathname);showStart()};
   $("#go").onclick=()=>{
     const pl=n=>({name:($("#nm"+n).value.trim()||(n===1?"Player One":"Player Two")).slice(0,20),tribe:val("tr"+n),color:val("co"+n),solid:val("so"+n)});
@@ -1342,6 +1405,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     else{const a=pl(1);players=[a,{name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>s!==a.solid)),cpu:"horde"}]}
     PREF.hand=val("dhand")||PREF.hand;PREF.theme=val("dtheme")??PREF.theme;savePrefs();applyPrefs();
     startGame({mode,players,mid:mode==="survival"||!!($("#omid")&&$("#omid").checked),aceLock:$("#olock").checked,bloodStart:$("#oblood").checked,
+      decks:+val("odecks"),specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:+val("odecks")===1&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
       startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,atkSpells:$("#oatk").checked});
   };
 }
