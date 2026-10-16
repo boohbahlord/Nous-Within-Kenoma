@@ -6,31 +6,38 @@
 <title>Play · Ether&#x27;s Crossroads</title>
 <link rel="preload" href="cascadia-code-latin-200-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="site.css">
+<link rel="preload" href="grenze-gotisch-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
 <script src="site.js" defer></script>
 </head>
 <body data-static="1" data-fx="strings bars">
 <main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← Ether's Crossroads</a><span><a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button></span></nav>
 <header><span class="num">Play</span><h1>Ether's Crossroads</h1></header>
-<div class="gtop"><div id="phases"></div><div id="who"></div><div id="controls"></div></div>
+<div class="gtop">
+  <div id="moon" aria-live="polite"></div>
+  <div><div id="phases"></div><div id="who"></div></div>
+  <div id="round" hidden></div>
+  <div id="controls"></div>
+</div>
 <div class="glayout">
 <section aria-label="Field">
   <div id="foe" class="pbox"></div>
   <div id="board"></div>
   <div id="me" class="pbox"></div>
-  <p id="shared" class="dim"></p>
+  <p id="shared"></p>
 </section>
 <aside class="gside">
-  <div><h3>Your hand</h3><div id="hand"></div></div>
+  <div><h3 id="handh">Your hand</h3><div id="hand"></div><div id="mytray" class="traywrap" aria-live="polite"></div></div>
   <div><h3>Selected</h3><div id="selbox"></div></div>
   <div><h3>Spells</h3><div id="spells"></div></div>
 </aside>
 </div>
-<h3 class="label" style="margin:26px 0 6px">Log</h3>
+<section id="info" aria-label="Card and spell info"></section>
+<h3 class="label" style="margin:22px 0 6px">Log</h3>
 <ol id="log"></ol>
 </main>
 <div id="ov" hidden></div>
-<div id="flash" hidden></div>
+<div id="flash" hidden role="status"></div>
 <script src="ethers-crossroads.js"></script>
 </body>
 </html>

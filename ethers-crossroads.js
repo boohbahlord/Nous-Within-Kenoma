@@ -1,19 +1,29 @@
-/* Ether's Crossroads — two players on one device (pass and play).
-   Rules follow the written rules; where the written rules leave a gap, the digital
-   reading is listed on the All Rules page under "How the digital table reads the rules". */
+/* Ether's Crossroads: local 1v1, versus the computer, and Survival.
+   Rules follow the written rules; where they leave a gap, the digital reading is listed on the
+   All Rules page under "How the digital table reads the rules". */
 (function(){
 "use strict";
+/* ---------------- basics ---------------- */
 const $=s=>document.querySelector(s);
 const R=n=>1+Math.floor(Math.random()*n);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const sleep=ms=>{const g=G;return new Promise(r=>setTimeout(()=>{if(G===g)r()},G&&G.opts.fast?0:ms))}; // a new game silently ends the old game's waits
 const SUITS={S:"♠",H:"♥",D:"♦",C:"♣"};
+const SUITNAME={S:"Spades",H:"Hearts",D:"Diamonds",C:"Clubs"};
 const COLS=5, SOUL_CAP=6, HAND_CAP=6;
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+/* ---------------- tribes, colors, symbols ---------------- */
+const TRIBES={binah:{name:"Binah",sub:"the Southern tribe of the Euclids"},tiph:{name:"Tiphareth",sub:"the Northern tribe of the Euclids"}};
+const COLORS=[["Ember","#ee7a3c"],["Gold","#e3b944"],["Verdigris","#45b89c"],["Azure","#4c92e6"],["Violet","#a77de8"],["Rose","#e4648f"],["Bone","#e9dfc4"],["Crimson","#d7333b"]];
+const SOLIDS={tetra:"Tetrahedron",cube:"Cube",octa:"Octahedron",dodeca:"Dodecahedron",icosa:"Icosahedron"};
+const HORDE_COLOR="#97a487";
 
 /* ---------------- cards ---------------- */
 let uid=0;
-function mk(rank,suit,color){return{id:++uid,rank,suit,color:color||(suit==="H"||suit==="D"?"red":"black")}}
-function deck(){const d=[];for(const s of "SHDC")for(const r of ["2","3","4","5","6","7","8","9","10","J","Q","K","A"])d.push(mk(r,s));d.push(mk("JK",null,"red"),mk("JK",null,"black"));return shuffle(d)}
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function mk(rank,suit,color){return{id:++uid,rank,suit,color:color||(suit==="H"||suit==="D"?"red":"black"),owner:null}}
+function freshDeck(){const d=[];for(const s of "SHDC")for(const r of ["2","3","4","5","6","7","8","9","10","J","Q","K","A"])d.push(mk(r,s));d.push(mk("JK",null,"red"),mk("JK",null,"black"));return shuffle(d)}
 const num=c=>/^\d+$/.test(c.rank)?+c.rank:0;
 const kind=c=>c.rank==="JK"?"joker":c.rank==="A"?"ace":c.rank==="K"?"king":c.rank==="Q"?"queen":c.rank==="J"?"jack":num(c)<=6?"grunt":"infantry";
 const nat=c=>({joker:0,ace:11,king:11,queen:0,jack:10}[kind(c)]??num(c));
@@ -21,10 +31,14 @@ const die=c=>({grunt:6,infantry:8,jack:12,king:20,ace:20,queen:0,joker:0}[kind(c
 const DM=c=>({grunt:6,infantry:8,jack:12,king:20,queen:0,joker:0,ace:0}[kind(c)]);
 const MSV=c=>({grunt:24,infantry:24,jack:24,king:28}[kind(c)]||0);
 const soulOf=c=>({ace:3,king:2,queen:2}[kind(c)]||1);
-const cost={jack:1,joker:2,queen:2,king:2,ace:3,grunt:1,infantry:1};
-const label=c=>c.rank==="JK"?"Joker":c.rank+SUITS[c.suit];
+const COST={jack:1,joker:2,queen:2,king:2,ace:3,grunt:1,infantry:1};
+const costOf=c=>COST[kind(c)];
+const TYPEWORD={grunt:"Grunt",infantry:"Infantry",jack:"Knight",queen:"Queen",king:"King",ace:"Ace",joker:"Necromancer"};
+const KNAME={grunt:"Grunt",infantry:"Infantry",jack:"Jack",queen:"Queen",king:"King",ace:"Ace",joker:"Joker"};
 const short=c=>c.rank==="JK"?"JK":c.rank+SUITS[c.suit];
-const nameOf=c=>c.rank==="JK"?`${c.color} Joker`:({J:"Jack",Q:"Queen",K:"King",A:"Ace"}[c.rank]||c.rank)+" of "+({S:"Spades",H:"Hearts",D:"Diamonds",C:"Clubs"}[c.suit]);
+const nameOf=c=>c.rank==="JK"?`${c.color==="red"?"Red":"Black"} Joker`:({J:"Jack",Q:"Queen",K:"King",A:"Ace"}[c.rank]||c.rank)+" of "+SUITNAME[c.suit];
+const rate=c=>nat(c)+(die(c)||0);                 // point rating: best possible score of a card
+const stackRate=st=>Math.max(0,...st.cards.map(rate))+(st.cards.length-1)*.5;
 
 /* ---------------- stacks ---------------- */
 function stackLegal(cards){
@@ -34,7 +48,7 @@ function stackLegal(cards){
   if(aces.length===1){
     const inside=cards.filter(c=>kind(c)!=="ace");
     if(inside.length>6)return false;
-    if(G.opts.aceLock&&inside.some(c=>c.color!==aces[0].color))return false;
+    if(G&&G.opts.aceLock&&inside.some(c=>c.color!==aces[0].color))return false;
     return true;
   }
   if(cards.filter(c=>kind(c)==="queen").length>1)return false;
@@ -46,50 +60,119 @@ function stackLegal(cards){
 const hasK=(st,k)=>st.cards.some(c=>kind(c)===k);
 
 /* ---------------- state ---------------- */
-let G;
+let G=null;
+function mkPlayer(i,o){return{i,name:o.name,tribe:o.tribe||null,color:o.color,solid:o.solid,cpu:o.cpu||null,
+  deck:[],hand:[],souls:[],sevArmed:false,start:0,od:0,shownUntil:0,seen:false,tray:null}}
 function newGame(opts){
   uid=0;
-  const rows=opts.mid?5:4;
+  const rows=(opts.mid||opts.mode==="survival")?5:4;
   G={opts,rows,board:Array.from({length:rows},()=>Array(COLS).fill(null)),
-     p:[0,1].map(i=>({name:opts.names[i],deck:deck(),hand:[],souls:[],sevArmed:false})),
-     grave:[],ether:[],turn:0,active:0,first:0,phase:"setup",setupDone:[false,false],
-     spent:false,blessed:false,ritual:0,log:[],sel:null,selHand:null,mode:null,over:false,turnNo:0,setupOrder:[]};
-  for(const pl of G.p)pl.deck.forEach(c=>c.owner=G.p.indexOf(pl));
+     p:opts.players.map((o,i)=>mkPlayer(i,o)),grave:[],ether:[],dark:[],
+     turnNo:0,active:0,first:0,phase:"setup",setupStep:"ace",setupDone:[false,false],
+     spent:false,spentOther:false,blessed:false,ritual:0,log:[],sel:null,selHand:null,mode:null,over:false,
+     moon:{i:0,blood:false,lev:false,woman:false,union:false,crossing:false,levT:0,womanT:0,crossed:0},
+     noDraw:false,round:0,busy:false,passing:false};
+  G.ether=shuffle([...freshDeck(),...freshDeck()]);
+  G.p.forEach((P,i)=>{if(P.cpu!=="horde"){P.deck=freshDeck();P.deck.forEach(c=>c.owner=i)}});
 }
+const survival=()=>G.opts.mode==="survival";
+const isHorde=pl=>G.p[pl].cpu==="horde";
 const me=()=>G.p[G.active], foe=()=>G.p[1-G.active];
+const human=pl=>!G.p[pl].cpu;
+function view(){ // which player sits at the bottom of the screen
+  if(G.opts.mode!=="local")return 0;
+  return G.active;
+}
 function backRow(pl){return pl===0?G.rows-1:0}
 function frontRow(pl){return pl===0?G.rows-2:1}
 const ownLines=(pl,r)=>r===backRow(pl)||r===frontRow(pl);
 function stacksOf(pl){const out=[];G.board.forEach((row,r)=>row.forEach((st,c)=>{if(st&&st.owner===pl)out.push({st,r,c})}));return out}
 function at(r,c){return r>=0&&r<G.rows&&c>=0&&c<COLS?G.board[r][c]:undefined}
-function log(html,cls=""){G.log.unshift({html,cls});G.log=G.log.slice(0,120)}
+function log(html,cls=""){G.log.unshift({html,cls});G.log=G.log.slice(0,400)}
+const plName=pl=>esc(G.p[pl].name);
 
-function draw(pl,n,why){
+/* where cards go when they leave play */
+function toDark(c){if(c.captured&&c.captured.length){for(const s of c.captured)toDark(s);c.captured=[]}c.darkOwner=c.owner;G.dark.push(c)}
+function toGrave(c,cause){
+  if(!c)return;
+  const m=G.moon;
+  if((m.lev&&(cause==="death"||cause==="spent"))||(m.blood&&!m.crossing&&cause==="death")){toDark(c);return}
+  if(c.owner!=null&&G.p[c.owner]&&isHorde(c.owner))return;   // the Horde keeps no grave: its dead simply vanish
+  G.grave.push(c);
+}
+
+/* ---------------- deck, hand, mana ---------------- */
+function draw(pl,n,why,opening){
   const P=G.p[pl];let got=0,burned=0;
   for(let i=0;i<n;i++){const c=P.deck.pop();if(!c)break;
-    if(P.hand.length<HAND_CAP){P.hand.push(c);got++}else{toGrave(c);burned++}}
-  log(`${esc(P.name)} draws ${got} card${got===1?"":"s"}${why?" ("+why+")":""}${burned?`; ${burned} over the hand limit go${burned===1?"es":""} to the grave`:""}${P.deck.length?"":" (deck empty)"}.`);
+    if(P.hand.length<HAND_CAP){P.hand.push(c);got++}else{toGrave(c,"burn");burned++;if(!opening)P.od++}}
+  log(`${plName(pl)} draws ${got} card${got===1?"":"s"}${why?" ("+why+")":""}${burned?`; ${burned} over the hand limit go${burned===1?"es":""} to the grave${opening?"":` (Grave Blessing −${burned}d6 max)`}`:""}${P.deck.length?"":" (deck empty)"}.`);
+  return{got,burned};
 }
-function toGrave(c){G.grave.push(c)}
 const mana=pl=>G.p[pl].souls.reduce((a,c)=>a+soulOf(c),0);
 function pay(pl,n){
   const P=G.p[pl];if(mana(pl)<n)return false;
   P.souls.sort((a,b)=>soulOf(a)-soulOf(b));
   let paid=0;
-  while(paid<n){const i=P.souls.findIndex(c=>soulOf(c)>=n-paid);const c=i>=0?P.souls.splice(i,1)[0]:P.souls.shift();paid+=soulOf(c);toGrave(c)}
-  G.spent=true;return true;
+  while(paid<n&&P.souls.length){const i=P.souls.findIndex(c=>soulOf(c)>=n-paid);const c=i>=0?P.souls.splice(i,1)[0]:P.souls.shift();paid+=soulOf(c);toGrave(c,"spent")}
+  if(pl===G.active)G.spent=true;
+  return true;
 }
+function addSoul(pl,c){ // returns false when the pile is full
+  if(mana(pl)+soulOf(c)>SOUL_CAP)return false;
+  c.owner=pl;G.p[pl].souls.push(c);return true;
+}
+/* Grave Blessing limit from overdrawing: each burned draw takes 1d6 off this round's maximum of 6; the rest carries on */
+const blessCap=pl=>6-Math.min(6,G.p[pl].od);
+
+/* ---------------- sound (synthesized, quiet) ---------------- */
+const SND=(()=>{
+  let ac=null,master=null,on=true;
+  try{on=localStorage.getItem("ec-sound")!=="off"}catch(e){}
+  function ctx(){
+    if(!on||G&&G.opts.fast)return null;
+    try{if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();master=ac.createGain();master.gain.value=.5;master.connect(ac.destination)}
+      if(ac.state==="suspended")ac.resume();}catch(e){return null}
+    return ac;
+  }
+  function noise(a,dur){const b=a.createBuffer(1,Math.max(1,Math.floor(a.sampleRate*dur)),a.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const s=a.createBufferSource();s.buffer=b;return s}
+  function click(a,t,amp,freq){
+    const s=noise(a,.03),f=a.createBiquadFilter(),g=a.createGain();
+    f.type="bandpass";f.frequency.value=freq;f.Q.value=2.2;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(amp,t+.002);g.gain.exponentialRampToValueAtTime(.0005,t+.028);
+    s.connect(f).connect(g).connect(master);s.start(t);s.stop(t+.035);
+  }
+  return{
+    get on(){return on},
+    toggle(){on=!on;try{localStorage.setItem("ec-sound",on?"on":"off")}catch(e){}return on},
+    dice(n){const a=ctx();if(!a)return;let t=a.currentTime+.01;const k=Math.min(9,3+Math.ceil(n*.8));
+      for(let i=0;i<k;i++){click(a,t,.09*(1-i/(k+1))+.015,1800+Math.random()*2600);t+=.035+Math.random()*.07*(1+i/k)}},
+    gun(){const a=ctx();if(!a)return;const t=a.currentTime+.01;
+      const s=noise(a,.45),f=a.createBiquadFilter(),g=a.createGain();f.type="lowpass";f.frequency.setValueAtTime(2600,t);f.frequency.exponentialRampToValueAtTime(300,t+.35);
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.32,t+.003);g.gain.exponentialRampToValueAtTime(.001,t+.42);
+      s.connect(f).connect(g).connect(master);s.start(t);s.stop(t+.45);
+      const o=a.createOscillator(),og=a.createGain();o.type="sine";o.frequency.setValueAtTime(120,t);o.frequency.exponentialRampToValueAtTime(38,t+.22);
+      og.gain.setValueAtTime(.28,t);og.gain.exponentialRampToValueAtTime(.001,t+.25);o.connect(og).connect(master);o.start(t);o.stop(t+.26)}
+  };
+})();
 
 /* ---------------- dice ---------------- */
+function rollN(n,s){const out=[];for(let i=0;i<n;i++)out.push({s,v:R(s)});return out}
+const sum=d=>d.reduce((a,x)=>a+(x.x?0:x.v),0);
+/* show a roll in a player's dice box. dice: [{s,v,x?}] (x = discarded by advantage/disadvantage) */
+function tray(pl,label,dice,line,quiet){
+  G.p[pl].tray={label,dice,line:line||"",t:Date.now()};
+  if(!quiet&&dice.length)SND.dice(dice.length);
+}
 function rollStack(st,mode,enemy,fx){ // mode: "atk" | "def"
   const once=()=>{
-    const parts=[];let best=-1,bestCard=null,kingRoll=null,aceRoll=null;
+    const parts=[],dice=[];let best=-1,kingRoll=null,aceRoll=null;
     const soloJoker=st.cards.length===1&&kind(st.cards[0])==="joker";
     if(soloJoker&&enemy){ // copies score and dice of the enemy's leading card
       const lead=leadCard(enemy);
-      if(lead){const d=die(lead),r=d&&(mode==="atk"||hasK(st,"queen"))?R(d):0;best=nat(lead)+r;parts.push(`Joker copies ${short(lead)}: ${nat(lead)}${r?"+"+r+" (d"+d+")":""}`)}
+      if(lead){const d=die(lead),r=d&&(mode==="atk"||hasK(st,"queen"))?R(d):0;if(r)dice.push({s:d,v:r});best=nat(lead)+r;parts.push(`Joker copies ${short(lead)}: ${nat(lead)}${r?"+"+r+" (d"+d+")":""}`)}
       else{best=0;parts.push("Joker: 0")}
-      return{total:best,parts,kingRoll};
+      return{total:best,parts,dice,kingRoll};
     }
     const queen=hasK(st,"queen"),ace=hasK(st,"ace");
     for(const c of st.cards){
@@ -100,15 +183,17 @@ function rollStack(st,mode,enemy,fx){ // mode: "atk" | "def"
       if(mode==="atk")useDie=k!=="ace";
       else useDie=ace?k==="ace":queen;
       const d=die(c),r=useDie&&d?R(d):0;
+      if(r)dice.push({s:d,v:r});
       if(k==="king"&&useDie)kingRoll=r;
       if(k==="ace"&&useDie)aceRoll=r;
       const t=nat(c)+r;parts.push(`${short(c)} ${nat(c)}${r?"+"+r:""}`);
-      if(t>best){best=t;bestCard=c}
+      if(t>best)best=t;
     }
-    return{total:Math.max(0,best),parts,kingRoll,aceRoll};
+    return{total:Math.max(0,best),parts,dice,kingRoll,aceRoll};
   };
   const a=once();
-  if(fx){const b=once();const pick=fx==="adv"?(b.total>a.total?b:a):(b.total<a.total?b:a);pick.parts.push(fx==="adv"?"(advantage)":"(disadvantage)");return pick}
+  if(fx){const b=once();const takeB=fx==="adv"?b.total>a.total:b.total<a.total;const pick=takeB?b:a,other=takeB?a:b;
+    pick.dice=[...pick.dice,...other.dice.map(d=>({...d,x:true}))];pick.parts.push(fx==="adv"?"(advantage)":"(disadvantage)");return pick}
   return a;
 }
 function leadCard(st){let best=null;for(const c of st.cards){if(kind(c)==="joker"||kind(c)==="queen")continue;if(!best||nat(c)>nat(best))best=c}return best}
@@ -117,19 +202,20 @@ function leadCard(st){let best=null;for(const c of st.cards){if(kind(c)==="joker
 function adjacent(r1,c1,r2,c2,diag){const dr=Math.abs(r1-r2),dc=Math.abs(c1-c2);return diag?(dr<=1&&dc<=1&&(dr||dc)):dr+dc===1}
 const jackOnly=st=>st.cards.every(c=>kind(c)==="jack");
 function canAttackFrom(st){
-  if(st.attacked)return false;
+  if(st.attacked||st.hypo)return false;
   if(hasK(st,"ace"))return false;
   if(st.cards.length===1&&kind(st.cards[0])==="king")return false;
   if(st.cards.every(c=>kind(c)==="queen"))return false;
   return true;
 }
+const cmpSign=(a,b)=>a>b?">":a<b?"<":"=";
 function attack(r1,c1,r2,c2){
-  const A=G.board[r1][c1],D=G.board[r2][c2];
+  const A=G.board[r1][c1],D=G.board[r2][c2],atkPl=A.owner,defPl=D.owner;
   const fxA=A.odds||null,fxD=D.odds||null;
   const bothSoloJokers=A.cards.length===1&&D.cards.length===1&&kind(A.cards[0])==="joker"&&kind(D.cards[0])==="joker";
   const ra=rollStack(A,"atk",D,fxA),rd=rollStack(D,"def",A,fxD);
   A.odds=null;D.odds=null;A.attacked=true;
-  const queenA=hasK(A,"queen"),queenD=hasK(D,"queen");
+  const queenA=hasK(A,"queen");
   let dmgD=0,dmgA=0,notes=[];
   if(bothSoloJokers){notes.push("Jokers cannot kill Jokers.")}
   else if(ra.total>rd.total){
@@ -143,11 +229,14 @@ function attack(r1,c1,r2,c2){
   }
   if(rd.kingRoll===20&&dmgA>0){dmgA*=2;notes.push("Defending King rolls 20: double damage back.")}
   if(rd.aceRoll===1&&dmgA>0){dmgA=0;notes.push("The Ace rolls 1: it does no damage.")}
-  log(`<b>${esc(me().name)}</b> attacks: <span class="dice">${ra.parts.join(", ")}</span> = <b>${ra.total}</b> vs <span class="dice">${rd.parts.join(", ")}</span> = <b>${rd.total}</b>. ${notes.join(" ")} ${dmgD?`Defender takes ${dmgD} damage.`:""}${dmgA?`Attacker takes ${dmgA} damage.`:""}${!dmgA&&!dmgD?"No damage.":""}`,"combat");
-  if(dmgD)damage(r2,c2,dmgD,G.active,true);
-  if(dmgA&&G.board[r1][c1])damage(r1,c1,dmgA,1-G.active,false);
+  const line=`${ra.total}${cmpSign(ra.total,rd.total)}${rd.total}`;
+  tray(atkPl,"Attack",ra.dice,line);tray(defPl,"Defense",rd.dice,line,true);
+  log(`<b>${plName(atkPl)}</b> attacks: <span class="dice">${ra.parts.join(", ")}</span> = <b>${ra.total}</b> vs <span class="dice">${rd.parts.join(", ")}</span> = <b>${rd.total}</b> <span class="tot">(${esc(line)})</span>. ${notes.join(" ")} ${dmgD?`Defender takes ${dmgD} damage.`:""}${dmgA?`Attacker takes ${dmgA} damage.`:""}${!dmgA&&!dmgD?"No damage.":""}`,"combat");
+  if(dmgD)damage(r2,c2,dmgD,true);
+  if(dmgA&&G.board[r1][c1])damage(r1,c1,dmgA,false);
+  return{win:dmgD>0,line};
 }
-function damage(r,c,n,killer,defending){
+function damage(r,c,n,defending){
   const st=G.board[r][c];if(!st)return;
   const dead=[];
   for(let i=0;i<n&&st.cards.length;i++){
@@ -161,66 +250,225 @@ function damage(r,c,n,killer,defending){
   checkWin();
 }
 function adjacentJokers(r,c,side){
-  const out=[];for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){if(!dr&&!dc)continue;const s=at(r+dr,c+dc);if(s&&s.owner===side){const j=s.cards.find(x=>kind(x)==="joker");if(j)out.push(j)}}
-  const s0=at(r,c);if(s0&&s0.owner===side){const j=s0.cards.find(x=>kind(x)==="joker");if(j)out.push(j)}
+  const out=[];for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const s=at(r+dr,c+dc);if(s&&s.owner===side){const j=s.cards.find(x=>kind(x)==="joker");if(j)out.push(j)}}
   return out;
 }
 const capMana=j=>(j.captured||[]).reduce((a,c)=>a+soulOf(c),0);
 function bury(card,r,c,st){
   const owner=st.owner,enemy=1-owner;
   if(kind(card)==="joker"&&card.captured&&card.captured.length){
-    const souls=card.captured;card.captured=[];
+    const souls=card.captured;card.captured=[];let stolen=0;
     for(const s of souls){const j=adjacentJokers(r,c,enemy).find(j=>capMana(j)+soulOf(s)<=SOUL_CAP);
-      if(j){(j.captured=j.captured||[]).push(s);log(`An enemy Joker steals a released soul (${short(s)}).`)}else toGrave(s)}
-    log("The Joker's captured souls are released.");
+      if(j){(j.captured=j.captured||[]).push(s);stolen++}else toGrave(s,"death")}
+    log(`The Joker's ${souls.length} captured soul${souls.length>1?"s are":" is"} released${stolen?`; an enemy Joker steals ${stolen}`:""}.`);
   }
   const j=adjacentJokers(r,c,enemy).find(j=>capMana(j)+soulOf(card)<=SOUL_CAP);
   if(j){
     const P=G.p[enemy];
-    if(P.sevArmed&&enemy===G.active&&mana(enemy)>=cost[kind(card)]){pay(enemy,cost[kind(card)]);G.ether.push(card);log(`Flesh Severance: ${esc(nameOf(card))} is exiled to the Ethereal Realm.`);return}
+    if(P.sevArmed&&enemy===G.active&&mana(enemy)>=costOf(card)){pay(enemy,costOf(card));card.owner=null;G.ether.push(card);log(`Flesh Severance: ${esc(nameOf(card))} is exiled to the Ether.`);return}
     (j.captured=j.captured||[]).push(card);log(`Soul Capture: a Joker takes the soul of ${esc(nameOf(card))}.`);return;
   }
-  toGrave(card);
+  toGrave(card,"death");
 }
 
 /* ---------------- win ---------------- */
 function checkWin(){
   if(G.over||G.phase==="setup")return;
+  if(survival()){if(!stacksOf(0).length)endSurvival();return}
   for(const pl of [0,1]){
-    if(!stacksOf(pl).length){end(1-pl,`every card ${esc(G.p[pl].name)} had on the field is destroyed`);return}
+    if(!stacksOf(pl).length){end(1-pl,`every card ${plName(pl)} had on the field is destroyed`);return}
   }
 }
 function checkEconomic(pl){
+  if(survival())return;
   const P=G.p[pl];
   if(!P.deck.length&&!P.hand.length&&!P.souls.length)end(1-pl,`${esc(P.name)} has no deck, hand or soul pile left: economic victory`);
 }
-function end(w,why){G.over=true;log(`<b>${esc(G.p[w].name)} wins</b>: ${why}.`,"win");render();$("#ov").innerHTML=`<div class="ovbox"><h2>${esc(G.p[w].name)} wins</h2><p>${why}.</p><p><button class="btn" id="again">New game</button></p></div>`;$("#ov").hidden=false;$("#again").onclick=showStart}
 
-/* ---------------- flow ---------------- */
-function startTurn(){
-  G.turnNo++;G.spent=false;G.spentOther=false;G.blessed=false;G.ritual=0;G.sel=null;G.selHand=null;G.mode=null;
-  for(const {st} of stacksOf(G.active)){st.moved=false;st.attacked=false}
-  me().sevArmed=false;
-  G.phase=(G.turnNo===1)?"prep":"draw";
-  log(`— ${esc(me().name)}'s turn —`,"turn");
+/* ---------------- choices: a person answers in a box, the computer answers in code ---------------- */
+async function ask(pl,spec){
+  if(G.p[pl].cpu){await sleep(320);return AI.choose(pl,spec)}
+  return askHuman(pl,spec);
 }
-function nextPhase(){
+const order=()=>[G.active,1-G.active].filter(pl=>!isHorde(pl));
+
+/* ---------------- the moon ---------------- */
+const MOON=["New Moon","Waxing Crescent","First Quarter","Waxing Gibbous","Full Moon","Waning Gibbous","Last Quarter","Waning Crescent"];
+const isFull=()=>G.moon.i===4;
+const fullPrices=()=>G.moon.i===4;                       // Full Moon prices also hold under a Blood Moon
+const newPrices=()=>G.moon.i===0;
+const fullDrawbacks=()=>G.moon.i===4&&!G.moon.blood&&!G.moon.crossing;
+function odds(){return G.opts.insanity?{blood:.10,lev:.05,woman:.05}:{blood:.05,lev:.01,woman:.01}}
+async function moonStart(){
+  const m=G.moon;m.blood=false;m.crossing=false;
+  if(survival()){
+    if(m.lev&&--m.levT<=0){m.lev=false;log("Leviathan slides off the moon.","event")}
+    if(m.woman&&--m.womanT<=0){m.woman=false;log("The Shadow Woman leaves the moon.","event")}
+    if(!(m.lev&&m.woman))m.union=false;
+  }
+  if(G.turnNo===1&&G.opts.bloodStart){m.i=4;m.blood=true;log("The game opens under a <b>Blood Moon</b>.","event")}
+  else if(m.i===4){
+    const o=G.forceMoon||odds();G.forceMoon=null;
+    if(Math.random()<o.blood){m.blood=true;log("The Full Moon turns red: a <b>Blood Moon</b>. Every card killed this turn falls into the Outer Darkness.","event")}
+    if(!m.lev&&Math.random()<o.lev){m.lev=true;m.levT=3;log("<b>Leviathan</b> crawls onto the moon. From now on, every card that dies or is sacrificed goes to the Outer Darkness.","event")}
+    if(!m.woman&&Math.random()<o.woman){m.woman=true;m.womanT=3;log("<b>The Shadow Woman</b> stands on the moon. A Joker's suicide may now return its souls to the deck.","event")}
+  }
+  applyMoonTheme();render();
+  if(m.i===4&&m.blood&&m.lev&&m.woman&&!survival()){m.crossing=true;log("A Blood Moon with Leviathan and the Shadow Woman: <b>the Crossing</b>. No other moon effect happens; at the end of this turn the players switch sides.","event");return}
+  if(m.lev&&m.woman&&!m.union){m.union=true;await unionRite();if(G.over)return}
+  if(m.blood){await newMoonGift();return}
+  if(m.i===4){
+    await fullMoonToll();if(G.over)return;
+    for(const P of G.p)shuffle(P.deck);
+    G.noDraw=true;log("The Full Moon shuffles every deck. No cards are drawn and no necromancy is cast this turn.");
+    return;
+  }
+  if(m.i===0)await newMoonGift();
+}
+async function newMoonGift(){
+  for(const pl of order()){
+    if(!G.grave.length)break;
+    const n=R(2);tray(pl,G.moon.blood?"Blood Moon":"New Moon",[{s:2,v:n}],`${n} from the grave`);
+    log(`${plName(pl)} rolls 1d2 under the ${G.moon.blood?"Blood":"New"} Moon: ${n}.`);render();
+    await pickGrave(pl,n,G.moon.blood?"Blood Moon":"New Moon");
+  }
+}
+async function pickGrave(pl,n,title){
+  let got=0;
+  while(got<n&&G.grave.length&&G.p[pl].hand.length<HAND_CAP){
+    const i=await ask(pl,{kind:"cards",id:"grave",title:`${title}: ${esc(G.p[pl].name)} raises a card (${n-got} left)`,cards:G.grave,cancel:"Stop",box:"limbo"});
+    if(i==null||!G.grave[i])break;
+    const c=G.grave.splice(i,1)[0];c.owner=pl;G.p[pl].hand.push(c);got++;
+    log(`${plName(pl)} raises ${esc(nameOf(c))} from the grave.`);render();
+  }
+  if(got<n&&G.grave.length&&G.p[pl].hand.length>=HAND_CAP)log(`${plName(pl)}'s hand is full.`);
+  return got;
+}
+function strongest(pl){const c=stacksOf(pl).filter(x=>!x.st.hypo);c.sort((a,b)=>stackRate(b.st)-stackRate(a.st)||b.st.cards.length-a.st.cards.length);return c[0]}
+async function fullMoonToll(){
+  for(const pl of order()){
+    const t=strongest(pl);if(!t)continue;
+    const yes=await ask(pl,{kind:"yesno",id:"fullmoon",target:t,title:`Full Moon: ${esc(G.p[pl].name)}'s toll`,
+      text:`The Full Moon asks for your most powerful stack: <b>${t.st.cards.map(c=>esc(nameOf(c))).join(", ")}</b>. Sacrifice it to your soul pile (any mana over ${SOUL_CAP} goes to the grave), or refuse: every soul in your pile is drained and five random cards from your deck go to the grave.`,
+      yes:"Sacrifice it",no:"Refuse"});
+    if(yes){
+      G.board[t.r][t.c]=null;let m=0;
+      for(const c of t.st.cards){
+        if(c.captured&&c.captured.length){for(const s of c.captured)toGrave(s,"death");c.captured=[]}
+        if(addSoul(pl,c))m+=soulOf(c);else toGrave(c,"spent");
+      }
+      log(`${plName(pl)} sacrifices ${t.st.cards.length} card${t.st.cards.length>1?"s":""} to the Full Moon (+${m} mana).`,"event");
+    }else{
+      const P=G.p[pl];const lost=P.souls.length;for(const c of P.souls.splice(0))toGrave(c,"spent");
+      let burned=0;for(let i=0;i<5&&P.deck.length;i++){const c=P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0];toGrave(c,"burn");burned++}
+      log(`${plName(pl)} refuses the Full Moon: ${lost} soul${lost===1?"":"s"} drained, ${burned} deck card${burned===1?"":"s"} to the grave.`,"event");
+    }
+    render();checkWin();if(G.over)return;
+  }
+}
+async function unionRite(){
+  log("Leviathan and the Shadow Woman share the moon. Each player rolls 6d6 for the grave, then the grave empties into the Outer Darkness.","event");
+  for(const pl of order()){
+    const d=rollN(6,6),six=d.filter(x=>x.v===6).length;
+    tray(pl,"6d6 Grave Rite",d,`${six} six${six===1?"":"es"}`);
+    log(`${plName(pl)} rolls 6d6: ${d.map(x=>x.v).join(", ")} = ${sum(d)}; ${six} six${six===1?"":"es"}.`);render();
+    if(six)await pickGrave(pl,six,"Grave Rite");
+  }
+  const n=G.grave.length;for(const c of G.grave.splice(0))toDark(c);
+  log(`${n} card${n===1?"":"s"} from the grave fall into the Outer Darkness.`,"event");
+}
+function crossSides(){
+  const B=G.board,nb=Array.from({length:G.rows},()=>Array(COLS).fill(null));
+  for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){const st=B[r][c];if(!st)continue;
+    st.owner=1-st.owner;for(const x of st.cards){x.owner=st.owner;for(const s of x.captured||[])s.owner=1-s.owner}
+    nb[G.rows-1-r][COLS-1-c]=st}
+  G.board=nb;G.moon.lev=false;G.moon.woman=false;G.moon.union=false;G.moon.crossing=false;G.moon.crossed++;
+  log("<b>The Crossing</b>: the players switch sides and take each other's armies. Leviathan and the Shadow Woman leave the moon.","event");
+}
+
+/* ---------------- turns ---------------- */
+async function startTurn(){
+  G.turnNo++;Object.assign(G,{spent:false,spentOther:false,blessed:false,ritual:0,sel:null,selHand:null,mode:null,noDraw:false});
+  for(const {st} of stacksOf(G.active)){st.moved=false;st.attacked=false;if(st.hypo){st.hypo--;if(!st.hypo)log(`Hypostasis fades from ${plName(G.active)}'s stack.`)}}
+  me().sevArmed=false;
+  if(survival()&&isHorde(G.active))G.round++;
+  if(G.turnNo>1)G.moon.i=(G.moon.i+1)%8;
+  log(`— ${plName(G.active)}'s turn${survival()?` · round ${roman(G.round)}`:""} · ${MOON[G.moon.i]} —`,"turn");
+  G.phase="moon";G.busy=true;render();
+  await moonStart();
+  G.busy=false;
+  if(G.over)return;
+  G.phase=(G.turnNo===1||G.noDraw)?"prep":"draw";
+  render();
+  if(me().cpu)runCpu();
+}
+async function finishTurn(){
+  checkEconomic(G.active);if(G.over)return;
+  const P=me();P.od=Math.max(0,P.od-6);
+  foe().shownUntil=0;
+  if(G.moon.crossing)crossSides();
+  G.active=1-G.active;G.sel=null;G.selHand=null;G.mode=null;
+  if(G.opts.mode==="local")await passScreen(`${me().name}'s turn`);
+  await startTurn();
+}
+async function nextPhase(){
+  if(G.busy||G.over)return;
   if(G.phase==="setup"){
-    if(!stacksOf(G.active).length&&me().hand.some(c=>kind(c)!=="joker")){flash("Place at least one card before finishing setup.");return}
-    G.setupDone[G.active]=true;
-    if(!G.setupDone[1-G.active]){G.active=1-G.active;pass(`${G.p[G.active].name} sets up`);G.sel=null;G.selHand=null;return}
-    checkWin0();G.active=G.first;startTurn();pass(`${me().name} begins`);return;
+    if(G.setupStep==="ace"){flash("First place your Ace and its Jack on a backline tile.");return}
+    if(G.setupResolve){const f=G.setupResolve;G.setupResolve=null;f()}
+    return;
   }
   if(G.phase==="draw"){G.phase="prep"}
   else if(G.phase==="prep"){G.phase="attack";G.mode=null;G.selHand=null}
-  else if(G.phase==="attack"){checkEconomic(G.active);if(G.over)return;G.active=1-G.active;startTurn();pass(`${me().name}'s turn`);return}
+  else if(G.phase==="attack"){G.busy=true;await finishTurn();if(!me().cpu)G.busy=false;return}
   render();
 }
-function checkWin0(){/* nothing placed by a side is allowed; the field check begins once play starts */}
-function pass(msg){
-  render();if(G.over)return;
-  $("#ov").innerHTML=`<div class="ovbox"><h2>${esc(msg)}</h2><p>Pass the device to <b>${esc(me().name)}</b>. Their hand stays hidden until they are ready.</p><p><button class="btn" id="ready">Show ${esc(me().name)}'s hand</button></p></div>`;
-  $("#ov").hidden=false;$("#ready").onclick=()=>{$("#ov").hidden=true;render()};
+function rollDraw(){
+  const n=R(4);tray(G.active,"Draw",[{s:4,v:n}],`draw ${n}`);
+  log(`${plName(G.active)} rolls d4: ${n}.`);draw(G.active,n);
+}
+
+/* ---------------- opening ---------------- */
+function deal(){
+  G.p.forEach((P,pl)=>{
+    if(P.cpu==="horde")return;
+    const ai=P.deck.findIndex(c=>kind(c)==="ace");const ace=P.deck.splice(ai,1)[0];
+    const ji=P.deck.findIndex(c=>kind(c)==="jack");const jack=P.deck.splice(ji,1)[0];
+    P.opening=[ace,jack];
+    if(G.opts.bloodStart){shuffle(P.deck);const k=Math.floor(P.deck.length*2/3);for(const c of P.deck.splice(0,k))G.grave.push(c);log(`Blood Moon mode: ${k} of ${plName(pl)}'s cards go to the grave.`)}
+    if(G.opts.bloodStart||G.opts.insanity){const j=G.ether.findIndex(c=>kind(c)==="joker");if(j>=0){const c=G.ether.splice(j,1)[0];c.owner=pl;P.hand.push(c);log(`A Joker comes from the Ether into ${plName(pl)}'s hand.`)}}
+    const d=rollN(2,4);tray(pl,"Opening hand",d,`draw ${sum(d)}`,true);
+    log(`${plName(pl)} rolls 2d4: ${d[0].v} + ${d[1].v} = ${sum(d)}.`);draw(pl,sum(d),"opening hand",true);
+  });
+}
+async function opening(){
+  deal();
+  if(survival()){G.first=1}
+  else{
+    let a,b;do{a=R(6);b=R(6)}while(a===b);
+    tray(0,"Opening roll",[{s:6,v:a}],`${a}${cmpSign(a,b)}${b}`);tray(1,"Opening roll",[{s:6,v:b}],`${b}${cmpSign(b,a)}${a}`);
+    G.first=a>b?0:1;
+    log(`Opening roll: ${plName(0)} ${a}, ${plName(1)} ${b}. ${plName(G.first)} sets up first and takes the first turn.`);
+  }
+  const setupOrder=survival()?[0]:[G.first,1-G.first];
+  for(const pl of setupOrder){
+    G.active=pl;G.phase="setup";G.setupStep="ace";G.sel=null;G.selHand=null;
+    if(G.opts.mode==="local")await passScreen(`${G.p[pl].name} sets up`);
+    render();
+    if(G.p[pl].cpu){G.busy=true;await AI.setup(pl);G.busy=false}
+    else await new Promise(res=>{G.setupResolve=res});
+    G.setupDone[pl]=true;
+  }
+  G.p.forEach(P=>P.start=Math.max(1,P.deck.length));
+  G.active=G.first;
+  if(G.opts.mode==="local"&&!survival())await passScreen(`${me().name} begins`);
+  await startTurn();
+}
+function placeOpening(pl,r,c){
+  const P=G.p[pl];
+  G.board[r][c]={owner:pl,cards:P.opening.splice(0),moved:true,attacked:false};
+  G.setupStep="more";
+  log(`${plName(pl)} raises the opening Ace with its Jack on the backline.`);
 }
 
 /* ---------------- actions ---------------- */
@@ -233,10 +481,10 @@ function canPlace(card,r,c){
   return st.owner===G.active&&stackLegal([...st.cards,card]);
 }
 function place(card,r,c){
-  const P=me();P.hand.splice(P.hand.indexOf(card),1);
+  const P=me();P.hand.splice(P.hand.indexOf(card),1);card.owner=G.active;
   const st=G.board[r][c];
   if(st)st.cards.push(card);else G.board[r][c]={owner:G.active,cards:[card],moved:G.phase!=="setup",attacked:false};
-  log(`${esc(P.name)} places ${esc(nameOf(card))}${st?" onto a stack":""}.`);
+  log(`${plName(G.active)} places ${esc(nameOf(card))}${st?" onto a stack":""}.`);
   G.selHand=null;
 }
 function moveGroup(){const s=G.sel;if(!s)return[];const st=G.board[s.r][s.c];return st.cards.filter(c=>s.pick.has(c.id))}
@@ -246,15 +494,17 @@ function moveTargets(){
   const rest=st.cards.filter(c=>!s.pick.has(c.id));
   if(rest.length&&!stackLegal(rest))return[];
   if(!stackLegal(grp))return[];
-  const out=[];const jack=grp.every(c=>kind(c)==="jack");
+  const out=[];const jack=grp.every(c=>kind(c)==="jack");const fwd=st.owner===0?-1:1;
   for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){
     if(r===s.r&&c===s.c)continue;
+    if(st.hypo&&(r-s.r)*fwd>0)continue;                 // Hypostasis: no step toward the enemy
     const dr=Math.abs(r-s.r),dc=Math.abs(c-s.c);
     const okStep=(dr+dc===1)||(jack&&((dr+dc===2&&(dr===0||dc===0))||(dr===1&&dc===1)));
     if(!okStep)continue;
-    if(jack&&dr+dc===2&&(dr===0||dc===0)){const mr=(r+s.r)/2,mc=(c+s.c)/2,mid=G.board[mr][mc];if(mid&&mid.owner!==G.active)continue}
+    if(jack&&dr+dc===2&&(dr===0||dc===0)){const mr=(r+s.r)/2,mc=(c+s.c)/2,mid=G.board[mr][mc];if(mid&&mid.owner!==st.owner)continue}
     const t=G.board[r][c];
-    if(!t)out.push([r,c]);else if(t.owner===G.active&&!t.moved&&stackLegal([...t.cards,...grp])&&!(grp.some(x=>kind(x)==="joker")&&!t.cards.some(x=>grp.find(g=>kind(g)==="joker").color===x.color)))out.push([r,c]);
+    if(!t)out.push([r,c]);
+    else if(t.owner===st.owner&&!t.moved&&!t.hypo&&stackLegal([...t.cards,...grp])&&!(grp.some(x=>kind(x)==="joker")&&!t.cards.some(x=>grp.find(g=>kind(g)==="joker").color===x.color)))out.push([r,c]);
   }
   return out;
 }
@@ -263,79 +513,172 @@ function doMove(r,c){
   st.cards=st.cards.filter(x=>!s.pick.has(x.id));
   if(!st.cards.length)G.board[s.r][s.c]=null;else st.moved=true;
   const t=G.board[r][c];
-  if(t){t.cards.push(...grp);t.moved=true}else G.board[r][c]={owner:G.active,cards:grp,moved:true,attacked:false};
-  log(`${esc(me().name)} moves ${grp.map(short).join(" ")}${t?" onto another stack":""}.`);
+  if(t){t.cards.push(...grp);t.moved=true}else G.board[r][c]={owner:st.owner,cards:grp,moved:true,attacked:false,hypo:st.cards.length?0:st.hypo};
+  log(`${plName(st.owner)} moves ${grp.map(short).join(" ")}${t?" onto another stack":""}.`);
   G.sel={r,c,pick:new Set(G.board[r][c].cards.filter(x=>kind(x)!=="ace").map(x=>x.id))};G.mode=null;
 }
 function attackTargets(){
   const s=G.sel,st=G.board[s.r][s.c];if(!canAttackFrom(st))return[];
   const diag=jackOnly(st),out=[];
-  for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){const t=G.board[r][c];if(t&&t.owner!==G.active&&adjacent(s.r,s.c,r,c,diag))out.push([r,c])}
+  for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){const t=G.board[r][c];if(t&&t.owner!==st.owner&&!t.hypo&&adjacent(s.r,s.c,r,c,diag))out.push([r,c])}
   return out;
 }
-function sacrificeAllowed(){return G.phase==="prep"&&!G.spent}
+const sacrificeAllowed=()=>G.phase==="prep"&&!G.spent&&!isHorde(G.active);
 function sacrifice(card,from){
   const P=me();
-  if(mana(G.active)+soulOf(card)>SOUL_CAP){flash(`The soul pile holds ${SOUL_CAP} mana at most.`);return}
+  if(mana(G.active)+soulOf(card)>SOUL_CAP){flash(`The soul pile holds ${SOUL_CAP} mana at most.`);return false}
   if(from==="hand")P.hand.splice(P.hand.indexOf(card),1);
-  else{const st=G.board[from.r][from.c];st.cards.splice(st.cards.indexOf(card),1);if(!st.cards.length){G.board[from.r][from.c]=null;G.sel=null}else if(G.sel)G.sel.pick.delete(card.id)}
-  P.souls.push(card);log(`${esc(P.name)} sacrifices ${esc(nameOf(card))} (+${soulOf(card)} mana).`);
+  else{const st=G.board[from.r][from.c];st.cards.splice(st.cards.indexOf(card),1);
+    if(card.captured&&card.captured.length){for(const s of card.captured)toGrave(s,"death");card.captured=[]}
+    if(!st.cards.length){G.board[from.r][from.c]=null;G.sel=null}else if(G.sel)G.sel.pick.delete(card.id)}
+  addSoul(G.active,card);log(`${plName(G.active)} sacrifices ${esc(nameOf(card))} (+${soulOf(card)} mana).`);
   if(from!=="hand")checkWin();
+  return true;
 }
+const canSacOnField=(st,c)=>kind(c)!=="ace"&&!(kind(c)==="king"&&st.cards.length>1);
 
 /* ---------------- spells ---------------- */
-const SPELLS=[
- {id:"ritual",name:"Ritual Dice",cost:1,school:"Necromancy",text:"+2d6 to this turn's Grave Blessing.",ok:()=>!G.blessed&&G.ritual===0,run:()=>{G.ritual=2;log("Ritual Dice: two more dice for the Grave Blessing.")}},
- {id:"bless",name:"Grave Blessing",cost:0,school:"Necromancy",text:"Free. Roll 1d6 (+1d6 per Ace you have on the field, +2 from Ritual Dice, 6 max). Each natural 6 raises a card from the grave.",ok:()=>!G.blessed&&!G.spentOther&&G.grave.length>0,run:blessing},
- {id:"suicide",name:"Sacrificial Suicide",cost:0,school:"Necromancy",text:"Select your stack with a Joker. The Joker goes to the grave and its captured souls go to your soul pile (6 mana max; the surplus goes to the grave).",ok:()=>!G.spent&&selOwnJoker(),run:suicide},
- {id:"sever",name:"Flesh Severance",cost:0,school:"Necromancy",text:"Arm for this turn: enemies killed next to your Joker are exiled to the Ethereal Realm for their summoning cost instead of being captured.",ok:()=>true,run:()=>{me().sevArmed=!me().sevArmed;log(`Flesh Severance ${me().sevArmed?"armed":"disarmed"}.`)}},
- {id:"divine",name:"Divine Odds",cost:3,school:"Enchantment",text:"Select your stack: advantage on all its dice for its next combat.",ok:()=>selOwn()&&!selStack().odds,run:()=>{selStack().odds="adv";log("Divine Odds marks a stack.")}},
- {id:"forced",name:"Forced Hand",cost:2,school:"Curse",text:"The other player draws 1d2 cards; any over the hand limit go to the grave.",ok:()=>true,run:()=>{const n=R(2);draw(1-G.active,n,"Forced Hand")}},
- {id:"hexed",name:"Hexed Odds",cost:3,school:"Curse",text:"Select an enemy stack: disadvantage on all its dice for its next combat.",ok:()=>selEnemy()&&!selStack().odds,run:()=>{selStack().odds="dis";log("Hexed Odds marks an enemy stack.")}},
- {id:"double",name:"Double Edged Sword",cost:1,school:"Curse",text:"Roll 3d6. Each 1 burns a card from your deck; each 6 burns a card from the enemy's deck.",ok:()=>true,run:doubleEdge},
- {id:"clair",name:"Clairvoyance",cost:3,school:"Sorcery",text:"Look at 2d6 cards from your deck, take one into your hand, then reshuffle.",ok:()=>me().deck.length>0&&me().hand.length<HAND_CAP,run:clairvoyance},
- {id:"tele",name:"Teleport",cost:2,school:"Sorcery",text:"Select your stack in your own two lines with no enemy beside it and leave exactly one card checked; that card returns to your hand.",ok:teleOk,run:teleport},
- {id:"cj",name:"Jack Conjure",cost:1,school:"Conjuring",text:"A Jack's soul materializes into your deck.",ok:()=>true,run:()=>conjure("J")},
- {id:"cjk",name:"Joker Conjure",cost:2,school:"Conjuring",text:"A Joker's soul materializes into your deck.",ok:()=>true,run:()=>conjure("JK")},
- {id:"cq",name:"Queen Conjure",cost:2,school:"Conjuring",text:"A Queen's soul materializes into your deck.",ok:()=>true,run:()=>conjure("Q")},
- {id:"ck",name:"King Conjure",cost:2,school:"Conjuring",text:"A King's soul materializes into your deck.",ok:()=>true,run:()=>conjure("K")},
- {id:"ca",name:"Ace Conjure",cost:3,school:"Conjuring",text:"An Ace's soul materializes into your deck.",ok:()=>true,run:()=>conjure("A")},
- {id:"cs",name:"Soldier Conjure",cost:1,school:"Conjuring",text:"A soldier's soul (2 to 10) materializes into your deck.",ok:()=>true,run:()=>conjure("S")}
-];
-const selStack=()=>G.sel&&G.board[G.sel.r][G.sel.c];
+const selStack=()=>G.sel&&G.board[G.sel.r]&&G.board[G.sel.r][G.sel.c];
 const selOwn=()=>selStack()&&selStack().owner===G.active;
 const selEnemy=()=>selStack()&&selStack().owner!==G.active;
 const selOwnJoker=()=>selOwn()&&hasK(selStack(),"joker");
-function blessing(){
-  const aces=stacksOf(G.active).filter(x=>hasK(x.st,"ace")).length;
-  const n=Math.min(6,1+aces+G.ritual);const rolls=Array.from({length:n},()=>R(6));
-  const sixes=rolls.filter(x=>x===6).length;G.blessed=true;
-  log(`Grave Blessing: ${n}d6 → ${rolls.join(", ")}. ${sixes?sixes+" card"+(sixes>1?"s":"")+" may rise.":"Nothing rises."}`);
-  if(sixes)pickFromGrave(sixes);
+const SCHOOLS=["Necromancy","Enchantment","Curse","Sorcery","Conjuring"];
+const SPELLS=[
+ {id:"ritual",name:"Ritual Dice",cost:1,school:"Necromancy",text:"+2d6 to this turn's Grave Blessing.",ok:()=>!G.blessed&&G.ritual===0&&blessCap(G.active)>0,run:async()=>{G.ritual=2;log("Ritual Dice: two more dice for the Grave Blessing.")}},
+ {id:"bless",name:"Grave Blessing",cost:0,school:"Necromancy",text:"Free, once a turn, before any other mana is spent. Roll 1d6, +1d6 per Ace you have on the field, +2d6 from Ritual Dice, 6 dice at most. Each natural 6 raises a card from the grave. Every card you overdrew to the grave takes 1d6 off the maximum.",ok:()=>!G.blessed&&!G.spentOther&&G.grave.length>0&&blessCap(G.active)>0,run:blessing},
+ {id:"suicide",name:"Sacrificial Suicide",cost:0,school:"Necromancy",text:"Select your stack with a Joker. The Joker dies and the souls it captured go to your soul pile (6 mana at most; the surplus goes to the grave). Under a Blood Moon, the Joker and all its souls go to the Outer Darkness instead.",ok:()=>!G.spent&&selOwnJoker(),run:suicideSpell},
+ {id:"sever",name:"Flesh Severance",cost:0,school:"Necromancy",text:"Arm for this turn: an enemy killed next to your Joker is exiled to the Ether for its conjuring cost instead of being captured.",ok:()=>true,run:async()=>{me().sevArmed=!me().sevArmed;log(`Flesh Severance ${me().sevArmed?"armed":"disarmed"}.`)}},
+ {id:"resur",name:"Resurrection",cost:6,school:"Necromancy",text:"Choose one card from the grave and bring it back into your hand.",ok:()=>G.grave.length>0&&me().hand.length<HAND_CAP,run:async()=>{await pickGrave(G.active,1,"Resurrection")}},
+ {id:"divine",name:"Divine Odds",cost:3,school:"Enchantment",text:"Select your stack: advantage on all its dice for its next combat.",ok:()=>selOwn()&&!selStack().odds,run:async()=>{selStack().odds="adv";log("Divine Odds marks a stack.")}},
+ {id:"hypo",name:"Hypostasis",cost:3,school:"Enchantment",text:"Select your stack: it cannot be attacked for two turns. While it lasts it cannot attack or step toward the enemy, only sideways or back. Costs 3 for one card, +1 for each more card in the stack. Needs at least two of your stacks on the field.",ok:()=>selOwn()&&!selStack().hypo&&stacksOf(G.active).length>=2,run:async()=>{const st=selStack();st.hypo=2;log(`Hypostasis: ${plName(G.active)}'s stack of ${st.cards.length} becomes untouchable for two turns.`)}},
+ {id:"forced",name:"Forced Hand",cost:2,school:"Curse",text:"The other player draws 1d2 cards; any over the hand limit go to the grave (and cut their Grave Blessing).",ok:()=>!survival(),run:async()=>{const n=R(2);tray(G.active,"Forced Hand",[{s:2,v:n}],`draw ${n}`);draw(1-G.active,n,"Forced Hand")}},
+ {id:"hexed",name:"Hexed Odds",cost:3,school:"Curse",text:"Select an enemy stack: disadvantage on all its dice for its next combat.",ok:()=>selEnemy()&&!selStack().odds,run:async()=>{selStack().odds="dis";log("Hexed Odds marks an enemy stack.")}},
+ {id:"double",name:"Double Edged Sword",cost:1,school:"Curse",text:"Roll 3d6. Each 1 burns a card from your deck; each 6 burns a card from the enemy's deck.",ok:()=>!survival(),run:doubleEdge},
+ {id:"three",name:"Three of Swords",cost:3,school:"Curse",text:"Roll 1d2. A 1 destroys one random card in the enemy's hand and one in yours; a 2 destroys two of each. If your hand runs short, the rest comes from your deck. The enemy loses nothing from the deck.",ok:()=>!survival(),run:threeSwords},
+ {id:"clair",name:"Clairvoyance",cost:3,school:"Sorcery",text:"Look at 2d6 cards from your deck, take one into your hand, then reshuffle. 6 mana at the New Moon, 2 at the Full Moon.",ok:()=>me().deck.length>0&&me().hand.length<HAND_CAP,run:clairvoyance},
+ {id:"tele",name:"Teleport",cost:2,school:"Sorcery",text:"Select your stack in your own two lines with no enemy beside it and leave exactly one card checked; that card returns to your hand.",ok:teleOk,run:teleport},
+ {id:"naked",name:"Naked Hand",cost:3,school:"Sorcery",text:"The other player's hand is shown to you for the rest of this turn, and both players are told it has been seen. 6 mana at the New Moon, free at the Full Moon.",ok:()=>!survival()&&foe().hand.length>0,run:nakedHand},
+ {id:"cj",name:"Jack Conjure",cost:1,school:"Conjuring",text:"A Jack's soul comes from the Ether into your deck.",ok:()=>etherHas("jack"),run:()=>conjure("jack")},
+ {id:"cjk",name:"Joker Conjure",cost:2,school:"Conjuring",text:"A Joker's soul comes from the Ether into your deck.",ok:()=>etherHas("joker"),run:()=>conjure("joker")},
+ {id:"cq",name:"Queen Conjure",cost:2,school:"Conjuring",text:"A Queen's soul comes from the Ether into your deck.",ok:()=>etherHas("queen"),run:()=>conjure("queen")},
+ {id:"ck",name:"King Conjure",cost:2,school:"Conjuring",text:"A King's soul comes from the Ether into your deck.",ok:()=>etherHas("king"),run:()=>conjure("king")},
+ {id:"ca",name:"Ace Conjure",cost:3,school:"Conjuring",text:"An Ace's soul comes from the Ether into your deck.",ok:()=>etherHas("ace"),run:()=>conjure("ace")},
+ {id:"cs",name:"Soldier Conjure",cost:1,school:"Conjuring",text:"A soldier's soul (2 to 10) comes from the Ether into your deck.",ok:()=>etherHas("soldier"),run:()=>conjure("soldier")}
+];
+const SP=id=>SPELLS.find(s=>s.id===id);
+function spellCost(sp){
+  if(sp.id==="clair")return newPrices()?6:fullPrices()?2:3;
+  if(sp.id==="naked")return newPrices()?6:fullPrices()?0:3;
+  if(sp.id==="hypo"){const st=selOwn()?selStack():null;return 3+(st?st.cards.length-1:0)}
+  return sp.cost;
 }
-function pickFromGrave(n){
-  if(!n||!G.grave.length||me().hand.length>=HAND_CAP){render();return}
-  modal(`Raise a card from the grave (${n} left)`,G.grave.map((c,i)=>({label:label(c),title:nameOf(c),cls:c.color,val:i})),i=>{
-    const c=G.grave.splice(i,1)[0];c.owner=G.active;me().hand.push(c);log(`${esc(me().name)} raises ${esc(nameOf(c))} from the grave.`);pickFromGrave(n-1)},"Stop");
+function spellBlock(sp){ // reason the moon or mode forbids a spell, or ""
+  if(fullDrawbacks()&&sp.school==="Necromancy")return "No necromancy under the Full Moon.";
+  if(fullDrawbacks()&&sp.id==="forced")return "No one draws under the Full Moon.";
+  if(survival()&&["forced","double","three","naked"].includes(sp.id))return "The Horde has no hand or deck.";
+  return "";
 }
-function suicide(){
-  const st=selStack(),j=st.cards.find(c=>kind(c)==="joker");
-  st.cards.splice(st.cards.indexOf(j),1);if(!st.cards.length){G.board[G.sel.r][G.sel.c]=null;G.sel=null}
-  const souls=j.captured||[];j.captured=[];let moved=0,lost=0;
-  for(const s of souls){if(mana(G.active)+soulOf(s)<=SOUL_CAP){me().souls.push(s);moved++}else{toGrave(s);lost++}}
-  toGrave(j);log(`Sacrificial Suicide: the Joker goes to the grave; ${moved} soul${moved===1?"":"s"} join the soul pile${lost?`, ${lost} surplus to the grave`:""}.`);
+function spellReady(sp){return G.phase==="prep"&&!spellBlock(sp)&&sp.ok()&&mana(G.active)>=spellCost(sp)}
+async function cast(sp){
+  if(G.busy&&!me().cpu)return;
+  if(G.phase!=="prep"){flash("Spells are cast in the prep phase.");return}
+  const why=spellBlock(sp);if(why){flash(why);return}
+  if(!sp.ok()){flash("That spell can't be cast right now.");return}
+  const cost=spellCost(sp);
+  if(mana(G.active)<cost){flash("Not enough mana.");return}
+  const wasBusy=G.busy;G.busy=true;
+  if(cost){if(sp.id!=="ritual")G.spentOther=true;pay(G.active,cost)}
+  await sp.run();
+  G.busy=wasBusy;render();checkWin();
+}
+const etherHas=k=>G.ether.some(c=>k==="soldier"?/^\d+$/.test(c.rank):kind(c)===k);
+async function conjure(k){
+  const list=G.ether.filter(c=>k==="soldier"?/^\d+$/.test(c.rank):kind(c)===k);
+  const c=pick(list);G.ether.splice(G.ether.indexOf(c),1);
+  c.owner=G.active;me().deck.push(c);shuffle(me().deck);log(`A ${KNAME[kind(c)]}'s soul materializes from the Ether into ${plName(G.active)}'s deck.`);
+}
+async function blessing(){
+  const pl=G.active,aces=stacksOf(pl).filter(x=>hasK(x.st,"ace")).length;
+  const want=Math.min(6,1+aces+G.ritual),cap=blessCap(pl),n=Math.min(want,cap);
+  const d=rollN(n,6),six=d.filter(x=>x.v===6).length;G.blessed=true;
+  tray(pl,"Grave Blessing",d,`${six} six${six===1?"":"es"}`);
+  log(`Grave Blessing: ${n}d6${cap<want?` (overdraw cap ${cap})`:""} → ${d.map(x=>x.v).join(", ")}. ${six?six+" card"+(six>1?"s":"")+" may rise.":"Nothing rises."}`);
+  render();
+  if(six)await pickGrave(pl,six,"Grave Blessing");
+}
+async function suicideSpell(){
+  const s=G.sel,st=selStack();await jokerSuicide(s.r,s.c,st,G.active);
+}
+/* a Joker kills itself. Works for players and for the Horde (survival) */
+async function jokerSuicide(r,c,st,pl){
+  const j=st.cards.find(x=>kind(x)==="joker");
+  st.cards.splice(st.cards.indexOf(j),1);if(!st.cards.length){G.board[r][c]=null;if(G.sel&&G.sel.r===r&&G.sel.c===c)G.sel=null}
+  else if(G.sel)G.sel.pick.delete(j.id);
+  const souls=j.captured||[];j.captured=[];
+  SND.gun();
+  if(isHorde(pl)){ // survival: the player's captured souls go to the Outer Darkness, and the player loses 1 mana
+    for(const s of souls)toDark(s);j.owner=pl;
+    const P=G.p[0];let lost=0;if(mana(0)>=1){pay(0,1);lost=1}else if(P.souls.length){toGrave(P.souls.shift(),"spent");lost=1}
+    log(`A Horde Joker shoots itself: ${souls.length} of your souls fall into the Outer Darkness${lost?" and you lose 1 mana":""}.`,"event");
+    flash("A Horde Joker shoots itself.");checkWin();return;
+  }
+  const m=G.moon;let mode="normal";
+  if(m.woman&&!m.crossing){
+    const yes=await ask(pl,{kind:"yesno",id:"woman",souls,title:"The Shadow Woman",text:`The Shadow Woman offers a choice. Send this Joker to the Outer Darkness and return its ${souls.length} captured card${souls.length===1?"":"s"} straight to your deck, then roll 1d4 for grave cards shuffled into your deck and take one soul from the Ether? Or let the souls go to your soul pile as usual?`,yes:"Return them to my deck",no:"Soul pile"});
+    if(yes)mode="woman";
+  }
+  if(mode==="woman"){
+    toDark(j);const P=G.p[pl];
+    for(const s of souls){s.owner=pl;P.deck.push(s)}
+    const k=R(4);tray(pl,"Shadow Woman",[{s:4,v:k}],`${k} from the grave`);let got=0;
+    for(let i=0;i<k&&G.grave.length;i++){const g=G.grave.splice(Math.floor(Math.random()*G.grave.length),1)[0];g.owner=pl;P.deck.push(g);got++}
+    let eth=null;if(G.ether.length){eth=G.ether.splice(Math.floor(Math.random()*G.ether.length),1)[0];eth.owner=pl;P.deck.push(eth)}
+    shuffle(P.deck);
+    log(`Sacrificial Suicide under the Shadow Woman: the Joker falls into the Outer Darkness; ${souls.length} captured card${souls.length===1?"":"s"}, ${got} grave card${got===1?"":"s"} (1d4: ${k})${eth?" and one soul from the Ether":""} go into ${plName(pl)}'s deck.`,"event");
+  }else if(m.blood&&!m.crossing){
+    toDark(j);for(const s of souls)toDark(s);
+    log(`Sacrificial Suicide under the Blood Moon: the Joker and its ${souls.length} soul${souls.length===1?"":"s"} fall into the Outer Darkness.`,"event");
+  }else{
+    let moved=0,lost=0;
+    for(const s of souls){if(addSoul(pl,s))moved++;else{toGrave(s,"spent");lost++}}
+    toGrave(j,"death");
+    log(`Sacrificial Suicide: the Joker ${m.lev?"falls into the Outer Darkness":"goes to the grave"}; ${moved} soul${moved===1?"":"s"} join the soul pile${lost?`, ${lost} surplus ${m.lev?"to the Outer Darkness":"to the grave"}`:""}.`);
+  }
+  render();
+  if(m.union&&G.dark.length)await darkShop(pl);
   checkWin();
 }
-function doubleEdge(){
-  const rolls=[R(6),R(6),R(6)];let mine=0,theirs=0;
-  for(const r of rolls){if(r===1){const c=me().deck.pop();if(c){toGrave(c);mine++}}if(r===6){const c=foe().deck.pop();if(c){toGrave(c);theirs++}}}
-  log(`Double Edged Sword: 3d6 → ${rolls.join(", ")}. You lose ${mine}, the enemy loses ${theirs} from the deck.`);
+async function darkShop(pl){
+  log("Leviathan and the Shadow Woman open the Outer Darkness for trade.","event");
+  for(;;){
+    const i=await ask(pl,{kind:"cards",id:"shop",title:"The Outer Darkness: buy souls back",sub:`Each card costs its conjuring price. You have ${mana(pl)} mana.`,cards:G.dark,cancel:"Leave the shop",box:"outer",price:true});
+    if(i==null||!G.dark[i])break;
+    const c=G.dark[i],cost=costOf(c);
+    if(mana(pl)<cost){if(human(pl))flash("Not enough mana.");else break;continue}
+    pay(pl,cost);G.dark.splice(i,1);c.owner=pl;delete c.darkOwner;G.p[pl].deck.push(c);shuffle(G.p[pl].deck);
+    log(`${plName(pl)} buys ${esc(nameOf(c))} back from the Outer Darkness for ${cost} mana.`);render();
+  }
 }
-function clairvoyance(){
-  const n=Math.min(R(6)+R(6),me().deck.length);const look=me().deck.slice(-n);
-  log(`Clairvoyance reveals ${n} cards.`);
-  modal(`Clairvoyance: choose one of ${n} cards`,look.map(c=>({label:label(c),title:nameOf(c),cls:c.color,val:c.id})),id=>{
-    const P=me(),i=P.deck.findIndex(c=>c.id===id);const c=P.deck.splice(i,1)[0];P.hand.push(c);shuffle(P.deck);log(`${esc(P.name)} takes a card into the hand and reshuffles.`);render()});
+async function doubleEdge(){
+  const d=rollN(3,6);let mine=0,theirs=0;
+  for(const x of d){if(x.v===1){const c=me().deck.pop();if(c){toGrave(c,"burn");mine++}}if(x.v===6){const c=foe().deck.pop();if(c){toGrave(c,"burn");theirs++}}}
+  tray(G.active,"Double Edged Sword",d,`you −${mine} · them −${theirs}`);
+  log(`Double Edged Sword: 3d6 → ${d.map(x=>x.v).join(", ")}. ${plName(G.active)} loses ${mine}, the enemy loses ${theirs} from the deck.`);
+}
+async function threeSwords(){
+  const n=R(2);tray(G.active,"Three of Swords",[{s:2,v:n}],`${n} each`);
+  const F=foe(),P=me();let fl=0,ml=0,dl=0;
+  for(let i=0;i<n&&F.hand.length;i++){toGrave(F.hand.splice(Math.floor(Math.random()*F.hand.length),1)[0],"death");fl++}
+  for(let i=0;i<n;i++){if(P.hand.length){toGrave(P.hand.splice(Math.floor(Math.random()*P.hand.length),1)[0],"death");ml++}else if(P.deck.length){toGrave(P.deck.pop(),"death");dl++}}
+  log(`Three of Swords: 1d2 → ${n}. ${esc(F.name)} loses ${fl} from the hand; ${esc(P.name)} loses ${ml} from the hand${dl?` and ${dl} from the deck`:""}.`);
+}
+async function clairvoyance(){
+  const d=rollN(2,6),n=Math.min(sum(d),me().deck.length);const look=me().deck.slice(-n);
+  tray(G.active,"Clairvoyance",d,`look at ${n}`);
+  log(`Clairvoyance: 2d6 → ${d[0].v} + ${d[1].v} = ${sum(d)}; ${n} cards revealed to ${plName(G.active)}.`);render();
+  const i=await ask(G.active,{kind:"cards",id:"clair",title:`Clairvoyance: choose one of ${n} cards`,cards:look,box:"plain"});
+  const P=me(),c=look[i==null?look.length-1:i];P.deck.splice(P.deck.indexOf(c),1);P.hand.push(c);shuffle(P.deck);
+  log(`${plName(G.active)} takes a card into the hand and reshuffles.`);
 }
 function teleOk(){
   if(!selOwn())return false;const s=G.sel,st=selStack();
@@ -343,143 +686,693 @@ function teleOk(){
   for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){const t=at(s.r+dr,s.c+dc);if(t&&t.owner!==G.active)return false}
   return st.cards.filter(c=>s.pick.has(c.id)).length===1;
 }
-function teleport(){
+async function teleport(){
   const st=selStack(),c=st.cards.find(x=>G.sel.pick.has(x.id));
   st.cards.splice(st.cards.indexOf(c),1);me().hand.push(c);
   if(!st.cards.length){G.board[G.sel.r][G.sel.c]=null;G.sel=null}else G.sel.pick.delete(c.id);
   log(`Teleport: ${esc(nameOf(c))} returns to the hand.`);checkWin();
 }
-function conjure(r){
-  const suit="SHDC"[Math.floor(Math.random()*4)];
-  const c=r==="JK"?mk("JK",null,Math.random()<.5?"red":"black"):r==="S"?mk(String(1+R(9)),suit):mk(r,suit);
-  c.owner=G.active;me().deck.push(c);shuffle(me().deck);log(`A soul materializes from the Ethereal Realm into ${esc(me().name)}'s deck.`);
+async function nakedHand(){
+  const F=foe();F.shownUntil=G.turnNo;F.seen=true;
+  log(`<b>Naked Hand</b>: ${plName(G.active)} sees ${esc(F.name)}'s hand. ${esc(F.name)}, your cards have been seen.`,"event");
+  if(!me().cpu&&F.cpu)flash(`You see the computer's hand until your turn ends.`);
+  if(me().cpu&&!F.cpu)flash(`The computer has seen your hand.`);
 }
-function cast(sp){
-  if(G.phase!=="prep"){flash("Spells are cast in the prep phase.");return}
-  if(!sp.ok()){flash("That spell can't be cast right now.");return}
-  if(sp.cost){if(mana(G.active)<sp.cost){flash("Not enough mana.");return}if(sp.id!=="ritual")G.spentOther=true;pay(G.active,sp.cost)}
-  sp.run();render();
+
+/* ---------------- the computer opponent (plain code, no language model) ----------------
+   Each turn it weighs offense against defense from the board and the decks:
+   offense pushes stacks forward, surrounds enemies and casts curses; defense bunkers
+   (Kings with Queens, Aces in the back), shields threatened stacks and keeps the deck full.
+   Easy adds noise and mistakes; Medium balances; Hard plays every edge it can find. */
+const AI=(()=>{
+  const LV={
+    easy:  {mc:14,noise:.45,thr:.5, spell:.45,skipMove:.35,bias:-.15,draw:3},
+    medium:{mc:30,noise:.1, thr:.5, spell:.9, skipMove:.04,bias:0,  draw:2},
+    hard:  {mc:48,noise:0,  thr:.46,spell:1,  skipMove:0,  bias:.12,draw:2},
+    horde: {mc:36,noise:0,  thr:.4, spell:0,  skipMove:0,  bias:1,  draw:0}
+  };
+  const L=pl=>LV[G.p[pl].cpu]||LV.medium;
+  const lvl=pl=>G.p[pl].cpu;
+  const jit=pl=>1+(Math.random()*2-1)*L(pl).noise;
+  const OFF={atk:1.3,def:.7,dist:.35,ally:.1},DEF={atk:.8,def:1.35,dist:.06,ally:.35},HORDE={atk:1.5,def:.35,dist:.7,ally:.05};
+  let cache=new Map();
+  const key=st=>st.cards.map(c=>c.id).join(".")+(st.odds||"");
+  function winP(A,D,n){
+    const k=key(A)+"|"+key(D);if(cache.has(k))return cache.get(k);
+    let w=0;for(let i=0;i<n;i++){const a=rollStack(A,"atk",D,A.odds),d=rollStack(D,"def",A,D.odds);if(a.total>d.total)w++}
+    const p=w/n;cache.set(k,p);return p;
+  }
+  function value(st){let v=0;for(const c of st.cards){v+=1+soulOf(c)*.8+rate(c)/7;if(kind(c)==="joker")v+=2+capMana(c)*1.4;if(kind(c)==="ace")v+=3}return v}
+  function killsOnHit(st){if(st.cards.length===1||hasK(st,"ace"))return true;const low=[...st.cards].sort((a,b)=>nat(a)-nat(b))[0];return kind(low)==="king"}
+  function threat(st){
+    if(hasK(st,"ace"))return 1+(hasK(st,"joker")?3:0);
+    let t=Math.max(0,...st.cards.map(c=>kind(c)==="joker"?7:rate(c)))/4+st.cards.length*.4;
+    const j=st.cards.find(c=>kind(c)==="joker");if(j)t+=2.5+capMana(j);
+    return t;
+  }
+  const gain=E=>(killsOnHit(E)?value(E):value(E)/E.cards.length)+threat(E)*.35;
+  const loss=S=>killsOnHit(S)?value(S):value(S)/S.cards.length;
+  const dist=(r1,c1,r2,c2)=>Math.abs(r1-r2)+Math.abs(c1-c2);
+  function enemiesOf(pl){return stacksOf(1-pl)}
+  /* how good it is for stack S (owned by pl) to stand at r,c */
+  function tileScore(pl,S,r,c,W,canHit){
+    const n=L(pl).mc;let opp=0,risk=0,allies=0;
+    const diag=jackOnly(S),hits=canHit&&canAttackFrom({cards:S.cards,attacked:false,hypo:S.hypo});
+    let near=99;
+    for(const e of enemiesOf(pl)){
+      const E=e.st,d=dist(r,c,e.r,e.c);near=Math.min(near,d);
+      if(hits&&!E.hypo&&adjacent(r,c,e.r,e.c,diag)){
+        const p=winP(S,E,n);let sc=p*gain(E)-(1-p)*loss(S);
+        const ring=stacksOf(pl).filter(x=>x.st!==S&&adjacent(x.r,x.c,e.r,e.c,false)).length;sc+=ring*.3;
+        if(sc>opp)opp=sc;
+      }
+      const reach=jackOnly(E)?3:2;
+      if(d<=reach&&canAttackFrom({cards:E.cards,attacked:false,hypo:E.hypo})&&!S.hypo){
+        const p=winP(E,S,n);const rk=p*loss(S)*(d===1?1:.7);if(rk>risk)risk=rk;
+      }
+    }
+    for(const x of stacksOf(pl))if(x.st!==S&&dist(x.r,x.c,r,c)===1)allies++;
+    if(near===99)near=0;
+    // the Horde and offense push toward the enemy's back line too
+    return W.atk*opp-W.def*risk-W.dist*near+W.ally*allies;
+  }
+  function stance(pl){
+    if(isHorde(pl))return HORDE;
+    const my=stacksOf(pl).reduce((a,x)=>a+value(x.st),0),th=stacksOf(1-pl).reduce((a,x)=>a+value(x.st),0);
+    const deckAdv=(G.p[pl].deck.length-G.p[1-pl].deck.length)/40;
+    let o=my/(th+1)+deckAdv+L(pl).bias;
+    if(lvl(pl)==="easy")o+=Math.random()*.6-.3;
+    if(!G.p[pl].deck.length||!G.p[1-pl].deck.length||G.turnNo>90)return OFF;   // a dry deck ends the waiting game
+    return o>1?OFF:DEF;
+  }
+  function withSel(r,c,ids,fn){const old=G.sel;G.sel={r,c,pick:new Set(ids)};try{return fn()}finally{G.sel=old}}
+  const step=()=>{render();return sleep(G.p[G.active].cpu==="horde"?260:420)};
+
+  /* ---------- placement ---------- */
+  function placeScore(pl,card,r,c,W){
+    const t=G.board[r][c];const S={cards:t?[...t.cards,card]:[card],owner:pl,hypo:t?t.hypo:0};
+    const k=kind(card);
+    if(t&&hasK(t,"ace")&&k!=="ace")return ((W===DEF?.7:.2)-t.cards.length*.3)*jit(pl);   // cards inside an Ace cannot fight, and die with it
+    let s=tileScore(pl,S,r,c,W,false)-(t?tileScore(pl,t,r,c,W,false):0)+value(S)-(t?value(t):0);
+    if(k==="ace")s+=lvl(pl)==="hard"?4:2;
+    if(k==="queen"&&t&&hasK(t,"king"))s+=W===DEF?3:1.5;
+    if(k==="king"&&t&&hasK(t,"queen"))s+=W===DEF?3:1.5;
+    if(k==="joker")s+=enemiesOf(pl).some(e=>dist(e.r,e.c,r,c)<=2)?2:.5;
+    if(r===frontRow(pl)&&W===OFF)s+=.4;
+    if(r===backRow(pl)&&W===DEF)s+=.3;
+    return s*jit(pl);
+  }
+  async function placements(pl,W,keep){
+    for(let guard=0;guard<8;guard++){
+      const P=G.p[pl];if(P.hand.length<=keep+(P.deck.length?0:1))return;
+      let best=null;
+      for(const card of P.hand)for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){
+        if(!canPlace(card,r,c))continue;
+        const s=placeScore(pl,card,r,c,W);if(!best||s>best.s)best={card,r,c,s};
+      }
+      if(!best||best.s<.6)return;
+      place(best.card,best.r,best.c);cache.clear();await step();
+    }
+  }
+  /* ---------- movement ---------- */
+  async function moves(pl,W){
+    const lv=L(pl);
+    const order=isHorde(pl)?stacksOf(pl).sort((a,b)=>stackRate(b.st)-stackRate(a.st)):stacksOf(pl).sort((a,b)=>{const na=Math.min(99,...enemiesOf(pl).map(e=>dist(a.r,a.c,e.r,e.c))),nb=Math.min(99,...enemiesOf(pl).map(e=>dist(b.r,b.c,e.r,e.c)));return na-nb});
+    for(const o of order){
+      if(G.over)return;
+      const st=G.board[o.r][o.c];if(!st||st!==o.st||st.owner!==pl||st.moved)continue;
+      if(Math.random()<lv.skipMove)continue;
+      const grp=st.cards.filter(c=>kind(c)!=="ace");if(!grp.length)continue;
+      const inAce=hasK(st,"ace");const S={cards:grp,owner:pl,hypo:st.hypo};
+      let stay=inAce?(W===DEF?.6:0):tileScore(pl,S,o.r,o.c,W,true);
+      const tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets);
+      let best=null;
+      for(const [r,c] of tg){
+        const t=G.board[r][c];
+        let s;
+        if(t){const M={cards:[...t.cards,...grp],owner:pl,hypo:0};s=tileScore(pl,M,r,c,W,true)-tileScore(pl,t,r,c,W,true)+.2}
+        else s=tileScore(pl,S,r,c,W,true);
+        s*=jit(pl);
+        if(!best||s>best.s)best={r,c,s};
+      }
+      if(best&&best.s>stay+.15){
+        G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step();
+      }
+    }
+  }
+  /* ---------- attacks ---------- */
+  function bestAttack(pl){
+    const lv=L(pl);let best=null;
+    for(const {st,r,c} of stacksOf(pl)){
+      if(!canAttackFrom(st))continue;
+      const tg=withSel(r,c,[],attackTargets);
+      for(const [r2,c2] of tg){
+        const E=G.board[r2][c2],p=winP(st,E,lv.mc);
+        const sc=(p*gain(E)-(1-p)*loss(st))*jit(pl);
+        const late=isHorde(pl)?0:G.turnNo>90?Math.min(.25,.1+(G.turnNo-90)/200):!G.p[pl].deck.length?.1:0;
+        const jam=isHorde(pl)&&!withSel(r,c,st.cards.filter(x=>kind(x)!=="ace").map(x=>x.id),moveTargets).length;
+        const go=p>=(lv.thr-late)*(lvl(pl)==="easy"?(.7+Math.random()*.6):1)||(lvl(pl)!=="easy"&&sc>.4)||(isHorde(pl)&&(killsOnHit(E)&&p>=.2||jam));
+        if(go&&(!best||sc>best.sc))best={r,c,r2,c2,sc,p};
+      }
+    }
+    return best;
+  }
+  async function attacks(pl){
+    for(let guard=0;guard<24;guard++){
+      if(G.over)return;cache.clear();
+      const b=bestAttack(pl);if(!b)return;
+      attack(b.r,b.c,b.r2,b.c2);await sleep(isHorde(pl)?420:650);render();
+    }
+  }
+  /* ---------- spells ---------- */
+  async function tryCast(id,r,c,ids){
+    const sp=SP(id),P=G.p[G.active];
+    if(!P.deck.length&&!P.hand.length&&mana(G.active)-spellCost(sp)<=0&&id!=="bless")return false; // never spend the last soul with no deck and no hand
+    const ok=()=>r==null?spellReady(sp):withSel(r,c,ids||[],()=>spellReady(sp));
+    if(!ok())return false;
+    if(r!=null)G.sel={r,c,pick:new Set(ids||[])};
+    await cast(sp);G.sel=null;cache.clear();await step();return true;
+  }
+  async function suicides(pl){
+    const lv=lvl(pl);if(lv==="easy"&&Math.random()<.5)return;
+    for(const {st,r,c} of stacksOf(pl)){
+      const j=st.cards.find(x=>kind(x)==="joker");if(!j||!j.captured||!j.captured.length)continue;
+      const cm=capMana(j),room=SOUL_CAP-mana(pl);
+      let danger=0;for(const e of enemiesOf(pl))if(dist(e.r,e.c,r,c)<=2&&canAttackFrom({cards:e.st.cards,attacked:false}))danger=Math.max(danger,winP(e.st,st,24));
+      const want=(cm>=4&&room>=cm-1)||(cm>=2&&danger>.55)||(lv==="hard"&&G.moon.woman&&cm>=2)||(lv==="hard"&&G.moon.union&&G.dark.length>2&&mana(pl)>=2);
+      if(want&&!(G.moon.blood&&!G.moon.woman)){await tryCast("suicide",r,c,[]);return}
+    }
+  }
+  async function sacrifices(pl,target,keep){
+    const P=G.p[pl];
+    while(mana(pl)<target&&P.hand.length>keep){
+      const c=[...P.hand].filter(c=>mana(pl)+soulOf(c)<=SOUL_CAP&&kind(c)!=="ace"&&kind(c)!=="joker").sort((a,b)=>rate(a)-rate(b))[0];
+      if(!c)break;
+      if(rate(c)>14&&mana(pl)>=2)break;
+      sacrifice(c,"hand");await step();
+    }
+  }
+  async function necro(pl){
+    const lv=lvl(pl),aces=stacksOf(pl).filter(x=>hasK(x.st,"ace")).length;
+    if(G.grave.length>=2&&mana(pl)>=(lv==="hard"?1:2)&&(lv!=="easy"||Math.random()<.4)&&(aces>=1||lv==="hard"))await tryCast("ritual");
+    if(!(lv==="easy"&&Math.random()<.3))await tryCast("bless");
+  }
+  async function curses(pl,W){
+    const lv=lvl(pl),F=G.p[1-pl],P=G.p[pl],sp=L(pl).spell;
+    if(Math.random()>sp)return;
+    // shield the most exposed valuable stack
+    if((W===DEF||lv==="hard")&&stacksOf(pl).length>=2){
+      let best=null;
+      for(const x of stacksOf(pl)){if(x.st.hypo)continue;let rk=0;
+        for(const e of enemiesOf(pl))if(dist(e.r,e.c,x.r,x.c)<=2&&canAttackFrom({cards:e.st.cards,attacked:false}))rk=Math.max(rk,winP(e.st,x.st,24));
+        const v=rk*value(x.st);if(rk>.55&&value(x.st)>7&&(!best||v>best.v))best={...x,v}}
+      if(best&&mana(pl)>=3+best.st.cards.length-1)await tryCast("hypo",best.r,best.c,[]);
+    }
+    if(F.hand.length>=(lv==="hard"?4:5))await tryCast("forced");
+    if(F.hand.length>=2&&F.hand.length>=P.hand.length+(lv==="hard"?1:2))await tryCast("three");
+    if((P.deck.length>=F.deck.length+(lv==="hard"?5:9))||(F.deck.length<=8&&P.deck.length>F.deck.length))await tryCast("double");
+    if(P.hand.length<=1&&P.deck.length>4&&spellCost(SP("clair"))<=3)await tryCast("clair");
+    if(lv!=="easy"&&mana(pl)>=6&&G.grave.some(c=>["ace","king","joker"].includes(kind(c))))await tryCast("resur");
+  }
+  async function odds(pl){
+    const lv=L(pl);if(Math.random()>lv.spell)return;
+    for(let i=0;i<(lvl(pl)==="hard"?2:1);i++){
+      if(mana(pl)<3)return;
+      let best=null;
+      for(const {st,r,c} of stacksOf(pl)){if(!canAttackFrom(st))continue;
+        for(const [r2,c2] of withSel(r,c,[],attackTargets)){const E=G.board[r2][c2],p=winP(st,E,lv.mc);
+          if(p>=.28&&p<=.72){const g=gain(E);if(!best||g>best.g)best={r,c,r2,c2,g}}}}
+      if(!best)return;
+      const E=G.board[best.r2][best.c2];
+      if(!E.odds&&await tryCast("hexed",best.r2,best.c2,[]))continue;
+      if(!G.board[best.r][best.c].odds)await tryCast("divine",best.r,best.c,[]);
+    }
+  }
+  async function conjures(pl,W){
+    const lv=lvl(pl),P=G.p[pl];if(Math.random()>L(pl).spell)return;
+    // keep the deck alive with whatever mana is left
+    const low=P.deck.length<(lv==="hard"?Math.max(18,P.start*.7):12);
+    if(low||mana(pl)>=5){
+      const order=lv==="hard"&&stacksOf(pl).filter(x=>hasK(x.st,"ace")).length<2?["ca","ck","cjk","cj","cs"]:W===DEF?["ck","cq","ca","cs"]:["cj","ck","cs","cjk"];
+      for(const id of order){if(mana(pl)<(low?1:3))break;await tryCast(id)}
+    }
+  }
+  function shouldDraw(pl){
+    const P=G.p[pl],lv=lvl(pl);
+    if(!P.deck.length||P.hand.length>HAND_CAP-4+(lv==="easy"?1:0))return false;
+    if(lv==="hard")return P.hand.length<=1||(P.hand.length<=2&&P.deck.length>P.start*.5);
+    return P.hand.length<=2;
+  }
+  /* ---------- whole turns ---------- */
+  async function turn(pl){
+    cache.clear();
+    if(G.phase==="draw"){
+      for(let n=0;n<3&&shouldDraw(pl);n++){rollDraw();await step()}
+      G.phase="prep";await step();
+    }
+    const W=stance(pl),lv=lvl(pl);
+    log(`${plName(pl)} leans to ${W===OFF?"offense":"defense"}.`,"ai");
+    await suicides(pl);
+    await sacrifices(pl,lv==="hard"?5:lv==="medium"?4:2,lv==="hard"?2:1);
+    await necro(pl);
+    await curses(pl,W);
+    await placements(pl,W,lv==="hard"?1:0);
+    await moves(pl,W);
+    await odds(pl);
+    await conjures(pl,W);
+    G.phase="attack";G.sel=null;await step();
+    await attacks(pl);
+  }
+  async function setup(pl){
+    const W=DEF,cols=lvl(pl)==="easy"?[0,1,2,3,4]:[1,2,3];
+    const c=pick(cols.filter(c=>!G.board[backRow(pl)][c]));
+    await sleep(300);placeOpening(pl,backRow(pl),c);render();await sleep(300);
+    const prev=G.phase;G.phase="setup";
+    await placements(pl,W,lvl(pl)==="hard"?2:1);
+    G.phase=prev;
+  }
+  async function horde(pl){
+    cache.clear();
+    hordeSpawn();await sleep(700);render();
+    G.phase="prep";await step();
+    // Horde Jokers: shoot themselves once they hold souls and the player is close
+    for(const {st,r,c} of stacksOf(pl)){const j=st.cards.find(x=>kind(x)==="joker");
+      if(j&&j.captured&&j.captured.length&&(j.captured.length>=2||Math.random()<.35)){await jokerSuicide(r,c,st,pl);await step();if(G.over)return}}
+    await moves(pl,HORDE);
+    G.phase="attack";await step();
+    await attacks(pl);
+  }
+  const cardVal=c=>({ace:9,king:8,joker:7.5,jack:6,queen:5.5}[kind(c)]||(num(c)/2+1));
+  function choose(pl,spec){
+    const lv=lvl(pl);
+    if(spec.kind==="cards"){
+      const cards=spec.cards;if(!cards.length)return null;
+      if(spec.id==="shop"){let b=-1;cards.forEach((c,i)=>{if(costOf(c)<=mana(pl)&&(b<0||cardVal(c)>cardVal(cards[b])))b=i});return b<0||mana(pl)<1?null:b}
+      if(lv==="easy"&&Math.random()<.5)return Math.floor(Math.random()*cards.length);
+      let b=0;cards.forEach((c,i)=>{if(cardVal(c)>cardVal(cards[b]))b=i});return b;
+    }
+    if(spec.kind==="yesno"){
+      if(spec.id==="fullmoon"){
+        if(lv==="easy")return Math.random()<.5;
+        const st=spec.target.st,n=stacksOf(pl).length;
+        if(n<=1)return false;
+        const refuse=mana(pl)*1.1+Math.min(5,G.p[pl].deck.length)*(G.p[pl].deck.length<15?1.4:.7);
+        return value(st)<refuse+2;
+      }
+      if(spec.id==="woman")return G.p[pl].deck.length<Math.max(18,G.p[pl].start*.6);
+      return true;
+    }
+    return null;
+  }
+  return{turn,setup,horde,choose,winP,value,LV};
+})();
+async function runCpu(){
+  const pl=G.active;G.busy=true;render();
+  try{if(isHorde(pl))await AI.horde(pl);else await AI.turn(pl)}catch(e){console.error(e);log("The computer stumbles: "+esc(e.message))}
+  if(G.over){G.busy=false;render();return}
+  await finishTurn();
+}
+
+/* ---------------- Survival ---------------- */
+function roman(n){if(n<=0)return "0";const T=[[1000,"M"],[900,"CM"],[500,"D"],[400,"CD"],[100,"C"],[90,"XC"],[50,"L"],[40,"XL"],[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]];let s="";for(const [v,l] of T)while(n>=v){s+=l;n-=v}return s}
+const spawnRank=c=>({joker:100,king:90,jack:80,queen:70}[kind(c)]||num(c));
+function hordeSpawn(){
+  const r=G.round,pl=1,dice=[];
+  const roll=(n,s)=>{let t=0;for(let i=0;i<n;i++){const v=R(s);dice.push({s,v});t+=v}return t};
+  let g=0,inf=0,sp=0,cap=0,jk=0;
+  if(r<=5){g=roll(1,4)+r;inf=Math.max(0,roll(1,2)-2+r);cap=Math.min(4,Math.ceil(r/2))}
+  else if(r<=10){const k=r-5;g=roll(1,4);inf=roll(1,4)+k;sp=Math.max(0,roll(1,2)-1+Math.floor(k/2));cap=roll(3,2)+Math.floor(k/2)}
+  else{const k=r-5;g=roll(1,4);inf=roll(1,4)+k;sp=Math.max(0,roll(1,2)-1+Math.floor(k/2));cap=roll(3,2)+2+Math.floor(Math.max(0,r-11)/5);
+    while(jk<2){const v=roll(1,4);if(v===4)jk++;else break}}
+  // draw the souls from a fresh deck
+  const d=freshDeck(),take=(f,n)=>{const out=[];for(let i=d.length-1;i>=0&&out.length<n;i--)if(f(d[i]))out.push(...d.splice(i,1));return out};
+  let pool=[...take(c=>kind(c)==="joker",jk),...take(c=>["jack","queen","king"].includes(kind(c)),sp),...take(c=>kind(c)==="infantry",inf),...take(c=>kind(c)==="grunt",g)];
+  pool.sort((a,b)=>spawnRank(b)-spawnRank(a));
+  const chosen=pool.slice(0,cap);chosen.forEach(c=>c.owner=pl);
+  let placed=0,lost=0;
+  for(const c of chosen){if(hordePlace(c))placed++;else lost++}
+  tray(pl,`Round ${roman(r)} spawn`,dice,`${placed} spawn${placed===1?"":"s"}`);
+  log(`Round ${roman(r)}: the Horde rolls ${dice.map(x=>"d"+x.s+":"+x.v).join(" ")}; ${g} grunts, ${inf} infantry${sp?`, ${sp} royals`:""}${jk?`, ${jk} Joker${jk>1?"s":""}`:""}, cap ${cap}. ${placed} spawn${lost?`, ${lost} find no room`:""}.`,"event");
+}
+function hordePlace(c){
+  const pl=1,rows=[frontRow(pl),backRow(pl)];
+  // stack onto its own stacks when it can, front line first
+  for(const r of rows)for(const col of [2,1,3,0,4]){const st=G.board[r][col];
+    if(st&&st.owner===pl&&!hasK(st,"ace")&&stackLegal([...st.cards,c])){st.cards.push(c);return true}}
+  for(const r of rows){const free=[0,1,2,3,4].filter(col=>!G.board[r][col]);if(free.length){
+    // lean toward the columns where the player's stacks are
+    const mine=stacksOf(0);free.sort((a,b)=>Math.min(9,...mine.map(x=>Math.abs(x.c-a)))-Math.min(9,...mine.map(x=>Math.abs(x.c-b))));
+    G.board[r][free[0]]={owner:pl,cards:[c],moved:false,attacked:false};return true}}
+  // no room: a stronger soul replaces the weakest stack still standing on the Horde's lines, which fades back into the Ether
+  let weak=null;for(const r of rows)for(let col=0;col<COLS;col++){const st=G.board[r][col];if(st&&st.owner===pl&&!st.cards.some(x=>x.captured&&x.captured.length)&&(!weak||stackRate(st)<stackRate(weak.st)))weak={st,r,col}}
+  if(weak&&stackRate(weak.st)<rate(c)){G.board[weak.r][weak.col]={owner:pl,cards:[c],moved:false,attacked:false};return true}
+  return false;
+}
+function endSurvival(){
+  G.over=true;const n=Math.max(0,G.round-1);
+  log(`<b>The Horde takes the field.</b> You survived ${n} round${n===1?"":"s"}.`,"win");render();
+  $("#ov").className="";
+  $("#ov").innerHTML=`<div class="ovbox"><p class="bl roundbig">${roman(n)}</p><h2>You survived ${n} round${n===1?"":"s"}</h2><p class="dim">Your last card on the field fell in round ${roman(Math.max(1,G.round))}.</p><p><button class="btn" id="again">Play again</button></p></div>`;
+  $("#ov").hidden=false;$("#again").onclick=showStart;
+}
+
+/* ---------------- drawings: platonic solids, dice, moon, cards ---------------- */
+const poly=(n,r,rot,cx=0,cy=0)=>Array.from({length:n},(_,i)=>{const a=rot*Math.PI/180+i*2*Math.PI/n;return[+(cx+r*Math.cos(a)).toFixed(2),+(cy+r*Math.sin(a)).toFixed(2)]});
+const ring=p=>"M"+p.map(q=>q.join(",")).join("L")+"Z";
+const seg=(a,b)=>`M${a.join(",")}L${b.join(",")}`;
+function solidPath(s){
+  if(s==="tetra"){const t=poly(3,9,-90,0,1.5),m=[0,3.2];return ring(t)+t.map(v=>seg(m,v)).join("")}
+  if(s==="cube"){const h=poly(6,9,-90);return ring(h)+[1,3,5].map(i=>seg([0,0],h[i])).join("")}
+  if(s==="octa"){const T=[0,-9.5],Rt=[7,0],B=[0,9.5],Lf=[-7,0],F=[1.6,1.4];return ring([T,Rt,B,Lf])+seg(Lf,F)+seg(F,Rt)+seg(T,F)+seg(B,F)}
+  if(s==="dodeca"){const o=poly(10,9.5,-90),i=poly(5,4.4,-90);return ring(o)+ring(i)+i.map((v,k)=>seg(v,o[2*k])).join("")}
+  if(s==="icosa"){const h=poly(6,9.5,-90),t=poly(3,4.6,-90);let d=ring(h)+ring(t);t.forEach((v,k)=>{const j=2*k;d+=seg(v,h[j])+seg(v,h[(j+1)%6])+seg(v,h[(j+5)%6])});return d}
+  return "";
+}
+function solidSVG(s,color,size){const d=solidPath(s);return `<svg class="sol" viewBox="-11 -11 22 22" width="${size||14}" height="${size||14}" aria-hidden="true"><path d="${d}" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="3.4" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/></svg>`}
+function dieSVG(d){
+  const s=d.s;let shape;
+  if(s===2)shape=`<circle r="9.4"/><circle r="7" class="in"/>`;
+  else if(s===4)shape=`<path d="${ring(poly(3,11,-90,0,2))}"/>`;
+  else if(s===6)shape=`<rect x="-8.6" y="-8.6" width="17.2" height="17.2" rx="1.6"/>`;
+  else if(s===8)shape=`<path d="${ring(poly(4,10.6,-90))}"/><path class="in" d="${seg([-7.5,0],[7.5,0])}"/>`;
+  else if(s===12)shape=`<path d="${ring(poly(5,10.2,-90,0,.6))}"/><path class="in" d="${ring(poly(5,5.6,-90,0,.6))}"/>`;
+  else if(s===20){const h=poly(6,10.4,-90),t=poly(3,6.2,-90,0,.8);let k="";t.forEach((v,i)=>{k+=seg(v,h[2*i])});shape=`<path d="${ring(h)}"/><path class="in" d="${ring(t)+k}"/>`}
+  else shape=`<path d="${ring(poly(4,10,-90))}"/>`;
+  const ty=s===4?4.6:s===12?1.1:s===20?1.3:0;
+  const hi=d.v===s?" max":d.v===1&&s>2?" min":"";
+  return `<svg class="die d${s}${d.x?" x":""}${hi}" viewBox="-12 -12 24 24" width="30" height="30" role="img" aria-label="d${s} rolled ${d.v}">${shape}<text x="0" y="${ty}" dominant-baseline="central" text-anchor="middle">${d.v}</text></svg>`;
+}
+function moonPath(i,r){
+  const f=i/8;if(i===0)return "";if(i===4)return `<circle r="${r}"/>`;
+  const rx=(r*Math.abs(Math.cos(2*Math.PI*f))).toFixed(2);
+  if(f<.5)return `<path d="M0,${-r}A${r},${r} 0 0 1 0,${r}A${rx},${r} 0 0 ${f<.25?0:1} 0,${-r}Z"/>`;
+  return `<path d="M0,${-r}A${r},${r} 0 0 0 0,${r}A${rx},${r} 0 0 ${f>.75?1:0} 0,${-r}Z"/>`;
+}
+function moonSVG(){
+  const m=G.moon,r=24,red=m.blood;
+  const serp=m.lev?`<g clip-path="url(#mclip)" class="serp-wrap"><g class="serp"><path d="M-60,4 q6,-9 12,0 t12,0 t12,0 t12,0 t12,0 t12,0 t12,0 t12,0 t12,0 t12,0" fill="none" stroke="#06140f" stroke-width="3.6" stroke-linecap="round" opacity=".78"/><circle cx="62" cy="4" r="3.2" fill="#06140f" opacity=".8"/></g></g>`:"";
+  const fig=`<circle cx="0" cy="-19" r="3"/><path d="M-1.7,-16 L1.7,-16 L2.8,-10 L5.6,0 L-5.6,0 L-2.8,-10 Z"/><path d="M-1.9,-14.5 L-5,-8 M1.9,-14.5 L4.6,-8.6" stroke-width="1.2" stroke-linecap="round" fill="none"/>`;
+  const woman=m.woman?`<g transform="translate(6,${(r*.55).toFixed(1)})"><g class="woman-rim">${fig}</g><g class="woman">${fig}</g></g>`:"";
+  return `<svg class="moon${red?" red":""}" viewBox="-34 -54 68 86" width="64" height="81" aria-hidden="true">
+<defs><clipPath id="mclip"><circle r="${r}"/></clipPath><radialGradient id="mglow"><stop offset="55%" stop-color="${red?"#ff2a2a":"#fff6dc"}" stop-opacity=".35"/><stop offset="100%" stop-color="${red?"#ff2a2a":"#fff6dc"}" stop-opacity="0"/></radialGradient></defs>
+<circle r="${r+8}" fill="url(#mglow)" class="glow"/>
+<g class="disc"><circle r="${r}" class="dark"/><g class="lit">${moonPath(m.i,r)}</g></g>${serp}${woman}</svg>`;
+}
+function face(c,o={}){
+  const own=o.owner!==undefined?o.owner:c.owner,P=own!=null&&G.p[own]?G.p[own]:null;
+  const col=P?P.color:"#8a8a8a",k=kind(c);
+  const rk=c.rank==="JK"?"Joker":c.rank,su=c.rank==="JK"?"✶":SUITS[c.suit];
+  return `<span class="cf ${c.color} ${o.cls||""}" style="--pc:${col}" title="${esc(nameOf(c))}"><b class="rk${c.rank==="JK"?" jk":""}">${rk}</b><em class="ty">${TYPEWORD[k]}</em><i class="su">${su}</i>${P?`<span class="so">${solidSVG(P.solid,col,o.cls==="sm"?11:13)}</span>`:""}${o.price?`<span class="price">${costOf(c)} mana</span>`:""}</span>`;
+}
+function back(pl){const P=G.p[pl];return `<span class="cb" style="--pc:${P.color}">${solidSVG(P.solid,P.color,15)}</span>`}
+function trayHTML(P,pl){
+  const t=P.tray;
+  if(!t)return `<div class="tray empty" style="--pc:${P.color}"><span class="tl">${esc(P.name)}'s dice</span><div class="dice"><span class="dim">no rolls yet</span></div></div>`;
+  return `<div class="tray" style="--pc:${P.color}"><span class="tl">${esc(t.label)}</span><div class="dice">${t.dice.length?t.dice.map(dieSVG).join(""):'<span class="dim">no dice</span>'}</div></div>${t.line?`<p class="tline">${esc(t.line)}</p>`:""}`;
 }
 
 /* ---------------- UI ---------------- */
 let flashT;
-function flash(t){const f=$("#flash");f.textContent=t;f.hidden=false;clearTimeout(flashT);flashT=setTimeout(()=>f.hidden=true,2600)}
-function modal(title,items,onPick,cancel){
-  $("#ov").innerHTML=`<div class="ovbox"><h2>${esc(title)}</h2><div class="pickrow">${items.map((it,i)=>`<button class="card ${it.cls||""}" data-i="${i}" title="${esc(it.title||"")}">${esc(it.label)}</button>`).join("")}</div>${cancel?`<p><button class="btn ghost" id="mcancel">${esc(cancel)}</button></p>`:""}</div>`;
-  $("#ov").hidden=false;
-  $("#ov").querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{$("#ov").hidden=true;onPick(items[+b.dataset.i].val);render()});
-  if(cancel)$("#mcancel").onclick=()=>{$("#ov").hidden=true;render()};
+function flash(t){const f=$("#flash");if(!f)return;f.textContent=t;f.hidden=false;clearTimeout(flashT);flashT=setTimeout(()=>f.hidden=true,2800)}
+function ovShow(html,cls){const o=$("#ov");o.className=cls||"";o.innerHTML=html;o.hidden=false;const f=o.querySelector("button");if(f)f.focus({preventScroll:true})}
+function ovHide(){const o=$("#ov");o.hidden=true;o.className="";o.innerHTML=""}
+const BOXNAME={limbo:"limbo",outer:"outer",ether:"etherbox",plain:""};
+function askHuman(pl,spec){
+  return new Promise(res=>{
+    const who=G.opts.mode==="local"?`<p class="dim">${esc(G.p[pl].name)} chooses.</p>`:"";
+    if(spec.kind==="yesno"){
+      ovShow(`<div class="ovbox ${spec.id==="woman"?"womanbox":""}"><h2>${spec.title}</h2>${who}<p>${spec.text}</p><p class="acts"><button class="btn" id="qy">${esc(spec.yes)}</button> <button class="btn ghost" id="qn">${esc(spec.no)}</button></p></div>`);
+      $("#qy").onclick=()=>{ovHide();res(true)};$("#qn").onclick=()=>{ovHide();res(false)};return;
+    }
+    const cards=spec.cards;
+    ovShow(`<div class="ovbox ${BOXNAME[spec.box]||""}"><h2>${spec.title}</h2>${who}${spec.sub?`<p class="dim">${esc(spec.sub)}</p>`:""}<div class="pickrow">${cards.map((c,i)=>`<button class="pk" data-i="${i}" aria-label="${esc(nameOf(c))}">${face(c,{owner:spec.box==="outer"?c.darkOwner:c.owner,price:spec.price})}</button>`).join("")}</div>${spec.cancel?`<p><button class="btn ghost" id="mcancel">${esc(spec.cancel)}</button></p>`:""}</div>`);
+    $("#ov").querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{ovHide();res(+b.dataset.i)});
+    if(spec.cancel)$("#mcancel").onclick=()=>{ovHide();res(null)};
+  });
 }
-const PH={setup:"Setup",draw:"Draw",prep:"Prep",attack:"Attack"};
+function viewBox(title,cards,box,note,owners){
+  const groups={};
+  if(box==="ether"){for(const c of cards){const k=/^\d+$/.test(c.rank)?(kind(c)==="grunt"?"Grunts (2–6)":"Infantry (7–10)"):KNAME[kind(c)]+"s";(groups[k]=groups[k]||[]).push(c)}}
+  const body=box==="ether"?Object.keys(groups).map(k=>`<h3>${k} <span class="dim">${groups[k].length}</span></h3><div class="pickrow">${(()=>{const by={};for(const c of groups[k]){const key=c.rank+(c.rank==="JK"?c.color:"");(by[key]=by[key]||[]).push(c)}return Object.values(by).sort((a,b)=>num(a[0])-num(b[0])).map(l=>`<span class="ecount">${face(l[0],{owner:null})}<b>×${l.length}</b></span>`).join("")})()}</div>`).join("")
+    :`<div class="pickrow">${cards.length?cards.map(c=>face(c,{owner:owners?c.darkOwner:c.owner})).join(""):'<p class="dim">Empty.</p>'}</div>`;
+  ovShow(`<div class="ovbox ${BOXNAME[box]||""}"><h2>${title}</h2>${note?`<p class="dim">${note}</p>`:""}${body}<p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
+  $("#mcancel").onclick=ovHide;
+}
+function passScreen(msg){
+  return new Promise(res=>{
+    G.passing=true;render();
+    const P=me();const seen=P.seen;P.seen=false;
+    ovShow(`<div class="ovbox"><h2>${esc(msg)}</h2><p>Pass the device to <b>${esc(P.name)}</b>. The cards stay dark until they confirm.</p>${seen?`<p class="seen">Your hand was seen by Naked Hand.</p>`:""}<p><button class="btn" id="ready">I'm ${esc(P.name)}: show my cards</button></p></div>`,"blackout");
+    $("#ready").onclick=()=>{ovHide();G.passing=false;render();res()};
+  });
+}
+function end(w,why){
+  G.over=true;G.busy=false;log(`<b>${plName(w)} wins</b>: ${why}.`,"win");render();
+  const vsCpu=G.opts.mode==="cpu";const title=vsCpu?(w===0?"You win":"The computer wins"):`${esc(G.p[w].name)} wins`;
+  ovShow(`<div class="ovbox"><h2>${title}</h2><p>${why}.</p><p><button class="btn" id="again">New game</button></p></div>`);$("#again").onclick=showStart;
+}
+const PHASES=[["draw","Draw","roll d4s to draw, or skip"],["prep","Prep","sacrifice, cast, place, move"],["attack","Attack","each stack may attack once"]];
+function canAct(){return G&&!G.over&&!G.busy&&!G.passing&&!me().cpu&&G.active===view()}
+function applyMoonTheme(){
+  const h=document.documentElement,b=!!(G&&G.moon.blood);
+  h.classList.toggle("th-crimson",b);h.classList.toggle("bloodglitch",b);
+  if(window.nwkStatic)window.nwkStatic.level(b?3:1);
+}
+function bars(P){
+  const N=Math.max(1,P.start||P.deck.length||1),n=P.deck.length,fill=Math.min(n,N),extra=Math.max(0,n-N);
+  const blocks=Array.from({length:N},(_,i)=>`<i class="${i<fill?"f":""}"></i>`).join("");
+  const over=extra?`<span class="surplus" style="width:${Math.min(100,extra/N*100).toFixed(2)}%;grid-template-columns:repeat(${Math.min(extra,N)},1fr)">${"<i></i>".repeat(Math.min(extra,N))}</span>`:"";
+  const m=mana(P.i);
+  return `<div class="barrow"><span class="bk">Deck</span><div class="deckbar" style="--pc:${P.color};grid-template-columns:repeat(${N},1fr)" role="img" aria-label="Deck ${n} of ${N}">${blocks}${over}</div><b>${n}${extra?` <small>+${extra}</small>`:""}</b></div>
+<div class="barrow"><span class="bk">Mana</span><div class="manabar" role="img" aria-label="Mana ${m} of ${SOUL_CAP}">${Array.from({length:SOUL_CAP},(_,i)=>`<i class="${i<m?"f":""}"></i>`).join("")}</div><b>${m}/${SOUL_CAP}</b></div>`;
+}
+function pboxHTML(pl,top){
+  const P=G.p[pl],act=pl===G.active&&G.phase!=="setup";
+  const tag=P.cpu==="horde"?"the Horde":P.cpu?`computer · ${P.cpu}`:TRIBES[P.tribe]?`the tribe of ${TRIBES[P.tribe].name}`:"";
+  let h=`<div class="ph" style="--pc:${P.color}">${solidSVG(P.solid,P.color,18)}<b>${esc(P.name)}</b><span class="dim">${esc(tag)}</span>${act?'<span class="turnmark">to play</span>':""}</div>`;
+  if(P.cpu==="horde"){
+    const units=stacksOf(pl).reduce((a,x)=>a+x.st.cards.length,0);
+    h+=`<p class="stats"><span>On the field <b>${units}</b> card${units===1?"":"s"} in <b>${stacksOf(pl).length}</b> stack${stacksOf(pl).length===1?"":"s"}</span></p>`;
+  }else{
+    h+=bars(P);
+    const showHand=top;
+    if(showHand){
+      const open=P.shownUntil&&P.shownUntil===G.turnNo&&!G.passing;
+      h+=`<div class="handrow"><span class="bk">Hand ${P.hand.length}/${HAND_CAP}</span>${P.hand.map(c=>open?face(c,{cls:"sm"}):back(pl)).join("")}${open?'<span class="seenmark">seen</span>':""}</div>`;
+    }else h+=`<p class="stats"><span>Hand <b>${P.hand.length}/${HAND_CAP}</b></span>${P.od?`<span class="odn">overdrawn <b>${P.od}</b></span>`:""}</p>`;
+  }
+  if(top)h+=`<div class="traywrap">${trayHTML(P,pl)}</div>`;
+  return h;
+}
 function render(){
   if(!G)return;
-  const flip=G.active===1;
-  // phase bar
-  $("#phases").innerHTML=G.phase==="setup"?'<span class="on">Setup</span>':["draw","prep","attack"].map(p=>`<span class="${G.phase===p?"on":""}">${PH[p]}</span>`).join('<i>→</i>');
-  $("#who").innerHTML=`<b>${esc(me().name)}</b> · ${G.phase==="setup"?"place your opening cards in your two lines":({draw:"roll d4s to draw, or skip",prep:"place, move, sacrifice, cast",attack:"attack with each stack once"}[G.phase])}`;
+  const V=view(),T=1-V,flip=V===1;
+  document.body.classList.toggle("passing",!!G.passing);
+  // moon
+  const m=G.moon,tags=[];
+  if(m.blood)tags.push('<span class="tag blood">Blood Moon</span>');
+  if(m.lev)tags.push(`<span class="tag lev">Leviathan${survival()?" · "+m.levT:""}</span>`);
+  if(m.woman)tags.push(`<span class="tag woman">Shadow Woman${survival()?" · "+m.womanT:""}</span>`);
+  if(m.crossing)tags.push('<span class="tag cross">The Crossing</span>');
+  const eff=m.crossing?"Players switch sides at the end of this turn":m.blood?"New Moon gifts, Full Moon prices; the dead go to the Outer Darkness":m.i===4?"Toll paid, decks shuffled; no drawing, no necromancy":m.i===0?"1d2 cards from the grave; Clairvoyance and Naked Hand cost 6":"";
+  $("#moon").innerHTML=`${moonSVG()}<div><span class="mname">${MOON[m.i]}</span>${tags.join("")}${eff?`<span class="meff">${eff}</span>`:""}</div>`;
+  // round (survival)
+  const rd=$("#round");rd.hidden=!survival();if(survival())rd.innerHTML=`<span class="label">Round</span><b class="bl">${roman(Math.max(1,G.round))}</b>`;
+  // phases
+  if(G.phase==="setup")$("#phases").innerHTML=`<span class="ph-c on"><b>Setup</b><em>${G.setupStep==="ace"?"click a backline tile for your Ace and Jack":"place any opening cards, then press Done"}</em></span>`;
+  else if(G.phase==="moon")$("#phases").innerHTML=`<span class="ph-c on"><b>Moon</b><em>the ${MOON[m.i]} takes effect</em></span>`;
+  else $("#phases").innerHTML=PHASES.map(([id,n,help])=>`<span class="ph-c ${G.phase===id?"on":""}${id==="draw"&&(G.turnNo===1||G.noDraw)?" skip":""}"><b>${n}</b><em>${help}</em></span>`).join('<i>→</i>');
+  const who=me();
+  $("#who").innerHTML=G.over?"Game over.":G.passing?"Passing the device…":who.cpu?`<b>${esc(who.name)}</b> is playing…`:`<b>${esc(who.name)}</b>${G.opts.mode==="local"?"":" (you)"} to play`;
   // board
   const rows=[...Array(G.rows).keys()];if(flip)rows.reverse();
-  let tgt=[];
-  if(G.sel&&G.mode==="move")tgt=moveTargets();
-  if(G.sel&&G.mode==="attack")tgt=attackTargets();
-  const placeT=G.selHand?(()=>{const o=[];for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(canPlace(G.selHand,r,c))o.push([r,c]);return o})():[];
+  const cols=[...Array(COLS).keys()];if(flip)cols.reverse();
+  let tgt=[];const live=canAct();
+  if(live&&G.sel&&G.mode==="move")tgt=moveTargets();
+  if(live&&G.sel&&G.mode==="attack")tgt=attackTargets();
+  const placeT=[];
+  if(live&&G.phase==="setup"&&G.setupStep==="ace"){for(let c=0;c<COLS;c++)if(!G.board[backRow(G.active)][c])placeT.push([backRow(G.active),c])}
+  else if(live&&G.selHand)for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(canPlace(G.selHand,r,c))placeT.push([r,c]);
   const isT=(r,c,list)=>list.some(([a,b])=>a===r&&b===c);
   $("#board").style.setProperty("--rows",G.rows);
   $("#board").innerHTML=rows.map(r=>{
-    const lineName=r===backRow(G.active)?"your backline":r===frontRow(G.active)?"your frontline":r===backRow(1-G.active)?"enemy backline":r===frontRow(1-G.active)?"enemy frontline":"midline";
-    return `<div class="row ${lineName.replace(/\s/g,"-")}"><span class="rl">${lineName}</span>`+[...Array(COLS).keys()].map(c=>{
+    const lineName=r===backRow(V)?"your backline":r===frontRow(V)?"your frontline":r===backRow(T)?"enemy backline":r===frontRow(T)?"enemy frontline":"midline";
+    const nm=G.opts.mode==="cpu"||survival()?lineName.replace("enemy",survival()?"Horde":"computer's").replace("your","your"):lineName;
+    return `<div class="row ${lineName.replace(/\s/g,"-")}"><span class="rl">${nm}</span>`+cols.map(c=>{
       const st=G.board[r][c];
       const cls=["tile"];if(G.sel&&G.sel.r===r&&G.sel.c===c)cls.push("sel");
       if(isT(r,c,tgt))cls.push(G.mode==="attack"?"tatk":"tmove");if(isT(r,c,placeT))cls.push("tplace");
       let inner="";
       if(st){
         const lead=st.cards.find(x=>kind(x)==="ace")||[...st.cards].sort((a,b)=>nat(b)-nat(a)||kind(b).localeCompare(kind(a)))[0];
-        const mine=st.owner===G.active;
+        const P=G.p[st.owner],mine=st.owner===V;
         const cap=st.cards.reduce((a,x)=>a+capMana(x),0);
-        inner=`<div class="stack ${mine?"mine":"theirs"} ${lead.color}"><span class="lead">${esc(short(lead))}</span>${st.cards.length>1?`<span class="cnt">×${st.cards.length}</span>`:""}<span class="mini">${st.cards.map(short).join(" ")}</span>${st.odds?`<span class="odds ${st.odds}">${st.odds==="adv"?"▲":"▼"}</span>`:""}${cap?`<span class="souls" title="captured souls">✦${cap}</span>`:""}${mine&&(st.moved||st.attacked)&&G.phase!=="setup"?`<span class="used">${st.attacked?"atk":"mv"}</span>`:""}</div>`;
+        inner=`<div class="stack ${mine?"mine":"theirs"} ${lead.color}" style="--pc:${P.color}"><span class="lead"><b class="rk${lead.rank==="JK"?" jk":""}">${lead.rank==="JK"?"Joker":lead.rank}</b><i>${lead.rank==="JK"?"✶":SUITS[lead.suit]}</i></span><em class="ty">${TYPEWORD[kind(lead)]}</em>${st.cards.length>1?`<span class="cnt">×${st.cards.length}</span>`:""}<span class="mini">${st.cards.map(short).join(" ")}</span><span class="so">${solidSVG(P.solid,P.color,12)}</span>${st.odds?`<span class="odds ${st.odds}">${st.odds==="adv"?"▲":"▼"}</span>`:""}${st.hypo?`<span class="hypo" title="Hypostasis: untouchable">◈${st.hypo}</span>`:""}${cap?`<span class="souls" title="captured souls">✦${cap}</span>`:""}${st.owner===G.active&&(st.moved||st.attacked)&&G.phase!=="setup"?`<span class="used">${st.attacked?"atk":"mv"}</span>`:""}</div>`;
       }
       return `<button class="${cls.join(" ")}" data-r="${r}" data-c="${c}" aria-label="${lineName} column ${c+1}${st?", "+st.cards.map(nameOf).join(", "):", empty"}">${inner}</button>`;
     }).join("")+"</div>";
   }).join("");
   $("#board").querySelectorAll(".tile").forEach(b=>b.onclick=()=>tileClick(+b.dataset.r,+b.dataset.c));
-  // players
-  for(const [el,pl] of [["#me",G.active],["#foe",1-G.active]]){
-    const P=G.p[pl];
-    $(el).innerHTML=`<h3>${esc(P.name)}${pl===G.active?" (you)":""}</h3><p class="stats"><span>Deck <b>${P.deck.length}</b></span><span>Hand <b>${P.hand.length}/${HAND_CAP}</b></span><span>Soul pile <b>${mana(pl)}/${SOUL_CAP}</b> mana</span></p>`;
-  }
-  $("#shared").innerHTML=`<button class="link" id="seegrave">Grave: ${G.grave.length}</button> · Ethereal Realm: ${G.ether.length} exiled`;
-  $("#seegrave").onclick=()=>{if(G.grave.length)modal("The grave (shared)",G.grave.map(c=>({label:label(c),title:nameOf(c),cls:c.color,val:0})),()=>{},"Close");else flash("The grave is empty.")};
+  // player boxes
+  $("#foe").innerHTML=pboxHTML(T,true);$("#me").innerHTML=pboxHTML(V,false);
+  $("#me").style.setProperty("--pc",G.p[V].color);$("#foe").style.setProperty("--pc",G.p[T].color);
+  $("#shared").innerHTML=`<button class="link limbo-l" id="seegrave">Grave <b>${G.grave.length}</b></button><button class="link" id="seeether">Ether <b>${G.ether.length}</b></button><button class="link dark-l" id="seedark">Outer Darkness <b>${G.dark.length}</b></button>`;
+  $("#seegrave").onclick=()=>viewBox("The Grave",G.grave,"limbo","Shared by both players. The dead sleep here until something raises them.");
+  $("#seeether").onclick=showEther;
+  $("#seedark").onclick=()=>viewBox("The Outer Darkness",G.dark,"outer","Nothing here returns, except through the shop that opens when Leviathan and the Shadow Woman share the moon. Each card bears the symbol of the player who held it when it fell.",true);
   // hand
-  const P=me();
-  $("#hand").innerHTML=P.hand.length?P.hand.map((c,i)=>`<div class="hc"><button class="card ${c.color} ${G.selHand===c?"on":""}" data-h="${i}" title="${esc(nameOf(c))}: ${kind(c)}, ${nat(c)}${die(c)?" + d"+die(c):""}">${esc(label(c))}</button>${sacrificeAllowed()?`<button class="mini-btn" data-sh="${i}" title="Sacrifice to your soul pile (+${soulOf(c)} mana)">sac +${soulOf(c)}</button>`:""}</div>`).join(""):'<p class="dim">No cards in hand.</p>';
+  const P=G.p[V];
+  $("#handh").textContent=G.opts.mode==="local"?`${P.name}'s hand`:"Your hand";
+  const hidden=G.passing;
+  $("#hand").innerHTML=P.hand.length?P.hand.map((c,i)=>hidden?back(V):`<div class="hc"><button class="cardbtn ${G.selHand===c?"on":""}" data-h="${i}" aria-label="${esc(nameOf(c))}">${face(c)}</button>${live&&sacrificeAllowed()?`<button class="mini-btn" data-sh="${i}" title="Sacrifice to your soul pile (+${soulOf(c)} mana)">sac +${soulOf(c)}</button>`:""}</div>`).join(""):'<p class="dim">No cards in hand.</p>';
   $("#hand").querySelectorAll("[data-h]").forEach(b=>b.onclick=()=>{
-    if(!(G.phase==="setup"||G.phase==="prep")){flash("Cards are placed during setup or the prep phase.");return}
+    if(!canAct())return;
+    if(!(G.phase==="setup"&&G.setupStep==="more"||G.phase==="prep")){flash(G.phase==="setup"?"Place your Ace and Jack first.":"Cards are placed during setup or the prep phase.");return}
     const c=P.hand[+b.dataset.h];G.selHand=G.selHand===c?null:c;G.mode=null;render()});
-  $("#hand").querySelectorAll("[data-sh]").forEach(b=>b.onclick=()=>{sacrifice(P.hand[+b.dataset.sh],"hand");render()});
+  $("#hand").querySelectorAll("[data-sh]").forEach(b=>b.onclick=()=>{if(!canAct())return;sacrifice(P.hand[+b.dataset.sh],"hand");render()});
+  $("#mytray").innerHTML=hidden?"":trayHTML(P,V);
   // controls
   const ctl=[];
-  if(G.phase==="draw")ctl.push(`<button class="btn" id="d4">Roll d4 and draw</button>`);
-  ctl.push(`<button class="btn ghost" id="next">${G.phase==="setup"?"Done setting up":G.phase==="draw"?"To prep phase →":G.phase==="prep"?"To attack phase →":"End turn →"}</button>`);
+  if(live&&G.phase==="draw")ctl.push(`<button class="btn" id="d4" ${P.deck.length?"":"disabled"}>Roll d4 and draw</button>`);
+  if(live&&G.phase!=="moon")ctl.push(`<button class="btn ghost" id="next">${G.phase==="setup"?"Done setting up":G.phase==="draw"?"To prep phase →":G.phase==="prep"?"To attack phase →":"End turn →"}</button>`);
+  ctl.push(`<button class="btn ghost sm" id="snd" aria-pressed="${SND.on}">sound: ${SND.on?"on":"off"}</button>`);
   $("#controls").innerHTML=ctl.join("");
-  if($("#d4"))$("#d4").onclick=()=>{const n=R(4);log(`${esc(me().name)} rolls d4: ${n}.`);draw(G.active,n);render()};
-  $("#next").onclick=nextPhase;
-  // selection panel
-  renderSel();
-  // spells
-  $("#spells").innerHTML=(G.phase==="prep"?"":'<p class="dim">Spells are cast during the prep phase.</p>')+["Necromancy","Enchantment","Curse","Sorcery","Conjuring"].map(sc=>`<h4>${sc}</h4>`+SPELLS.filter(s=>s.school===sc).map(s=>{const ok=G.phase==="prep"&&s.ok()&&mana(G.active)>=s.cost;return `<button class="spell ${ok?"":"off"} ${s.id==="sever"&&me().sevArmed?"armed":""}" data-s="${s.id}" title="${esc(s.text)}"><span>${esc(s.name)}</span><em>${s.cost?s.cost+" mana":"free"}</em></button>`}).join("")).join("");
-  $("#spells").querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>cast(SPELLS.find(s=>s.id===b.dataset.s)));
-  // log
+  if($("#d4"))$("#d4").onclick=()=>{if(!canAct())return;rollDraw();render()};
+  if($("#next"))$("#next").onclick=nextPhase;
+  $("#snd").onclick=()=>{SND.toggle();render()};
+  renderSel(live);
+  renderSpells(live);
   $("#log").innerHTML=G.log.map(l=>`<li class="${l.cls}">${l.html}</li>`).join("");
 }
-function renderSel(){
+function renderSpells(live){
+  const box=$("#spells");
+  if(survival()&&false)return;
+  const m=G.moon;
+  box.classList.toggle("bloodmoon",!!m.blood);
+  const P=me(),od=G.p[G.active].od;
+  const head=!live?`<p class="dim">${G.passing?"":me().cpu?"The computer is casting.":"Spells are cast during your prep phase."}</p>`:G.phase==="prep"?"":'<p class="dim">Spells are cast during the prep phase.</p>';
+  box.innerHTML=head+SCHOOLS.map(sc=>`<h4>${sc}</h4>`+SPELLS.filter(s=>s.school===sc&&!(survival()&&["forced","double","three","naked"].includes(s.id))).map(s=>{
+    const ok=live&&spellReady(s),cost=spellCost(s);
+    let moon="";if((s.id==="clair"||s.id==="naked")){if(newPrices())moon="moon-dark";else if(fullPrices())moon="moon-bright"}
+    let extra="";if(s.id==="bless"&&od)extra=`<small class="odpen ${od>6?"big":""}">−${od}d6 max</small>`;
+    const block=spellBlock(s);
+    return `<button class="spell ${ok?"":"off"} ${moon} ${s.school==="Necromancy"?"nec":""} ${s.id==="sever"&&P.sevArmed?"armed":""}" data-s="${s.id}" title="${esc(block||s.text)}"><span>${esc(s.name)}${extra}</span><em>${s.id==="hypo"&&!selOwn()?"3+":cost?cost+" mana":"free"}</em></button>`}).join("")+(sc==="Conjuring"?`<button class="link souls-l" id="showsouls">show available souls</button>`:"")).join("");
+  box.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{if(!canAct())return;cast(SP(b.dataset.s))});
+  $("#showsouls").onclick=showEther;
+}
+function showEther(){viewBox("The Ether: Souls to Materially Conjure",G.ether,"ether",`${G.ether.length} souls wait in the Ether for a conjuring. Flesh Severance sends exiled souls back here.`)}
+function renderSel(live){
   const box=$("#selbox"),st=selStack();
+  if(G.phase==="setup"&&G.setupStep==="ace"&&live){box.innerHTML=`<p>Your Ace rises with a Jack inside it. Click a highlighted tile on your backline.</p>`;return}
   if(G.selHand){box.innerHTML=`<p><b>${esc(nameOf(G.selHand))}</b> selected. Click a highlighted tile in your two lines to place it${kind(G.selHand)==="ace"?" (Aces go on an empty backline tile)":kind(G.selHand)==="joker"?" (Jokers spawn onto your stack holding a card of the same color)":""}.</p>`;return}
   if(!st){box.innerHTML='<p class="dim">Select a stack on the board, or a card in your hand.</p>';return}
-  const mine=st.owner===G.active,s=G.sel;
+  const mine=st.owner===G.active&&live,s=G.sel;
   const rows=st.cards.map(c=>{
     const k=kind(c),cap=capMana(c);
-    const chk=mine&&k!=="ace"&&G.phase!=="attack"?`<input type="checkbox" data-pk="${c.id}" ${s.pick.has(c.id)?"checked":""} aria-label="include ${esc(nameOf(c))} in the moving group">`:"";
-    const sac=mine&&sacrificeAllowed()&&k!=="ace"&&!(k==="king"&&st.cards.length>1)?`<button class="mini-btn" data-sc="${c.id}">sac +${soulOf(c)}</button>`:"";
-    return `<li>${chk}<span class="card sm ${c.color}">${esc(short(c))}</span> ${esc(k)} · ${nat(c)}${die(c)?" + d"+die(c):""}${cap?` · ✦${cap} captured`:""} ${sac}</li>`}).join("");
+    const chk=mine&&k!=="ace"&&G.phase==="prep"?`<input type="checkbox" data-pk="${c.id}" ${s.pick.has(c.id)?"checked":""} aria-label="include ${esc(nameOf(c))} in the moving group">`:"";
+    const sac=mine&&sacrificeAllowed()&&canSacOnField(st,c)?`<button class="mini-btn" data-sc="${c.id}">sac +${soulOf(c)}</button>`:"";
+    return `<li>${chk}${face(c,{cls:"sm"})} ${esc(TYPEWORD[k])} · ${nat(c)}${die(c)?" + d"+die(c):""}${cap?` · ✦${cap} captured`:""} ${sac}</li>`}).join("");
   const acts=[];
-  if(mine&&(G.phase==="prep"||G.phase==="setup")&&G.phase!=="setup")acts.push(`<button class="btn sm ${G.mode==="move"?"on":""}" id="mv" ${st.moved?"disabled":""}>Move checked cards</button>`);
+  if(mine&&G.phase==="prep")acts.push(`<button class="btn sm ${G.mode==="move"?"on":""}" id="mv" ${st.moved?"disabled":""}>Move checked cards</button>`);
   if(mine&&G.phase==="attack")acts.push(`<button class="btn sm ${G.mode==="attack"?"on":""}" id="ak" ${canAttackFrom(st)?"":"disabled"}>Attack</button>`);
-  box.innerHTML=`<p><b>${mine?"Your":"Enemy"} stack</b> · ${st.cards.length} card${st.cards.length>1?"s":""}${st.odds?` · ${st.odds==="adv"?"Divine Odds":"Hexed Odds"}`:""}${mine&&st.moved?" · moved":""}${mine&&st.attacked?" · attacked":""}</p><ul class="cards">${rows}</ul><div class="acts">${acts.join("")}</div>${mine&&G.phase==="prep"?'<p class="dim">Check which cards move together, then press Move and click a highlighted tile.</p>':""}${mine&&G.phase==="attack"?'<p class="dim">Press Attack, then click a highlighted enemy stack.</p>':""}`;
+  const owner=G.p[st.owner].name;
+  box.innerHTML=`<p><b>${st.owner===G.active?"Your":esc(owner)+"'s"} stack</b> · ${st.cards.length} card${st.cards.length>1?"s":""}${st.odds?` · ${st.odds==="adv"?"Divine Odds":"Hexed Odds"}`:""}${st.hypo?` · Hypostasis (${st.hypo})`:""}${st.moved?" · moved":""}${st.attacked?" · attacked":""}</p><ul class="cards">${rows}</ul><div class="acts">${acts.join("")}</div>${mine&&G.phase==="prep"?'<p class="dim">Check which cards move together, then press Move and click a highlighted tile.</p>':""}${mine&&G.phase==="attack"?'<p class="dim">Press Attack, then click a highlighted enemy stack.</p>':""}`;
   box.querySelectorAll("[data-pk]").forEach(i=>i.onchange=()=>{const id=+i.dataset.pk;i.checked?s.pick.add(id):s.pick.delete(id);G.mode=null;render()});
   box.querySelectorAll("[data-sc]").forEach(b=>b.onclick=()=>{const c=st.cards.find(x=>x.id===+b.dataset.sc);sacrifice(c,{r:s.r,c:s.c});render()});
-  if($("#mv"))$("#mv").onclick=()=>{G.mode=G.mode==="move"?null:"move";if(G.mode&&!moveTargets().length)flash("No legal move for that group (check stacking limits).");render()};
+  if($("#mv"))$("#mv").onclick=()=>{G.mode=G.mode==="move"?null:"move";if(G.mode&&!moveTargets().length)flash(st.hypo?"Under Hypostasis a stack can only move sideways or back.":"No legal move for that group (check stacking limits).");render()};
   if($("#ak"))$("#ak").onclick=()=>{G.mode=G.mode==="attack"?null:"attack";if(G.mode&&!attackTargets().length)flash("No enemy stack is in reach.");render()};
 }
 function tileClick(r,c){
-  if(G.over)return;
-  if(G.selHand){if(canPlace(G.selHand,r,c)){place(G.selHand,r,c);render()}else flash("That card can't be placed there.");return}
-  if(G.sel&&G.mode==="move"&&moveTargets().some(([a,b])=>a===r&&b===c)){doMove(r,c);render();return}
-  if(G.sel&&G.mode==="attack"&&attackTargets().some(([a,b])=>a===r&&b===c)){attack(G.sel.r,G.sel.c,r,c);G.mode=null;if(G.sel&&!G.board[G.sel.r][G.sel.c])G.sel=null;render();return}
+  if(!G||G.over||G.passing)return;
+  const live=canAct();
+  if(live&&G.phase==="setup"&&G.setupStep==="ace"){
+    if(r===backRow(G.active)&&!G.board[r][c]){placeOpening(G.active,r,c);render()}else flash("Your Ace goes on an empty tile of your backline.");return}
+  if(live&&G.selHand){if(canPlace(G.selHand,r,c)){place(G.selHand,r,c);render()}else flash("That card can't be placed there.");return}
+  if(live&&G.sel&&G.mode==="move"&&moveTargets().some(([a,b])=>a===r&&b===c)){doMove(r,c);render();return}
+  if(live&&G.sel&&G.mode==="attack"&&attackTargets().some(([a,b])=>a===r&&b===c)){attack(G.sel.r,G.sel.c,r,c);G.mode=null;if(G.sel&&!G.board[G.sel.r][G.sel.c])G.sel=null;render();return}
+  if(G.busy)return;
   const st=G.board[r][c];
   if(!st){G.sel=null;G.mode=null;render();return}
   G.sel={r,c,pick:new Set(st.cards.filter(x=>kind(x)!=="ace").map(x=>x.id))};G.mode=null;render();
 }
 
-/* ---------------- start ---------------- */
+/* ---------------- card and spell info ---------------- */
+const INFO={
+ grunt:["Grunt","2 to 6",[["Score","its number + 1d6 on attack; its number alone on defense (+1d6 with a Queen)"],["Dice Max / MSV","6 / 24: four Grunts stack together"],["Soul","1 mana"],["Conjure","Soldier Conjure, 1 mana"],["Moves","one tile straight per turn"]],"The foot soldiers. Every card in a stack is one more hit it can take, and damage always removes the lowest card first."],
+ infantry:["Infantry","7 to 10",[["Score","its number + 1d8 on attack; its number alone on defense (+1d8 with a Queen)"],["Dice Max / MSV","8 / 24: three Infantry stack together"],["Soul","1 mana"],["Conjure","Soldier Conjure, 1 mana"],["Moves","one tile straight per turn"]],"Heavier soldiers. They mix with Grunts, Jacks, Kings and Queens as long as the stacking formula holds."],
+ jack:["Jack (Knight)","J",[["Score","10 + 1d12 on attack"],["Defense","cannot defend: a Jack adds nothing to its stack's defense"],["Dice Max / MSV","12 / 24: stacks with two Grunts or one Infantry"],["Moves","two tiles straight, or one diagonal, when only Jacks move"],["Attacks","a stack of only Jacks may also attack diagonally"],["Soul","1 mana · Jack Conjure, 1 mana"]],"Every player opens the game with a Jack inside their Ace. Move it out to fight."],
+ queen:["Queen","Q",[["Score","0, no die of her own"],["Gift","everyone stacked with her rolls their dice on defense as well as attack"],["King","a King stacked with her takes no penalty for rolling a 1"],["Limits","one Queen per stack; no Dice Max or MSV; she cannot attack alone"],["Soul","2 mana · Queen Conjure, 2 mana"]],"The heart of a defensive stack. Pair her with a King to bunker down."],
+ king:["King","K",[["Score","11 + 1d20 on attack"],["Rolls","a 20 deals double damage (or takes none on a failed attack); a 1 deals no damage on a win and takes two on a loss, unless a Queen is with him"],["Alone","cannot attack"],["Defeated in defense","every card stacked with him dies"],["Dice Max / MSV","20 / 28: lower cards adopt his MSV"],["Soul","2 mana · King Conjure, 2 mana · can't be sacrificed from a stack"]],"The strongest attacker, and the most dangerous to lose."],
+ ace:["Ace","A",[["Defense","11 + 1d20 when attacked; cards inside it don't roll on defense"],["Limits","cannot move or attack; only on an empty backline tile; holds up to six cards"],["Falls","if the Ace takes damage, it and every card inside it are destroyed; on a roll of 1 it deals no damage back"],["Grave Blessing","+1d6 for each Ace you have on the field"],["Soul","3 mana · Ace Conjure, 3 mana · can't be sacrificed on the field, except to the Full Moon"],["Opening","each player starts with an Ace from their deck on a backline tile of their choice, holding a Jack"]],"A fortress and a grave-caller. Hard computers stack Aces to roll more Grave Blessing dice."],
+ joker:["Joker (Necromancer)","Joker",[["Score","alone, copies the score and die of the enemy's leading card; Jokers can't kill Jokers"],["Spawns","only onto your stack holding a card of the same color (red or black)"],["Soul Capture","enemies that die on the 8 tiles around it, or its own tile, are held inside it, up to 6 mana of souls"],["Held souls","it keeps them until it dies (it and its souls go to the grave, unless an enemy Joker beside it steals them) or until Sacrificial Suicide moves them to your soul pile"],["Blood Moon","a Joker that shoots itself under a Blood Moon sends itself and every soul it held to the Outer Darkness"],["Leviathan","its suicide still pays the mana, but the Joker and its souls end in the Outer Darkness"],["Shadow Woman","its suicide can instead return its souls to your deck, with 1d4 grave cards and one soul from the Ether"],["Both on the moon","a suicide opens the Outer Darkness shop"],["Survival","Horde Jokers capture your souls; when one shoots itself those cards go to the Outer Darkness and you lose 1 mana"],["Soul","1 mana · Joker Conjure, 2 mana"]],"The necromancer of the deck, and the only way to turn kills into mana."]
+};
+function infoHTML(){
+  const tabs=Object.keys(INFO).map((k,i)=>`<button class="itab ${i===0?"on":""}" data-k="${k}">${INFO[k][0]}</button>`).join("");
+  const spells=SCHOOLS.map(sc=>`<h4>${sc}</h4><dl>`+SPELLS.filter(s=>s.school===sc).map(s=>`<dt>${esc(s.name)} <span>${s.id==="hypo"?"3 + 1 per extra card":s.cost?s.cost+" mana":"free"}</span></dt><dd>${esc(s.text)}</dd>`).join("")+"</dl>").join("");
+  return `<details class="cinfo"><summary>Card info</summary><div class="itabs">${tabs}</div><div id="ibody"></div></details>
+<details class="cinfo"><summary>Spells explained</summary><div class="spellinfo">${spells}<p class="dim">New Moon: Clairvoyance and Naked Hand cost 6. Full Moon: Clairvoyance costs 2, Naked Hand is free, and no necromancy is cast. Blood Moon: Full Moon prices with no Full Moon drawbacks; necromancy is allowed.</p></div></details>`;
+}
+function infoBody(k){const [t,rk,rows,note]=INFO[k];return `<h4>${t} <span class="bl">${rk}</span></h4><table>${rows.map(([a,b])=>`<tr><th>${a}</th><td>${b}</td></tr>`).join("")}</table><p class="dim">${note}</p>`}
+function mountInfo(){
+  const box=$("#info");if(!box)return;box.innerHTML=infoHTML();$("#ibody").innerHTML=infoBody("grunt");
+  box.querySelectorAll(".itab").forEach(b=>b.onclick=()=>{box.querySelectorAll(".itab").forEach(x=>x.classList.toggle("on",x===b));$("#ibody").innerHTML=infoBody(b.dataset.k)});
+}
+
+/* ---------------- start screen ---------------- */
+const MODES=[
+ ["local","Local 1v1","Two players share one device. The board turns to whoever is playing, and the screen goes dark while you pass it."],
+ ["cpu","Versus Computer","Play a coded opponent at Easy, Medium or Hard. It weighs offense against defense every turn."],
+ ["survival","Survival","Hold the line alone against a Horde that grows every round. Count the rounds you last."]];
+let startMode=null;
+function playerForm(n,label,defColor,defSolid,defTribe){
+  return `<fieldset class="pf"><legend>${label}</legend>
+<label class="f">Name <input id="nm${n}" value="${label}" maxlength="20"></label>
+<div class="f"><span>Tribe</span><div class="opts">${Object.entries(TRIBES).map(([k,t])=>`<label class="opt"><input type="radio" name="tr${n}" value="${k}" ${k===defTribe?"checked":""}><span>${t.name}<small>${t.sub}</small></span></label>`).join("")}</div></div>
+<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex],i)=>`<label class="sw" title="${nm}"><input type="radio" name="co${n}" value="${hex}" ${i===defColor?"checked":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}</div></div>
+<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" value="${k}" ${k===defSolid?"checked":""}><span>${solidSVG(k,"#f3d6a6",26)}<em>${nm}</em></span></label>`).join("")}</div></div>
+</fieldset>`;
+}
+const val=name=>{const e=document.querySelector(`input[name="${name}"]:checked`);return e&&e.value};
 function showStart(){
-  $("#ov").innerHTML=`<div class="ovbox"><h2>New game</h2>
-  <p class="dim">Two players share this device. Each turn the board turns so the active player sits at the bottom.</p>
-  <label class="f">Player one <input id="n1" value="Player One" maxlength="20"></label>
-  <label class="f">Player two <input id="n2" value="Player Two" maxlength="20"></label>
-  <label class="chk"><input type="checkbox" id="omid" checked> Use the midline</label>
-  <label class="chk"><input type="checkbox" id="olock"> Optional Ace rule: cards inside an Ace must match its color</label>
-  <p><button class="btn" id="go">Roll for the opening</button></p></div>`;
-  $("#ov").hidden=false;
+  if(G)G.over=true;
+  document.documentElement.classList.remove("th-crimson","bloodglitch");if(window.nwkStatic)window.nwkStatic.level(1);
+  const q=new URLSearchParams(location.search).get("mode");
+  if(!startMode&&MODES.some(m=>m[0]===q))startMode=q;
+  if(!startMode){
+    ovShow(`<div class="ovbox wide"><h2>New game</h2><p class="dim">Choose how to play.</p><div class="modes">${MODES.map(([k,t,s])=>`<button class="mode" data-m="${k}"><b>${t}</b><span>${s}</span></button>`).join("")}</div><p class="dim">Online play is not here yet.</p></div>`);
+    document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{startMode=b.dataset.m;showStart()});return;
+  }
+  const mode=startMode,M=MODES.find(m=>m[0]===mode);
+  const forms=mode==="local"?playerForm(1,"Player One",0,"tetra","binah")+playerForm(2,"Player Two",3,"icosa","tiph"):playerForm(1,mode==="survival"?"Survivor":"Player One",0,"tetra","binah");
+  const diff=mode==="cpu"?`<fieldset class="pf"><legend>Computer</legend><div class="opts">${[["easy","Easy","an easier version: it plays loosely and misses chances"],["medium","Medium","balanced, and a real fight"],["hard","Hard","goes all out on your field and your deck"]].map(([k,t,s],i)=>`<label class="opt"><input type="radio" name="diff" value="${k}" ${i===1?"checked":""}><span>${t}<small>${s}</small></span></label>`).join("")}</div></fieldset>`:"";
+  const options=`<fieldset class="pf"><legend>Rule options</legend>
+${mode==="survival"?'<p class="dim">Survival always uses the midline.</p>':'<label class="chk"><input type="checkbox" id="omid" checked> Use the midline</label>'}
+<label class="chk"><input type="checkbox" id="olock"> Optional Ace rule: cards inside an Ace must match its color</label>
+<label class="chk"><input type="checkbox" id="oins"> <span><b>Insanity</b> <em class="warn">not for beginners</em><small>Blood Moon 10%, Leviathan 5%, Shadow Woman 5% at every Full Moon, and each player starts with a Joker from the Ether in hand.</small></span></label>
+<label class="chk"><input type="checkbox" id="oblood"> <span><b>Blood Moon mode</b><small>The game opens on a Blood Moon. Each deck is shuffled and two thirds of it go to the grave; each player starts with a Joker in hand.</small></span></label>
+</fieldset>`;
+  ovShow(`<div class="ovbox wide"><h2>${M[1]}</h2><p class="dim">${M[2]}</p>${forms}${diff}${options}<p class="acts"><button class="btn" id="go">${mode==="survival"?"Raise your Ace":"Roll for the opening"}</button> <button class="btn ghost" id="back">← Other modes</button> <a class="dim" href="ethers-crossroads-rules.html#modes">How the modes work</a></p></div>`);
+  $("#back").onclick=()=>{startMode=null;history.replaceState(null,"",location.pathname);showStart()};
   $("#go").onclick=()=>{
-    newGame({names:[$("#n1").value.trim()||"Player One",$("#n2").value.trim()||"Player Two"],mid:$("#omid").checked,aceLock:$("#olock").checked});
-    for(const pl of [0,1]){const a=R(4),b=R(4);log(`${esc(G.p[pl].name)} rolls 2d4: ${a} + ${b}.`);draw(pl,a+b,"opening hand")}
-    let r1,r2;do{r1=R(6);r2=R(6)}while(r1===r2);
-    G.first=r1>r2?0:1;G.active=G.first;
-    log(`Opening roll: ${esc(G.p[0].name)} ${r1}, ${esc(G.p[1].name)} ${r2}. ${esc(me().name)} sets up first and takes the first turn.`);
-    pass(`${me().name} sets up first`);
+    const pl=n=>({name:($("#nm"+n).value.trim()||(n===1?"Player One":"Player Two")).slice(0,20),tribe:val("tr"+n),color:val("co"+n),solid:val("so"+n)});
+    let players;
+    if(mode==="local"){players=[pl(1),pl(2)];if(players[0].color===players[1].color){flash("Pick two different colors.");return}}
+    else if(mode==="cpu"){const a=pl(1),d=val("diff");
+      const tribe=a.tribe==="binah"?"tiph":"binah",color=pick(COLORS.map(c=>c[1]).filter(c=>c!==a.color)),solid=pick(Object.keys(SOLIDS).filter(s=>s!==a.solid));
+      players=[a,{name:`The ${TRIBES[tribe].name} computer`,tribe,color,solid,cpu:d}]}
+    else{const a=pl(1);players=[a,{name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>s!==a.solid)),cpu:"horde"}]}
+    startGame({mode,players,mid:mode==="survival"||!!($("#omid")&&$("#omid").checked),aceLock:$("#olock").checked,insanity:$("#oins").checked,bloodStart:$("#oblood").checked});
   };
 }
-document.addEventListener("DOMContentLoaded",()=>{showStart();$("#newgame").onclick=()=>{if(!G||G.over||confirmNew())showStart()}});
-function confirmNew(){return window.confirm?window.confirm("Start a new game? The current one will be lost."):true}
-window.__EC={get G(){return G},stackLegal,canPlace,nextPhase,render};
+function startGame(opts){
+  ovHide();newGame(opts);applyMoonTheme();render();
+  opening().catch(e=>{console.error(e);log("Error: "+esc(e.message))});
+}
+document.addEventListener("DOMContentLoaded",()=>{
+  mountInfo();showStart();
+  $("#newgame").onclick=()=>{if(!G||G.over||(window.confirm?window.confirm("Start a new game? The current one will be lost."):true)){startMode=null;showStart()}};
+});
+window.__EC={get G(){return G},startGame,stackLegal,canPlace,nextPhase,render,AI,SP,cast,SPELLS,hordeSpawn,roman,moonSVG,
+  force(o){G.forceMoon=o},runCpu,jokerSuicide,mk};
+
 })();

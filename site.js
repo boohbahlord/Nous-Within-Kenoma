@@ -5,7 +5,7 @@
      Level comes from <body data-static="0-4">; the reader can only switch it off (bottom-right button). */
 (function(){
   const NS="http://www.w3.org/2000/svg",R=Math.random;
-  const body=document.body,fx=(body.dataset.fx||"").split(/\s+/),LV=+(body.dataset.static||0);
+  const body=document.body,fx=(body.dataset.fx||"").split(/\s+/);let LV=+(body.dataset.static||0);
   const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
   function el(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
 
@@ -48,7 +48,7 @@
   /* ---------- static ---------- */
   const KEY="nwk-static";
   let on=true;try{on=localStorage.getItem(KEY)!=="off"}catch(e){}
-  const ALPHA=[0,.035,.065,.1,.13][LV]||0;
+  let ALPHA=[0,.035,.065,.1,.13][LV]||0;
   let cv,ctx,img,scan,roll,flash,raf=0,last=0,nextFlick=0;
   function buildStatic(){
     cv=document.createElement("canvas");cv.className="static";cv.width=300;cv.height=Math.max(120,Math.round(300*innerHeight/Math.max(1,innerWidth)));cv.setAttribute("aria-hidden","true");
@@ -79,16 +79,27 @@
     if(roll){const p=(t/9000)%1;roll.style.top=(p*130-30)+"vh"}
     flick(t);
   }
-  function start(){if(!cv)buildStatic();cv.hidden=scan.hidden=false;if(roll)roll.hidden=false;noise();if(!reduce&&!raf){nextFlick=performance.now()+2000;raf=requestAnimationFrame(loop)}}
+  function start(){if(!cv)buildStatic();cv.hidden=scan.hidden=false;if(roll)roll.hidden=LV<3;noise();if(!reduce&&!raf){nextFlick=performance.now()+2000;raf=requestAnimationFrame(loop)}}
   function stop(){cancelAnimationFrame(raf);raf=0;if(cv){cv.hidden=scan.hidden=true;if(roll)roll.hidden=true;flash.style.opacity=0}}
+  let btn=null;
   function toggleButton(){
-    const b=document.createElement("button");b.type="button";b.className="static-toggle";
+    if(btn)return;const b=btn=document.createElement("button");b.type="button";b.className="static-toggle";
     const label=()=>{b.textContent="static: "+(on?"on":"off");b.setAttribute("aria-pressed",on)};label();
     b.addEventListener("click",()=>{on=!on;try{localStorage.setItem(KEY,on?"on":"off")}catch(e){}on?start():stop();label()});
     body.appendChild(b);
   }
   document.addEventListener("visibilitychange",()=>{if(!LV||!on)return;if(document.hidden){cancelAnimationFrame(raf);raf=0}else if(!reduce&&!raf)raf=requestAnimationFrame(loop)});
 
+  /* pages can raise or lower the static while open (the game's Blood Moon does) */
+  window.nwkStatic={level(n){
+    n=Math.max(0,Math.min(4,n|0));if(n===LV)return;LV=n;ALPHA=[0,.035,.065,.1,.13][LV]||0;
+    if(!LV){stop();return}
+    toggleButton();if(!cv)buildStatic();
+    scan.style.opacity=(.25+LV*.12).toFixed(2);
+    if(LV>=3&&!roll){roll=document.createElement("div");roll.className="roll";body.prepend(roll)}
+    if(roll)roll.hidden=LV<3||!on;
+    if(on)start();
+  }};
   function go(){
     drawStrings();boxBars();
     if(LV>0){toggleButton();if(on)start()}
