@@ -7,7 +7,7 @@
 <link rel="preload" href="cascadia-code-latin-200-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="site.css">
 <link rel="preload" href="grenze-gotisch-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="ethers-crossroads.css?v=3">
+<link rel="stylesheet" href="ethers-crossroads.css?v=4">
 <script src="site.js" defer></script>
 </head>
 <body data-static="1" data-fx="strings bars">
@@ -25,10 +25,11 @@
   <div id="foe" class="pbox"></div>
   <div id="board"></div>
   <div id="me" class="pbox"></div>
+  <div id="handslot"></div>
   <p id="shared"></p>
 </section>
 <aside class="gside">
-  <div><h3 id="handh">Your hand</h3><div id="hand"></div><div id="mytray" class="traywrap" aria-live="polite"></div></div>
+  <div id="sidehand"><div id="handwrap"><h3 id="handh">Your hand</h3><div id="hand"></div><div id="mytray" class="traywrap" aria-live="polite"></div></div></div>
   <div><h3>Selected</h3><div id="selbox"></div></div>
   <div><h3>Spells</h3><div id="spells"></div></div>
 </aside>
@@ -36,9 +37,15 @@
 <section id="info" aria-label="Card and spell info"></section>
 <h3 class="label" style="margin:22px 0 6px">Log</h3>
 <ol id="log"></ol>
+<section id="quotes" aria-label="Passages from the book">
+  <h3 class="label">From the book</h3>
+  <div class="qbox" tabindex="0"><p id="qtext"></p><p id="qsrc" class="dim"></p></div>
+  <button class="btn ghost sm" id="qnext" type="button">Another passage</button>
+</section>
 </main>
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
-<script src="ethers-crossroads.js?v=3"></script>
+<script src="ethers-crossroads-quotes.js?v=4"></script>
+<script src="ethers-crossroads.js?v=4"></script>
 </body>
 </html>

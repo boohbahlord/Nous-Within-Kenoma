@@ -215,6 +215,10 @@ function attack(r1,c1,r2,c2){
   const bothSoloJokers=A.cards.length===1&&D.cards.length===1&&kind(A.cards[0])==="joker"&&kind(D.cards[0])==="joker";
   const ra=rollStack(A,"atk",D,fxA),rd=rollStack(D,"def",A,fxD);
   A.odds=null;D.odds=null;A.attacked=true;
+  if(G.opts.moonBonus!==false&&!bothSoloJokers){   // the moon lends a die: Full Moon to the attacker, New Moon to the defender
+    if(G.moon.i===4){const v=R(2);ra.total+=v;ra.dice.push({s:2,v});ra.parts.push(`${G.moon.blood?"Blood":"Full"} Moon +${v}`)}
+    if(G.moon.i===0){const v=R(2);rd.total+=v;rd.dice.push({s:2,v});rd.parts.push(`New Moon +${v}`)}
+  }
   const queenA=hasK(A,"queen");
   let dmgD=0,dmgA=0,notes=[];
   if(bothSoloJokers){notes.push("Jokers cannot kill Jokers.")}
@@ -265,7 +269,10 @@ function bury(card,r,c,st){
   const j=adjacentJokers(r,c,enemy).find(j=>capMana(j)+soulOf(card)<=SOUL_CAP);
   if(j){
     const P=G.p[enemy];
-    if(P.sevArmed&&enemy===G.active&&mana(enemy)>=costOf(card)){pay(enemy,costOf(card));card.owner=null;G.ether.push(card);log(`Flesh Severance: ${esc(nameOf(card))} is exiled to the Ether.`);return}
+    if(P.sevArmed&&enemy===G.active){ // half the conjuring price of everything severed this turn, rounded up
+      const charge=Math.ceil((G.sevSum+costOf(card))/2)-Math.ceil(G.sevSum/2);
+      if(mana(enemy)>=charge){if(charge)pay(enemy,charge);G.sevSum+=costOf(card);card.owner=null;G.ether.push(card);log(`Flesh Severance: ${esc(nameOf(card))} is exiled to the Ether (${charge} mana).`);return}
+    }
     (j.captured=j.captured||[]).push(card);log(`Soul Capture: a Joker takes the soul of ${esc(nameOf(card))}.`);return;
   }
   toGrave(card,"death");
@@ -359,7 +366,7 @@ async function fullMoonToll(){
 }
 /* ---------------- turns ---------------- */
 async function startTurn(){
-  G.turnNo++;Object.assign(G,{spent:false,spentOther:false,blessed:false,ritual:0,sel:null,selHand:null,mode:null,noDraw:false});
+  G.turnNo++;Object.assign(G,{spent:false,spentOther:false,blessed:false,ritual:0,sel:null,selHand:null,mode:null,noDraw:false,sevSum:0});
   for(const {st} of stacksOf(G.active)){st.moved=false;st.attacked=false;if(st.hypo){st.hypo--;if(!st.hypo)log(`Hypostasis fades from ${plName(G.active)}'s stack.`)}}
   me().sevArmed=false;
   if(survival()&&isHorde(G.active))G.round++;
@@ -398,7 +405,17 @@ function rollDraw(){
 }
 
 /* ---------------- opening ---------------- */
+function startMana(pl,shared){
+  const sm=G.opts.startMana||"3d2";if(sm==="none")return;
+  let d=shared;
+  if(!d)d=sm==="3d2"?rollN(3,2):sm==="1d6"?rollN(1,6):[];
+  const n=d.length?sum(d):Math.min(SOUL_CAP,+sm||0);let got=0;
+  for(let i=0;i<n&&mana(pl)<SOUL_CAP;i++){const j=G.ether.findIndex(c=>/^\d+$/.test(c.rank));if(j<0)break;const c=G.ether.splice(j,1)[0];addSoul(pl,c);got++}
+  if(d.length)tray(pl,"Starting mana",d,`${got} mana`,true);
+  log(`${plName(pl)} starts with ${got} mana${d.length?` (${sm}: ${d.map(x=>x.v).join(" + ")})`:""}.`);
+}
 function deal(){
+  const sm=G.opts.startMana||"3d2",shared=!G.opts.manaEach&&(sm==="3d2"||sm==="1d6")?(sm==="3d2"?rollN(3,2):rollN(1,6)):null;
   G.p.forEach((P,pl)=>{
     if(P.cpu==="horde")return;
     const ai=P.deck.findIndex(c=>kind(c)==="ace");const ace=P.deck.splice(ai,1)[0];
@@ -408,6 +425,7 @@ function deal(){
     if(G.opts.bloodStart){const j=G.ether.findIndex(c=>kind(c)==="joker");if(j>=0){const c=G.ether.splice(j,1)[0];c.owner=pl;P.hand.push(c);log(`A Joker comes from the Ether into ${plName(pl)}'s hand.`)}}
     const d=rollN(2,4);tray(pl,"Opening hand",d,`draw ${sum(d)}`,true);
     log(`${plName(pl)} rolls 2d4: ${d[0].v} + ${d[1].v} = ${sum(d)}.`);draw(pl,sum(d),"opening hand",true);
+    startMana(pl,shared);
   });
 }
 async function opening(){
@@ -537,7 +555,7 @@ const SPELLS=[
 const SP=id=>SPELLS.find(s=>s.id===id);
 function spellCost(sp){
   if(sp.id==="clair")return newPrices()?6:fullPrices()?2:3;
-  if(sp.id==="naked")return newPrices()?6:fullPrices()?0:3;
+  if(sp.id==="naked")return newPrices()?6:G.moon.blood?1:fullPrices()?0:3;
   if(sp.id==="hypo"){const st=selOwn()?selStack():null;return 3+(st?st.cards.length-1:0)}
   return sp.cost;
 }
@@ -547,10 +565,11 @@ function spellBlock(sp){ // reason the moon or mode forbids a spell, or ""
   if(survival()&&["forced","double","three","naked"].includes(sp.id))return "The Horde has no hand or deck.";
   return "";
 }
-function spellReady(sp){return G.phase==="prep"&&!spellBlock(sp)&&sp.ok()&&mana(G.active)>=spellCost(sp)}
+const phaseOk=sp=>G.phase==="prep"||(G.phase==="attack"&&G.opts.atkSpells&&["Enchantment","Curse","Sorcery"].includes(sp.school));
+function spellReady(sp){return phaseOk(sp)&&!spellBlock(sp)&&sp.ok()&&mana(G.active)>=spellCost(sp)}
 async function cast(sp){
   if(G.busy&&!me().cpu)return;
-  if(G.phase!=="prep"){flash("Spells are cast in the prep phase.");return}
+  if(!phaseOk(sp)){flash(G.opts.atkSpells?"That school is cast in the prep phase.":"Spells are cast in the prep phase.");return}
   const why=spellBlock(sp);if(why){flash(why);return}
   if(!sp.ok()){flash("That spell can't be cast right now.");return}
   const cost=spellCost(sp);
@@ -1079,11 +1098,6 @@ function end(w,why){
 }
 const PHASES=[["draw","Draw","roll d4s to draw, or skip"],["prep","Prep","sacrifice, cast, place, move"],["attack","Attack","each stack may attack once"]];
 function canAct(){return G&&!G.over&&!G.busy&&!G.passing&&!me().cpu&&G.active===view()}
-function applyMoonTheme(){
-  const h=document.documentElement,b=!!(G&&G.moon.blood);
-  h.classList.toggle("th-crimson",b);h.classList.toggle("bloodglitch",b);
-  if(window.nwkStatic)window.nwkStatic.level(b?3:1);
-}
 function bars(P){
   const N=Math.max(1,P.start||P.deck.length||1),n=P.deck.length,fill=Math.min(n,N),extra=Math.max(0,n-N);
   const blocks=Array.from({length:N},(_,i)=>`<i class="${i<fill?"f":""}"></i>`).join("");
@@ -1094,7 +1108,7 @@ function bars(P){
 }
 function pboxHTML(pl,top){
   const P=G.p[pl],act=pl===G.active&&G.phase!=="setup";
-  const tag=P.cpu==="horde"?"the Horde":P.cpu?`computer · ${P.cpu}`:TRIBES[P.tribe]?`the tribe of ${TRIBES[P.tribe].name}`:"";
+  const tag=P.cpu==="horde"?"the Horde":P.cpu?`computer · ${P.cpu}`:TRIBES[P.tribe]?TRIBES[P.tribe].name:"";
   let h=`<div class="ph" style="--pc:${P.color}">${solidSVG(P.solid,P.color,18)}<b>${esc(P.name)}</b><span class="dim">${esc(tag)}</span>${act?'<span class="turnmark">to play</span>':""}</div>`;
   if(P.cpu==="horde"){
     const units=stacksOf(pl).reduce((a,x)=>a+x.st.cards.length,0);
@@ -1194,7 +1208,7 @@ function renderSpells(live){
   const m=G.moon;
   box.classList.toggle("bloodmoon",!!m.blood);
   const P=me(),od=G.p[G.active].od;
-  const head=!live?`<p class="dim">${G.passing?"":me().cpu?"The computer is casting.":"Spells are cast during your prep phase."}</p>`:G.phase==="prep"?"":'<p class="dim">Spells are cast during the prep phase.</p>';
+  const head=!live?`<p class="dim">${G.passing?"":me().cpu?"The computer is casting.":"Spells are cast during your prep phase."}</p>`:G.phase==="prep"?"":G.opts.atkSpells&&G.phase==="attack"?'<p class="dim">Enchantments, curses and sorcery can be cast now.</p>':'<p class="dim">Spells are cast during the prep phase.</p>';
   box.innerHTML=head+SCHOOLS.map(sc=>`<h4>${sc}</h4>`+SPELLS.filter(s=>s.school===sc&&!(survival()&&["forced","double","three","naked"].includes(s.id))).map(s=>{
     const ok=live&&spellReady(s),cost=spellCost(s);
     let moon="";if((s.id==="clair"||s.id==="naked")){if(newPrices())moon="moon-dark";else if(fullPrices())moon="moon-bright"}
@@ -1217,14 +1231,17 @@ function renderSel(live){
     const sac=mine&&sacrificeAllowed()&&canSacOnField(st,c)?`<button class="mini-btn" data-sc="${c.id}">sac +${soulOf(c)}</button>`:"";
     return `<li>${chk}${face(c,{cls:"sm"})} ${esc(TYPEWORD[k])} · ${nat(c)}${die(c)?" + d"+die(c):""}${cap?` · ✦${cap} captured`:""} ${sac}</li>`}).join("");
   const acts=[];
-  if(mine&&G.phase==="prep")acts.push(`<button class="btn sm ${G.mode==="move"?"on":""}" id="mv" ${st.moved?"disabled":""}>Move checked cards</button>`);
-  if(mine&&G.phase==="attack")acts.push(`<button class="btn sm ${G.mode==="attack"?"on":""}" id="ak" ${canAttackFrom(st)?"":"disabled"}>Attack</button>`);
   const owner=G.p[st.owner].name;
-  box.innerHTML=`<p><b>${st.owner===G.active?"Your":esc(owner)+"'s"} stack</b> · ${st.cards.length} card${st.cards.length>1?"s":""}${st.odds?` · ${st.odds==="adv"?"Divine Odds":"Hexed Odds"}`:""}${st.hypo?` · Hypostasis (${st.hypo})`:""}${st.moved?" · moved":""}${st.attacked?" · attacked":""}</p><ul class="cards">${rows}</ul><div class="acts">${acts.join("")}</div>${mine&&G.phase==="prep"?'<p class="dim">Check which cards move together, then press Move and click a highlighted tile.</p>':""}${mine&&G.phase==="attack"?'<p class="dim">Press Attack, then click a highlighted enemy stack.</p>':""}`;
-  box.querySelectorAll("[data-pk]").forEach(i=>i.onchange=()=>{const id=+i.dataset.pk;i.checked?s.pick.add(id):s.pick.delete(id);G.mode=null;render()});
+  box.innerHTML=`<p><b>${st.owner===G.active?"Your":esc(owner)+"'s"} stack</b> · ${st.cards.length} card${st.cards.length>1?"s":""}${st.odds?` · ${st.odds==="adv"?"Divine Odds":"Hexed Odds"}`:""}${st.hypo?` · Hypostasis (${st.hypo})`:""}${st.moved?" · moved":""}${st.attacked?" · attacked":""}</p><ul class="cards">${rows}</ul><div class="acts">${acts.join("")}</div>${mine&&G.phase==="prep"?`<p class="dim">${st.moved?"This stack has moved this turn.":"Highlighted tiles show where it can go: click one to move. Uncheck any card you want to leave behind. Click the stack again to let go."}</p>`:""}${mine&&G.phase==="attack"?`<p class="dim">${canAttackFrom(st)?(attackTargets().length?"Click a highlighted enemy stack to attack it.":"No enemy stack is in reach."):"This stack can't attack now."}</p>`:""}`;
+  box.querySelectorAll("[data-pk]").forEach(i=>i.onchange=()=>{const id=+i.dataset.pk;i.checked?s.pick.add(id):s.pick.delete(id);G.mode=autoMode(st);render()});
   box.querySelectorAll("[data-sc]").forEach(b=>b.onclick=()=>{const c=st.cards.find(x=>x.id===+b.dataset.sc);sacrifice(c,{r:s.r,c:s.c});render()});
-  if($("#mv"))$("#mv").onclick=()=>{G.mode=G.mode==="move"?null:"move";if(G.mode&&!moveTargets().length)flash(st.hypo?"Under Hypostasis a stack can only move sideways or back.":"No legal move for that group (check stacking limits).");render()};
-  if($("#ak"))$("#ak").onclick=()=>{G.mode=G.mode==="attack"?null:"attack";if(G.mode&&!attackTargets().length)flash("No enemy stack is in reach.");render()};
+}
+/* selecting your own stack shows where it can go (prep) or what it can hit (attack) straight away */
+function autoMode(st){
+  if(!st||st.owner!==G.active||!canAct())return null;
+  if(G.phase==="prep"&&!st.moved)return "move";
+  if(G.phase==="attack"&&canAttackFrom(st))return "attack";
+  return null;
 }
 function tileClick(r,c){
   if(!G||G.over||G.passing)return;
@@ -1236,8 +1253,8 @@ function tileClick(r,c){
   if(live&&G.sel&&G.mode==="attack"&&attackTargets().some(([a,b])=>a===r&&b===c)){attack(G.sel.r,G.sel.c,r,c);G.mode=null;if(G.sel&&!G.board[G.sel.r][G.sel.c])G.sel=null;render();return}
   if(G.busy)return;
   const st=G.board[r][c];
-  if(!st){G.sel=null;G.mode=null;render();return}
-  G.sel={r,c,pick:new Set(st.cards.filter(x=>kind(x)!=="ace").map(x=>x.id))};G.mode=null;render();
+  if(!st||(G.sel&&G.sel.r===r&&G.sel.c===c)){G.sel=null;G.mode=null;render();return}
+  G.sel={r,c,pick:new Set(st.cards.filter(x=>kind(x)!=="ace").map(x=>x.id))};G.mode=autoMode(st);render();
 }
 
 /* ---------------- card and spell info ---------------- */
@@ -1271,30 +1288,49 @@ let startMode=null;
 function playerForm(n,label,defColor,defSolid,defTribe){
   return `<fieldset class="pf"><legend>${label}</legend>
 <label class="f">Name <input id="nm${n}" value="${label}" maxlength="20"></label>
-<div class="f"><span>Tribe</span><div class="opts">${Object.entries(TRIBES).map(([k,t])=>`<label class="opt"><input type="radio" name="tr${n}" value="${k}" ${k===defTribe?"checked":""}><span>${t.name}<small>${t.sub}</small></span></label>`).join("")}</div></div>
+<div class="f"><span>Substance</span><div class="opts">${Object.entries(TRIBES).map(([k,t])=>`<label class="opt"><input type="radio" name="tr${n}" value="${k}" ${k===defTribe?"checked":""}><span>${t.name}<small>${t.sub}</small></span></label>`).join("")}</div></div>
 <div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex],i)=>`<label class="sw" title="${nm}"><input type="radio" name="co${n}" value="${hex}" ${i===defColor?"checked":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}</div></div>
-<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" value="${k}" ${k===defSolid?"checked":""}><span>${solidSVG(k,"#f3d6a6",26)}<em>${nm}</em></span></label>`).join("")}</div></div>
+<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" value="${k}" ${k===defSolid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}</div></div>
 </fieldset>`;
 }
 const val=name=>{const e=document.querySelector(`input[name="${name}"]:checked`);return e&&e.value};
+const chk=(id,label,sub,on)=>`<label class="chk"><input type="checkbox" id="${id}" ${on?"checked":""}> <span><b>${label}</b>${sub?`<small>${sub}</small>`:""}</span></label>`;
 function showStart(){
   if(G)G.over=true;
-  document.documentElement.classList.remove("th-crimson","bloodglitch");if(window.nwkStatic)window.nwkStatic.level(1);
+  applyMoonTheme();
   const q=new URLSearchParams(location.search).get("mode");
   if(!startMode&&MODES.some(m=>m[0]===q))startMode=q;
   if(!startMode){
-    ovShow(`<div class="ovbox wide"><h2>New game</h2><p class="dim">Choose how to play.</p><div class="modes">${MODES.map(([k,t,s])=>`<button class="mode" data-m="${k}"><b>${t}</b><span>${s}</span></button>`).join("")}</div><p class="dim">Online play is not here yet.</p></div>`);
+    ovShow(`<div class="ovbox setup"><h2>New game</h2><p class="dim">Choose how to play.</p><div class="modes">${MODES.map(([k,t,s])=>`<button class="mode" data-m="${k}"><b>${t}</b><span>${s}</span></button>`).join("")}</div><p class="dim">Online play is not here yet.</p></div>`);
     document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{startMode=b.dataset.m;showStart()});return;
   }
   const mode=startMode,M=MODES.find(m=>m[0]===mode);
-  const forms=mode==="local"?playerForm(1,"Player One",0,"tetra","binah")+playerForm(2,"Player Two",3,"icosa","tiph"):playerForm(1,mode==="survival"?"Survivor":"Player One",0,"tetra","binah");
+  const forms=mode==="local"?`<div class="pgrid">${playerForm(1,"Player One",0,"tetra","binah")+playerForm(2,"Player Two",3,"icosa","tiph")}</div>`:playerForm(1,mode==="survival"?"Survivor":"Player One",0,"tetra","binah");
   const diff=mode==="cpu"?`<fieldset class="pf"><legend>Computer</legend><div class="opts">${[["easy","Easy","an easier version: it plays loosely and misses chances"],["medium","Medium","balanced, and a real fight"],["hard","Hard","goes all out on your field and your deck"]].map(([k,t,s],i)=>`<label class="opt"><input type="radio" name="diff" value="${k}" ${i===1?"checked":""}><span>${t}<small>${s}</small></span></label>`).join("")}</div></fieldset>`:"";
-  const options=`<fieldset class="pf"><legend>Rule options</legend>
-${mode==="survival"?'<p class="dim">Survival always uses the midline.</p>':'<label class="chk"><input type="checkbox" id="omid" checked> Use the midline</label>'}
-<label class="chk"><input type="checkbox" id="olock"> Optional Ace rule: cards inside an Ace must match its color</label>
-<label class="chk"><input type="checkbox" id="oblood"> <span><b>Blood Moon mode</b><small>The game opens on a Blood Moon. Each deck is shuffled and two thirds of it go to the grave; each player starts with a Joker in hand.</small></span></label>
+  const rules=`<fieldset class="pf"><legend>Field</legend>
+${mode==="survival"?'<p class="dim">Survival always uses the midline.</p>':chk("omid","Use the midline","An empty line between the two armies.",true)}
+${chk("olock","Optional Ace rule","Cards inside an Ace must match its color.",false)}
+</fieldset>
+<fieldset class="pf"><legend>Mana</legend>
+<label class="f">Starting mana <select id="omana"><option value="3d2" selected>3d2 (default)</option><option value="1d6">1d6</option><option value="none">None</option>${[1,2,3,4,5,6].map(n=>`<option value="${n}">${n}</option>`).join("")}</select></label>
+${chk("oeach","Each player rolls their own","Off: one roll sets the same starting mana for everyone.",false)}
+<p class="dim">Starting souls come from the Ether as soldier souls, worth 1 mana each.</p>
+</fieldset>
+<fieldset class="pf"><legend>Moon and spells</legend>
+${chk("omoon","Moon combat bonus","+1d2 to every attack at the Full Moon, +1d2 to every defense at the New Moon.",true)}
+${chk("oatk","Spells in the attack phase","Enchantments, curses and sorcery can also be cast while attacking. Necromancy, conjuring and sacrifices stay in prep.",false)}
+${chk("oblood","Blood Moon mode","The game opens on a Blood Moon. Each deck is shuffled and two thirds of it go to the grave; each player starts with a Joker in hand.",false)}
 </fieldset>`;
-  ovShow(`<div class="ovbox wide"><h2>${M[1]}</h2><p class="dim">${M[2]}</p>${forms}${diff}${options}<p class="acts"><button class="btn" id="go">${mode==="survival"?"Raise your Ace":"Roll for the opening"}</button> <button class="btn ghost" id="back">← Other modes</button> <a class="dim" href="ethers-crossroads-rules.html#modes">How the modes work</a></p></div>`);
+  const display=`<fieldset class="pf"><legend>Your hand</legend><div class="opts">
+<label class="opt"><input type="radio" name="dhand" value="side" ${PREF.hand!=="below"?"checked":""}><span>Beside the field<small>In the right-hand column, above the spells.</small></span></label>
+<label class="opt"><input type="radio" name="dhand" value="below" ${PREF.hand==="below"?"checked":""}><span>Under your deck and mana<small>Right below your own bars, with your dice box.</small></span></label></div></fieldset>
+<fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({"":"the burnt amber of the site",jester:"black, after chapter 26",ten:"white on indigo, after chapters 1–4",satan:"crimson, after chapter 23"})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, hand position and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
+  const tabs=[["players",mode==="cpu"?"Players":"Player",forms+diff],["rules","Rules",rules],["display","Display",display]];
+  ovShow(`<div class="ovbox setup"><div class="shead"><h2>${M[1]}</h2><p class="dim">${M[2]}</p></div>
+<div class="stabs" role="tablist">${tabs.map(([k,t],i)=>`<button type="button" role="tab" class="stab ${i?"":"on"}" data-t="${k}" aria-selected="${!i}">${t}</button>`).join("")}</div>
+${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"hidden":""}>${h}</div>`).join("")}
+<p class="acts sfoot"><button class="btn" id="go">${mode==="survival"?"Raise your Ace":"Roll for the opening"}</button> <button class="btn ghost" id="back">← Other modes</button> <a class="dim" href="ethers-crossroads-rules.html#modes">How the modes work</a></p></div>`);
+  document.querySelectorAll(".stab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".stab").forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-selected",x===b)});document.querySelectorAll(".spanel").forEach(p=>p.hidden=p.dataset.p!==b.dataset.t)});
   $("#back").onclick=()=>{startMode=null;history.replaceState(null,"",location.pathname);showStart()};
   $("#go").onclick=()=>{
     const pl=n=>({name:($("#nm"+n).value.trim()||(n===1?"Player One":"Player Two")).slice(0,20),tribe:val("tr"+n),color:val("co"+n),solid:val("so"+n)});
@@ -1304,7 +1340,9 @@ ${mode==="survival"?'<p class="dim">Survival always uses the midline.</p>':'<lab
       const tribe=a.tribe==="binah"?"tiph":"binah",color=pick(COLORS.map(c=>c[1]).filter(c=>c!==a.color)),solid=pick(Object.keys(SOLIDS).filter(s=>s!==a.solid));
       players=[a,{name:`The ${TRIBES[tribe].name} computer`,tribe,color,solid,cpu:d}]}
     else{const a=pl(1);players=[a,{name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>s!==a.solid)),cpu:"horde"}]}
-    startGame({mode,players,mid:mode==="survival"||!!($("#omid")&&$("#omid").checked),aceLock:$("#olock").checked,bloodStart:$("#oblood").checked});
+    PREF.hand=val("dhand")||PREF.hand;PREF.theme=val("dtheme")??PREF.theme;savePrefs();applyPrefs();
+    startGame({mode,players,mid:mode==="survival"||!!($("#omid")&&$("#omid").checked),aceLock:$("#olock").checked,bloodStart:$("#oblood").checked,
+      startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,atkSpells:$("#oatk").checked});
   };
 }
 function startGame(opts){
@@ -1312,10 +1350,63 @@ function startGame(opts){
   opening().catch(e=>{console.error(e);log("Error: "+esc(e.message))});
 }
 document.addEventListener("DOMContentLoaded",()=>{
-  mountInfo();showStart();
-  $("#newgame").onclick=()=>{if(!G||G.over||(window.confirm?window.confirm("Start a new game? The current one will be lost."):true)){startMode=null;showStart()}};
+  mountInfo();mountBar();applyPrefs();guardLinks();mountQuotes();showStart();
+  $("#newgame").onclick=()=>confirmLeave(()=>{startMode=null;showStart()});
 });
 window.__EC={get G(){return G},startGame,stackLegal,canPlace,nextPhase,render,AI,SP,cast,SPELLS,hordeSpawn,roman,moonSVG,
   force(o){G.forceMoon=o},runCpu,jokerSuicide,mk};
+
+/* ---------------- display preferences, page themes, leave warning, quotes ---------------- */
+const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs")||"{}")}catch(e){}return Object.assign({hand:"side",ci:1,ui:1,theme:""},p)})();
+function savePrefs(){try{localStorage.setItem("ec-prefs",JSON.stringify(PREF))}catch(e){}}
+const THEMES={"":["Kenoma",[]],jester:["Jester",["th-black","th-jester"]],ten:["Ten",["th-indigo","th-blue"]],satan:["Disturbed Satan",["th-crimson"]]};
+function applyMoonTheme(){
+  const h=document.documentElement,b=!!(G&&G.moon.blood&&!G.over);
+  for(const k in THEMES)for(const c of THEMES[k][1])h.classList.remove(c);
+  h.classList.remove("bloodglitch");
+  if(b)h.classList.add("th-crimson","bloodglitch");        // a Blood Moon overrides every page theme
+  else for(const c of THEMES[PREF.theme]?THEMES[PREF.theme][1]:[])h.classList.add(c);
+  if(window.nwkStatic)window.nwkStatic.level(b?3:1);
+}
+function applyPrefs(){
+  const h=document.documentElement;
+  h.style.setProperty("--ci",PREF.ci);h.style.setProperty("--uiz",PREF.ui);
+  const wrap=$("#handwrap"),slot=$("#handslot"),side=$("#sidehand");
+  if(wrap&&slot&&side){const dest=PREF.hand==="below"?slot:side;if(wrap.parentNode!==dest)dest.appendChild(wrap)}
+  document.body.classList.toggle("hand-below",PREF.hand==="below");
+  const bar=$("#gbar");
+  if(bar){$("#ciV").textContent=Math.round(PREF.ci*100)+"%";$("#uiV").textContent=Math.round(PREF.ui*100)+"%";$("#pHand").textContent="Hand: "+(PREF.hand==="below"?"under your deck":"side");$("#pTheme").value=PREF.theme}
+  applyMoonTheme();
+}
+function mountBar(){
+  const L=document.createElement("div");L.id="gbarL";L.className="gbar";
+  L.innerHTML=`<label>Theme <select id="pTheme">${Object.entries(THEMES).map(([k,[n]])=>`<option value="${k}">${n}</option>`).join("")}</select></label>`;
+  const Rb=document.createElement("div");Rb.id="gbar";Rb.className="gbar";
+  Rb.innerHTML=`<span class="gctl">Card Icons <button type="button" data-z="ci" data-d="-1" aria-label="Smaller card icons">−</button><b id="ciV"></b><button type="button" data-z="ci" data-d="1" aria-label="Bigger card icons">+</button></span><span class="gctl">UI Size <button type="button" data-z="ui" data-d="-1" aria-label="Smaller interface">−</button><b id="uiV"></b><button type="button" data-z="ui" data-d="1" aria-label="Bigger interface">+</button></span><button type="button" id="pHand" class="gtog"></button>`;
+  document.body.append(L,Rb);
+  $("#pTheme").onchange=e=>{PREF.theme=e.target.value;savePrefs();applyPrefs()};
+  Rb.querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{const k=b.dataset.z,lim=k==="ci"?[.8,1.8]:[.8,1.4];PREF[k]=Math.round(Math.min(lim[1],Math.max(lim[0],PREF[k]+ +b.dataset.d*.1))*10)/10;savePrefs();applyPrefs()});
+  $("#pHand").onclick=()=>{PREF.hand=PREF.hand==="below"?"side":"below";savePrefs();applyPrefs()};
+}
+/* leaving mid-game asks first */
+const inGame=()=>G&&!G.over;
+function confirmLeave(go){
+  if(!inGame()){go();return}
+  let box=$("#leavebox");if(!box){box=document.createElement("div");box.id="leavebox";document.body.appendChild(box)}
+  box.innerHTML=`<div class="ovbox" role="alertdialog" aria-labelledby="lvq"><h2 id="lvq">Are you sure you want to end your game session?</h2><p class="dim">The game in progress will be lost.</p><p class="acts"><button class="btn" id="lvy">End the session</button> <button class="btn ghost" id="lvn">Keep playing</button></p></div>`;
+  box.hidden=false;$("#lvn").focus();
+  $("#lvy").onclick=()=>{box.hidden=true;go()};$("#lvn").onclick=()=>{box.hidden=true};
+}
+function guardLinks(){
+  document.querySelectorAll(".game .crumbs a").forEach(a=>a.addEventListener("click",e=>{if(!inGame())return;e.preventDefault();confirmLeave(()=>{location.href=a.href})}));
+}
+/* passages from the book, for whoever is waiting */
+function mountQuotes(){
+  const Q=window.EC_QUOTES||[],box=$("#quotes");if(!box||!Q.length)return;
+  let last=-1;
+  const show=()=>{let i;do{i=Math.floor(Math.random()*Q.length)}while(Q.length>1&&i===last);last=i;const q=Q[i];
+    $("#qtext").textContent=q.t;$("#qsrc").textContent=`Chapter ${q.n} · ${q.title}`;$("#qtext").parentNode.scrollTop=0};
+  $("#qnext").onclick=show;show();setInterval(()=>{if(!document.hidden)show()},75000);
+}
 
 })();

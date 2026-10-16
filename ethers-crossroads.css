@@ -244,3 +244,64 @@ svg.die{flex:none;overflow:visible}
 .so-opt:has(input:checked)>span{border-color:var(--amber-hi);background:var(--well)}
 .so-opt:has(input:checked) em{color:var(--amber-hi)}
 @media (max-width:520px){.cf{width:52px;height:76px}.cf .su{top:28px;font-size:21px}.meter{grid-template-columns:3em minmax(0,1fr) 3.4em;gap:6px}.meter.mana{grid-template-columns:3em minmax(0,.6fr) minmax(3.4em,.4fr)}.stack{inset:4px 6%}.stack .mini{display:none}}
+/* ---- zoom: UI Size scales the whole game, Card Icons scales what is printed on cards ---- */
+:root{--ci:1;--uiz:1}
+main.game,#ov>.ovbox,#leavebox>.ovbox{zoom:var(--uiz)}
+.cf{width:calc(60px * var(--ci));height:calc(86px * var(--ci))}
+.cf .cx .rk{font-size:calc(22px * var(--ci))}.cf .cx .rk.jk{font-size:calc(14px * var(--ci))}.cf .cx i{font-size:calc(13px * var(--ci))}
+.cf .su{top:calc(32px * var(--ci));font-size:calc(24px * var(--ci))}
+.cf .so svg{width:calc(17px * var(--ci));height:calc(17px * var(--ci))}
+.cf .ty{font-size:calc(8px * var(--ci))}
+.cf.sm{width:calc(34px * var(--ci));height:calc(48px * var(--ci))}
+.cf.sm .cx .rk{font-size:calc(15px * var(--ci))}.cf.sm .cx i{font-size:calc(10px * var(--ci))}.cf.sm .su{top:calc(22px * var(--ci));font-size:calc(15px * var(--ci))}
+.cf.sm .so svg{width:calc(12px * var(--ci));height:calc(12px * var(--ci))}
+.stack .lead .rk{font-size:calc(clamp(20px,2.7vw,30px) * var(--ci))}
+.stack .lead .rk.jk{font-size:calc(clamp(14px,1.9vw,19px) * var(--ci))}
+.stack .lead i{font-size:calc(clamp(15px,2vw,20px) * var(--ci))}
+.stack .so svg{width:calc(19px * var(--ci));height:calc(19px * var(--ci))}
+.stack .mini{font-size:calc(11px * var(--ci));color:#3d3022;font-weight:400;min-height:calc(13px * var(--ci))}
+.stack .ty{font-size:calc(9px * var(--ci))}
+.stack .cnt{font-size:calc(13px * var(--ci))}
+.stack .odds,.stack .hypo,.stack .souls,.stack .used{font-size:calc(11px * var(--ci))}
+.cb{width:calc(34px * var(--ci));height:calc(48px * var(--ci))}
+/* ---- setup box: wide on desktop, with tabs ---- */
+.ovbox.setup{max-width:min(1060px,96vw);padding:0;display:flex;flex-direction:column}
+.ovbox.setup .shead{padding:20px 26px 6px}
+.ovbox.setup .modes{padding:0 26px 4px}
+.ovbox.setup>.dim{padding:0 26px}
+.stabs{display:flex;gap:2px;padding:0 20px;border-bottom:1px solid #000;position:sticky;top:0;background:var(--well);z-index:2}
+.stab{font-family:var(--mono);font-weight:200;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);background:var(--deep);border:1px solid var(--rule);border-bottom:0;padding:8px 18px;cursor:pointer;margin-top:6px}
+.stab:hover{color:var(--amber-hi)}
+.stab.on{color:#000;background:var(--amber);border-color:var(--amber)}
+.spanel{padding:6px 26px 4px;overflow:auto}
+.sfoot{padding:12px 26px 18px;margin:0;border-top:1px solid #000;position:sticky;bottom:0;background:var(--well)}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:0 16px}
+@media (max-width:900px){.pgrid{grid-template-columns:1fr}}
+.ovbox select{font-family:var(--mono);font-size:15px;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:6px 9px;max-width:240px}
+/* ---- leave warning ---- */
+#leavebox{position:fixed;inset:0;z-index:90;background:rgba(5,3,2,.88);display:grid;place-items:center;padding:16px}
+#leavebox[hidden]{display:none}
+#leavebox .ovbox{max-width:480px}
+/* ---- bottom controls ---- */
+.gbar{position:fixed;bottom:max(10px,env(safe-area-inset-bottom,0px));z-index:50;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);background:rgba(0,0,0,.6);border:1px solid var(--rule);padding:3px 8px}
+#gbarL{left:max(10px,env(safe-area-inset-left,0px))}
+#gbar{right:calc(max(10px,env(safe-area-inset-right,0px)) + 112px)}
+.gbar select{font-family:var(--mono);font-size:11px;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:2px 4px;text-transform:none;letter-spacing:0}
+.gctl{display:inline-flex;align-items:center;gap:4px}
+.gctl b{font-weight:400;color:var(--text);min-width:3.2em;text-align:center}
+.gctl button,.gtog{font-family:var(--mono);font-size:12px;line-height:1;color:var(--amber);background:transparent;border:1px solid var(--rule);padding:3px 7px;cursor:pointer}
+.gtog{font-size:11px;letter-spacing:.06em;text-transform:none}
+.gctl button:hover,.gtog:hover{color:var(--amber-hi);border-color:var(--amber)}
+body:has(.game){padding-bottom:96px}
+@media (max-width:760px){#gbar{right:max(10px,env(safe-area-inset-right,0px));bottom:44px;max-width:calc(100vw - 20px)}#gbarL{bottom:78px}}
+/* ---- hand under your own bars ---- */
+#handslot #handwrap{margin:8px 0 6px;padding-left:12px;border-left:2px solid var(--rule)}
+#handslot #handwrap h3{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin:0 0 8px;border-bottom:1px solid #000;padding-bottom:4px;font-weight:200}
+/* ---- quotes ---- */
+#quotes{margin-top:26px}
+.qbox{max-height:170px;overflow:auto;border:1px solid var(--rule);background:var(--deep);padding:10px 14px;margin:6px 0 8px}
+#qtext{margin:0 0 6px;white-space:pre-line;font-size:14.5px;line-height:1.7}
+#qsrc{margin:0}
+/* ---- Jester theme: black like chapter 26, with blackletter titles ---- */
+html.th-jester .game h1,html.th-jester .ovbox h2{font-family:"Grenze Gotisch","Old English Text MT",serif;font-weight:500;letter-spacing:.02em}
+html.th-jester .game h1{font-size:clamp(30px,5vw,42px)}
