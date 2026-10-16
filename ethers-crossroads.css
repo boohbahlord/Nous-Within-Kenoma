@@ -341,3 +341,28 @@ body.ctl-bottom:has(.game){padding-bottom:150px}
 #selbottom #selwrap h3,#seltop #selwrap h3{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin:0 0 8px;border-bottom:1px solid #000;padding-bottom:4px;font-weight:200}
 @media (max-width:760px){#actbar{bottom:112px}body.ctl-bottom:has(.game){padding-bottom:200px}}
 #ctltop{grid-column:1/-1}
+/* ---- more players: opponent boxes, teams, zones, timer ---- */
+#foe.multi{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:4px 14px;border-left:0;padding-left:0}
+#foe.multi .pbox.sub{margin:0}
+#foe.multi .handrow .card,#foe.multi .handrow .cback{transform:scale(.85);transform-origin:left center}
+.ally,.outmark,.sidetag{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;padding:0 6px;border:1px solid var(--pc,var(--amber));color:var(--pc,var(--amber))}
+.outmark{border-color:var(--dim);color:var(--dim)}
+.sidetag.s0{--pc:#8fbf74}.sidetag.s1{--pc:#e3b944}
+.pbox:has(.outmark){opacity:.55}
+.stack.ally{outline:1px solid var(--pc);outline-offset:2px}
+.tile.zone::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;box-shadow:inset 0 -3px 0 0 var(--zc),inset 0 0 0 1px color-mix(in srgb,var(--zc) 45%,transparent);background:color-mix(in srgb,var(--zc) 10%,transparent)}
+.tile.zone:hover::before{box-shadow:inset 0 0 0 1px var(--amber),inset 0 -3px 0 0 var(--zc)}
+#board.nolabels .row{padding-top:0}
+#board[style*="--cols:7"] .tile,#board[style*="--cols:8"] .tile,#board[style*="--cols:9"] .tile{min-height:44px}
+#board[style*="--cols:8"] .stack,#board[style*="--cols:9"] .stack,#board[style*="--cols:7"] .stack{inset:3px 6%}
+.timer{font-family:var(--mono);font-size:15px;min-width:3ch;color:var(--amber-hi);border:1px solid var(--rule);padding:2px 8px}
+.timer:empty{display:none}
+.timer.low{color:#ff7a66;border-color:#ff7a66}
+.pbtn{display:inline-flex;align-items:center;gap:6px;border-color:var(--pc)}
+.pbtn small{color:var(--dim)}
+.seat{border-left:2px solid var(--pc)}
+.seat legend{display:flex;align-items:center;gap:8px}
+.seat .srow{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:end}
+.seat details.look summary{cursor:pointer;color:var(--dim);font-size:13px;margin:6px 0}
+.seat details.look[open] summary{color:var(--amber)}
+@media (max-width:760px){#board[style*="--cols:7"] .tile,#board[style*="--cols:8"] .tile,#board[style*="--cols:9"] .tile{min-height:36px}#foe.multi{grid-template-columns:1fr}}

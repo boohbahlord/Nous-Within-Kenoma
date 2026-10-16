@@ -1,4 +1,4 @@
-/* Ether's Crossroads: local 1v1, versus the computer, and Survival.
+/* Ether's Crossroads: local play for 2 to 4, versus the computer, and Survival.
    Rules follow the written rules; where they leave a gap, the digital reading is listed on the
    All Rules page under "How the digital table reads the rules". */
 (function(){
@@ -7,7 +7,8 @@
 const $=s=>document.querySelector(s);
 const R=n=>1+Math.floor(Math.random()*n);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const sleep=ms=>{const g=G;return new Promise(r=>setTimeout(()=>{if(G===g)r()},G&&G.opts.fast?0:ms))}; // a new game silently ends the old game's waits
+const SPEED={slow:1.7,normal:1,fast:.4};
+const sleep=ms=>{const g=G;return new Promise(r=>setTimeout(()=>{if(G===g)r()},G&&G.opts.fast?0:ms*(SPEED[G&&G.opts.cpuSpeed]||1)*(G&&G.speedMul||1)))}; // a new game silently ends the old game's waits
 const SUITS={S:"♠",H:"♥",D:"♦",C:"♣"};
 const SUITNAME={S:"Spades",H:"Hearts",D:"Diamonds",C:"Clubs"};
 let COLS=5;const SOUL_CAP=6, HAND_CAP=6;   // COLS is set by the map for each game
@@ -61,35 +62,53 @@ const hasK=(st,k)=>st.cards.some(c=>kind(c)===k);
 
 /* ---------------- state ---------------- */
 let G=null;
-function mkPlayer(i,o){return{i,name:o.name,tribe:o.tribe||null,color:o.color,solid:o.solid,cpu:o.cpu||null,
-  deck:[],hand:[],souls:[],sevArmed:false,start:0,od:0,shownUntil:0,seen:false,tray:null}}
+function mkPlayer(i,o){return{i,name:o.name,tribe:o.tribe||null,color:o.color,solid:o.solid,cpu:o.cpu||null,team:o.team!=null?o.team:i,
+  deck:[],hand:[],souls:[],sevArmed:false,start:0,od:0,shownUntil:0,seen:false,tray:null,out:false,ctx:null}}
 function newGame(opts){
   uid=0;
   const M=mapPlan(opts);COLS=M.cols;const rows=M.rows;
   G={opts,rows,map:M,void:M.void,board:Array.from({length:rows},()=>Array(COLS).fill(null)),
-     p:opts.players.map((o,i)=>mkPlayer(i,o)),grave:[],ether:[],dark:[],
-     turnNo:0,active:0,first:0,phase:"setup",setupStep:"ace",setupDone:[false,false],
+     p:opts.players.map((o,i)=>mkPlayer(i,o)),grave:[],ether:[],dark:[],journal:[],
+     turnNo:0,active:0,first:0,phase:"setup",setupStep:"ace",
      spent:false,spentOther:false,blessed:false,ritual:0,log:[],sel:null,selHand:null,mode:null,over:false,
      moon:{i:0,blood:false,round:0},
-     noDraw:false,round:0,busy:false,passing:false};
+     noDraw:false,round:0,busy:false,passing:false,lastView:null};
+  M.teams.forEach((t,i)=>G.p[i].team=t);
+  G.zone=Array.from({length:rows},()=>Array(COLS).fill(-1));G.backz=Array.from({length:rows},()=>Array(COLS).fill(-1));
+  M.seats.forEach((S,pl)=>{for(const [r,c] of S.zone)G.zone[r][c]=pl;for(const [r,c] of S.back)G.backz[r][c]=pl});
   buildDecks();
 }
 /* ---------------- decks and the Ether ----------------
    decks: 1 (the two players split one deck: one red and one black suit each), 2 (a full deck each), 3 (a full deck each and a whole third deck in the Ether)
+   With more players: a full deck or half a deck each (free-for-all), one deck per team split two suits to a teammate (2v2), or one deck a team shares.
    specials (J Q K A Joker): none (only the opening Ace; the rest wait in the Ether), half (the specials of half your suits), all
    Every player keeps at least one Joker unless that option is off. Whatever specials a player does not start with go to the Ether. */
 const RED=["H","D"],BLACK=["S","C"],RANKS=["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
 const isSpecial=c=>["jack","queen","king","ace","joker"].includes(kind(c));
-function deckPlan(o,nPlayers){
-  const n=o.decks||2;let suits;
-  if(n===1){
-    if(o.suits&&o.suits.length===2){const a=o.suits,b=[RED.find(s=>!a.includes(s)),BLACK.find(s=>!a.includes(s))];suits=[a,b]}
-    else{const r=shuffle([...RED]),b=shuffle([...BLACK]);suits=[[r[0],b[0]],[r[1],b[1]]]}
-  }else suits=[["S","H","D","C"],["S","H","D","C"]];
-  return{n,suits:suits.slice(0,nPlayers),jokers:n===1?shuffle(["red","black"]).map(c=>[c]):[["red","black"],["red","black"]],spare:n===1&&nPlayers<2?suits[1]:null};
+const ALL4=["S","H","D","C"];
+function deckPlan(o,pls){
+  const L=o.layout||"duel",n=o.decks||2,N=pls.length;
+  const half=()=>[pick(RED),pick(BLACK)];
+  if(L==="duel"){
+    let suits;
+    if(n===1){
+      if(o.suits&&o.suits.length===2){const a=o.suits,b=[RED.find(s=>!a.includes(s)),BLACK.find(s=>!a.includes(s))];suits=[a,b]}
+      else{const r=shuffle([...RED]),b=shuffle([...BLACK]);suits=[[r[0],b[0]],[r[1],b[1]]]}
+    }else suits=[ALL4,ALL4];
+    return{n,suits:suits.slice(0,N),jokers:n===1?shuffle(["red","black"]).map(c=>[c]):[["red","black"],["red","black"]],spare:n===1&&N<2?suits[1]:null};
+  }
+  if(L.startsWith("team")){ // one deck per team: each teammate gets one red and one black suit
+    const suits=[],jokers=[];const byTeam={};
+    pls.forEach(pl=>{const t=G.p[pl].team;(byTeam[t]=byTeam[t]||[]).push(pl)});
+    const map={};for(const t in byTeam){const r=shuffle([...RED]),b=shuffle([...BLACK]),j=shuffle(["red","black"]);byTeam[t].forEach((pl,k)=>{map[pl]=[[r[k%2],b[k%2]],[j[k%2]]]})}
+    pls.forEach(pl=>{suits.push(map[pl][0]);jokers.push(map[pl][1])});
+    return{n,suits,jokers,spare:null};
+  }
+  const full=o.ffaDeck!=="half";   // free-for-all and co-op Survival
+  return{n,suits:pls.map(()=>full?ALL4:half()),jokers:pls.map(()=>full?["red","black"]:[pick(["red","black"])]),spare:null};
 }
 function buildDecks(){
-  const o=G.opts,pls=G.p.map((P,i)=>i).filter(i=>!isHorde(i)),plan=deckPlan(o,pls.length),sp=o.specials||"none";
+  const o=G.opts,pls=G.p.map((P,i)=>i).filter(i=>!isHorde(i)),plan=deckPlan(o,pls),sp=o.specials||"none";
   G.ether=[];
   pls.forEach((pl,k)=>{
     const P=G.p[pl],mySuits=plan.suits[k];
@@ -112,27 +131,57 @@ function buildDecks(){
     for(const c of [...deck,ace,jack])c.owner=pl;
     P.deck=shuffle(deck);G.ether.push(...out);
   });
+  // a team that shares its deck shares one deck and one soul pile; the hands stay separate
+  if(o.shareDeck&&(o.layout||"").startsWith("team")){
+    const byTeam={};pls.forEach(pl=>{const t=G.p[pl].team;(byTeam[t]=byTeam[t]||[]).push(pl)});
+    for(const t in byTeam){const m=byTeam[t];const d=shuffle(m.flatMap(pl=>G.p[pl].deck)),sl=[];for(const pl of m){G.p[pl].deck=d;G.p[pl].souls=sl}}
+  }
   if(plan.spare)for(const s of plan.spare)for(const r of RANKS)G.ether.push(mk(r,s));   // one deck in Survival: the other half waits in the Ether
   if(plan.n===3)G.ether.push(...freshDeck());
   for(const c of G.ether)c.owner=null;
   shuffle(G.ether);
 }
 const survival=()=>G.opts.mode==="survival";
-const isHorde=pl=>G.p[pl].cpu==="horde";
-const me=()=>G.p[G.active], foe=()=>G.p[1-G.active];
+const isHorde=pl=>G.p[pl]&&G.p[pl].cpu==="horde";
+const hordeIx=()=>G.p.findIndex(P=>P.cpu==="horde");
+const alive=()=>G.p.filter(P=>!P.out).map(P=>P.i);
+const isEnemy=(a,b)=>a!=null&&b!=null&&a!==b&&G.p[a].team!==G.p[b].team;
+const enemiesOf=pl=>alive().filter(i=>isEnemy(pl,i));
+const alliesOf=pl=>alive().filter(i=>i!==pl&&!isEnemy(pl,i));
+const me=()=>G.p[G.active], foe=()=>G.p[enemiesOf(G.active)[0]??(G.active===0?1:0)];
 const human=pl=>!G.p[pl].cpu;
+const humans=()=>G.p.filter(P=>!P.cpu&&!P.out).map(P=>P.i);
 function view(){ // which player sits at the bottom of the screen
-  if(G.opts.mode!=="local")return 0;
-  return G.active;
+  const hs=G.p.filter(P=>!P.cpu).map(P=>P.i);
+  if(!hs.length)return G.lastView??0;
+  if(hs.length===1)return hs[0];
+  if(!G.p[G.active].cpu)G.lastView=G.active;   // several people on one device: whoever is playing
+  return G.lastView??hs[0];
 }
-function backRow(pl){return pl===0?G.rows-1:0}
-function frontRow(pl){return pl===0?G.rows-2:1}
-const ownLines=(pl,r)=>r===backRow(pl)||r===frontRow(pl);
+const seat=pl=>G.map.seats[pl];
+const canSpawn=(pl,r,c)=>G.zone[r][c]===pl;
+const isBack=(pl,r,c)=>G.backz[r][c]===pl;
+const backTiles=pl=>seat(pl).back.filter(([r,c])=>!isVoid(r,c));
+const zoneTiles=pl=>seat(pl).zone.filter(([r,c])=>!isVoid(r,c));
+const isFront=(pl,r,c)=>canSpawn(pl,r,c)&&!isBack(pl,r,c);
+/* kept for the two-player field: the rows of player 0 (bottom) and player 1 (top) */
+function backRow(pl){return seat(pl).back[0][0]}
+function frontRow(pl){const z=seat(pl).zone.find(([r,c])=>!isBack(pl,r,c));return z?z[0]:backRow(pl)}
+const ownLines=(pl,r,c)=>c==null?G.zone[r].includes(pl):canSpawn(pl,r,c);
 function stacksOf(pl){const out=[];G.board.forEach((row,r)=>row.forEach((st,c)=>{if(st&&st.owner===pl)out.push({st,r,c})}));return out}
 function at(r,c){return r>=0&&r<G.rows&&c>=0&&c<COLS?G.board[r][c]:undefined}
 const isVoid=(r,c)=>!!(G.void&&G.void[r]&&G.void[r][c]);
 const hq=()=>!!G.opts.hq&&!survival();
 const centerOut=()=>{const m=(COLS-1)/2;return [...Array(COLS).keys()].sort((a,b)=>Math.abs(a-m)-Math.abs(b-m)||a-b)};
+/* per-player turn state: in phases everyone plays at once, each player keeps their own */
+const TURNKEYS=["spent","spentOther","blessed","ritual","sevSum","prices","sel","selHand","mode","noDraw"];
+function setActive(pl){
+  if(pl===G.active&&G.p[pl].ctx)return;
+  const P=G.p[G.active];if(P){P.ctx={};for(const k of TURNKEYS)P.ctx[k]=G[k]}
+  G.active=pl;const Q=G.p[pl];if(Q.ctx)for(const k of TURNKEYS)G[k]=Q.ctx[k];
+}
+/* every action a player takes goes through here: it is recorded, so a later online version can send it to the table */
+function journal(type,args){G.journal.push({t:G.turnNo,pl:G.active,type,args});if(G.journal.length>2000)G.journal.shift()}
 function log(html,cls=""){G.log.unshift({html,cls});G.log=G.log.slice(0,400)}
 const plName=pl=>esc(G.p[pl].name);
 
@@ -299,44 +348,66 @@ function damage(r,c,n,defending){
   for(const d of dead)bury(d,r,c,st);
   checkWin();
 }
-function adjacentJokers(r,c,side){
-  const out=[];for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const s=at(r+dr,c+dc);if(s&&s.owner===side){const j=s.cards.find(x=>kind(x)==="joker");if(j)out.push(j)}}
+/* Jokers beside r,c that belong to an enemy of player `of` */
+function adjacentJokers(r,c,of){
+  const out=[];for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const s=at(r+dr,c+dc);if(s&&isEnemy(s.owner,of)){const j=s.cards.find(x=>kind(x)==="joker");if(j)out.push({j,pl:s.owner})}}
   return out;
 }
 const capMana=j=>(j.captured||[]).reduce((a,c)=>a+soulOf(c),0);
 function bury(card,r,c,st){
-  const owner=st.owner,enemy=1-owner;
+  const owner=st.owner;
   if(kind(card)==="joker"&&card.captured&&card.captured.length){
     const souls=card.captured;card.captured=[];let stolen=0;
-    for(const s of souls){const j=adjacentJokers(r,c,enemy).find(j=>capMana(j)+soulOf(s)<=SOUL_CAP);
-      if(j){(j.captured=j.captured||[]).push(s);stolen++}else toGrave(s,"death")}
+    for(const s of souls){const f=adjacentJokers(r,c,owner).find(x=>capMana(x.j)+soulOf(s)<=SOUL_CAP);
+      if(f){(f.j.captured=f.j.captured||[]).push(s);stolen++}else toGrave(s,"death")}
     log(`The Joker's ${souls.length} captured soul${souls.length>1?"s are":" is"} released${stolen?`; an enemy Joker steals ${stolen}`:""}.`);
   }
-  const j=adjacentJokers(r,c,enemy).find(j=>capMana(j)+soulOf(card)<=SOUL_CAP);
-  if(j){
-    const P=G.p[enemy];
-    if(P.sevArmed&&enemy===G.active){ // half the conjuring price of everything severed this turn, rounded up
+  const f=adjacentJokers(r,c,owner).find(x=>capMana(x.j)+soulOf(card)<=SOUL_CAP);
+  if(f){
+    const taker=f.pl,P=G.p[taker];
+    if(P.sevArmed&&taker===G.active){ // half the conjuring price of everything severed this turn, rounded up
       const charge=Math.ceil((G.sevSum+costOf(card))/2)-Math.ceil(G.sevSum/2);
-      if(mana(enemy)>=charge){if(charge)pay(enemy,charge);G.sevSum+=costOf(card);card.owner=null;G.ether.push(card);log(`Flesh Severance: ${esc(nameOf(card))} is exiled to the Ether (${charge} mana).`);return}
+      if(mana(taker)>=charge){if(charge)pay(taker,charge);G.sevSum+=costOf(card);card.owner=null;G.ether.push(card);log(`Flesh Severance: ${esc(nameOf(card))} is exiled to the Ether (${charge} mana).`);return}
     }
-    (j.captured=j.captured||[]).push(card);log(`Soul Capture: a Joker takes the soul of ${esc(nameOf(card))}.`);return;
+    (f.j.captured=f.j.captured||[]).push(card);log(`Soul Capture: ${plName(taker)}'s Joker takes the soul of ${esc(nameOf(card))}.`);return;
   }
   toGrave(card,"death");
 }
 
-/* ---------------- win ---------------- */
+/* ---------------- win and elimination ---------------- */
+function fallen(pl){return hq()?!stacksOf(pl).some(x=>hasK(x.st,"ace")):!stacksOf(pl).length}
 function checkWin(){
   if(G.over||G.phase==="setup")return;
-  if(survival()){if(!stacksOf(0).length)endSurvival();return}
-  for(const pl of [0,1]){
-    if(hq()){if(!stacksOf(pl).some(x=>hasK(x.st,"ace"))){end(1-pl,`every base ${plName(pl)} had is destroyed`);return}continue}
-    if(!stacksOf(pl).length){end(1-pl,`every card ${plName(pl)} had on the field is destroyed`);return}
+  for(const pl of alive()){
+    if(isHorde(pl))continue;
+    if(fallen(pl))eliminate(pl,hq()?`every base ${plName(pl)} had is destroyed`:`every card ${plName(pl)} had on the field is destroyed`);
+    if(G.over)return;
   }
 }
 function checkEconomic(pl){
-  if(survival())return;
+  if(survival()||G.p[pl].out)return;
   const P=G.p[pl];
-  if(!P.deck.length&&!P.hand.length&&!P.souls.length)end(1-pl,`${esc(P.name)} has no deck, hand or soul pile left: economic victory`);
+  if(!P.deck.length&&!P.hand.length&&!P.souls.length)eliminate(pl,`${esc(P.name)} has no deck, hand or soul pile left: economic victory`);
+}
+/* a player is out: their cards leave play, then the game ends if one side is left */
+function eliminate(pl,why){
+  const P=G.p[pl];if(P.out)return;P.out=true;
+  if(survival()){
+    log(`<b>${plName(pl)} falls</b>: ${why}.`,"event");
+    if(!G.p.some(Q=>!Q.out&&!isHorde(Q.i))){endSurvival();return}
+  }else{
+    const teams=new Set(alive().map(i=>G.p[i].team));
+    if(teams.size<=1){const w=alive()[0];end(w,why);return}
+    log(`<b>${plName(pl)} is eliminated</b>: ${why}.`,"event");
+  }
+  // what is left of them leaves the table
+  const toOD=G.opts.elimDark;const dump=c=>{if(toOD)toDark(c);else{c.owner=pl;G.grave.push(c)}};
+  for(const {st,r,c} of stacksOf(pl)){for(const x of st.cards){for(const s of x.captured||[])dump(s);x.captured=[];dump(x)}G.board[r][c]=null}
+  const shared=alliesOf(pl).some(a=>G.p[a].deck===P.deck);
+  for(const c of P.hand.splice(0))dump(c);
+  if(!shared){for(const c of P.deck.splice(0))dump(c);for(const c of P.souls.splice(0))dump(c)}
+  if(!toOD)shuffle(G.grave);
+  log(toOD?`${plName(pl)}'s hand and deck fall into the Outer Darkness.`:`${plName(pl)}'s hand and deck go to the grave, and the grave is shuffled.`);
 }
 
 /* ---------------- choices: a person answers in a box, the computer answers in code ---------------- */
@@ -344,7 +415,9 @@ async function ask(pl,spec){
   if(G.p[pl].cpu){await sleep(320);return AI.choose(pl,spec)}
   return askHuman(pl,spec);
 }
-const order=()=>[G.active,1-G.active].filter(pl=>!isHorde(pl));
+/* the order of play this round, starting with the first player; the Horde moves first in Survival */
+function roundOrder(){const n=G.p.length,o=[];for(let k=0;k<n;k++){const pl=(G.first+k)%n;if(!G.p[pl].out)o.push(pl)}return o}
+const order=()=>roundOrder().filter(pl=>!isHorde(pl));
 
 /* ---------------- the moon ---------------- */
 const MOON=["New Moon","Waxing Crescent","First Quarter","Waxing Gibbous","Full Moon","Waning Gibbous","Last Quarter","Waning Crescent"];
@@ -411,46 +484,109 @@ async function fullMoonToll(){
     render();checkWin();if(G.over)return;
   }
 }
-/* ---------------- turns ---------------- */
-async function startTurn(){
-  G.turnNo++;Object.assign(G,{spent:false,spentOther:false,blessed:false,ritual:0,sel:null,selHand:null,mode:null,noDraw:false,sevSum:0});
-  rollPrices();
-  for(const {st} of stacksOf(G.active)){st.moved=false;st.attacked=false;if(st.hypo){st.hypo--;if(!st.hypo)log(`Hypostasis fades from ${plName(G.active)}'s stack.`)}}
-  me().sevArmed=false;
-  if(survival()&&isHorde(G.active))G.round++;
-  const newRound=G.active===G.first;          // the first player's turn opens a new round of the moon
-  if(newRound){G.moon.round++;if(G.moon.round>1)G.moon.i=(G.moon.i+1)%8}
-  log(`— ${plName(G.active)}'s turn${survival()?` · round ${roman(G.round)}`:""} · ${MOON[G.moon.i]} —`,"turn");
-  if(newRound){G.phase="moon";G.busy=true;render();await moonStart();G.busy=false;if(G.over)return}
-  G.noDraw=fullDrawbacks();
-  if(!isHorde(G.active))log(`Spell prices for ${plName(G.active)} this turn: ${SPELLS.filter(s=>s.dice).map(s=>`${s.name} ${spellCost(s)}`).join(", ")}.`,"ai");
-  G.phase=(G.turnNo===1||G.noDraw)?"prep":"draw";
-  G.busy=false;render();
-  if(me().cpu)runCpu();
+/* ---------------- turns ----------------
+   Turn modes: "classic" (each player takes the whole turn in order), "prep" (everyone draws and preps at the same time,
+   then attacks go one player at a time), "all" (every phase at the same time). A phase that is played together ends when
+   everyone has pressed Ready. With more than one person on the device, play is always classic. */
+function turnMode(){if(G.p.filter(P=>!P.cpu).length>1)return "classic";return G.opts.turns||"classic"}
+async function gameLoop(){
+  const g=G;
+  while(G===g&&!G.over){
+    await newRound();if(G!==g||G.over)return;
+    const ord=roundOrder(),mode=turnMode(),side=ord.filter(pl=>!isHorde(pl)),horde=ord.filter(isHorde);
+    if(mode==="classic"){for(const pl of ord){if(G.p[pl].out)continue;await playerTurn(pl,["draw","prep","attack"]);if(G!==g||G.over)return}continue}
+    for(const pl of horde){await playerTurn(pl,["draw","prep","attack"]);if(G!==g||G.over)return}
+    await together(side,mode==="all"?["draw","prep","attack"]:["draw","prep"]);if(G!==g||G.over)return;
+    if(mode!=="all")for(const pl of side){if(G.p[pl].out)continue;await playerTurn(pl,["attack"],true);if(G!==g||G.over)return}
+  }
 }
-async function finishTurn(){
-  checkEconomic(G.active);if(G.over)return;
-  const P=me();P.od=Math.max(0,P.od-6);
-  foe().shownUntil=0;
-  G.active=1-G.active;G.sel=null;G.selHand=null;G.mode=null;
-  if(G.opts.mode==="local")await passScreen(`${me().name}'s turn`);
-  await startTurn();
+async function newRound(){
+  G.moon.round++;if(G.moon.round>1)G.moon.i=(G.moon.i+1)%8;
+  if(survival())G.round++;
+  log(`— Round ${G.moon.round}${survival()?` (${roman(G.round)})`:""} · ${MOON[G.moon.i]} —`,"turn");
+  G.phase="moon";G.busy=true;render();
+  await moonStart();
+  G.busy=false;
+}
+function beginTurn(pl){
+  setActive(pl);G.turnNo++;
+  Object.assign(G,{spent:false,spentOther:false,blessed:false,ritual:0,sel:null,selHand:null,mode:null,noDraw:false,sevSum:0});
+  rollPrices();
+  for(const {st} of stacksOf(pl)){st.moved=false;st.attacked=false;if(st.hypo){st.hypo--;if(!st.hypo)log(`Hypostasis fades from ${plName(pl)}'s stack.`)}}
+  G.p[pl].sevArmed=false;
+  G.noDraw=fullDrawbacks()||G.moon.round===1&&(turnMode()!=="classic"||pl===G.first);   // the very first turn of the game has no draw
+  if(!isHorde(pl))log(`${plName(pl)}'s spell prices this turn: ${SPELLS.filter(s=>s.dice).map(s=>`${s.name} ${spellCost(s)}`).join(", ")}.`,"ai");
+}
+function endTurn(pl){
+  setActive(pl);checkEconomic(pl);if(G.over)return;
+  const P=G.p[pl];P.od=Math.max(0,P.od-6);
+  for(const Q of G.p)if(Q.shownBy===pl){Q.shownUntil=0;Q.shownBy=null}
+}
+const PHASE_LABEL={draw:"To prep phase →",prep:"To attack phase →",attack:"End turn →"};
+async function playerTurn(pl,phases,continuing){
+  const g=G;
+  if(!continuing)beginTurn(pl);else setActive(pl);
+  if(!continuing&&!isHorde(pl))log(`— ${plName(pl)}'s turn —`,"turn");
+  if(human(pl)&&G.p.filter(P=>!P.cpu).length>1&&G.lastView!==pl)await passScreen(`${G.p[pl].name}'s turn`);
+  for(let k=0;k<phases.length;k++){
+    const ph=phases[k];if(ph==="draw"&&G.noDraw)continue;
+    G.phase=ph;G.nextLabel=k===phases.length-1?"End turn →":PHASE_LABEL[ph];
+    await actPhase(pl,ph);if(G!==g||G.over)return;
+  }
+  if(phases.includes("attack"))endTurn(pl);
+}
+async function together(players,phases){
+  const g=G;players=players.filter(pl=>!G.p[pl].out);
+  for(const pl of players)beginTurn(pl);
+  log(`— ${players.map(plName).join(", ")} play ${phases.includes("attack")?"the whole turn":"draw and prep"} together —`,"turn");
+  for(let k=0;k<phases.length;k++){
+    const ph=phases[k];G.phase=ph;
+    const cpus=players.filter(pl=>G.p[pl].cpu&&!G.p[pl].out),hs=players.filter(pl=>!G.p[pl].cpu&&!G.p[pl].out);
+    G.speedMul=.5;
+    for(const pl of cpus){setActive(pl);if(ph==="draw"&&G.noDraw)continue;await actPhase(pl,ph);if(G!==g||G.over)return}
+    G.speedMul=1;
+    for(const pl of hs){setActive(pl);if(ph==="draw"&&G.noDraw)continue;G.nextLabel="Ready →";await actPhase(pl,ph);if(G!==g||G.over)return}
+  }
+  if(phases.includes("attack"))for(const pl of players)endTurn(pl);
+}
+/* one player plays one phase: the computer in code, a person until they press the button (or the timer runs out) */
+async function actPhase(pl,ph){
+  setActive(pl);G.phase=ph;
+  if(G.p[pl].cpu){G.busy=true;render();try{await AI.phase(pl,ph)}catch(e){console.error(e);log("The computer stumbles: "+esc(e.message))}G.busy=false;render();return}
+  G.busy=false;render();
+  await new Promise(res=>{G.waiter=res;startTimer(ph)});
+  stopTimer();
 }
 async function nextPhase(){
-  if(G.busy||G.over)return;
+  if(G.busy||G.over||G.passing)return;
   if(G.phase==="setup"){
     if(G.setupStep==="ace"){flash("First place your Ace and its Jack on a backline tile.");return}
-    if(G.setupResolve){const f=G.setupResolve;G.setupResolve=null;f()}
+    if(G.setupResolve){const f=G.setupResolve;G.setupResolve=null;stopTimer();f()}
     return;
   }
-  if(G.phase==="draw"){G.phase="prep"}
-  else if(G.phase==="prep"){G.phase="attack";G.mode=null;G.selHand=null}
-  else if(G.phase==="attack"){G.busy=true;await finishTurn();if(!me().cpu)G.busy=false;return}
-  render();
+  journal("next",{phase:G.phase});
+  if(G.waiter){const f=G.waiter;G.waiter=null;G.mode=null;G.selHand=null;f()}
 }
 function rollDraw(){
   const n=R(4);tray(G.active,"Draw",[{s:4,v:n}],`draw ${n}`);
   log(`${plName(G.active)} rolls d4: ${n}.`);draw(G.active,n);
+}
+/* phase timer (off by default): 30, 60 or 90 seconds; the draw phase is 30 under the longer timers */
+let timerIv=null;
+function startTimer(ph){
+  stopTimer();const T=+G.opts.timer||0;if(!T)return;
+  const dur=ph==="draw"&&T>30?30:T;G.deadline=Date.now()+dur*1000;
+  const g=G;timerIv=setInterval(()=>{
+    if(G!==g){stopTimer();return}
+    const left=Math.max(0,Math.ceil((G.deadline-Date.now())/1000));const el=$("#timer");if(el){el.textContent=left+"s";el.classList.toggle("low",left<=10)}
+    if(left<=0){stopTimer();timeUp()}
+  },250);
+}
+function stopTimer(){if(timerIv)clearInterval(timerIv);timerIv=null;if(G)G.deadline=0;const el=$("#timer");if(el)el.textContent=""}
+async function timeUp(){
+  log(`Time runs out for ${plName(G.active)}.`,"event");flash("Time's up.");
+  if(G.phase==="setup"&&G.setupResolve){const pl=G.active,f=G.setupResolve;G.setupResolve=null;G.busy=true;await AI.setup(pl);G.busy=false;f();return}
+  if(G.waiter){const f=G.waiter;G.waiter=null;G.mode=null;G.selHand=null;f()}
 }
 
 /* ---------------- opening ---------------- */
@@ -477,26 +613,25 @@ function deal(){
 }
 async function opening(){
   deal();
-  if(survival()){G.first=1}
-  else{
-    let a,b;do{a=R(6);b=R(6)}while(a===b);
-    tray(0,"Opening roll",[{s:6,v:a}],`${a}${cmpSign(a,b)}${b}`);tray(1,"Opening roll",[{s:6,v:b}],`${b}${cmpSign(b,a)}${a}`);
-    G.first=a>b?0:1;
-    log(`Opening roll: ${plName(0)} ${a}, ${plName(1)} ${b}. ${plName(G.first)} sets up first and takes the first turn.`);
+  const pls=G.p.map(P=>P.i).filter(i=>!isHorde(i));
+  if(survival()){G.first=hordeIx()}
+  else{ // everyone rolls a d6; ties at the top roll again
+    let pool=pls,rolls={};
+    for(;;){for(const pl of pool)rolls[pl]=R(6);const top=Math.max(...pool.map(pl=>rolls[pl]));const best=pool.filter(pl=>rolls[pl]===top);if(best.length===1){G.first=best[0];break}pool=best}
+    for(const pl of pls)tray(pl,"Opening roll",[{s:6,v:rolls[pl]}],`${rolls[pl]}`,pl!==pls[0]);
+    log(`Opening roll: ${pls.map(pl=>`${plName(pl)} ${rolls[pl]}`).join(", ")}. ${plName(G.first)} sets up first and takes the first turn.`);
   }
-  const setupOrder=survival()?[0]:[G.first,1-G.first];
+  const n=G.p.length,setupOrder=[];for(let k=0;k<n;k++){const pl=(G.first+k)%n;if(!isHorde(pl))setupOrder.push(pl)}
+  const many=G.p.filter(P=>!P.cpu).length>1;
   for(const pl of setupOrder){
-    G.active=pl;G.phase="setup";G.setupStep="ace";G.sel=null;G.selHand=null;
-    if(G.opts.mode==="local")await passScreen(`${G.p[pl].name} sets up`);
+    setActive(pl);G.phase="setup";G.setupStep="ace";G.sel=null;G.selHand=null;
+    if(many&&human(pl))await passScreen(`${G.p[pl].name} sets up`);
     render();
     if(G.p[pl].cpu){G.busy=true;await AI.setup(pl);G.busy=false}
-    else await new Promise(res=>{G.setupResolve=res});
-    G.setupDone[pl]=true;
+    else await new Promise(res=>{G.setupResolve=res;startTimer("setup")});
   }
   G.p.forEach(P=>P.start=Math.max(1,P.deck.length));
-  G.active=G.first;
-  if(G.opts.mode==="local"&&!survival())await passScreen(`${me().name} begins`);
-  await startTurn();
+  await gameLoop();
 }
 function placeOpening(pl,r,c){
   const P=G.p[pl];
@@ -507,9 +642,9 @@ function placeOpening(pl,r,c){
 
 /* ---------------- actions ---------------- */
 function canPlace(card,r,c){
-  if(!ownLines(G.active,r)||isVoid(r,c))return false;
+  if(!canSpawn(G.active,r,c)||isVoid(r,c))return false;
   const st=G.board[r][c],k=kind(card);
-  if(k==="ace")return !st&&r===backRow(G.active);
+  if(k==="ace")return !st&&isBack(G.active,r,c);
   if(hq()&&!(st&&st.owner===G.active&&hasK(st,"ace")))return false;   // Headquarters: troops spawn only inside your Aces
   if(k==="joker"){if(!st||st.owner!==G.active)return false;return st.cards.some(x=>x.color===card.color)&&stackLegal([...st.cards,card])}
   if(!st)return true;
@@ -529,14 +664,14 @@ function moveTargets(){
   const rest=st.cards.filter(c=>!s.pick.has(c.id));
   if(rest.length&&!stackLegal(rest))return[];
   if(!stackLegal(grp))return[];
-  const out=[];const jack=grp.every(c=>kind(c)==="jack");const fwd=st.owner===0?-1:1;
+  const out=[];const jack=grp.every(c=>kind(c)==="jack");const fwd=seat(st.owner).fwd;
   for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){
     if(r===s.r&&c===s.c||isVoid(r,c))continue;
-    if(st.hypo&&(r-s.r)*fwd>0)continue;                 // Hypostasis: no step toward the enemy
+    if(st.hypo&&(r-s.r)*fwd[0]+(c-s.c)*fwd[1]>0)continue;   // Hypostasis: no step toward the enemy
     const dr=Math.abs(r-s.r),dc=Math.abs(c-s.c);
     const okStep=(dr+dc===1)||(jack&&((dr+dc===2&&(dr===0||dc===0))||(dr===1&&dc===1)));
     if(!okStep)continue;
-    if(jack&&dr+dc===2&&(dr===0||dc===0)){const mr=(r+s.r)/2,mc=(c+s.c)/2,mid=G.board[mr][mc];if(isVoid(mr,mc)||mid&&mid.owner!==st.owner)continue}
+    if(jack&&dr+dc===2&&(dr===0||dc===0)){const mr=(r+s.r)/2,mc=(c+s.c)/2,mid=G.board[mr][mc];if(isVoid(mr,mc)||mid&&isEnemy(mid.owner,st.owner))continue}
     const t=G.board[r][c];
     if(!t)out.push([r,c]);
     else if(t.owner===st.owner&&!t.moved&&!t.hypo&&stackLegal([...t.cards,...grp])&&!(grp.some(x=>kind(x)==="joker")&&!t.cards.some(x=>grp.find(g=>kind(g)==="joker").color===x.color)))out.push([r,c]);
@@ -555,7 +690,7 @@ function doMove(r,c){
 function attackTargets(){
   const s=G.sel,st=G.board[s.r][s.c];if(!canAttackFrom(st))return[];
   const diag=jackOnly(st),out=[];
-  for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){const t=G.board[r][c];if(t&&t.owner!==st.owner&&!t.hypo&&adjacent(s.r,s.c,r,c,diag))out.push([r,c])}
+  for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){const t=G.board[r][c];if(t&&isEnemy(t.owner,st.owner)&&!t.hypo&&adjacent(s.r,s.c,r,c,diag))out.push([r,c])}
   return out;
 }
 const sacrificeAllowed=()=>G.phase==="prep"&&!G.spent&&!isHorde(G.active);
@@ -575,7 +710,9 @@ const canSacOnField=(st,c)=>kind(c)!=="ace"&&!(kind(c)==="king"&&st.cards.length
 /* ---------------- spells ---------------- */
 const selStack=()=>G.sel&&G.board[G.sel.r]&&G.board[G.sel.r][G.sel.c];
 const selOwn=()=>selStack()&&selStack().owner===G.active;
-const selEnemy=()=>selStack()&&selStack().owner!==G.active;
+const selEnemy=()=>selStack()&&isEnemy(selStack().owner,G.active);
+/* spells aimed at another player: with several enemies, the caster picks one */
+async function pickFoe(id,title){const es=enemiesOf(G.active).filter(pl=>!isHorde(pl));if(es.length<=1)return es[0];return ask(G.active,{kind:"player",id,title,players:es})}
 const selOwnJoker=()=>selOwn()&&hasK(selStack(),"joker");
 const SCHOOLS=["Necromancy","Enchantment","Curse","Sorcery","Conjuring"];
 const SPELLS=[
@@ -586,13 +723,13 @@ const SPELLS=[
  {id:"resur",dice:"1d2+1",name:"Resurrection",cost:6,school:"Necromancy",text:"Choose one card from the grave and bring it back into your hand.",ok:()=>G.grave.length>0&&me().hand.length<HAND_CAP,run:async()=>{await pickGrave(G.active,1,"Resurrection")}},
  {id:"divine",dice:"1d2+1",name:"Divine Odds",cost:3,school:"Enchantment",text:"Select your stack: advantage on all its dice for its next combat.",ok:()=>selOwn()&&!selStack().odds,run:async()=>{selStack().odds="adv";log("Divine Odds marks a stack.")}},
  {id:"hypo",name:"Hypostasis",cost:3,school:"Enchantment",text:"Select your stack: it cannot be attacked for two turns. While it lasts it cannot attack or step toward the enemy, only sideways or back. Costs 3 for one card, +1 for each more card in the stack. Needs at least two of your stacks on the field.",ok:()=>selOwn()&&!selStack().hypo&&stacksOf(G.active).length>=2,run:async()=>{const st=selStack();st.hypo=2;log(`Hypostasis: ${plName(G.active)}'s stack of ${st.cards.length} becomes untouchable for two turns.`)}},
- {id:"forced",dice:"1d2",name:"Forced Hand",cost:2,school:"Curse",text:"The other player draws 1d2 cards; any over the hand limit go to the grave (and cut their Grave Blessing).",ok:()=>!survival(),run:async()=>{const n=R(2);tray(G.active,"Forced Hand",[{s:2,v:n}],`draw ${n}`);draw(1-G.active,n,"Forced Hand")}},
+ {id:"forced",dice:"1d2",name:"Forced Hand",cost:2,school:"Curse",text:"The other player draws 1d2 cards; any over the hand limit go to the grave (and cut their Grave Blessing).",ok:()=>!survival(),run:async()=>{const t=await pickFoe("forced","Forced Hand: who draws?");const n=R(2);tray(G.active,"Forced Hand",[{s:2,v:n}],`draw ${n}`);draw(t,n,"Forced Hand")}},
  {id:"hexed",dice:"1d2+1",name:"Hexed Odds",cost:3,school:"Curse",text:"Select an enemy stack: disadvantage on all its dice for its next combat.",ok:()=>selEnemy()&&!selStack().odds,run:async()=>{selStack().odds="dis";log("Hexed Odds marks an enemy stack.")}},
  {id:"double",name:"Double Edged Sword",cost:1,school:"Curse",text:"Roll 3d6. Each 1 burns a card from your deck; each 6 burns a card from the enemy's deck.",ok:()=>!survival(),run:doubleEdge},
  {id:"three",dice:"1d3",name:"Three of Swords",cost:3,school:"Curse",text:"Roll 1d2. A 1 destroys one random card in the enemy's hand and one in yours; a 2 destroys two of each. If your hand runs short, the rest comes from your deck. The enemy loses nothing from the deck.",ok:()=>!survival(),run:threeSwords},
  {id:"clair",dice:"2+1d2",name:"Clairvoyance",cost:3,school:"Sorcery",text:"Look at 2d6 cards from your deck, take one into your hand, then reshuffle. 6 mana at the New Moon, 2 at the Full Moon.",ok:()=>me().deck.length>0&&me().hand.length<HAND_CAP,run:clairvoyance},
  {id:"tele",name:"Teleport",cost:2,school:"Sorcery",text:"Select your stack in your own two lines with no enemy beside it and leave exactly one card checked; that card returns to your hand.",ok:teleOk,run:teleport},
- {id:"naked",dice:"1d2",name:"Naked Hand",cost:3,school:"Sorcery",text:"The other player's hand is shown to you for the rest of this turn, and both players are told it has been seen. 6 mana at the New Moon, free at the Full Moon.",ok:()=>!survival()&&foe().hand.length>0,run:nakedHand},
+ {id:"naked",dice:"1d2",name:"Naked Hand",cost:3,school:"Sorcery",text:"The other player's hand is shown to you for the rest of this turn, and both players are told it has been seen. 6 mana at the New Moon, free at the Full Moon.",ok:()=>!survival()&&enemiesOf(G.active).some(pl=>G.p[pl].hand.length>0),run:nakedHand},
  {id:"cj",name:"Jack Conjure",cost:1,school:"Conjuring",text:"A Jack's soul comes from the Ether into your deck.",ok:()=>etherHas("jack"),run:()=>conjure("jack")},
  {id:"cjk",name:"Joker Conjure",cost:2,school:"Conjuring",text:"A Joker's soul comes from the Ether into your deck.",ok:()=>etherHas("joker"),run:()=>conjure("joker")},
  {id:"cq",name:"Queen Conjure",cost:2,school:"Conjuring",text:"A Queen's soul comes from the Ether into your deck.",ok:()=>etherHas("queen"),run:()=>conjure("queen")},
@@ -660,8 +797,9 @@ async function jokerSuicide(r,c,st,pl){
   SND.gun();
   if(isHorde(pl)){ // survival: the player's captured souls go to the Outer Darkness, and the player loses 1 mana
     for(const s of souls)toDark(s);j.owner=pl;
-    const P=G.p[0];let lost=0;if(mana(0)>=1){pay(0,1);lost=1}else if(P.souls.length){toGrave(P.souls.shift(),"spent");lost=1}
-    log(`A Horde Joker shoots itself: ${souls.length} of your souls fall into the Outer Darkness${lost?" and you lose 1 mana":""}.`,"event");
+    const victims=[...new Set(souls.map(x=>x.darkOwner).filter(v=>v!=null&&!isHorde(v)))];
+    for(const v of victims){const P=G.p[v];if(mana(v)>=1)pay(v,1);else if(P.souls.length)toGrave(P.souls.shift(),"spent")}
+    log(`A Horde Joker shoots itself: ${souls.length} captured soul${souls.length===1?"":"s"} fall into the Outer Darkness${victims.length?`; ${victims.map(plName).join(" and ")} lose${victims.length===1?"s":""} 1 mana`:""}.`,"event");
     flash("A Horde Joker shoots itself.");checkWin();return;
   }
   const m=G.moon;
@@ -678,14 +816,16 @@ async function jokerSuicide(r,c,st,pl){
   checkWin();
 }
 async function doubleEdge(){
+  const t=await pickFoe("double","Double Edged Sword: whose deck?"),F=G.p[t];
   const d=rollN(3,6);let mine=0,theirs=0;
-  for(const x of d){if(x.v===1){const c=me().deck.pop();if(c){toGrave(c,"burn");mine++}}if(x.v===6){const c=foe().deck.pop();if(c){toGrave(c,"burn");theirs++}}}
+  for(const x of d){if(x.v===1){const c=me().deck.pop();if(c){toGrave(c,"burn");mine++}}if(x.v===6){const c=F.deck.pop();if(c){toGrave(c,"burn");theirs++}}}
   tray(G.active,"Double Edged Sword",d,`you −${mine} · them −${theirs}`);
   log(`Double Edged Sword: 3d6 → ${d.map(x=>x.v).join(", ")}. ${plName(G.active)} loses ${mine}, the enemy loses ${theirs} from the deck.`);
 }
 async function threeSwords(){
+  const t=await pickFoe("three","Three of Swords: whose hand?");
   const n=R(2);tray(G.active,"Three of Swords",[{s:2,v:n}],`${n} each`);
-  const F=foe(),P=me();let fl=0,ml=0,dl=0;
+  const F=G.p[t],P=me();let fl=0,ml=0,dl=0;
   for(let i=0;i<n&&F.hand.length;i++){toGrave(F.hand.splice(Math.floor(Math.random()*F.hand.length),1)[0],"death");fl++}
   for(let i=0;i<n;i++){if(P.hand.length){toGrave(P.hand.splice(Math.floor(Math.random()*P.hand.length),1)[0],"death");ml++}else if(P.deck.length){toGrave(P.deck.pop(),"death");dl++}}
   log(`Three of Swords: 1d2 → ${n}. ${esc(F.name)} loses ${fl} from the hand; ${esc(P.name)} loses ${ml} from the hand${dl?` and ${dl} from the deck`:""}.`);
@@ -700,8 +840,8 @@ async function clairvoyance(){
 }
 function teleOk(){
   if(!selOwn())return false;const s=G.sel,st=selStack();
-  if(!ownLines(G.active,s.r)||me().hand.length>=HAND_CAP)return false;
-  for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){const t=at(s.r+dr,s.c+dc);if(t&&t.owner!==G.active)return false}
+  if(!canSpawn(G.active,s.r,s.c)||me().hand.length>=HAND_CAP)return false;
+  for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){const t=at(s.r+dr,s.c+dc);if(t&&isEnemy(t.owner,G.active))return false}
   return st.cards.filter(c=>s.pick.has(c.id)).length===1;
 }
 async function teleport(){
@@ -711,7 +851,7 @@ async function teleport(){
   log(`Teleport: ${esc(nameOf(c))} returns to the hand.`);checkWin();
 }
 async function nakedHand(){
-  const F=foe();F.shownUntil=G.turnNo;F.seen=true;
+  const t=await pickFoe("naked","Naked Hand: whose hand?"),F=G.p[t];F.shownUntil=G.turnNo;F.shownBy=G.active;F.seen=true;
   log(`<b>Naked Hand</b>: ${plName(G.active)} sees ${esc(F.name)}'s hand. ${esc(F.name)}, your cards have been seen.`,"event");
   if(!me().cpu&&F.cpu)flash(`You see the computer's hand until your turn ends.`);
   if(me().cpu&&!F.cpu)flash(`The computer has seen your hand.`);
@@ -761,13 +901,13 @@ const AI=(()=>{
       pcache.set(key,F)}
     return F[r1][c1];
   }
-  function enemiesOf(pl){return stacksOf(1-pl)}
+  function enemyStacks(pl){return enemiesOf(pl).flatMap(stacksOf)}
   /* how good it is for stack S (owned by pl) to stand at r,c */
   function tileScore(pl,S,r,c,W,canHit){
     const n=L(pl).mc;let opp=0,risk=0,allies=0;
     const diag=jackOnly(S),hits=canHit&&canAttackFrom({cards:S.cards,attacked:false,hypo:S.hypo});
     let near=99;
-    for(const e of enemiesOf(pl)){
+    for(const e of enemyStacks(pl)){
       const E=e.st,d=walk(r,c,e.r,e.c);near=Math.min(near,d);
       if(hits&&!E.hypo&&adjacent(r,c,e.r,e.c,diag)){
         const p=winP(S,E,n);let sc=p*gain(E)-(1-p)*loss(S);
@@ -787,11 +927,11 @@ const AI=(()=>{
   function stance(pl){
     if(isHorde(pl))return HORDE;
     if(G.turnNo-(G.lastAttack||0)>10)return PUSH;   // nobody has fought for five rounds: break the stalemate
-    const my=stacksOf(pl).reduce((a,x)=>a+value(x.st),0),th=stacksOf(1-pl).reduce((a,x)=>a+value(x.st),0);
-    const deckAdv=(G.p[pl].deck.length-G.p[1-pl].deck.length)/40;
+    const es=enemiesOf(pl),my=stacksOf(pl).reduce((a,x)=>a+value(x.st),0),th=enemyStacks(pl).reduce((a,x)=>a+value(x.st),0)/Math.max(1,es.length);
+    const eDeck=es.length?Math.min(...es.map(e=>G.p[e].deck.length)):0,deckAdv=(G.p[pl].deck.length-eDeck)/40;
     let o=my/(th+1)+deckAdv+L(pl).bias;
     if(lvl(pl)==="easy")o+=Math.random()*.6-.3;
-    if(!G.p[pl].deck.length||!G.p[1-pl].deck.length||G.turnNo>90||hq()&&G.turnNo>8)return OFF;   // a dry deck ends the waiting game
+    if(!G.p[pl].deck.length||!eDeck||G.turnNo>90*Math.max(1,G.p.length/2)||hq()&&G.turnNo>8)return OFF;   // a dry deck ends the waiting game
     return o>1?OFF:DEF;
   }
   function withSel(r,c,ids,fn){const old=G.sel;G.sel={r,c,pick:new Set(ids)};try{return fn()}finally{G.sel=old}}
@@ -806,9 +946,9 @@ const AI=(()=>{
     if(k==="ace")s+=lvl(pl)==="hard"?4:2;
     if(k==="queen"&&t&&hasK(t,"king"))s+=W===DEF?3:1.5;
     if(k==="king"&&t&&hasK(t,"queen"))s+=W===DEF?3:1.5;
-    if(k==="joker")s+=enemiesOf(pl).some(e=>dist(e.r,e.c,r,c)<=2)?2:.5;
-    if(r===frontRow(pl)&&W===OFF)s+=.4;
-    if(r===backRow(pl)&&W===DEF)s+=.3;
+    if(k==="joker")s+=enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=2)?2:.5;
+    if(isFront(pl,r,c)&&W===OFF)s+=.4;
+    if(isBack(pl,r,c)&&W===DEF)s+=.3;
     return s*jit(pl);
   }
   async function placements(pl,W,keep){
@@ -826,7 +966,7 @@ const AI=(()=>{
   /* ---------- movement ---------- */
   async function moves(pl,W){
     const lv=L(pl);
-    const order=isHorde(pl)?stacksOf(pl).sort((a,b)=>stackRate(b.st)-stackRate(a.st)):stacksOf(pl).sort((a,b)=>{const na=Math.min(99,...enemiesOf(pl).map(e=>dist(a.r,a.c,e.r,e.c))),nb=Math.min(99,...enemiesOf(pl).map(e=>dist(b.r,b.c,e.r,e.c)));return na-nb});
+    const order=isHorde(pl)?stacksOf(pl).sort((a,b)=>stackRate(b.st)-stackRate(a.st)):stacksOf(pl).sort((a,b)=>{const na=Math.min(99,...enemyStacks(pl).map(e=>dist(a.r,a.c,e.r,e.c))),nb=Math.min(99,...enemyStacks(pl).map(e=>dist(b.r,b.c,e.r,e.c)));return na-nb});
     for(const o of order){
       if(G.over)return;
       const st=G.board[o.r][o.c];if(!st||st!==o.st||st.owner!==pl||st.moved)continue;
@@ -889,7 +1029,7 @@ const AI=(()=>{
     for(const {st,r,c} of stacksOf(pl)){
       const j=st.cards.find(x=>kind(x)==="joker");if(!j||!j.captured||!j.captured.length)continue;
       const cm=capMana(j),room=SOUL_CAP-mana(pl);
-      let danger=0;for(const e of enemiesOf(pl))if(dist(e.r,e.c,r,c)<=2&&canAttackFrom({cards:e.st.cards,attacked:false}))danger=Math.max(danger,winP(e.st,st,24));
+      let danger=0;for(const e of enemyStacks(pl))if(dist(e.r,e.c,r,c)<=2&&canAttackFrom({cards:e.st.cards,attacked:false}))danger=Math.max(danger,winP(e.st,st,24));
       const want=(cm>=4&&room>=cm-1)||(cm>=2&&danger>.55)||(lv==="hard"&&cm>=3&&mana(pl)<=2);
       if(want&&!G.moon.blood){await tryCast("suicide",r,c,[]);return}
     }
@@ -909,13 +1049,14 @@ const AI=(()=>{
     if(!(lv==="easy"&&Math.random()<.3))await tryCast("bless");
   }
   async function curses(pl,W){
-    const lv=lvl(pl),F=G.p[1-pl],P=G.p[pl],sp=L(pl).spell;
+    const es=enemiesOf(pl).filter(e=>!isHorde(e));if(!es.length)return;
+    const lv=lvl(pl),F=G.p[es.reduce((a,b)=>G.p[b].hand.length>G.p[a].hand.length?b:a)],P=G.p[pl],sp=L(pl).spell;
     if(Math.random()>sp)return;
     // shield the most exposed valuable stack
     if((W===DEF||lv==="hard")&&stacksOf(pl).length>=2){
       let best=null;
       for(const x of stacksOf(pl)){if(x.st.hypo)continue;let rk=0;
-        for(const e of enemiesOf(pl))if(dist(e.r,e.c,x.r,x.c)<=2&&canAttackFrom({cards:e.st.cards,attacked:false}))rk=Math.max(rk,winP(e.st,x.st,24));
+        for(const e of enemyStacks(pl))if(dist(e.r,e.c,x.r,x.c)<=2&&canAttackFrom({cards:e.st.cards,attacked:false}))rk=Math.max(rk,winP(e.st,x.st,24));
         const v=rk*value(x.st);if(rk>.55&&value(x.st)>7&&(!best||v>best.v))best={...x,v}}
       if(best&&mana(pl)>=3+best.st.cards.length-1)await tryCast("hypo",best.r,best.c,[]);
     }
@@ -955,50 +1096,56 @@ const AI=(()=>{
     return P.hand.length<=2;
   }
   /* ---------- whole turns ---------- */
-  async function turn(pl){
+  /* one phase of a computer's turn */
+  async function phase(pl,ph){
     cache.clear();pcache.clear();
-    if(G.phase==="draw"){
-      for(let n=0;n<3&&shouldDraw(pl);n++){rollDraw();await step()}
-      G.phase="prep";await step();
+    if(isHorde(pl))return hordePhase(pl,ph);
+    if(ph==="draw"){for(let n=0;n<3&&shouldDraw(pl);n++){rollDraw();await step()}return}
+    if(ph==="prep"){
+      const W=stance(pl),lv=lvl(pl);
+      log(`${plName(pl)} ${W===PUSH?"pushes to break the standoff":"leans to "+(W===DEF?"defense":"offense")}.`,"ai");
+      await suicides(pl);
+      await sacrifices(pl,lv==="hard"?5:lv==="medium"?4:2,lv==="hard"?2:1);
+      await necro(pl);
+      await curses(pl,W);
+      await placements(pl,W,lv==="hard"?1:0);
+      await moves(pl,W);
+      await odds(pl);
+      await conjures(pl,W);
+      G.sel=null;await step();return;
     }
-    const W=stance(pl),lv=lvl(pl);
-    log(`${plName(pl)} ${W===PUSH?"pushes to break the standoff":"leans to "+(W===DEF?"defense":"offense")}.`,"ai");
-    await suicides(pl);
-    await sacrifices(pl,lv==="hard"?5:lv==="medium"?4:2,lv==="hard"?2:1);
-    await necro(pl);
-    await curses(pl,W);
-    await placements(pl,W,lv==="hard"?1:0);
-    await moves(pl,W);
-    await odds(pl);
-    await conjures(pl,W);
-    G.phase="attack";G.sel=null;await step();
-    await attacks(pl);
+    if(ph==="attack"){await attacks(pl);G.sel=null}
   }
   async function setup(pl){
-    const W=DEF,co=centerOut(),cols=lvl(pl)==="easy"?co:co.slice(0,3);
+    const W=DEF,cx=(COLS-1)/2,cy=(G.rows-1)/2;
     while(G.setupStep==="ace"){
-      const free=cols.filter(c=>!G.board[backRow(pl)][c]&&!isVoid(backRow(pl),c)),all=co.filter(c=>!G.board[backRow(pl)][c]&&!isVoid(backRow(pl),c));
-      const c=pick(free.length?free:all);
-      await sleep(300);placeOpening(pl,backRow(pl),c);render();await sleep(200);
+      const free=backTiles(pl).filter(([r,c])=>!G.board[r][c]).sort((a,b)=>Math.hypot(a[0]-cy,a[1]-cx)-Math.hypot(b[0]-cy,b[1]-cx));
+      if(!free.length)break;
+      const pool=lvl(pl)==="easy"?free:free.slice(0,3),[r,c]=pick(pool);
+      await sleep(300);placeOpening(pl,r,c);render();await sleep(200);
     }
     const prev=G.phase;G.phase="setup";
     await placements(pl,W,lvl(pl)==="hard"?2:1);
     G.phase=prev;
   }
-  async function horde(pl){
-    cache.clear();
-    hordeSpawn();await sleep(700);render();
-    G.phase="prep";await step();
-    // Horde Jokers: shoot themselves once they hold souls and the player is close
-    for(const {st,r,c} of stacksOf(pl)){const j=st.cards.find(x=>kind(x)==="joker");
-      if(j&&j.captured&&j.captured.length&&(j.captured.length>=2||Math.random()<.35)){await jokerSuicide(r,c,st,pl);await step();if(G.over)return}}
-    await moves(pl,HORDE);
-    G.phase="attack";await step();
+  async function hordePhase(pl,ph){
+    if(ph==="draw")return;
+    if(ph==="prep"){
+      hordeSpawn();await sleep(700);render();await step();
+      // Horde Jokers: shoot themselves once they hold souls
+      for(const {st,r,c} of stacksOf(pl)){const j=st.cards.find(x=>kind(x)==="joker");
+        if(j&&j.captured&&j.captured.length&&(j.captured.length>=2||Math.random()<.35)){await jokerSuicide(r,c,st,pl);await step();if(G.over)return}}
+      await moves(pl,HORDE);return;
+    }
     await attacks(pl);
   }
   const cardVal=c=>({ace:9,king:8,joker:7.5,jack:6,queen:5.5}[kind(c)]||(num(c)/2+1));
   function choose(pl,spec){
     const lv=lvl(pl);
+    if(spec.kind==="player"){const ps=spec.players;const by=f=>ps.reduce((a,b)=>f(b)>f(a)?b:a);
+      if(spec.id==="double")return by(x=>G.p[x].deck.length);
+      if(spec.id==="naked")return pick(ps);
+      return by(x=>G.p[x].hand.length)}
     if(spec.kind==="cards"){
       const cards=spec.cards;if(!cards.length)return null;
       if(spec.id==="shop"){let b=-1;cards.forEach((c,i)=>{if(costOf(c)<=mana(pl)&&(b<0||cardVal(c)>cardVal(cards[b])))b=i});return b<0||mana(pl)<1?null:b}
@@ -1017,20 +1164,16 @@ const AI=(()=>{
     }
     return null;
   }
-  return{turn,setup,horde,choose,winP,value,LV};
+  return{phase,setup,choose,winP,value,LV};
 })();
-async function runCpu(){
-  const pl=G.active;G.busy=true;render();
-  try{if(isHorde(pl))await AI.horde(pl);else await AI.turn(pl)}catch(e){console.error(e);log("The computer stumbles: "+esc(e.message))}
-  if(G.over){G.busy=false;render();return}
-  await finishTurn();
-}
 
 /* ---------------- Survival ---------------- */
 function roman(n){if(n<=0)return "0";const T=[[1000,"M"],[900,"CM"],[500,"D"],[400,"CD"],[100,"C"],[90,"XC"],[50,"L"],[40,"XL"],[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]];let s="";for(const [v,l] of T)while(n>=v){s+=l;n-=v}return s}
 const spawnRank=c=>({joker:100,king:90,jack:80,queen:70}[kind(c)]||num(c));
-function hordeSpawn(){
-  const r=G.round,pl=1,dice=[];
+/* the Horde spawns once for every player still standing */
+function hordeSpawn(){const n=Math.max(1,G.p.filter(P=>!P.out&&!isHorde(P.i)).length);for(let k=0;k<n;k++)hordeSpawnOne(k,n)}
+function hordeSpawnOne(k,n){
+  const r=G.round,pl=hordeIx(),dice=[];
   const roll=(n,s)=>{let t=0;for(let i=0;i<n;i++){const v=R(s);dice.push({s,v});t+=v}return t};
   let g=0,inf=0,sp=0,cap=0,jk=0;
   if(r<=5){g=roll(1,4)+r;inf=Math.max(0,roll(1,2)-2+r);cap=Math.min(4,Math.ceil(r/2))}
@@ -1044,20 +1187,22 @@ function hordeSpawn(){
   const chosen=pool.slice(0,cap);chosen.forEach(c=>c.owner=pl);
   let placed=0,lost=0;
   for(const c of chosen){if(hordePlace(c))placed++;else lost++}
-  tray(pl,`Round ${roman(r)} spawn`,dice,`${placed} spawn${placed===1?"":"s"}`);
-  log(`Round ${roman(r)}: the Horde rolls ${dice.map(x=>"d"+x.s+":"+x.v).join(" ")}; ${g} grunts, ${inf} infantry${sp?`, ${sp} royals`:""}${jk?`, ${jk} Joker${jk>1?"s":""}`:""}, cap ${cap}. ${placed} spawn${lost?`, ${lost} find no room`:""}.`,"event");
+  tray(pl,`Round ${roman(r)} spawn${n>1?` ${k+1}/${n}`:""}`,dice,`${placed} spawn${placed===1?"":"s"}`);
+  log(`Round ${roman(r)}${n>1?`, spawn ${k+1} of ${n}`:""}: the Horde rolls ${dice.map(x=>"d"+x.s+":"+x.v).join(" ")}; ${g} grunts, ${inf} infantry${sp?`, ${sp} royals`:""}${jk?`, ${jk} Joker${jk>1?"s":""}`:""}, cap ${cap}. ${placed} spawn${lost?`, ${lost} find no room`:""}.`,"event");
 }
 function hordePlace(c){
-  const pl=1,rows=[frontRow(pl),backRow(pl)];
+  const pl=hordeIx(),zone=zoneTiles(pl),front=zone.filter(([r,cc])=>!isBack(pl,r,cc)),back=zone.filter(([r,cc])=>isBack(pl,r,cc));
+  const mid=(COLS-1)/2,byCenter=t=>[...t].sort((a,b)=>Math.abs(a[1]-mid)-Math.abs(b[1]-mid));
   // stack onto its own stacks when it can, front line first
-  for(const r of rows)for(const col of centerOut()){const st=G.board[r][col];
+  for(const [r,col] of [...byCenter(front),...byCenter(back)]){const st=G.board[r][col];
     if(st&&st.owner===pl&&!hasK(st,"ace")&&stackLegal([...st.cards,c])){st.cards.push(c);return true}}
-  for(const r of rows){const free=centerOut().filter(col=>!G.board[r][col]&&!isVoid(r,col));if(free.length){
-    // lean toward the columns where the player's stacks are
-    const mine=stacksOf(0);free.sort((a,b)=>Math.min(9,...mine.map(x=>Math.abs(x.c-a)))-Math.min(9,...mine.map(x=>Math.abs(x.c-b))));
-    G.board[r][free[0]]={owner:pl,cards:[c],moved:false,attacked:false};return true}}
+  const foes=enemiesOf(pl).flatMap(stacksOf);
+  for(const line of [front,back]){const free=line.filter(([r,col])=>!G.board[r][col]);if(free.length){
+    // lean toward the columns where the players' stacks are
+    free.sort((a,b)=>Math.min(99,...foes.map(x=>Math.abs(x.c-a[1])))-Math.min(99,...foes.map(x=>Math.abs(x.c-b[1]))));
+    const [r,col]=free[0];G.board[r][col]={owner:pl,cards:[c],moved:false,attacked:false};return true}}
   // no room: a stronger soul replaces the weakest stack still standing on the Horde's lines, which fades back into the Ether
-  let weak=null;for(const r of rows)for(let col=0;col<COLS;col++){const st=G.board[r][col];if(st&&st.owner===pl&&!st.cards.some(x=>x.captured&&x.captured.length)&&(!weak||stackRate(st)<stackRate(weak.st)))weak={st,r,col}}
+  let weak=null;for(const [r,col] of zone){const st=G.board[r][col];if(st&&st.owner===pl&&!st.cards.some(x=>x.captured&&x.captured.length)&&(!weak||stackRate(st)<stackRate(weak.st)))weak={st,r,col}}
   if(weak&&stackRate(weak.st)<rate(c)){G.board[weak.r][weak.col]={owner:pl,cards:[c],moved:false,attacked:false};return true}
   return false;
 }
@@ -1139,6 +1284,10 @@ function askHuman(pl,spec){
       ovShow(`<div class="ovbox"><h2>${spec.title}</h2>${who}<p>${spec.text}</p><p class="acts"><button class="btn" id="qy">${esc(spec.yes)}</button> <button class="btn ghost" id="qn">${esc(spec.no)}</button></p></div>`);
       $("#qy").onclick=()=>{ovHide();res(true)};$("#qn").onclick=()=>{ovHide();res(false)};return;
     }
+    if(spec.kind==="player"){
+      ovShow(`<div class="ovbox"><h2>${esc(spec.title)}</h2>${who}<div class="pickrow">${spec.players.map(pl=>`<button class="btn ghost pbtn" data-p="${pl}" style="--pc:${G.p[pl].color}">${solidSVG(G.p[pl].solid,G.p[pl].color,16)} ${esc(G.p[pl].name)} <small>hand ${G.p[pl].hand.length} · deck ${G.p[pl].deck.length}</small></button>`).join("")}</div></div>`);
+      $("#ov").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{ovHide();res(+b.dataset.p)});return;
+    }
     const cards=spec.cards;
     ovShow(`<div class="ovbox ${BOXNAME[spec.box]||""}"><h2>${spec.title}</h2>${who}${spec.sub?`<p class="dim">${esc(spec.sub)}</p>`:""}<div class="pickrow">${cards.map((c,i)=>`<button class="pk" data-i="${i}" aria-label="${esc(nameOf(c))}">${face(c,{owner:spec.box==="outer"?c.darkOwner:c.owner,price:spec.price})}</button>`).join("")}</div>${spec.cancel?`<p><button class="btn ghost" id="mcancel">${esc(spec.cancel)}</button></p>`:""}</div>`);
     $("#ov").querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{ovHide();res(+b.dataset.i)});
@@ -1162,12 +1311,14 @@ function passScreen(msg){
   });
 }
 function end(w,why){
-  G.over=true;G.busy=false;log(`<b>${plName(w)} wins</b>: ${why}.`,"win");render();
-  const vsCpu=G.opts.mode==="cpu";const title=vsCpu?(w===0?"You win":"The computer wins"):`${esc(G.p[w].name)} wins`;
+  G.over=true;G.busy=false;stopTimer();
+  const team=G.p.filter(P=>P.team===G.p[w].team).map(P=>P.i),names=team.map(plName).join(" and ");
+  log(`<b>${names} win${team.length>1?"":"s"}</b>: ${why}.`,"win");render();
+  const hs=G.p.filter(P=>!P.cpu);const title=hs.length===1?(team.includes(hs[0].i)?(team.length>1?"Your side wins":"You win"):"The computer wins"):`${names} win${team.length>1?"":"s"}`;
   ovShow(`<div class="ovbox"><h2>${title}</h2><p>${why}.</p><p><button class="btn" id="again">New game</button></p></div>`);$("#again").onclick=showStart;
 }
 const PHASES=[["draw","Draw","roll d4s to draw, or skip"],["prep","Prep","sacrifice, cast, place, move"],["attack","Attack","each stack may attack once"]];
-function canAct(){return G&&!G.over&&!G.busy&&!G.passing&&!me().cpu&&G.active===view()}
+function canAct(){return G&&!G.over&&!G.busy&&!G.passing&&!me().cpu&&!me().out&&G.active===view()}
 function bars(P){
   const N=Math.max(1,P.start||P.deck.length||1),n=P.deck.length,fill=Math.min(n,N),extra=Math.max(0,n-N);
   const blocks=Array.from({length:N},(_,i)=>`<i class="${i<fill?"f":""}"></i>`).join("");
@@ -1179,7 +1330,9 @@ function bars(P){
 function pboxHTML(pl,top){
   const P=G.p[pl],act=pl===G.active&&G.phase!=="setup";
   const tag=P.cpu==="horde"?"the Horde":P.cpu?`computer · ${P.cpu}`:TRIBES[P.tribe]?TRIBES[P.tribe].name:"";
-  let h=`<div class="ph" style="--pc:${P.color}">${solidSVG(P.solid,P.color,18)}<b>${esc(P.name)}</b><span class="dim">${esc(tag)}</span>${act?'<span class="turnmark">to play</span>':""}</div>`;
+  const V=view(),rel=pl===V?"":isEnemy(pl,V)?"":'<span class="ally">ally</span>';
+  let h=`<div class="ph" style="--pc:${P.color}">${solidSVG(P.solid,P.color,18)}<b>${esc(P.name)}</b><span class="dim">${esc(tag)}</span>${rel}${P.out?'<span class="outmark">out</span>':act?'<span class="turnmark">to play</span>':""}</div>`;
+  if(P.out)return h;
   if(P.cpu==="horde"){
     const units=stacksOf(pl).reduce((a,x)=>a+x.st.cards.length,0);
     h+=`<p class="stats"><span>On the field <b>${units}</b> card${units===1?"":"s"} in <b>${stacksOf(pl).length}</b> stack${stacksOf(pl).length===1?"":"s"}</span></p>`;
@@ -1187,7 +1340,7 @@ function pboxHTML(pl,top){
     h+=bars(P);
     const showHand=top;
     if(showHand){
-      const open=P.shownUntil&&P.shownUntil===G.turnNo&&!G.passing;
+      const open=P.shownBy!=null&&!G.passing&&(P.shownBy===V||!isEnemy(P.shownBy,V))||!isEnemy(pl,V)&&G.p.filter(Q=>!Q.cpu).length===1&&!G.passing;
       h+=`<div class="handrow"><span class="bk">Hand ${P.hand.length}/${HAND_CAP}</span>${P.hand.map(c=>open?face(c,{cls:"sm"}):back(pl)).join("")}${open?'<span class="seenmark">seen</span>':""}</div>`;
     }else h+=`<p class="stats"><span>Hand <b>${P.hand.length}/${HAND_CAP}</b></span>${P.od?`<span class="odn">overdrawn <b>${P.od}</b></span>`:""}</p>`;
   }
@@ -1196,7 +1349,8 @@ function pboxHTML(pl,top){
 }
 function render(){
   if(!G)return;
-  const V=view(),T=1-V,flip=V===1;
+  const V=view(),T=enemiesOf(V)[0]??(V===0?1:0);
+  const K=G.rows===COLS?seat(V).rot:(seat(V).rot%2?0:seat(V).rot),duel=G.map.layout==="duel"&&K%2===0;
   document.body.classList.toggle("passing",!!G.passing);
   // moon
   const m=G.moon,tags=[];
@@ -1211,52 +1365,60 @@ function render(){
   else if(G.phase==="moon")$("#phases").innerHTML=`<span class="ph-c on"><b>Moon</b><em>the ${MOON[m.i]} takes effect</em></span>`;
   else $("#phases").innerHTML=PHASES.map(([id,n,help])=>`<span class="ph-c ${G.phase===id?"on":""}${id==="draw"&&(G.turnNo===1||G.noDraw)?" skip":""}"><b>${n}</b><em>${help}</em></span>`).join('<i>→</i>');
   const who=me();
-  $("#who").innerHTML=G.over?"Game over.":G.passing?"Passing the device…":who.cpu?`<b>${esc(who.name)}</b> is playing…`:`<b>${esc(who.name)}</b>${G.opts.mode==="local"?"":" (you)"} to play`;
-  // board
-  const rows=[...Array(G.rows).keys()];if(flip)rows.reverse();
-  const cols=[...Array(COLS).keys()];if(flip)cols.reverse();
+  $("#who").innerHTML=G.over?"Game over.":G.passing?"Passing the device…":who.cpu?`<b>${esc(who.name)}</b> is playing…`:`<b>${esc(who.name)}</b>${G.p.filter(P=>!P.cpu).length>1?"":" (you)"} to play${G.nextLabel==="Ready →"&&G.phase!=="setup"?" · everyone plays this phase together":""}`;
+  // board: turned so the viewer's side is at the bottom
+  const DR=G.rows,DC=COLS;
+  const toBoard=(i,j)=>K===0?[i,j]:K===2?[DR-1-i,DC-1-j]:K===1?[j,DC-1-i]:[DR-1-j,i];
   let tgt=[];const live=canAct();
   if(live&&G.sel&&G.mode==="move")tgt=moveTargets();
   if(live&&G.sel&&G.mode==="attack")tgt=attackTargets();
   const placeT=[];
-  if(live&&G.phase==="setup"&&G.setupStep==="ace"){for(let c=0;c<COLS;c++)if(!G.board[backRow(G.active)][c]&&!isVoid(backRow(G.active),c))placeT.push([backRow(G.active),c])}
+  if(live&&G.phase==="setup"&&G.setupStep==="ace"){for(const [r,c] of backTiles(G.active))if(!G.board[r][c])placeT.push([r,c])}
   else if(live&&G.selHand)for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(canPlace(G.selHand,r,c))placeT.push([r,c]);
   const isT=(r,c,list)=>list.some(([a,b])=>a===r&&b===c);
-  const B=$("#board");B.style.setProperty("--rows",G.rows);B.style.setProperty("--cols",COLS);B.classList.toggle("mapped",G.map.theme!=="none");B.dataset.map=G.map.theme;
+  const B=$("#board");B.style.setProperty("--rows",DR);B.style.setProperty("--cols",DC);B.classList.toggle("mapped",G.map.theme!=="none");B.classList.toggle("nolabels",!duel);B.dataset.map=G.map.theme;
   if(!G.map.ground)G.map.ground=mapGround();G.map.art=G.map.art||{};
   const river=G.map.theme==="river";
-  B.innerHTML=`<div class="mapbg">${G.map.ground}</div>`+rows.map((r,ri)=>{
-    const lineName=r===backRow(V)?"your backline":r===frontRow(V)?"your frontline":r===backRow(T)?"enemy backline":r===frontRow(T)?"enemy frontline":river?"river":"midline";
-    let nm=G.opts.mode==="cpu"||survival()?lineName.replace("enemy",survival()?"Horde":"computer's"):lineName;
-    if(river&&lineName==="river")nm=`river · bridge on the ${G.map.bridge}`;
-    const edge=ri===0?"top":"bottom";
-    return `<div class="row ${lineName.replace(/\s/g,"-")}"><span class="rl">${nm}</span>`+cols.map(c=>{
-      const st=G.board[r][c],role=tileRole(r,c),key=r+"."+c+"."+edge;
+  B.innerHTML=`<div class="mapbg">${G.map.ground}</div>`+[...Array(DR).keys()].map(i=>{
+    const r0=toBoard(i,0)[0];
+    let lineName="",nm="";
+    if(duel){
+      lineName=r0===backRow(V)?"your backline":r0===frontRow(V)?"your frontline":r0===backRow(T)?"enemy backline":r0===frontRow(T)?"enemy frontline":river?"river":"midline";
+      nm=G.opts.mode==="cpu"||survival()?lineName.replace("enemy",survival()?"Horde":"computer's"):lineName;
+      if(river&&lineName==="river")nm=`river · bridge on the ${G.map.bridge}`;
+    }
+    return `<div class="row ${lineName.replace(/\s/g,"-")}">${duel?`<span class="rl">${nm}</span>`:""}`+[...Array(DC).keys()].map(j=>{
+      const [r,c]=toBoard(i,j);
+      const st=G.board[r][c],role=tileRole(r,c),edge=outerEdge(r,c,K),key=r+"."+c+"."+edge;
       const art=G.map.art[key]||(G.map.art[key]=tileArt(r,c,role,edge));
       if(role==="void"||role==="water")return `<div class="tile ${role}" aria-hidden="true">${art}</div>`;
       const cls=["tile"];if(G.sel&&G.sel.r===r&&G.sel.c===c)cls.push("sel");
       if(isT(r,c,tgt))cls.push(G.mode==="attack"?"tatk":"tmove");if(isT(r,c,placeT))cls.push("tplace");
+      const z=G.zone[r][c];if(!duel&&z>=0)cls.push("zone");
       let inner="";
       if(st){
         const lead=st.cards.find(x=>kind(x)==="ace")||[...st.cards].sort((a,b)=>nat(b)-nat(a)||kind(b).localeCompare(kind(a)))[0];
         const P=G.p[st.owner],mine=st.owner===V;
         const cap=st.cards.reduce((a,x)=>a+capMana(x),0);
-        inner=`<div class="stack ${mine?"mine":"theirs"} ${lead.color}" style="--pc:${P.color}"><span class="so">${solidSVG(P.solid,P.color,16)}</span>${st.cards.length>1?`<span class="cnt">×${st.cards.length}</span>`:""}<span class="lead"><b class="rk${lead.rank==="JK"?" jk":""}">${lead.rank==="JK"?"Joker":lead.rank}</b><i>${lead.rank==="JK"?"✶":SUITS[lead.suit]}</i></span><span class="mini">${st.cards.length>1?st.cards.map(short).join(" "):""}</span><em class="ty">${TYPEWORD[kind(lead)]}</em>${st.odds?`<span class="odds ${st.odds}">${st.odds==="adv"?"▲":"▼"}</span>`:""}${st.hypo?`<span class="hypo" title="Hypostasis: untouchable">◈${st.hypo}</span>`:""}${cap?`<span class="souls" title="captured souls">✦${cap}</span>`:""}${st.owner===G.active&&(st.moved||st.attacked)&&G.phase!=="setup"?`<span class="used">${st.attacked?"atk":"mv"}</span>`:""}</div>`;
+        inner=`<div class="stack ${mine?"mine":isEnemy(st.owner,V)?"theirs":"ally"} ${lead.color}" style="--pc:${P.color}"><span class="so">${solidSVG(P.solid,P.color,16)}</span>${st.cards.length>1?`<span class="cnt">×${st.cards.length}</span>`:""}<span class="lead"><b class="rk${lead.rank==="JK"?" jk":""}">${lead.rank==="JK"?"Joker":lead.rank}</b><i>${lead.rank==="JK"?"✶":SUITS[lead.suit]}</i></span><span class="mini">${st.cards.length>1?st.cards.map(short).join(" "):""}</span><em class="ty">${TYPEWORD[kind(lead)]}</em>${st.odds?`<span class="odds ${st.odds}">${st.odds==="adv"?"▲":"▼"}</span>`:""}${st.hypo?`<span class="hypo" title="Hypostasis: untouchable">◈${st.hypo}</span>`:""}${cap?`<span class="souls" title="captured souls">✦${cap}</span>`:""}${st.owner===G.active&&(st.moved||st.attacked)&&G.phase!=="setup"?`<span class="used">${st.attacked?"atk":"mv"}</span>`:""}</div>`;
       }
-      return `<button class="${cls.join(" ")}${role==="bridge"?" bridge":""}" data-r="${r}" data-c="${c}" aria-label="${lineName}${role==="bridge"?" bridge":""} column ${c+1}${st?", "+st.cards.map(nameOf).join(", "):", empty"}">${art}${inner}</button>`;
+      const zc=!duel&&z>=0?` style="--zc:${G.p[z].color}"`:"";
+      return `<button class="${cls.join(" ")}${role==="bridge"?" bridge":""}"${zc} data-r="${r}" data-c="${c}" aria-label="${lineName||(z>=0?G.p[z].name+"'s ground":"open ground")}${role==="bridge"?" bridge":""}, row ${r+1} column ${c+1}${st?", "+st.cards.map(nameOf).join(", "):", empty"}">${art}${inner}</button>`;
     }).join("")+"</div>";
   }).join("");
   $("#board").querySelectorAll("button.tile").forEach(b=>b.onclick=()=>tileClick(+b.dataset.r,+b.dataset.c));
   // player boxes
-  $("#foe").innerHTML=pboxHTML(T,true);$("#me").innerHTML=pboxHTML(V,false);
-  $("#me").style.setProperty("--pc",G.p[V].color);$("#foe").style.setProperty("--pc",G.p[T].color);
+  const others=G.p.map(P=>P.i).filter(i=>i!==V);
+  if(others.length===1){$("#foe").classList.remove("multi");$("#foe").innerHTML=pboxHTML(others[0],true);$("#foe").style.setProperty("--pc",G.p[others[0]].color)}
+  else{$("#foe").classList.add("multi");$("#foe").innerHTML=others.map(o=>`<div class="pbox sub" style="--pc:${G.p[o].color}">${pboxHTML(o,true)}</div>`).join("")}
+  $("#me").innerHTML=pboxHTML(V,false);$("#me").style.setProperty("--pc",G.p[V].color);
   $("#shared").innerHTML=`<button class="link limbo-l" id="seegrave">Grave <b>${G.grave.length}</b></button><button class="link" id="seeether">Ether <b>${G.ether.length}</b></button><button class="link dark-l" id="seedark">Outer Darkness <b>${G.dark.length}</b></button>`;
-  $("#seegrave").onclick=()=>viewBox("The Grave",G.grave,"limbo","Shared by both players. The dead sleep here until something raises them.");
+  $("#seegrave").onclick=()=>viewBox("The Grave",G.grave,"limbo","Shared by every player. The dead sleep here until something raises them.");
   $("#seeether").onclick=showEther;
   $("#seedark").onclick=()=>viewBox("The Outer Darkness",G.dark,"outer","Nothing here returns. Each card bears the symbol of the player who held it when it fell.",true);
   // hand
   const P=G.p[V];
-  $("#handh").textContent=G.opts.mode==="local"?`${P.name}'s hand`:"Your hand";
+  $("#handh").textContent=G.p.filter(Q=>!Q.cpu).length>1?`${P.name}'s hand`:"Your hand";
   const hidden=G.passing;
   $("#hand").innerHTML=P.hand.length?P.hand.map((c,i)=>hidden?back(V):`<div class="hc"><button class="cardbtn ${G.selHand===c?"on":""}" data-h="${i}" aria-label="${esc(nameOf(c))}">${face(c)}</button>${live&&sacrificeAllowed()?`<button class="mini-btn" data-sh="${i}" title="Sacrifice to your soul pile (+${soulOf(c)} mana)">sac +${soulOf(c)}</button>`:""}</div>`).join(""):'<p class="dim">No cards in hand.</p>';
   $("#hand").querySelectorAll("[data-h]").forEach(b=>b.onclick=()=>{
@@ -1268,7 +1430,8 @@ function render(){
   // controls
   const ctl=[];
   if(live&&G.phase==="draw")ctl.push(`<button class="btn" id="d4" ${P.deck.length?"":"disabled"}>Roll d4 and draw</button>`);
-  if(live&&G.phase!=="moon")ctl.push(`<button class="btn ghost" id="next">${G.phase==="setup"?"Done setting up":G.phase==="draw"?"To prep phase →":G.phase==="prep"?"To attack phase →":"End turn →"}</button>`);
+  if(live&&G.phase!=="moon")ctl.push(`<button class="btn ghost" id="next">${G.phase==="setup"?"Done setting up":G.nextLabel||"Next →"}</button>`);
+  if(+G.opts.timer&&!G.over)ctl.push(`<span id="timer" class="timer" aria-live="off" title="time left in this phase">${G.deadline?Math.max(0,Math.ceil((G.deadline-Date.now())/1000))+"s":""}</span>`);
   ctl.push(`<button class="btn ghost sm" id="snd" aria-pressed="${SND.on}">sound: ${SND.on?"on":"off"}</button>`);
   $("#controls").innerHTML=ctl.join("");
   const ap=$("#actph");if(ap)ap.innerHTML=G.over?"Game over":G.passing?"":me().cpu?`${esc(me().name)} is playing…`:G.phase==="setup"?"<b>Setup</b>":G.phase==="moon"?"<b>Moon</b>":`<b>${({draw:"Draw",prep:"Prep",attack:"Attack"})[G.phase]||""}</b> · ${esc(me().name)}`;
@@ -1327,7 +1490,7 @@ function tileClick(r,c){
   if(!G||G.over||G.passing)return;
   const live=canAct();
   if(live&&G.phase==="setup"&&G.setupStep==="ace"){
-    if(r===backRow(G.active)&&!G.board[r][c]&&!isVoid(r,c)){placeOpening(G.active,r,c);render()}else flash("Your Ace goes on an empty tile of your backline.");return}
+    if(isBack(G.active,r,c)&&!G.board[r][c]&&!isVoid(r,c)){placeOpening(G.active,r,c);render()}else flash("Your Ace goes on an empty highlighted tile of your back line.");return}
   if(live&&G.selHand){if(canPlace(G.selHand,r,c)){place(G.selHand,r,c);render()}else flash("That card can't be placed there.");return}
   if(live&&G.sel&&G.mode==="move"&&moveTargets().some(([a,b])=>a===r&&b===c)){doMove(r,c);render();return}
   if(live&&G.sel&&G.mode==="attack"&&attackTargets().some(([a,b])=>a===r&&b===c)){attack(G.sel.r,G.sel.c,r,c);G.mode=null;if(G.sel&&!G.board[G.sel.r][G.sel.c])G.sel=null;render();return}
@@ -1361,17 +1524,29 @@ function mountInfo(){
 
 /* ---------------- start screen ---------------- */
 const MODES=[
- ["local","Local 1v1","Two players share one device. The board turns to whoever is playing, and the screen goes dark while you pass it."],
- ["cpu","Versus Computer","Play a coded opponent at Easy, Medium or Hard. It weighs offense against defense every turn."],
- ["survival","Survival","Hold the line alone against a Horde that grows every round. Count the rounds you last."]];
+ ["local","Local","2 to 4 players on one device, taking turns. The board turns to whoever is playing, and the screen goes dark while you pass it. Any seat can be a computer."],
+ ["cpu","Versus Computer","You against 1 to 3 computers at Easy, Medium or Hard: one on one, free-for-all, or two against two with a computer at your side."],
+ ["survival","Survival","1 to 4 players hold the line against a Horde that grows every round. Count the rounds you last."]];
 let startMode=null;
-function playerForm(n,label,defColor,defSolid,defTribe){
-  return `<fieldset class="pf"><legend>${label}</legend>
-<label class="f">Name <input id="nm${n}" value="${label}" maxlength="20"></label>
-<div class="f"><span>Substance</span><div class="opts">${Object.entries(TRIBES).map(([k,t])=>`<label class="opt"><input type="radio" name="tr${n}" value="${k}" ${k===defTribe?"checked":""}><span>${t.name}<small>${t.sub}</small></span></label>`).join("")}</div></div>
-<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex],i)=>`<label class="sw" title="${nm}"><input type="radio" name="co${n}" value="${hex}" ${i===defColor?"checked":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}</div></div>
-<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" value="${k}" ${k===defSolid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}</div></div>
-</fieldset>`;
+const ORD=["One","Two","Three","Four"],SEATCOL=[0,3,2,5],SEATSOL=["tetra","icosa","cube","octa"];
+const LAYOUTS={
+ duel:["One on one","The 5 by 5 field (or your chosen size), one army at each end."],
+ ffa:["Free-for-all","7 by 7 with the corners cut. Everyone for themselves; each player spawns only on their own edge."],
+ "team-side":["2v2, side by side","7 by 7 with the corners cut. Teammates hold two neighboring edges."],
+ "team-across":["2v2, across","7 by 7 with the corners cut. Teammates face each other from opposite edges, with the enemy on both flanks."],
+ "team-same":["2v2, same side","6 by 6, laid out like one on one: each team shares an end of the field, three columns each."]};
+function seatForm(i,S,mode,L){
+  const n=i+1,team=L.startsWith("team")?`<span class="sidetag s${i%2}">${i%2?"Side B":"Side A"}</span>`:"";
+  let type;
+  if(mode==="survival"||mode==="cpu"&&i===0)type=`<span class="dim">${mode==="cpu"?"You":"Human"}</span>`;
+  else type=`<label class="f">Plays as <select data-seat="${i}" data-k="type">${(mode==="cpu"?[]:[["human","Human"]]).concat([["easy","Computer · Easy"],["medium","Computer · Medium"],["hard","Computer · Hard"]]).map(([v,t])=>`<option value="${v}" ${S.type===v?"selected":""}>${t}</option>`).join("")}</select></label>`;
+  return `<fieldset class="pf seat" style="--pc:${S.color}"><legend>Player ${ORD[i]} ${team}</legend>
+<div class="srow"><label class="f">Name <input data-seat="${i}" data-k="name" value="${esc(S.name)}" maxlength="20"></label>${type}</div>
+<details class="look" ${S.type==="human"?"open":""}><summary>Substance, color and symbol</summary>
+<div class="f"><span>Substance</span><div class="opts">${Object.entries(TRIBES).map(([k,t])=>`<label class="opt"><input type="radio" name="tr${n}" data-seat="${i}" data-k="tribe" value="${k}" ${k===S.tribe?"checked":""}><span>${t.name}<small>${t.sub}</small></span></label>`).join("")}</div></div>
+<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex])=>`<label class="sw" title="${nm}"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="${hex}" ${hex===S.color?"checked":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}</div></div>
+<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="${k}" ${k===S.solid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}</div></div>
+</details></fieldset>`;
 }
 const val=name=>{const e=document.querySelector(`input[name="${name}"]:checked`);return e&&e.value};
 const chk=(id,label,sub,on)=>`<label class="chk"><input type="checkbox" id="${id}" ${on?"checked":""}> <span><b>${label}</b>${sub?`<small>${sub}</small>`:""}</span></label>`;
@@ -1385,9 +1560,25 @@ function showStart(){
     document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{startMode=b.dataset.m;showStart()});return;
   }
   const mode=startMode,M=MODES.find(m=>m[0]===mode);
-  const forms=mode==="local"?`<div class="pgrid">${playerForm(1,"Player One",0,"tetra","binah")+playerForm(2,"Player Two",3,"icosa","tiph")}</div>`:playerForm(1,mode==="survival"?"Survivor":"Player One",0,"tetra","binah");
-  const diff=mode==="cpu"?`<fieldset class="pf"><legend>Computer</legend><div class="opts">${[["easy","Easy","an easier version: it plays loosely and misses chances"],["medium","Medium","balanced, and a real fight"],["hard","Hard","goes all out on your field and your deck"]].map(([k,t,s],i)=>`<label class="opt"><input type="radio" name="diff" value="${k}" ${i===1?"checked":""}><span>${t}<small>${s}</small></span></label>`).join("")}</div></fieldset>`:"";
-  const rules=`<fieldset class="pf"><legend>Field</legend>
+  const seatsS=[0,1,2,3].map(i=>({name:mode==="survival"&&i===0?"Survivor":`Player ${ORD[i]}`,type:mode==="survival"||i===0?"human":mode==="cpu"?"medium":"human",
+    tribe:i%2?"tiph":"binah",color:COLORS[SEATCOL[i]][1],solid:SEATSOL[i],named:false}));
+  const counts=mode==="survival"?[1,2,3,4]:[2,3,4];
+  const forms=`<fieldset class="pf"><legend>Table</legend>
+<label class="f">${mode==="survival"?"Players against the Horde":"Players"} <select id="pcount">${counts.map(c=>`<option value="${c}" ${c===counts[0]?"selected":""}>${c}</option>`).join("")}</select></label>
+<div class="f" id="layoutf" hidden><span>Layout</span><div class="opts">${Object.entries(LAYOUTS).filter(([k])=>k!=="duel").map(([k,[t,d]],i)=>`<label class="opt" data-lay="${k}"><input type="radio" name="olayout" value="${k}" ${i===0?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
+<p class="dim" id="laynote"></p></fieldset><div id="seats"></div>`;
+  const diff="";
+  const rules=`<fieldset class="pf"><legend>Turns</legend>
+<label class="f">Turn order <select id="oturns"><option value="classic">Classic: each player takes every phase in turn</option><option value="prep">Draw and prep together, then attacks in turns</option><option value="all">Every phase together</option></select></label>
+<p class="dim" id="turnnote"></p>
+<label class="f">Phase timer <select id="otimer"><option value="0" selected>Off (default)</option><option value="30">30 seconds</option><option value="60">60 seconds (draw phase 30)</option><option value="90">90 seconds (draw phase 30)</option></select></label>
+<p class="dim">When the timer runs out the game moves on to the next phase. During setup it places your cards for you, the way a Medium computer would.</p>
+<label class="f">Computer speed <select id="ospeed"><option value="slow">Slow</option><option value="normal" selected>Normal (default)</option><option value="fast">Fast</option></select></label>
+</fieldset>
+<fieldset class="pf" id="elimset" hidden><legend>When a player falls</legend><div class="opts">
+<label class="opt"><input type="radio" name="oelim" value="grave" checked><span>To the grave<small>Their deck and hand go to the grave, and the grave is shuffled. (default)</small></span></label>
+<label class="opt"><input type="radio" name="oelim" value="dark"><span>To the Outer Darkness<small>Their deck and hand are gone for good.</small></span></label></div></fieldset>
+<fieldset class="pf"><legend>Field</legend>
 ${chk("olock","Optional Ace rule","Cards inside an Ace must match its color.",false)}
 </fieldset>
 <fieldset class="pf"><legend>Mana</legend>
@@ -1413,7 +1604,12 @@ ${chk("oblood","Blood Moon mode","The game opens on a Blood Moon. Each deck is s
   const suitSel=`<div id="suitpick" hidden><p class="dim">${mode==="local"?"Player One picks; Player Two gets the other two suits.":mode==="cpu"?"You pick; the computer gets the other two suits.":"You pick; the other two suits wait in the Ether."}</p>
 <label class="f">Red suit <select id="osuitR"><option value="H">♥ Hearts</option><option value="D">♦ Diamonds</option></select></label>
 <label class="f">Black suit <select id="osuitB"><option value="S">♠ Spades</option><option value="C">♣ Clubs</option></select></label></div>`;
-  const deckTab=`<fieldset class="pf"><legend>Decks</legend><div class="opts">
+  const deckTab=`<fieldset class="pf" id="ffadecks" hidden><legend>Decks</legend><div class="opts">
+<label class="opt"><input type="radio" name="offa" value="full" checked><span>A whole deck each<small>Every player has all four suits. (default)</small></span></label>
+<label class="opt"><input type="radio" name="offa" value="half"><span>Half a deck each<small>One red and one black suit each; the rest wait in the Ether.</small></span></label></div></fieldset>
+<fieldset class="pf" id="teamdecks" hidden><legend>Decks</legend><p class="dim">Each team has one deck: every teammate takes one red and one black suit of it, and one of its Jokers.</p>
+${chk("oshare","Shared team deck","Teammates draw from one deck and spend from one soul pile, but keep their own hands.",false)}</fieldset>
+<fieldset class="pf" id="dueldecks"><legend>Decks</legend><div class="opts">
 ${[["1","One deck",mode==="survival"?"You take one red and one black suit; the other half of the deck waits in the Ether.":"Both players split one deck: each takes one red and one black suit."],["2","Two decks","Each player has a full deck of all four suits. (default)"],["3","Three decks","A full deck each, and a whole third deck waits in the Ether."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="odecks" value="${v}" ${v==="2"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
 <div class="f" id="suitmode" hidden><span>Suits (one deck)</span><div class="opts"><label class="opt"><input type="radio" name="osuitmode" value="random" checked><span>Random<small>Each player is dealt one red and one black suit at random. (default)</small></span></label><label class="opt"><input type="radio" name="osuitmode" value="choose"><span>Choose<small>Pick the two suits below.</small></span></label></div>${suitSel}</div>
 </fieldset>
@@ -1428,21 +1624,57 @@ ${Object.entries(MAPS).filter(([k])=>!(mode==="survival"&&k==="river")).map(([k,
 <div class="f" id="bridgeopt" hidden><span>Bridge</span><div class="opts"><label class="opt"><input type="radio" name="obridge" value="left" checked><span>Left<small>Two tiles wide, on the left of the river.</small></span></label><label class="opt"><input type="radio" name="obridge" value="right"><span>Right<small>Two tiles wide, on the right.</small></span></label></div></div>
 </fieldset>
 <fieldset class="pf" id="sizeset"><legend>Size</legend>
-<div class="f"><span>Width</span><div class="opts">${[5,6,7].map(w=>`<label class="opt"><input type="radio" name="ocols" value="${w}" ${w===5?"checked":""}><span>${w} wide${w===5?" (default)":""}</span></label>`).join("")}</div></div>
+<div id="sizeduel"><div class="f"><span>Width</span><div class="opts">${[5,6,7].map(w=>`<label class="opt"><input type="radio" name="ocols" value="${w}" ${w===5?"checked":""}><span>${w} wide${w===5?" (default)":""}</span></label>`).join("")}</div></div>
 ${mode==="survival"?'<p class="dim">Survival always uses the midline: the field is 5 tall.</p>':chk("omid","Use the midline","An empty line between the two armies: 5 tall with it, 4 without.",true)}
-${chk("ocorners","Cut off the corners","The four corner tiles are removed from play.",false)}
+</div>${chk("ocorners","Cut off the corners","The four corner tiles are removed from play. On by default for the 7 by 7 layouts.",false)}
+<p class="dim" id="sizenote" hidden></p>
 <p class="dim mapnote" id="rivernote" hidden>The River map is always 7 wide and 5 tall with the midline, and keeps its corners.</p>
 <p class="dim">On a phone, 5 wide is the largest size that stays easy to read.</p>
 </fieldset>
 ${mode==="survival"?"":`<fieldset class="pf"><legend>Victory</legend>${chk("ohq","Headquarters","Each side opens with two Aces as bases, and troops can only be spawned inside your Aces. The only ways to win are destroying every enemy base or an economic victory.",false)}</fieldset>`}`;
-  const tabs=[["players",mode==="cpu"?"Players":"Player",forms+diff],["map","Map",mapTab],["deck","Deck",deckTab],["rules","Rules",rules],["display","Display",display]];
+  const tabs=[["players","Players",forms],["map","Map",mapTab],["deck","Deck",deckTab],["rules","Rules",rules],["display","Display",display]];
   ovShow(`<div class="ovbox setup"><div class="shead"><h2>${M[1]}</h2><p class="dim">${M[2]}</p></div>
 <div class="stabs" role="tablist">${tabs.map(([k,t],i)=>`<button type="button" role="tab" class="stab ${i?"":"on"}" data-t="${k}" aria-selected="${!i}">${t}</button>`).join("")}</div>
 ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"hidden":""}>${h}</div>`).join("")}
 <p class="acts sfoot"><button class="btn" id="go">${mode==="survival"?"Raise your Ace":"Roll for the opening"}</button> <button class="btn ghost" id="back">← Other modes</button> <a class="dim" href="ethers-crossroads-rules.html#modes">How the modes work</a></p></div>`);
   document.querySelectorAll(".stab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".stab").forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-selected",x===b)});document.querySelectorAll(".spanel").forEach(p=>p.hidden=p.dataset.p!==b.dataset.t)});
+  const count=()=>+$("#pcount").value;
+  const layout=()=>{const n=count();if(mode==="survival")return n===1?"duel":"coop";return n===2?"duel":n===3?"ffa":val("olayout")||"ffa"};
+  const humans=()=>mode==="survival"?count():seatsS.slice(0,count()).filter(S=>S.type==="human").length;
+  const drawSeats=()=>{
+    const n=count(),L=layout();
+    $("#layoutf").hidden=n!==4||mode==="survival";
+    $("#laynote").textContent=mode==="survival"?(n===1?"One survivor on the usual field.":`${n} survivors share the bottom of a ${n===2?"6 by 5":n===3?"9 by 6":"8 by 6"} field; the Horde spawns once for each of you. You take your turns one after another on this device, and the Horde moves first each round.`):n===3?LAYOUTS.ffa[1]:n===2?"":"";
+    $("#seats").innerHTML=seatsS.slice(0,n).map((S,i)=>seatForm(i,S,mode,L)).join("");
+    $("#seats").querySelectorAll("[data-seat]").forEach(el=>el.addEventListener(el.tagName==="INPUT"&&el.type==="text"?"input":"change",()=>{
+      const S=seatsS[+el.dataset.seat],k=el.dataset.k;S[k]=el.value;if(k==="name")S.named=true;
+      if(k==="color")el.closest(".seat").style.setProperty("--pc",el.value);
+      if(k==="type"){el.closest(".seat").querySelector(".look").open=el.value==="human";turnUp()}
+    }));
+    const big=["ffa","team-side","team-across"].includes(L);
+    $("#sizeduel").hidden=L!=="duel";$("#sizenote").hidden=L==="duel";
+    $("#sizenote").textContent=L==="duel"?"":L==="team-same"?"This layout is always 6 by 6.":L==="coop"?"Co-op Survival sets its own field size from the number of players.":"These layouts are always 7 by 7.";
+    if(!$("#ocorners").dataset.touched)$("#ocorners").checked=big;
+    $("#ocorners").disabled=L==="coop";
+    document.querySelectorAll('input[name=omap][value=river]').forEach(i=>{i.disabled=L!=="duel";if(i.disabled&&i.checked)document.querySelector('input[name=omap][value=random]').checked=true});
+    $("#dueldecks").hidden=L!=="duel";$("#ffadecks").hidden=!(L==="ffa"||L==="coop");$("#teamdecks").hidden=!L.startsWith("team");
+    $("#elimset").hidden=(mode==="survival"?n:n)<(mode==="survival"?2:3);
+    turnUp();mapUp&&mapUp();sumUp();
+  };
+  const turnUp=()=>{
+    const t=$("#oturns"),many=humans()>1;
+    if(many){t.value="classic";t.disabled=true;$("#turnnote").textContent="With more than one person on this device, play is always turn by turn."}
+    else{t.disabled=false;if(!t.dataset.touched)t.value=mode==="local"?"classic":"prep";
+      $("#turnnote").textContent=t.value==="classic"?"Each player takes the draw, prep and attack phases before the next player goes.":t.value==="prep"?"Everyone draws and preps at once; a shared phase ends when every player is Ready. Then each player attacks in turn.":"Every phase is played at once; each phase ends when every player is Ready."}
+  };
+  $("#oturns").addEventListener("change",()=>{$("#oturns").dataset.touched=1;turnUp()});
+  $("#ocorners").addEventListener("change",()=>$("#ocorners").dataset.touched=1);
+  $("#pcount").addEventListener("change",drawSeats);
+  document.querySelectorAll('input[name=olayout]').forEach(i=>i.addEventListener("change",drawSeats));
+  let mapUp=null;
   const sumUp=()=>{
     const d=+val("odecks"),sp=val("ospecials"),js=$("#ojoker").checked,np=mode==="survival"?1:2;
+    if(layout()!=="duel"){$("#decksum").textContent="";return}
     if(!$("#oeach").dataset.touched)$("#oeach").checked=d===1;
     $("#suitmode").hidden=d!==1;$("#suitpick").hidden=d!==1||val("osuitmode")!=="choose";
     const s=d===1?2:4,j=d===1?1:2,keptSp=sp==="all"?4*s+j:sp==="half"?4*s/2+Math.floor(j/2):0;
@@ -1454,23 +1686,27 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
   };
   $("#oeach").addEventListener("change",()=>$("#oeach").dataset.touched=1);
   document.querySelectorAll('input[name=odecks],input[name=ospecials],input[name=osuitmode],#ojoker').forEach(i=>i.addEventListener("change",sumUp));sumUp();
-  const mapUp=()=>{const rv=val("omap")==="river";$("#bridgeopt").hidden=!rv;$("#rivernote").hidden=!rv;
-    document.querySelectorAll('#sizeset input').forEach(i=>i.disabled=rv);};
-  document.querySelectorAll('input[name=omap]').forEach(i=>i.addEventListener("change",mapUp));mapUp();
+  mapUp=()=>{const rv=val("omap")==="river";$("#bridgeopt").hidden=!rv;$("#rivernote").hidden=!rv;
+    document.querySelectorAll('#sizeduel input').forEach(i=>i.disabled=rv);};
+  document.querySelectorAll('input[name=omap]').forEach(i=>i.addEventListener("change",mapUp));drawSeats();
   $("#back").onclick=()=>{startMode=null;history.replaceState(null,"",location.pathname);showStart()};
   $("#go").onclick=()=>{
-    const pl=n=>({name:($("#nm"+n).value.trim()||(n===1?"Player One":"Player Two")).slice(0,20),tribe:val("tr"+n),color:val("co"+n),solid:val("so"+n)});
-    let players;
-    if(mode==="local"){players=[pl(1),pl(2)];if(players[0].color===players[1].color){flash("Pick two different colors.");return}}
-    else if(mode==="cpu"){const a=pl(1),d=val("diff");
-      const tribe=a.tribe==="binah"?"tiph":"binah",color=pick(COLORS.map(c=>c[1]).filter(c=>c!==a.color)),solid=pick(Object.keys(SOLIDS).filter(s=>s!==a.solid));
-      players=[a,{name:`The ${TRIBES[tribe].name} computer`,tribe,color,solid,cpu:d}]}
-    else{const a=pl(1);players=[a,{name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>s!==a.solid)),cpu:"horde"}]}
+    const n=count(),L=layout();
+    const used={};
+    let players=seatsS.slice(0,n).map((S,i)=>{
+      const cpu=S.type==="human"?null:S.type;
+      let name=(S.name.trim()||`Player ${ORD[i]}`).slice(0,20);
+      if(cpu&&!S.named){name=`The ${TRIBES[S.tribe].name} computer`;used[name]=(used[name]||0)+1;if(used[name]>1)name+=` ${["","","II","III","IV"][used[name]]}`}
+      return{name,tribe:S.tribe,color:S.color,solid:S.solid,cpu};
+    });
+    if(new Set(players.map(p=>p.color)).size<players.length){flash("Every player needs a different color.");return}
+    if(mode==="survival")players.push({name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>!players.some(p=>p.solid===s)))||"dodeca",cpu:"horde"});
     PREF.hand=val("dhand")||PREF.hand;PREF.sel=val("dsel")||PREF.sel;PREF.ctl=val("dctl")||PREF.ctl;PREF.theme=val("dtheme")??PREF.theme;savePrefs();applyPrefs();
     startGame({mode,players,mid:mode==="survival"||!!($("#omid")&&$("#omid").checked),aceLock:$("#olock").checked,bloodStart:$("#oblood").checked,
       map:val("omap"),cols:+val("ocols"),corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
       decks:+val("odecks"),specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:+val("odecks")===1&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
-      startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,atkSpells:$("#oatk").checked});
+      startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,atkSpells:$("#oatk").checked,
+      layout:L,turns:$("#oturns").value,timer:+$("#otimer").value,cpuSpeed:$("#ospeed").value,elimDark:val("oelim")==="dark",ffaDeck:val("offa"),shareDeck:$("#oshare").checked});
   };
 }
 function startGame(opts){
@@ -1482,7 +1718,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   $("#newgame").onclick=()=>confirmLeave(()=>{startMode=null;showStart()});
 });
 window.__EC={get G(){return G},startGame,stackLegal,canPlace,nextPhase,render,AI,SP,cast,SPELLS,hordeSpawn,roman,moonSVG,
-  force(o){G.forceMoon=o},runCpu,jokerSuicide,mk};
+  force(o){G.forceMoon=o},jokerSuicide,mk};
 
 /* ---------------- display preferences, page themes, leave warning, quotes ---------------- */
 const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){}return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,theme:""},p)})();
@@ -1551,16 +1787,43 @@ const MAPS={
   river: {name:"River",          sub:"a wide brown river like the Ogun near Lagos, crossed by one bridge; 7 wide, always with the midline"},
   none:  {name:"No map",         sub:"plain tiles"}
 };
+/* layouts: duel (two sides), ffa (3 or 4 players, one to each edge), team-side / team-across (2v2 on the edges),
+   team-same (2v2, teammates side by side on one side), coop (Survival with several players on one side) */
+const SIDES={bottom:{rot:0,fwd:[-1,0]},left:{rot:1,fwd:[0,1]},top:{rot:2,fwd:[1,0]},right:{rot:3,fwd:[0,-1]}};
+function edgeTiles(side,rows,cols){const o=[];if(side==="bottom")for(let c=0;c<cols;c++)o.push([rows-1,c]);if(side==="top")for(let c=0;c<cols;c++)o.push([0,c]);if(side==="left")for(let r=0;r<rows;r++)o.push([r,0]);if(side==="right")for(let r=0;r<rows;r++)o.push([r,cols-1]);return o}
 function mapPlan(o){
+  const n=o.players.length,L=o.layout||"duel";
   let theme=o.map||"random";
-  if(theme==="random")theme=pick(["keep","sahel","forest","dungeon","river"]);
-  if(o.mode==="survival"&&theme==="river")theme="keep";   // Survival needs every midline tile open
-  let cols=Math.max(5,Math.min(7,+o.cols||5)),mid=o.mode==="survival"||o.mid!==false,corners=!!o.corners,bridge=o.bridge==="right"?"right":"left";
+  if(theme==="random")theme=pick(L==="duel"&&o.mode!=="survival"?["keep","sahel","forest","dungeon","river"]:["keep","sahel","forest","dungeon"]);
+  if((o.mode==="survival"||L!=="duel")&&theme==="river")theme="keep";   // the river needs a two-sided field with every midline tile in play
+  let cols=Math.max(5,Math.min(7,+o.cols||5)),mid=o.mode==="survival"||o.mid!==false,corners=!!o.corners,bridge=o.bridge==="right"?"right":"left",rows;
   if(theme==="river"){cols=7;mid=true;corners=false}
-  const rows=mid?5:4,V=Array.from({length:rows},()=>Array(cols).fill(false));
+  if(L==="ffa"||L==="team-side"||L==="team-across"){cols=7;rows=7;corners=o.corners!==false;mid=true}
+  else if(L==="team-same"){cols=6;rows=6;mid=true}
+  else if(L==="coop"){const h=n-1;cols=h===2?6:h===3?9:8;rows=h===2?5:6;mid=true;corners=false}
+  else rows=mid?5:4;
+  const V=Array.from({length:rows},()=>Array(cols).fill(false));
   if(corners)for(const r of [0,rows-1])for(const c of [0,cols-1])V[r][c]=true;
   if(theme==="river"){const r=2;for(let c=0;c<cols;c++)V[r][c]=!(bridge==="left"?c<2:c>=cols-2)}
-  return{theme,cols,rows,mid,corners,bridge,void:V,seed:(Math.random()*1e9)|0};
+  // seats: where each player spawns (zone), where their Aces go (back), which way is forward, how the view turns for them
+  const seats=[],teams=[];
+  const mk2=(side,cs,lines)=>{const S=SIDES[side],back=[],zone=[];
+    for(let k=0;k<lines;k++)for(const c of cs){const r=side==="bottom"?rows-1-k:k;(k===0?back:zone).push([r,c]);zone.push([r,c])}
+    return{side,rot:S.rot,fwd:S.fwd,back,zone:[...new Map(zone.map(t=>[t.join(),t])).values()]}};
+  const allc=[...Array(cols).keys()];
+  if(L==="duel"){seats.push(mk2("bottom",allc,2),mk2("top",allc,2));teams.push(0,1)}
+  else if(L==="ffa"||L==="team-side"||L==="team-across"){
+    const sides=L==="ffa"?(n===3?["bottom","left","right"]:["bottom","left","top","right"]):L==="team-side"?["bottom","right","left","top"]:["bottom","left","top","right"];
+    sides.slice(0,n).forEach((sd,i)=>{const t=edgeTiles(sd,rows,cols);seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:t,zone:t});teams.push(L==="ffa"?i:i%2)});
+  }else if(L==="team-same"){
+    const lo=[0,1,2],hi=[3,4,5];
+    seats.push(mk2("bottom",lo,2),mk2("top",hi,2),mk2("bottom",hi,2),mk2("top",lo,2));teams.push(0,1,0,1);
+  }else if(L==="coop"){
+    const h=n-1,w=Math.floor(cols/h);
+    for(let i=0;i<h;i++){seats.push(mk2("bottom",allc.slice(i*w,i===h-1?cols:(i+1)*w),2));teams.push(0)}
+    seats.push(mk2("top",allc,2));teams.push(1);
+  }
+  return{theme,cols,rows,mid,corners,bridge,void:V,seed:(Math.random()*1e9)|0,layout:L,seats,teams};
 }
 function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 const PAL={
@@ -1590,6 +1853,7 @@ function tileArt(r,c,role,edge){
   const tree=(x,y,R,col)=>{s+=`<circle cx="${f1(x+2)}" cy="${f1(y+3)}" r="${f1(R)}" fill="#0007"/><circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(R)}" fill="${col}"/><circle cx="${f1(x-R*.3)}" cy="${f1(y-R*.3)}" r="${f1(R*.45)}" fill="#ffffff0d"/>`};
   const palm=(x,y,R)=>{for(let k=0;k<7;k++){const a=k/7*Math.PI*2+rnd()*.4;s+=`<path d="M${f1(x)},${f1(y)}q${f1(Math.cos(a+.4)*R*.6)},${f1(Math.sin(a+.4)*R*.6)} ${f1(Math.cos(a)*R)},${f1(Math.sin(a)*R)}" stroke="#2f4a22" stroke-width="2.4" fill="none" stroke-linecap="round"/>`}s+=`<circle cx="${f1(x)}" cy="${f1(y)}" r="2.2" fill="#3a2a18"/>`};
   const acacia=(x,y,R)=>{s+=`<ellipse cx="${f1(x+2)}" cy="${f1(y+2)}" rx="${f1(R)}" ry="${f1(R*.7)}" fill="#0006"/><ellipse cx="${f1(x)}" cy="${f1(y)}" rx="${f1(R)}" ry="${f1(R*.7)}" fill="#3a3a1e"/><ellipse cx="${f1(x)}" cy="${f1(y)}" rx="${f1(R*.55)}" ry="${f1(R*.38)}" fill="#47462a"/>`};
+  let turn=0;if(edge==="left"){turn=90;edge="bottom"}else if(edge==="right"){turn=-90;edge="bottom"}
   const wallY=edge==="top"?0:78;
   if(role==="void"){
     if(T==="forest"||T==="river")for(let i=0;i<4;i++)tree(rr(10,90),rr(10,80),rr(10,18),T==="river"?"#203a1c":"#173018");
@@ -1638,15 +1902,24 @@ function tileArt(r,c,role,edge){
     else if(T==="river"){tufts(4);rocks(1);if(rnd()<.45)palm(rr(15,85),rr(15,75),rr(12,17));if(role!=="field"&&rnd()<.5)tree(rr(10,90),rr(10,80),rr(7,11),"#203a1c")}
     else{tufts(6);rocks(2);if(rnd()<.25)s+=`<path d="M0,${f1(rr(30,60))}q50,${f1(rr(-10,10))} 100,0" stroke="#2c2618" stroke-width="5" fill="none" opacity=".6"/>`}
   }
+  if(turn)s=`<g transform="rotate(${turn} 50 45) scale(1.12) translate(-5.4,-4.8)">${s}</g>`;
   return `<svg class="tart" viewBox="0 0 100 90" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${s}<rect width="100" height="90" fill="#14204a" opacity=".12"/></svg>`;
 }
 function tileRole(r,c){
   if(G.map.theme==="river"&&r===2)return isVoid(r,c)?"water":"bridge";
   if(isVoid(r,c))return "void";
-  if(r===backRow(0))return "fort";
-  if(r===backRow(1))return "barracks";
-  if(G.rows===5&&r===2)return "grave";
-  return "field";
+  const b=G.backz[r][c];
+  if(b>=0){if(G.map.layout==="duel"||G.map.layout==="coop"||G.map.layout==="team-same")return seat(b).side==="bottom"?"fort":"barracks";return b%2?"barracks":"fort"}
+  if(G.zone[r][c]>=0)return "field";
+  if(G.map.layout==="duel")return G.rows===5&&r===2?"grave":"field";
+  if(G.rows===G.map.cols&&G.rows>=7)return Math.max(Math.abs(r-(G.rows-1)/2),Math.abs(c-(COLS-1)/2))<=1?"grave":"field";
+  return r>=2&&r<=G.rows-3?"grave":"field";
+}
+/* which side of a tile is the outer edge, as the viewer sees it */
+function outerEdge(r,c,rot){
+  const b=G.backz[r][c];if(b<0)return "bottom";
+  const order=["bottom","left","top","right"],i=order.indexOf(seat(b).side);
+  return order[(i-rot+4)%4];
 }
 
 })();
