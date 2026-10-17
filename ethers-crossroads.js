@@ -3,6 +3,68 @@
    All Rules page under "How the digital table reads the rules". */
 (function(){
 "use strict";
+const SUBST_TEXT={
+ "random":{"tag":"One of the Substances, picked when the game starts.","pts":[]},
+ "beginner":{"tag":"The learning Substance: a bigger hand, an early army, and one free shield.","pts":[
+  "Eight starting cards, eight mana at most and an eight-card hand.",
+  "A second Ace and a Joker in hand, and three Grunts already on the field.",
+  "Scouts, an Assassin, Archers, a Wall, Repairmen and a Battering Ram in the deck; a Miner in the first Ace.",
+  "Archers cost 1 mana, and a free Scout comes every Full Moon.",
+  "Please Don't Hurt Me: once a game, none of your stacks can be attacked until your next turn.",
+  "The only Substance more than one player can pick."]},
+ "angel":{"tag":"Antony's mech: Samson fights, and Antony rises from his corpse.","pts":[
+  "Always Bone white with the cracked mask.",
+  "Samson in the deck: two hearts, defense 12, with the Slugshot Cannon, the Arm Blade and the Mech Slam.",
+  "When Samson falls, Antony takes his tile: two hearts, 12 + 6d4 to attack, 12 to defend.",
+  "A bolt for every card you lose defending and every card Antony kills. Three bolts cast Lightning Strike, which pins a stack.",
+  "Three of Swords costs 1 mana."]},
+ "satan":{"tag":"One overwhelming card, and a curse that turns a stack against itself.","pts":[
+  "Always dark crimson with the claw.",
+  "The Satan card: three hearts, 6d12 to attack and defend, no modifiers, never stacks.",
+  "Hate (Curse, 3 mana): an enemy stack's strongest card turns red; the stack fights at disadvantage and its attackers at advantage.",
+  "When Satan falls, he falls into the Outer Darkness."]},
+ "binah":{"tag":"The Southern tribe of the Euclids: Slavemasters capture, and Slaves shoot.","pts":[
+  "Three Slavemasters in the deck (8 + 1d8, they stack like Infantry).",
+  "Enemy soldiers killed in a Slavemaster's fight become your thralls, ten at most.",
+  "Slaves (Necromancy, free): a thrall stands up as a Slave, a rifle of 10 + 1d12 at two tiles.",
+  "Jokers add 3 to their attacks.",
+  "Never pays Saturn."]},
+ "jester":{"tag":"The Tree, the Puppets and the BullGoat: a living base that feeds you mana.","pts":[
+  "A seven-card hand and seven mana at most.",
+  "Every soldier in the deck is a Puppet (a 6 Grunt).",
+  "The Tree of Neither Life Or Death: three hearts, holds six cards, gives 2 mana a turn and grows a Puppet every two rounds.",
+  "BullGoat (Conjuring, 3 mana): charges two or three tiles, and comes back as the Goatbull, whose Stomp pins stacks.",
+  "Deck of Cards: once a game, while the Tree stands, your deck is full again."]},
+ "tiph":{"tag":"The Northern tribe of the Euclids: Traffickers chain souls and sell them.","pts":[
+  "Three Traffickers in the deck (8 + 1d8) chain enemy cards that die beside them, three prisoners each.",
+  "Life for Sell: put a prisoner up at the Auction; you approve the sale.",
+  "The Blindfold: keep a Delusion three turns longer.",
+  "Immune to the Leviathan's toll.",
+  "Jokers add 1 to their attacks."]},
+ "lucifer":{"tag":"Delusions: blind yourself for mana, then blind your enemy and starve them.","pts":[
+  "Always the ink and scroll.",
+  "Delusion of Ouroboros: for 2d2 turns you see only as far as your cards reach, but your mana rises to nine and you get 3d2 free mana a turn.",
+  "Delusion of Lucifer: the same on an enemy, and you can pay to stifle its gifts.",
+  "Deconjured: no conjuring at the next Full Moon, or for everyone next round.",
+  "Pleasure and Joy: your dead return to your deck, or each hit on you steals a mana for you."]},
+ "leviathan":{"tag":"The black serpent: it rises onto the moon and takes a toll every New Moon.","pts":[
+  "The Leviathan card: three hearts, 6d4 + 1d2 + 6, never stacks. What it kills falls into the Outer Darkness.",
+  "Rise to the Moon (at the New Moon): every enemy pays 2d4 deck cards, 2 hand cards and 1 mana each New Moon after.",
+  "On the moon your maximum mana grows with the Outer Darkness, twelve at most, and it can be attacked only at the New Moon.",
+  "Exile: one of your Jokers sends the souls it captured into the Outer Darkness."]},
+ "firm":{"tag":"Master of the sky: it hangs planets in the moon's place.","pts":[
+  "Always the six-pointed star.",
+  "Untouched by the Moon's and Saturn's harms, the Leviathan's toll and meteors.",
+  "Starts with a Miner on the moon: 1d2 − 1 mana a turn.",
+  "Sorcery and Illusion: Blood Moon, Rain, Asteroid and Fog.",
+  "Astrology: Mars, the Second Sun, Venus, Jupiter and Mercury."]},
+ "yald":{"tag":"The Demiurge: it eats the sky and the dead, and brings Saturn.","pts":[
+  "Always the symbol of Saturn.",
+  "Night's Judgement: eat the moon (at the New or Full Moon) or any planet.",
+  "God Hunger: eat 1d2 cards, twice a turn, for mana or for the hunger.",
+  "At seven hunger, Regurgitate Saturn: every enemy pays each turn, or a Debt Collector rises.",
+  "The Sun Cries: make the Second Sun weep until it becomes the Black Sun."]}
+};
 /* ---------------- basics ---------------- */
 const $=s=>document.querySelector(s);
 const R=n=>1+Math.floor(Math.random()*n);
@@ -1066,7 +1128,7 @@ function baseCost(sp){
   return sp.cost;
 }
 function spellBlock(sp){ // reason the moon or mode forbids a spell, or ""
-  if(sp.school==="Necromancy"&&G.p[G.active]&&oathOf(G.active)==="earth")return "The Earth Oath forbids necromancy.";
+  if(sp.school==="Necromancy"&&G.p[G.active]&&oathOf(G.active)==="earth")return "The Oath of the Earth forbids necromancy.";
   if(G.bank&&G.bank.dead&&sp.school==="Conjuring")return "The Ether is closed: the Banker is dead.";
   if(fullDrawbacks()&&sp.school==="Necromancy"&&me().tribe!=="firm")return "No necromancy under the Full Moon.";
   if(fullDrawbacks()&&sp.id==="forced")return "No one draws under the Full Moon.";
@@ -1740,11 +1802,11 @@ function render(){
   // moon
   const m=G.moon,tags=[];
   if(m.blood)tags.push('<span class="tag blood">Blood Moon</span>');
-  const eff=m.gone||G.moonLev?moonNote():m.blood?"New Moon gifts at Full Moon prices; the dead go to the Outer Darkness":m.i===4?"Toll paid, decks shuffled; no drawing, no necromancy":m.i===0?"1d2 cards from the grave; Clairvoyance and Naked Hand cost 6":"";
+  const eff=m.gone||G.moonLev?moonNote():m.blood?"New Moon gifts at Full Moon prices · the dead go to the Outer Darkness":m.i===4?"Toll paid, decks shuffled · no drawing, no necromancy":m.i===0?"1d2 cards from the grave · Clairvoyance and Naked Hand cost 6":"";
   const rn=G.moon.round||1;
   $("#moon").classList.toggle("eclipsed",!!G.eclipse);$("#moon").classList.toggle("peacetime",peaceOn());$("#moon").classList.toggle("wartime",warOn());
   $("#moon").classList.toggle("moontarget",canAct()&&G.phase==="attack"&&!!G.sel&&moonAttackable(selStack()));
-  $("#moon").innerHTML=`${moonSVG()}<div class="minfo"><span class="mname">${moonName()}</span>${tags.join("")}${moonStrip()}<span class="meff">${eff||`moon round ${rn} · the moon turns when every player has had a turn`}</span></div>`;
+  $("#moon").innerHTML=`${moonSVG()}<div class="minfo"><span class="mname">${moonName()}</span>${tags.join("")}${moonStrip()}<span class="meff">${eff||"It turns once every player has had a turn"}</span></div>`;
   // round (survival)
   const rd=$("#round");rd.hidden=!survival();if(survival())rd.innerHTML=`<span class="label">Round</span><b class="bl">${roman(Math.max(1,G.round))}</b>`;
   // phases
@@ -1993,16 +2055,17 @@ const INFO={
 };
 function infoHTML(){
   const tabs=Object.keys(INFO).map((k,i)=>`<button class="itab ${i===0?"on":""}" data-k="${k}">${INFO[k][0]}</button>`).join("");
-  const spells=SCHOOLS.map(sc=>`<h4>${sc}</h4><dl>`+SPELLS.filter(s=>s.school===sc).map(s=>`<dt>${esc(s.name)} <span>${s.id==="hypo"?"3 + 1 per extra card":s.dice?s.dice+" mana, rolled each round":s.cost?s.cost+" mana":"free"}</span></dt><dd>${esc(s.text)}</dd>`).join("")+"</dl>").join("");
-  const subs=Object.entries(TRIBES).filter(([k])=>k!=="random").map(([k,t])=>`<dt>${esc(t.name)}</dt><dd>${esc(t.sub)}</dd>`).join("");
+  const spells=SCHOOLS.map(sc=>`<h4>${sc}</h4><dl>`+SPELLS.filter(s=>s.school===sc).sort((a,b)=>(a.tribe?1:0)-(b.tribe?1:0)||(a.cost||0)-(b.cost||0)||a.name.localeCompare(b.name)).map(s=>{const t=SPELL_TEXT[s.id]||{e:s.text};
+    return `<dt>${esc(s.name)} <span>${s.id==="hypo"?"3 + 1 per extra card":s.dice?s.dice+", rolled each round":s.cost?s.cost+" mana":"free"}${s.tribe&&TRIBES[s.tribe]?` · ${esc(TRIBES[s.tribe].name)}`:""}</span></dt><dd>${t.n?`<i>${esc(t.n)}</i> `:""}${esc(t.e)}${t.l?` <small>${esc(t.l)}</small>`:""}</dd>`}).join("")+"</dl>").join("");
+  const subs=Object.entries(TRIBES).filter(([k])=>k!=="random").map(([k,t])=>`<dt>${esc(t.name)}</dt><dd>${esc(t.sub)}${t.pts&&t.pts.length?`<ul>${t.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>`:""}</dd>`).join("");
   return `<details class="cinfo basics"><summary>Basics explained</summary>
 <details class="sub"><summary>What am I doing?</summary><p>You command an army of cards on a small field. Each of your turns has three phases: <b>draw</b> (roll a d4 and draw that many, or skip), <b>prep</b> (place cards from your hand on your own two lines, move each stack one step, sacrifice cards for mana, cast spells) and <b>attack</b> (each of your stacks may attack an enemy stack next to it once). A fight compares two scores: the attacker's best card plus its die against the defender's best card. The loser takes a damage, which removes its lowest card. You win when the enemy has nothing left on the field, or no deck, hand or mana at all.</p><p>Your Ace starts on your back line with a Jack inside it. Aces are bases: they can't move or attack, they hold up to six cards, and they have two hearts. When an Ace falls, everything in it falls too.</p></details>
 <details class="sub"><summary>What matters on the screen?</summary><ul>
-<li><b>The field.</b> Your cards are at the bottom. Click one of your stacks to see where it can go (prep) or what it can hit (attack); the highlighted tiles are your options. The little line in a card's top-right corner opens its stats; drag it onto another stack to compare them.</li>
+<li><b>The field.</b> Your cards are at the bottom. Click one of your stacks to see where it can go (prep) or what it can hit (attack); the highlighted tiles are your options. Rest the mouse on a card's top-right corner (or tap it) for its stats; drag that corner onto another stack to compare them.</li>
 <li><b>Your deck and mana bars.</b> The deck bar is your army in reserve; the mana bar (indigo) pays for spells. Sacrificing a card gives you its soul as mana.</li>
 <li><b>The turn bar under the field.</b> It says which phase you're in and has the buttons to roll or move on.</li>
-<li><b>The moon.</b> It turns once a round and changes prices and rules; hover over it to see what it means for you.</li>
-<li><b>The spells</b> on the right, grouped by school. Greyed out means you can't cast it right now; hover a spell for why.</li>
+<li><b>The sky.</b> The moon turns once a round and changes prices and rules; planets can take its place. Hover or tap it to see what it means for you.</li>
+<li><b>The right column.</b> The Bank, then the spells by school, cheapest first, then the stack you selected. Greyed out means you can't cast it right now; hover a spell (or long-press it) for its price, what it needs, what it does and why it's blocked. Conjuring is done in the Ether.</li>
 <li><b>The log</b> at the bottom: every action, with its time, in the color of the player who took it.</li></ul></details>
 <details class="sub"><summary>What are some good ways to play?</summary><ul>
 <li><b>Bunker:</b> a King with a Queen in the same stack defends hard, and keeping Aces back gives you more Grave Blessing dice. Good while your deck is bigger than theirs.</li>
@@ -2017,8 +2080,8 @@ function infoHTML(){
 <details class="sub"><summary>Substances explained</summary><dl class="spellinfo">${subs}</dl><p class="dim">Only the Beginner can be played by more than one player in a game. The full rules for each are on the All Rules page.</p></details>
 <details class="sub"><summary>Fog of war and stealth explained</summary><dl class="spellinfo"><dt>Fog of war</dt><dd>On by default (Rules tab). Each of your cards sees two tiles around it, a Scout three. Shaded tiles are out of sight: enemy cards there stay hidden, and the log only says that something moved out of sight.</dd><dt>Scouts</dt><dd>Never attack or defend. They uncover Assassins, ambushers and face-down cards within a round two tiles, and enemy Scouts within three. Every Ace you put down brings one from the Ether.</dd><dt>Assassins</dt><dd>Hidden from enemies unless one of their cards stands right beside it (straight, not diagonal) or a Scout is near. Two hearts; 10 + 1d12 to attack, 8 to defend. Only another Assassin stacks with one.</dd><dt>Face down</dt><dd>Tick "Place it face down" before putting a card down. Enemies see only its back. Double disadvantage to attack, advantage to defend; it turns face up once it attacks or is attacked.</dd><dt>Ambush</dt><dd>Select an Assassin or face-down stack in your prep phase and press "Set an ambush": it turns sideways, hides like an Assassin, and strikes with advantage, out of turn, at the first enemy that steps beside it (diagonals too for a Jack's reach). Moving it ends the ambush.</dd><dt>Quiet Eyes and Bird's Eye</dt><dd>Quiet Eyes (Illusion) blinds enemies without a Scout to all but what is right beside them, 2 mana a round for 1d2 + 1 rounds. Bird's Eye (Sorcery) lifts the fog for your side for a round, but not a Delusion.</dd></dl></details>
 <details class="sub"><summary>Siege, support and mining explained</summary><dl class="spellinfo"><dt>Bought from the Ether</dt><dd>Archers, Cannons, Healers, Walls, Repairmen, Battering Rams and Miners all wait in the Ether, a set for every deck, and come into your deck with their Conjure spells. The Beginner starts with two Archers, a Wall, two Repairmen and a Battering Ram in the deck, and a Miner in the first Ace.</dd><dt>Shooting</dt><dd>Archers and Cannons fire from wherever they stand, inside an Ace, the Tree or a Wall too, where the rest can't fight. Select the stack in the attack phase and click a highlighted target; a miss costs the shooter nothing. Only one shot a turn leaves a base.</dd><dt>Support cards</dt><dd>Healers, Repairmen, Battering Rams and Miners never fight. In a stack they die last (Miners first). Standing alone they can't defend: an enemy beside them chooses Capture or Destroy instead of an attack. A captured card rides in the stack's capture slot (one per stack) until you set it to work beside the stack; then it is yours.</dd><dt>Heal and Repair</dt><dd>Select the stack in your prep phase and press Heal a heart or Repair. The status line under the cards shows every cooldown.</dd><dt>Crystals</dt><dd>A crystal rises in the middle of the field every 1d6 + 4 turns. A Miner on it digs 1 + 1d3 mana on a 2 of 1d2 each turn, until the crystal's 12 mana are gone.</dd><dt>Field Libation</dt><dd>Necromancy, free, not under the Full Moon: pour out cards from your field; each one is worth its mana on a 2 of 1d2, and goes to the grave for nothing on a 1.</dd></dl></details>
-<details class="sub"><summary>The Bank, Barbarians and meteors explained</summary><dl class="spellinfo"><dt>The Bank</dt><dd>The gold bar under the Conjuring spells. Every mana spent on a spell goes to the Bank, and it lends only what it holds. A loan is due in 4 of your turns and grows 20% every 1d2 turns; whatever you can't turn in then becomes mana debt, and your mana shows below zero. Every soul you gain pays the debt first. Fall below −3 × your maximum and you lose.</dd><dt>Credit and selling</dt><dd>Tick Spend on credit to cast spells you can't afford. Sell cards from your hand or deck for their conjuring price. Binah can sell thralls.</dd><dt>When the Bank goes wrong</dt><dd>A broke Bank puts the Ether on sale and asks the richest player for a loan. Deep debtors are hunted by the Bank's Debt Collectors. If the Bank and everyone sink far enough, it collapses and everyone starts again with three maximum mana.</dd><dt>Barbarians</dt><dd>A crimson band takes the middle every 4 + 1d12 turns and with every Blood Moon, and fights anyone beside it. The best killer of a band gets an Ether sale; a big band can earn debt forgiveness; a band that holds the middle for 7d2 turns makes the Banker raise every price.</dd><dt>Meteor</dt><dd>One round in a hundred: damage where it lands and maybe around it, then fire for two rounds.</dd><dt>Gambling, max mana, Mystery Generation</dt><dd>Gambling (Sorcery, 1): a 10 on 1d10 wins 7d2, a 1 costs a maximum mana, 7d2 of debt and a deck card. Buy Max Mana (Conjuring, 6): +1, eighteen at most. Mystery Generation (in the Auction): 1d3 brand-new cards.</dd></dl></details>
-<details class="sub"><summary>Planets explained</summary><dl class="spellinfo"><dt>The Moon · “Fate”</dt><dd>Turns one phase each round. The New Moon gives 1d2 cards from the grave and makes Clairvoyance and Naked Hand cost 6; the Full Moon takes its toll, shuffles every deck and forbids drawing and necromancy; 5% of Full Moons turn into a Blood Moon. It can be switched off before a game.</dd><dt>Saturn · “No”</dt><dd>Brought by Yaldabaoth once the moon is out of the sky: every enemy pays at the start of each turn, or a Debt Collector rises.</dd></dl><p class="dim">More planets come with the Firmament.</p></details>
+${bankExplainHTML()}
+${skyExplainHTML()}
 </details>`;
 }
 function infoBody(k){const [t,rk,rows,note]=INFO[k];return `<h4>${t} <span class="bl">${rk}</span></h4><table>${rows.map(([a,b])=>`<tr><th>${a}</th><td>${b}</td></tr>`).join("")}</table><p class="dim">${note}</p>`}
@@ -2030,16 +2093,16 @@ function mountInfo(){
 /* ---------------- start screen ---------------- */
 const MODES=[
  ["local","Local","2 to 4 players on one device, taking turns. The board turns to whoever is playing, and the screen goes dark while you pass it. Any seat can be a computer."],
- ["cpu","Versus Computer","You against 1 to 3 computers at Easy, Medium or Hard: one on one, free-for-all, or two against two with a computer at your side."],
+ ["cpu","Versus Computer","You against 1 to 3 computers at Easy, Medium or Hard: 1v1, free-for-all, or two against two with a computer at your side."],
  ["survival","Survival","1 to 4 players hold the line against a Horde that grows every round. Count the rounds you last."]];
 let startMode=null;
 const ORD=["One","Two","Three","Four"],SEATCOL=[0,3,2,5],SEATSOL=["tetra","icosa","cube","octa"];
 const LAYOUTS={
- duel:["One on one","Two players, one army at each end of the field. Needs exactly 2 players."],
+ duel:["1v1","Two players, one army at each end of the field. Needs exactly 2 players."],
  ffa:["Free-for-all","Everyone for themselves, one player to each edge of the field. Needs 3 or 4 players."],
  "team-side":["2v2, side by side","Teammates hold two neighboring edges. Needs 4 players."],
  "team-across":["2v2, across","Teammates face each other from opposite edges, with the enemy on both flanks. Needs 4 players."],
- "team-same":["2v2, same side","Laid out like one on one: each team shares one end of the field, half its columns each. Needs 4 players."]};
+ "team-same":["2v2, same side","Laid out like 1v1: each team shares one end of the field, half its columns each. Needs 4 players."]};
 const LAYNEED={duel:[2],ffa:[3,4],"team-side":[4],"team-across":[4],"team-same":[4]};
 const LAYDEF={2:"duel",3:"ffa",4:"ffa"};
 function seatForm(i,S,mode,L,taken){taken=taken||new Set();
@@ -2106,16 +2169,16 @@ ${chk("oeach","Each player rolls their own","On by default with one deck; off by
 <p class="dim">Starting souls come from the Ether as soldier souls, worth 1 mana each.</p>
 </fieldset>
 <fieldset class="pf"><legend>The sky and spells</legend>
-<div class="opts skyopts"><label class="opt"><input type="radio" name="omoonon" value="on" checked><span>The moon (default)<small>It turns through its eight phases, one each round.</small></span></label><label class="opt"><input type="radio" name="omoonon" value="off"><span>No moon<small>No phases, no gifts, no tolls and no Blood Moon. The Leviathan has nowhere to rise; Yaldabaoth can bring Saturn once his hunger is full.</small></span></label><label class="opt"><input type="radio" name="omoonon" value="saturn"><span>Saturn, “No”<small>Saturn hangs in the sky from the start: every player but Binah and the Firmament pays it 1 a turn (a hand card, the top deck card or 1 mana) to the Bank, or the Bank sends a Debt Collector. Yaldabaoth can't be played.</small></span></label><label class="opt"><input type="radio" name="omoonon" value="mars"><span>Mars, “Strife”<small>Mars hangs in the sky from the start: every turn, stacks of only Grunts and Infantry get advantage on their next attack on 1–5 of 1d8. The Firmament can't be played.</small></span></label><label class="opt"><input type="radio" name="omoonon" value="sun"><span>The Second Sun, “King”<small>An indigo sun from the start: no fog of war; every 2d2 turns each player pays it (to the Bank) or is blinded for a turn; the Earth Oath. The Firmament can't be played.</small></span></label><label class="opt"><input type="radio" name="omoonon" value="venus"><span>Venus, “Harmony”<small>From the start: the Oath of Venus rewards turns without attacking. The Firmament can't be played.</small></span></label><label class="opt"><input type="radio" name="omoonon" value="mercury"><span>Mercury, “Guile”<small>From the start: votes for Peace or Total War, Buy Peace, and the Oath of Mercury (Betrayal, Declare War, Bribe the Banker). The Firmament can't be played.</small></span></label><label class="opt"><input type="radio" name="omoonon" value="jupiter"><span>Jupiter, “Fortune”<small>From the start: Ace miners bring 1d2, two conjurings on sale each round, trades at the Auction, the Oath of Jupiter. The Firmament can't be played.</small></span></label></div>
+<div class="opts skyopts">${SKY_OPTS.map(([v,nm,txt],i)=>`<label class="opt sky-${v}"><input type="radio" name="omoonon" value="${v}" ${i?"":"checked"}><span>${nm}<small>${txt}</small>${SKY_FORM[v==="on"?"moon":v]?`<em class="skyform">${SKY_FORM[v==="on"?"moon":v]}</em>`:""}</span></label>`).join("")}</div>
 ${chk("omoon","Moon combat bonus","Every attack adds 1d2 at the Full Moon, and every defense adds 1d2 at the New Moon.",true)}
-${chk("oatk","Spells in the attack phase","Enchantments, curses and sorcery can also be cast while attacking. Necromancy, conjuring and sacrifices stay in prep.",false)}
+${chk("oatk","Spells in the attack phase","Enchantments, curses, sorcery and illusions can also be cast while attacking. Necromancy, conjuring and sacrifices stay in prep.",false)}
 ${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the game opens on a Blood Moon; each deck is shuffled and two thirds of it go to the grave; each player starts with a Joker in hand. With a planet in the sky: the game opens under that planet's eclipse.",false)}
 </fieldset>`;
   const display=`<fieldset class="pf"><legend>Your hand</legend><div class="opts">
 <label class="opt"><input type="radio" name="dhand" value="below" ${PREF.hand!=="side"?"checked":""}><span>Under your deck and mana (default)<small>Right below your own bars, with your dice box.</small></span></label>
 <label class="opt"><input type="radio" name="dhand" value="side" ${PREF.hand==="side"?"checked":""}><span>Beside the field<small>In the right-hand column, above the spells.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Selected stack box</legend><div class="opts">
-<label class="opt"><input type="radio" name="dsel" value="bottom" ${PREF.sel!=="top"?"checked":""}><span>Below the spells (default)<small>Under "show available souls".</small></span></label>
+<label class="opt"><input type="radio" name="dsel" value="bottom" ${PREF.sel!=="top"?"checked":""}><span>Below the spells (default)<small>At the bottom of the right-hand column.</small></span></label>
 <label class="opt"><input type="radio" name="dsel" value="top" ${PREF.sel==="top"?"checked":""}><span>Above the spells<small>At the top of the right-hand column.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Turn buttons</legend><div class="opts">
 <label class="opt"><input type="radio" name="dctl" value="bottom" ${PREF.ctl!=="top"?"checked":""}><span>Under the field (default)<small>Roll, next phase and end turn sit in a bar right below the board, on the page.</small></span></label>
@@ -2125,10 +2188,10 @@ ${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the 
 <label class="opt"><input type="radio" name="dcoord" value="1" ${PREF.coords?"checked":""}><span>On<small>Each tile shows its name in a corner: columns A, B, C from the left, rows 1, 2, 3 from the bottom.</small></span></label></div>
 <p class="dim">Tile names are always used in the dice box history, either way.</p></fieldset>
 <fieldset class="pf pc-only"><legend>Page width</legend><div class="opts">
-<label class="opt"><input type="radio" name="dfull" value="0" ${PREF.full?"":"checked"}><span>Standard (default)<small>The page keeps the width of the rest of the site.</small></span></label>
-<label class="opt"><input type="radio" name="dfull" value="1" ${PREF.full?"checked":""}><span>Full width<small>The page fills the whole width of a wide screen, and the field grows with it.</small></span></label></div></fieldset>
+<label class="opt"><input type="radio" name="dfull" value="0" ${PREF.full?"":"checked"}><span>Standard<small>The page keeps the width of the rest of the site.</small></span></label>
+<label class="opt"><input type="radio" name="dfull" value="1" ${PREF.full?"checked":""}><span>Full width (default on a computer)<small>The page fills the whole width of a wide screen, and the field grows with it.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({"":"The burnt amber of the site.",jester:"Black, after chapter 26.",ten:"White on indigo, after chapters 1–4.",satan:"Crimson, after chapter 23."})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, text size, hand position, tile names, page width and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
-  const suitSel=`<div id="suitpick" hidden><p class="dim">${mode==="local"?"Player One picks; Player Two gets the other two suits.":mode==="cpu"?"You pick; the computer gets the other two suits.":"You pick; the other two suits wait in the Ether."}</p>
+  const suitSel=`<div id="suitpick" hidden><p class="dim">${mode==="local"?"P1 picks; P2 gets the other two suits.":mode==="cpu"?"You pick; the computer gets the other two suits.":"You pick; the other two suits wait in the Ether."}</p>
 <label class="f">Red suit <select id="osuitR"><option value="H">♥ Hearts</option><option value="D">♦ Diamonds</option></select></label>
 <label class="f">Black suit <select id="osuitB"><option value="S">♠ Spades</option><option value="C">♣ Clubs</option></select></label></div>`;
   const deckTab=`<fieldset class="pf" id="ffadecks" hidden><legend>Decks</legend><div class="opts">
@@ -2291,8 +2354,9 @@ function applyMoonTheme(){
 const TZ_SKIP=/\.(card|cf|cx|stack|die|pk|cback|ecount|mini|gbar|gctl|gtog)\b|svg|#board \.rl|#gbar/;
 let tzRules=null;
 /* small words grow the most, headings hardly at all, and nothing passes 21px: big text stays readable without breaking panels */
-const tzOf=(orig,f)=>{const m=/^([\d.]+)(px|rem)$/.exec(orig.trim());if(!m)return `calc(${orig} * ${1+(f-1)*.5})`;
-  const base=+m[1]*(m[2]==="rem"?16:1),w=Math.max(0,Math.min(1,(18-base)/8)),v=base*(1+(f-1)*w);
+const TZ_DAMP=/\.cin\.sky|skyl|spelltip|stdl|#tipbox/;   // hover boxes grow half as much: compact, like a strategy game's tooltips
+const tzOf=(orig,f,damp)=>{const m=/^([\d.]+)(px|rem)$/.exec(orig.trim());if(!m)return `calc(${orig} * ${1+(f-1)*.5})`;
+  const base=+m[1]*(m[2]==="rem"?16:1),w=Math.max(0,Math.min(1,(18-base)/8))*(damp?.5:1),v=base*(1+(f-1)*w);
   return (f>1?Math.min(v,Math.max(base,21)):v).toFixed(2)+"px"};
 function applyTextScale(f){
   document.body.classList.toggle("bigtext",f>=1.4);
@@ -2300,7 +2364,8 @@ function applyTextScale(f){
     for(const sh of document.styleSheets){let rs;try{rs=sh.cssRules}catch(e){continue}
       const walk=list=>{for(const r of list){if(r.cssRules&&!r.style)walk(r.cssRules);else if(r.style&&r.style.fontSize&&!TZ_SKIP.test(r.selectorText||"")&&/px|rem|vw|vh/.test(r.style.fontSize)&&!/em|%/.test(r.style.fontSize.replace(/rem/g,"")))tzRules.push([r,r.style.fontSize])}};
       walk(rs)}}
-  for(const [r,orig] of tzRules)r.style.fontSize=f===1?orig:tzOf(orig,f);
+  // remember which rules are damped
+  for(const [r,orig] of tzRules)r.style.fontSize=f===1?orig:tzOf(orig,f,TZ_DAMP.test(r.selectorText||""));
 }
 function applyPrefs(){
   const h=document.documentElement;
@@ -2361,7 +2426,7 @@ const MAPS={
   sahel: {name:"Sahel",          sub:"Red laterite and dry grass of the far north at night, with mud-brick walls and thatched huts."},
   forest:{name:"Forest",         sub:"A clearing in deep woods, with a palisade keep and a camp of tents."},
   dungeon:{name:"Dungeon",       sub:"Flagstones, pillars and torchlight, with no castle and no barracks."},
-  river: {name:"River",          sub:"A wide brown river like the Ogun near Lagos, crossed by one bridge. Always 7 wide with the midline, and one on one only."},
+  river: {name:"River",          sub:"A wide brown river like the Ogun near Lagos, crossed by one bridge. Always 7 wide with the midline, and 1v1 only."},
   none:  {name:"No map",         sub:"Plain tiles."}
 };
 /* layouts: duel (two sides), ffa (3 or 4 players, one to each edge), team-side / team-across (2v2 on the edges),
@@ -2627,7 +2692,7 @@ function buryUnit(card,r,c,owner){
     else for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const rr=r+dr,cc=c+dc;if(at(rr,cc)===null&&!isVoid(rr,cc)){G.board[rr][cc]={owner,cards:[a],moved:true,attacked:true,hypo:0};placed=[rr,cc];break}}
     if(!placed)P.hand.push(a);
     log(`<b>Samson falls.</b> ${plName(owner)}'s Antony rises from his heart${placed?` on ${coord(placed[0],placed[1])}`:", into the hand"}. Samson wanders through Limbo.`,"event");
-    popup("Antony rises",`<p>The angel Antony was sharing Samson's form, lodged into his heart, and has resurrected his corpse with himself.</p><p class="dim">Samson's card is not in the grave or the Outer Darkness: he wanders through Limbo. Look for the Limbo tab in the Outer Darkness.</p>`,owner);
+    popup("Antony rises",`<p>The angel Antony was sharing Samson's form, lodged in his heart, and has resurrected his corpse with himself.</p><p class="dim">Samson's card is not in the grave or the Outer Darkness: he wanders through Limbo. Look for the Limbo tab in the Outer Darkness.</p>`,owner);
     return true;
   }
   if(u==="antony"){
@@ -3051,7 +3116,7 @@ SPELLS.push(
    const use=await ask(pl,{kind:"choice",id:"moonuse",title:"Night's Judgement: the moon is eaten",options:[{id:"hunger",label:`Feed the hunger (${(P.hunger||0)+3} of 7)`},{id:"mana",label:"Take 3 mana"}],ai:()=>"hunger"});
    if(use==="mana"){for(let i=0;i<3&&mana(pl)<soulCap(pl);i++)addSoul(pl,mk(String(2+Math.floor(Math.random()*9)),pick(["S","H","D","C"])))}else P.hunger=(P.hunger||0)+3;
    log(`<b>Night's Judgement</b>: ${plName(pl)} eats the moon${use==="mana"?" for mana":` (hunger ${P.hunger} of 7)`}. The phases stop.`,"event");
-   popup("Night's Judgement",`<p>${plName(pl)} eats the moon. It is gone from the sky, and its phases stop until Saturn takes its place.</p>`,pl)}},
+   popup("Night's Judgement",`<p>${plName(pl)} eats the moon. It leaves the sky and its phases stop.</p>`,pl)}},
  {id:"hunger",tribe:"yald",dice:"1d2",name:"God Hunger",cost:1,school:"Necromancy",text:"Twice a turn. Eat 1d2 cards from the grave, your own deck, the selected stack on the field, or an enemy's deck (they roll 1d4 against your 1d4; if you lose, you pay them 2 mana). Take the eaten as mana, or feed the hunger with them. Seven eaten bring Saturn.",
   ok:()=>(me().hungerUses||0)<2,run:async()=>{me().hungerUses=(me().hungerUses||0)+1;await godHunger()}},
  {id:"saturn",tribe:"yald",name:"Regurgitate Saturn",cost:0,school:"Sorcery",text:"Free, once the hunger reaches seven and the moon is out of the sky. Saturn takes the moon's place: at the start of each of their turns every enemy pays 1 (a hand card, the top deck card or 1 mana) into your soul pile, or refuses and a Debt Collector rises on your ground. Each Debt Collector still standing at a new round raises the price by 1. Binah is exempt.",
@@ -3059,7 +3124,7 @@ SPELLS.push(
    const pl=G.active;if(G.moonLev){const L=G.moonLev;G.moonLev=null;L.card.hp=L.card.maxHp;G.p[L.owner].deck.push(L.card);shuffle(G.p[L.owner].deck)}
    G.moon.gone="saturn";G.moon.i=-1;G.moon.blood=false;G.saturnBy=pl;G.saturnDebt=0;applyMoonTheme();
    log(`<b>Saturn</b>: ${plName(pl)} regurgitates Saturn where the moon used to be.`,"event");
-   popup("Saturn",`<p>${plName(pl)} regurgitates Saturn where the moon used to belong. Every enemy now pays the Demiurge at the start of each turn, or a Debt Collector rises.</p><p class="dim">A Debt Collector copies the score of the card it fights, without its advantage.</p>`,pl)}},
+   popup("Saturn",`<p>${plName(pl)} regurgitates Saturn into the moon's place. Every enemy now pays the Demiurge at the start of each turn, or a Debt Collector rises.</p><p class="dim">A Debt Collector copies the score of the card it fights, without its advantage.</p>`,pl)}},
  {id:"lifesell",tribe:"tiph",name:"Life for Sell",cost:0,school:"Sorcery",text:"Free. Select your stack with a Trafficker holding prisoners: put one of them up at the Auction, beside the Outer Darkness. Any player can offer mana or cards from the hand for it; you approve the sale.",
   ok:()=>selOwn()&&selStack().cards.some(c=>c.unit==="trafficker"&&(c.prisoners||[]).length),run:async()=>{
    const t=selStack().cards.find(c=>c.unit==="trafficker"&&(c.prisoners||[]).length);
@@ -3964,7 +4029,7 @@ SPELLS.push(
    else if(d===1){const w=rollN(7,2),n=sum(w);P.maxAdd=(P.maxAdd||0)-1;const c=P.deck.pop();if(c){c.owner=null;G.ether.push(c)}tray(pl,"Gambling",[{s:10,v:d},...w],`−${n}`);
      log(`<b>Gambling</b>: ${plName(pl)} rolls a 1. One maximum mana is lost, ${n} mana of debt (7d2) is owed${c?", and a card leaves the deck for the Ether":""}.`,"event");addDebt(pl,n)}
    else{tray(pl,"Gambling",[{s:10,v:d}],"nothing");log(`Gambling: ${plName(pl)} rolls ${d}. Nothing.`)}}},
- {id:"maxmana",name:"Buy Max Mana",cost:6,school:"Conjuring",text:"Your maximum mana goes up by one for the rest of the game, eighteen at most.",ok:()=>soulCap(G.active)<18,run:async()=>{const P=me();P.maxAdd=(P.maxAdd||0)+1;log(`${plName(G.active)} buys one more maximum mana (${soulCap(G.active)}).`)}}
+ {id:"maxmana",name:"Increase Max Mana",cost:6,school:"Conjuring",text:"Your maximum mana goes up by one for the rest of the game, eighteen at most.",ok:()=>soulCap(G.active)<18,run:async()=>{const P=me();P.maxAdd=(P.maxAdd||0)+1;log(`${plName(G.active)} buys one more maximum mana (${soulCap(G.active)}).`)}}
 );
 const MYS={common:["2","3","4","5","6","7","8","9","10"],support:["scout","archer","healer","repair","miner","ram"],special:["J","Q","K","assassin"],rare:["A","JK","wall"],legend:["cannon","A"]};
 function mysteryCard(pl){const v=R(20),pool=v<=10?MYS.common:v<=15?MYS.support:v<=18?MYS.special:v===19?MYS.rare:MYS.legend,k=pick(pool);
@@ -3983,17 +4048,23 @@ function bankBarHTML(){if(!G.bank||survival())return "";const B=G.bank;
   return `<button class="bankbar" id="openBank" type="button">${unitSVG("goldbar","#e8c24a",22)}<span>The Bank</span><small>${B.dead?"closed":`${B.mana} mana`}${B.angry?" · angry":""}${B.mana<0&&!B.dead?" · Ether sale":""}</small></button>`}
 function openBank(){
   const V=view(),P=G.p[V],B=G.bank,live=canAct()&&G.phase==="prep"&&G.active===V,lim=loanLimit(V),owed=owedOf(V),e=effMana(V);
-  const loans=(P.loans||[]).map(L=>`<li>${L.owed} owed · interest in ${Math.max(0,L.at-tnOf(V))} turn(s) · due in ${Math.max(0,L.due-tnOf(V))}</li>`).join("");
+  const tt=n=>`${n} turn${n===1?"":"s"}`;
+  const loans=(P.loans||[]).map(L=>`<li><b>${L.owed}</b> owed · interest in ${tt(Math.max(0,L.at-tnOf(V)))} · due in ${tt(Math.max(0,L.due-tnOf(V)))}</li>`).join("");
+  const fl=floorOf(V),gap=e-fl,debt=P.debt||0;
   const notes=[];if(B.dead)notes.push("The Banker is dead: the Bank and the Ether are closed.");if(B.angry)notes.push("The Banker is angry about the Barbarians holding the middle: every price +1.");
   if(B.mana<0&&!B.dead)notes.push("The Bank is in the red: everything in the Ether costs 1 less.");const up=Object.keys(B.upsell);if(up.length)notes.push(`Upsold this round: ${up.map(id=>SP(id)?SP(id).name:id).join(", ")}.`);
   if(G.inflation&&G.turnNo<=G.inflation.until)notes.push(`After the collapse, prices wobble up until turn ${G.inflation.until}.`);
   ovShow(`<div class="ovbox bank wide"><h2>The Bank</h2><div class="bankhead"><span class="banker">${unitSVG("banker","#15100b",56)}</span><div><b>The Banker</b> holds <b>${B.mana}</b> mana.${B.owes.length?` It owes ${B.owes.map(o=>`${plName(o.to)} ${o.owed}`).join(", ")}.`:""}<br><span class="dim">Spell mana goes to the Bank, and it can only lend what it holds.</span>${notes.length?`<p class="bnote">${notes.join("<br>")}</p>`:""}</div></div>
-<dl class="bstat"><dt>Your mana</dt><dd class="${e<0?"neg":""}">${e}/${soulCap(V)} · you lose below ${floorOf(V)}</dd><dt>Loans</dt><dd>${loans?`<ul>${loans}</ul>`:"none"}</dd></dl>
+<dl class="bstat"><dt>Your mana</dt><dd class="${e<0?"neg":""}"><b>${e}</b> of ${soulCap(V)}</dd>
+<dt>Lowest point</dt><dd><b>${fl}</b><span class="bline ${gap<=soulCap(V)?"warn":""}">If your mana falls below ${fl}, you lose the game. You are ${gap} above it.</span></dd>
+<dt>Mana debt</dt><dd>${debt?`<b>${debt}</b><span class="bline">Every soul you gain pays it first.</span>`:"None"}</dd>
+<dt>Loans</dt><dd>${loans?`<ul>${loans}</ul>`:"None"}</dd></dl>
 ${live&&!B.dead?`<div class="bacts">
-<p><label class="${lim?"":"off"}">Borrow <select id="bLoan" ${lim?"":"disabled"}>${lim?Array.from({length:lim},(_,i)=>`<option>${i+1}</option>`).join(""):"<option>—</option>"}</select> mana</label> <button class="btn sm" id="bLoanBtn" ${lim?"":"disabled"}>Take the loan</button> <small class="dim">${Math.round(loanRate(V)*100)}% every 1d2 turns, due in 4 turns; what isn't paid then becomes mana debt.${e<0?" Below zero: six at most (five at −"+soulCap(V)+", at 30%).":""}</small></p>
+<p><label class="${lim?"":"off"}">Borrow <select id="bLoan" ${lim?"":"disabled"}>${lim?Array.from({length:lim},(_,i)=>`<option>${i+1}</option>`).join(""):"<option>—</option>"}</select> mana</label> <button class="btn sm" id="bLoanBtn" ${lim?"":"disabled"}>Take the loan</button> <small class="dim">${Math.round(loanRate(V)*100)}% interest every 1d2 turns. Due in 4 turns; what isn't paid by then becomes mana debt.${e<0?" Below zero: six at most (five at −"+soulCap(V)+", at 30%).":""}</small></p>
 <p><label class="${Math.min(mana(V),owed)?"":"off"}">Repay <select id="bPay" ${Math.min(mana(V),owed)?"":"disabled"}>${Math.min(mana(V),owed)?Array.from({length:Math.min(mana(V),owed)},(_,i)=>`<option>${i+1}</option>`).join(""):"<option>—</option>"}</select> mana</label> <button class="btn sm" id="bPayBtn" ${Math.min(mana(V),owed)?"":"disabled"}>Pay</button></p>
 <p><label><input type="checkbox" id="bCredit" ${P.credit?"checked":""}> Spend on credit</label> <small class="dim">Spells you can't afford are paid by the Bank and become mana debt, down to ${floorOf(V)}. Every soul you gain pays the debt first.</small></p>
 <p><button class="btn ghost sm" id="bSell">Sell cards from your hand or deck</button>${P.tribe==="binah"&&(P.thralls||[]).length?` <button class="btn ghost sm" id="bThrall">Sell a thrall (1 mana)</button>`:""}</p></div>`:`<p class="dim">${B.dead?"":"Bank business is done in your own prep phase."}</p>`}
+<details class="bankhelp"><summary>How the Bank works</summary><dl>${BANK_HELP.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl></details>
 <p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
   $("#mcancel").onclick=ovHide;
   if($("#bLoanBtn"))$("#bLoanBtn").onclick=()=>{takeLoan(V,+$("#bLoan").value);render();openBank()};
@@ -4017,7 +4088,7 @@ function econTags(P){const t=[];if(!G.bank||isHorde(P.i))return t;
   const o=owedOf(P.i);if(o)t.push(`<span class="loantag">Loans ${o}</span>`);
   if(P.credit)t.push(`<span class="loantag">Credit</span>`);
   if(P.saleUntil!=null&&tnOf(P.i)<=P.saleUntil)t.push(`<span class="saletag">Ether sale</span>`);
-  if(oathOf(P.i))t.push(`<span class="oathtag">${P.oath==="earth"?"Earth Oath":P.oath==="venus"?"Oath of Venus":"Oath of Jupiter"}</span>`);
+  if(oathOf(P.i))t.push(`<span class="oathtag">${SP("oath_"+P.oath).name}</span>`);
   if(sunBlind(P.i))t.push(`<span class="debttag">Sun-blind</span>`);
   if(choked(P.i))t.push(`<span class="debttag">Choking on the Sun</span>`);
   if(P.freeCurses&&P.freeCurses.left)t.push(`<span class="saletag">${P.freeCurses.left} free curse${P.freeCurses.left>1?"s":""}</span>`);
@@ -4218,7 +4289,7 @@ SPELLS.push(
  {id:"mars",tribe:"firm",dice:"2d3",name:"Mars",cost:4,school:"Sorcery",text:"Mars takes the moon's place in the sky (“Strife”). Each turn every stack of only Grunts and Infantry gets advantage on its next attack on 1–5 of 1d8. The moon's phases stop and your Miner on the moon is lost; a Leviathan on the moon coils on Mars instead. Not while Saturn hangs there, and never again once Mars is eaten.",
   ok:()=>G.moon.gone!=="mars"&&G.moon.gone!=="saturn"&&!G.marsEaten,run:async()=>{G.moon.gone="mars";G.moon.i=-1;G.moon.blood=false;applyMoonTheme();
    log(`<b>Mars</b>: ${plName(G.active)} sets Mars in the sky where the moon was.`,"event");
-   popup("Mars, “Strife”",`<p>${plName(G.active)} hangs Mars in the moon's place. The phases stop.</p><p>At the start of each turn, every stack made only of Grunts and Infantry (Puppets too) gets advantage on its next attack on 1–5 of 1d8.</p>`,G.active)}}
+   popup("Mars",`<p>${plName(G.active)} hangs Mars in the moon's place. The phases stop.</p><p>At the start of each turn, every stack made only of Grunts and Infantry (Puppets too) gets advantage on its next attack on 1–5 of 1d8.</p>`,G.active)}}
 );
 
 /* ---------- the computer playing the Firmament ---------- */
@@ -4379,10 +4450,10 @@ PRICE.sun=()=>R(3)+R(3);PRICE.venus=()=>R(3)+R(3);PRICE.jupiter=()=>R(3)+R(3);
 const firmPlace=k=>()=>G.moon.gone!==k&&G.moon.gone!=="saturn"&&!(G.eatenP||[]).includes(k);
 SP("mars").school="Astrology";
 SPELLS.push(
- {id:"sun",tribe:"firm",dice:"2d3",name:"Second Sun",cost:4,school:"Astrology",text:"Select your stack with a Joker: the Joker shoots itself (its souls go to your soul pile) and an indigo Second Sun (“King”) takes the moon's place. The fog of war is gone while it burns (Delusions stay). Every 2d2 turns it judges each other player: 1 mana to you, one damage to one of their stacks, or two deck cards; or blindness for that turn. Others can swear the Earth Oath. The Leviathan can't lie on it.",
+ {id:"sun",tribe:"firm",dice:"2d3",name:"Second Sun",cost:4,school:"Astrology",text:"Select your stack with a Joker: the Joker shoots itself (its souls go to your soul pile) and an indigo Second Sun (“King”) takes the moon's place. The fog of war is gone while it burns (Delusions stay). Every 2d2 turns it judges each other player: 1 mana to you, one damage to one of their stacks, or two deck cards; or blindness for that turn. Others can swear the Oath of the Earth. The Leviathan can't lie on it.",
   ok:()=>firmPlace("sun")()&&G.moon.gone!=="blacksun"&&selOwnJoker(),run:async()=>{const s=G.sel,st=selStack();await jokerSuicide(s.r,s.c,st,G.active);setPlanet("sun",G.active);
    log(`<b>The Second Sun</b> rises where the moon was, raised by ${plName(G.active)}.`,"event");
-   popup("The Second Sun, “King”",`<p>${plName(G.active)}'s Joker shoots itself and an indigo sun rises in the moon's place. The fog of war burns away.</p><p>Every 2d2 turns the Sun judges each player: worship the Earth (1 mana, a wound to one of your stacks, or two deck cards) or be blinded for the turn. Anyone can swear the <b>Earth Oath</b> (Astrology).</p>`,G.active)}},
+   popup("The Second Sun",`<p>${plName(G.active)}'s Joker shoots itself and an indigo sun rises in the moon's place. The fog of war burns away.</p><p>Every 2d2 turns the Sun judges each player, who pays 1 mana, a wound to one of their stacks or two deck cards, or is blind for that turn. Anyone can swear the <b>Oath of the Earth</b> (Astrology).</p>`,G.active)}},
  {id:"sunfall",tribe:"firm",name:"Second Sun's Fall",cost:0,school:"Astrology",text:"Free. Select a stack: the Sun crashes onto it. Two damage there, one damage on a 2 of 1d2 on every tile around it, one on a 10 of 1d10 on the ring beyond, your own troops too. A Black Sun instead destroys that tile and everything on it for good (and on a 6 of 1d6 every tile around it). The sky is empty afterwards.",
   ok:()=>(sunUp()||planetUp("blacksun"))&&!!selStack(),run:async()=>{const {r,c}=G.sel;SND.gun();sunFall(r,c);if(G.sel&&!at(G.sel.r,G.sel.c))G.sel=null}},
  {id:"venus",tribe:"firm",dice:"2d3",name:"Venus",cost:4,school:"Astrology",text:"Venus (“Harmony”) takes the moon's place. Choose: you (or your teammate) get +2 mana a turn and +2 maximum, or (not in Survival) +1 mana a turn while every enemy gets +2 maximum. Anyone can swear the Oath of Venus.",
@@ -4394,7 +4465,7 @@ SPELLS.push(
    log(`<b>Venus</b> rises for ${plName(G.venus.target)}: ${mode==="a"?"+2 mana a turn and +2 maximum":"+1 mana a turn, and every enemy +2 maximum"}.`,"event")}},
  {id:"jupiter",tribe:"firm",dice:"2d3",name:"Jupiter",cost:4,school:"Astrology",text:"Jupiter (“Fortune”) takes the moon's place. Miners in an Ace's slots bring 1d2 a turn; each round two conjurings are on sale (maybe one mana back); cards can be traded hand to hand at the Auction; a Jester's Sacrificial Suicide brings 1d2 − 1 more. You may get a mana when others buy on sale or trade. Anyone can swear the Oath of Jupiter.",
   ok:firmPlace("jupiter"),run:async()=>{setPlanet("jupiter",G.active);rollJupSale();log(`<b>Jupiter</b> rises where the moon was, raised by ${plName(G.active)}.`,"event")}},
- {id:"oath_earth",name:"Earth Oath",cost:0,school:"Astrology",text:"Free, while the Second Sun burns. Swear to the Earth: no necromancy for you, and every Sorcery spell with a dice price rolls its price twice for you and keeps the lower. Cast again to break the Oath.",
+ {id:"oath_earth",name:"Oath of the Earth",cost:0,school:"Astrology",text:"Free, while the Second Sun burns. Swear to the Earth: no necromancy for you, and every Sorcery spell with a dice price rolls its price twice for you and keeps the lower. Cast again to break the Oath.",
   ok:()=>sunUp()&&me().tribe!=="firm",run:async()=>{toggleOath("earth")}},
  {id:"oath_venus",name:"Oath of Venus",cost:0,school:"Astrology",text:"Free, while Venus is up. Each turn you start without having attacked a player: +2 mana and +2 maximum for that turn. Each attack on a player costs 1d2 mana and two maximum for 1d3 turns. Cast again to break the Oath.",
   ok:()=>planetUp("venus"),run:async()=>{toggleOath("venus")}},
@@ -4406,8 +4477,8 @@ SPELLS.push(
      log(`<b>The Sun cries a third time</b> and its flames go out: <b>the Black Sun</b>.`,"event");popup("The Black Sun",`<p>${plName(G.active)} makes the Second Sun weep a third time. Its flames go out.</p><p>The fog of war returns. The Firmament that raised it now pays Yaldabaoth 1d2 mana or 1d2 deck cards every 1d2 of its turns.</p>`,G.active)}
    else{log(`<b>The Sun cries</b> (${G.sunTears} of 3): ${plName(G.active)}'s Yaldabaoth dims it.`,"event");applyMoonTheme()}}}
 );
-function toggleOath(k){const P=me();if(P.oath===k){P.oath=null;log(`${plName(G.active)} breaks the ${k==="earth"?"Earth Oath":"Oath of "+(k==="venus"?"Venus":"Jupiter")}.`);return}
-  P.oath=k;P.venusAttacked=false;log(`${plName(G.active)} swears the ${k==="earth"?"Earth Oath":"Oath of "+(k==="venus"?"Venus":"Jupiter")}.`,"event")}
+function toggleOath(k){const P=me();if(P.oath===k){P.oath=null;log(`${plName(G.active)} breaks the ${SP("oath_"+k).name}.`);return}
+  P.oath=k;P.venusAttacked=false;log(`${plName(G.active)} swears the ${SP("oath_"+k).name}.`,"event")}
 
 /* Night's Judgement eats whatever hangs in the sky: the moon at the New or Full Moon, any planet at any time */
 Object.assign(SP("judge"),{text:"Free: Yaldabaoth eats what hangs in the sky: the moon at the New Moon or the Full Moon, or Mars, the Second Sun (or the Black Sun), Venus or Jupiter at any time. A Leviathan on it falls back into its deck. Take its worth in mana, or count it toward the hunger (3, or 4 for Jupiter). An eaten planet never comes back.",
@@ -4420,7 +4491,7 @@ Object.assign(SP("judge"),{text:"Free: Yaldabaoth eats what hangs in the sky: th
    const use=await ask(pl,{kind:"choice",id:"moonuse",title:`Night's Judgement: ${nm} is eaten`,options:[{id:"hunger",label:`Feed the hunger (${(P.hunger||0)+v} of 7)`},{id:"mana",label:`Take ${v} mana`}],ai:()=>"hunger"});
    if(use==="mana")giveMana(pl,v);else P.hunger=(P.hunger||0)+v;
    log(`<b>Night's Judgement</b>: ${plName(pl)} eats ${nm}${use==="mana"?" for mana":` (hunger ${P.hunger} of 7)`}.`,"event");
-   popup("Night's Judgement",`<p>${plName(pl)} eats ${nm}. It is gone from the sky for good, until Saturn takes its place.</p>`,pl)}});
+   popup("Night's Judgement",`<p>${plName(pl)} eats ${nm}. It is gone from the sky for good.</p>`,pl)}});
 /* the Leviathan can rise onto the moon at the New Moon, or onto Mars, Venus or Jupiter at any time, never onto a Sun */
 const levPlanet=()=>["mars","venus","jupiter","mercury"].includes(G.moon.gone);
 SP("lev").ok=()=>(G.moon.i===0&&!G.moon.gone||levPlanet())&&!G.moonLev&&stacksOf(G.active).some(x=>hasK(x.st,"leviathan"));
@@ -4473,7 +4544,7 @@ function planetInfoHTML(k){
   if(k==="sun"){L.push(`The indigo Second Sun burns in the moon's place${by!=null?`, raised by ${esc(G.p[by].name)}`:""}. The fog of war is gone (a Delusion still blinds). The Leviathan can't lie on it.`);
     L.push(P.tribe==="firm"?"The Sun doesn't judge you.":`Every 2d2 of your turns it judges you: 1 mana${by!=null?" to "+esc(G.p[by].name):" to the Bank"}, one damage to one of your stacks, or two deck cards; or you are blind for that turn.`);
     L.push(`It has cried ${G.sunTears||0} of 3 times; at three it becomes the Black Sun.`);
-    L.push(P.oath==="earth"?"You have sworn the Earth Oath: no necromancy, and Sorcery dice prices roll twice for you and keep the lower.":"You can swear the Earth Oath (Astrology): no necromancy, cheaper Sorcery dice prices.")}
+    L.push(P.oath==="earth"?"You have sworn the Oath of the Earth: no necromancy, and Sorcery dice prices roll twice for you and keep the lower.":"You can swear the Oath of the Earth (Astrology): no necromancy, cheaper Sorcery dice prices.")}
   if(k==="blacksun"){L.push("The Black Sun: the Second Sun cried three times and its flames went out. The fog of war is back.");if(G.blackBy!=null)L.push(`The Firmament that raised it pays ${esc(G.p[G.blackBy].name)} 1d2 mana or 1d2 deck cards every 1d2 of its turns.`);L.push("If it falls, it destroys the tile it lands on for good.")}
   if(k==="venus"){L.push(PNOTE.venus()+".");L.push(P.oath==="venus"?"Your Oath of Venus: +2 mana and +2 maximum each turn you start without having attacked a player; each attack on a player costs 1d2 mana and two maximum for 1d3 turns.":"You can swear the Oath of Venus (Astrology).")}
   if(k==="jupiter"){L.push("Jupiter hangs in the moon's place. Miners in an Ace's slots bring 1d2 a turn. Each round two conjurings are on sale (maybe a mana back). Hand cards can be traded at the Auction. A Jester's Sacrificial Suicide brings 1d2 − 1 more mana.");
@@ -4603,7 +4674,7 @@ async function eclipse(k){
     log(`<b>An eclipse of Mercury</b>: Peace, or war for everyone.`,"event");
     const v=await vote("Mercury eclipsed: Peace","Agree to Peace for 1d2 + 1 rounds? If the vote is split evenly, or most refuse, Total War breaks out instead.");
     const rounds=R(2)+1;
-    if(v.yes.length>v.no.length)startPeace(rounds,"Mercury's eclipse, by vote");else startWar(rounds,n===2?"Mercury's eclipse, one on one":"Mercury's eclipse: everyone against everyone");
+    if(v.yes.length>v.no.length)startPeace(rounds,"Mercury's eclipse, by vote");else startWar(rounds,n===2?"Mercury's eclipse, 1v1":"Mercury's eclipse: everyone against everyone");
   }
   if(k==="mars"){
     log(`<b>An eclipse of Mars</b>.`,"event");const msgs=[];
@@ -4708,7 +4779,7 @@ function spellRow(s,live){
   if(s.id==="slaves"){const n=(G.p[G.active].thralls||[]).length;extra+=`<span class="chips" aria-label="${n} of 10 thralls">${Array.from({length:10},(_,i)=>`<i class="${i<n?"f":""}">${unitSVG("chip",i<n?"#9fe8b4":"#3d4a40",11)}</i>`).join("")}</span>`}
   if(s.once)extra+=`<small class="dc once">${G.p[G.active].once&&G.p[G.active].once[s.id]?"used":"once"}</small>`;
   const block=spellBlock(s);
-  const btn=`<button class="spell${s.tribe?" subsp":""} ${ok?"":"off"} ${moon} ${s.school==="Necromancy"?"nec":""} ${s.id==="sever"&&P.sevArmed?"armed":""}" data-s="${s.id}" data-tip="${esc(block||s.text)}"><span class="sn">${esc(s.name)}${extra}</span><em>${s.id==="hypo"&&!selOwn()?"3+":cost?cost+" mana":"free"}</em></button>`;
+  const btn=`<button class="spell${s.tribe?" subsp":""} ${ok?"":"off"} ${moon} ${s.school==="Necromancy"?"nec":""} ${s.id==="sever"&&P.sevArmed?"armed":""}" data-s="${s.id}" data-sp="${s.id}"><span class="sn">${esc(s.name)}${extra}</span><em>${s.id==="hypo"&&!selOwn()?"3+":cost?cost+" mana":"free"}</em></button>`;
   if(s.id!=="bless")return btn;
   const on=!!G.p[view()].autoBless;
   return `<div class="spellrow"><button type="button" class="autotog${on?" on":""}" id="autoBless" aria-pressed="${on}" data-tip="Cast Grave Blessing for you at the start of every prep phase.">${on?"auto":"auto"}</button>${btn}</div>`;
@@ -4752,7 +4823,7 @@ function fillEther(){
   const rows=ETHER_SHOP.map(([cat,items])=>{
     const its=items.map(([id,nm,sub])=>({id,nm,sub,sp:SP(id),left:etherLeft(id)})).filter(x=>x.sp).sort((a,b)=>spellCost(a.sp)-spellCost(b.sp)||a.nm.localeCompare(b.nm));
     return `<h3>${cat}</h3>${its.map(x=>{const c=spellCost(x.sp),ok=live&&!blk&&x.left>0&&spellReady(x.sp);
-      return `<button class="spell eitem ${ok?"":"off"}" data-buy="${x.id}" data-tip="${esc(x.sp.text)}"><span class="sn">${esc(x.nm)}${x.sp.dice?`<small class="dc">${x.sp.dice}</small>`:""}<small class="left">${x.left?x.left+" left":"none left"}</small></span><em>${c?c+" mana":"free"}</em></button>`}).join("")}`}).join("");
+      return `<button class="spell eitem ${ok?"":"off"}" data-buy="${x.id}" data-sp="${x.id}"><span class="sn">${esc(x.nm)}${x.sp.dice?`<small class="dc">${x.sp.dice}</small>`:""}<small class="left">${x.left?x.left+" left":"none left"}</small></span><em>${c?c+" mana":"free"}</em></button>`}).join("")}`}).join("");
   e.innerHTML=`<div class="dhead"><h2>The Ether</h2><button type="button" class="xclose" aria-label="Close the Ether">×</button></div>
 <p class="dnote">${blk?esc(blk):live?"Conjure a card's soul into your deck. Dice prices are rolled each round.":"You can conjure in your own prep phase."}</p>
 <div class="dbody scrollbox">${rows}<p class="dfoot"><button class="link" id="etherSouls">See every soul in the Ether (${G.ether.length})</button></p></div>`;
@@ -4782,21 +4853,21 @@ function decorateOv(){const o=$("#ov");if(!o||o.hidden)return;const box=o.queryS
 let tipT=0;
 function tipBox(){let t=$("#tipbox");if(!t){t=document.createElement("div");t.id="tipbox";t.setAttribute("role","tooltip");t.hidden=true;document.body.appendChild(t);
   t.addEventListener("click",e=>{if(e.target.closest(".xclose"))t.hidden=true;e.stopPropagation()})}return t}
-function showTip(el,pinned){const txt=el.dataset.tip;if(!txt)return;const t=tipBox();
-  t.innerHTML=(pinned?`<button type="button" class="xclose" aria-label="Close">×</button>`:"")+`<p>${esc(txt)}</p>`;t.hidden=false;t.classList.toggle("pinned",!!pinned);
-  const r=el.getBoundingClientRect(),w=Math.min(340,innerWidth-20);t.style.width=w+"px";
+function showTip(el,pinned){const sp=el.dataset.sp&&SP(el.dataset.sp),txt=el.dataset.tip;if(!sp&&!txt)return;const t=tipBox();
+  t.innerHTML=(pinned?`<button type="button" class="xclose" aria-label="Close">×</button>`:"")+(sp?spellTipHTML(sp):`<p>${esc(txt)}</p>`);t.hidden=false;t.classList.toggle("pinned",!!pinned);t.classList.toggle("rich",!!sp);
+  const r=el.getBoundingClientRect(),w=Math.min(sp?380:340,innerWidth-20);t.style.width=w+"px";
   let x=r.left,y=r.bottom+6;if(x+w>innerWidth-10)x=innerWidth-w-10;t.style.left=Math.max(10,x)+scrollX+"px";t.style.top=y+scrollY+"px";
   const th=t.offsetHeight;if(r.bottom+6+th>innerHeight&&r.top-th-6>0)t.style.top=r.top-th-6+scrollY+"px"}
 const touchy=()=>matchMedia("(hover: none)").matches;
-document.addEventListener("pointerover",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip]");if(!el)return;clearTimeout(tipT);tipT=setTimeout(()=>showTip(el,false),260)});
-document.addEventListener("pointerout",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip]");if(!el)return;clearTimeout(tipT);const t=$("#tipbox");if(t&&!t.classList.contains("pinned"))t.hidden=true});
+document.addEventListener("pointerover",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp]");if(!el)return;clearTimeout(tipT);tipT=setTimeout(()=>showTip(el,false),260)});
+document.addEventListener("pointerout",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp]");if(!el)return;clearTimeout(tipT);const t=$("#tipbox");if(t&&!t.classList.contains("pinned"))t.hidden=true});
 /* on touch, a long press shows the tip with an X instead of acting */
 let lpT=0,lpFired=false;
-document.addEventListener("touchstart",e=>{const el=e.target.closest&&e.target.closest("[data-tip]");if(!el)return;lpFired=false;clearTimeout(lpT);lpT=setTimeout(()=>{lpFired=true;showTip(el,true)},450)},{passive:true});
+document.addEventListener("touchstart",e=>{const el=e.target.closest&&e.target.closest("[data-tip],[data-sp]");if(!el)return;lpFired=false;clearTimeout(lpT);lpT=setTimeout(()=>{lpFired=true;showTip(el,true)},450)},{passive:true});
 document.addEventListener("touchend",e=>{clearTimeout(lpT);if(lpFired){e.preventDefault();lpFired=false}});
 document.addEventListener("touchmove",()=>clearTimeout(lpT),{passive:true});
-document.addEventListener("click",e=>{if(!touchy())return;const el=e.target.closest&&e.target.closest("[data-tip]");if(!el||el.closest("button"))return;showTip(el,true);e.stopPropagation()});
-document.addEventListener("click",e=>{const t=$("#tipbox");if(t&&!t.hidden&&!e.target.closest("#tipbox")&&!(e.target.closest&&e.target.closest("[data-tip]")))t.hidden=true});
+document.addEventListener("click",e=>{if(!touchy())return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp]");if(!el||el.closest("button"))return;showTip(el,true);e.stopPropagation()});
+document.addEventListener("click",e=>{const t=$("#tipbox");if(t&&!t.hidden&&!e.target.closest("#tipbox")&&!(e.target.closest&&e.target.closest("[data-tip],[data-sp]")))t.hidden=true});
 /* piles (grave, Ether, Outer Darkness) grouped the way the shop is: by card type */
 const PILE_ORDER=["Standard","Special","Support","Base","Wildcard","Barbarian"];
 function pileGroups(cards){const g={};for(const c of cards){let k=cardClass(c);if(k==="Barbarian")k="Standard";(g[k]=g[k]||[]).push(c)}
@@ -4822,5 +4893,242 @@ function fitSide(){const g=document.querySelector(".gside");if(!g)return;
   const h=Math.max(250,innerHeight-Math.max(8,top)-bar);g.style.height=g.style.maxHeight=h/z+"px"}
 addEventListener("scroll",()=>requestAnimationFrame(fitSide),{passive:true});
 addEventListener("resize",fitSide);
+
+/* ---------------- UI pass 2 (v21): English ----------------
+   Every spell's text in three short parts: what you need (n), what it does (e), and its limits (l).
+   The hover box shows them like card info: price, when, needs, effect, limits. s.text keeps the joined text for the
+   Spells explained panel. Planets get their Forms; Substances get a one-line tag and a few points. */
+
+const SPELL_TEXT={
+ // Necromancy
+ ritual:{e:"Adds 2d6 to this turn's Grave Blessing.",l:"Cast it before the Grave Blessing. Once a turn."},
+ bless:{e:"Roll 1d6, plus 1d6 for each of your Aces on the field and 2d6 from Ritual Dice. For every 6, raise a card of your choice from the grave into your hand.",l:"Once a turn, before any other mana is spent. Six dice at most. Every card you overdrew into the grave takes one die away."},
+ suicide:{n:"Select your stack with a Joker.",e:"The Joker shoots itself. The souls it captured go to your soul pile, up to 6 mana; the rest go to the grave.",l:"Only before you spend mana this turn. Under a Blood Moon the Joker and its souls fall into the Outer Darkness instead."},
+ sever:{e:"For this turn, an enemy killed beside your Joker is sent to the Ether instead of being captured. You pay half its conjuring price.",l:"Cast again to disarm it."},
+ resur:{e:"Choose a card in the grave and take it into your hand.",l:"Needs room in your hand."},
+ libation:{n:"Select one of your stacks, check the cards to pour out, and press Pour.",e:"Each card rolls 1d2. On a 2 you gain its soul's mana; on a 1 it goes to the grave for nothing.",l:"Not under the Full Moon. Once a turn."},
+ slaves:{n:"A thrall, and an empty tile on your own ground.",e:"A thrall your Slavemasters captured stands up as a Slave: a rifle of 10 + 1d12 that fires two tiles in a straight line or one diagonal, one straight step a turn, no defense.",l:"A Slave stands alone. A miss from two tiles away costs it nothing. Ten thralls can wait at most."},
+ exile:{n:"Select your stack with a Joker that holds souls.",e:"Every soul the Joker captured falls into the Outer Darkness."},
+ hunger:{e:"Eat 1d2 cards from the grave, your own deck, the selected stack, or an enemy's deck. Take them as mana, or feed the hunger with them.",l:"Twice a turn. Against an enemy's deck you each roll 1d4; if you lose, you pay them 2 mana. Seven eaten bring Saturn."},
+ // Enchantment
+ divine:{n:"Select your stack.",e:"Advantage on all of its dice in its next combat."},
+ hypo:{n:"Select your stack. You need at least two stacks on the field.",e:"The stack can't be attacked for two turns.",l:"Meanwhile it can't attack or step toward the enemy, only sideways or back."},
+ pdhm:{e:"None of your stacks can be attacked until your next turn begins. Your cards turn pink and everyone is told.",l:"Once a game."},
+ blindfold:{n:"You are under a Delusion.",e:"When the Delusion ends you keep it three more turns: its blindness, its nine mana and its free dice.",l:"Nothing Lucifer paid to stifle it carries over."},
+ // Curse
+ forced:{e:"Your enemy draws 1d2 cards. Cards past their hand limit go to the grave and weaken their next Grave Blessing."},
+ hexed:{n:"Select an enemy stack.",e:"Disadvantage on all of its dice in its next combat."},
+ double:{e:"Roll 3d6. Each 1 burns a card from your deck; each 6 burns a card from your enemy's deck."},
+ three:{e:"Roll 1d2. On a 1, one random card is destroyed in your enemy's hand and one in yours. On a 2, two of each.",l:"If your hand runs short, the rest comes from your deck. Your enemy never loses deck cards to it."},
+ hate:{n:"Select an enemy stack.",e:"Its strongest card turns red. While that card lives, its stack has disadvantage on every attack and defense, and everyone attacking it has advantage."},
+ lucifer:{e:"An enemy falls under the Delusion for 2d2 turns: blind past their own cards' reach, nine mana at most, and 3d2 free mana a turn.",l:"Free in a round you cast the Delusion of Ouroboros on yourself. While it lasts you can stifle it: every 2 mana or 2 deck cards you pay takes one maximum mana or one free die from them."},
+ deconj:{e:"Choose one. The full curse: no one can conjure at the next Full Moon, and the grave gives nothing at the next New Moon. The short curse: no one, you included, can conjure next round.",l:"The full curse costs 2 + 1d2 (rolled each round); the short curse costs 2."},
+ joy:{e:"Choose one, until your next turn. Pleasure and Joy: your cards glow, and those that die go back into your deck instead of the grave. Joyful Theft: each damage an enemy deals to your units moves 1 mana from them to you.",l:"Pleasure and Joy costs 1 + 1d2; Joyful Theft costs 1d3 − 1."},
+ // Sorcery
+ clair:{e:"Look at 2d6 cards of your deck and take one into your hand. Then the deck is shuffled.",l:"Needs room in your hand. 6 mana at the New Moon, 2 at the Full Moon."},
+ tele:{n:"Select your stack in your own two lines, with no enemy beside it, and leave exactly one card checked.",e:"That card leaves the field and comes back into your hand at the start of your next turn.",l:"Needs room in your hand."},
+ naked:{e:"You see your enemy's hand for the rest of this turn. Both of you are told it was seen.",l:"6 mana at the New Moon, free at the Full Moon."},
+ bird:{e:"The fog of war lifts for you and your teammates for the rest of this round.",l:"Only with fog of war on. It does nothing against a Delusion."},
+ gamble:{e:"Roll 1d10. On a 10 the Bank pays you 7d2 mana. On a 1 you lose one maximum mana, take 7d2 of mana debt, and a deck card goes to the Ether. Anything else: the mana is gone.",l:"Only while the Bank is open."},
+ bolt:{n:"Three bolts, and an enemy stack selected.",e:"Lightning pins the stack for 1d2 + 1d2 − 1 of its turns: it can't move or attack.",l:"You earn a bolt for every card you lose defending, and for every card Antony kills. Against the Leviathan it takes one heart, no roll; with nothing selected it strikes a Leviathan on the moon."},
+ lev:{n:"Your Leviathan on the field, at the New Moon.",e:"The Leviathan leaves the field and lies on the moon. From the next New Moon, every enemy pays a toll each New Moon: 2d4 random deck cards, 2 random hand cards and 1 mana, into the Outer Darkness.",l:"On the moon your maximum mana rises by one for every card in the Outer Darkness, twelve at most. It can be attacked only at the New Moon, and defends with advantage."},
+ judge:{e:"Yaldabaoth eats what hangs in the sky. Take its worth in mana, or count it toward the hunger (3, or 4 for Jupiter).",l:"The moon only at the New Moon or the Full Moon; a planet at any time. What is eaten never comes back. A Leviathan on it falls back into its deck."},
+ saturn:{n:"Hunger of seven, with the moon out of the sky.",e:"Saturn takes the moon's place. At the start of each of their turns, every enemy pays you 1 (a hand card, the top deck card or 1 mana) or refuses, and a Debt Collector rises on your ground.",l:"Each Debt Collector still standing at a new round raises the price by 1. Binah never pays."},
+ lifesell:{n:"Select your stack with a Trafficker that holds prisoners.",e:"Put one prisoner up at the Auction. Any player can offer mana or hand cards for it, and you approve the sale."},
+ cry:{n:"The Second Sun in the sky.",e:"Yaldabaoth makes the Sun weep. On the third time its flames go out and it becomes the Black Sun.",l:"Once every 1d3 turns. After that, the Firmament that raised it pays you 1d2 mana or 1d2 deck cards every 1d2 of its turns."},
+ bloodcall:{e:"The next Full Moon becomes a Blood Moon.",l:"Its harms don't touch you: your dead still go to the grave."},
+ rain:{e:"Until your next turn, every sacrifice gives one more mana, and every sacrifice by another player also gives you one."},
+ asteroid:{n:"Select a stack.",e:"One damage there. Every tile around it takes one damage on a 4 of 1d4 (Walls take 1d2 + 1). The area burns for two rounds.",l:"The Firmament is immune."},
+ // Illusion
+ quiet:{e:"For 1d2 + 1 rounds, enemies without a Scout on the field see only what stands right beside their own units.",l:"2 mana now and 2 at the start of each round it lasts. It ends when you can't pay. Scouts see through it."},
+ ouro:{e:"For 2d2 of your turns you and your teammates can't see enemy cards past your own cards' reach. Meanwhile your mana can rise to nine, and you get 3d2 free mana at the start of each turn.",l:"Cast on yourself. It makes the Delusion of Lucifer free this round."},
+ ffog:{e:"For 1d2 of your turns your enemies see only what is right beside their cards, and their Scouts see one tile less. At the New Moon they are blind, and your own cards see one tile.",l:"Not under the Full Moon. Once every three turns."},
+ // Conjuring
+ cs:{e:"A random soldier's soul (2 to 10) comes from the Ether into your deck."},
+ cj:{e:"A Jack's soul comes from the Ether into your deck."},
+ cq:{e:"A Queen's soul comes from the Ether into your deck."},
+ ck:{e:"A King's soul comes from the Ether into your deck."},
+ cjk:{e:"A Joker's soul comes from the Ether into your deck."},
+ ca:{e:"An Ace's soul comes from the Ether into your deck."},
+ csc:{e:"A Scout's soul comes from the Ether into your deck.",l:"Scouts see three tiles through the fog, uncover Assassins, ambushers and face-down cards within two, move like Assassins, and never fight."},
+ cas:{e:"An Assassin's soul comes from the Ether into your deck.",l:"Two hearts, 10 + 1d12 to attack, 8 to defend. Hidden until an enemy stands right beside it. Can ambush. Only another Assassin stacks with it."},
+ carch:{e:"An Archer's soul comes from the Ether into your deck.",l:"Shoots 1d20 + 1d10 at a stack exactly two tiles away, or suppresses it (disadvantage on its next attack). A miss costs nothing. No defense. 1 mana for the Beginner."},
+ ccan:{e:"A Cannon's soul comes from the Ether into your deck.",l:"Fires 2d20 at anything up to three tiles away, once every 1d2 + 2 turns, two damage to a Wall. A miss costs nothing. No defense. Moves one step."},
+ cheal:{e:"A Healer's soul comes from the Ether into your deck.",l:"Its shield turns one blow from its stack and returns in 1d4 rounds; or it heals one heart in or beside its stack. Never stacks with a Queen."},
+ cwall:{e:"A Wall's soul comes from the Ether into your deck.",l:"Five hearts, defense 10. Holds six cards like an Ace, but only ranged cards fire from it, one shot a turn. Never moves."},
+ crep:{e:"A Repairman's soul comes from the Ether into your deck.",l:"Repairs a Wall, an Ace or the Tree in or beside his stack, then rests 1d3 + 1 turns. He can also give his life to upgrade an Ace once."},
+ cram:{e:"A Battering Ram's soul comes from the Ether into your deck.",l:"Worked by one or two Grunts, Infantry or Puppets, it does two damage to a Wall beside it, with no roll. It does nothing else."},
+ cmine:{e:"A Miner's soul comes from the Ether into your deck.",l:"In an Ace's miner slot it brings 1d2 − 1 mana a turn, from the next round on. On a crystal it digs 1 + 1d3. Anywhere else it finds 1 mana on a 6."},
+ maxmana:{e:"Your maximum mana rises by one for the rest of the game.",l:"Eighteen at most."},
+ bull:{e:"A BullGoat comes into your hand: two hearts, 10 + 1d20 up close, or a charge of 10 + 2d20 down a straight, empty line at an enemy two or three tiles away.",l:"It stands alone. When it dies it returns as the Goatbull."},
+ deckcards:{n:"Your Tree of Neither Life Or Death on the field.",e:"Your deck is full again, as it was at the start of the game. The cards still in it go to the grave; your hand stays.",l:"Once a game."},
+ // Astrology
+ mars:{e:"Mars takes the moon's place. At the start of each turn, every stack of only Grunts and Infantry gets advantage on its next attack on 1–5 of 1d8.",l:"The moon's phases stop and your Miner on the moon is lost; a Leviathan on the moon moves onto Mars. Not while Saturn is up, and never once Mars has been eaten."},
+ sun:{n:"Select your stack with a Joker.",e:"The Joker shoots itself (its souls go to your soul pile) and the Second Sun takes the moon's place. While it burns there is no fog of war. Every 2d2 turns it judges each other player: 1 mana to you, one damage to one of their stacks, or two deck cards; or they are blind for that turn.",l:"Delusions still blind. Other players can swear the Oath of the Earth. The Leviathan can't lie on it."},
+ sunfall:{n:"The Second Sun or the Black Sun in the sky, and a stack selected.",e:"The Sun crashes onto the stack: two damage there, one on a 2 of 1d2 on every tile around it, and one on a 10 of 1d10 on the ring beyond, your own units included.",l:"A Black Sun destroys that tile and everything on it for good, and on a 6 of 1d6 every tile around it. The sky is empty afterwards."},
+ venus:{e:"Venus takes the moon's place. Choose: you or a teammate get +2 mana a turn and +2 maximum, or you get +1 mana a turn while every enemy gets +2 maximum.",l:"The second choice isn't offered in Survival. Anyone can swear the Oath of Venus."},
+ jupiter:{e:"Jupiter takes the moon's place. Miners in an Ace bring 1d2 a turn, two conjurings go on sale each round, hand cards can be traded at the Auction, and a Jester's Sacrificial Suicide brings 1d2 − 1 more.",l:"You may get a mana back when others buy on sale or trade. Anyone can swear the Oath of Jupiter."},
+ mercury:{e:"Mercury takes the moon's place. Anyone can call a vote for Peace or Total War, or buy Peace.",l:"Those who swear the Oath of Mercury can betray their team, declare war alone and bribe the Banker."},
+ oath_earth:{n:"The Second Sun in the sky.",e:"No necromancy for you. Every Sorcery spell with a dice price rolls its price twice for you and keeps the lower.",l:"Cast again to break the Oath."},
+ oath_venus:{n:"Venus in the sky.",e:"Each turn you start without having attacked a player: +2 mana and +2 maximum for that turn. Each attack on a player costs 1d2 mana and two maximum for 1d3 turns.",l:"Cast again to break the Oath."},
+ oath_jupiter:{n:"Jupiter in the sky.",e:"Every conjuring costs you one less, unless it already costs one.",l:"Cast again to break the Oath."},
+ oath_mercury:{n:"Mercury in the sky.",e:"Unlocks Betrayal, Declare War and Bribe the Banker.",l:"Cast again to break the Oath."},
+ peace:{n:"Mercury in the sky. Every player must agree.",e:"Peace for 3 + 1d2 − 1 rounds. Every stack goes home, every card with hearts heals, curses and enchantments end, and everyone takes three cards from the grave, one at a time.",l:"No player can attack another or step into another player's lines. Stacks with no room at home go back into the deck, weakest first."},
+ buypeace:{n:"Mercury in the sky.",e:"Peace for two rounds without a vote, with everything Peace brings."},
+ war:{n:"Mercury in the sky. Every player must agree.",e:"Total War for 3 + 1d2 − 1 rounds. Every card killed falls into the Outer Darkness and pays its killer a mana, and curses cost 1d2 − 1 less.",l:"Teammates may strike each other: each damage to a teammate pays its soul's worth + 1d2 − 1."},
+ betray:{n:"The Oath of Mercury, in a team game.",e:"You leave your team for good. For two rounds every card killed falls into the Outer Darkness, and each damage between you and your former teammates pays its dealer the soul's worth + 1d2 − 1."},
+ warnow:{n:"The Oath of Mercury.",e:"Total War for 1d2 rounds, without a vote."},
+ bribe:{n:"The Oath of Mercury, and a player to pick.",e:"Every spell costs that player one more for 3d2 − 1 rounds.",l:"The bribe costs its price now and again at the start of each round. It ends when you can't pay."}
+};
+SP("oath_earth").name="Oath of the Earth";
+for(const s of SPELLS){const t=SPELL_TEXT[s.id];if(t)s.text=[t.n,t.e,t.l].filter(Boolean).join(" ")}
+
+/* the price as words: fixed, rolled each round (with this round's roll), or free */
+function priceWords(s){
+  if(s.id==="hypo")return "3, plus 1 for each card past the first";
+  const now=G&&G.prices&&G.prices[s.id]!=null?G.prices[s.id]:null;
+  if(s.id==="clair"||s.id==="naked"){if(G&&newPrices())return "6 mana (New Moon)";if(G&&fullPrices())return s.id==="clair"?"2 mana (Full Moon)":"free (Full Moon)"}
+  if(s.dice)return `${s.dice}, rolled each round${now!=null?` · ${now?now+" mana":"free"} now`:""}`;
+  const c=G?spellCost(s):s.cost;return c?c+" mana":"free";
+}
+const ATK_SCHOOLS=["Enchantment","Curse","Sorcery","Illusion"];
+function spellWhen(s){
+  const once=s.once?" Once a game.":"";
+  if(s.id==="bless")return "Your prep phase, once a turn."+once;
+  if(G&&G.opts.atkSpells&&ATK_SCHOOLS.includes(s.school))return "Your prep or attack phase."+once;
+  return "Your prep phase."+once;
+}
+function spellTipHTML(s){
+  const t=SPELL_TEXT[s.id]||{e:s.text},blk=G?spellBlock(s):"";
+  const row=(k,v,cls)=>v?`<dt class="${cls||""}">${k}</dt><dd>${esc(v)}</dd>`:"";
+  return `<div class="cin spelltip"><div class="cih"><b>${esc(s.name)}</b> · ${esc(s.school)}${s.tribe&&TRIBES[s.tribe]?` · ${esc(TRIBES[s.tribe].name)}`:""}</div>
+<dl class="stdl">${row("Price",priceWords(s),"k-price")}${row("When",spellWhen(s),"k-when")}${row("Needs",t.n,"k-need")}${row("Effect",t.e,"k-eff")}${row("Limits",t.l,"k-lim")}</dl>${blk?`<p class="sblock">${esc(blk)}</p>`:""}</div>`;
+}
+
+/* ---------- the sky: names, Forms and a compact info box ---------- */
+const SKY_FORM={moon:"Form of Fate",saturn:"Form of Limitation",mars:"Form of Strife",sun:"Form of Judgement",blacksun:"Form of Judgement",venus:"Form of Harmony",mercury:"Form of Guile",jupiter:"Form of Abundance"};
+for(const k in PLANETS)PLANETS[k].word=(SKY_FORM[k]||"").replace("Form of ","");
+for(const k in SKY_NAME)SKY_NAME[k]=(SKY_FORM[k]||"").replace("Form of ","");
+/* both sky boxes share one shape: the name, its state, short lines, and the Form at the bottom */
+function skyBox(title,state,lines,k){
+  return `<div class="cin sky"><div class="cih"><b>${title}</b>${state?`<span class="skystate">${state}</span>`:""}</div><ul class="skyl">${lines.filter(Boolean).map(l=>`<li>${l}</li>`).join("")}</ul>${SKY_FORM[k]?`<div class="skyform">${SKY_FORM[k]}</div>`:""}</div>`}
+const plN=i=>esc(G.p[i].name);
+function skyCommon(L){
+  if(G.deconjure)L.push("Deconjured: no conjuring at the next Full Moon.");
+  if(G.noGraveNext)L.push("Deconjured: no grave gift at the next New Moon.");
+  if(G.noConjureRound===G.moon.round)L.push("Deconjured: no one can conjure this round.");
+  if(G.moonMiner)L.push(`${plN(G.moonMiner.owner)}'s Miner works the moon: 1d2 − 1 mana a turn.`);
+  if(G.bloodCalled)L.push("The Firmament has called a Blood Moon: the next Full Moon turns red.");
+  if(G.eclipse&&G.eclipse.k===sky())L.push(`<b>Eclipsed</b> this round${sky()==="jupiter"?" and the next":""}.`);
+}
+moonInfoHTML=function(){
+  const m=G.moon,V=view(),P=G.p[V],L=[];
+  if(["sun","blacksun","venus","jupiter","mercury","fallen"].includes(m.gone))return planetInfoHTML(m.gone);
+  if(m.gone==="off"){L.push("The moon is off for this game: no phases, no gifts, no tolls.");return skyBox("No moon","",L,"")}
+  if(m.gone==="eaten"){L.push("Yaldabaoth ate the moon. No phases, no gifts, no tolls, no Blood Moon.");skyCommon(L);return skyBox("The empty sky","",L,"")}
+  if(m.gone==="mars"){L.push("Each turn, every stack of only Grunts, Infantry or Puppets gets advantage on its next attack on 1–5 of 1d8.","The moon's phases are stopped.");
+    if(G.moonLev)L.push("The Leviathan coils on Mars. Its toll and its weak spot come every eighth round.");skyCommon(L);return skyBox("Mars","",L,"mars")}
+  if(m.gone==="saturn"){const S=G.saturnBy,price=1+(G.saturnDebt||0);
+    L.push(S==null?"Saturn has hung in the sky since the start. Its favors go to the Bank.":`Regurgitated by ${plN(S)}.`);
+    if(S===V)L.push(`Every enemy pays you ${price} at the start of each of their turns.`);
+    else if(P.tribe==="binah")L.push("You are Binah: you owe Saturn nothing.");
+    else if(P.tribe==="firm")L.push("You are the Firmament: Saturn's tax doesn't touch you.");
+    else if(S==null||isEnemy(V,S))L.push(`At the start of each of your turns, pay ${price} (a hand card, the top deck card or 1 mana) or a Debt Collector rises.`);
+    if(G.saturnDebt)L.push(`Debt Collectors still standing have raised the price by ${G.saturnDebt}.`);
+    skyCommon(L);return skyBox("Saturn","",L,"saturn")}
+  const bonus=G.opts.moonBonus!==false;
+  if(m.blood)L.push("New Moon gifts at Full Moon prices.","Every card killed falls into the Outer Darkness, and so do a Joker's souls when it shoots itself.");
+  else if(m.i===0)L.push("Everyone raises 1d2 cards from the grave.","Clairvoyance and Naked Hand cost 6.",bonus?"Every defense adds 1d2.":"");
+  else if(m.i===4)L.push("The toll is paid and decks are shuffled.","No drawing and no necromancy.","Clairvoyance costs 2; Naked Hand is free.",bonus?"Every attack adds 1d2.":"");
+  else L.push(`No effect this phase. Next: ${MOON[(m.i+1)%8]}.`);
+  L.push("Turns one phase a round, after every player has had a turn.");
+  if(G.moonLev){const h=G.moonLev.card.hp;L.push(`The Leviathan lies on the moon (${h} heart${h===1?"":"s"}). ${G.moonLev.owner===V?"Your maximum mana rises with the Outer Darkness.":P.tribe==="tiph"?"You are immune to its toll.":"Its toll each New Moon: 2d4 deck cards, 2 hand cards and 1 mana."} It can be attacked only at the New Moon.`)}
+  skyCommon(L);
+  return skyBox("The Moon",MOON[m.i]+(m.blood?" · Blood Moon":""),L,"moon");
+};
+planetInfoHTML=function(k){
+  const V=view(),P=G.p[V],L=[],by=planetBy(),oath=(id,txt)=>P.oath===id?`Your Oath: ${txt}`:`You can swear the ${SP("oath_"+id).name} (Astrology).`;
+  if(k==="sun"){L.push(by!=null?`Raised by ${plN(by)}.`:"","No fog of war while it burns. Delusions still blind.","The Leviathan can't lie on it.");
+    L.push(P.tribe==="firm"?"It doesn't judge you.":`Every 2d2 of your turns it judges you: 1 mana${by!=null?" to "+plN(by):" to the Bank"}, one damage to one of your stacks, or two deck cards. Refuse and you are blind for that turn.`);
+    L.push(`It has cried ${G.sunTears||0} of 3 times. At three it becomes the Black Sun.`);
+    if(P.tribe!=="firm")L.push(oath("earth","no necromancy; Sorcery dice prices roll twice and keep the lower."));
+    skyCommon(L);return skyBox("The Second Sun","",L,"sun")}
+  if(k==="blacksun"){L.push("The Second Sun cried three times and its flames went out. The fog of war is back.");
+    if(G.blackBy!=null)L.push(`The Firmament that raised it pays ${plN(G.blackBy)} 1d2 mana or 1d2 deck cards every 1d2 of its turns.`);
+    L.push("If it falls, it destroys the tile it lands on for good.");skyCommon(L);return skyBox("The Black Sun","",L,"blacksun")}
+  if(k==="venus"){if(G.venus)L.push(`${plN(G.venus.target)} gets ${G.venus.mode==="a"?"+2 mana a turn and +2 maximum":"+1 mana a turn, and every enemy +2 maximum"}.`);
+    L.push(oath("venus","+2 mana and +2 maximum each turn you start without having attacked a player; each attack on a player costs 1d2 mana and two maximum for 1d3 turns."));
+    if(G.moonLev)L.push("The Leviathan coils on Venus. Its toll and its weak spot come every eighth round.");
+    skyCommon(L);return skyBox("Venus","",L,"venus")}
+  if(k==="jupiter"){L.push("Miners in an Ace bring 1d2 a turn.",`Two conjurings are on sale each round${G.jupSale?`: ${G.jupSale.ids.map(id=>esc(SP(id).name)).join(" and ")}`:""}.`,"Hand cards can be traded at the Auction.","A Jester's Sacrificial Suicide brings 1d2 − 1 more mana.");
+    L.push(oath("jupiter","every conjuring costs one less, unless it already costs one."));
+    if(G.moonLev)L.push("The Leviathan coils on Jupiter. Its toll and its weak spot come every eighth round.");
+    skyCommon(L);return skyBox("Jupiter","",L,"jupiter")}
+  if(k==="mercury"){
+    if(peaceOn())L.push(`<b>Peace</b> until round ${G.peace.until}: no player may attack another or step into another player's lines.`);
+    if(warOn())L.push(`<b>Total War</b> until round ${G.war.until}: kills fall into the Outer Darkness and pay a mana; teammates may fight.`);
+    L.push("Anyone can call a vote for Peace or Total War (everyone must agree), or buy Peace for two rounds.");
+    L.push(P.oath==="mercury"?"You have sworn the Oath of Mercury: Betrayal, Declare War and Bribe the Banker are open to you.":"The Oath of Mercury (Astrology) opens Betrayal, Declare War and Bribe the Banker.");
+    skyCommon(L);return skyBox("Mercury","",L,"mercury")}
+  L.push("The Second Sun fell to the ground. Nothing hangs in the sky: no phases, no gifts, no tolls.");
+  return skyBox("The empty sky","",L,"");
+};
+
+/* the short line beside the sky at the top of the table */
+moonNote=function(){
+  const m=G.moon,L=G.moonLev;
+  if(m.gone==="sun")return "No fog of war · it judges every 2d2 turns";
+  if(m.gone==="blacksun")return "Its flames are out · the fog of war is back";
+  if(m.gone==="venus")return G.venus?`${plN(G.venus.target)}: ${G.venus.mode==="a"?"+2 mana a turn and +2 maximum":"+1 mana a turn · every enemy +2 maximum"}`:"Oath of Venus open";
+  if(m.gone==="mercury")return peaceOn()?`Peace until round ${G.peace.until}`:warOn()?`Total War until round ${G.war.until}`:"Votes for Peace or Total War";
+  if(m.gone==="jupiter")return "Ace miners bring 1d2 · two conjurings on sale";
+  if(m.gone==="fallen")return "The Second Sun fell · the sky is empty";
+  if(m.gone==="mars")return `Grunts and Infantry: advantage on 1–5 of 1d8${L?" · the Leviathan coils here":""}`;
+  if(m.gone==="saturn")return `${G.saturnBy==null?"Every player":"Every enemy of "+saturnOwner()} pays ${1+(G.saturnDebt||0)} a turn · Binah is exempt`;
+  if(m.gone==="eaten")return "Eaten by Yaldabaoth · no more phases";
+  if(m.gone==="off")return "Off for this game";
+  if(L)return `The Leviathan lies here (${L.card.hp} heart${L.card.hp===1?"":"s"}) · a toll every New Moon`;
+  return "";
+};
+
+/* the sky options before a game: name, one short line, and the Form */
+const SKY_OPTS=[
+ ["on","The Moon (default)","Turns one phase a round: grave gifts at the New Moon, a toll at the Full Moon."],
+ ["off","No moon","No phases, no gifts, no tolls, no Blood Moon. Yaldabaoth can still bring Saturn."],
+ ["saturn","Saturn","Everyone but Binah and the Firmament pays 1 a turn to the Bank, or a Debt Collector comes. No Yaldabaoth."],
+ ["mars","Mars","Each turn, stacks of only Grunts and Infantry may get advantage on their next attack. No Firmament."],
+ ["sun","The Second Sun","No fog of war; every 2d2 turns each player pays the Bank or goes blind for a turn. No Firmament."],
+ ["venus","Venus","The Oath of Venus rewards turns without attacking a player. No Firmament."],
+ ["mercury","Mercury","Votes for Peace or Total War, and the Oath of Mercury. No Firmament."],
+ ["jupiter","Jupiter","Ace miners bring 1d2, conjurings go on sale, cards trade at the Auction. No Firmament."]];
+/* Substances: one tag line for the setup, and a few points for the info panels */
+for(const k in SUBST_TEXT)if(TRIBES[k]){TRIBES[k].sub=SUBST_TEXT[k].tag;TRIBES[k].pts=SUBST_TEXT[k].pts}
+
+/* "Planets explained" and "The Bank explained", under the table */
+const SKY_ROWS=[
+ ["moon","The Moon","The default sky.","Turns one phase a round. The New Moon gives 1d2 grave cards and makes Clairvoyance and Naked Hand cost 6. The Full Moon takes its toll, shuffles every deck and forbids drawing and necromancy. One Full Moon in twenty is a Blood Moon."],
+ ["saturn","Saturn","Yaldabaoth, at seven hunger; or the sky from the start.","Every enemy pays 1 each turn (a hand card, the top deck card or 1 mana), or a Debt Collector rises. Binah never pays."],
+ ["mars","Mars","The Firmament; or the sky from the start.","Each turn, stacks of only Grunts, Infantry or Puppets get advantage on their next attack on 1–5 of 1d8."],
+ ["sun","The Second Sun","The Firmament, with a Joker that shoots itself; or the sky from the start.","No fog of war. Every 2d2 turns it judges each other player: 1 mana, a wound or two deck cards, or a blind turn. Three cries from Yaldabaoth make it the Black Sun."],
+ ["venus","Venus","The Firmament; or the sky from the start.","+2 mana a turn and +2 maximum for the caster or a teammate, or +1 a turn while every enemy gets +2 maximum."],
+ ["mercury","Mercury","The Firmament; or the sky from the start.","Votes for Peace or Total War, bought Peace, and under its Oath Betrayal, Declare War and Bribe the Banker."],
+ ["jupiter","Jupiter","The Firmament; or the sky from the start.","Ace miners bring 1d2, two conjurings on sale each round, trades at the Auction."]];
+function skyExplainHTML(){return `<details class="sub"><summary>Planets explained</summary><dl class="spellinfo skyexp">${SKY_ROWS.map(([k,n,how,what])=>`<dt>${n}</dt><dd>${what} <small>${how}</small><em class="skyform">${SKY_FORM[k]}</em></dd>`).join("")}</dl><p class="dim">Every planet but the Moon can be eclipsed: 5% at the start of each round. Hover or tap the sky in a game for what it means for you.</p></details>`}
+const BANK_HELP=[
+ ["Where mana goes","Every mana spent on a spell goes to the Bank. The Bank can only lend what it holds."],
+ ["Loans","Borrow up to what the Bank holds. A loan grows 20% every 1d2 turns and is due in 4 of your turns. Whatever isn't paid then becomes mana debt."],
+ ["Mana debt","Debt shows as mana below zero. Every soul you gain pays the debt first. Below zero the Bank lends six at most; at minus your maximum, five at most and at 30%."],
+ ["Spend on credit","Tick it to cast spells you can't afford. The cost becomes mana debt."],
+ ["Your lowest point","You lose the game if your mana falls below three times your maximum under zero (−18 with a maximum of 6)."],
+ ["Selling","Sell cards from your hand or deck for their conjuring price. They go to the Ether and your deck is reshuffled. Binah can sell thralls for 1 mana."],
+ ["Upselling","A spell bought more than twice in each of two rounds in a row costs 1d2 − 1 more."],
+ ["When the Bank is in the red","The Ether goes on sale (1 less), and the Bank borrows from the richest player."],
+ ["Debt Collectors","Anyone more than their maximum below zero is hunted by the Bank's Debt Collectors."],
+ ["The angry Banker","If Barbarians hold the middle of the field for 7d2 turns, every price goes up by 1 until they are gone."],
+ ["Collapse","If the Bank is 12 in the red and every player 6 below zero, it collapses: mana and debts go to zero, every maximum falls to three, and prices wobble up for a while."]];
+function bankExplainHTML(){return `<details class="sub"><summary>The Bank, Barbarians and meteors explained</summary><dl class="spellinfo">${BANK_HELP.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}
+<dt>Barbarians</dt><dd>A crimson band takes the middle every 4 + 1d12 turns and with every Blood Moon, and fights anyone beside it. The player who kills the most of a band gets an Ether sale; breaking a big band can earn debt forgiveness.</dd>
+<dt>Meteor</dt><dd>One round in a hundred: damage where it lands and maybe around it, then fire for two rounds.</dd>
+<dt>Gambling, Increase Max Mana, Mystery Generation</dt><dd>Gambling (Sorcery, 1 mana): a 10 on 1d10 wins 7d2; a 1 costs a maximum mana, 7d2 of debt and a deck card. Increase Max Mana (Conjuring, 6): +1, eighteen at most. Mystery Generation (in the Auction): 1d3 brand-new cards.</dd></dl></details>`}
 
 })();
