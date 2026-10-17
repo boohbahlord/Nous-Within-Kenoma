@@ -14,7 +14,13 @@ const SUITNAME={S:"Spades",H:"Hearts",D:"Diamonds",C:"Clubs"};
 let COLS=5;const SOUL_CAP=6, HAND_CAP=6;   // COLS is set by the map for each game; SOUL_CAP is also what a Joker can hold
 /* a Substance can raise a player's own limits */
 const handCap=pl=>G&&G.p[pl]?({jester:7,beginner:8}[G.p[pl].tribe]||HAND_CAP):HAND_CAP;
-const soulCap=pl=>G&&G.p[pl]?({jester:7,beginner:8}[G.p[pl].tribe]||SOUL_CAP):SOUL_CAP;
+function soulCap(pl){
+  if(!G||!G.p[pl])return SOUL_CAP;const P=G.p[pl];
+  let cap={jester:7,beginner:8}[P.tribe]||SOUL_CAP;
+  if(P.delu&&P.delu.turns>0)cap=Math.max(3,9-(P.delu.maxCut||0));                       // a Delusion: nine mana at most, less what Lucifer paid to stifle
+  if(G.moonLev&&G.moonLev.owner===pl)cap=Math.min(12,cap+G.dark.length);               // the Leviathan on the moon: +1 for every card in the Outer Darkness
+  return cap;
+}
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
@@ -29,10 +35,10 @@ const TRIBES={
  satan:{name:"Satan",sub:"Always dark crimson with the claw. The Satan card (three hearts, 6d12, stands alone) and the curse Hate.",color:SATAN_RED,solid:"claw"},
  binah:{name:"Binah",sub:"The Southern tribe of the Euclids. Three Slavemasters capture the soldiers they defeat, and the captured come back as armed Slaves. Jokers hit for +3."},
  jester:{name:"Jester Fool",sub:"The Tree of Neither Life Or Death, Puppets for every soldier, the BullGoat, and Deck of Cards. Seven-card hand, seven mana."},
- tiph:{name:"Tiphareth of Kether",sub:"The Northern tribe of the Euclids. Its Traffickers, Auction and Blindfold come in the next update; until then it plays by the plain rules."},
- lucifer:{name:"Lucifer & Ouroboros",sub:"The two Delusions, Deconjured, and Pleasure and Joy. Coming in the next update.",soon:true},
- leviathan:{name:"The Leviathan",sub:"The black serpent on the New Moon. Coming in the next update.",soon:true},
- yald:{name:"Yaldabaoth",sub:"Night's Judgement, God Hunger and Saturn. Coming in the next update.",soon:true}
+ tiph:{name:"Tiphareth of Kether",sub:"The Northern tribe of the Euclids. Three Traffickers chain the souls that die beside them and sell them at the Auction. The Blindfold, immunity to the Leviathan on the moon, and Jokers that hit for +1."},
+ lucifer:{name:"Lucifer & Ouroboros",sub:"Always the ink and scroll. The Delusions of Ouroboros and of Lucifer, Deconjured, and Pleasure and Joy.",solid:"scroll"},
+ leviathan:{name:"The Leviathan",sub:"The black serpent in the deck: three hearts, 6d4 + 1d2 + 6. On a New Moon it can rise onto the moon and tax every New Moon after. Its Jokers can exile souls to the Outer Darkness."},
+ yald:{name:"Yaldabaoth",sub:"Always the symbol of Saturn. Night's Judgement eats the moon, God Hunger eats cards, and seven eaten bring Saturn and its Debt Collectors.",solid:"saturn"}
 };
 const PLAYABLE=Object.keys(TRIBES).filter(k=>k!=="random"&&!TRIBES[k].soon);
 const COLORS=[["Ember","#ee7a3c"],["Gold","#e3b944"],["Verdigris","#45b89c"],["Azure","#4c92e6"],["Violet","#a77de8"],["Rose","#e4648f"],["Crimson","#d7333b"]];   // Bone belongs to the Angel Machine
@@ -58,6 +64,11 @@ const UNIT={
    weapons:[{id:"gore",name:"Gore",text:"10 + 1d20, up close",roll:()=>rollN(1,20),fixed:10,reach:"melee"},
             {id:"charge",name:"Charge",text:"10 + 2d20, two or three tiles away in a straight, empty line; the BullGoat closes the gap",roll:()=>rollN(2,20),fixed:10,reach:"charge"}]},
  slavemaster:{name:"Slavemaster",word:"Slavemaster",nat:8,die:8,dm:8,msv:24,soul:1,cost:1},
+ leviathan:{name:"The Leviathan",short:"Leviathan",word:"Serpent",hp:3,nat:0,solo:"alone",soul:3,cost:3,defRoll:()=>[...rollN(6,4),...rollN(1,2)],defFixed:6,
+   weapons:[{id:"lev",name:"The Leviathan",text:"6d4 + 1d2 + 6",roll:()=>[...rollN(6,4),...rollN(1,2)],fixed:6,reach:"melee"}]},
+ trafficker:{name:"Trafficker",word:"Trafficker",nat:8,die:8,dm:8,msv:24,soul:1,cost:1},
+ debt:{name:"Debt Collector",short:"Collector",word:"Collector",nat:0,solo:"alone",soul:1,cost:1,copy:true,
+   weapons:[{id:"debt",name:"Debt Collector",text:"copies the score of the card it fights, without its advantage",roll:()=>[],fixed:0,reach:"melee"}]},
  slave:{name:"Slave",word:"Slave",nat:10,solo:"alone",soul:1,cost:1,noDef:true,
    weapons:[{id:"gun",name:"Rifle",text:"10 + 1d12, from two tiles away in a straight line or one diagonal; from two away a miss costs nothing",roll:()=>rollN(1,12),fixed:10,reach:"gun"}]}
 };
@@ -82,7 +93,7 @@ const isBase=c=>kind(c)==="ace"||kind(c)==="tree";             // holds other ca
 const isHero=c=>!!(c.unit&&UNIT[c.unit].solo);                  // stands alone (or only inside an Ace)
 const short=c=>c.unit?(UNIT[c.unit].short||UNIT[c.unit].name):c.rank==="JK"?"JK":c.rank+SUITS[c.suit]+(c.puppet?"p":"");
 const nameOf=c=>c.unit?(c.unit==="slave"?`Slave (once the ${({J:"Jack",Q:"Queen",K:"King",A:"Ace"}[c.rank]||c.rank)} of ${SUITNAME[c.suit]})`:UNIT[c.unit].name):c.rank==="JK"?`${c.color==="red"?"Red":"Black"} Joker`:(c.puppet?"Puppet ":"")+(({J:"Jack",Q:"Queen",K:"King",A:"Ace"}[c.rank]||c.rank)+" of "+SUITNAME[c.suit]);
-for(const k in UNIT){const U=UNIT[k];U.rt=U.weapons?Math.max(...U.weapons.map(w=>{const d=w.roll();return w.fixed+d.length*d[0].s*.6})):U.nat+(U.die||0)}
+for(const k in UNIT){const U=UNIT[k];U.rt=U.copy?12:U.weapons?Math.max(...U.weapons.map(w=>{const d=w.roll();return w.fixed+(d.length?d.length*d[0].s*.6:0)})):U.nat+(U.die||0)}
 const rate=c=>c.unit?UNIT[c.unit].rt+(c.hp||0)*3:nat(c)+(die(c)||0);                 // point rating: best possible score of a card
 const stackRate=st=>Math.max(0,...st.cards.map(rate))+(st.cards.length-1)*.5;
 
@@ -118,7 +129,7 @@ function newGame(opts){
   resolveSubstances(opts);
   const M=mapPlan(opts);COLS=M.cols;const rows=M.rows;
   G={opts,rows,map:M,void:M.void,board:Array.from({length:rows},()=>Array(COLS).fill(null)),
-     p:opts.players.map((o,i)=>mkPlayer(i,o)),grave:[],ether:[],dark:[],limbo:[],unknown:[],journal:[],
+     p:opts.players.map((o,i)=>mkPlayer(i,o)),grave:[],ether:[],dark:[],limbo:[],unknown:[],auction:[],journal:[],moonLev:null,
      turnNo:0,active:0,first:0,phase:"setup",setupStep:"ace",
      spent:false,spentOther:false,blessed:false,ritual:0,log:[],sel:null,selHand:null,mode:null,over:false,
      moon:{i:0,blood:false,round:0},
@@ -337,8 +348,11 @@ function rollStack(st,mode,enemy,fx,weapon){ // mode: "atk" | "def"
     const u=st.cards.length===1&&st.cards[0].unit?st.cards[0]:null;
     if(u&&UNIT[u.unit].weapons){   // Samson, Antony, Satan, the BullGoat, Slaves
       const U=UNIT[u.unit];
+      if(U.copy){   // the Debt Collector copies the enemy's leading card, without its advantage
+        const lead=enemy&&leadCard(enemy);if(!lead){best=0;parts.push("Debt Collector: nothing to copy");return{total:0,parts,dice,kingRoll}}
+        const d=die(lead),r=d?R(d):0;if(r)dice.push({s:d,v:r});best=nat(lead)+r;parts.push(`Debt Collector copies ${short(lead)}: ${nat(lead)}${r?"+"+r:""}`);return{total:best,parts,dice,kingRoll}}
       if(mode==="atk"){const w=weapon&&U.weapons.find(x=>x.id===weapon.id)||U.weapons[0],d=w.roll();dice.push(...d);best=w.fixed+sum(d);parts.push(`${U.name} (${w.name}) ${w.fixed?w.fixed+"+":""}${d.map(x=>x.v).join("+")}`)}
-      else if(U.defRoll){const d=U.defRoll();dice.push(...d);best=sum(d);parts.push(`${U.name} ${d.map(x=>x.v).join("+")}`)}
+      else if(U.defRoll){const d=U.defRoll();dice.push(...d);best=sum(d)+(U.defFixed||0);parts.push(`${U.name} ${U.defFixed?U.defFixed+"+":""}${d.map(x=>x.v).join("+")}`)}
       else if(U.noDef){best=0;parts.push(`${U.name} cannot defend`)}
       else{best=U.nat;parts.push(`${U.name} ${U.nat}`)}
       return{total:best,parts,dice,kingRoll};
@@ -349,7 +363,7 @@ function rollStack(st,mode,enemy,fx,weapon){ // mode: "atk" | "def"
       const lead=leadCard(enemy);
       if(lead){const d=die(lead),r=d&&(mode==="atk"||hasK(st,"queen"))?R(d):0;if(r)dice.push({s:d,v:r});best=nat(lead)+r;parts.push(`Joker copies ${short(lead)}: ${nat(lead)}${r?"+"+r+" (d"+d+")":""}`)}
       else{best=0;parts.push("Joker: 0")}
-      if(mode==="atk"&&st.owner!=null&&G.p[st.owner].tribe==="binah"){best+=3;parts.push("Binah Joker +3")}
+      const jb=mode==="atk"&&st.owner!=null&&G.p[st.owner]?JOKER_BONUS[G.p[st.owner].tribe]:0;if(jb){best+=jb;parts.push(`${TRIBES[G.p[st.owner].tribe].name} Joker +${jb}`)}
       return{total:best,parts,dice,kingRoll};
     }
     const queen=hasK(st,"queen"),ace=hasK(st,"ace");
@@ -367,7 +381,7 @@ function rollStack(st,mode,enemy,fx,weapon){ // mode: "atk" | "def"
       const t=nat(c)+r;parts.push(`${short(c)} ${nat(c)}${r?"+"+r:""}`);
       if(t>best)best=t;
     }
-    if(mode==="atk"&&hasK(st,"joker")&&st.owner!=null&&G.p[st.owner]&&G.p[st.owner].tribe==="binah"){best+=3;parts.push("Binah Joker +3")}
+    const jb=mode==="atk"&&hasK(st,"joker")&&st.owner!=null&&G.p[st.owner]?JOKER_BONUS[G.p[st.owner].tribe]:0;if(jb){best+=jb;parts.push(`${TRIBES[G.p[st.owner].tribe].name} Joker +${jb}`)}
     return{total:Math.max(0,best),parts,dice,kingRoll,aceRoll};
   };
   const a=once();
@@ -375,6 +389,7 @@ function rollStack(st,mode,enemy,fx,weapon){ // mode: "atk" | "def"
     pick.dice=[...pick.dice,...other.dice.map(d=>({...d,x:true}))];pick.parts.push(fx==="adv"?"(advantage)":"(disadvantage)");return pick}
   return a;
 }
+const JOKER_BONUS={binah:3,tiph:1};
 function leadCard(st){let best=null;for(const c of st.cards){if(kind(c)==="joker"||kind(c)==="queen")continue;if(!best||nat(c)>nat(best))best=c}return best}
 
 /* ---------------- combat ---------------- */
@@ -492,7 +507,9 @@ function bury(card,r,c,st){
   const owner=st.owner;
   if(card.hp!=null)card.hp=card.maxHp;
   if(card.hate)card.hate=false;
-  if(card.unit&&buryUnit(card,r,c,owner))return;   // Substance cards have their own fates
+  if((card.unit==="samson"||card.unit==="antony")&&buryUnit(card,r,c,owner))return;   // Samson and Antony keep their own fates
+  if(buryHook(card,r,c,st))return;                     // Traffickers, Pleasure and Joy, the Leviathan's kills
+  if(card.unit&&buryUnit(card,r,c,owner))return;       // the other Substance cards have their own fates
   // a Binah Slavemaster takes the soldiers it defeats
   const F=G.fight;
   if(F&&(kind(card)==="grunt"||kind(card)==="infantry")){
@@ -557,7 +574,7 @@ function eliminate(pl,why){
 
 /* ---------------- choices: a person answers in a box, the computer answers in code ---------------- */
 async function ask(pl,spec){
-  if(G.p[pl].cpu){await sleep(320);return AI.choose(pl,spec)}
+  if(G.p[pl].cpu){await sleep(320);return spec.ai?spec.ai():AI.choose(pl,spec)}
   return askHuman(pl,spec);
 }
 /* the order of play this round, starting with the first player; the Horde moves first in Survival */
@@ -647,9 +664,9 @@ async function gameLoop(){
   }
 }
 async function newRound(){
-  G.moon.round++;if(G.moon.round>1)G.moon.i=(G.moon.i+1)%8;
+  G.moon.round++;if(G.moon.round>1&&G.moon.i>=0)G.moon.i=(G.moon.i+1)%8;   // an eaten moon (or Saturn in its place) no longer turns
   if(survival())G.round++;
-  log(`— Round ${G.moon.round}${survival()?` (${roman(G.round)})`:""} · ${MOON[G.moon.i]} —`,"turn");
+  log(`— Round ${G.moon.round}${survival()?` (${roman(G.round)})`:""} · ${moonName()} —`,"turn");
   rollPrices();   // dice prices are rolled once a round, behind the scenes, and hold for every player this round
   log(`Spell prices this round: ${SPELLS.filter(s=>s.dice).map(s=>`${s.name} ${G.roundPrices[s.id]}`).join(", ")} (before the moon's prices).`,"ai");
   G.phase="moon";G.busy=true;render();
@@ -677,6 +694,7 @@ async function playerTurn(pl,phases,continuing){
   if(!continuing)beginTurn(pl);else setActive(pl);
   if(!continuing&&!isHorde(pl))log(`— ${plName(pl)}'s turn —`,"turn");
   if(human(pl)&&G.p.filter(P=>!P.cpu).length>1&&G.lastView!==pl)await passScreen(`${G.p[pl].name}'s turn`);
+  if(!continuing){await turnAsync(pl);if(G!==g||G.over)return}
   for(let k=0;k<phases.length;k++){
     const ph=phases[k];if(ph==="draw"&&G.noDraw)continue;
     G.phase=ph;G.nextLabel=k===phases.length-1?"End turn →":PHASE_LABEL[ph];
@@ -687,6 +705,7 @@ async function playerTurn(pl,phases,continuing){
 async function together(players,phases){
   const g=G;players=players.filter(pl=>!G.p[pl].out);
   for(const pl of players)beginTurn(pl);
+  for(const pl of players){setActive(pl);await turnAsync(pl);if(G!==g||G.over)return}
   log(`— ${players.map(plName).join(", ")} play ${phases.includes("attack")?"the whole turn":"draw and prep"} together —`,"turn");
   for(let k=0;k<phases.length;k++){
     const ph=phases[k];G.phase=ph;
@@ -896,10 +915,11 @@ const SPELLS=[
 ];
 const SP=id=>SPELLS.find(s=>s.id===id);
 /* spells with a dice price roll it once at the start of each round (the same price for everyone that round); the moon's prices replace the roll while that phase lasts */
-const PRICE={resur:()=>R(2)+1,divine:()=>R(2)+1,hexed:()=>R(2)+1,forced:()=>R(2),three:()=>R(3),clair:()=>2+R(2),naked:()=>R(2)};
+const PRICE={ouro:()=>R(2),hunger:()=>R(2),resur:()=>R(2)+1,divine:()=>R(2)+1,hexed:()=>R(2)+1,forced:()=>R(2),three:()=>R(3),clair:()=>2+R(2),naked:()=>R(2)};
 function rollPrices(){G.roundPrices={};for(const k in PRICE)G.roundPrices[k]=PRICE[k]();G.prices={...G.roundPrices}}
 function spellCost(sp){
   if(sp.id==="three"&&G.p[G.active]&&G.p[G.active].tribe==="angel")return 1;   // the Angel Machine's Three of Swords
+  if(sp.id==="lucifer"&&me().ouroRound===G.moon.round)return 0;                   // free in a round you cast Ouroboros on yourself
   if(sp.id==="clair"&&newPrices())return 6;
   if(sp.id==="clair"&&fullPrices())return 2;
   if(sp.id==="naked")return newPrices()?6:G.moon.blood?1:fullPrices()?0:(G.prices?G.prices.naked:2);
@@ -911,6 +931,7 @@ function spellBlock(sp){ // reason the moon or mode forbids a spell, or ""
   if(fullDrawbacks()&&sp.school==="Necromancy")return "No necromancy under the Full Moon.";
   if(fullDrawbacks()&&sp.id==="forced")return "No one draws under the Full Moon.";
   if(survival()&&["forced","double","three","naked"].includes(sp.id))return "The Horde has no hand or deck.";
+  if(G.noConjure&&sp.school==="Conjuring")return "Deconjured: no one can conjure this Full Moon.";
   return "";
 }
 const phaseOk=sp=>G.phase==="prep"||(G.phase==="attack"&&G.opts.atkSpells&&["Enchantment","Curse","Sorcery"].includes(sp.school));
@@ -1065,7 +1086,7 @@ const AI=(()=>{
       pcache.set(key,F)}
     return F[r1][c1];
   }
-  function enemyStacks(pl){return enemiesOf(pl).flatMap(stacksOf)}
+  function enemyStacks(pl){return enemiesOf(pl).flatMap(stacksOf).filter(x=>seesTile(pl,x.r,x.c))}   // a deluded computer is as blind as a person
   /* how good it is for stack S (owned by pl) to stand at r,c */
   function tileScore(pl,S,r,c,W,canHit){
     const n=L(pl).mc;let opp=0,risk=0,allies=0;
@@ -1281,7 +1302,7 @@ const AI=(()=>{
       await conjures(pl,W);
       G.sel=null;await step();return;
     }
-    if(ph==="attack"){await attacks(pl);G.sel=null}
+    if(ph==="attack"){await attacks(pl);await aiMoonAttack(pl);G.sel=null}
   }
   async function setup(pl){
     const W=DEF,cx=(COLS-1)/2,cy=(G.rows-1)/2;
@@ -1401,6 +1422,10 @@ function solidPath(s){
     return "M0,-10C6,-10 8.5,-6 8.5,-1C8.5,5 5,9.5 0,9.5C-5,9.5 -8.5,5 -8.5,-1C-8.5,-6 -6,-10 0,-10Z"+"M-5.5,-2.5L-2,-3.2 M2,-3.2L5.5,-2.5"+"M-5,3.2C-2.5,6 2.5,6 5,3.2C2.5,4.6 -2.5,4.6 -5,3.2Z"+"M-8.5,-3L-6,-5.5L-6.8,-8 M8.5,-3L6.4,-4.4L7.4,-7.4 M-7.5,5L-5.6,6.6 M7.6,4.8L5.4,6.8"}
   if(s==="claw"){   // the demon's clawed hand
     return "M-6,10C-7,5 -7.5,1 -6.5,-2L-9,-9 M-6.5,-2C-5,-4 -3.5,-5 -2,-5.5L-3,-11 M-2,-5.5C0,-5.8 1.6,-5.4 2.8,-4.6L3.6,-10.5 M2.8,-4.6C4.5,-3.5 5.6,-2 6,0L9.5,-5 M6,0C6.8,3 6.2,7 5,10 M-3,10C-2.2,6 -1,3.6 0.5,2.6"}
+  if(s==="scroll"){   // Lucifer's ink and scroll
+    return "M-8,-8H5C7,-8 8,-7 8,-5V7C8,9 7,10 5,10H-6 M-8,-8C-10,-8 -10,-4 -8,-4H-5V8C-5,10 -8,10 -8,8 M-2,-3H3 M-2,0H5 M-2,3H3 M3,-1L10,-10 M3,-1L2.4,1.6L5,0.6Z"}
+  if(s==="saturn"){   // Saturn and its ring
+    return "M0,-6.5A6.5,6.5 0 1,1 -0.1,-6.5Z M-10.5,4C-12,1 -5,-3 2,-5C8,-7 12,-6 10.5,-3 M-10.5,4C-9,6 -2,5 4,2C8,0 11,-2 10.5,-3"}
   if(s==="icosa"){const h=poly(6,9.5,-90),t=poly(3,4.6,-90);let d=ring(h)+ring(t);t.forEach((v,k)=>{const j=2*k;d+=seg(v,h[j])+seg(v,h[(j+1)%6])+seg(v,h[(j+5)%6])});return d}
   return "";
 }
@@ -1426,14 +1451,15 @@ function moonPath(i,r){
   return `<path d="M0,${-r}A${r},${r} 0 0 0 0,${r}A${rx},${r} 0 0 ${f>.75?1:0} 0,${-r}Z"/>`;
 }
 function moonSVG(){
+  if(G.moon.gone)return goneMoonSVG();
   const m=G.moon,r=30,red=m.blood,lit=red?"#d3171e":"#f2ebd8",dark=red?"#3b0608":"#1f1913",glow=red?"#ff2a2a":"#fff2cf";
   return `<svg class="moon${red?" red":""}" viewBox="-44 -44 88 88" width="88" height="88" aria-hidden="true">
 <defs><radialGradient id="mglow"><stop offset="50%" stop-color="${glow}" stop-opacity=".42"/><stop offset="100%" stop-color="${glow}" stop-opacity="0"/></radialGradient><filter id="mblur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation=".9"/></filter></defs>
 <circle r="${r+13}" fill="url(#mglow)"/>
-<g filter="url(#mblur)"><circle r="${r}" fill="${dark}" stroke="${red?"#8a1418":"#8a7a66"}" stroke-width="1"/><g fill="${lit}">${moonPath(m.i,r)}</g></g></svg>`;
+<g filter="url(#mblur)"><circle r="${r}" fill="${dark}" stroke="${red?"#8a1418":"#8a7a66"}" stroke-width="1"/><g fill="${lit}">${moonPath(m.i,r)}</g></g>${G.moonLev?levOnMoon():""}</svg>`;
 }
 function moonStrip(){
-  const m=G.moon;
+  const m=G.moon;if(m.gone)return "";
   return `<div class="mstrip" aria-label="Moon phases">${MOON.map((n,i)=>`<span class="${i===m.i?"on":""}" title="${n}"><svg viewBox="-9 -9 18 18" width="18" height="18"><circle r="7" fill="${m.blood&&i===4?"#3b0608":"#1f1913"}" stroke="#5a4a3a" stroke-width=".6"/><g fill="${m.blood&&i===4?"#d3171e":"#e9e1cc"}">${moonPath(i,7)}</g></svg></span>`).join("")}</div>`;
 }
 function face(c,o={}){
@@ -1532,6 +1558,10 @@ function pboxHTML(pl,top){
     if(P.tribe==="angel")sl.push(`<span class="bolts" title="Bolts for Lightning Strike">Bolts ${[0,1,2].map(i=>`<i class="${i<(P.bolts||0)?"f":""}">${unitSVG("bolt",i<(P.bolts||0)?"#8fd0ff":"#4a5a66",13)}</i>`).join("")}</span>`);
     if(P.tribe==="binah")sl.push(`<span>Thralls <b>${(P.thralls||[]).length}/10</b></span>`);
     if(P.shield)sl.push(`<span class="pinktag">Please Don't Hurt Me</span>`);
+    if(deluded(pl))sl.push(`<span class="delutag">Deluded ${P.delu.turns} turn${P.delu.turns>1?"s":""} · ${3-(P.delu.diceCut||0)}d2 free a turn${P.delu.blindfold?" · Blindfold":""}${P.delu.extended?" · extended":""}</span>`);
+    if(P.joy)sl.push(`<span class="joytag">Pleasure and Joy</span>`);
+    if(P.tribe==="yald")sl.push(`<span>Hunger <b>${P.hunger||0}/7</b></span>`);
+    if(P.tribe==="tiph"){const n=stacksOf(pl).reduce((a,x)=>a+x.st.cards.reduce((b,c)=>b+((c.prisoners||[]).length),0),0);sl.push(`<span>Prisoners <b>${n}</b></span>`)}
     if(sl.length)h+=`<p class="stats subline">${sl.join("")}</p>`;
     const showHand=top;
     if(showHand){
@@ -1551,14 +1581,15 @@ function render(){
   // moon
   const m=G.moon,tags=[];
   if(m.blood)tags.push('<span class="tag blood">Blood Moon</span>');
-  const eff=m.blood?"New Moon gifts at Full Moon prices; the dead go to the Outer Darkness":m.i===4?"Toll paid, decks shuffled; no drawing, no necromancy":m.i===0?"1d2 cards from the grave; Clairvoyance and Naked Hand cost 6":"";
+  const eff=m.gone||G.moonLev?moonNote():m.blood?"New Moon gifts at Full Moon prices; the dead go to the Outer Darkness":m.i===4?"Toll paid, decks shuffled; no drawing, no necromancy":m.i===0?"1d2 cards from the grave; Clairvoyance and Naked Hand cost 6":"";
   const rn=G.moon.round||1;
-  $("#moon").innerHTML=`${moonSVG()}<div class="minfo"><span class="mname">${MOON[m.i]}</span>${tags.join("")}${moonStrip()}<span class="meff">${eff||`moon round ${rn} · the moon turns when every player has had a turn`}</span></div>`;
+  $("#moon").classList.toggle("moontarget",canAct()&&G.phase==="attack"&&!!G.sel&&moonAttackable(selStack()));
+  $("#moon").innerHTML=`${moonSVG()}<div class="minfo"><span class="mname">${moonName()}</span>${tags.join("")}${moonStrip()}<span class="meff">${eff||`moon round ${rn} · the moon turns when every player has had a turn`}</span></div>`;
   // round (survival)
   const rd=$("#round");rd.hidden=!survival();if(survival())rd.innerHTML=`<span class="label">Round</span><b class="bl">${roman(Math.max(1,G.round))}</b>`;
   // phases
   if(G.phase==="setup")$("#phases").innerHTML=`<span class="ph-c on"><b>Setup</b><em>${G.setupStep==="ace"?(hq()&&!G.p[G.active].opening.length?"click a backline tile for your second base Ace":"click a backline tile for your Ace and Jack"):"place any opening cards, then press Done"}</em></span>`;
-  else if(G.phase==="moon")$("#phases").innerHTML=`<span class="ph-c on"><b>Moon</b><em>the ${MOON[m.i]} takes effect</em></span>`;
+  else if(G.phase==="moon")$("#phases").innerHTML=`<span class="ph-c on"><b>Moon</b><em>${m.i<0?"no moon turns":"the "+MOON[m.i]+" takes effect"}</em></span>`;
   else $("#phases").innerHTML=PHASES.map(([id,n,help])=>`<span class="ph-c ${G.phase===id?"on":""}${id==="draw"&&(G.turnNo===1||G.noDraw)?" skip":""}"><b>${n}</b><em>${help}</em></span>`).join('<i>→</i>');
   const who=me();
   $("#who").innerHTML=G.over?"Game over.":G.passing?"Passing the device…":who.cpu?`<b>${esc(who.name)}</b> is playing…`:`<b>${esc(who.name)}</b>${G.p.filter(P=>!P.cpu).length>1?"":" (you)"} to play${G.nextLabel==="Ready →"&&G.phase!=="setup"?" · everyone plays this phase together":""}`;
@@ -1585,7 +1616,7 @@ function render(){
     }
     return `<div class="row ${lineName.replace(/\s/g,"-")}">${duel?`<span class="rl">${nm}</span>`:""}`+[...Array(DC).keys()].map(j=>{
       const [r,c]=toBoard(i,j);
-      const st=G.board[r][c],role=tileRole(r,c),edge=outerEdge(r,c,K),key=r+"."+c+"."+edge;
+      const st=hiddenFrom(V,r,c)?null:G.board[r][c],role=tileRole(r,c),edge=outerEdge(r,c,K),key=r+"."+c+"."+edge;   // a Delusion hides what lies beyond your reach
       const art=G.map.art[key]||(G.map.art[key]=tileArt(r,c,role,edge));
       if(role==="void"||role==="water")return `<div class="tile ${role}" aria-hidden="true">${art}</div>`;
       const cls=["tile"];if(G.sel&&G.sel.r===r&&G.sel.c===c)cls.push("sel");
@@ -1598,7 +1629,7 @@ function render(){
         const cap=st.cards.reduce((a,x)=>a+capMana(x),0);
         const ic=lead.unit?unitSVG(lead.unit,lead.unit==="tree"||lead.unit==="slave"?"#2d6b3a":"#15100b",26):lead.puppet?unitSVG("puppet","#15100b",20):"";
         const leadHTML=lead.unit?`<span class="lead ulead">${ic}<b class="uname">${esc(short(lead))}</b></span>`:`<span class="lead"><b class="rk${lead.rank==="JK"?" jk":""}">${lead.rank==="JK"?"Joker":lead.rank}</b><i>${lead.rank==="JK"?"✶":SUITS[lead.suit]}</i>${lead.puppet?ic:""}</span>`;
-        inner=`<div class="stack ${mine?"mine":isEnemy(st.owner,V)?"theirs":"ally"} ${lead.color}${hated(st)?" hated":""}${shielded(st.owner)?" pink":""}${lead.unit?" u-"+lead.unit:""}" style="--pc:${P.color}"><span class="so">${solidSVG(P.solid,P.color,16)}</span>${st.cards.length>1?`<span class="cnt">×${st.cards.length}</span>`:""}${leadHTML}<span class="mini">${st.cards.length>1?st.cards.map(short).join(" "):heartsHTML(lead)}</span>${st.cards.length>1&&lead.maxHp?`<span class="bhp">${heartsHTML(lead)}</span>`:""}<em class="ty">${esc(typeWord(lead))}</em>${st.stun?`<span class="stun" title="Immobilized by lightning for ${st.stun} more turn${st.stun>1?"s":""}">${unitSVG("bolt","#6fb8ff",14)}${st.stun}</span>`:""}${st.odds?`<span class="odds ${st.odds}">${st.odds==="adv"?"▲":"▼"}</span>`:""}${st.hypo?`<span class="hypo" title="Hypostasis: untouchable">◈${st.hypo}</span>`:""}${cap?`<span class="souls" title="captured souls">✦${cap}</span>`:""}${st.owner===G.active&&(st.moved||st.attacked)&&G.phase!=="setup"?`<span class="used">${st.attacked?"atk":"mv"}</span>`:""}</div>`;
+        inner=`<div class="stack ${mine?"mine":isEnemy(st.owner,V)?"theirs":"ally"} ${lead.color}${hated(st)?" hated":""}${shielded(st.owner)?" pink":""}${G.p[st.owner].joy?" joy":""}${lead.unit?" u-"+lead.unit:""}" style="--pc:${P.color}"><span class="so">${solidSVG(P.solid,P.color,16)}</span>${st.cards.length>1?`<span class="cnt">×${st.cards.length}</span>`:""}${leadHTML}<span class="mini">${st.cards.length>1?st.cards.map(short).join(" "):heartsHTML(lead)}</span>${st.cards.length>1&&lead.maxHp?`<span class="bhp">${heartsHTML(lead)}</span>`:""}<em class="ty">${esc(typeWord(lead))}</em>${st.stun?`<span class="stun" title="Immobilized by lightning for ${st.stun} more turn${st.stun>1?"s":""}">${unitSVG("bolt","#6fb8ff",14)}${st.stun}</span>`:""}${st.odds?`<span class="odds ${st.odds}">${st.odds==="adv"?"▲":"▼"}</span>`:""}${st.hypo?`<span class="hypo" title="Hypostasis: untouchable">◈${st.hypo}</span>`:""}${cap?`<span class="souls" title="captured souls">✦${cap}</span>`:""}${st.owner===G.active&&(st.moved||st.attacked)&&G.phase!=="setup"?`<span class="used">${st.attacked?"atk":"mv"}</span>`:""}</div>`;
       }
       const zc=!duel&&z>=0?` style="--zc:${G.p[z].color}"`:"";
       return `<button class="${cls.join(" ")}${role==="bridge"?" bridge":""}"${zc} data-r="${r}" data-c="${c}" aria-label="${coord(r,c)}, ${lineName||(z>=0?G.p[z].name+"'s ground":"open ground")}${role==="bridge"?" bridge":""}${st?", "+st.cards.map(nameOf).join(", "):", empty"}">${art}${PREF.coords?`<span class="coord">${coord(r,c)}</span>`:""}${inner}</button>`;
@@ -1614,9 +1645,11 @@ function render(){
   $("#seegrave").onclick=()=>viewBox("The Grave",G.grave,"limbo","Shared by every player. The dead sleep here until something raises them.");
   $("#seeether").onclick=showEther;
   $("#seedark").onclick=()=>viewDark("dark");
+  const bl=$("#blindnote");if(bl)bl.hidden=!blindFor(V);
   const PV=G.p[V];
   if(G.limbo.length&&!PV.readLimbo)$("#shared").insertAdjacentHTML("beforeend",`<button class="link notice limbo-n" id="nlimbo">Limbo: Samson is wandering <b>new</b></button>`);
   if(G.unknown.length&&!PV.readUnknown)$("#shared").insertAdjacentHTML("beforeend",`<button class="link notice unk-n" id="nunk">Unknown: Antony went missing <b>new</b></button>`);
+  if((G.auction||[]).length){$("#shared").insertAdjacentHTML("beforeend",`<button class="link auct-l" id="seeauct">Auction <b>${G.auction.length}</b></button>`);$("#seeauct").onclick=viewAuction}
   if($("#nlimbo"))$("#nlimbo").onclick=()=>{PV.readLimbo=true;viewDark("limbo");render()};
   if($("#nunk"))$("#nunk").onclick=()=>{PV.readUnknown=true;viewDark("unknown");render()};
   // hand
@@ -1685,10 +1718,11 @@ function renderSel(live){
     const chk=mine&&!isBase(c)&&G.phase==="prep"?`<input type="checkbox" data-pk="${c.id}" ${s.pick.has(c.id)?"checked":""} aria-label="include ${esc(nameOf(c))} in the moving group">`:"";
     const sac=mine&&sacrificeAllowed()&&canSacOnField(st,c)?`<button class="mini-btn" data-sc="${c.id}">sac +${soulOf(c)}</button>`:"";
     const stat=c.unit&&UNIT[c.unit].weapons?UNIT[c.unit].weapons.map(w=>w.name+": "+w.text).join("; "):`${nat(c)}${die(c)?" + d"+die(c):""}`;
-    return `<li>${chk}${face(c,{cls:"sm"})} ${esc(typeWord(c))} · ${esc(stat)}${c.maxHp?" · "+heartsHTML(c):""}${c.hate?' · <span class="hatetag">Hate</span>':""}${cap?` · ✦${cap} captured`:""} ${sac}</li>`}).join("");
+    return `<li>${chk}${face(c,{cls:"sm"})} ${esc(typeWord(c))} · ${esc(stat)}${c.maxHp?" · "+heartsHTML(c):""}${c.hate?' · <span class="hatetag">Hate</span>':""}${(c.prisoners||[]).length?` · ⛓ ${c.prisoners.length} prisoner${c.prisoners.length>1?"s":""}`:""}${cap?` · ✦${cap} captured`:""} ${sac}</li>`}).join("");
   const acts=[];
   const owner=G.p[st.owner].name;
-  box.innerHTML=`<p><b>${st.owner===G.active?"Your":esc(owner)+"'s"} stack</b> · ${st.cards.length} card${st.cards.length>1?"s":""}${st.odds?` · ${st.odds==="adv"?"Divine Odds":"Hexed Odds"}`:""}${st.hypo?` · Hypostasis (${st.hypo})`:""}${st.stun?` · immobilized by lightning (${st.stun})`:""}${shielded(st.owner)?" · Please Don't Hurt Me":""}${st.moved?" · moved":""}${st.attacked?" · attacked":""}</p><ul class="cards">${rows}</ul><div class="acts">${acts.join("")}</div>${mine&&G.phase==="prep"?`<p class="dim">${st.moved?"This stack has moved this turn.":"Highlighted tiles show where it can go: click one to move. Uncheck any card you want to leave behind. Click the stack again to let go."}</p>`:""}${mine&&G.phase==="attack"?`<p class="dim">${canAttackFrom(st)?(attackTargets().length?"Click a highlighted enemy stack to attack it.":"No enemy stack is in reach."):"This stack can't attack now."}</p>`:""}`;
+  box.innerHTML=`<p><b>${st.owner===G.active?"Your":esc(owner)+"'s"} stack</b> · ${st.cards.length} card${st.cards.length>1?"s":""}${st.odds?` · ${st.odds==="adv"?"Divine Odds":"Hexed Odds"}`:""}${st.hypo?` · Hypostasis (${st.hypo})`:""}${st.stun?` · immobilized by lightning (${st.stun})`:""}${shielded(st.owner)?" · Please Don't Hurt Me":""}${st.moved?" · moved":""}${st.attacked?" · attacked":""}</p><ul class="cards">${rows}</ul><div class="acts">${acts.join("")}</div>${mine&&G.phase==="prep"?`<p class="dim">${st.moved?"This stack has moved this turn.":"Highlighted tiles show where it can go: click one to move. Uncheck any card you want to leave behind. Click the stack again to let go."}</p>`:""}${mine&&G.phase==="attack"?`<p class="dim">${canAttackFrom(st)?(attackTargets().length?"Click a highlighted enemy stack to attack it.":"No enemy stack is in reach."):"This stack can't attack now."}</p>`:""}${mine&&G.phase==="attack"&&moonAttackable(st)?`<p><button class="btn ghost" id="atkmoon">Attack the Leviathan on the moon</button></p>`:""}`;
+  if($("#atkmoon"))$("#atkmoon").onclick=()=>{if(!canAct())return;attackMoon(s.r,s.c);G.mode=null;if(G.sel&&!G.board[G.sel.r][G.sel.c])G.sel=null;render()};
   box.querySelectorAll("[data-pk]").forEach(i=>i.onchange=()=>{const id=+i.dataset.pk;i.checked?s.pick.add(id):s.pick.delete(id);G.mode=autoMode(st);render()});
   box.querySelectorAll("[data-sc]").forEach(b=>b.onclick=()=>{const c=st.cards.find(x=>x.id===+b.dataset.sc);sacrifice(c,{r:s.r,c:s.c});render()});
 }
@@ -1708,7 +1742,7 @@ function tileClick(r,c){
   if(live&&G.sel&&G.mode==="move"&&moveTargets().some(([a,b])=>a===r&&b===c)){doMove(r,c);render();return}
   if(live&&G.sel&&G.mode==="attack"&&attackTargets().some(([a,b])=>a===r&&b===c)){chooseAttack(G.sel.r,G.sel.c,r,c);return}
   if(G.busy)return;
-  const st=G.board[r][c];
+  const st=hiddenFrom(view(),r,c)?null:G.board[r][c];
   if(!st||(G.sel&&G.sel.r===r&&G.sel.c===c)){G.sel=null;G.mode=null;render();return}
   G.sel={r,c,pick:new Set(st.cards.filter(x=>kind(x)!=="ace").map(x=>x.id))};G.mode=autoMode(st);render();
 }
@@ -1790,7 +1824,10 @@ const INFO={
  puppet:["Puppet (Jester Fool)","6",[["Score","a 6 Grunt: 6 + 1d6 on attack"],["Deck","every soldier in the Jester's deck is a Puppet"]],"Strings and wood."],
  bullgoat:["BullGoat (Jester Fool)","BullGoat",[["Hearts","two"],["Gore","10 + 1d20, up close"],["Charge","10 + 2d20 at an enemy two or three tiles away in a straight line with nothing between; the BullGoat ends next to its target"],["Defense","10"],["Stacks","never"],["Conjure","3 mana, into your hand"]],"The Jester's beast."],
  slavemaster:["Slavemaster (Binah)","SM",[["Score","8 + 1d8 on attack, stacks like an Infantry"],["Capture","enemy soldiers killed in its fights become your thralls, ten at most"]],"Three in Binah's deck."],
- slave:["Slave (Binah)","Slave",[["Rifle","10 + 1d12, at an enemy two tiles away in a straight line or one diagonal; from two away a miss costs nothing"],["Defense","none"],["Moves","one tile straight"],["Stacks","never"],["Deploy","the free Slaves spell (Necromancy) puts one thrall down on an empty tile of your ground"]],"A captured soldier with a chip in its head."]
+ slave:["Slave (Binah)","Slave",[["Rifle","10 + 1d12, at an enemy two tiles away in a straight line or one diagonal; from two away a miss costs nothing"],["Defense","none"],["Moves","one tile straight"],["Stacks","never"],["Deploy","the free Slaves spell (Necromancy) puts one thrall down on an empty tile of your ground"]],"A captured soldier with a chip in its head."],
+ leviathan:["The Leviathan","Leviathan",[["Hearts","three"],["Score","6d4 + 1d2 + 6 on attack and on defense; no Queen bonus"],["Stacks","never"],["Kills","whatever it kills falls into the Outer Darkness"],["The moon","Rise to the Moon (free, New Moon only) lifts it onto the moon: a toll on every enemy each New Moon after, and +1 mana cap for you per card in the Outer Darkness (twelve at most)"],["On the moon","any enemy unit can attack it, but only at the New Moon, and it defends with advantage"],["Lightning","Antony's lightning needs no roll: it takes one heart"],["Falls","into the Outer Darkness, forever"]],"The black serpent, one in the Leviathan's deck."],
+ trafficker:["Trafficker (Tiphareth of Kether)","Trafficker",[["Score","8 + 1d8 on attack, stacks like an Infantry"],["Chains","any enemy card that dies on the eight tiles around it, three prisoners at most"],["Life for Sell","puts a prisoner up at the Auction"],["Falls","its prisoners go free into the grave"]],"Three in Tiphareth of Kether's deck."],
+ debt:["Debt Collector (Yaldabaoth)","Collector",[["Score","copies the leading card of whatever it fights, natural value and die, without its advantage"],["Rises","when an enemy refuses to pay Saturn"],["Price","each one still standing at a new round raises Saturn's price by 1"]],"Saturn's warden."]
 };
 function infoHTML(){
   const tabs=Object.keys(INFO).map((k,i)=>`<button class="itab ${i===0?"on":""}" data-k="${k}">${INFO[k][0]}</button>`).join("");
@@ -1828,9 +1865,13 @@ function seatForm(i,S,mode,L){
 <div class="srow"><label class="f">Name <input data-seat="${i}" data-k="name" value="${esc(S.name)}" maxlength="20"></label>${type}</div>
 <details class="look" ${S.type==="human"||tm||S.open?"open":""}><summary>${tm?"Team, Substance, color and symbol":"Substance, color and symbol"}</summary>
 ${tm?`<div class="f"><span>Team</span><div class="opts">${[0,1].map(t=>`<label class="opt"><input type="radio" name="tm${n}" data-seat="${i}" data-k="team" value="${t}" ${S.team===t?"checked":""}><span>${t?"Side B":"Side A"}<small>${t?"Plays against Side A.":"Plays against Side B."} Each side needs two players.</small></span></label>`).join("")}</div></div>`:""}
-<div class="f"><span>Substance</span><div class="opts subs">${Object.entries(TRIBES).map(([k,t])=>`<label class="opt${t.soon?" off":""}"><input type="radio" name="tr${n}" data-seat="${i}" data-k="tribe" value="${k}" ${k===S.tribe?"checked":""} ${t.soon?"disabled":""}><span>${t.color?`<i class="subsym">${solidSVG(t.solid,t.color,18)}</i>`:""}${t.name}<small>${t.sub}</small></span></label>`).join("")}</div></div>
-${TRIBES[S.tribe]&&TRIBES[S.tribe].color?`<p class="dim fixednote">${esc(TRIBES[S.tribe].name)} always plays in its own color and symbol: ${solidSVG(TRIBES[S.tribe].solid,TRIBES[S.tribe].color,20)}</p>`:`<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex])=>`<label class="sw" title="${nm}"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="${hex}" ${hex===S.color?"checked":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}</div></div>
-<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="${k}" ${k===S.solid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}</div></div>`}
+<div class="f"><span>Substance</span><div class="opts subs">${Object.entries(TRIBES).map(([k,t])=>`<label class="opt${t.soon?" off":""}"><input type="radio" name="tr${n}" data-seat="${i}" data-k="tribe" value="${k}" ${k===S.tribe?"checked":""} ${t.soon?"disabled":""}><span>${t.solid?`<i class="subsym">${solidSVG(t.solid,t.color||"#f3d6a6",18)}</i>`:""}${t.name}<small>${t.sub}</small></span></label>`).join("")}</div></div>
+${(()=>{const T=TRIBES[S.tribe]||{};
+  if(T.color)return `<p class="dim fixednote">${esc(T.name)} always plays in its own color and symbol: ${solidSVG(T.solid,T.color,20)}</p>`;
+  const colors=`<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex])=>`<label class="sw" title="${nm}"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="${hex}" ${hex===S.color?"checked":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}</div></div>`;
+  if(T.solid)return colors+`<p class="dim fixednote">${esc(T.name)} always bears its own symbol: ${solidSVG(T.solid,S.color,20)}</p>`;
+  return colors+`<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="${k}" ${k===S.solid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}</div></div>`;
+})()}
 </details></fieldset>`;
 }
 const val=name=>{const e=document.querySelector(`input[name="${name}"]:checked`);return e&&e.value};
@@ -2027,6 +2068,7 @@ function startGame(opts){
 }
 document.addEventListener("DOMContentLoaded",()=>{
   mountInfo();mountBar();applyPrefs();guardLinks();mountQuotes();showStart();
+  $("#moon").addEventListener("click",()=>{if(G&&canAct()&&G.phase==="attack"&&G.sel&&moonAttackable(selStack())){attackMoon(G.sel.r,G.sel.c);G.mode=null;if(G.sel&&!G.board[G.sel.r][G.sel.c])G.sel=null;render()}});
   $("#newgame").onclick=()=>confirmLeave(()=>{startMode=null;showStart()});
 });
 window.__EC={get G(){return G},startGame,stackLegal,canPlace,nextPhase,render,AI,SP,cast,SPELLS,hordeSpawn,roman,moonSVG,
@@ -2287,6 +2329,9 @@ function substanceDecks(pls){
     if(P.tribe==="angel"){P.deck.push(mkUnit("samson",pl));P.bolts=0}
     if(P.tribe==="satan")P.deck.push(mkUnit("satan",pl));
     if(P.tribe==="binah"){for(let i=0;i<3;i++)P.deck.push(mkUnit("slavemaster",pl));P.thralls=[]}
+    if(P.tribe==="tiph")for(let i=0;i<3;i++)P.deck.push(mkUnit("trafficker",pl));
+    if(P.tribe==="leviathan")P.deck.push(mkUnit("leviathan",pl));
+    if(P.tribe==="yald")P.hunger=0;
     if(P.tribe==="jester"){
       for(const c of P.deck)if(kind(c)==="grunt"||kind(c)==="infantry"){c.rank="6";c.puppet=true}   // every soldier is a Puppet: a 6 Grunt
       P.startSpec=P.deck.map(c=>({rank:c.rank,suit:c.suit,color:c.color,puppet:!!c.puppet}));
@@ -2323,6 +2368,7 @@ function setupDone(pl){
 }
 /* the start of each round, after the moon */
 function substanceRound(){
+  round2();
   for(const P of G.p){
     if(P.out||P.tribe!=="jester"||G.moon.round%2)continue;
     const t=treeOf(P.i);if(!t)continue;
@@ -2333,7 +2379,7 @@ function substanceRound(){
 }
 /* the start of a player's own turn */
 function substanceTurn(pl){
-  const P=G.p[pl];
+  const P=G.p[pl];turn2(pl);
   if(P.shield){P.shield=false;log(`${plName(pl)}'s Please Don't Hurt Me wears off.`)}
   if(P.tribe==="jester"&&treeOf(pl)){
     let got=0;for(let i=0;i<2&&mana(pl)<soulCap(pl);i++){const j=G.ether.findIndex(c=>/^\d+$/.test(c.rank));const c=j>=0?G.ether.splice(j,1)[0]:mk(String(2+Math.floor(Math.random()*9)),pick(["S","H","D","C"]));addSoul(pl,c);got++}
@@ -2342,6 +2388,7 @@ function substanceTurn(pl){
 }
 /* the end of a player's own turn */
 function substanceEnd(pl){
+  end2(pl);
   for(const {st} of stacksOf(pl))if(st.stun){st.stun--;if(!st.stun)log(`${plName(pl)}'s stack can move again: the lightning wears off.`)}
 }
 function addBolts(pl,n,why){
@@ -2400,8 +2447,9 @@ function notify(pl,html){
 
 /* ---------------- Substance spells ---------------- */
 SPELLS.push(
- {id:"bolt",tribe:"angel",name:"Lightning Strike",cost:0,school:"Sorcery",text:"Free, with three bolts. Select an enemy stack: lightning immobilizes it for 1d2 + 1d2 − 1 of its turns, so it can't move or attack. You earn a bolt for every card you lose while defending against an enemy's attack, and for every card Antony kills.",
-  ok:()=>(me().bolts||0)>=3&&selEnemy()&&!shielded(selStack().owner),run:async()=>{
+ {id:"bolt",tribe:"angel",name:"Lightning Strike",cost:0,school:"Sorcery",text:"Free, with three bolts. Select an enemy stack: lightning immobilizes it for 1d2 + 1d2 − 1 of its turns, so it can't move or attack. Against the Leviathan it rolls nothing and simply takes one heart; with nothing selected it strikes a Leviathan on the moon. You earn a bolt for every card you lose while defending against an enemy's attack, and for every card Antony kills.",
+  ok:()=>(me().bolts||0)>=3&&(selEnemy()&&!shielded(selStack().owner)||!selStack()&&!!G.moonLev&&isEnemy(G.moonLev.owner,G.active)),run:async()=>{
+   if(await lightningLeviathan())return;
    const st=selStack(),d=rollN(2,2),n=sum(d)-1;st.stun=Math.max(st.stun||0,n);me().bolts=0;
    tray(G.active,"Lightning Strike",d,`immobile ${n}`);SND.zap();
    log(`<b>Lightning Strike</b>: ${plName(G.active)} strikes ${plName(st.owner)}'s stack on ${coord(G.sel.r,G.sel.c)}; it is immobilized for ${n} of its turns (1d2 + 1d2 − 1: ${d[0].v} + ${d[1].v} − 1).`,"event");
@@ -2442,6 +2490,7 @@ async function aiSubstance(pl,W){
     const ok=spellReady(sp);if(!ok){G.sel=old;return false}await cast(sp);G.sel=null;render();await sleep(420);return true};
   const foes=enemiesOf(pl).flatMap(stacksOf),mine=stacksOf(pl);
   const near=(e,k)=>mine.some(m=>Math.abs(m.r-e.r)+Math.abs(m.c-e.c)<=k);
+  await aiSubstance2(pl,W,cast1,foes,mine,near);
   if(P.tribe==="angel"&&(P.bolts||0)>=3){
     const t=foes.filter(e=>!e.st.stun&&!shielded(e.st.owner)&&near(e,3)).sort((a,b)=>AI.value(b.st)-AI.value(a.st))[0];
     if(t)await cast1("bolt",t.r,t.c);
@@ -2478,5 +2527,338 @@ const UNIT_ICON={
 };
 function unitSVG(u,color,size){const d=UNIT_ICON[u]||"";return `<svg class="usym" viewBox="-12 -12 24 24" width="${size||22}" height="${size||22}" aria-hidden="true"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><g stroke="#000" stroke-opacity=".5" stroke-width="3.2">${d}</g><g stroke="${color}" stroke-width="1.5">${d}</g></g></svg>`}
 const heartsHTML=c=>c.maxHp?`<span class="hearts" aria-label="${c.hp} of ${c.maxHp} hearts">${"♥".repeat(c.hp)}<s>${"♥".repeat(Math.max(0,c.maxHp-c.hp))}</s></span>`:"";
+
+/* ---------------- Substances, second part: Lucifer & Ouroboros, The Leviathan, Yaldabaoth, Tiphareth of Kether ---------------- */
+
+/* ---------- the moon when it is eaten, replaced by Saturn, or carries the Leviathan ---------- */
+const moonName=()=>G.moon.gone==="saturn"?"Saturn":G.moon.gone==="eaten"?"No moon":MOON[G.moon.i];
+function moonNote(){
+  const m=G.moon,L=G.moonLev;
+  if(m.gone==="saturn")return `Saturn hangs where the moon was: every enemy of ${esc(G.p[G.saturnBy].name)} pays ${1+(G.saturnDebt||0)} at the start of each turn (Binah is exempt)`;
+  if(m.gone==="eaten")return "Yaldabaoth ate the moon: the phases have stopped";
+  if(L)return `The Leviathan (${L.card.hp} heart${L.card.hp===1?"":"s"}) lies on the moon: a toll at every New Moon; attackable only at the New Moon`;
+  return "";
+}
+function goneMoonSVG(){
+  if(G.moon.gone==="saturn")return `<svg class="moon saturn" viewBox="-44 -44 88 88" width="88" height="88" aria-hidden="true"><defs><radialGradient id="sat" cx="40%" cy="35%"><stop offset="0" stop-color="#e8d29a"/><stop offset="1" stop-color="#7a5c2a"/></radialGradient></defs><ellipse rx="40" ry="9" fill="none" stroke="#c9a96a" stroke-width="2.4" transform="rotate(-18)" opacity=".55"/><circle r="22" fill="url(#sat)" stroke="#3a2a12"/><path d="M-36,4A40,9 0 0 0 36,-4" transform="rotate(-18)" fill="none" stroke="#e6cf96" stroke-width="2.4"/><path d="M-16,-6H16M-20,3H20" stroke="#5a4320" stroke-width="1.4" opacity=".5"/></svg>`;
+  return `<svg class="moon eaten" viewBox="-44 -44 88 88" width="88" height="88" aria-hidden="true"><circle r="30" fill="none" stroke="#5a4a3a" stroke-width="1" stroke-dasharray="3 4"/><path d="M-9,-6C-4,-12 4,-12 9,-6" fill="none" stroke="#5a4a3a" stroke-width="1"/></svg>`;
+}
+function levOnMoon(){const c=G.moonLev.card;return `<g transform="translate(-15,-15) scale(1.25)">${`<g fill="none" stroke-linecap="round" stroke-linejoin="round"><g stroke="#000" stroke-width="3.6">${UNIT_ICON.leviathan}</g><g stroke="${G.p[G.moonLev.owner].color}" stroke-width="1.8">${UNIT_ICON.leviathan}</g></g>`}</g><text y="38" text-anchor="middle" font-size="9" fill="#ff5a64" font-family="Cascadia Code,Consolas,monospace">${"♥".repeat(c.hp)}</text>`}
+
+/* ---------- Delusions: blindness beyond your own cards' reach ---------- */
+const deluded=pl=>!!(G.p[pl]&&G.p[pl].delu&&G.p[pl].delu.turns>0);
+const blindFor=V=>V!=null&&G.p[V]&&[V,...alliesOf(V)].some(deluded);      // the deluded player and their teammates
+function seesTile(V,r,c){
+  if(!blindFor(V))return true;
+  for(const {r:a,c:b} of stacksOf(V)){const dr=Math.abs(a-r),dc=Math.abs(b-c);if(dr<=1&&dc<=1||dr===0&&dc===2||dc===0&&dr===2)return true}
+  return false;
+}
+const hiddenFrom=(V,r,c)=>{const st=G.board[r][c];return !!(st&&isEnemy(st.owner,V)&&!seesTile(V,r,c))};
+function applyDelusion(t,by){
+  const d=rollN(2,2),n=sum(d);G.p[t].delu={turns:n,maxCut:0,diceCut:0,by};
+  tray(by,by===t?"Delusion of Ouroboros":"Delusion of Lucifer",d,`${n} turns`);
+  return n;
+}
+
+/* ---------- start, end and round hooks ---------- */
+function turn2(pl){
+  const P=G.p[pl];
+  if(P.joy){P.joy=false;log(`${plName(pl)}'s Pleasure and Joy fades.`)}
+  P.hungerUses=0;
+  if(deluded(pl)){   // a Delusion pays: free mana every turn
+    const k=Math.max(0,3-(P.delu.diceCut||0)),d=rollN(k,2);let got=0;
+    for(let i=0;i<sum(d)&&mana(pl)<soulCap(pl);i++){const j=G.ether.findIndex(c=>/^\d+$/.test(c.rank));const c=j>=0?G.ether.splice(j,1)[0]:mk(String(2+Math.floor(Math.random()*9)),pick(["S","H","D","C"]));addSoul(pl,c);got++}
+    if(k)tray(pl,"Delusion mana",d,`+${got} mana`,true);
+    log(`${plName(pl)}'s Delusion gives ${k}d2 free mana: ${got}.`);
+  }
+}
+function end2(pl){
+  const P=G.p[pl];if(!deluded(pl))return;
+  P.delu.turns--;
+  if(P.delu.turns>0)return;
+  if(P.delu.blindfold&&!P.delu.extended){P.delu={turns:3,maxCut:0,diceCut:0,by:pl,extended:true};log(`<b>The Blindfold</b>: ${plName(pl)} keeps the Delusion three more turns, and Lucifer's stifling is gone.`,"event");notify(pl,`${esc(P.name)} keeps the Delusion three more turns under the Blindfold.`);return}
+  P.delu=null;log(`${plName(pl)}'s Delusion lifts: the field is visible again.`);
+}
+async function turnAsync(pl){   // the start of a turn that may ask something: Saturn's tax
+  const S=G.saturnBy,P=G.p[pl];
+  if(G.moon.gone!=="saturn"||S==null||G.p[S].out||!isEnemy(pl,S)||isHorde(pl)||P.out)return;
+  if(P.tribe==="binah"){log(`${plName(pl)} ignores Saturn's tax: Binah owes the Demiurge nothing.`);return}
+  const n=1+(G.saturnDebt||0);let paid=0;
+  for(let i=0;i<n;i++){
+    const opts=[];
+    if(P.hand.length)opts.push({id:"hand",label:"A random card from your hand"});
+    if(P.deck.length)opts.push({id:"deck",label:"The top card of your deck"});
+    if(mana(pl)>=1)opts.push({id:"mana",label:"1 mana"});
+    opts.push({id:"no",label:"Refuse",sub:"Yaldabaoth regurgitates a Debt Collector onto the field."});
+    const ch=opts.length===1?"no":await ask(pl,{kind:"choice",id:"saturn",title:`Saturn: ${esc(P.name)} owes ${n-i} more`,options:opts,
+      ai:()=>P.deck.length>8?"deck":mana(pl)>=2?"mana":P.hand.length?"hand":P.deck.length?"deck":"no"});
+    if(ch==="no"||ch==null){spawnDebt(pl);break}
+    let c=null;
+    if(ch==="hand")c=P.hand.splice(Math.floor(Math.random()*P.hand.length),1)[0];
+    if(ch==="deck")c=P.deck.pop();
+    if(ch==="mana"){P.souls.sort((a,b)=>soulOf(a)-soulOf(b));c=P.souls.shift()}
+    if(c){if(!(c.unit&&c.unit!=="slave")&&addSoul(S,c));else toGrave(c,"spent");paid++}
+  }
+  if(paid)log(`${plName(pl)} pays Saturn ${paid} (to ${plName(S)}'s soul pile).`);
+  render();
+}
+function spawnDebt(pl){
+  const S=G.saturnBy;let t=zoneTiles(S).filter(([r,c])=>!G.board[r][c]);
+  if(!t.length)for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(!G.board[r][c]&&!isVoid(r,c))t.push([r,c]);
+  if(!t.length){log("Saturn finds no room for a Debt Collector.");return}
+  const [r,c]=pick(t);G.board[r][c]={owner:S,cards:[mkUnit("debt",S)],moved:true,attacked:true};
+  log(`<b>Saturn</b>: ${plName(pl)} refuses, and ${plName(S)} regurgitates a Debt Collector on ${coord(r,c)}.`,"event");
+  notify(S,`${esc(G.p[pl].name)} refuses Saturn: a Debt Collector rises on ${coord(r,c)}.`);
+}
+function round2(){
+  // Deconjured takes the next Full Moon
+  if(G.noConjure&&G.moon.i!==4)G.noConjure=false;
+  if(G.deconjure&&G.moon.i===4){G.deconjure=false;G.noConjure=true;log("<b>Deconjured</b>: no one can conjure under this Full Moon.","event")}
+  // every Debt Collector still standing raises Saturn's price
+  if(G.moon.gone==="saturn"){const n=G.board.flat().filter(s=>s&&hasK(s,"debt")).length;if(n){G.saturnDebt=(G.saturnDebt||0)+n;log(`Saturn's price rises by ${n}: each enemy now pays ${1+G.saturnDebt} a turn.`)}}
+  // the Leviathan's toll at every New Moon
+  const L=G.moonLev;
+  if(L&&G.moon.i===0&&G.moon.round>L.since){
+    for(const pl of enemiesOf(L.owner)){const P=G.p[pl];if(isHorde(pl)||P.tribe==="tiph"){if(P.tribe==="tiph")log(`${plName(pl)} is immune to the Leviathan on the moon.`);continue}
+      const k=R(4)+R(4);let a=0,b=0,m=0;
+      for(let i=0;i<k&&P.deck.length;i++){toDark(P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0]);a++}
+      for(let i=0;i<2&&P.hand.length;i++){toDark(P.hand.splice(Math.floor(Math.random()*P.hand.length),1)[0]);b++}
+      if(P.souls.length){P.souls.sort((x,y)=>soulOf(x)-soulOf(y));toDark(P.souls.shift());m=1}
+      log(`<b>The Leviathan's toll</b>: ${plName(pl)} loses ${a} deck card${a===1?"":"s"}, ${b} from the hand and ${m} mana to the Outer Darkness.`,"event");
+    }
+    notify(L.owner,"The New Moon: the Leviathan takes its toll.");
+  }
+}
+
+/* ---------- where the dead go: Traffickers, Pleasure and Joy, the Leviathan's kills ---------- */
+function buryHook(card,r,c,st){
+  const owner=st.owner,F=G.fight;
+  if(card.unit==="trafficker"&&card.prisoners&&card.prisoners.length){const ps=card.prisoners;card.prisoners=[];for(const p of ps)toGrave(p,"death");log(`The Trafficker's ${ps.length} prisoner${ps.length>1?"s go":" goes"} free into the grave.`)}
+  // a Trafficker beside the dead chains its soul
+  for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const s=at(r+dr,c+dc);if(!s||!isEnemy(s.owner,owner)||G.p[s.owner].tribe!=="tiph")continue;
+    const t=s.cards.find(x=>x.unit==="trafficker"&&(x.prisoners||[]).length<3);if(!t)continue;
+    if(card.unit==="slave")delete card.unit;
+    (t.prisoners=t.prisoners||[]).push(card);card.owner=s.owner;
+    log(`${plName(s.owner)}'s Trafficker chains ${esc(nameOf(card))} (${t.prisoners.length}/3).`);return true}
+  // Pleasure and Joy: the caster's dead go back into the deck
+  if(G.p[owner]&&G.p[owner].joy){if(card.unit==="slave")delete card.unit;card.owner=owner;G.p[owner].deck.push(card);shuffle(G.p[owner].deck);log(`Pleasure and Joy: ${esc(nameOf(card))} goes back into ${plName(owner)}'s deck.`);return true}
+  // whatever the Leviathan kills falls into the Outer Darkness
+  if(F&&(F.moon||(st===F.D?hasK(F.A,"leviathan"):st===F.A?hasK(F.D,"leviathan"):false))&&card.unit!=="leviathan"){if(card.unit==="slave")delete card.unit;toDark(card);log(`The Leviathan sends ${esc(nameOf(card))} into the Outer Darkness.`);return true}
+  if(card.unit==="leviathan"){toDark(card);log("<b>The Leviathan falls into the Outer Darkness.</b>","event");notify(owner,"The Leviathan falls into the Outer Darkness.");return true}
+  return false;
+}
+async function lightningLeviathan(){
+  const st=selStack();let c=null,onMoon=false;
+  if(st&&hasK(st,"leviathan"))c=st.cards.find(x=>x.unit==="leviathan");
+  else if(!st&&G.moonLev){c=G.moonLev.card;onMoon=true}
+  if(!c)return false;
+  me().bolts=0;SND.zap();c.hp--;
+  log(`<b>Lightning Strike</b>: the bolt needs no roll against the Leviathan; it loses a heart (${Math.max(0,c.hp)} left).`,"event");
+  if(c.hp<=0){
+    if(onMoon){const o=G.moonLev.owner;G.moonLev=null;toDark(c);log("<b>The Leviathan falls from the moon into the Outer Darkness.</b>","event");notify(o,"The Leviathan falls from the moon.")}
+    else{const r=G.sel.r,cc=G.sel.c;st.cards.splice(st.cards.indexOf(c),1);if(!st.cards.length)G.board[r][cc]=null;c.hp=c.maxHp;toDark(c);checkWin()}
+    popup("The Leviathan is struck down","<p>Twelve times did the lightning strike twelve at once, with one hundred and forty-four wounds, plus the lightning that cut his tongue into two permanent halves, even down to his throat.</p>",G.active);
+  }
+  return true;
+}
+
+/* ---------- the Leviathan on the moon can be attacked at the New Moon ---------- */
+const moonAttackable=st=>!!(G.moonLev&&G.moon.i===0&&st&&canAttackFrom(st)&&isEnemy(st.owner,G.moonLev.owner));
+function attackMoon(r,c){
+  const A=G.board[r][c],L=G.moonLev,D={owner:L.owner,cards:[L.card]};
+  const ra=rollStack(A,"atk",D,hasK(A,"satan")?null:netFx(A.odds,hated(A)?"dis":null),weaponOf(A)),rd=rollStack(D,"def",A,"adv");
+  A.attacked=true;A.odds=null;G.lastAttack=G.turnNo;
+  const line=`${ra.total}${cmpSign(ra.total,rd.total)}${rd.total}`;
+  tray(A.owner,"Attack on the moon",ra.dice,line);tray(L.owner,"The Leviathan defends",rd.dice,line,true);
+  log(`<b>${plName(A.owner)}</b> attacks the Leviathan on the moon from ${coord(r,c)}: <span class="dice">${ra.parts.join(", ")}</span> = <b>${ra.total}</b> vs <span class="dice">${rd.parts.join(", ")}</span> = <b>${rd.total}</b> <span class="tot">(${line})</span>.`,"combat");
+  if(ra.total>rd.total){L.card.hp--;log(`The Leviathan loses a heart (${L.card.hp} left).`);
+    if(L.card.hp<=0){G.moonLev=null;L.card.hp=L.card.maxHp;toDark(L.card);log("<b>The Leviathan falls from the moon into the Outer Darkness.</b>","event");notify(A.owner,"The Leviathan falls from the moon.")}}
+  else{G.fight={A,D,atkPl:A.owner,defPl:L.owner,moon:true};damage(r,c,1,false);G.fight=null}
+  render();
+}
+
+/* ---------- the Auction ---------- */
+function viewAuction(){
+  const V=view(),live=canAct()&&G.phase==="prep";
+  const items=G.auction||[];
+  ovShow(`<div class="ovbox"><h2>The Auction</h2><p class="dim">Tiphareth of Kether sells the souls its Traffickers chained. Offer mana or cards from your hand; the seller has to approve.</p>
+<div class="auct">${items.length?items.map((it,i)=>`<div class="aitem">${face(it.card,{owner:it.seller})}<div><b>${esc(nameOf(it.card))}</b><br><span class="dim">sold by ${plName(it.seller)}</span>${live&&it.seller!==V?`<br><button class="btn ghost sm" data-buy="${i}">Make an offer</button>`:""}</div></div>`).join(""):'<p class="dim">Nothing is for sale.</p>'}</div>
+<p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
+  $("#mcancel").onclick=ovHide;
+  $("#ov").querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>{ovHide();makeOffer(G.auction[+b.dataset.buy])});
+}
+async function makeOffer(it,auto){
+  const pl=G.active,P=me();if(!it||!G.auction.includes(it))return false;
+  const was=G.busy;G.busy=true;
+  try{
+    let pay=null;
+    if(auto)pay=auto;
+    else{
+      const opts=[];for(let k=1;k<=Math.min(mana(pl),6);k++)opts.push({id:"m"+k,label:`${k} mana`});
+      if(P.hand.length)opts.push({id:"cards",label:"Cards from my hand"});
+      const ch=await ask(pl,{kind:"choice",title:`Offer for ${esc(nameOf(it.card))}`,options:opts,cancel:"Cancel"});
+      if(ch==null)return false;
+      if(ch==="cards"){const cs=[];for(let i=0;i<3&&P.hand.length;i++){const k=await ask(pl,{kind:"cards",id:"offer",title:`Offer: add a card (${cs.length} so far)`,cards:P.hand.filter(c=>!cs.includes(c)),cancel:cs.length?"That's my offer":"Cancel"});if(k==null)break;cs.push(P.hand.filter(c=>!cs.includes(c))[k])}
+        if(!cs.length)return false;pay={cards:cs}}
+      else pay={mana:+ch.slice(1)};
+    }
+    const what=pay.mana?`${pay.mana} mana`:pay.cards.map(c=>esc(nameOf(c))).join(", ");
+    const worth=pay.mana||pay.cards.reduce((a,c)=>a+soulOf(c),0),need=soulOf(it.card)+(it.card.unit?2:0);
+    const ok=await ask(it.seller,{kind:"yesno",id:"auction",title:`The Auction: ${esc(G.p[pl].name)}'s offer`,text:`${plName(pl)} offers <b>${what}</b> for ${esc(nameOf(it.card))}. Approve the sale?`,yes:"Approve",no:"Refuse",ai:()=>worth>=need});
+    if(!ok){log(`The Auction: ${plName(it.seller)} refuses ${plName(pl)}'s offer of ${what}.`);notify(it.seller,`${esc(G.p[it.seller].name)} refuses the offer.`);return false}
+    const S=G.p[it.seller];
+    if(pay.mana){let moved=0;P.souls.sort((a,b)=>soulOf(a)-soulOf(b));while(moved<pay.mana&&P.souls.length){const c=P.souls.shift();moved+=soulOf(c);if(!addSoul(it.seller,c))toGrave(c,"spent")}}
+    else for(const c of pay.cards){P.hand.splice(P.hand.indexOf(c),1);c.owner=it.seller;if(S.hand.length<handCap(it.seller))S.hand.push(c);else if(!addSoul(it.seller,c))toGrave(c,"spent")}
+    G.auction.splice(G.auction.indexOf(it),1);
+    const c=it.card;c.owner=pl;if(c.hp!=null)c.hp=c.maxHp;if(P.hand.length<handCap(pl))P.hand.push(c);else{P.deck.push(c);shuffle(P.deck)}
+    log(`<b>The Auction</b>: ${plName(pl)} buys ${esc(nameOf(c))} from ${plName(it.seller)} for ${what}.`,"event");notify(pl,`${esc(P.name)} buys ${esc(nameOf(c))} at the Auction.`);
+    return true;
+  }finally{G.busy=was;render()}
+}
+
+/* ---------- God Hunger ---------- */
+async function godHunger(){
+  const pl=G.active,P=me(),st=selStack();
+  const opts=[];
+  if(G.grave.length)opts.push({id:"grave",label:"The grave"});
+  if(P.deck.length)opts.push({id:"own",label:"Your own deck"});
+  if(st&&st.cards.some(c=>!(c.unit&&UNIT[c.unit].hp)&&!isBase(c)))opts.push({id:"field",label:`The selected stack on ${coord(G.sel.r,G.sel.c)}`});
+  for(const e of enemiesOf(pl).filter(e=>!isHorde(e)&&G.p[e].deck.length))opts.push({id:"p"+e,label:`${G.p[e].name}'s deck`,sub:"They roll 1d4 against your 1d4; lose and you pay them 2 mana."});
+  if(!opts.length){log("God Hunger finds nothing to eat.");return}
+  const src=await ask(pl,{kind:"choice",id:"hunger",title:"God Hunger: what does Yaldabaoth eat?",options:opts,
+    ai:()=>(opts.find(o=>o.id==="grave"&&G.grave.length>=2)||opts.find(o=>o.id==="field")||opts.find(o=>o.id[0]==="p")||opts[0]).id});
+  const n=R(2);let eaten=[];
+  if(src==="grave")for(let i=0;i<n&&G.grave.length;i++)eaten.push(G.grave.splice(Math.floor(Math.random()*G.grave.length),1)[0]);
+  else if(src==="own")for(let i=0;i<n&&P.deck.length;i++)eaten.push(P.deck.pop());
+  else if(src==="field"){const s=G.sel;for(let i=0;i<n;i++){const ok=st.cards.filter(c=>!(c.unit&&UNIT[c.unit].hp)&&!isBase(c)).sort((a,b)=>nat(a)-nat(b));if(!ok.length)break;const c=ok[0];st.cards.splice(st.cards.indexOf(c),1);if(c.captured&&c.captured.length){for(const x of c.captured)toGrave(x,"death");c.captured=[]}eaten.push(c)}
+    if(!st.cards.length){G.board[s.r][s.c]=null;G.sel=null}}
+  else if(src&&src[0]==="p"){
+    const t=+src.slice(1),a=R(4),b=R(4);tray(pl,"God Hunger",[{s:4,v:a}],`${a} vs ${b}`);tray(t,"God Hunger defense",[{s:4,v:b}],`${b} vs ${a}`,true);
+    if(a<=b){let moved=0;P.souls.sort((x,y)=>soulOf(x)-soulOf(y));while(moved<2&&P.souls.length){const c=P.souls.shift();moved+=soulOf(c);if(!addSoul(t,c))toGrave(c,"spent")}
+      log(`<b>God Hunger fails</b>: ${plName(pl)} rolls ${a} against ${plName(t)}'s ${b} and loses 2 mana to them.`,"event");
+      popup("God Hunger fails",`<p>${plName(pl)} could not eat ${plName(t)}'s deck: ${a} against ${b}. Yaldabaoth loses two mana from the failure, and ${plName(t)} gains two.</p>`,pl);render();return}
+    for(let i=0;i<n&&G.p[t].deck.length;i++)eaten.push(G.p[t].deck.pop());
+  }
+  if(!eaten.length){log("God Hunger finds nothing to eat.");return}
+  const room=soulCap(pl)-mana(pl),m=eaten.reduce((a,c)=>a+soulOf(c),0);
+  const use=await ask(pl,{kind:"choice",id:"hungeruse",title:`God Hunger: ${eaten.length} card${eaten.length>1?"s":""} eaten`,options:[{id:"hunger",label:`Feed the hunger (${(P.hunger||0)+eaten.length} of 7)`},{id:"mana",label:`Take the mana (+${Math.min(m,room)})`}],
+    ai:()=>(P.hunger||0)<7&&mana(pl)>=2?"hunger":"mana"});
+  if(use==="mana"){for(const c of eaten){if(c.unit&&c.unit!=="slave"){toDark(c);continue}if(!addSoul(pl,c))toGrave(c,"spent")}log(`<b>God Hunger</b>: ${plName(pl)} eats ${eaten.map(c=>esc(nameOf(c))).join(", ")} for mana.`,"event")}
+  else{for(const c of eaten)toDark(c);P.hunger=(P.hunger||0)+eaten.length;log(`<b>God Hunger</b>: ${plName(pl)} eats ${eaten.map(c=>esc(nameOf(c))).join(", ")} (hunger ${P.hunger} of 7).`,"event")}
+  checkWin();
+}
+
+/* ---------- the spells ---------- */
+SPELLS.push(
+ {id:"ouro",tribe:"lucifer",dice:"1d2",name:"Delusion of Ouroboros",cost:1,school:"Sorcery",text:"Cast on yourself. For 2d2 of your turns you and your teammates cannot see enemy cards beyond your own cards' reach; meanwhile your mana can go up to nine and you get 3d2 free mana at the start of each turn. Casting it makes the Delusion of Lucifer free this round.",
+  ok:()=>!deluded(G.active),run:async()=>{const n=applyDelusion(G.active,G.active);me().ouroRound=G.moon.round;
+   log(`<b>Delusion of Ouroboros</b>: ${plName(G.active)} blinds themselves for ${n} turns; nine mana at most and 3d2 free mana a turn.`,"event");notify(G.active,`${esc(me().name)} sinks into the Delusion of Ouroboros for ${n} turns.`)}},
+ {id:"lucifer",tribe:"lucifer",name:"Delusion of Lucifer",cost:6,school:"Curse",text:"6 mana, free in a round you cast the Delusion of Ouroboros on yourself. An enemy gets the same Delusion for 2d2 turns: blind beyond their own cards' reach, nine mana at most and 3d2 free mana a turn. Then you can stifle it: every 2 mana, or every 2 cards from your deck, takes one maximum mana or one free die from them while it lasts.",
+  ok:()=>!survival()&&enemiesOf(G.active).some(e=>!isHorde(e)),run:async()=>{
+   const t=await pickFoe("lucifer","Delusion of Lucifer: on whom?"),T=G.p[t],n=applyDelusion(t,G.active);
+   log(`<b>Delusion of Lucifer</b>: ${plName(G.active)} blinds ${plName(t)} for ${n} turns.`,"event");notify(G.active,`${esc(T.name)} is blinded by the Delusion of Lucifer for ${n} turns.`);
+   const pl=G.active,P=me();
+   for(let guard=0;guard<12;guard++){
+     const opts=[];const D=T.delu;
+     if(D.maxCut<6&&mana(pl)>=2)opts.push({id:"maxm",label:"Take 1 maximum mana from them (2 mana)"});
+     if(D.maxCut<6&&P.deck.length>=2)opts.push({id:"maxd",label:"Take 1 maximum mana from them (2 cards from your deck)"});
+     if(D.diceCut<3&&mana(pl)>=2)opts.push({id:"dicem",label:"Take 1 free die from them (2 mana)"});
+     if(D.diceCut<3&&P.deck.length>=2)opts.push({id:"diced",label:"Take 1 free die from them (2 cards from your deck)"});
+     if(!opts.length)break;opts.push({id:"done",label:"That's enough"});
+     const ch=await ask(pl,{kind:"choice",id:"stifle",title:`Stifle ${esc(T.name)}: max ${9-D.maxCut}, ${3-D.diceCut}d2 a turn`,options:opts,ai:()=>mana(pl)>=4&&D.diceCut<3?"dicem":P.deck.length>20&&D.maxCut<3?"maxd":"done"});
+     if(ch==null||ch==="done")break;
+     if(ch.endsWith("m"))pay(pl,2);else for(let i=0;i<2;i++)toGrave(P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0],"burn");
+     if(ch.startsWith("max"))D.maxCut++;else D.diceCut++;
+     log(`${plName(pl)} stifles ${plName(t)}'s Delusion: ${9-D.maxCut} mana at most, ${3-D.diceCut}d2 a turn.`);
+   }}},
+ {id:"deconj",tribe:"lucifer",name:"Deconjured",cost:4,school:"Curse",text:"No one can conjure during the next Full Moon.",ok:()=>!G.deconjure&&!G.noConjure&&G.moon.i>=0,
+  run:async()=>{G.deconjure=true;log(`<b>Deconjured</b>: ${plName(G.active)} closes the Ether to conjuring at the next Full Moon.`,"event");notify(G.active,"Deconjured: no conjuring at the next Full Moon.")}},
+ {id:"joy",tribe:"lucifer",name:"Pleasure and Joy",cost:3,school:"Curse",text:"Until your next turn your cards glow in your color, and any of them that are killed go back into your deck instead of the grave.",ok:()=>!me().joy,
+  run:async()=>{me().joy=true;log(`<b>Pleasure and Joy</b>: ${plName(G.active)}'s cards glow; their dead return to the deck until the next turn.`,"event")}},
+ {id:"lev",tribe:"leviathan",name:"Rise to the Moon",cost:0,school:"Sorcery",text:"Free, only at the New Moon, while your Leviathan is on the field. The Leviathan leaves the field for the moon. From the next New Moon on, every enemy pays its toll each New Moon: 2d4 random deck cards, 2 random cards from the hand and 1 mana, all into the Outer Darkness. On the moon your mana can rise by one for every card in the Outer Darkness (twelve at most). It can be attacked only at the New Moon, and defends there with advantage.",
+  ok:()=>G.moon.i===0&&!G.moon.gone&&!G.moonLev&&stacksOf(G.active).some(x=>hasK(x.st,"leviathan")),run:async()=>{
+   const x=stacksOf(G.active).find(x=>hasK(x.st,"leviathan")),c=x.st.cards.find(k=>k.unit==="leviathan");
+   x.st.cards.splice(x.st.cards.indexOf(c),1);if(!x.st.cards.length)G.board[x.r][x.c]=null;if(G.sel&&G.sel.r===x.r&&G.sel.c===x.c)G.sel=null;
+   G.moonLev={card:c,owner:G.active,since:G.moon.round};
+   log(`<b>The Leviathan rises onto the New Moon.</b>`,"event");
+   popup("The Leviathan on the moon",`<p>“'Spit revelation’s limbo back into the cup of sand,' the serpent says wordlessly to the soul from the moon above.</p><p>Caustic spit, bitter with mouth burns. A favor of spirits, where pillars are seen like windows of reflections of themselves inside; dying memories.</p><p>The boy says to himself, 'The apocryphon said thirteen of twelve eternities. I must brand the soul with burning births. Falling from infinity without beginnings, into four corners of end unleashed onto a new world.'”</p>`,G.active);
+   popup("Spit the empty full into",`<p>From the next New Moon until the Leviathan is dead, every enemy of ${plName(G.active)} pays at each New Moon: <b>2d4 random cards from the deck, two random cards from the hand, and one mana</b>, all into the Outer Darkness. Tiphareth of Kether is immune.</p><p>Every unit can attack the Leviathan on the moon, but only at the New Moon, and it defends there with advantage.</p>`,G.active)}},
+ {id:"exile",tribe:"leviathan",name:"Exile: the Outer Darkness",cost:0,school:"Necromancy",text:"Free. Select your stack with a Joker: every soul it captured falls into the Outer Darkness.",
+  ok:()=>selOwnJoker()&&selStack().cards.some(c=>kind(c)==="joker"&&(c.captured||[]).length),run:async()=>{
+   const j=selStack().cards.find(c=>kind(c)==="joker"&&(c.captured||[]).length),n=j.captured.length;for(const s of j.captured.splice(0))toDark(s);
+   log(`<b>Exile</b>: ${plName(G.active)}'s Joker casts ${n} soul${n>1?"s":""} into the Outer Darkness.`,"event")}},
+ {id:"judge",tribe:"yald",name:"Night's Judgement",cost:0,school:"Sorcery",text:"Free, at the New Moon or the Full Moon: Yaldabaoth eats the moon. It disappears and its phases stop. A Leviathan on it goes back into its player's deck. Take 3 mana, or count the moon as three cards toward the hunger.",
+  ok:()=>!G.moon.gone&&(G.moon.i===0||G.moon.i===4),run:async()=>{
+   const pl=G.active,P=me();
+   if(G.moonLev){const L=G.moonLev;G.moonLev=null;L.card.hp=L.card.maxHp;G.p[L.owner].deck.push(L.card);shuffle(G.p[L.owner].deck);log(`The Leviathan falls from the eaten moon back into ${plName(L.owner)}'s deck.`)}
+   G.moon.gone="eaten";G.moon.i=-1;G.moon.blood=false;applyMoonTheme();
+   const use=await ask(pl,{kind:"choice",id:"moonuse",title:"Night's Judgement: the moon is eaten",options:[{id:"hunger",label:`Feed the hunger (${(P.hunger||0)+3} of 7)`},{id:"mana",label:"Take 3 mana"}],ai:()=>"hunger"});
+   if(use==="mana"){for(let i=0;i<3&&mana(pl)<soulCap(pl);i++)addSoul(pl,mk(String(2+Math.floor(Math.random()*9)),pick(["S","H","D","C"])))}else P.hunger=(P.hunger||0)+3;
+   log(`<b>Night's Judgement</b>: ${plName(pl)} eats the moon${use==="mana"?" for mana":` (hunger ${P.hunger} of 7)`}. The phases stop.`,"event");
+   popup("Night's Judgement",`<p>${plName(pl)} eats the moon. It is gone from the sky, and its phases stop until Saturn takes its place.</p>`,pl)}},
+ {id:"hunger",tribe:"yald",dice:"1d2",name:"God Hunger",cost:1,school:"Necromancy",text:"Twice a turn. Eat 1d2 cards from the grave, your own deck, the selected stack on the field, or an enemy's deck (they roll 1d4 against your 1d4; if you lose, you pay them 2 mana). Take the eaten as mana, or feed the hunger with them. Seven eaten bring Saturn.",
+  ok:()=>(me().hungerUses||0)<2,run:async()=>{me().hungerUses=(me().hungerUses||0)+1;await godHunger()}},
+ {id:"saturn",tribe:"yald",name:"Regurgitate Saturn",cost:0,school:"Sorcery",text:"Free, once the hunger reaches seven. Saturn takes the moon's place: at the start of each of their turns every enemy pays 1 (a hand card, the top deck card or 1 mana) into your soul pile, or refuses and a Debt Collector rises on your ground. Each Debt Collector still standing at a new round raises the price by 1. Binah is exempt.",
+  ok:()=>(me().hunger||0)>=7&&G.moon.gone!=="saturn",run:async()=>{
+   const pl=G.active;if(G.moonLev){const L=G.moonLev;G.moonLev=null;L.card.hp=L.card.maxHp;G.p[L.owner].deck.push(L.card);shuffle(G.p[L.owner].deck)}
+   G.moon.gone="saturn";G.moon.i=-1;G.moon.blood=false;G.saturnBy=pl;G.saturnDebt=0;applyMoonTheme();
+   log(`<b>Saturn</b>: ${plName(pl)} regurgitates Saturn where the moon used to be.`,"event");
+   popup("Saturn",`<p>${plName(pl)} regurgitates Saturn where the moon used to belong. Every enemy now pays the Demiurge at the start of each turn, or a Debt Collector rises.</p><p class="dim">A Debt Collector copies the score of the card it fights, without its advantage.</p>`,pl)}},
+ {id:"lifesell",tribe:"tiph",name:"Life for Sell",cost:0,school:"Sorcery",text:"Free. Select your stack with a Trafficker holding prisoners: put one of them up at the Auction, beside the Outer Darkness. Any player can offer mana or cards from the hand for it; you approve the sale.",
+  ok:()=>selOwn()&&selStack().cards.some(c=>c.unit==="trafficker"&&(c.prisoners||[]).length),run:async()=>{
+   const t=selStack().cards.find(c=>c.unit==="trafficker"&&(c.prisoners||[]).length);
+   const i=t.prisoners.length===1?0:await ask(G.active,{kind:"cards",id:"lifesell",title:"Life for Sell: who goes to the Auction?",cards:t.prisoners,box:"plain"});
+   const c=t.prisoners.splice(i==null?0:i,1)[0];(G.auction=G.auction||[]).push({card:c,seller:G.active});
+   log(`<b>Life for Sell</b>: ${plName(G.active)} puts ${esc(nameOf(c))} up at the Auction.`,"event");notify(G.active,`${esc(nameOf(c))} is up for sale at the Auction.`)}},
+ {id:"blindfold",tribe:"tiph",name:"The Blindfold",cost:2,school:"Enchantment",text:"While you are under a Delusion: when it ends, you keep it three more turns, with its blindness, its nine mana and its free dice, and without anything Lucifer paid to stifle it.",
+  ok:()=>deluded(G.active)&&!me().delu.blindfold&&!me().delu.extended,run:async()=>{me().delu.blindfold=true;log(`<b>The Blindfold</b>: ${plName(G.active)} will keep the Delusion three turns longer.`,"event")}}
+);
+
+/* ---------- the computer ---------- */
+async function aiSubstance2(pl,W,cast1,foes,mine,near){
+  const P=G.p[pl],lv=P.cpu;
+  if(P.tribe==="lucifer"){
+    if(!deluded(pl)&&mana(pl)>=spellCost(SP("ouro"))+1)await cast1("ouro");
+    if(P.ouroRound===G.moon.round||mana(pl)>=8)await cast1("lucifer");
+    if(!G.deconjure&&Math.random()<(lv==="hard"?.25:.12)&&mana(pl)>=6)await cast1("deconj");
+    if(W&&W.atk>1&&Math.random()<.3&&mana(pl)>=5)await cast1("joy");
+  }
+  if(P.tribe==="leviathan"){
+    if(G.moon.i===0)await cast1("lev");
+    if(G.moonLev&&G.moonLev.owner===pl)for(const m of mine)if(m.st.cards.some(c=>kind(c)==="joker"&&(c.captured||[]).length>=2))await cast1("exile",m.r,m.c);
+  }
+  if(P.tribe==="yald"){
+    if(!G.moon.gone&&(G.moon.i===0||G.moon.i===4))await cast1("judge");
+    for(let i=0;i<2&&mana(pl)>=spellCost(SP("hunger"))+1;i++){
+      const t=foes.filter(e=>e.st.cards.some(c=>!(c.unit&&UNIT[c.unit].hp)&&!isBase(c))).sort((a,b)=>AI.value(b.st)-AI.value(a.st))[0];
+      if(!(t?await cast1("hunger",t.r,t.c):await cast1("hunger")))break;
+    }
+    if((P.hunger||0)>=7)await cast1("saturn");
+  }
+  if(P.tribe==="tiph"){
+    for(const m of mine)if(m.st.cards.some(c=>c.unit==="trafficker"&&(c.prisoners||[]).length))await cast1("lifesell",m.r,m.c);
+    if(deluded(pl))await cast1("blindfold");
+  }
+  // anyone may buy at the Auction
+  for(const it of [...(G.auction||[])]){
+    if(it.seller===pl||!G.auction.includes(it))continue;
+    const need=soulOf(it.card)+(it.card.unit?2:0);
+    if(AI.value({cards:[it.card]})>3.5&&mana(pl)>=need+2&&Math.random()<.6){await makeOffer(it,{mana:need});break}
+  }
+}
+async function aiMoonAttack(pl){
+  if(!G.moonLev||G.moon.i!==0||!isEnemy(pl,G.moonLev.owner))return;
+  for(const {st,r,c} of stacksOf(pl)){
+    if(!G.moonLev)return;if(!moonAttackable(st))continue;
+    const D={owner:G.moonLev.owner,cards:[G.moonLev.card]};let w=0;
+    for(let i=0;i<24;i++){if(rollStack(st,"atk",D,null,weaponOf(st)).total>rollStack(D,"def",st,"adv").total)w++}
+    if(w/24>.5){attackMoon(r,c);await sleep(500)}
+  }
+}
+
+/* ---------- symbols ---------- */
+UNIT_ICON.leviathan=`<path d="M-10,6C-6,10 -1,9 1,5C3,1 0,-2 3,-5C6,-8 10,-6 9,-2 M9,-2L11,-1L9,0 M6,-5L7,-9L5,-6 M-10,6C-11,3 -9,1 -7,2C-5,3 -6,6 -3,6C0,6 -1,2 1,0 M-7,2L-8,-1 M-3,6L-3,3"/>`;
+UNIT_ICON.trafficker=`<path d="M-8,-9a3,3 0 1,0 0.1,0Z M-6,-6L-3,-3 M-3,-3a2.5,2.5 0 1,0 0.1,0 M-1,-1L1,1 M1,1a2.5,2.5 0 1,0 0.1,0 M3,3L5,5 M7,7a4,4 0 1,0 0.1,0Z"/>`;
+UNIT_ICON.debt=`<path d="M-8,-10H6L8,-8V10H-8Z M-5,-6H5 M-5,-3H5 M-5,0H2 M-2,4a3,3 0 1,0 0.1,0 M-2,4V7"/>`;
 
 })();
