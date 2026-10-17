@@ -178,6 +178,7 @@ function newGame(opts){
      moon:{i:0,blood:false,round:0},
      noDraw:false,round:0,busy:false,passing:false,lastView:null};
   M.teams.forEach((t,i)=>G.p[i].team=t);
+  for(const P of G.p)if(!P.cpu)P.autoBless=!!(typeof PREF!=="undefined"&&PREF.autoBless);
   if(opts.moon==="off"){G.moon.gone="off";G.moon.i=-1}
   if(opts.moon==="saturn"){G.moon.gone="saturn";G.moon.i=-1;G.saturnBy=null;G.saturnDebt=0}   // Saturn from the start: its favors go to the Bank
   if(["mars","sun","venus","jupiter","mercury"].includes(opts.moon)){G.moon.gone=opts.moon;G.moon.i=-1;G.planetBy=null;G.sunTears=0}
@@ -837,6 +838,7 @@ async function actPhase(pl,ph){
   setActive(pl);G.phase=ph;
   if(G.p[pl].cpu){G.busy=true;render();try{await AI.phase(pl,ph)}catch(e){console.error(e);log("The computer stumbles: "+esc(e.message))}G.busy=false;render();return}
   G.busy=false;render();
+  if(ph==="prep")await autoBlessing(pl);
   await new Promise(res=>{G.waiter=res;startTimer(ph)});
   stopTimer();
 }
@@ -1641,7 +1643,7 @@ function trayHTML(P,pl){
 /* ---------------- UI ---------------- */
 let flashT;
 function flash(t){const f=$("#flash");if(!f)return;f.textContent=t;f.hidden=false;clearTimeout(flashT);flashT=setTimeout(()=>f.hidden=true,2800)}
-function ovShow(html,cls){const o=$("#ov");o.className=cls||"";o.innerHTML=html;o.hidden=false;const f=o.querySelector("button");if(f)f.focus({preventScroll:true})}
+function ovShow(html,cls){const o=$("#ov");o.className=cls||"";o.innerHTML=html;o.hidden=false;const f=o.querySelector("button");if(f)f.focus({preventScroll:true});setTimeout(decorateOv,0)}
 function ovHide(){const o=$("#ov");o.hidden=true;o.className="";o.innerHTML=""}
 const BOXNAME={limbo:"limbo",outer:"outer",ether:"etherbox",plain:""};
 function askHuman(pl,spec){
@@ -1667,11 +1669,11 @@ function askHuman(pl,spec){
   });
 }
 function viewBox(title,cards,box,note,owners){
-  const groups={};
-  if(box==="ether"){for(const c of cards){const k=/^\d+$/.test(c.rank)?(kind(c)==="grunt"?"Grunts (2–6)":"Infantry (7–10)"):KNAME[kind(c)]+"s";(groups[k]=groups[k]||[]).push(c)}}
-  const body=box==="ether"?Object.keys(groups).map(k=>`<h3>${k} <span class="dim">${groups[k].length}</span></h3><div class="pickrow">${(()=>{const by={};for(const c of groups[k]){const key=c.rank+(c.rank==="JK"?c.color:"");(by[key]=by[key]||[]).push(c)}return Object.values(by).sort((a,b)=>num(a[0])-num(b[0])).map(l=>`<span class="ecount">${face(l[0],{owner:null})}<b>×${l.length}</b></span>`).join("")})()}</div>`).join("")
-    :`<div class="pickrow">${cards.length?cards.map(c=>face(c,{owner:owners?c.darkOwner:c.owner})).join(""):'<p class="dim">Empty.</p>'}</div>`;
-  ovShow(`<div class="ovbox ${BOXNAME[box]||""}"><h2>${title}</h2>${note?`<p class="dim">${note}</p>`:""}${body}<p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
+  // every pile reads the same way: grouped by card type, each type sorted, with counts
+  const own=c=>owners?c.darkOwner:c.owner;
+  const groups=pileGroups(cards);
+  const body=cards.length?groups.map(([k,l])=>`<h3>${k} <span class="dim">${l.length}</span></h3><div class="pickrow">${(()=>{const by=new Map();for(const c of l){const key=(c.unit||c.rank)+(c.rank==="JK"?c.color:"")+(c.puppet?"p":"")+(box==="ether"?"":"|"+own(c));if(!by.has(key))by.set(key,[]);by.get(key).push(c)}return [...by.values()].map(x=>`<span class="ecount">${face(x[0],{owner:box==="ether"?null:own(x[0])})}${x.length>1?`<b>×${x.length}</b>`:""}</span>`).join("")})()}</div>`).join(""):'<p class="dim">Empty.</p>';
+  ovShow(`<div class="ovbox wide ${BOXNAME[box]||""}"><h2>${title}</h2>${note?`<p class="dim">${note}</p>`:""}${body}<p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
   $("#mcancel").onclick=ovHide;
 }
 function passScreen(msg){
@@ -1750,7 +1752,7 @@ function render(){
   else if(G.phase==="moon")$("#phases").innerHTML=`<span class="ph-c on"><b>Moon</b><em>${m.i<0?"no moon turns":"the "+MOON[m.i]+" takes effect"}</em></span>`;
   else $("#phases").innerHTML=PHASES.map(([id,n,help])=>`<span class="ph-c ${G.phase===id?"on":""}${id==="draw"&&(G.turnNo===1||G.noDraw)?" skip":""}"><b>${n}</b><em>${help}</em></span>`).join('<i>→</i>');
   const who=me();
-  $("#who").innerHTML=G.over?"Game over.":G.passing?"Passing the device…":who.cpu?`<b>${esc(who.name)}</b> is playing…`:`<b>${esc(who.name)}</b>${G.p.filter(P=>!P.cpu).length>1?"":" (you)"} to play${G.nextLabel==="Ready →"&&G.phase!=="setup"?" · everyone plays this phase together":""}`;
+  $("#who").innerHTML=whoHTML();
   // board: turned so the viewer's side is at the bottom
   const DR=G.rows,DC=COLS;
   const toBoard=(i,j)=>K===0?[i,j]:K===2?[DR-1-i,DC-1-j]:K===1?[j,DC-1-i]:[DR-1-j,i];
@@ -1838,37 +1840,12 @@ function render(){
   if($("#next"))$("#next").onclick=nextPhase;
   $("#snd").onclick=()=>{SND.toggle();render()};
   renderSel(live);
-  renderSpells(live);
+  renderSpells(live);fitSide();
   document.querySelectorAll("[data-hist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.hist,b)});
   wireCorners();wireMoon();wireStatus();
   if(histOpen!=null)fillHist();
   $("#log").innerHTML=G.log.map(l=>`<li class="${l.cls}"${l.pl!=null&&G.p[l.pl]?` style="--pc:${G.p[l.pl].color}"`:""}>${l.t?`<time>${clock(l.t)}</time>`:""}<span class="lt">${l.fog&&!l.fog.seen[view()]&&isEnemy(l.fog.by,view())?l.fog.alt:l.html}</span></li>`).join("");
   mountTimerOff();
-}
-function renderSpells(live){
-  const box=$("#spells");
-  if(survival()&&false)return;
-  const m=G.moon;
-  box.classList.toggle("bloodmoon",!!m.blood);
-  const P=me(),od=G.p[G.active].od;
-  const head=!live?`<p class="dim">${G.passing?"":me().cpu?"The computer is casting.":"Spells are cast during your prep phase."}</p>`:G.phase==="prep"?"":G.opts.atkSpells&&G.phase==="attack"?'<p class="dim">Enchantments, curses and sorcery can be cast now.</p>':'<p class="dim">Spells are cast during the prep phase.</p>';
-  box.innerHTML=head+SCHOOLS.filter(sc=>SPELLS.some(s=>s.school===sc&&(!s.tribe||s.tribe===G.p[view()].tribe))).map(sc=>`<details class="school" data-sc="${sc}" ${(PREF.shut||[]).includes(sc)?"":"open"}><summary>${sc}</summary>`+SPELLS.filter(s=>s.school===sc&&(!s.tribe||s.tribe===G.p[view()].tribe)&&!(survival()&&["forced","double","three","naked"].includes(s.id))).map(s=>{
-    const ok=live&&spellReady(s),cost=spellCost(s);
-    let moon="";if((s.id==="clair"||s.id==="naked")){if(newPrices())moon="moon-dark";else if(fullPrices())moon="moon-bright"}
-    let extra="";
-    if(s.id==="bless"){const aces=stacksOf(G.active).filter(x=>hasK(x.st,"ace")).length,n=Math.min(6,1+aces+G.ritual,blessCap(G.active));extra=`<small class="dc">${n}d6</small>`+(od?`<small class="odpen ${od>6?"big":""}">−${od}d6 max</small>`:"")}
-    const moonPrice=(s.id==="clair"&&(newPrices()||fullPrices()))||(s.id==="naked"&&(newPrices()||fullPrices()));
-    if(s.dice)extra+=`<small class="dc" title="${moonPrice?"moon price this phase":"rolled at the start of this round"}">${moonPrice?"moon":s.dice}</small>`;
-    if(s.id==="bolt"){const b=G.p[G.active].bolts||0;extra+=`<span class="bolts" aria-label="${b} of 3 bolts">${[0,1,2].map(i=>`<i class="${i<b?"f":""}">${unitSVG("bolt",i<b?"#8fd0ff":"#4a5a66",13)}</i>`).join("")}</span>`}
-    if(s.id==="slaves"){const n=(G.p[G.active].thralls||[]).length;extra+=`<span class="chips" aria-label="${n} of 10 thralls">${Array.from({length:10},(_,i)=>`<i class="${i<n?"f":""}">${unitSVG("chip",i<n?"#9fe8b4":"#3d4a40",11)}</i>`).join("")}</span>`}
-    if(s.once)extra+=`<small class="dc once">${G.p[G.active].once&&G.p[G.active].once[s.id]?"used":"once a game"}</small>`;
-    if(s.tribe)extra+=`<small class="dc subtag">${esc(TRIBES[s.tribe].name)}</small>`;
-    const block=spellBlock(s);
-    return `<button class="spell${s.tribe?" subsp":""} ${ok?"":"off"} ${moon} ${s.school==="Necromancy"?"nec":""} ${s.id==="sever"&&P.sevArmed?"armed":""}" data-s="${s.id}" title="${esc(block||s.text)}"><span>${esc(s.name)}${extra}</span><em>${s.id==="hypo"&&!selOwn()?"3+":priceLabel(s)}</em></button>`}).join("")+(sc==="Conjuring"?`<button class="link souls-l" id="showsouls">show available souls</button>${bankBarHTML()}`:"")+"</details>").join("");
-  box.querySelectorAll("details.school").forEach(d=>d.ontoggle=()=>{const sc=d.dataset.sc,S=new Set(PREF.shut||[]);d.open?S.delete(sc):S.add(sc);PREF.shut=[...S];savePrefs()});
-  box.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{if(!canAct())return;cast(SP(b.dataset.s))});
-  if($("#showsouls"))$("#showsouls").onclick=showEther;
-  if($("#openBank"))$("#openBank").onclick=openBank;
 }
 function showEther(){viewBox("The Ether: Souls to Materially Conjure",G.ether,"ether",`${G.ether.length} souls wait in the Ether for a conjuring. Flesh Severance sends exiled souls back here.`)}
 function renderSel(live){
@@ -1974,7 +1951,7 @@ function viewDark(tab){
   if(!tabs.some(t=>t[0]===tab))tab="dark";
   const note={dark:"Nothing here returns. Each card bears the symbol of the player who held it when it fell.",limbo:"Samson is wandering through Limbo. His card does not return from here.",unknown:"Antony went missing. His card does not return from here."}[tab];
   const list=tabs.find(t=>t[0]===tab)[2];
-  ovShow(`<div class="ovbox outer"><h2>The Outer Darkness</h2>${tabs.length>1?`<div class="odtabs">${tabs.map(([k,n,l])=>`<button type="button" class="odtab ${k===tab?"on":""}" data-od="${k}">${n} <b>${l.length}</b></button>`).join("")}</div>`:""}<p class="dim">${note}</p><div class="pickrow">${list.length?list.map(c=>face(c,{owner:tab==="dark"?c.darkOwner:c.owner,cls:c.unit==="satan"?"satan-od":""})).join(""):'<p class="dim">Empty.</p>'}</div><p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
+  ovShow(`<div class="ovbox outer wide"><h2>The Outer Darkness</h2>${tabs.length>1?`<div class="odtabs">${tabs.map(([k,n,l])=>`<button type="button" class="odtab ${k===tab?"on":""}" data-od="${k}">${n} <b>${l.length}</b></button>`).join("")}</div>`:""}<p class="dim">${note}</p>${list.length?pileGroups(list).map(([k,l])=>`<h3>${k} <span class="dim">${l.length}</span></h3><div class="pickrow">${l.map(c=>face(c,{owner:tab==="dark"?c.darkOwner:c.owner,cls:c.unit==="satan"?"satan-od":""})).join("")}</div>`).join(""):'<p class="dim">Empty.</p>'}<p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
   $("#mcancel").onclick=ovHide;
   $("#ov").querySelectorAll("[data-od]").forEach(b=>b.onclick=()=>{const k=b.dataset.od,V=view();if(k==="limbo")G.p[V].readLimbo=true;if(k==="unknown")G.p[V].readUnknown=true;viewDark(k);render()});
 }
@@ -2070,7 +2047,7 @@ function seatForm(i,S,mode,L,taken){taken=taken||new Set();
   let type;
   if(mode==="survival"||mode==="cpu"&&i===0)type=`<span class="dim">${mode==="cpu"?"You":"Human"}</span>`;
   else type=`<label class="f">Plays as <select data-seat="${i}" data-k="type">${(mode==="cpu"?[]:[["human","Human"]]).concat([["easy","Computer · Easy"],["medium","Computer · Medium"],["hard","Computer · Hard"]]).map(([v,t])=>`<option value="${v}" ${S.type===v?"selected":""}>${t}</option>`).join("")}</select></label>`;
-  return `<fieldset class="pf seat" style="--pc:${TRIBES[S.tribe]&&TRIBES[S.tribe].color||S.color}"><legend>Player ${ORD[i]} ${team}</legend>
+  return `<fieldset class="pf seat" style="--pc:${TRIBES[S.tribe]&&TRIBES[S.tribe].color||S.color}"><legend>P${i+1} ${team}</legend>
 <div class="srow"><label class="f">Name <input data-seat="${i}" data-k="name" value="${esc(S.name)}" maxlength="20"></label>${type}</div>
 <details class="look" ${S.type==="human"||tm||S.open?"open":""}><summary>${tm?"Team, Substance, color and symbol":"Substance, color and symbol"}</summary>
 ${tm?`<div class="f"><span>Team</span><div class="opts">${[0,1].map(t=>`<label class="opt"><input type="radio" name="tm${n}" data-seat="${i}" data-k="team" value="${t}" ${S.team===t?"checked":""}><span>${t?"Side B":"Side A"}<small>${t?"Plays against Side A.":"Plays against Side B."} Each side needs two players.</small></span></label>`).join("")}</div></div>`:""}
@@ -2095,7 +2072,7 @@ function showStart(){
     document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{startMode=b.dataset.m;showStart()});return;
   }
   const mode=startMode,M=MODES.find(m=>m[0]===mode);
-  const seatsS=[0,1,2,3].map(i=>({name:mode==="survival"&&i===0?"Survivor":`Player ${ORD[i]}`,type:mode==="survival"||i===0?"human":mode==="cpu"?"medium":"human",
+  const seatsS=[0,1,2,3].map(i=>({name:mode==="survival"&&i===0?"Survivor":`P${i+1}`,type:mode==="survival"||i===0?"human":mode==="cpu"?"medium":"human",
     tribe:i===0?"binah":"random",color:COLORS[SEATCOL[i]][1],solid:SEATSOL[i],team:i%2,named:false}));
   let curLayout=null;
   const counts=mode==="survival"?[1,2,3,4]:[2,3,4];
@@ -2260,8 +2237,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     const used={};
     let players=seatsS.slice(0,n).map((S,i)=>{
       const cpu=S.type==="human"?null:S.type;
-      let name=(S.name.trim()||`Player ${ORD[i]}`).slice(0,20);
-      if(cpu&&!S.named){name=S.tribe==="random"?`Computer ${ORD[i]}`:`The ${TRIBES[S.tribe].name} computer`;used[name]=(used[name]||0)+1;if(used[name]>1)name+=` ${["","","II","III","IV"][used[name]]}`}
+      let name=(S.name.trim()||`P${i+1}`).slice(0,20);
       return{name,tribe:S.tribe,color:S.color,solid:S.solid,cpu};
     });
     const blk=skyBlocked(val("omoonon")),bad=players.find(p=>blk.includes(p.tribe));if(bad){flash(`${TRIBES[bad.tribe].name} can't be played with that planet in the sky.`);return}
@@ -2295,7 +2271,10 @@ window.__EC={get G(){return G},startGame,stackLegal,canPlace,nextPhase,render,AI
   force(o){G.forceMoon=o},jokerSuicide,mk,damage,mkUnit,attack,attackOptions,doMove,seesTile,fogTile,ambushCheck,siegeTurn,siegeEnd,spawnCrystal,spawnBarbarians,meteor,collapse,takeLoan,repay,bankTurn,econRound,effMana:p=>effMana(p),spend,openBank,mysteryGen,skyTurn,firmFog,setPlanet,sunFall,planetTurn,skyAsync,tradeCard,eclipse:k=>eclipse(k),startPeace:(a,b)=>startPeace(a,b),startWar:(a,b)=>startWar(a,b)};
 
 /* ---------------- display preferences, page themes, leave warning, quotes ---------------- */
-const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){}return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:false,full:false,theme:""},p)})();
+const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){}
+  // v20: full width is the default on a computer screen (once; a later choice sticks)
+  if(!p.v20){p.v20=1;if(typeof matchMedia!=="undefined"&&matchMedia("(min-width:901px)").matches)p.full=true}
+  return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:false,full:false,theme:""},p)})();
 function savePrefs(){try{localStorage.setItem("ec-prefs2",JSON.stringify(PREF))}catch(e){}}
 const THEMES={"":["Kenoma",[]],jester:["Jester",["th-black","th-jester"]],ten:["Ten",["th-indigo","th-blue"]],satan:["Disturbed Satan",["th-crimson"]]};
 function applyMoonTheme(){
@@ -2306,16 +2285,22 @@ function applyMoonTheme(){
   else for(const c of THEMES[PREF.theme]?THEMES[PREF.theme][1]:[])h.classList.add(c);
   h.classList.toggle("mirage",!!(G&&G.eclipse&&G.eclipse.k==="sun"&&!G.over));   // the suns aligned: a mirage over the page
   if(window.nwkStatic)window.nwkStatic.level(b?3:1);
+  const st=document.querySelector("button.static-toggle"),bar=$("#gbar");if(st&&bar&&st.parentNode!==bar)bar.appendChild(st);
 }
 /* Text Size scales the words only: every font size in the stylesheets is multiplied, except on cards, stacks and dice */
 const TZ_SKIP=/\.(card|cf|cx|stack|die|pk|cback|ecount|mini|gbar|gctl|gtog)\b|svg|#board \.rl|#gbar/;
 let tzRules=null;
+/* small words grow the most, headings hardly at all, and nothing passes 21px: big text stays readable without breaking panels */
+const tzOf=(orig,f)=>{const m=/^([\d.]+)(px|rem)$/.exec(orig.trim());if(!m)return `calc(${orig} * ${1+(f-1)*.5})`;
+  const base=+m[1]*(m[2]==="rem"?16:1),w=Math.max(0,Math.min(1,(18-base)/8)),v=base*(1+(f-1)*w);
+  return (f>1?Math.min(v,Math.max(base,21)):v).toFixed(2)+"px"};
 function applyTextScale(f){
+  document.body.classList.toggle("bigtext",f>=1.4);
   if(!tzRules){tzRules=[];
     for(const sh of document.styleSheets){let rs;try{rs=sh.cssRules}catch(e){continue}
       const walk=list=>{for(const r of list){if(r.cssRules&&!r.style)walk(r.cssRules);else if(r.style&&r.style.fontSize&&!TZ_SKIP.test(r.selectorText||"")&&/px|rem|vw|vh/.test(r.style.fontSize)&&!/em|%/.test(r.style.fontSize.replace(/rem/g,"")))tzRules.push([r,r.style.fontSize])}};
       walk(rs)}}
-  for(const [r,orig] of tzRules)r.style.fontSize=f===1?orig:`calc(${orig} * ${f})`;
+  for(const [r,orig] of tzRules)r.style.fontSize=f===1?orig:tzOf(orig,f);
 }
 function applyPrefs(){
   const h=document.documentElement;
@@ -2334,20 +2319,20 @@ function applyPrefs(){
   if(bar){$("#ciV").textContent=Math.round(PREF.ci*100)+"%";$("#uiV").textContent=Math.round(PREF.ui*100)+"%";$("#tzV").textContent=Math.round(PREF.tz*100)+"%";
     $("#pHand").textContent="Hand: "+(PREF.hand==="below"?"Under your deck":"Side");$("#pTheme").value=PREF.theme;
     $("#pCoord").textContent="Tile names: "+(PREF.coords?"On":"Off");$("#pCoord").setAttribute("aria-pressed",PREF.coords);
-    $("#pFull").textContent="Page: "+(PREF.full?"Full width":"Standard");$("#pFull").setAttribute("aria-pressed",PREF.full)}
+    $("#pFull").textContent="Page: "+(PREF.full?"Full width":"Standard");$("#pFull").setAttribute("aria-pressed",PREF.full);
+    bar.classList.toggle("open",!!PREF.barOpen);$("#pMore").textContent=PREF.barOpen?"Display ▾":"Display ▴";$("#pMore").setAttribute("aria-expanded",!!PREF.barOpen)}
   applyMoonTheme();
 }
 function mountBar(){
-  const L=document.createElement("div");L.id="gbarL";L.className="gbar";
-  L.innerHTML=`<label>Theme <select id="pTheme">${Object.entries(THEMES).map(([k,[n]])=>`<option value="${k}">${n}</option>`).join("")}</select></label>`;
   const Rb=document.createElement("div");Rb.id="gbar";Rb.className="gbar";
-  Rb.innerHTML=`<span class="gctl">Card Icons <button type="button" data-z="ci" data-d="-1" aria-label="Smaller card icons">−</button><b id="ciV"></b><button type="button" data-z="ci" data-d="1" aria-label="Bigger card icons">+</button></span><span class="gctl">UI Size <button type="button" data-z="ui" data-d="-1" aria-label="Smaller interface">−</button><b id="uiV"></b><button type="button" data-z="ui" data-d="1" aria-label="Bigger interface">+</button></span><span class="gctl">Text Size <button type="button" data-z="tz" data-d="-1" aria-label="Smaller text">−</button><b id="tzV"></b><button type="button" data-z="tz" data-d="1" aria-label="Bigger text">+</button></span><button type="button" id="pHand" class="gtog"></button><button type="button" id="pCoord" class="gtog"></button><button type="button" id="pFull" class="gtog pc-only"></button>`;
-  document.body.append(L,Rb);
+  Rb.innerHTML=`<span id="gmore"><label>Theme <select id="pTheme">${Object.entries(THEMES).map(([k,[n]])=>`<option value="${k}">${n}</option>`).join("")}</select></label><span class="gctl">Card Icons <button type="button" data-z="ci" data-d="-1" aria-label="Smaller card icons">−</button><b id="ciV"></b><button type="button" data-z="ci" data-d="1" aria-label="Bigger card icons">+</button></span><span class="gctl">UI Size <button type="button" data-z="ui" data-d="-1" aria-label="Smaller interface">−</button><b id="uiV"></b><button type="button" data-z="ui" data-d="1" aria-label="Bigger interface">+</button></span><span class="gctl">Text Size <button type="button" data-z="tz" data-d="-1" aria-label="Smaller text">−</button><b id="tzV"></b><button type="button" data-z="tz" data-d="1" aria-label="Bigger text">+</button></span><button type="button" id="pHand" class="gtog"></button><button type="button" id="pCoord" class="gtog"></button><button type="button" id="pFull" class="gtog pc-only"></button></span><button type="button" id="pMore" class="gtog" aria-expanded="false" aria-controls="gmore">Display ▴</button>`;
+  document.body.append(Rb);savePrefs();
   $("#pTheme").onchange=e=>{PREF.theme=e.target.value;savePrefs();applyPrefs()};
   Rb.querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{const k=b.dataset.z,lim=k==="ci"?[.8,1.8]:k==="tz"?[.8,1.8]:[.8,1.4];PREF[k]=Math.round(Math.min(lim[1],Math.max(lim[0],PREF[k]+ +b.dataset.d*.1))*10)/10;savePrefs();applyPrefs()});
   $("#pHand").onclick=()=>{PREF.hand=PREF.hand==="below"?"side":"below";savePrefs();applyPrefs()};
   $("#pCoord").onclick=()=>{PREF.coords=!PREF.coords;savePrefs();applyPrefs();if(G)render()};
   $("#pFull").onclick=()=>{PREF.full=!PREF.full;savePrefs();applyPrefs()};
+  $("#pMore").onclick=()=>{PREF.barOpen=!PREF.barOpen;savePrefs();applyPrefs()};
 }
 /* leaving mid-game asks first */
 const inGame=()=>G&&!G.over;
@@ -2667,7 +2652,8 @@ function popup(title,html,pl){
 function showPop(){
   let el=$("#pop");if(!el){el=document.createElement("div");el.id="pop";document.body.appendChild(el)}
   const q=POPQ[0];el.hidden=false;
-  el.innerHTML=`<div class="popbox" role="alertdialog" aria-labelledby="popt" style="--pc:${q.col}"><h2 id="popt">${esc(q.title)}</h2>${q.html}<p class="acts"><button class="btn" id="popok">Okay</button></p></div>`;
+  el.innerHTML=`<div class="popbox" role="alertdialog" aria-labelledby="popt" style="--pc:${q.col}"><button type="button" class="xclose" aria-label="Close" data-x>×</button><h2 id="popt">${esc(q.title)}</h2>${q.html}<p class="acts"><button class="btn" id="popok">Okay</button></p></div>`;
+  el.querySelector("[data-x]").onclick=()=>$("#popok").click();
   $("#popok").focus({preventScroll:true});
   $("#popok").onclick=()=>{POPQ.shift();if(POPQ.length)showPop();else el.hidden=true};
 }
@@ -3253,7 +3239,8 @@ function pop(html,x,y,cls){
     el.addEventListener("click",e=>e.stopPropagation());
     document.addEventListener("click",()=>{if(!el.hidden&&!el.dataset.hover&&Date.now()-(el._t||0)>350)el.hidden=true});
     document.addEventListener("keydown",e=>{if(e.key==="Escape")el.hidden=true})}
-  el.className=cls||"";el.innerHTML=html;el.hidden=false;delete el.dataset.hover;el._t=Date.now();
+  el.className=cls||"";el.innerHTML=`<button type="button" class="xclose" aria-label="Close">×</button>`+html;el.hidden=false;delete el.dataset.hover;el._t=Date.now();
+  el.querySelector(".xclose").onclick=()=>{el.hidden=true};
   const w=Math.min(380,innerWidth-20);el.style.width=w+"px";
   el.style.left=Math.max(10,Math.min(x,innerWidth-w-10))+scrollX+"px";el.style.top=y+scrollY+8+"px";
   return el;
@@ -3371,7 +3358,7 @@ function openMenu(){
   if(!G)return;G.paused=true;
   let m=$("#menu");if(!m){m=document.createElement("div");m.id="menu";document.body.appendChild(m)}
   const sel=(id,label,opts,cur)=>`<label class="f">${label} <select id="${id}">${opts.map(([v,t])=>`<option value="${v}" ${v===cur?"selected":""}>${t}</option>`).join("")}</select></label>`;
-  m.innerHTML=`<div class="ovbox"><h2>Paused</h2><p class="dim">The game waits while this menu is open. These settings change how the table looks, not the rules.</p>
+  m.innerHTML=`<div class="ovbox"><button type="button" class="xclose" id="mX" aria-label="Resume">×</button><h2>Paused</h2><p class="dim">The game waits while this menu is open. These settings change how the table looks, not the rules.</p>
 <div class="mgrid">
 ${sel("mTheme","Page theme",Object.entries(THEMES).map(([k,[n]])=>[k,n]),PREF.theme)}
 ${sel("mHand","Your hand",[["below","Under your deck and mana"],["side","Beside the field"]],PREF.hand)}
@@ -3393,7 +3380,7 @@ ${+G.opts.timer?`<p><button class="btn ghost" id="mTimer">Turn the phase timer o
   $("#mSpeed").onchange=e=>{G.opts.cpuSpeed=e.target.value};$("#mSnd").onchange=e=>{if((e.target.value==="on")!==SND.on)SND.toggle();render()};
   m.querySelectorAll("[data-mz]").forEach(b=>b.onclick=()=>{const k=b.dataset.mz,lim=k==="ui"?[.8,1.4]:[.8,1.8];PREF[k]=Math.round(Math.min(lim[1],Math.max(lim[0],PREF[k]+ +b.dataset.d*.1))*10)/10;$("#mz"+k).textContent=Math.round(PREF[k]*100)+"%";upd()});
   if($("#mTimer"))$("#mTimer").onclick=()=>{G.opts.timer=0;stopTimer();log("The phase timer is switched off for the rest of the game.","event");$("#mTimer").remove()};
-  $("#mResume").onclick=closeMenu;
+  $("#mResume").onclick=closeMenu;$("#mX").onclick=closeMenu;
 }
 function closeMenu(){const m=$("#menu");if(m)m.hidden=true;if(G){G.paused=false;render()}}
 
@@ -4000,11 +3987,11 @@ function openBank(){
   const notes=[];if(B.dead)notes.push("The Banker is dead: the Bank and the Ether are closed.");if(B.angry)notes.push("The Banker is angry about the Barbarians holding the middle: every price +1.");
   if(B.mana<0&&!B.dead)notes.push("The Bank is in the red: everything in the Ether costs 1 less.");const up=Object.keys(B.upsell);if(up.length)notes.push(`Upsold this round: ${up.map(id=>SP(id)?SP(id).name:id).join(", ")}.`);
   if(G.inflation&&G.turnNo<=G.inflation.until)notes.push(`After the collapse, prices wobble up until turn ${G.inflation.until}.`);
-  ovShow(`<div class="ovbox bank"><h2>The Bank</h2><div class="bankhead"><span class="banker">${unitSVG("banker","#15100b",56)}</span><div><b>The Banker</b> holds <b>${B.mana}</b> mana.${B.owes.length?` It owes ${B.owes.map(o=>`${plName(o.to)} ${o.owed}`).join(", ")}.`:""}<br><span class="dim">Spell mana goes to the Bank, and it can only lend what it holds.</span>${notes.length?`<p class="bnote">${notes.join("<br>")}</p>`:""}</div></div>
+  ovShow(`<div class="ovbox bank wide"><h2>The Bank</h2><div class="bankhead"><span class="banker">${unitSVG("banker","#15100b",56)}</span><div><b>The Banker</b> holds <b>${B.mana}</b> mana.${B.owes.length?` It owes ${B.owes.map(o=>`${plName(o.to)} ${o.owed}`).join(", ")}.`:""}<br><span class="dim">Spell mana goes to the Bank, and it can only lend what it holds.</span>${notes.length?`<p class="bnote">${notes.join("<br>")}</p>`:""}</div></div>
 <dl class="bstat"><dt>Your mana</dt><dd class="${e<0?"neg":""}">${e}/${soulCap(V)} · you lose below ${floorOf(V)}</dd><dt>Loans</dt><dd>${loans?`<ul>${loans}</ul>`:"none"}</dd></dl>
 ${live&&!B.dead?`<div class="bacts">
-<p><label>Borrow <select id="bLoan">${Array.from({length:lim},(_,i)=>`<option>${i+1}</option>`).join("")}</select> mana</label> <button class="btn sm" id="bLoanBtn" ${lim?"":"disabled"}>Take the loan</button> <small class="dim">${Math.round(loanRate(V)*100)}% every 1d2 turns, due in 4 turns; what isn't paid then becomes mana debt.${e<0?" Below zero: six at most (five at −"+soulCap(V)+", at 30%).":""}</small></p>
-<p><label>Repay <select id="bPay">${Array.from({length:Math.min(mana(V),owed)},(_,i)=>`<option>${i+1}</option>`).join("")}</select> mana</label> <button class="btn sm" id="bPayBtn" ${Math.min(mana(V),owed)?"":"disabled"}>Pay</button></p>
+<p><label class="${lim?"":"off"}">Borrow <select id="bLoan" ${lim?"":"disabled"}>${lim?Array.from({length:lim},(_,i)=>`<option>${i+1}</option>`).join(""):"<option>—</option>"}</select> mana</label> <button class="btn sm" id="bLoanBtn" ${lim?"":"disabled"}>Take the loan</button> <small class="dim">${Math.round(loanRate(V)*100)}% every 1d2 turns, due in 4 turns; what isn't paid then becomes mana debt.${e<0?" Below zero: six at most (five at −"+soulCap(V)+", at 30%).":""}</small></p>
+<p><label class="${Math.min(mana(V),owed)?"":"off"}">Repay <select id="bPay" ${Math.min(mana(V),owed)?"":"disabled"}>${Math.min(mana(V),owed)?Array.from({length:Math.min(mana(V),owed)},(_,i)=>`<option>${i+1}</option>`).join(""):"<option>—</option>"}</select> mana</label> <button class="btn sm" id="bPayBtn" ${Math.min(mana(V),owed)?"":"disabled"}>Pay</button></p>
 <p><label><input type="checkbox" id="bCredit" ${P.credit?"checked":""}> Spend on credit</label> <small class="dim">Spells you can't afford are paid by the Bank and become mana debt, down to ${floorOf(V)}. Every soul you gain pays the debt first.</small></p>
 <p><button class="btn ghost sm" id="bSell">Sell cards from your hand or deck</button>${P.tribe==="binah"&&(P.thralls||[]).length?` <button class="btn ghost sm" id="bThrall">Sell a thrall (1 mana)</button>`:""}</p></div>`:`<p class="dim">${B.dead?"":"Bank business is done in your own prep phase."}</p>`}
 <p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
@@ -4694,5 +4681,146 @@ async function aiMercury(pl,W,cast1){
 }
 /* Yaldabaoth choking on an eclipsed Sun: no sight and no hold on his troops this round and the next */
 const choked=pl=>!!(G&&G.p[pl]&&G.p[pl].choke!=null&&G.moon.round<=G.p[pl].choke);
+
+/* ---------------- UI pass 1 (v20): the play screen fits the window ----------------
+   The spell list lives in its own scroll box with the Bank on top; conjuring moved into the Ether shop; Grave Blessing can
+   cast itself; every window has an X; card info shows on hovering a card's corner; hover tips (tap tips on touch). */
+
+/* ---------- the spell list ---------- */
+const ETHER_SHOP=[
+  ["Standard",[["cs","Soldier","a random 2 to 10"],["carch","Archer"],["ccan","Cannon"]]],
+  ["Special",[["cj","Jack"],["cq","Queen"],["ck","King"],["cjk","Joker"],["cas","Assassin"]]],
+  ["Support",[["csc","Scout"],["cmine","Miner"],["crep","Repairman"],["cram","Battering Ram"],["cheal","Healer"]]],
+  ["Base",[["ca","Ace"],["cwall","Wall"]]]];
+const ETHER_IDS=new Set(ETHER_SHOP.flatMap(([,l])=>l.map(x=>x[0])));
+const ETHER_KIND={cs:"soldier",carch:"archer",ccan:"cannon",cj:"jack",cq:"queen",ck:"king",cjk:"joker",cas:"assassin",csc:"scout",cmine:"miner",crep:"repair",cram:"ram",cheal:"healer",ca:"ace",cwall:"wall"};
+const etherLeft=id=>{const k=ETHER_KIND[id];return G.ether.filter(c=>k==="soldier"?/^\d+$/.test(c.rank):c.unit?c.unit===k:kind(c)===k).length};
+SP("maxmana").name="Increase Max Mana";
+
+function spellRow(s,live){
+  const P=me(),od=G.p[G.active].od,ok=live&&spellReady(s),cost=spellCost(s);
+  let moon="";if(s.id==="clair"||s.id==="naked"){if(newPrices())moon="moon-dark";else if(fullPrices())moon="moon-bright"}
+  let extra="";
+  if(s.id==="bless"){const aces=stacksOf(G.active).filter(x=>hasK(x.st,"ace")).length,n=Math.min(6,1+aces+G.ritual,blessCap(G.active));extra=`<small class="dc">${n}d6</small>`+(od?`<small class="odpen ${od>6?"big":""}">−${od}d6 max</small>`:"")}
+  const moonPrice=(s.id==="clair"||s.id==="naked")&&(newPrices()||fullPrices());
+  if(s.dice)extra+=`<small class="dc">${moonPrice?"moon":s.dice}</small>`;
+  if(s.id==="bolt"){const b=G.p[G.active].bolts||0;extra+=`<span class="bolts" aria-label="${b} of 3 bolts">${[0,1,2].map(i=>`<i class="${i<b?"f":""}">${unitSVG("bolt",i<b?"#8fd0ff":"#4a5a66",13)}</i>`).join("")}</span>`}
+  if(s.id==="slaves"){const n=(G.p[G.active].thralls||[]).length;extra+=`<span class="chips" aria-label="${n} of 10 thralls">${Array.from({length:10},(_,i)=>`<i class="${i<n?"f":""}">${unitSVG("chip",i<n?"#9fe8b4":"#3d4a40",11)}</i>`).join("")}</span>`}
+  if(s.once)extra+=`<small class="dc once">${G.p[G.active].once&&G.p[G.active].once[s.id]?"used":"once"}</small>`;
+  const block=spellBlock(s);
+  const btn=`<button class="spell${s.tribe?" subsp":""} ${ok?"":"off"} ${moon} ${s.school==="Necromancy"?"nec":""} ${s.id==="sever"&&P.sevArmed?"armed":""}" data-s="${s.id}" data-tip="${esc(block||s.text)}"><span class="sn">${esc(s.name)}${extra}</span><em>${s.id==="hypo"&&!selOwn()?"3+":cost?cost+" mana":"free"}</em></button>`;
+  if(s.id!=="bless")return btn;
+  const on=!!G.p[view()].autoBless;
+  return `<div class="spellrow"><button type="button" class="autotog${on?" on":""}" id="autoBless" aria-pressed="${on}" data-tip="Cast Grave Blessing for you at the start of every prep phase.">${on?"auto":"auto"}</button>${btn}</div>`;
+}
+function renderSpells(live){
+  const box=$("#spells");if(!box)return;
+  box.classList.toggle("bloodmoon",!!G.moon.blood);
+  const V=G.p[view()],keep=box.scrollTop;
+  const mine=s=>(!s.tribe||s.tribe===V.tribe)&&!ETHER_IDS.has(s.id)&&!(survival()&&["forced","double","three","naked"].includes(s.id));
+  const head=!live?`<p class="dim sp-note">${G.passing?"":me().cpu?`${esc(me().name)} is casting.`:"Spells are cast in your prep phase."}</p>`:G.phase==="prep"?"":G.opts.atkSpells&&G.phase==="attack"?'<p class="dim sp-note">Enchantments, curses, sorcery and illusions can be cast now.</p>':'<p class="dim sp-note">Spells are cast in your prep phase.</p>';
+  const byPrice=(a,b)=>spellCost(a)-spellCost(b)||a.name.localeCompare(b.name);
+  box.innerHTML=head+SCHOOLS.filter(sc=>sc==="Conjuring"||SPELLS.some(s=>s.school===sc&&mine(s))).map(sc=>{
+    let list=SPELLS.filter(s=>s.school===sc&&mine(s));
+    let pinned="";
+    if(sc==="Conjuring"){const mx=list.find(s=>s.id==="maxmana");list=list.filter(s=>s.id!=="maxmana");
+      const blk=SPELLS.filter(s=>ETHER_IDS.has(s.id)).map(spellBlock).find(Boolean)||"";
+      pinned=`<button class="spell ether ${live&&!blk?"":"off"}" id="openEther" data-tip="${esc(blk||"Open the Ether: every card you can conjure into your deck, by type, cheapest first.")}"><span class="sn">Ether<small class="dc">${G.ether.length} souls</small></span><em>shop ›</em></button>`+(mx?spellRow(mx,live):"")}
+    list.sort(byPrice);
+    return `<details class="school" data-sc="${sc}" ${(PREF.shut||[]).includes(sc)?"":"open"}><summary>${sc}</summary>${pinned}${list.map(s=>spellRow(s,live)).join("")}</details>`}).join("");
+  box.scrollTop=keep;
+  box.querySelectorAll("details.school").forEach(d=>d.ontoggle=()=>{const sc=d.dataset.sc,S=new Set(PREF.shut||[]);d.open?S.delete(sc):S.add(sc);PREF.shut=[...S];savePrefs()});
+  box.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{if(!canAct())return;cast(SP(b.dataset.s))});
+  if($("#openEther"))$("#openEther").onclick=()=>openEtherShop();
+  if($("#autoBless"))$("#autoBless").onclick=e=>{e.stopPropagation();const Q=G.p[view()];Q.autoBless=!Q.autoBless;PREF.autoBless=Q.autoBless;savePrefs();render()};
+  const bs=$("#bankslot");if(bs){bs.innerHTML=bankBarHTML();if($("#openBank"))$("#openBank").onclick=openBank}
+  if(etherOpen())fillEther();
+}
+/* Grave Blessing on its own, at the start of a person's prep phase */
+async function autoBlessing(pl){const P=G.p[pl];if(!P||P.cpu||!P.autoBless)return;const sp=SP("bless");if(spellReady(sp))await cast(sp)}
+
+/* ---------- the Ether shop: a panel on the right ---------- */
+const etherOpen=()=>{const e=$("#etherpanel");return !!e&&!e.hidden};
+function openEtherShop(){let e=$("#etherpanel");
+  if(!e){e=document.createElement("aside");e.id="etherpanel";e.className="drawer";e.setAttribute("aria-label","The Ether");document.body.appendChild(e);
+    document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&etherOpen())closeEther()})}
+  e.hidden=false;fillEther();}
+function closeEther(){const e=$("#etherpanel");if(e)e.hidden=true}
+function fillEther(){
+  const e=$("#etherpanel");if(!e||!G)return;const live=canAct()&&G.phase==="prep",keep=e.querySelector(".dbody")?e.querySelector(".dbody").scrollTop:0;
+  const blk=SPELLS.filter(s=>ETHER_IDS.has(s.id)).map(spellBlock).find(Boolean)||"";
+  const rows=ETHER_SHOP.map(([cat,items])=>{
+    const its=items.map(([id,nm,sub])=>({id,nm,sub,sp:SP(id),left:etherLeft(id)})).filter(x=>x.sp).sort((a,b)=>spellCost(a.sp)-spellCost(b.sp)||a.nm.localeCompare(b.nm));
+    return `<h3>${cat}</h3>${its.map(x=>{const c=spellCost(x.sp),ok=live&&!blk&&x.left>0&&spellReady(x.sp);
+      return `<button class="spell eitem ${ok?"":"off"}" data-buy="${x.id}" data-tip="${esc(x.sp.text)}"><span class="sn">${esc(x.nm)}${x.sp.dice?`<small class="dc">${x.sp.dice}</small>`:""}<small class="left">${x.left?x.left+" left":"none left"}</small></span><em>${c?c+" mana":"free"}</em></button>`}).join("")}`}).join("");
+  e.innerHTML=`<div class="dhead"><h2>The Ether</h2><button type="button" class="xclose" aria-label="Close the Ether">×</button></div>
+<p class="dnote">${blk?esc(blk):live?"Conjure a card's soul into your deck. Dice prices are rolled each round.":"You can conjure in your own prep phase."}</p>
+<div class="dbody scrollbox">${rows}<p class="dfoot"><button class="link" id="etherSouls">See every soul in the Ether (${G.ether.length})</button></p></div>`;
+  e.querySelector(".dbody").scrollTop=keep;
+  e.querySelector(".xclose").onclick=closeEther;
+  $("#etherSouls").onclick=showEther;
+  e.querySelectorAll("[data-buy]").forEach(b=>b.onclick=async()=>{if(!canAct())return;await cast(SP(b.dataset.buy));fillEther()});
+}
+
+/* ---------- the status line under the phases ---------- */
+function whoHTML(){
+  if(G.over)return `<span class="sl-k">Game</span> Over.`;
+  if(G.passing)return `<span class="sl-k">Turn</span> Passing the device…`;
+  const P=me(),many=G.p.filter(Q=>!Q.cpu).length>1,rn=G.moon.round||1;
+  const ph=G.phase==="setup"?"Setup":G.phase==="moon"?"The sky turns":({draw:"Draw phase",prep:"Prep phase",attack:"Attack phase"})[G.phase]||"";
+  const shared=G.nextLabel==="Ready →"&&G.phase!=="setup"&&G.phase!=="moon";
+  const whoTxt=P.cpu?`<b>${esc(P.name)}</b> is playing…`:many?`<b>${esc(P.name)}</b>'s turn`:`<b>Your turn</b>`;
+  return `<span class="sl-k">Round ${rn}</span>${whoTxt}<span class="sl-sep">·</span>${ph}${shared?`<span class="sl-chip" data-tip="Every player takes this phase at the same time. Press Ready when you're done.">Shared phase</span>`:""}`;
+}
+
+/* ---------- windows: an X on every box that can be closed ---------- */
+function addCloseX(root,trigger){if(!root||root.querySelector(":scope > .xclose"))return;const b=document.createElement("button");b.type="button";b.className="xclose";b.setAttribute("aria-label","Close");b.textContent="×";b.onclick=()=>{const t=trigger();if(t)t.click()};root.prepend(b)}
+function decorateOv(){const o=$("#ov");if(!o||o.hidden)return;const box=o.querySelector(".ovbox");if(!box)return;
+  const t=()=>box.querySelector("#mcancel")||box.querySelector("[data-close]");if(t())addCloseX(box,t)}
+
+/* ---------- tips: hover on a computer, tap (with an X) on a touch screen ---------- */
+let tipT=0;
+function tipBox(){let t=$("#tipbox");if(!t){t=document.createElement("div");t.id="tipbox";t.setAttribute("role","tooltip");t.hidden=true;document.body.appendChild(t);
+  t.addEventListener("click",e=>{if(e.target.closest(".xclose"))t.hidden=true;e.stopPropagation()})}return t}
+function showTip(el,pinned){const txt=el.dataset.tip;if(!txt)return;const t=tipBox();
+  t.innerHTML=(pinned?`<button type="button" class="xclose" aria-label="Close">×</button>`:"")+`<p>${esc(txt)}</p>`;t.hidden=false;t.classList.toggle("pinned",!!pinned);
+  const r=el.getBoundingClientRect(),w=Math.min(340,innerWidth-20);t.style.width=w+"px";
+  let x=r.left,y=r.bottom+6;if(x+w>innerWidth-10)x=innerWidth-w-10;t.style.left=Math.max(10,x)+scrollX+"px";t.style.top=y+scrollY+"px";
+  const th=t.offsetHeight;if(r.bottom+6+th>innerHeight&&r.top-th-6>0)t.style.top=r.top-th-6+scrollY+"px"}
+const touchy=()=>matchMedia("(hover: none)").matches;
+document.addEventListener("pointerover",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip]");if(!el)return;clearTimeout(tipT);tipT=setTimeout(()=>showTip(el,false),260)});
+document.addEventListener("pointerout",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip]");if(!el)return;clearTimeout(tipT);const t=$("#tipbox");if(t&&!t.classList.contains("pinned"))t.hidden=true});
+/* on touch, a long press shows the tip with an X instead of acting */
+let lpT=0,lpFired=false;
+document.addEventListener("touchstart",e=>{const el=e.target.closest&&e.target.closest("[data-tip]");if(!el)return;lpFired=false;clearTimeout(lpT);lpT=setTimeout(()=>{lpFired=true;showTip(el,true)},450)},{passive:true});
+document.addEventListener("touchend",e=>{clearTimeout(lpT);if(lpFired){e.preventDefault();lpFired=false}});
+document.addEventListener("touchmove",()=>clearTimeout(lpT),{passive:true});
+document.addEventListener("click",e=>{if(!touchy())return;const el=e.target.closest&&e.target.closest("[data-tip]");if(!el||el.closest("button"))return;showTip(el,true);e.stopPropagation()});
+document.addEventListener("click",e=>{const t=$("#tipbox");if(t&&!t.hidden&&!e.target.closest("#tipbox")&&!(e.target.closest&&e.target.closest("[data-tip]")))t.hidden=true});
+/* piles (grave, Ether, Outer Darkness) grouped the way the shop is: by card type */
+const PILE_ORDER=["Standard","Special","Support","Base","Wildcard","Barbarian"];
+function pileGroups(cards){const g={};for(const c of cards){let k=cardClass(c);if(k==="Barbarian")k="Standard";(g[k]=g[k]||[]).push(c)}
+  const rk=c=>c.unit?100+Object.keys(UNIT).indexOf(c.unit):c.rank==="JK"?60:({J:51,Q:52,K:53,A:54}[c.rank]||num(c));
+  return PILE_ORDER.filter(k=>g[k]).map(k=>[k,g[k].sort((a,b)=>rk(a)-rk(b))])}
+/* ---------- card info: rest the mouse on a card's top-right corner (no click); tap it on a touch screen ---------- */
+let ciT=0,ciEl=null;
+function cornerInfo(t){const r=t.getBoundingClientRect();let html="";
+  if(t.closest("#board")){const src=stackAtTile(t.closest(".tile"));if(!src)return null;html=infoHTML1(src.st,stackTitle(src.st,src.r,src.c))}
+  else{const c=cardById(+t.dataset.cid);if(!c)return null;html=infoHTML1({cards:[c],owner:c.owner},nameOf(c))}
+  return pop(html,r.right+4,r.top-8,"info")}
+document.addEventListener("pointerover",e=>{if(e.pointerType!=="mouse"||!G)return;const t=e.target.closest&&e.target.closest(".ci");if(!t||t===ciEl)return;
+  ciEl=t;clearTimeout(ciT);ciT=setTimeout(()=>{if(ciEl!==t)return;const el=cornerInfo(t);if(el)el.dataset.hover="1"},140)});
+document.addEventListener("pointerout",e=>{if(e.pointerType!=="mouse")return;const t=e.target.closest&&e.target.closest(".ci");if(!t)return;
+  const to=e.relatedTarget;if(to&&(t.contains(to)||(to.closest&&to.closest("#cinfo"))))return;
+  ciEl=null;clearTimeout(ciT);const p=$("#cinfo");if(p&&p.dataset.hover)p.hidden=true});
+document.addEventListener("pointerout",e=>{if(e.pointerType!=="mouse")return;const p=e.target.closest&&e.target.closest("#cinfo");if(!p||!p.dataset.hover)return;
+  const to=e.relatedTarget;if(to&&(p.contains(to)||(to.closest&&to.closest(".ci"))))return;p.hidden=true;ciEl=null});
+/* ---------- the right column always ends at the bottom of the window, so Selected is never below the fold ---------- */
+function fitSide(){const g=document.querySelector(".gside");if(!g)return;
+  if(innerWidth<=900){g.style.maxHeight="";g.style.height="";return}
+  const z=+PREF.ui||1,top=g.parentNode.getBoundingClientRect().top,bar=56;
+  const h=Math.max(250,innerHeight-Math.max(8,top)-bar);g.style.height=g.style.maxHeight=h/z+"px"}
+addEventListener("scroll",()=>requestAnimationFrame(fitSide),{passive:true});
+addEventListener("resize",fitSide);
 
 })();

@@ -3,7 +3,7 @@
 .game h1{margin-bottom:4px}
 .gtop{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px 18px;align-items:center;border-top:1px solid #000;border-bottom:1px solid #000;padding:8px 0;margin:14px 0 18px}
 #controls{grid-column:1/-1}
-.ecount{position:relative;display:inline-block}.ecount b{position:absolute;right:-4px;top:-6px;font-size:10px;font-weight:400;color:#000;background:#d6d6ea;padding:0 4px;line-height:1.5}
+.ecount{position:relative;display:inline-block}.ecount>b{position:absolute;right:-4px;top:-6px;font-size:10px;font-weight:400;color:#000;background:#d6d6ea;padding:0 4px;line-height:1.5}
 #phases{display:flex;flex-wrap:wrap;align-items:center;gap:4px 0;min-width:0}
 #phases i{font-style:normal;margin:0 8px;color:var(--rule)}
 .ph-c{display:inline-flex;flex-direction:column;line-height:1.25;color:var(--dim)}
@@ -612,3 +612,118 @@ html.mirage body::before{content:"";position:fixed;inset:-10%;z-index:0;pointer-
 html.mirage #board .mapbg{filter:brightness(.7) hue-rotate(-12deg)}
 @keyframes mirage{from{transform:translateY(0) skewX(0deg)}to{transform:translateY(6px) skewX(.6deg)}}
 @media (prefers-reduced-motion:reduce){html.mirage body::before{animation:none}}
+/* ================= v20 · UI pass 1: the play screen fits the window ================= */
+/* themed scrollbars everywhere in the game */
+.game *,.ovbox,.ovbox *,#etherpanel *,#menu *{scrollbar-width:thin;scrollbar-color:#8a6a2c #0c0805}
+.scrollbox::-webkit-scrollbar,.ovbox::-webkit-scrollbar,.drawer ::-webkit-scrollbar{width:9px;height:9px}
+.scrollbox::-webkit-scrollbar-track,.ovbox::-webkit-scrollbar-track,.drawer ::-webkit-scrollbar-track{background:#0c0805;border-left:1px solid #000}
+.scrollbox::-webkit-scrollbar-thumb,.ovbox::-webkit-scrollbar-thumb,.drawer ::-webkit-scrollbar-thumb{background:#6e5323;border:1px solid #000;border-radius:5px}
+.scrollbox::-webkit-scrollbar-thumb:hover,.ovbox::-webkit-scrollbar-thumb:hover,.drawer ::-webkit-scrollbar-thumb:hover{background:var(--amber)}
+.scrollbox{overflow-y:auto;overscroll-behavior:contain}
+/* a shorter head on the play page */
+.game>header{display:flex;align-items:baseline;gap:14px;margin:4px 0 0}
+.game>header h1{margin:0;font-size:clamp(22px,2.3vw,30px)}
+.game .crumbs{margin-bottom:4px}
+.gtop{margin:8px 0 12px;padding:6px 0}
+.gtop .gmid{min-width:0}
+/* the status line: who is playing, and what kind of phase it is, on its own row */
+#who.statusline{grid-column:1/-1;order:9;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:0;padding-top:6px;border-top:1px solid #00000080;font-size:13px;color:var(--dim)}
+#who .sl-k{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber)}
+#who b{color:var(--text);font-weight:400}
+#who .sl-sep{color:var(--rule)}
+#who .sl-chip{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#000;background:var(--amber);padding:1px 7px;cursor:help}
+/* the right column stays in view and holds the Bank, the spells and the selected stack */
+@media (min-width:901px){
+  .glayout{grid-template-columns:minmax(0,1fr) clamp(320px,27vw,460px)}
+  .gside{position:sticky;top:8px;display:flex;flex-direction:column;max-height:calc(100vh / var(--uiz,1) - 64px);min-height:420px}
+  .gside>div{margin-bottom:12px}
+  .gside .spellpanel{flex:1 1 auto;min-height:180px;display:flex;flex-direction:column;margin-bottom:10px}
+  .gside .spellpanel #spells{flex:1 1 auto;min-height:0;padding-right:6px}
+  .gside #seltop,.gside #selbottom{flex:0 1 auto;min-height:0;display:flex;flex-direction:column;max-height:48%;margin-bottom:0}
+  .gside #seltop:empty,.gside #selbottom:empty{display:none}
+  .gside #selwrap{display:flex;flex-direction:column;min-height:0;margin-top:0!important}
+  .gside #selbox{flex:1 1 auto;min-height:0;padding-right:6px}
+  .gside #sidehand:not(:has(#handwrap)){display:none}
+  .gside #sidehand{flex:none;max-height:34%;overflow:auto}
+}
+.gside{user-select:none;-webkit-user-select:none}
+#bankslot .bankbar{margin:0 0 8px}
+#bankslot:empty{display:none}
+.spellpanel #spells>.sp-note{margin:0 0 6px;font-size:12.5px}
+/* spells: one row each; the Ether button and Increase Max Mana lead Conjuring */
+.spellrow{display:flex;gap:4px;align-items:stretch;margin:0 0 4px}
+.spellrow .spell{margin:0;flex:1 1 auto;min-width:0}
+.autotog{flex:none;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;background:var(--deep);color:var(--dim);border:1px solid var(--rule);padding:0 7px;cursor:pointer}
+.autotog:hover{border-color:var(--amber);color:var(--amber)}
+.autotog.on{background:var(--amber);border-color:var(--amber);color:#000}
+.spell .sn{min-width:0}
+.spell.ether{border-color:#d6d6ea66;background:linear-gradient(90deg,#14132a,#0b0a1a);color:#eeeef4}
+.spell.ether em{color:#d6d6ea}
+.spell.ether:hover{border-color:#d6d6ea}
+.spell.ether.off{opacity:.6}
+/* the Ether shop: a tall panel on the right side of the window */
+#etherpanel{position:fixed;top:0;right:0;bottom:0;z-index:70;width:min(400px,92vw);display:flex;flex-direction:column;background:#0b0a1a;border-left:1px solid #d6d6ea;box-shadow:-12px 0 40px #000c;color:#eeeef4;padding:14px 0 0}
+#etherpanel[hidden]{display:none}
+#etherpanel .dhead{display:flex;align-items:center;justify-content:space-between;padding:0 16px 6px;border-bottom:1px solid #d6d6ea33}
+#etherpanel h2{margin:0;font-size:20px;color:#fff}
+#etherpanel .dnote{margin:8px 16px 6px;font-size:12.5px;color:#a9a8c2;line-height:1.45}
+#etherpanel .dbody{flex:1 1 auto;min-height:0;padding:0 12px 70px 16px}
+#etherpanel h3{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#a9a8c2;margin:14px 0 6px;border-bottom:1px solid #d6d6ea22;padding-bottom:3px;font-weight:200}
+#etherpanel .spell{background:#14132a;border-color:#3b3a5c;color:#eeeef4}
+#etherpanel .spell em{color:#e6d38a}
+#etherpanel .spell:hover{border-color:#d6d6ea}
+#etherpanel .spell small.left{margin-left:8px;font-size:10.5px;color:#a9a8c2}
+#etherpanel .dfoot{margin:14px 0 0;font-size:12.5px}
+#etherpanel .dfoot .link{color:#d6d6ea}
+#etherpanel .dbody::-webkit-scrollbar-thumb{background:#4a4870}
+/* an X on every window */
+.xclose{position:absolute;top:6px;right:8px;z-index:5;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font:300 22px/1 var(--mono);color:var(--dim);background:transparent;border:1px solid transparent;cursor:pointer;padding:0}
+.xclose:hover,.xclose:focus-visible{color:var(--amber-hi);border-color:var(--rule);outline:none}
+#etherpanel .xclose{position:static;color:#d6d6ea}
+.ovbox>h2,#menu .ovbox>h2,#pop .popbox>h2{padding-right:30px}
+#cinfo .xclose{top:2px;right:2px;width:22px;height:22px;font-size:18px}
+#cinfo[data-hover] .xclose{display:none}
+#cinfo{padding-right:26px}
+#cinfo[data-hover]{padding-right:10px}
+#menu .ovbox{position:relative}
+/* tips: on hover (computer) or a long press (touch) */
+#tipbox{position:absolute;z-index:140;max-width:calc(100vw - 20px);background:rgba(8,6,4,.96);border:1px solid var(--amber);box-shadow:0 8px 26px #000c;padding:8px 12px;font-size:13px;line-height:1.5;color:var(--text);pointer-events:none}
+#tipbox.pinned{pointer-events:auto;padding-right:34px}
+#tipbox[hidden]{display:none}
+#tipbox p{margin:0}
+/* the card corner: a bigger target that shows the info when the mouse rests on it */
+.cf .ci,.stack .ci{width:clamp(16px,30%,28px);height:clamp(16px,30%,28px)}
+.cf .ci::before,.stack .ci::before{width:10px;height:10px}
+.cf .ci:hover,.stack .ci:hover{background:radial-gradient(circle at 100% 0,#ffffff55,transparent 70%)}
+/* one bar at the bottom: Theme, sizes, and the static switch */
+#gbar{left:auto;right:max(10px,env(safe-area-inset-right,0px));max-width:calc(100vw - 20px);justify-content:flex-end}
+#gbar .static-toggle{position:static;font-size:12px;padding:2px 8px;background:transparent}
+body:has(.game){padding-bottom:52px}
+/* the Bank: wider, and its pickers fade when there is nothing to pick */
+.ovbox.bank.wide{max-width:min(1000px,calc(96vw / var(--uiz,1)))}
+.ovbox.bank .bacts label.off{opacity:.42}
+.ovbox.bank select:disabled{opacity:.6;cursor:not-allowed}
+.ovbox.bank .bacts p{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+/* big text: grids of label and value stack instead of squeezing */
+body.bigtext #menu .mgrid label.f{min-width:min(100%,260px)}
+#menu .mgrid label.f{flex:1 1 220px}
+#menu .ovbox{max-height:92vh;overflow:auto}
+body.bigtext .pbox .stats{gap:2px 12px}
+body.bigtext #selbox li{display:block}
+/* piles grouped by card type */
+.ovbox.wide{max-width:min(900px,96vw)}
+.ovbox .ecount{margin:0 4px 4px 0}
+.ovbox.bank .bacts p small{flex:1 1 100%}
+/* the bottom bar folds away: Display opens the sizes and switches */
+#gbar #gmore{display:none;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px 12px}
+#gbar.open #gmore{display:flex}
+#gbar.open{background:rgba(0,0,0,.92)}
+@media (min-width:1100px){.pbox .meters{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);column-gap:22px}}
+.ovbox>.xclose,#menu .ovbox>.xclose,#pop .popbox>.xclose{position:absolute!important;top:8px;right:10px}
+.ovbox.bank .bstat dt{white-space:nowrap}
+.ovbox.bank .bstat dd{margin:0}
+body.bigtext #cinfo:not(.wide){width:min(470px,calc(100vw - 20px))!important}
+#menu select{width:100%;max-width:none}
+#menu .mgrid label.f{min-width:0}
+@media (max-width:900px){.spellpanel #spells{max-height:62vh;padding-right:6px}#selbox{max-height:70vh}}
+#bankslot .bankbar{font-size:14px;padding:6px 10px}

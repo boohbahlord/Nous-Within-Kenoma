@@ -7,7 +7,7 @@
 <link rel="preload" href="cascadia-code-latin-200-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="site.css">
 <link rel="preload" href="grenze-gotisch-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="ethers-crossroads.css?v=19">
+<link rel="stylesheet" href="ethers-crossroads.css?v=20">
 <script src="site.js" defer></script>
 </head>
 <body data-static="1" data-fx="strings bars">
@@ -16,9 +16,10 @@
 <header><span class="num">Play</span><h1>Ether's Crossroads</h1></header>
 <div class="gtop">
   <div id="moon" aria-live="polite"></div>
-  <div><div id="phases"></div><div id="who"></div></div>
+  <div class="gmid"><div id="phases"></div></div>
   <div id="round" hidden></div>
   <div id="ctltop"><div id="controls"></div></div>
+  <div id="who" class="statusline" aria-live="polite"></div>
 </div>
 <div class="glayout">
 <section aria-label="Field">
@@ -32,8 +33,8 @@
 </section>
 <aside class="gside">
   <div id="sidehand"><div id="handwrap"><h3 id="handh">Your hand</h3><div id="hand"></div><div id="mytray" class="traywrap" aria-live="polite"></div></div></div>
-  <div id="seltop"><div id="selwrap"><h3>Selected</h3><div id="selbox"></div></div></div>
-  <div><h3>Spells</h3><div id="spells"></div></div>
+  <div id="seltop"><div id="selwrap"><h3>Selected</h3><div id="selbox" class="scrollbox"></div></div></div>
+  <div class="spellpanel"><h3>Spells</h3><div id="bankslot"></div><div id="spells" class="scrollbox"></div></div>
   <div id="selbottom"></div>
 </aside>
 </div>
@@ -49,6 +50,6 @@
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
 <script src="ethers-crossroads-quotes.js?v=4"></script>
-<script src="ethers-crossroads.js?v=19"></script>
+<script src="ethers-crossroads.js?v=20"></script>
 </body>
 </html>
