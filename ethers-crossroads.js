@@ -31,7 +31,7 @@ const SUBST_TEXT={
   "Never pays Saturn."]},
  "jester":{"tag":"The Tree, the Puppets and the BullGoat: a living base that feeds you mana.","pts":[
   "A seven-card hand and seven mana at most.",
-  "Every soldier in the deck is a Puppet (a 6 Grunt).",
+  "Every soldier in the deck is a Puppet (its own card, with the score of a 2).",
   "The Tree of Neither Life Or Death: three hearts, holds six cards, gives 2 mana a turn and grows a Puppet every two rounds.",
   "BullGoat (Conjuring, 3 mana): charges two or three tiles, and comes back as the Goatbull, whose Stomp pins stacks.",
   "Deck of Cards: once a game, while the Tree stands, your deck is full again."]},
@@ -177,8 +177,8 @@ const KNAME={grunt:"Grunt",infantry:"Infantry",jack:"Jack",queen:"Queen",king:"K
 for(const k in UNIT)KNAME[k]=UNIT[k].short||UNIT[k].name;
 const isBase=c=>kind(c)==="ace"||kind(c)==="tree"||kind(c)==="wall";             // holds other cards inside it
 const isHero=c=>!!(c.unit&&UNIT[c.unit].solo&&UNIT[c.unit].solo!=="pair");   // stands alone (or only inside an Ace)
-const short=c=>c.unit?(UNIT[c.unit].short||UNIT[c.unit].name):c.rank==="JK"?"JK":c.rank+SUITS[c.suit]+(c.puppet?"p":"");
-const nameOf=c=>c.unit?(c.unit==="slave"?`Slave (once the ${({J:"Jack",Q:"Queen",K:"King",A:"Ace"}[c.rank]||c.rank)} of ${SUITNAME[c.suit]})`:UNIT[c.unit].name):c.rank==="JK"?`${c.color==="red"?"Red":"Black"} Joker`:(c.puppet?"Puppet ":"")+(({J:"Jack",Q:"Queen",K:"King",A:"Ace"}[c.rank]||c.rank)+" of "+SUITNAME[c.suit]);
+const short=c=>c.puppet?"Puppet":c.unit?(UNIT[c.unit].short||UNIT[c.unit].name):c.rank==="JK"?"JK":c.rank+SUITS[c.suit];
+const nameOf=c=>c.puppet?"Puppet":c.unit?(c.unit==="slave"?`Slave (once the ${({J:"Jack",Q:"Queen",K:"King",A:"Ace"}[c.rank]||c.rank)} of ${SUITNAME[c.suit]})`:UNIT[c.unit].name):c.rank==="JK"?`${c.color==="red"?"Red":"Black"} Joker`:(c.puppet?"Puppet ":"")+(({J:"Jack",Q:"Queen",K:"King",A:"Ace"}[c.rank]||c.rank)+" of "+SUITNAME[c.suit]);
 for(const k in UNIT){const U=UNIT[k];U.rt=U.copy?12:U.weapons?Math.max(...U.weapons.map(w=>{const d=w.roll();return w.fixed+(d.length?d.length*d[0].s*.6:0)})):U.nat+(U.die||0)}
 const rate=c=>c.unit?UNIT[c.unit].rt+(c.hp||0)*3:nat(c)+(die(c)||0);                 // point rating: best possible score of a card
 const stackRate=st=>Math.max(0,...st.cards.map(rate))+(st.cards.length-1)*.5;
@@ -1849,8 +1849,8 @@ function render(){
         const lead=st.cards.find(isBase)||st.cards.find(x=>x.unit&&UNIT[x.unit].hp)||[...st.cards].sort((a,b)=>nat(b)-nat(a)||kind(b).localeCompare(kind(a)))[0];
         const P=G.p[st.owner],mine=st.owner===V;
         const cap=st.cards.reduce((a,x)=>a+capMana(x),0);
-        const ic=lead.unit?unitSVG(lead.unit,lead.unit==="tree"||lead.unit==="slave"?"#2d6b3a":"#15100b",26):lead.puppet?unitSVG("puppet","#15100b",20):"";
-        const leadHTML=lead.unit?`<span class="lead ulead">${ic}<b class="uname">${esc(short(lead))}</b></span>`:`<span class="lead"><b class="rk${lead.rank==="JK"?" jk":""}">${lead.rank==="JK"?"Joker":lead.rank}</b><i>${lead.rank==="JK"?"✶":SUITS[lead.suit]}</i>${lead.puppet?ic:""}</span>`;
+        const odd=lead.unit||lead.puppet,ic=odd?inkSVG(lead.puppet?"puppet":lead.unit,inkOf(lead),28):"";
+        const leadHTML=odd?`<span class="lead ulead"><span class="smark">${markHTML(lead)}</span>${ic}</span>`:`<span class="lead"><b class="rk${lead.rank==="JK"?" jk":""}">${lead.rank==="JK"?"Joker":lead.rank}</b><i>${lead.rank==="JK"?"✶":SUITS[lead.suit]}</i></span>`;
         inner=`<div class="stack ${hasBase(st)?"base ":""}${mine?"mine":isEnemy(st.owner,V)?"theirs":"ally"} ${lead.color}${hated(st)?" hated":""}${shielded(st.owner)?" pink":""}${G.p[st.owner].joy?" joy":""}${lead.unit?" u-"+lead.unit:""}" style="--pc:${P.color}"><span class="so">${solidSVG(P.solid,P.color,16)}</span><span class="ci" title="Card info: click it, or drag it onto another stack to compare"></span>${st.cards.length>1?`<span class="cnt">×${st.cards.length}</span>`:""}${leadHTML}<span class="mini">${st.cards.length>1?st.cards.map(short).join(" "):heartsHTML(lead)}</span>${st.cards.length>1&&lead.maxHp?`<span class="bhp">${heartsHTML(lead)}</span>`:""}<em class="ty">${esc(typeWord(lead))}</em>${st.stun?`<span class="stun" title="Immobilized by lightning for ${st.stun} more turn${st.stun>1?"s":""}">${unitSVG("bolt","#6fb8ff",14)}${st.stun}</span>`:""}${st.odds?`<span class="odds ${st.odds}">${st.odds==="adv"?"▲":"▼"}</span>`:""}${st.hypo?`<span class="hypo" title="Hypostasis: untouchable">◈${st.hypo}</span>`:""}${cap?`<span class="souls" title="captured souls">✦${cap}</span>`:""}${st.owner===G.active&&(st.moved||st.attacked)&&G.phase!=="setup"?`<span class="used">${st.attacked?"atk":"mv"}</span>`:""}</div>`;
       }
       if(st&&showsBack(V,r,c)){const P=G.p[st.owner];inner=`<div class="stack theirs facedown" style="--pc:${P.color}"><span class="so">${solidSVG(P.solid,P.color,16)}</span><span class="fdback">${solidSVG(P.solid,P.color,30)}</span><em class="ty">face down</em></div>`}
@@ -2035,7 +2035,7 @@ const INFO={
  antony:["Antony (Angel Machine)","Antony",[["Hearts","two"],["Score","12 + 6d4 on attack, 12 on defense"],["Moves","like Samson"],["Bolts","every card he kills charges a bolt for Lightning Strike"],["Falls","he goes missing: his card is found under Unknown in the Outer Darkness"]],"The angel who was lodged in Samson's heart."],
  satan:["Satan","Satan",[["Hearts","three"],["Score","6d12 on attack and on defense, with no modifiers: no moon bonus, no odds, no Hate"],["Stacks","never"],["Falls","into the Outer Darkness"]],"Satan's own card, one in his deck."],
  tree:["Tree of Neither Life Or Death (Jester Fool)","Tree",[["Hearts","three; it cannot defend itself"],["Holds","up to six cards, like an Ace, but never Kings or tens"],["Gives","+2 mana at the start of each of your turns, and a free Puppet inside it every two rounds"],["Falls","into the Outer Darkness, with every card in it"]],"In the Jester's starting hand. Place it on an empty tile of your ground."],
- puppet:["Puppet (Jester Fool)","6",[["Score","a 6 Grunt: 6 + 1d6 on attack"],["Deck","every soldier in the Jester's deck is a Puppet"]],"Strings and wood."],
+ puppet:["Puppet (Jester Fool)","?",[["Score","the score of a 2: 2 + 1d6 on attack"],["Deck","every soldier in the Jester's deck is a Puppet, and the Tree grows one every two rounds"]],"Strings and wood."],
  bullgoat:["BullGoat (Jester Fool)","BullGoat",[["Hearts","two"],["Gore","10 + 1d20, up close"],["Charge","10 + 2d20 at an enemy two or three tiles away in a straight line with nothing between; the BullGoat ends next to its target"],["Defense","10"],["Stacks","never"],["Conjure","3 mana, into your hand"]],"The Jester's beast."],
  slavemaster:["Slavemaster (Binah)","SM",[["Score","8 + 1d8 on attack, stacks like an Infantry"],["Capture","enemy soldiers killed in its fights become your thralls, ten at most"]],"Three in Binah's deck."],
  slave:["Slave (Binah)","Slave",[["Rifle","10 + 1d12, at an enemy two tiles away in a straight line or one diagonal; from two away a miss costs nothing"],["Defense","none"],["Moves","one tile straight"],["Stacks","never"],["Deploy","the free Slaves spell (Necromancy) puts one thrall down on an empty tile of your ground"]],"A captured soldier with a chip in its head."],
@@ -2131,7 +2131,7 @@ function showStart(){
   const q=new URLSearchParams(location.search).get("mode");
   if(!startMode&&MODES.some(m=>m[0]===q))startMode=q;
   if(!startMode){
-    ovShow(`<div class="ovbox setup"><h2>New game</h2><p class="dim">Choose how to play.</p><div class="modes">${MODES.map(([k,t,s])=>`<button class="mode" data-m="${k}"><b>${t}</b><span>${s}</span></button>`).join("")}</div><p class="dim">Online play is not here yet.</p></div>`);
+    ovShow(`<div class="ovbox setup"><div class="shead"><h2>New game</h2><p class="dim">Choose how to play.</p></div><div class="modes">${MODES.map(([k,t,s])=>`<button class="mode" data-m="${k}"><b>${t}</b><span>${s}</span></button>`).join("")}</div><p class="dim">Online play is not here yet.</p></div>`);
     document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{startMode=b.dataset.m;showStart()});return;
   }
   const mode=startMode,M=MODES.find(m=>m[0]===mode);
@@ -2145,7 +2145,7 @@ function showStart(){
 <p class="dim" id="laynote"></p></fieldset><div id="seats"></div>`;
   const diff="";
   const rules=`<fieldset class="pf"><legend>Turns</legend>
-<label class="f">Turn order <select id="oturns"><option value="classic">Classic: each player takes every phase in turn</option><option value="prep">Draw and prep together, then attacks in turns</option><option value="all">Every phase together</option></select></label>
+<label class="f">Turn order <select id="oturns"><option value="classic">Classic</option><option value="prep">Draw and prep together</option><option value="all">Every phase together</option></select></label>
 <p class="dim" id="turnnote"></p>
 <label class="f">Phase timer <select id="otimer"><option value="0" selected>Off (default)</option><option value="30">30 seconds</option><option value="60">60 seconds (draw phase 30)</option><option value="90">90 seconds (draw phase 30)</option></select></label>
 <p class="dim">When the timer runs out the game moves on to the next phase. During setup it places your cards for you, the way a Medium computer would.</p>
@@ -2175,21 +2175,21 @@ ${chk("oatk","Spells in the attack phase","Enchantments, curses, sorcery and ill
 ${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the game opens on a Blood Moon; each deck is shuffled and two thirds of it go to the grave; each player starts with a Joker in hand. With a planet in the sky: the game opens under that planet's eclipse.",false)}
 </fieldset>`;
   const display=`<fieldset class="pf"><legend>Your hand</legend><div class="opts">
-<label class="opt"><input type="radio" name="dhand" value="below" ${PREF.hand!=="side"?"checked":""}><span>Under your deck and mana (default)<small>Right below your own bars, with your dice box.</small></span></label>
+<label class="opt"><input type="radio" name="dhand" value="below" ${PREF.hand!=="side"?"checked":""}><span>Under your deck (default)<small>Right below your own bars, with your dice box.</small></span></label>
 <label class="opt"><input type="radio" name="dhand" value="side" ${PREF.hand==="side"?"checked":""}><span>Beside the field<small>In the right-hand column, above the spells.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Selected stack box</legend><div class="opts">
 <label class="opt"><input type="radio" name="dsel" value="bottom" ${PREF.sel!=="top"?"checked":""}><span>Below the spells (default)<small>At the bottom of the right-hand column.</small></span></label>
 <label class="opt"><input type="radio" name="dsel" value="top" ${PREF.sel==="top"?"checked":""}><span>Above the spells<small>At the top of the right-hand column.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Turn buttons</legend><div class="opts">
 <label class="opt"><input type="radio" name="dctl" value="bottom" ${PREF.ctl!=="top"?"checked":""}><span>Under the field (default)<small>Roll, next phase and end turn sit in a bar right below the board, on the page.</small></span></label>
-<label class="opt"><input type="radio" name="dctl" value="top" ${PREF.ctl==="top"?"checked":""}><span>At the top, under the moon<small>Beside the moon and the phases.</small></span></label></div></fieldset>
+<label class="opt"><input type="radio" name="dctl" value="top" ${PREF.ctl==="top"?"checked":""}><span>At the top<small>Beside the moon and the phases.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Tile names</legend><div class="opts">
 <label class="opt"><input type="radio" name="dcoord" value="0" ${PREF.coords?"":"checked"}><span>Off (default)<small>Like a chessboard without its letters and numbers.</small></span></label>
 <label class="opt"><input type="radio" name="dcoord" value="1" ${PREF.coords?"checked":""}><span>On<small>Each tile shows its name in a corner: columns A, B, C from the left, rows 1, 2, 3 from the bottom.</small></span></label></div>
 <p class="dim">Tile names are always used in the dice box history, either way.</p></fieldset>
 <fieldset class="pf pc-only"><legend>Page width</legend><div class="opts">
 <label class="opt"><input type="radio" name="dfull" value="0" ${PREF.full?"":"checked"}><span>Standard<small>The page keeps the width of the rest of the site.</small></span></label>
-<label class="opt"><input type="radio" name="dfull" value="1" ${PREF.full?"checked":""}><span>Full width (default on a computer)<small>The page fills the whole width of a wide screen, and the field grows with it.</small></span></label></div></fieldset>
+<label class="opt"><input type="radio" name="dfull" value="1" ${PREF.full?"checked":""}><span>Full width (default)<small>The page fills the whole width of a wide screen, and the field grows with it. The default on a computer.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({"":"The burnt amber of the site.",jester:"Black, after chapter 26.",ten:"White on indigo, after chapters 1–4.",satan:"Crimson, after chapter 23."})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, text size, hand position, tile names, page width and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
   const suitSel=`<div id="suitpick" hidden><p class="dim">${mode==="local"?"P1 picks; P2 gets the other two suits.":mode==="cpu"?"You pick; the computer gets the other two suits.":"You pick; the other two suits wait in the Ether."}</p>
 <label class="f">Red suit <select id="osuitR"><option value="H">♥ Hearts</option><option value="D">♦ Diamonds</option></select></label>
@@ -2203,7 +2203,7 @@ ${chk("oshare","Shared team deck","Teammates draw from one deck and spend from o
 ${[["1","One deck",mode==="survival"?"You take one red and one black suit; the other half of the deck waits in the Ether.":"Both players split one deck: each takes one red and one black suit."],["2","Two decks (default)","Each player has a full deck of all four suits."],["3","Three decks","A full deck each, and a whole third deck waits in the Ether."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="odecks" value="${v}" ${v==="2"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
 <div class="f" id="suitmode" hidden><span>Suits (one deck)</span><div class="opts"><label class="opt"><input type="radio" name="osuitmode" value="random" checked><span>Random (default)<small>Each player is dealt one red and one black suit at random.</small></span></label><label class="opt"><input type="radio" name="osuitmode" value="choose"><span>Choose<small>Pick the two suits below.</small></span></label></div>${suitSel}</div>
 </fieldset>
-<fieldset class="pf"><legend>Specials (Jacks, Queens, Kings, Aces, Jokers)</legend><div class="opts">
+<fieldset class="pf"><legend>Specials and Aces (Jacks, Queens, Kings, Jokers and Aces)</legend><div class="opts">
 ${[["none","None (default)","Only your opening Ace and its Jack. Every other special waits in the Ether to be conjured."],["half","Half","The specials of half your suits; the rest wait in the Ether."],["all","All","Every special of your suits is in your deck."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="ospecials" value="${v}" ${v==="none"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
 ${chk("ojoker","At least one Joker","Every player's deck holds at least one Joker, taken from the Ether if needed.",true)}
 <p class="dim" id="decksum"></p>
@@ -2351,10 +2351,10 @@ function applyMoonTheme(){
   const st=document.querySelector("button.static-toggle"),bar=$("#gbar");if(st&&bar&&st.parentNode!==bar)bar.appendChild(st);
 }
 /* Text Size scales the words only: every font size in the stylesheets is multiplied, except on cards, stacks and dice */
-const TZ_SKIP=/\.(card|cf|cx|stack|die|pk|cback|ecount|mini|gbar|gctl|gtog)\b|svg|#board \.rl|#gbar/;
+const TZ_SKIP=/\.(card|cf|cx|stack|die|pk|cback|ecount|mini|gbar|gctl|gtog|tipi)\b|svg|#board \.rl|#gbar/;
 let tzRules=null;
 /* small words grow the most, headings hardly at all, and nothing passes 21px: big text stays readable without breaking panels */
-const TZ_DAMP=/\.cin\.sky|skyl|spelltip|stdl|#tipbox/;   // hover boxes grow half as much: compact, like a strategy game's tooltips
+const TZ_DAMP=/\.cin\.sky|skyl|spelltip|stdl|#tipbox|deftag|\.stab\b/;   // hover boxes grow half as much: compact, like a strategy game's tooltips
 const tzOf=(orig,f,damp)=>{const m=/^([\d.]+)(px|rem)$/.exec(orig.trim());if(!m)return `calc(${orig} * ${1+(f-1)*.5})`;
   const base=+m[1]*(m[2]==="rem"?16:1),w=Math.max(0,Math.min(1,(18-base)/8))*(damp?.5:1),v=base*(1+(f-1)*w);
   return (f>1?Math.min(v,Math.max(base,21)):v).toFixed(2)+"px"};
@@ -2615,7 +2615,7 @@ function substanceDecks(pls){
     if(P.tribe==="leviathan")P.deck.push(mkUnit("leviathan",pl));
     if(P.tribe==="yald")P.hunger=0;
     if(P.tribe==="jester"){
-      for(const c of P.deck)if(kind(c)==="grunt"||kind(c)==="infantry"){c.rank="6";c.puppet=true}   // every soldier is a Puppet: a 6 Grunt
+      for(const c of P.deck)if(kind(c)==="grunt"||kind(c)==="infantry"){c.rank="2";c.puppet=true}   // every soldier is a Puppet: its own card, with the score of a 2
       P.startSpec=P.deck.map(c=>({rank:c.rank,suit:c.suit,color:c.color,puppet:!!c.puppet}));
     }
     shuffle(P.deck);
@@ -2656,7 +2656,7 @@ function substanceRound(){
     if(P.out||P.tribe!=="jester"||G.moon.round%2)continue;
     const t=treeOf(P.i);if(!t)continue;
     if(t.st.cards.length>6){log(`The Tree is full: no Puppet grows for ${plName(P.i)}.`);continue}
-    const c=mk("6",pick(["S","H","D","C"]));c.puppet=true;c.owner=P.i;t.st.cards.push(c);
+    const c=mk("2",pick(["S","H","D","C"]));c.puppet=true;c.owner=P.i;t.st.cards.push(c);
     log(`A free Puppet grows in ${plName(P.i)}'s Tree on ${coord(t.r,t.c)}.`);notify(P.i,`A Puppet grows in ${esc(P.name)}'s Tree.`);
   }
 }
@@ -2841,7 +2841,7 @@ function goneMoonSVG(){
   if(G.moon.gone==="saturn")return `<svg class="moon saturn" viewBox="-44 -44 88 88" width="88" height="88" aria-hidden="true"><defs><radialGradient id="sat" cx="40%" cy="35%"><stop offset="0" stop-color="#e8d29a"/><stop offset="1" stop-color="#7a5c2a"/></radialGradient></defs><ellipse rx="40" ry="9" fill="none" stroke="#c9a96a" stroke-width="2.4" transform="rotate(-18)" opacity=".55"/><circle r="22" fill="url(#sat)" stroke="#3a2a12"/><path d="M-36,4A40,9 0 0 0 36,-4" transform="rotate(-18)" fill="none" stroke="#e6cf96" stroke-width="2.4"/><path d="M-16,-6H16M-20,3H20" stroke="#5a4320" stroke-width="1.4" opacity=".5"/></svg>`;
   return `<svg class="moon eaten" viewBox="-44 -44 88 88" width="88" height="88" aria-hidden="true"><circle r="30" fill="none" stroke="#5a4a3a" stroke-width="1" stroke-dasharray="3 4"/><path d="M-9,-6C-4,-12 4,-12 9,-6" fill="none" stroke="#5a4a3a" stroke-width="1"/></svg>`;
 }
-function levOnMoon(){const c=G.moonLev.card;return `<g transform="translate(-15,-15) scale(1.25)">${`<g fill="none" stroke-linecap="round" stroke-linejoin="round"><g stroke="#000" stroke-width="3.6">${UNIT_ICON.leviathan}</g><g stroke="${G.p[G.moonLev.owner].color}" stroke-width="1.8">${UNIT_ICON.leviathan}</g></g>`}</g><text y="38" text-anchor="middle" font-size="9" fill="#ff5a64" font-family="Cascadia Code,Consolas,monospace">${"♥".repeat(c.hp)}</text>`}
+function levOnMoon(){const c=G.moonLev.card;return `<g transform="translate(-15,-15) scale(1.25)">${`<g fill="none" stroke-linecap="round" stroke-linejoin="round"><g stroke="#000" stroke-width="3.6">${UNIT_ICON.leviathan.replace(/@|#bg/g,"#000")}</g><g stroke="${G.p[G.moonLev.owner].color}" stroke-width="1.8">${UNIT_ICON.leviathan.replace(/@/g,G.p[G.moonLev.owner].color).replace(/#bg/g,"#000")}</g></g>`}</g><text y="38" text-anchor="middle" font-size="9" fill="#ff5a64" font-family="Cascadia Code,Consolas,monospace">${"♥".repeat(c.hp)}</text>`}
 
 /* ---------- Delusions: blindness beyond your own cards' reach ---------- */
 const deluded=pl=>!!(G.p[pl]&&G.p[pl].delu&&G.p[pl].delu.turns>0);
@@ -3344,7 +3344,7 @@ function cardById(id){
 }
 /* the card browser: compare the selected stack with any kind of card */
 const BROWSE=[["Standard",["2","3","4","5","6","7","8","9","10","puppet","archer","cannon"]],["Special",["J","Q","K","A","JK","assassin"]],["Support",["scout","healer","repair","ram","miner"]],["Wildcard",["samson","antony","satan","leviathan","bullgoat","goatbull","debt","slavemaster","slave","trafficker"]],["Base",["A","tree","wall"]]];
-function protoCard(k){if(k==="puppet"){const c=mk("6","S");c.puppet=true;return c}if(UNIT[k])return mkUnit(k,null);if(k==="JK")return mk("JK",null,"black");return mk(k,"S")}
+function protoCard(k){if(k==="puppet"){const c=mk("2","S");c.puppet=true;return c}if(UNIT[k])return mkUnit(k,null);if(k==="JK")return mk("JK",null,"black");return mk(k,"S")}
 function openBrowser(base,title){
   ovShow(`<div class="ovbox wide"><h2>Compare with a kind of card</h2><p class="dim">The suit doesn't matter here. Pick a category, then a card.</p>
 ${BROWSE.map(([cat,ks])=>`<h3>${cat}</h3><div class="pickrow">${ks.map(k=>{const c=protoCard(k);return `<button class="pk" data-bk="${k}" aria-label="${esc(nameOf(c))}">${face(c,{owner:null,noci:true})}</button>`}).join("")}</div>`).join("")}
@@ -4853,21 +4853,23 @@ function decorateOv(){const o=$("#ov");if(!o||o.hidden)return;const box=o.queryS
 let tipT=0;
 function tipBox(){let t=$("#tipbox");if(!t){t=document.createElement("div");t.id="tipbox";t.setAttribute("role","tooltip");t.hidden=true;document.body.appendChild(t);
   t.addEventListener("click",e=>{if(e.target.closest(".xclose"))t.hidden=true;e.stopPropagation()})}return t}
-function showTip(el,pinned){const sp=el.dataset.sp&&SP(el.dataset.sp),txt=el.dataset.tip;if(!sp&&!txt)return;const t=tipBox();
-  t.innerHTML=(pinned?`<button type="button" class="xclose" aria-label="Close">×</button>`:"")+(sp?spellTipHTML(sp):`<p>${esc(txt)}</p>`);t.hidden=false;t.classList.toggle("pinned",!!pinned);t.classList.toggle("rich",!!sp);
-  const r=el.getBoundingClientRect(),w=Math.min(sp?380:340,innerWidth-20);t.style.width=w+"px";
+function showTip(el,pinned){const sp=el.dataset.sp&&SP(el.dataset.sp),sub=el.dataset.sub,txt=el.dataset.tip;if(!sp&&!txt&&!sub)return;const t=tipBox();
+  const rich=sp?spellTipHTML(sp):sub?subTipHTML(sub)+(txt?`<p class="sblock">${esc(txt)}</p>`:""):"";
+  t.innerHTML=(pinned?`<button type="button" class="xclose" aria-label="Close">×</button>`:"")+(rich||`<p>${esc(txt)}</p>`);t.hidden=false;t.classList.toggle("pinned",!!pinned);t.classList.toggle("rich",!!rich);
+  const r=el.getBoundingClientRect(),w=Math.min(rich?380:340,innerWidth-20);t.style.width=w+"px";
   let x=r.left,y=r.bottom+6;if(x+w>innerWidth-10)x=innerWidth-w-10;t.style.left=Math.max(10,x)+scrollX+"px";t.style.top=y+scrollY+"px";
   const th=t.offsetHeight;if(r.bottom+6+th>innerHeight&&r.top-th-6>0)t.style.top=r.top-th-6+scrollY+"px"}
 const touchy=()=>matchMedia("(hover: none)").matches;
-document.addEventListener("pointerover",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp]");if(!el)return;clearTimeout(tipT);tipT=setTimeout(()=>showTip(el,false),260)});
-document.addEventListener("pointerout",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp]");if(!el)return;clearTimeout(tipT);const t=$("#tipbox");if(t&&!t.classList.contains("pinned"))t.hidden=true});
+let tipEl=null;
+document.addEventListener("pointerover",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]");if(!el||el===tipEl)return;tipEl=el;clearTimeout(tipT);tipT=setTimeout(()=>showTip(el,false),260)});
+document.addEventListener("pointerout",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]");if(!el)return;if(e.relatedTarget&&el.contains(e.relatedTarget))return;tipEl=null;clearTimeout(tipT);const t=$("#tipbox");if(t&&!t.classList.contains("pinned"))t.hidden=true});
 /* on touch, a long press shows the tip with an X instead of acting */
 let lpT=0,lpFired=false;
-document.addEventListener("touchstart",e=>{const el=e.target.closest&&e.target.closest("[data-tip],[data-sp]");if(!el)return;lpFired=false;clearTimeout(lpT);lpT=setTimeout(()=>{lpFired=true;showTip(el,true)},450)},{passive:true});
+document.addEventListener("touchstart",e=>{const el=e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]");if(!el)return;lpFired=false;clearTimeout(lpT);lpT=setTimeout(()=>{lpFired=true;showTip(el,true)},450)},{passive:true});
 document.addEventListener("touchend",e=>{clearTimeout(lpT);if(lpFired){e.preventDefault();lpFired=false}});
 document.addEventListener("touchmove",()=>clearTimeout(lpT),{passive:true});
-document.addEventListener("click",e=>{if(!touchy())return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp]");if(!el||el.closest("button"))return;showTip(el,true);e.stopPropagation()});
-document.addEventListener("click",e=>{const t=$("#tipbox");if(t&&!t.hidden&&!e.target.closest("#tipbox")&&!(e.target.closest&&e.target.closest("[data-tip],[data-sp]")))t.hidden=true});
+document.addEventListener("click",e=>{if(!touchy())return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]");if(!el||el.closest("button,label"))return;showTip(el,true);e.stopPropagation()});
+document.addEventListener("click",e=>{const t=$("#tipbox");if(t&&!t.hidden&&!e.target.closest("#tipbox")&&!(e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]")))t.hidden=true});
 /* piles (grave, Ether, Outer Darkness) grouped the way the shop is: by card type */
 const PILE_ORDER=["Standard","Special","Support","Base","Wildcard","Barbarian"];
 function pileGroups(cards){const g={};for(const c of cards){let k=cardClass(c);if(k==="Barbarian")k="Standard";(g[k]=g[k]||[]).push(c)}
@@ -5130,5 +5132,137 @@ function bankExplainHTML(){return `<details class="sub"><summary>The Bank, Barba
 <dt>Barbarians</dt><dd>A crimson band takes the middle every 4 + 1d12 turns and with every Blood Moon, and fights anyone beside it. The player who kills the most of a band gets an Ether sale; breaking a big band can earn debt forgiveness.</dd>
 <dt>Meteor</dt><dd>One round in a hundred: damage where it lands and maybe around it, then fire for two rounds.</dd>
 <dt>Gambling, Increase Max Mana, Mystery Generation</dt><dd>Gambling (Sorcery, 1 mana): a 10 on 1d10 wins 7d2; a 1 costs a maximum mana, 7d2 of debt and a deck card. Increase Max Mana (Conjuring, 6): +1, eighteen at most. Mystery Generation (in the Auction): 1d3 brand-new cards.</dd></dl></details>`}
+
+/* ---------------- UI pass 3 (v22): the setup menu ----------------
+   Options become small tiles of the same size. What a tile means shows when the mouse rests on it, or with the small
+   "i" on a touch screen (a box with an X). Long notes under a control move into that control's info.
+   The menu is rebuilt after the game draws it, so every option the game adds later gets the same treatment. */
+
+const MAP_ORDER=["none","random","keep","sahel","forest","dungeon","river"];
+/* a small strip of each map's colors at the top of its tile */
+function mapSwatch(k){
+  if(k==="none")return "repeating-linear-gradient(90deg,#1a120b 0 18px,#000 18px 20px)";
+  if(k==="random")return `linear-gradient(90deg,${["keep","sahel","forest","dungeon"].map((m,i)=>`${PAL[m].ground} ${i*25}% ${(i+1)*25}%`).join(",")})`;
+  const P=PAL[k];if(!P)return "";
+  if(k==="river")return `linear-gradient(180deg,${P.ground} 0 34%,${P.water} 34% 66%,${P.ground} 66%)`;
+  return `linear-gradient(90deg,${P.ground} 0 30%,${P.patch[0]} 30% 55%,${P.stone} 55% 70%,${P.patch[2]} 70% 88%,${P.tuft} 88%)`;
+}
+const isTouch=()=>matchMedia("(hover: none)").matches;
+function infoBtn(){const b=document.createElement("button");b.type="button";b.className="tipi";b.setAttribute("aria-label","What this means");b.textContent="i";return b}
+/* move a tile's long text into its info */
+function compactTile(lab){
+  if(lab.dataset.compact)return;lab.dataset.compact="1";
+  const sm=lab.querySelector(":scope > span > small, :scope > span small");
+  if(sm&&sm.textContent.trim()){lab.dataset.tip=sm.textContent.trim();sm.remove()}
+  const inp=lab.querySelector("input");
+  if(inp&&inp.name&&/^tr\d/.test(inp.name)&&TRIBES[inp.value]){lab.dataset.sub=inp.value;if(!lab.classList.contains("off"))delete lab.dataset.tip}
+  if(inp&&inp.name==="omap"){lab.classList.add("maptile");lab.style.setProperty("--sw",mapSwatch(inp.value))}
+  // "(default)" becomes a small tag, the same on every tile and switch
+  const sp=lab.querySelector(":scope > span")||lab;
+  for(const n of [...sp.childNodes])if(n.nodeType===3&&/\s*\(default\)/.test(n.textContent)){n.textContent=n.textContent.replace(/\s*\(default\)/,"");const d=document.createElement("em");d.className="deftag";d.textContent="default";n.after(d)}
+  const b=lab.querySelector(":scope > span > b");if(b&&/\s*\(default\)/.test(b.textContent)){b.textContent=b.textContent.replace(/\s*\(default\)/,"");const d=document.createElement("em");d.className="deftag";d.textContent="default";b.after(d)}
+  if(lab.dataset.tip||lab.dataset.sub)lab.appendChild(infoBtn());
+}
+function compactNote(p){
+  // a plain note right after a control becomes that control's info
+  if(p.dataset.compact||p.id)return;p.dataset.compact="1";
+  let prev=p.previousElementSibling;if(prev&&prev.matches(".opts")){const fs=p.closest("fieldset");prev=fs&&fs.querySelector(":scope > legend")}
+  if(!prev||!prev.matches("label.f,label.chk,.f,legend"))return;
+  const t=p.textContent.trim();if(!t)return;
+  prev.dataset.tip=(prev.dataset.tip?prev.dataset.tip+" ":"")+t;if(!prev.querySelector(":scope > .tipi"))prev.appendChild(infoBtn());p.remove();
+}
+function compactSetup(root){
+  root=root||document.querySelector(".ovbox.setup");if(!root)return;
+  root.querySelectorAll("label.opt").forEach(compactTile);
+  root.querySelectorAll("label.chk").forEach(compactTile);
+  root.querySelectorAll(".spanel p.dim:not(.fixednote):not(.mapnote)").forEach(compactNote);
+  // maps: one grid, the same size, in a sensible order
+  const mg=root.querySelector('input[name=omap]');
+  if(mg){const box=mg.closest(".opts");if(!box.dataset.sorted){box.dataset.sorted="1";box.classList.add("maps");
+    const gp=box.querySelector(".optgroup");if(gp)gp.remove();
+    for(const k of MAP_ORDER){const i=box.querySelector(`input[name=omap][value=${k}]`);if(i)box.appendChild(i.closest("label"))}}}
+  root.querySelectorAll(".opts.subs").forEach(b=>b.classList.add("tiles"));
+}
+/* rich info for a Substance tile */
+function subTipHTML(k){const T=TRIBES[k];if(!T)return "";
+  return `<div class="cin subtip"><div class="cih">${T.solid?solidSVG(T.solid,T.color||"#f3d6a6",16):""}<b>${esc(T.name)}</b></div><p class="stag">${esc(T.sub)}</p>${T.pts&&T.pts.length?`<ul>${T.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>`:""}</div>`}
+(()=>{
+  // the setup box is redrawn often (seats, layouts); tidy every new piece as it appears
+  const mo=new MutationObserver(()=>{const r=document.querySelector("#ov:not([hidden]) .ovbox.setup");if(r)compactSetup(r)});
+  const ov=document.getElementById("ov");if(ov)mo.observe(ov,{childList:true,subtree:true});
+  else document.addEventListener("DOMContentLoaded",()=>{const o=$("#ov");if(o)mo.observe(o,{childList:true,subtree:true})});
+  // the "i" on a tile: show its info with an X, and don't pick the tile
+  document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest(".tipi");if(!b)return;e.preventDefault();e.stopPropagation();
+    const el=b.parentElement;showTip(el,true)},true);
+})();
+
+/* ---------------- UI pass 4 (v23): card faces ----------------
+   Every card beyond the standard deck reads like one: a mark in the top-left corner (in the Ace's blackletter where it
+   is a letter or a number), its picture in the middle drawn in plain ink like the suits, and its name along the bottom.
+   The Puppet is its own card (the score of a 2). One type per card: the Ace is a Base. */
+
+/* ---------- new pictures ---------- */
+// "@" in a picture is the ink color; "#bg" is the card's paper, for cuts and folds
+UNIT_ICON.slavemaster=`<path fill="@" stroke="none" fill-rule="evenodd" d="M0,-11.2C-3.8,-11.2 -5.8,-8 -5.8,-4.6C-5.8,-2.6 -5.2,-1.4 -4.6,-0.6C-6.6,-0.1 -8.2,0.6 -8.9,1.3C-7.4,5.2 -3.6,8.8 0,11.6C3.6,8.8 7.4,5.2 8.9,1.3C8.2,0.6 6.6,-0.1 4.6,-0.6C5.2,-1.4 5.8,-2.6 5.8,-4.6C5.8,-8 3.8,-11.2 0,-11.2Z M0,-8.8C-2,-8.8 -3.1,-6.5 -3.1,-4.5C-3.1,-2.7 -1.7,-1.2 0,-0.2C1.7,-1.2 3.1,-2.7 3.1,-4.5C3.1,-6.5 2,-8.8 0,-8.8Z"/><path stroke="#bg" stroke-width=".8" d="M-5.4,1.6C-2.8,3.4 -0.2,4 2.8,4 M5.8,4.4C4.8,6.2 3.6,7 2.6,8.8"/>`;
+UNIT_ICON.slave=`<circle fill="@" stroke="none" cx="4.4" cy="-6.6" r="3.3"/><g stroke="@" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke-width="5" d="M-0.4,-6C-4,-4.6 -5.6,-0.8 -5.2,3.2"/><path stroke-width="4.4" d="M-5.2,3.2L1.2,8.8"/><path stroke-width="3.6" d="M1.2,9.2L-8.4,9.4"/><path stroke-width="2.4" d="M0.6,-4.6L1.8,0.2L5.6,3.8"/></g>`;
+UNIT_ICON.cannon=`<path fill="@" stroke="none" d="M-9.6,0.2C-10.6,-1.3 -10.1,-3.2 -8.6,-3.5L8.2,-8L9.6,-4.4L-7.8,1.6C-8.6,1.9 -9.2,1.2 -9.6,0.2Z"/><circle fill="@" stroke="none" cx="-10.6" cy="-1.6" r="1.2"/><path stroke-width="1.6" d="M8.1,-8.9L10.2,-3.6"/><circle cx="-2.4" cy="4.6" r="4.8" stroke-width="1.5"/><circle fill="@" stroke="none" cx="-2.4" cy="4.6" r="1.2"/><path stroke-width="1.1" d="M-2.4,-0.2V9.4 M-7.2,4.6H2.4 M-5.8,1.2L1,8 M1,1.2L-5.8,8"/><path stroke-width="1.7" d="M1.6,7.2L10.6,10.2"/>`;
+UNIT_ICON.scout=`<path fill="@" stroke="none" fill-rule="evenodd" d="M-6.6,10.2H7.4C7.6,6 6.6,2.4 6.4,-0.6C6.2,-6 3.4,-9.6 -0.8,-10.4L-1.6,-12.2L-3.2,-10C-6.2,-9 -8.6,-6.2 -9.8,-3L-10.4,-1C-10.4,0.6 -9.2,1.4 -7.8,0.6L-5.2,-0.8C-4,-1.2 -2.8,-1.1 -2.1,-0.5C-3.8,2.2 -6.6,5.4 -6.6,10.2Z M-3.6,-6.8a1,1 0 1,0 0.1,0Z"/><path stroke="#bg" stroke-width=".9" d="M1.4,-8C4,-6 4.8,-2 4.6,2.4 M-6,10.2H7.2"/><path stroke-width="1.6" d="M-8.4,11.2H9"/>`;
+UNIT_ICON.satan=`<path fill="@" stroke="none" fill-rule="evenodd" d="M-4.6,-4.2C-6.8,-6.2 -7.8,-9.2 -7.2,-11.8C-5.9,-9.8 -4.5,-8.6 -2.6,-7.8C-1,-8.2 1,-8.2 2.6,-7.8C4.5,-8.6 5.9,-9.8 7.2,-11.8C7.8,-9.2 6.8,-6.2 4.6,-4.2C5.6,-2.7 6.1,-1.1 6.3,0.4L9,-1.2C8.8,0.9 7.8,2.4 6.1,3C5.4,5.7 3.3,7.5 1.4,8.3L0,12L-1.4,8.3C-3.3,7.5 -5.4,5.7 -6.1,3C-7.8,2.4 -8.8,0.9 -9,-1.2L-6.3,0.4C-6.1,-1.1 -5.6,-2.7 -4.6,-4.2Z M-4.3,-1.8L-1.1,-0.4L-3.8,0.6Z M4.3,-1.8L1.1,-0.4L3.8,0.6Z"/><path stroke="#bg" stroke-width=".9" d="M-2.6,3.9C-1,4.9 1,4.9 2.6,3.9"/>`;
+
+/* the Leviathan: a dragon-serpent coiling out of the waves, after Doré's Destruction of Leviathan */
+UNIT_ICON.leviathan=`<g transform="translate(0,.8) scale(.92)" fill="none" stroke="@" stroke-linecap="round" stroke-linejoin="round"><path stroke-width="2.9" d="M-10.2,6.6C-11.6,0.4 -8.4,-6 -3.8,-5.6C0,-5.2 0.8,-0.8 -0.6,5"/><path stroke-width="1.6" d="M-10.2,6.6C-10.8,3.6 -12.2,2.4 -11.4,0.4"/><path stroke-width="2.7" d="M2.2,7.4C2.4,2.6 4.4,-1.6 7.2,-4.2C8.8,-5.6 9.6,-7.2 8.8,-8.8"/><g fill="@" stroke="none"><path d="M-10.4,-1.6L-12.2,-3.4L-9.6,-3.2Z M-8.6,-4.6L-9.6,-7.4L-7.4,-5.8Z M-6,-6.2L-6,-9.2L-4.4,-6.8Z M-3,-6.4L-2,-9.2L-1.2,-6.2Z M-0.2,-4.8L1.8,-6.8L1.4,-4Z"/><path d="M4.8,-1.6L3.2,-3.6L5.6,-3Z M6.6,-3.8L5.6,-6.2L7.6,-5Z"/><path d="M10.6,-10.4L8.6,-11.8L2.4,-12.2L7,-9.8L3.4,-7.2L9.4,-7.4C11,-7.8 11.4,-9.4 10.6,-10.4Z"/><path d="M4.2,-11.6L4.6,-10.8L5.2,-11.5Z M4.6,-7.8L5,-8.6L5.6,-7.9Z" fill="#bg"/><path d="M9.2,-11.4L11.8,-12.8 M10.4,-10.4L12.4,-10.8" stroke="@" stroke-width="1" fill="none"/></g><circle cx="8.6" cy="-10" r=".55" fill="#bg"/><path stroke-width="1.2" d="M-12,8.6C-9.4,6.8 -7.2,10 -4.4,8.6C-1.6,7 0.8,10.2 3.6,8.6C6.4,7 8.8,10.2 12,8.4"/><path stroke-width=".9" d="M-9,11.2C-6.6,10 -4.6,12.2 -2,11.2C0.6,10 2.6,12.2 5.2,11.2C7.4,10.4 9,11.6 10.6,11.2"/><path stroke-width=".8" d="M8.4,6.4C9.8,5.4 11,5.6 11.8,6.4 M-6,6.8C-5,5.8 -3.6,5.8 -2.8,6.6"/></g>`;
+
+/* ---------- the top-left marks ---------- */
+const MK_SVG={
+  inf:`<svg viewBox="0 0 20 12" class="mksvg wide"><path d="M10,6C7.6,1.6 2,2.2 2,6C2,9.8 7.6,10.4 10,6C12.4,1.6 18,2.2 18,6C18,9.8 12.4,10.4 10,6Z" fill="none" stroke="currentColor" stroke-width="1.9"/></svg>`,
+  up:`<svg viewBox="0 0 12 14" class="mksvg"><path d="M6,1.5L11,12.5H1Z" fill="currentColor"/></svg>`,
+  down:`<svg viewBox="0 0 12 14" class="mksvg"><path d="M6,12.5L11,1.5H1Z" fill="currentColor"/></svg>`,
+  cross:`<svg viewBox="0 0 10 18" class="mksvg"><path d="M5,1V17 M1.2,12.4H8.8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square"/></svg>`,
+  clef:`<svg viewBox="0 0 14 20" class="mksvg"><path d="M1.4,1V19" stroke="currentColor" stroke-width="2.6" fill="none"/><path d="M4.8,1V19" stroke="currentColor" stroke-width="1.1" fill="none"/><path d="M4.8,10L6.6,8C7,4.8 7.8,1.8 10.2,1.6C12.4,1.4 13.2,3.4 13,5C12.8,6.8 11.4,7.6 10.2,7.2 M4.8,10L6.6,12C7,15.2 7.8,18.2 10.2,18.4C12.4,18.6 13.2,16.6 13,15C12.8,13.2 11.4,12.4 10.2,12.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="10.4" cy="6.4" r="1.6" fill="currentColor"/><circle cx="10.4" cy="13.6" r="1.6" fill="currentColor"/></svg>`,
+  lean:`<svg viewBox="0 0 12 18" class="mksvg"><path d="M1.4,17L5.3,1.6 M6.7,1.6L10.6,17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`
+};
+const UNIT_MARK={wall:"B",tree:"0",assassin:"S",archer:"11",cannon:"12",slavemaster:"+",slave:"−",trafficker:"−−",debt:"$",
+  leviathan:{svg:"inf"},bullgoat:{svg:"up"},goatbull:{svg:"down"},satan:{svg:"cross"},antony:{svg:"clef"},samson:{svg:"lean"},
+  scout:{sup:1},healer:{sup:1},repair:{sup:1},ram:{sup:1},miner:{sup:1}};
+function markHTML(c){
+  if(c.puppet)return `<b class="rk mk">?</b>`;
+  const m=UNIT_MARK[c.unit];if(m==null)return `<b class="rk mk">${esc((UNIT[c.unit].short||UNIT[c.unit].name).slice(0,1))}</b>`;
+  if(typeof m==="string")return `<b class="rk mk${m.length>1?" two":""}">${m}</b>`;
+  if(m.sup)return `<b class="mk sup">Support</b>`;
+  return `<b class="rk mk svgmk">${MK_SVG[m.svg]}</b>`;
+}
+const cardName=c=>c.puppet?"Puppet":c.unit?(UNIT[c.unit].short||UNIT[c.unit].name):typeWord(c);
+/* pictures on a card: one plain ink line, the same weight as the suits; no grey halo */
+const INK="#15100b",PAPER="#efe2c8";
+function inkSVG(u,color,size){const d=(UNIT_ICON[u]||"").replace(/@/g,color).replace(/#bg/g,PAPER);
+  return `<svg class="usym ink" viewBox="-12 -12 24 24" width="${size}" height="${size}" aria-hidden="true"><g fill="none" stroke="${color}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${d}</g></svg>`}
+/* elsewhere (dark backgrounds) the haloed version stays, with the same pictures */
+unitSVG=function(u,color,size){const raw=UNIT_ICON[u]||"",d=raw.replace(/@/g,color).replace(/#bg/g,"#000"),h=raw.replace(/@/g,"#000").replace(/#bg/g,"#000");
+  return `<svg class="usym" viewBox="-12 -12 24 24" width="${size||22}" height="${size||22}" aria-hidden="true"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><g stroke="#000" stroke-opacity=".5" stroke-width="3.2" opacity=".5">${h}</g><g stroke="${color}" stroke-width="1.5">${d}</g></g></svg>`};
+const inkOf=c=>c.unit==="satan"?"#8e1426":INK;
+
+face=function(c,o={}){
+  const own=o.owner!==undefined?o.owner:c.owner,P=own!=null&&G&&G.p[own]?G.p[own]:null;
+  const col=P?P.color:"#8a8a8a",sm=o.cls==="sm";
+  const tail=`${o.price?`<span class="price">${costOf(c)} mana</span>`:""}${o.noci?"":`<span class="ci" data-cid="${c.id}" role="button" title="Card info"></span>`}`;
+  const so=P?`<span class="so">${solidSVG(P.solid,col,sm?12:17)}</span>`:"";
+  if(c.unit||c.puppet){
+    const nm=cardName(c),pic=c.puppet?"puppet":c.unit;
+    return `<span class="cf unit ${c.puppet?"u-puppet":"u-"+c.unit}${c.hate?" hated":""}${isBase(c)?" basecard":""} ${o.cls||""}" style="--pc:${col}" title="${esc(nameOf(c))}"><span class="cx">${markHTML(c)}</span><span class="uic">${inkSVG(pic,inkOf(c),sm?18:32)}</span>${c.maxHp&&!sm?heartsHTML(c):""}${so}${sm?"":`<em class="ty${nm.length>9?" long":""}">${esc(nm)}</em>`}${tail}</span>`;
+  }
+  const rk=c.rank==="JK"?"Joker":c.rank,su=c.rank==="JK"?"✶":SUITS[c.suit];
+  return `<span class="cf ${c.color}${c.hate?" hated":""}${isBase(c)?" basecard":""} ${o.cls||""}" style="--pc:${col}" title="${esc(nameOf(c))}"><span class="cx"><b class="rk${c.rank==="JK"?" jk":""}">${rk}</b>${c.rank==="JK"?"":`<i>${su}</i>`}</span><i class="su">${su}</i>${so}${c.maxHp&&!sm?heartsHTML(c):""}${sm?"":`<em class="ty">${typeWord(c)}</em>`}${tail}</span>`;
+};
+
+/* ---------- the Puppet: its own card, with the score of a 2 ---------- */
+function makePuppet(suit,owner){const c=mk("2",suit);c.puppet=true;if(owner!=null)c.owner=owner;return c}
+/* a unit's type word is its name */
+for(const k in UNIT)TYPEWORD[k]=UNIT[k].short||UNIT[k].name;
+
+/* ---------- the card browser and the Card info tabs: one card per type ---------- */
+BROWSE[1][1]=BROWSE[1][1].filter(k=>k!=="A");      // the Ace is a Base, not a Special
+const INFO_PROTO={grunt:"4",infantry:"8",jack:"J",queen:"Q",king:"K",ace:"A",joker:"JK"};
+infoBody=function(k){const [t,,rows,note]=INFO[k];const c=protoCard(INFO_PROTO[k]||k);
+  return `<div class="ihead">${face(c,{owner:null,noci:true})}<h4>${t}</h4></div><table>${rows.map(([a,b])=>`<tr><th>${a}</th><td>${b}</td></tr>`).join("")}</table><p class="dim">${note}</p>`};
 
 })();

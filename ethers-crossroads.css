@@ -767,3 +767,104 @@ body.bigtext #cinfo:not(.wide){width:min(470px,calc(100vw - 20px))!important}
 .ovbox.bank details.bankhelp dd{margin:0;color:var(--text)}
 body.bigtext .ovbox.bank details.bankhelp dl{grid-template-columns:1fr}
 body.bigtext .ovbox.bank details.bankhelp dd{margin:0 0 6px}
+/* ================= v22 · UI pass 3: the setup menu ================= */
+/* a big window on a computer: nearly the whole screen, with the options in columns */
+@media (min-width:901px){
+  .ovbox.setup{width:min(1480px,calc(96vw / var(--uiz,1)));max-width:none}
+  .ovbox.setup:has(.stabs){height:calc(94vh / var(--uiz,1));max-height:none}
+  .ovbox.setup .spanel:not([data-p=players]){columns:2 420px;column-gap:20px}
+  .ovbox.setup .spanel fieldset.pf{break-inside:avoid;display:block}
+  #seats{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:0 16px;align-items:start}
+}
+.ovbox.setup .shead{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px;padding:16px 26px 10px}
+.ovbox.setup .shead h2{margin:0}
+.ovbox.setup .shead p{margin:0;font-size:13px}
+.ovbox.setup .spanel{flex:1 1 auto;min-height:0;padding:10px 26px 8px}
+.ovbox.setup fieldset.pf{margin:0 0 14px;padding:6px 12px 10px}
+.ovbox.setup .modes{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
+/* option tiles: one size, the name only; the meaning is in the info */
+.ovbox.setup .opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,138px),1fr));grid-auto-rows:1fr;gap:6px}
+.ovbox.setup .opts.subs{grid-template-columns:repeat(auto-fill,minmax(min(100%,164px),1fr))}
+.ovbox.setup .opt{flex:none;display:flex;align-items:center;min-height:40px;padding:7px 28px 7px 10px;font-size:13.5px;line-height:1.3}
+.ovbox.setup .opt>span{display:block;width:100%}
+.ovbox.setup .opts.skyopts .opt{align-items:stretch}
+.ovbox.setup .opts.skyopts .opt>span{display:flex;flex-direction:column;justify-content:space-between}
+.ovbox.setup .skyopts .skyform{margin-top:6px;padding-top:4px;font-size:11.5px}
+.ovbox.setup .opt.maptile{flex-direction:column;align-items:stretch;padding:0 28px 8px 0;overflow:hidden}
+.ovbox.setup .opt.maptile>span::before{content:"";display:block;height:16px;margin:0 -28px 7px 0;background:var(--sw);border-bottom:1px solid #000}
+.ovbox.setup .opt.maptile>span{padding-left:10px}
+/* the small "i": a faint mark on a computer (the mouse shows the info), a real button on a touch screen */
+.tipi{position:absolute;top:4px;right:4px;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;border:1px solid var(--rule);background:transparent;color:var(--dim);font:italic 400 11px/1 Georgia,serif;cursor:pointer;padding:0;opacity:.55;z-index:2}
+.tipi:hover,.tipi:focus-visible{opacity:1;color:var(--amber-hi);border-color:var(--amber);outline:none}
+label.chk>.tipi,label.f>.tipi,.f>.tipi{position:static;flex:none;margin-left:6px;align-self:center}
+@media (hover:none){.tipi{opacity:1;width:24px;height:24px;font-size:13px;color:var(--amber);border-color:var(--amber)}}
+/* switches and pickers on one line each */
+.ovbox.setup label.chk{align-items:center;margin:6px 0;cursor:pointer}
+.ovbox.setup label.chk b{font-weight:400;color:var(--text)}
+.ovbox.setup label.f{flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:8px 0}
+.ovbox.setup label.f select{flex:1 1 180px;max-width:360px}
+.ovbox.setup .f:not(label){margin:8px 0}
+.ovbox.setup .f:not(label)>span:first-child{display:block;margin-bottom:5px}
+.ovbox.setup .seat .srow label.f{flex:1 1 200px}
+.ovbox.setup .seat .srow label.f input{flex:1 1 120px;min-width:0}
+.ovbox.setup .fixednote{font-size:12.5px}
+#tipbox .subtip .cih{gap:8px}
+#tipbox .subtip .stag{margin:6px 0 4px;font-style:italic;color:var(--text)}
+#tipbox .subtip ul{margin:0;padding-left:1.1em;font-size:12.5px;line-height:1.45}
+#tipbox .subtip li{margin:2px 0}
+@media (max-width:900px){.ovbox.setup{width:100%;max-height:calc(100dvh - 24px)}#ov:has(.ovbox.setup){padding:8px}.ovbox.setup .shead,.ovbox.setup .spanel,.sfoot{padding-left:14px;padding-right:14px}}
+.deftag{display:inline-block;margin-left:6px;padding:0 5px;font-style:normal;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);border:1px solid var(--rule);vertical-align:middle;line-height:1.5}
+.opt:has(input:checked) .deftag{color:var(--amber);border-color:var(--amber)}
+.ovbox.setup .opt.maptile .tipi{top:21px}
+.ovbox.setup legend .tipi{position:static;display:inline-flex;margin-left:6px;vertical-align:middle}
+@media (max-width:900px){.stabs{overflow-x:auto;scrollbar-width:none;padding:0 10px}.stabs::-webkit-scrollbar{display:none}.stab{padding:8px 12px;flex:none}
+  .ovbox.setup .opts.subs,.ovbox.setup .opts{grid-template-columns:repeat(auto-fill,minmax(min(100%,128px),1fr))}}
+.ovbox.setup .modes .mode{align-self:stretch}.ovbox.setup>.dim:last-child{padding-bottom:18px}
+/* ================= v23 · UI pass 4: card faces ================= */
+/* the mark in the top-left corner, in the Ace's blackletter */
+.cf.unit .cx .rk.mk{font-family:"Grenze Gotisch","Old English Text MT",serif;font-weight:500;font-size:calc(22px * var(--ci));line-height:.95;letter-spacing:0;max-width:none;white-space:nowrap}
+.cf.unit .cx .rk.mk.two{font-size:calc(17px * var(--ci));letter-spacing:-.02em}
+.cf.unit .cx .mk.sup{font-family:var(--mono);font-weight:400;font-size:calc(7px * var(--ci));letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
+.cf.unit .cx .rk.svgmk{display:block;line-height:0}
+.cf .mksvg{display:block;height:calc(17px * var(--ci));width:auto}
+.cf .mksvg.wide{height:calc(11px * var(--ci));margin-top:calc(4px * var(--ci))}
+.cf.sm.unit .cx .rk.mk{font-size:calc(15px * var(--ci))}.cf.sm.unit .cx .rk.mk.two{font-size:calc(11px * var(--ci))}
+.cf.sm .mksvg{height:calc(11px * var(--ci))}.cf.sm .mksvg.wide{height:calc(7px * var(--ci));margin-top:2px}
+.cf.sm.unit .cx .mk.sup{font-size:calc(5px * var(--ci))}
+/* the picture: centered, a little larger now that the name has moved to the bottom */
+.cf.unit .uic{top:calc(25px * var(--ci))}
+.cf.unit .uic svg{width:calc(32px * var(--ci));height:calc(32px * var(--ci))}
+.cf.unit .ty.long{letter-spacing:.01em;font-size:calc(7px * var(--ci))}
+/* one paper for every card: no green Tree, no tinted Satan */
+.cf.u-tree,.stack.u-tree{background:#efe2c8}
+.cf.u-tree.basecard{background:color-mix(in srgb,var(--pc) 26%,#efe2c8)}
+.cf.u-satan,.stack.u-satan{background:#efe2c8}
+/* stacks on the field: the same mark in the corner */
+.stack .ulead{flex-direction:row;align-items:center;gap:4px}
+.stack .smark{line-height:.95;color:#15100b;display:inline-flex;align-items:center}
+.stack .smark .rk.mk{font-family:"Grenze Gotisch","Old English Text MT",serif;font-weight:500;font-size:calc(clamp(20px,2.7vw,30px) * var(--ci))}
+.stack .smark .rk.mk.two{font-size:calc(clamp(16px,2.1vw,24px) * var(--ci))}
+.stack .smark .mk.sup{font-family:var(--mono);font-size:calc(6.5px * var(--ci));letter-spacing:.06em;text-transform:uppercase}
+.stack .smark .mksvg{height:calc(clamp(16px,2.2vw,24px) * var(--ci));width:auto;display:block}
+.stack .smark .mksvg.wide{height:calc(clamp(10px,1.4vw,15px) * var(--ci))}
+.stack .smark .mk.sup{display:none}
+.stack .ulead svg{width:calc(28px * var(--ci));height:calc(28px * var(--ci))}
+/* the Card info tabs show the card itself */
+#ibody .ihead{display:flex;align-items:center;gap:14px;margin:6px 0 8px}
+#ibody .ihead h4{margin:0}
+.cf.unit .cx .mk.sup{color:#15100b}
+/* v24: the Selected box keeps its own height (up to half the column) instead of being squeezed by the spells */
+@media (min-width:901px){
+  .gside #seltop,.gside #selbottom{flex:0 0 auto}
+  .gside #selwrap{max-height:100%}
+  .gside #selbox{max-height:calc(48vh / var(--uiz,1));min-height:2.6em}
+}
+/* the first screen of New game: a window sized to its three choices, side by side */
+@media (min-width:901px){
+  .ovbox.setup:not(:has(.stabs)){width:min(1040px,calc(92vw / var(--uiz,1)))}
+  .ovbox.setup:not(:has(.stabs)) .modes{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+}
+.ovbox.setup:not(:has(.stabs)) .shead,.ovbox.setup:not(:has(.stabs)) .modes,.ovbox.setup:not(:has(.stabs))>.dim{padding-left:26px;padding-right:26px}
+.ovbox.setup .modes .mode{display:flex;flex-direction:column;gap:6px;padding:16px 18px}
+.ovbox.setup .modes .mode b{font-size:18px}
+.ovbox.setup .modes .mode span{margin:0}
