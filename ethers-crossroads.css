@@ -868,3 +868,49 @@ label.chk>.tipi,label.f>.tipi,.f>.tipi{position:static;flex:none;margin-left:6px
 .ovbox.setup .modes .mode{display:flex;flex-direction:column;gap:6px;padding:16px 18px}
 .ovbox.setup .modes .mode b{font-size:18px}
 .ovbox.setup .modes .mode span{margin:0}
+/* v25: notes at the end of an explanation line up with its text; planets explained as one box each, the Form at its foot */
+details.sub>p.dim{padding:0 12px 12px;margin:0}
+.skygrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:10px;padding:8px 12px 12px}
+.skycard{display:flex;flex-direction:column;border:1px solid var(--rule);background:var(--deep);padding:10px 12px;font-size:13px;line-height:1.5}
+.skycard b{color:var(--amber-hi);font-weight:400;font-size:14px}
+.skycard p{margin:4px 0 6px;flex:1}
+.skycard small{color:var(--dim);font-size:12px}
+.skycard .skyform{margin-top:8px}
+/* v25: hearts always sit in one place — a row just above the name line — on every card and every stack */
+.cf .hearts{bottom:calc(16px * var(--ci) + 2px);line-height:1;font-size:calc(9px * var(--ci));letter-spacing:0;z-index:1}
+.cf.unit .uic{top:calc(23px * var(--ci))}
+.cf.unit .uic svg{width:calc(30px * var(--ci));height:calc(30px * var(--ci))}
+.cf:not(.unit) .su{top:calc(29px * var(--ci))}
+.stack{box-sizing:border-box;padding:calc(14px * var(--ci)) 3px calc(28px * var(--ci))}
+.stack .bhp{bottom:calc(17px * var(--ci));font-size:calc(10px * var(--ci));line-height:1;letter-spacing:0;z-index:1}
+.stack .bhp .hearts{color:#b3191f}
+.stack .mini{min-height:0}
+.tipi{display:none!important}
+body.tipi-on .tipi{display:inline-flex!important}
+.ovbox.setup .infosw{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:2px 12px;font-size:12.5px}
+.ovbox.setup .infosw label.chk{margin:0}
+/* v25: the Oaths and the planets get panels like the Ether */
+.spell.drawerbtn{background:linear-gradient(90deg,#0f2a2a,#0a1a1b);border-color:#5fc4b866;color:#dff5f1}
+.spell.drawerbtn em{color:#8fe0d4}
+.spell.drawerbtn:hover{border-color:#8fe0d4}
+.spell.drawerbtn.off{opacity:.6}
+#skypanel{position:fixed;top:0;right:0;bottom:0;z-index:70;width:min(420px,92vw);display:flex;flex-direction:column;background:#081617;border-left:1px solid #8fe0d4;box-shadow:-12px 0 40px #000c;color:#e6f4f1;padding:14px 0 0}
+#skypanel[hidden]{display:none}
+#skypanel .dhead{display:flex;align-items:center;justify-content:space-between;padding:0 16px 6px;border-bottom:1px solid #8fe0d433}
+#skypanel h2{margin:0;font-size:20px;color:#fff}
+#skypanel .xclose{position:static;color:#8fe0d4}
+#skypanel .dnote{margin:8px 16px 6px;font-size:12.5px;color:#9fbdb8;line-height:1.45}
+#skypanel .dbody{flex:1 1 auto;min-height:0;padding:4px 12px 70px 16px}
+#skypanel .orow{border:1px solid #2c4a49;background:#0d2223;padding:9px 12px;margin:0 0 8px}
+#skypanel .orow.sworn{border-color:#8fe0d4;box-shadow:inset 3px 0 0 #8fe0d4}
+#skypanel .otop{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+#skypanel .otop b{font-weight:400;color:#fff}
+#skypanel .oneed{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9fbdb8}
+#skypanel .orow p{margin:5px 0 7px;font-size:12.5px;line-height:1.45;color:#cfe3df}
+#skypanel .oact{display:flex;align-items:center;justify-content:flex-end;gap:10px;font-size:12px}
+#skypanel .otag{color:#8fe0d4;letter-spacing:.1em;text-transform:uppercase;font-size:11px;margin-right:auto}
+#skypanel .btn{background:#5fc4b8;border-color:#5fc4b8;color:#04110f}
+#skypanel .btn.ghost{background:transparent;color:#8fe0d4}
+#skypanel .spell{background:#0d2223;border-color:#2c4a49;color:#e6f4f1}
+#skypanel .spell em{color:#e6d38a}
+#skypanel .spell small.left{margin-left:8px;font-size:11px;color:#9fbdb8;font-style:italic}

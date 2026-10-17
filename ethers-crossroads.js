@@ -56,8 +56,8 @@ const SUBST_TEXT={
   "Always the six-pointed star.",
   "Untouched by the Moon's and Saturn's harms, the Leviathan's toll and meteors.",
   "Starts with a Miner on the moon: 1d2 − 1 mana a turn.",
-  "Sorcery and Illusion: Blood Moon, Rain, Asteroid and Fog.",
-  "Astrology: Mars, the Second Sun, Venus, Jupiter and Mercury."]},
+  "Sorcery and Illusion: Blood Moon, Rain and Fog.",
+  "Astrology: the Asteroid, and the planets Mars, the Second Sun, Venus, Jupiter and Mercury."]},
  "yald":{"tag":"The Demiurge: it eats the sky and the dead, and brings Saturn.","pts":[
   "Always the symbol of Saturn.",
   "Night's Judgement: eat the moon (at the New or Full Moon) or any planet.",
@@ -1137,7 +1137,7 @@ function spellBlock(sp){ // reason the moon or mode forbids a spell, or ""
   if(G.noConjureRound===G.moon.round&&sp.school==="Conjuring")return "Deconjured: no one can conjure this round.";
   return "";
 }
-const phaseOk=sp=>G.phase==="prep"||(G.phase==="attack"&&G.opts.atkSpells&&["Enchantment","Curse","Sorcery","Illusion"].includes(sp.school));
+const phaseOk=sp=>G.phase==="prep"||(G.phase==="attack"&&G.opts.atkSpells&&["Enchantment","Curse","Sorcery","Illusion"].includes(sp.atkSchool||sp.school));
 const spellMine=sp=>!sp.tribe||G.p[G.active].tribe===sp.tribe;   // Substance spells belong to their Substance
 function spellReady(sp){return spellMine(sp)&&phaseOk(sp)&&!spellBlock(sp)&&sp.ok()&&canAfford(G.active,spellCost(sp))}
 async function cast(sp){
@@ -1851,7 +1851,7 @@ function render(){
         const cap=st.cards.reduce((a,x)=>a+capMana(x),0);
         const odd=lead.unit||lead.puppet,ic=odd?inkSVG(lead.puppet?"puppet":lead.unit,inkOf(lead),28):"";
         const leadHTML=odd?`<span class="lead ulead"><span class="smark">${markHTML(lead)}</span>${ic}</span>`:`<span class="lead"><b class="rk${lead.rank==="JK"?" jk":""}">${lead.rank==="JK"?"Joker":lead.rank}</b><i>${lead.rank==="JK"?"✶":SUITS[lead.suit]}</i></span>`;
-        inner=`<div class="stack ${hasBase(st)?"base ":""}${mine?"mine":isEnemy(st.owner,V)?"theirs":"ally"} ${lead.color}${hated(st)?" hated":""}${shielded(st.owner)?" pink":""}${G.p[st.owner].joy?" joy":""}${lead.unit?" u-"+lead.unit:""}" style="--pc:${P.color}"><span class="so">${solidSVG(P.solid,P.color,16)}</span><span class="ci" title="Card info: click it, or drag it onto another stack to compare"></span>${st.cards.length>1?`<span class="cnt">×${st.cards.length}</span>`:""}${leadHTML}<span class="mini">${st.cards.length>1?st.cards.map(short).join(" "):heartsHTML(lead)}</span>${st.cards.length>1&&lead.maxHp?`<span class="bhp">${heartsHTML(lead)}</span>`:""}<em class="ty">${esc(typeWord(lead))}</em>${st.stun?`<span class="stun" title="Immobilized by lightning for ${st.stun} more turn${st.stun>1?"s":""}">${unitSVG("bolt","#6fb8ff",14)}${st.stun}</span>`:""}${st.odds?`<span class="odds ${st.odds}">${st.odds==="adv"?"▲":"▼"}</span>`:""}${st.hypo?`<span class="hypo" title="Hypostasis: untouchable">◈${st.hypo}</span>`:""}${cap?`<span class="souls" title="captured souls">✦${cap}</span>`:""}${st.owner===G.active&&(st.moved||st.attacked)&&G.phase!=="setup"?`<span class="used">${st.attacked?"atk":"mv"}</span>`:""}</div>`;
+        inner=`<div class="stack ${hasBase(st)?"base ":""}${mine?"mine":isEnemy(st.owner,V)?"theirs":"ally"} ${lead.color}${hated(st)?" hated":""}${shielded(st.owner)?" pink":""}${G.p[st.owner].joy?" joy":""}${lead.unit?" u-"+lead.unit:""}" style="--pc:${P.color}"><span class="so">${solidSVG(P.solid,P.color,16)}</span><span class="ci" title="Card info: click it, or drag it onto another stack to compare"></span>${st.cards.length>1?`<span class="cnt">×${st.cards.length}</span>`:""}${leadHTML}${st.cards.length>1?`<span class="mini">${st.cards.map(short).join(" ")}</span>`:""}${lead.maxHp?`<span class="bhp">${heartsHTML(lead)}</span>`:""}<em class="ty">${esc(typeWord(lead))}</em>${st.stun?`<span class="stun" title="Immobilized by lightning for ${st.stun} more turn${st.stun>1?"s":""}">${unitSVG("bolt","#6fb8ff",14)}${st.stun}</span>`:""}${st.odds?`<span class="odds ${st.odds}">${st.odds==="adv"?"▲":"▼"}</span>`:""}${st.hypo?`<span class="hypo" title="Hypostasis: untouchable">◈${st.hypo}</span>`:""}${cap?`<span class="souls" title="captured souls">✦${cap}</span>`:""}${st.owner===G.active&&(st.moved||st.attacked)&&G.phase!=="setup"?`<span class="used">${st.attacked?"atk":"mv"}</span>`:""}</div>`;
       }
       if(st&&showsBack(V,r,c)){const P=G.p[st.owner];inner=`<div class="stack theirs facedown" style="--pc:${P.color}"><span class="so">${solidSVG(P.solid,P.color,16)}</span><span class="fdback">${solidSVG(P.solid,P.color,30)}</span><em class="ty">face down</em></div>`}
       else if(st){if(st.down)inner=inner.replace('class="stack ','class="stack down ');if(st.ambush&&!isEnemy(st.owner,V))inner=inner.replace('class="stack ','class="stack ambush ');inner=siegeDecor(inner,st,V,r,c)}
@@ -2390,13 +2390,14 @@ function applyPrefs(){
 }
 function mountBar(){
   const Rb=document.createElement("div");Rb.id="gbar";Rb.className="gbar";
-  Rb.innerHTML=`<span id="gmore"><label>Theme <select id="pTheme">${Object.entries(THEMES).map(([k,[n]])=>`<option value="${k}">${n}</option>`).join("")}</select></label><span class="gctl">Card Icons <button type="button" data-z="ci" data-d="-1" aria-label="Smaller card icons">−</button><b id="ciV"></b><button type="button" data-z="ci" data-d="1" aria-label="Bigger card icons">+</button></span><span class="gctl">UI Size <button type="button" data-z="ui" data-d="-1" aria-label="Smaller interface">−</button><b id="uiV"></b><button type="button" data-z="ui" data-d="1" aria-label="Bigger interface">+</button></span><span class="gctl">Text Size <button type="button" data-z="tz" data-d="-1" aria-label="Smaller text">−</button><b id="tzV"></b><button type="button" data-z="tz" data-d="1" aria-label="Bigger text">+</button></span><button type="button" id="pHand" class="gtog"></button><button type="button" id="pCoord" class="gtog"></button><button type="button" id="pFull" class="gtog pc-only"></button></span><button type="button" id="pMore" class="gtog" aria-expanded="false" aria-controls="gmore">Display ▴</button>`;
+  Rb.innerHTML=`<span id="gmore"><label>Theme <select id="pTheme">${Object.entries(THEMES).map(([k,[n]])=>`<option value="${k}">${n}</option>`).join("")}</select></label><span class="gctl">Card Icons <button type="button" data-z="ci" data-d="-1" aria-label="Smaller card icons">−</button><b id="ciV"></b><button type="button" data-z="ci" data-d="1" aria-label="Bigger card icons">+</button></span><span class="gctl">UI Size <button type="button" data-z="ui" data-d="-1" aria-label="Smaller interface">−</button><b id="uiV"></b><button type="button" data-z="ui" data-d="1" aria-label="Bigger interface">+</button></span><span class="gctl">Text Size <button type="button" data-z="tz" data-d="-1" aria-label="Smaller text">−</button><b id="tzV"></b><button type="button" data-z="tz" data-d="1" aria-label="Bigger text">+</button></span><button type="button" id="pHand" class="gtog"></button><button type="button" id="pCoord" class="gtog"></button><button type="button" id="pFull" class="gtog pc-only"></button><button type="button" id="pReset" class="gtog" title="Card icons, interface and text back to 100%">Reset sizes</button></span><button type="button" id="pMore" class="gtog" aria-expanded="false" aria-controls="gmore">Display ▴</button>`;
   document.body.append(Rb);savePrefs();
   $("#pTheme").onchange=e=>{PREF.theme=e.target.value;savePrefs();applyPrefs()};
   Rb.querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{const k=b.dataset.z,lim=k==="ci"?[.8,1.8]:k==="tz"?[.8,1.8]:[.8,1.4];PREF[k]=Math.round(Math.min(lim[1],Math.max(lim[0],PREF[k]+ +b.dataset.d*.1))*10)/10;savePrefs();applyPrefs()});
   $("#pHand").onclick=()=>{PREF.hand=PREF.hand==="below"?"side":"below";savePrefs();applyPrefs()};
   $("#pCoord").onclick=()=>{PREF.coords=!PREF.coords;savePrefs();applyPrefs();if(G)render()};
   $("#pFull").onclick=()=>{PREF.full=!PREF.full;savePrefs();applyPrefs()};
+  $("#pReset").onclick=()=>{PREF.ci=1;PREF.ui=1;PREF.tz=1;savePrefs();applyPrefs();if(G)render()};
   $("#pMore").onclick=()=>{PREF.barOpen=!PREF.barOpen;savePrefs();applyPrefs()};
 }
 /* leaving mid-game asks first */
@@ -4322,7 +4323,7 @@ const PLANETS={
 };
 const planetUp=k=>G.moon.gone===k;
 const sunUp=()=>G.moon.gone==="sun";
-const oathOf=pl=>G.p[pl]&&G.p[pl].oath&&G.p[pl].oath===OATH_SKY[sky()]?G.p[pl].oath:null;
+const oathOf=pl=>G.p[pl]&&G.p[pl].oath&&(G.p[pl].oath==="earth"||G.p[pl].oath===OATH_SKY[sky()])?G.p[pl].oath:null;   // the Earth needs no planet
 const OATH_SKY={sun:"earth",venus:"venus",jupiter:"jupiter"};
 const planetBy=()=>G.planetBy!=null&&G.p[G.planetBy]&&!G.p[G.planetBy].out?G.planetBy:null;
 
@@ -4466,7 +4467,7 @@ SPELLS.push(
  {id:"jupiter",tribe:"firm",dice:"2d3",name:"Jupiter",cost:4,school:"Astrology",text:"Jupiter (“Fortune”) takes the moon's place. Miners in an Ace's slots bring 1d2 a turn; each round two conjurings are on sale (maybe one mana back); cards can be traded hand to hand at the Auction; a Jester's Sacrificial Suicide brings 1d2 − 1 more. You may get a mana when others buy on sale or trade. Anyone can swear the Oath of Jupiter.",
   ok:firmPlace("jupiter"),run:async()=>{setPlanet("jupiter",G.active);rollJupSale();log(`<b>Jupiter</b> rises where the moon was, raised by ${plName(G.active)}.`,"event")}},
  {id:"oath_earth",name:"Oath of the Earth",cost:0,school:"Astrology",text:"Free, while the Second Sun burns. Swear to the Earth: no necromancy for you, and every Sorcery spell with a dice price rolls its price twice for you and keeps the lower. Cast again to break the Oath.",
-  ok:()=>sunUp()&&me().tribe!=="firm",run:async()=>{toggleOath("earth")}},
+  ok:()=>me().tribe!=="firm",run:async()=>{toggleOath("earth")}},
  {id:"oath_venus",name:"Oath of Venus",cost:0,school:"Astrology",text:"Free, while Venus is up. Each turn you start without having attacked a player: +2 mana and +2 maximum for that turn. Each attack on a player costs 1d2 mana and two maximum for 1d3 turns. Cast again to break the Oath.",
   ok:()=>planetUp("venus"),run:async()=>{toggleOath("venus")}},
  {id:"oath_jupiter",name:"Oath of Jupiter",cost:0,school:"Astrology",text:"Free, while Jupiter is up. Every conjuring costs you one less, except what already costs one. Cast again to break the Oath.",
@@ -4788,24 +4789,27 @@ function renderSpells(live){
   const box=$("#spells");if(!box)return;
   box.classList.toggle("bloodmoon",!!G.moon.blood);
   const V=G.p[view()],keep=box.scrollTop;
-  const mine=s=>(!s.tribe||s.tribe===V.tribe)&&!ETHER_IDS.has(s.id)&&!(survival()&&["forced","double","three","naked"].includes(s.id));
+  const mine=s=>(!s.tribe||s.tribe===V.tribe)&&!ETHER_IDS.has(s.id)&&!inDrawer(s,V)&&!(survival()&&["forced","double","three","naked"].includes(s.id));
   const head=!live?`<p class="dim sp-note">${G.passing?"":me().cpu?`${esc(me().name)} is casting.`:"Spells are cast in your prep phase."}</p>`:G.phase==="prep"?"":G.opts.atkSpells&&G.phase==="attack"?'<p class="dim sp-note">Enchantments, curses, sorcery and illusions can be cast now.</p>':'<p class="dim sp-note">Spells are cast in your prep phase.</p>';
   const byPrice=(a,b)=>spellCost(a)-spellCost(b)||a.name.localeCompare(b.name);
-  box.innerHTML=head+SCHOOLS.filter(sc=>sc==="Conjuring"||SPELLS.some(s=>s.school===sc&&mine(s))).map(sc=>{
+  box.innerHTML=head+SCHOOLS.filter(sc=>sc==="Conjuring"||sc==="Astrology"||SPELLS.some(s=>s.school===sc&&mine(s))).map(sc=>{
     let list=SPELLS.filter(s=>s.school===sc&&mine(s));
     let pinned="";
     if(sc==="Conjuring"){const mx=list.find(s=>s.id==="maxmana");list=list.filter(s=>s.id!=="maxmana");
       const blk=SPELLS.filter(s=>ETHER_IDS.has(s.id)).map(spellBlock).find(Boolean)||"";
       pinned=`<button class="spell ether ${live&&!blk?"":"off"}" id="openEther" data-tip="${esc(blk||"Open the Ether: every card you can conjure into your deck, by type, cheapest first.")}"><span class="sn">Ether<small class="dc">${G.ether.length} souls</small></span><em>shop ›</em></button>`+(mx?spellRow(mx,live):"")}
+    if(sc==="Astrology")pinned=astroPins(live,V);
     list.sort(byPrice);
     return `<details class="school" data-sc="${sc}" ${(PREF.shut||[]).includes(sc)?"":"open"}><summary>${sc}</summary>${pinned}${list.map(s=>spellRow(s,live)).join("")}</details>`}).join("");
   box.scrollTop=keep;
   box.querySelectorAll("details.school").forEach(d=>d.ontoggle=()=>{const sc=d.dataset.sc,S=new Set(PREF.shut||[]);d.open?S.delete(sc):S.add(sc);PREF.shut=[...S];savePrefs()});
   box.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{if(!canAct())return;cast(SP(b.dataset.s))});
   if($("#openEther"))$("#openEther").onclick=()=>openEtherShop();
+  wireAstroPins();
   if($("#autoBless"))$("#autoBless").onclick=e=>{e.stopPropagation();const Q=G.p[view()];Q.autoBless=!Q.autoBless;PREF.autoBless=Q.autoBless;savePrefs();render()};
   const bs=$("#bankslot");if(bs){bs.innerHTML=bankBarHTML();if($("#openBank"))$("#openBank").onclick=openBank}
   if(etherOpen())fillEther();
+  refreshDrawers();
 }
 /* Grave Blessing on its own, at the start of a person's prep phase */
 async function autoBlessing(pl){const P=G.p[pl];if(!P||P.cpu||!P.autoBless)return;const sp=SP("bless");if(spellReady(sp))await cast(sp)}
@@ -4815,7 +4819,7 @@ const etherOpen=()=>{const e=$("#etherpanel");return !!e&&!e.hidden};
 function openEtherShop(){let e=$("#etherpanel");
   if(!e){e=document.createElement("aside");e.id="etherpanel";e.className="drawer";e.setAttribute("aria-label","The Ether");document.body.appendChild(e);
     document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&etherOpen())closeEther()})}
-  e.hidden=false;fillEther();}
+  closeDrawer();e.hidden=false;fillEther();}
 function closeEther(){const e=$("#etherpanel");if(e)e.hidden=true}
 function fillEther(){
   const e=$("#etherpanel");if(!e||!G)return;const live=canAct()&&G.phase==="prep",keep=e.querySelector(".dbody")?e.querySelector(".dbody").scrollTop:0;
@@ -4971,7 +4975,7 @@ const SPELL_TEXT={
  venus:{e:"Venus takes the moon's place. Choose: you or a teammate get +2 mana a turn and +2 maximum, or you get +1 mana a turn while every enemy gets +2 maximum.",l:"The second choice isn't offered in Survival. Anyone can swear the Oath of Venus."},
  jupiter:{e:"Jupiter takes the moon's place. Miners in an Ace bring 1d2 a turn, two conjurings go on sale each round, hand cards can be traded at the Auction, and a Jester's Sacrificial Suicide brings 1d2 − 1 more.",l:"You may get a mana back when others buy on sale or trade. Anyone can swear the Oath of Jupiter."},
  mercury:{e:"Mercury takes the moon's place. Anyone can call a vote for Peace or Total War, or buy Peace.",l:"Those who swear the Oath of Mercury can betray their team, declare war alone and bribe the Banker."},
- oath_earth:{n:"The Second Sun in the sky.",e:"No necromancy for you. Every Sorcery spell with a dice price rolls its price twice for you and keeps the lower.",l:"Cast again to break the Oath."},
+ oath_earth:{e:"No necromancy for you. Every Sorcery spell with a dice price rolls its price twice for you and keeps the lower.",l:"Cast again to break the Oath."},
  oath_venus:{n:"Venus in the sky.",e:"Each turn you start without having attacked a player: +2 mana and +2 maximum for that turn. Each attack on a player costs 1d2 mana and two maximum for 1d3 turns.",l:"Cast again to break the Oath."},
  oath_jupiter:{n:"Jupiter in the sky.",e:"Every conjuring costs you one less, unless it already costs one.",l:"Cast again to break the Oath."},
  oath_mercury:{n:"Mercury in the sky.",e:"Unlocks Betrayal, Declare War and Bribe the Banker.",l:"Cast again to break the Oath."},
@@ -4997,7 +5001,7 @@ const ATK_SCHOOLS=["Enchantment","Curse","Sorcery","Illusion"];
 function spellWhen(s){
   const once=s.once?" Once a game.":"";
   if(s.id==="bless")return "Your prep phase, once a turn."+once;
-  if(G&&G.opts.atkSpells&&ATK_SCHOOLS.includes(s.school))return "Your prep or attack phase."+once;
+  if(G&&G.opts.atkSpells&&ATK_SCHOOLS.includes(s.atkSchool||s.school))return "Your prep or attack phase."+once;
   return "Your prep phase."+once;
 }
 function spellTipHTML(s){
@@ -5115,7 +5119,7 @@ const SKY_ROWS=[
  ["venus","Venus","The Firmament; or the sky from the start.","+2 mana a turn and +2 maximum for the caster or a teammate, or +1 a turn while every enemy gets +2 maximum."],
  ["mercury","Mercury","The Firmament; or the sky from the start.","Votes for Peace or Total War, bought Peace, and under its Oath Betrayal, Declare War and Bribe the Banker."],
  ["jupiter","Jupiter","The Firmament; or the sky from the start.","Ace miners bring 1d2, two conjurings on sale each round, trades at the Auction."]];
-function skyExplainHTML(){return `<details class="sub"><summary>Planets explained</summary><dl class="spellinfo skyexp">${SKY_ROWS.map(([k,n,how,what])=>`<dt>${n}</dt><dd>${what} <small>${how}</small><em class="skyform">${SKY_FORM[k]}</em></dd>`).join("")}</dl><p class="dim">Every planet but the Moon can be eclipsed: 5% at the start of each round. Hover or tap the sky in a game for what it means for you.</p></details>`}
+function skyExplainHTML(){return `<details class="sub"><summary>Planets explained</summary><div class="skygrid">${SKY_ROWS.map(([k,n,how,what])=>`<div class="skycard"><b>${n}</b><p>${what}</p><small>${how}</small><em class="skyform">${SKY_FORM[k]}</em></div>`).join("")}</div><p class="dim">Every planet but the Moon can be eclipsed: 5% at the start of each round. Hover or tap the sky in a game for what it means for you.</p></details>`}
 const BANK_HELP=[
  ["Where mana goes","Every mana spent on a spell goes to the Bank. The Bank can only lend what it holds."],
  ["Loans","Borrow up to what the Bank holds. A loan grows 20% every 1d2 turns and is due in 4 of your turns. Whatever isn't paid then becomes mana debt."],
@@ -5195,6 +5199,16 @@ function subTipHTML(k){const T=TRIBES[k];if(!T)return "";
   document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest(".tipi");if(!b)return;e.preventDefault();e.stopPropagation();
     const el=b.parentElement;showTip(el,true)},true);
 })();
+/* v25: the "i" buttons are off unless asked for (they're for touch screens); a phone can also hold a tile for its info */
+function infoSwitch(root){
+  const sh=root.querySelector(".shead");if(!sh||!root.querySelector(".stabs")||sh.querySelector(".infosw"))return;
+  const w=document.createElement("div");w.className="infosw";
+  w.innerHTML=`<label class="chk"><input type="checkbox" id="tipiOn" ${PREF.tipi?"checked":""}> <span><b>Info buttons</b></span></label><span class="dim">For touch screens. ${isTouch()?"You can also hold any tile to see its info.":"With a mouse, rest it on any option to see its info."}</span>`;
+  sh.appendChild(w);
+  w.querySelector("#tipiOn").onchange=e=>{PREF.tipi=e.target.checked;savePrefs();document.body.classList.toggle("tipi-on",PREF.tipi)};
+}
+document.body.classList.toggle("tipi-on",!!PREF.tipi);
+{const _c=compactSetup;compactSetup=function(root){_c(root);root=root||document.querySelector(".ovbox.setup");if(root)infoSwitch(root)}}
 
 /* ---------------- UI pass 4 (v23): card faces ----------------
    Every card beyond the standard deck reads like one: a mark in the top-left corner (in the Ace's blackletter where it
@@ -5264,5 +5278,71 @@ BROWSE[1][1]=BROWSE[1][1].filter(k=>k!=="A");      // the Ace is a Base, not a S
 const INFO_PROTO={grunt:"4",infantry:"8",jack:"J",queen:"Q",king:"K",ace:"A",joker:"JK"};
 infoBody=function(k){const [t,,rows,note]=INFO[k];const c=protoCard(INFO_PROTO[k]||k);
   return `<div class="ihead">${face(c,{owner:null,noci:true})}<h4>${t}</h4></div><table>${rows.map(([a,b])=>`<tr><th>${a}</th><td>${b}</td></tr>`).join("")}</table><p class="dim">${note}</p>`};
+
+/* ---------------- Prompt 12, part 1 (v25): the sky's menus ----------------
+   Lightning and the Asteroid are Astrology now (they still follow Sorcery's timing). The Oaths have their own panel, like the Ether;
+   spells that only an Oath opens show only while it is sworn. The Firmament's planets have a panel of their own, for it alone. */
+
+for(const id of ["bolt","asteroid"]){const s=SP(id);if(s){s.atkSchool=s.school;s.school="Astrology"}}
+
+const OATHS=[["earth","Any sky"],["venus","Venus in the sky"],["jupiter","Jupiter in the sky"],["mercury","Mercury in the sky"]];
+const OATH_ONLY={betray:"mercury",warnow:"mercury",bribe:"mercury"};
+const FIRM_PLANETS=["mars","sun","venus","jupiter","mercury","sunfall"];
+/* spells that only work under a certain sky show only while it is there */
+const SKY_ONLY={peace:()=>planetUp("mercury"),war:()=>planetUp("mercury"),buypeace:()=>planetUp("mercury"),cry:()=>sunUp()};
+/* spells that live in a panel instead of the list, or that need an Oath first */
+function inDrawer(s,V){
+  if(s.id.startsWith("oath_"))return true;
+  if(OATH_ONLY[s.id])return V.oath!==OATH_ONLY[s.id];
+  if(SKY_ONLY[s.id])return !SKY_ONLY[s.id]();
+  if(V.tribe==="firm"&&FIRM_PLANETS.includes(s.id))return true;
+  return false;
+}
+function astroPins(live,V){
+  const sworn=V.oath?SP("oath_"+V.oath):null;
+  let h=`<button class="spell drawerbtn oaths ${live?"":"off"}" id="openOaths" data-tip="The Oaths: swear one to a planet (or the Earth) for its gifts and its price. One at a time."><span class="sn">Oaths${sworn?`<small class="dc">${esc(sworn.name.replace(/^Oath of (the )?/,""))} sworn</small>`:""}</span><em>›</em></button>`;
+  if(V.tribe==="firm")h+=`<button class="spell drawerbtn planets ${live?"":"off"}" id="openPlanets" data-tip="Your planets: hang one in the moon's place."><span class="sn">Planets<small class="dc">${FIRM_PLANETS.filter(id=>SP(id)&&spellReady(SP(id))).length} ready</small></span><em>›</em></button>`;
+  return h;
+}
+function wireAstroPins(){
+  if($("#openOaths"))$("#openOaths").onclick=()=>openDrawer("oaths");
+  if($("#openPlanets"))$("#openPlanets").onclick=()=>openDrawer("planets");
+}
+/* ---------- one panel on the right, shared by the Oaths and the planets (the Ether keeps its own) ---------- */
+const DRAWERS={
+  oaths:{title:"Oaths",fill:oathsHTML},
+  planets:{title:"Your planets",fill:planetsHTML}
+};
+let drawerKind=null;
+function openDrawer(k){closeEther();let e=$("#skypanel");
+  if(!e){e=document.createElement("aside");e.id="skypanel";e.className="drawer";document.body.appendChild(e);
+    document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&!e.hidden)closeDrawer()})}
+  drawerKind=k;e.hidden=false;fillDrawer()}
+function closeDrawer(){const e=$("#skypanel");if(e)e.hidden=true;drawerKind=null}
+function refreshDrawers(){if(drawerKind&&$("#skypanel")&&!$("#skypanel").hidden)fillDrawer()}
+function fillDrawer(){
+  const e=$("#skypanel");if(!e||!G||!drawerKind)return;const D=DRAWERS[drawerKind],keep=e.querySelector(".dbody")?e.querySelector(".dbody").scrollTop:0;
+  const [note,body]=D.fill();
+  e.setAttribute("aria-label",D.title);e.className="drawer "+drawerKind;
+  e.innerHTML=`<div class="dhead"><h2>${D.title}</h2><button type="button" class="xclose" aria-label="Close">×</button></div><p class="dnote">${note}</p><div class="dbody scrollbox">${body}</div>`;
+  e.querySelector(".dbody").scrollTop=keep;e.querySelector(".xclose").onclick=closeDrawer;
+  e.querySelectorAll("[data-cast]").forEach(b=>b.onclick=async()=>{if(!canAct())return;await cast(SP(b.dataset.cast));render()});
+  e.querySelectorAll("[data-break]").forEach(b=>b.onclick=()=>{if(!canAct())return;toggleOath(b.dataset.break);render()});
+}
+function oathsHTML(){
+  const V=G.p[view()],live=canAct()&&G.phase==="prep"&&G.active===view();
+  const rows=OATHS.map(([k,need])=>{const sp=SP("oath_"+k);if(!sp)return "";const t=SPELL_TEXT[sp.id]||{};
+    const sworn=V.oath===k,ok=live&&!sworn&&spellReady(sp),blk=spellBlock(sp);
+    const act=sworn?`<button class="btn ghost sm" data-break="${k}" ${live?"":"disabled"}>Break</button>`:`<button class="btn sm" data-cast="${sp.id}" ${ok?"":"disabled"}>Swear</button>`;
+    return `<div class="orow${sworn?" sworn":""}"><div class="otop"><b>${esc(sp.name)}</b><span class="oneed">${need}</span></div><p>${esc(t.e||sp.text)}</p><div class="oact">${sworn?'<span class="otag">Sworn</span>':blk?`<span class="dim">${esc(blk)}</span>`:""}${act}</div></div>`}).join("");
+  const opened=Object.entries(OATH_ONLY).filter(([,k])=>V.oath===k).map(([id])=>SP(id).name);
+  return [`One Oath at a time: swearing a new one breaks the old. An Oath to a planet only works while that planet is in the sky.${opened.length?` Your Oath opens: ${opened.join(", ")}.`:""}`,rows];
+}
+function planetsHTML(){
+  const live=canAct()&&G.phase==="prep"&&G.active===view();
+  const rows=FIRM_PLANETS.map(id=>{const sp=SP(id);if(!sp)return "";const ok=live&&spellReady(sp),c=spellCost(sp),blk=spellBlock(sp);
+    return `<button class="spell eitem ${ok?"":"off"}" data-cast="${id}" data-sp="${id}"><span class="sn">${esc(sp.name)}${sp.dice?`<small class="dc">${sp.dice}</small>`:""}<small class="left">${esc(SKY_FORM[id]||"")}</small></span><em>${c?c+" mana":"free"}</em></button>`}).join("");
+  return [live?"Hang a planet in the moon's place. Prices are rolled each round.":"You can raise a planet in your own prep phase.",rows];
+}
 
 })();
