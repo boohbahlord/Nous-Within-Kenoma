@@ -1066,3 +1066,39 @@ table.tierolls td{padding:3px 12px 3px 0;border-bottom:1px solid #ffffff14}
 @keyframes mysrays{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.mysbox .myscard.tier-legendary::before,.mysbox .myscard.tier-mythic::before{animation:none}}
 .mysbox .myscard{isolation:isolate}
+/* v35: the fog veil, the Bank's land */
+#board{position:relative}
+.tile.fog::after{background:#0b0907a6!important;animation:none!important}
+#board.newmoon .tile.fog::after{background:#050403c8!important}
+#board.fullmoon .tile.fog::after{background:#0d0f1494!important}
+.fogveil{position:absolute;inset:0;z-index:5;pointer-events:none;mask-size:100% 100%;-webkit-mask-size:100% 100%;mask-repeat:no-repeat;-webkit-mask-repeat:no-repeat;
+  background-image:var(--c1),var(--c2),linear-gradient(#0a0806b0,#0a0806b0);background-size:520px 520px,300px 300px,auto;background-blend-mode:screen,screen,normal;
+  animation:fogveil 90s linear infinite;opacity:.95}
+@keyframes fogveil{from{background-position:0 0,0 0,0 0}to{background-position:520px 120px,-300px 60px,0 0}}
+#board.newmoon .fogveil{background-image:var(--c1),var(--c2),linear-gradient(#020101e6,#020101e6);filter:brightness(.42) contrast(1.25)}
+#board.fullmoon .fogveil{background-image:var(--c1),var(--c2),linear-gradient(#1c2638a8,#1c2638a8);filter:sepia(.35) hue-rotate(175deg) saturate(1.25) brightness(1.12)}
+#board.bloodfield .fogveil{filter:sepia(1) hue-rotate(-40deg) saturate(2.4) brightness(.8)}
+@media (prefers-reduced-motion:reduce){.fogveil{animation:none}}
+.ovbox.bank .plots{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:10px 0}
+.ovbox.bank .plot{display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--rule);background:var(--deep);border-radius:3px;min-height:72px}
+.ovbox.bank .plot b{font-weight:400;letter-spacing:.08em;text-transform:uppercase;font-size:12px;color:var(--dim)}
+.ovbox.bank .plot.mine{border-color:#c9a23a;background:linear-gradient(#2a2010,#1a140b)}
+.ovbox.bank .plot.mine b{color:#f1d27a}
+.ovbox.bank .plot.taken{opacity:.7}
+.ovbox.bank .plot .btn{align-self:flex-start}
+/* v36: online */
+.ovbox.online .onl{padding:6px 22px 16px;display:flex;flex-direction:column;gap:12px}
+.ovbox.online .onl .pf{margin:0}
+.ovbox.online .onl .f input{font:inherit;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:6px 10px}
+.ovbox.online .roomcode{align-self:flex-start;font-size:34px;letter-spacing:.32em;color:var(--amber-hi);border:1px dashed var(--amber);padding:6px 10px 6px 20px;margin:4px 0 0}
+.ovbox.online #onMsg{min-height:1.3em}
+/* v37: chat, the reconnect banner */
+#chatbtn{position:fixed;left:14px;bottom:14px;z-index:45;font:inherit;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--amber-hi);background:var(--well);border:1px solid var(--amber);padding:6px 14px;cursor:pointer;display:flex;align-items:center}
+#chatbtn .bang{margin-left:8px;width:auto;min-width:15px;padding:0 3px;border-radius:8px}
+#chatbox{position:fixed;left:14px;bottom:52px;z-index:46;width:min(340px,calc(100vw - 28px));max-height:min(420px,60vh);display:flex;flex-direction:column;background:var(--well);border:1px solid var(--amber);box-shadow:0 8px 30px #000a}
+#chatbox .dhead{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--rule)}
+#chatbox .chatlog{list-style:none;margin:0;padding:8px 12px;overflow:auto;flex:1;font-size:13.5px;line-height:1.5}
+#chatbox .chatlog b{color:var(--amber-hi);font-weight:400;margin-right:4px}
+#chatbox .chatin{display:flex;gap:6px;padding:8px 12px;border-top:1px solid var(--rule)}
+#chatbox .chatin input{flex:1;font:inherit;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:6px 8px;min-width:0}
+#netbanner{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:60;background:#3a0b0e;color:#ffd0c8;border:1px solid #c8202e;padding:8px 16px;font-size:14px}

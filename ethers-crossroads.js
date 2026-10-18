@@ -227,7 +227,7 @@ const hasBase=st=>st.cards.some(isBase);
 
 /* ---------------- state ---------------- */
 let G=null;
-function mkPlayer(i,o){return{i,name:o.name,tribe:o.tribe||null,color:o.color,solid:o.solid,cpu:o.cpu||null,team:o.team!=null?o.team:i,
+function mkPlayer(i,o){return{i,name:o.name,tribe:o.tribe||null,color:o.color,solid:o.solid,cpu:o.cpu||null,net:o.net||null,team:o.team!=null?o.team:i,
   deck:[],hand:[],souls:[],sevArmed:false,start:0,od:0,shownUntil:0,seen:false,tray:null,out:false,ctx:null,hist:[],lastSpell:null}}
 function newGame(opts){
   uid=0;
@@ -1710,7 +1710,7 @@ function ovHide(){const o=$("#ov");o.hidden=true;o.className="";o.innerHTML=""}
 const BOXNAME={limbo:"limbo",outer:"outer",ether:"etherbox",plain:""};
 function askHuman(pl,spec){
   return new Promise(res=>{
-    const who=G.opts.mode==="local"?`<p class="dim">${esc(G.p[pl].name)} chooses.</p>`:"";
+    const who=G.opts.mode==="local"&&!G.opts.online?`<p class="dim">${esc(G.p[pl].name)} chooses.</p>`:"";
     if(spec.kind==="yesno"){
       ovShow(`<div class="ovbox"><h2>${spec.title}</h2>${who}<p>${spec.text}</p><p class="acts"><button class="btn" id="qy">${esc(spec.yes)}</button> <button class="btn ghost" id="qn">${esc(spec.no)}</button></p></div>`);
       $("#qy").onclick=()=>{ovHide();res(true)};$("#qn").onclick=()=>{ovHide();res(false)};return;
@@ -1880,7 +1880,7 @@ function render(){
   if($("#nunk"))$("#nunk").onclick=()=>{PV.readUnknown=true;viewDark("unknown");render()};
   // hand
   const P=G.p[V];
-  $("#handh").textContent=G.p.filter(Q=>!Q.cpu).length>1?`${P.name}'s hand`:"Your hand";
+  $("#handh").textContent=G.p.filter(Q=>!Q.cpu).length>1&&!G.opts.online?`${P.name}'s hand`:"Your hand";
   const hidden=G.passing;
   $("#hand").innerHTML=P.hand.length?P.hand.map((c,i)=>hidden?back(V):`<div class="hc"><button class="cardbtn ${G.selHand===c?"on":""}" data-h="${i}" aria-label="${esc(nameOf(c))}">${face(c)}</button>${live&&sacrificeAllowed()&&canSacCard(c)?`<button class="mini-btn" data-sh="${i}" title="Sacrifice to your soul pile: its Ether price − 1d2 + 1 (${handSacLabel(c).slice(1)} mana), rolled when you do it">sac ${handSacLabel(c)}</button>${sunSacOk(V)?`<button class="mini-btn sunsac" data-sunh="${i}" title="Sacrifice to the Second Sun (+${soulOf(c)} fire mana)">sun +${soulOf(c)}</button>`:""}`:""}</div>`).join(""):'<p class="dim">No cards in hand.</p>';
   $("#hand").querySelectorAll("[data-h]").forEach(b=>b.onclick=()=>{
@@ -1933,7 +1933,7 @@ function renderSel(live){
   box.insertAdjacentHTML("beforeend",`<details class="selinfo" ${PREF.selInfo===false?"":"open"}><summary>Stats</summary>${infoHTML1(st,st.cards.length>1?`Stack of ${st.cards.length}`:nameOf(st.cards[0]))}</details>${mine&&G.phase==="prep"&&canAmbush(st)&&!st.moved&&!st.attacked?`<p><button class="btn ghost sm" id="ambBtn">${st.ambush?"Leave the ambush":"Set an ambush"}</button> <small class="dim">${st.ambush?"Moving or attacking also breaks it.":"Hidden and still: it strikes, with advantage, any enemy that steps beside it."}</small></p>`:""}<p class="cmpbtns"><button class="btn ghost sm" id="cmpField">${G.comparePick?"Click a stack… (cancel)":"Compare with a stack"}</button> <button class="btn ghost sm" id="cmpType">Compare with a kind of card</button></p>`);
   box.querySelector(".selinfo").ontoggle=e=>{PREF.selInfo=e.target.open;savePrefs()};
   $("#cmpField").onclick=()=>{G.comparePick=!G.comparePick;render()};
-  if($("#ambBtn"))$("#ambBtn").onclick=()=>{st.ambush=!st.ambush;log(st.ambush?`${plName(st.owner)} sets a stack in ambush.`:`${plName(st.owner)} leaves the ambush.`,"ai");G.mode=null;render()};
+  if($("#ambBtn"))$("#ambBtn").onclick=()=>{ambushToggle(s.r,s.c);G.mode=null;render()};
   $("#cmpType").onclick=()=>openBrowser(st,st.cards.length>1?`Stack of ${st.cards.length}`:nameOf(st.cards[0]));
   box.querySelectorAll("[data-pk]").forEach(i=>i.onchange=()=>{const id=+i.dataset.pk;i.checked?s.pick.add(id):s.pick.delete(id);G.mode=autoMode(st);render()});
   box.querySelectorAll("[data-sc]").forEach(b=>b.onclick=()=>{const c=st.cards.find(x=>x.id===+b.dataset.sc);sacrifice(c,{r:s.r,c:s.c});render()});
@@ -2133,7 +2133,7 @@ function showStart(){
   const q=new URLSearchParams(location.search).get("mode");
   if(!startMode&&MODES.some(m=>m[0]===q))startMode=q;
   if(!startMode){
-    ovShow(`<div class="ovbox setup"><div class="shead"><h2>New game</h2><p class="dim">Choose how to play.</p></div><div class="modes">${MODES.map(([k,t,s])=>`<button class="mode" data-m="${k}"><b>${t}</b><span>${s}</span></button>`).join("")}</div><p class="dim">Online play is not here yet.</p></div>`);
+    ovShow(`<div class="ovbox setup"><div class="shead"><h2>New game</h2><p class="dim">Choose how to play.</p></div><div class="modes">${MODES.map(([k,t,s])=>`<button class="mode" data-m="${k}"><b>${t}</b><span>${s}</span></button>`).join("")}</div></div>`);
     document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{startMode=b.dataset.m;showStart()});return;
   }
   const mode=startMode,M=MODES.find(m=>m[0]===mode);
@@ -3816,7 +3816,7 @@ function wireSiege(st,s){
     if(id!=null&&sp[id])release(s.r,s.c,sp[id][0],sp[id][1]);render()};
   document.querySelectorAll("[data-lib]").forEach(i=>i.onchange=()=>{const L=G.libPick||(G.libPick=new Set()),id=+i.dataset.lib;i.checked?L.add(id):L.delete(id);render()});
   if($("#pourBtn"))$("#pourBtn").onclick=()=>{if(!canAct())return;pourLibation(s.r,s.c,G.libPick||new Set());render()};
-  if($("#libDone"))$("#libDone").onclick=()=>{G.libation=false;G.libPick=null;render()};
+  if($("#libDone"))$("#libDone").onclick=()=>{libDone();render()};
 }
 
 /* ---------- the computer ---------- */
@@ -4075,7 +4075,7 @@ ${live&&!B.dead?`<div class="bacts">
   $("#mcancel").onclick=ovHide;
   if($("#bLoanBtn"))$("#bLoanBtn").onclick=()=>{takeLoan(V,+$("#bLoan").value);render();openBank()};
   if($("#bPayBtn"))$("#bPayBtn").onclick=()=>{repay(V,+$("#bPay").value);render();openBank()};
-  if($("#bCredit"))$("#bCredit").onchange=e=>{P.credit=e.target.checked;log(`${plName(V)} ${P.credit?"opens":"closes"} a line of credit at the Bank.`);render()};
+  if($("#bCredit"))$("#bCredit").onchange=e=>{setCredit(V,e.target.checked);render()};
   if($("#bThrall"))$("#bThrall").onclick=()=>{sellThrall(V);render();openBank()};
   if($("#bSell"))$("#bSell").onclick=()=>openSell(V);
 }
@@ -4812,7 +4812,7 @@ function renderSpells(live){
   box.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{if(!canAct())return;cast(SP(b.dataset.s))});
   if($("#openEther"))$("#openEther").onclick=()=>openEtherShop();
   wireAstroPins();
-  if($("#autoBless"))$("#autoBless").onclick=e=>{e.stopPropagation();const Q=G.p[view()];Q.autoBless=!Q.autoBless;PREF.autoBless=Q.autoBless;savePrefs();render()};
+  if($("#autoBless"))$("#autoBless").onclick=e=>{e.stopPropagation();const Q=G.p[view()],v=!Q.autoBless;setAutoBless(view(),v);PREF.autoBless=v;savePrefs();render()};
   const bs=$("#bankslot");if(bs){bs.innerHTML=bankBarHTML();if($("#openBank"))$("#openBank").onclick=openBank}
   if(etherOpen())fillEther();
   refreshDrawers();
@@ -4850,7 +4850,7 @@ function whoHTML(){
   const P=me(),many=G.p.filter(Q=>!Q.cpu).length>1,rn=G.moon.round||1;
   const ph=G.phase==="setup"?"Setup":G.phase==="moon"?"The sky turns":({draw:"Draw phase",prep:"Prep phase",attack:"Attack phase"})[G.phase]||"";
   const shared=G.nextLabel==="Ready →"&&G.phase!=="setup"&&G.phase!=="moon";
-  const whoTxt=P.cpu?`<b>${esc(P.name)}</b> is playing…`:many?`<b>${esc(P.name)}</b>'s turn`:`<b>Your turn</b>`;
+  const whoTxt=P.cpu?`<b>${esc(P.name)}</b> is playing…`:G.opts.online?(G.active===view()?`<b>Your turn</b>`:`<b>${esc(P.name)}</b> is playing…`):many?`<b>${esc(P.name)}</b>'s turn`:`<b>Your turn</b>`;
   return `<span class="sl-k">Round ${rn}</span>${whoTxt}<span class="sl-sep">·</span>${ph}${shared?`<span class="sl-chip" data-tip="Every player takes this phase at the same time. Press Ready when you're done.">Shared phase</span>`:""}`;
 }
 
@@ -5411,7 +5411,7 @@ function openMystery(){
 <button class="btn ghost" id="mcancel">Close</button></p>
 <div class="myslegend">${legend}</div></div>`);
     $("#mcancel").onclick=()=>{ovHide();render()};
-    if($("#mysPay"))$("#mysPay").onclick=()=>{if(!canAct()||buy)return;buy=mysteryBuy(pl);render();draw()};
+    if($("#mysPay"))$("#mysPay").onclick=async()=>{if(!canAct()||buy)return;buy=await Promise.resolve(mysteryBuy(pl));if(buy&&buy.got)buy.got.forEach(g=>{if(!g.tier||!g.tier.col)g.tier=MYS_TIERS.find(T=>T.k===(g.tier&&g.tier.k))||MYS_TIERS[0]});render();draw()};
     if($("#mysAll"))$("#mysAll").onclick=()=>{shown.fill(true);draw()};
     $("#ov").querySelectorAll(".myscard.back").forEach(b=>b.onclick=()=>{if(!buy)return;shown[+b.dataset.i]=true;draw()});
   };
@@ -5490,7 +5490,7 @@ function sunPayback(pl,worth){if(!oathNow(pl,"sun")||worth<=0)return;const g=giv
 /* a tile picked on the field: a person clicks, the computer is told */
 function aimTile(pl,title,valid,aiPick){
   if(G.p[pl].cpu)return Promise.resolve(aiPick());
-  return new Promise(res=>{G.aim={title,valid,res};render()})}
+  return new Promise(res=>{G.aim={title,valid,res,pl};render()})}
 function endAim(v){const A=G.aim;if(!A)return;G.aim=null;A.res(v);render()}
 {const _tc=tileClick;tileClick=function(r,c){
   if(G&&G.aim){if(G.aim.valid(r,c))endAim([r,c]);else flash("Choose one of the marked tiles.");return}
@@ -5738,9 +5738,9 @@ const sunSacOk=V=>V===G.active&&oathNow(V,"sun")&&sunUp();
 {const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;
   const B=$("#board");if(B){const bl=totalBlind(view());B.classList.toggle("blinded",bl);
     let v=B.querySelector(".blindveil");if(bl&&!v){v=document.createElement("div");v.className="blindveil";v.innerHTML=`<b>Blind</b><span>You see nothing on the field this round, not even your own cards.</span>`;B.appendChild(v)}else if(!bl&&v)v.remove();
-    if(G.aim){B.querySelectorAll("button.tile").forEach(t=>{if(G.aim.valid(+t.dataset.r,+t.dataset.c))t.classList.add("taim")})}}
+    if(G.aim&&(G.aim.pl==null||G.aim.pl===view())){const ok=(r,c)=>G.aim.valid?G.aim.valid(r,c):(G.aim.tiles||[]).some(t=>t[0]===r&&t[1]===c);B.querySelectorAll("button.tile").forEach(t=>{if(ok(+t.dataset.r,+t.dataset.c))t.classList.add("taim")})}}
   let a=$("#aimbar");
-  if(G.aim){if(!a){a=document.createElement("div");a.id="aimbar";document.body.appendChild(a)}a.innerHTML=`<span>${esc(G.aim.title)}</span><button class="btn ghost sm" type="button">Cancel</button>`;a.hidden=false;a.querySelector("button").onclick=()=>endAim(null)}
+  if(G.aim&&(G.aim.pl==null||G.aim.pl===view())){if(!a){a=document.createElement("div");a.id="aimbar";document.body.appendChild(a)}a.innerHTML=`<span>${esc(G.aim.title)}</span><button class="btn ghost sm" type="button">Cancel</button>`;a.hidden=false;a.querySelector("button").onclick=()=>endAim(null)}
   else if(a)a.hidden=true;
 }}
 if(window.__EC)Object.assign(window.__EC,{saturnEclipse,spawnPuppets,saturnPaid,saturnMissed,oathRound,eclipse,sacrificeToSun,totalBlind,fireOf,giveFire,setPlanet,toggleOath,cast,SP});
@@ -6242,7 +6242,7 @@ const goodCard=c=>!/^\d+$/.test(c.rank||"")&&!(c.unit&&!UNIT[c.unit].ether)&&!c.
   else if(V&&V.debt>0){const k=Math.min(V.debt,v);V.debt-=k;if(!V.debt)V.debtAt=null;bankAdd(v);paid=`, and its worth pays ${k} of ${plName(victim)}'s debt${V.debt?` (−${V.debt} left)`:" (debt cleared)"}`}
   else{bankAdd(v);paid=`; the Bank books its worth (${v})`}
   card.owner=null;if(card.hp!=null)card.hp=card.maxHp;
-  if(goodCard(card)&&R(4)===4){const price=Math.max(1,etherPrice(card)-R(2));(G.auction=G.auction||[]).push({card,seller:bk,bank:true,price,id:(G.auctN=(G.auctN||0)+1)});
+  if(goodCard(card)&&R(4)===4){const price=Math.max(1,etherPrice(card)-R(2));(G.auction=G.auction||[]).push({card,seller:bk,bank:true,price,from:victim,id:(G.auctN=(G.auctN||0)+1)});
     log(`The Bank's Debt Collector takes ${esc(nameOf(card))}${paid}. The Bank puts it up at the Auction for ${price} mana.`,"event");notify(bk,`A bargain at the Auction: ${esc(nameOf(card))} for ${price} mana.`)}
   else{G.ether.push(card);log(`The Bank's Debt Collector takes ${esc(nameOf(card))} into the Ether${paid}.`)}
   return true}}
@@ -6321,11 +6321,12 @@ let bankTab="bank";
   const other=document.createElement("div");other.className="btab p2p";other.dataset.t="p2p";other.innerHTML=p2pHTML(V);
   const n=loanReqsFor(V).length;
   const tabs=document.createElement("div");tabs.className="btabs";tabs.setAttribute("role","tablist");
-  tabs.innerHTML=`<button type="button" class="stab" data-bt="bank">The Bank</button><button type="button" class="stab" data-bt="p2p">Between players${n?` <i class="bang">!</i>`:""}</button>`;
-  h2.after(tabs);tabs.after(main);main.after(other);
-  const show=t=>{bankTab=t;tabs.querySelectorAll("[data-bt]").forEach(b=>{const on=b.dataset.bt===t;b.classList.toggle("on",on);b.setAttribute("aria-selected",on)});main.hidden=t!=="bank";other.hidden=t!=="p2p"};
+  tabs.innerHTML=`<button type="button" class="stab" data-bt="bank">The Bank</button><button type="button" class="stab" data-bt="p2p">Between players${n?` <i class="bang">!</i>`:""}</button><button type="button" class="stab" data-bt="land">Land</button>`;
+  const land=document.createElement("div");land.className="btab land";land.dataset.t="land";land.innerHTML=landHTML(V);
+  h2.after(tabs);tabs.after(main);main.after(other);other.after(land);
+  const show=t=>{bankTab=t;tabs.querySelectorAll("[data-bt]").forEach(b=>{const on=b.dataset.bt===t;b.classList.toggle("on",on);b.setAttribute("aria-selected",on)});main.hidden=t!=="bank";other.hidden=t!=="p2p";land.hidden=t!=="land"};
   tabs.querySelectorAll("[data-bt]").forEach(b=>b.onclick=()=>show(b.dataset.bt));show(n?"p2p":bankTab);
-  const re=()=>{render();openBank()};
+  const re=()=>{render();openBank()};wireLand(land,V,re);
   other.querySelectorAll("[data-lend]").forEach(b=>b.onclick=()=>{const L=p2pOf().find(x=>x.id===+b.dataset.lend);if(L)answerLoan(L,true);re()});
   other.querySelectorAll("[data-nolend]").forEach(b=>b.onclick=()=>{const L=p2pOf().find(x=>x.id===+b.dataset.nolend);if(L)answerLoan(L,false);re()});
   other.querySelectorAll("[data-repay]").forEach(b=>b.onclick=()=>{const L=p2pOf().find(x=>x.id===+b.dataset.repay);if(L)repayLoan(L,L.owed);re()});
@@ -6441,24 +6442,28 @@ const FX_SKY=new Set(["mars","sun","venus","jupiter","mercury","saturn","judge",
 const FX_AREA=new Set(["peace","war","buypeace","warnow","bird","quiet","ffog","rain","betray"]);
 const FX_OATH=id=>id.startsWith("oath_");
 {const _c=cast;cast=async function(sp){
-  if(!sp||!FX.on())return _c.apply(this,arguments);
-  const pl=G.active,sel=G.sel?{r:G.sel.r,c:G.sel.c}:null,col=SCHOOL_COL[sp.school]||"#ccc",fires0=new Set((G.fires||[]).map(f=>f.r+","+f.c));
+  if(!sp||!FX.on()&&!(typeof NET!=="undefined"&&NET.role==="host"))return _c.apply(this,arguments);
+  const pl=G.active,sel=G.sel?{r:G.sel.r,c:G.sel.c}:null,fires0=new Set((G.fires||[]).map(f=>f.r+","+f.c));
   const L0=G.log[0];await _c.apply(this,arguments);
   const L1=G.log.find(l=>/ casts <b>/.test(l.html));if(!L1||L1===L0||G.log.indexOf(L1)>=G.log.indexOf(L0)&&L0)return;   // it didn't go through
-  const tileSpell=/\bSelect\b|\bselected\b/.test(sp.text||"");
-  later(()=>{
-    const fresh=(G.fires||[]).filter(f=>!fires0.has(f.r+","+f.c)).map(f=>[f.r,f.c]).filter(([r,c])=>FX.sees(r,c));
-    if(fresh.length){FX.area(fresh,"#ff7a2a",.6);if(FX.flames)fresh.forEach(([r,c],i)=>FX.flames(FX.tile(r,c),i*40))}
-    const land=(rect,big)=>{if(!rect)return;FX.burst(rect,col,big);if(FX.symbol)FX.symbol(rect,sp.school,big)};   // v33: the school's sign rises where it lands
-    if(FX.spell&&FX.spell(sp,sel,pl))return;   // v33: spells with their own effect (lightning, rain, wind, fog...)
-    if(sp.shop||FX_SKY.has(sp.id)){land(FX.rectOf($("#moon svg.moon")||$("#moon")),true);FX.area(FX.all().filter(([r,c])=>FX.sees(r,c)),col,.18);return}
-    if(FX_OATH(sp.id)){land(FX.rectOf($("#moon svg.moon")||$("#moon")),false);FX.burst(FX.rectOf(barOf(pl,".manabar")),col);return}
-    if(FX_AREA.has(sp.id)){FX.area(FX.all().filter(([r,c])=>FX.sees(r,c)),col,.38);land(FX.rectOf($("#board")),true);return}
-    if(tileSpell&&sel&&(pl===view()||FX.sees(sel.r,sel.c))){land(FX.tile(sel.r,sel.c));return}
-    if(sp.school==="Conjuring"){land(FX.rectOf($("#seeether")));FX.burst(FX.rectOf(barOf(pl,".deckbar")),col);return}
-    if(sp.school==="Necromancy"){land(FX.rectOf($("#seegrave")));return}
-    if(sp.id==="robbank"){FX.burst(FX.rectOf($("#bankslot")),SCHOOL_COL.Bank);if(FX.dollar)FX.dollar(FX.rectOf($("#bankslot")));return}
-    if(!fresh.length)land(FX.rectOf(barOf(pl,".manabar")))})}}
+  const fires=(G.fires||[]).filter(f=>!fires0.has(f.r+","+f.c)).map(f=>[f.r,f.c]);
+  if(typeof netFX==="function")netFX({k:"cast",id:sp.id,pl,sel,fires});   // v37: the same picture on every screen
+  if(FX.on())later(()=>castFX(sp,pl,sel,fires))}}
+/* where a spell lands, drawn on this screen */
+function castFX(sp,pl,sel,fires){
+  const col=SCHOOL_COL[sp.school]||"#ccc",tileSpell=/\bSelect\b|\bselected\b/.test(sp.text||"");
+  const fresh=(fires||[]).filter(([r,c])=>FX.sees(r,c));
+  if(fresh.length){FX.area(fresh,"#ff7a2a",.6);if(FX.flames)fresh.forEach(([r,c],i)=>FX.flames(FX.tile(r,c),i*40))}
+  const land=(rect,big)=>{if(!rect)return;FX.burst(rect,col,big);if(FX.symbol)FX.symbol(rect,sp.school,big)};   // v33: the school's sign rises where it lands
+  if(FX.spell&&FX.spell(sp,sel,pl))return;   // v33: spells with their own effect (lightning, rain, wind, fog...)
+  if(sp.shop||FX_SKY.has(sp.id)){land(FX.rectOf($("#moon svg.moon")||$("#moon")),true);FX.area(FX.all().filter(([r,c])=>FX.sees(r,c)),col,.18);return}
+  if(FX_OATH(sp.id)){land(FX.rectOf($("#moon svg.moon")||$("#moon")),false);FX.burst(FX.rectOf(barOf(pl,".manabar")),col);return}
+  if(FX_AREA.has(sp.id)){FX.area(FX.all().filter(([r,c])=>FX.sees(r,c)),col,.38);land(FX.rectOf($("#board")),true);return}
+  if(tileSpell&&sel&&(pl===view()||FX.sees(sel.r,sel.c))){land(FX.tile(sel.r,sel.c));return}
+  if(sp.school==="Conjuring"){land(FX.rectOf($("#seeether")));FX.burst(FX.rectOf(barOf(pl,".deckbar")),col);return}
+  if(sp.school==="Necromancy"){land(FX.rectOf($("#seegrave")));return}
+  if(sp.id==="robbank"){FX.burst(FX.rectOf($("#bankslot")),SCHOOL_COL.Bank);if(FX.dollar)FX.dollar(FX.rectOf($("#bankslot")));return}
+  if(!fresh.length)land(FX.rectOf(barOf(pl,".manabar")))}
 
 if(window.__EC)Object.assign(window.__EC,{FX,cast:sp=>cast(sp),sacrifice:(...a)=>sacrifice(...a),doMove:(r,c)=>doMove(r,c),attack:(...a)=>attack(...a),damage:(...a)=>damage(...a)});
 
@@ -6695,5 +6700,491 @@ const SKY_SND={moon:"moonchime",saturn:"bell",mars:"horn",venus:"harp",jupiter:"
 document.addEventListener("visibilitychange",()=>{if(document.hidden)AUD.setAmb(null)});
 
 if(window.__EC)Object.assign(window.__EC,{AUD});
+
+/* ---------------- v35: a deeper fog of war, Venus's reason to help an enemy, the Bank's land ----------------
+   Fog: one veil of drifting cloud over every fogged tile, with soft edges that bleed into the tiles you can see, darker at the
+   New Moon, silvered at the Full Moon, red under a Blood Moon.
+   Venus (the gift to the enemy, "+1 mana a turn, every enemy +2 maximum"): Venus keeps a ledger. Each round an enemy holding her gift
+   doesn't attack the favored side, the favored player gets 1 mana of gratitude (2 at most a round). An enemy who attacks the favored
+   side anyway loses the gift for three rounds, and Venus pays the favored player 2 mana for the ingratitude.
+   The Bank's land: eight plots, 1 mana each, in the Bank window's Land tab. A plot is a Miner slot no enemy can reach: a Miner there
+   brings 1d2 − 1 mana a turn, like a Miner in an Ace (1d2 under Jupiter). At every Full Moon (every eighth round when the Moon isn't
+   in the sky) the Bank takes half of what the plots brought in since. Whatever can't be paid becomes mana debt and Debt Collectors
+   come for it; miss two pay days in a row and the Bank takes the plots back, and each Miner in them is turned into two Slave cards,
+   sold at the Auction for 1 mana each. When the Bank sells something of a player who owes it, the money pays that player's debt. */
+
+/* ---------- the fog veil ---------- */
+const FOG_CLOUDS=(()=>{const s=(fq,seed,a,b)=>"url(\"data:image/svg+xml;utf8,"+encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420'><filter id='n' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='${fq}' numOctaves='4' seed='${seed}' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .6  0 0 0 0 .58  0 0 0 0 .55  0 0 0 ${a} ${b}'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>`).replace(/%2523/g,"%23")+"\")";
+  return [s(".006 .009",7,1.5,-.55),s(".013 .02",23,1.2,-.45)]})();
+let fogKey="";
+function fogVeil(){const B=$("#board");if(!B)return;let v=B.querySelector(":scope > .fogveil");const tiles=[...B.querySelectorAll(".tile.fog")];
+  if(!tiles.length){if(v)v.remove();fogKey="";return}
+  const br=B.getBoundingClientRect(),W=Math.round(br.width),H=Math.round(br.height);if(!W||!H)return;
+  const rects=tiles.map(t=>{const r=t.getBoundingClientRect();return [Math.round(r.left-br.left),Math.round(r.top-br.top),Math.round(r.width),Math.round(r.height)]});
+  const key=W+"x"+H+":"+rects.map(r=>r.join(",")).join(";");
+  if(!v){v=document.createElement("div");v.className="fogveil";v.setAttribute("aria-hidden","true");B.appendChild(v);v.style.animationDelay=`-${(performance.now()/1000)%90}s`}
+  if(key!==fogKey||!v.style.maskImage&&!v.style.webkitMaskImage){fogKey=key;
+    const g=rects.map(([x,y,w,h])=>`<rect x='${x-4}' y='${y-4}' width='${w+8}' height='${h+8}' rx='10'/>`).join("");
+    const m="url(\"data:image/svg+xml;utf8,"+encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'><filter id='b'><feGaussianBlur stdDeviation='9'/></filter><g fill='white' filter='url(%23b)'>${g}</g></svg>`).replace(/%2523/g,"%23")+"\")";
+    v.style.maskImage=m;v.style.webkitMaskImage=m}
+  v.style.setProperty("--c1",FOG_CLOUDS[0]);v.style.setProperty("--c2",FOG_CLOUDS[1])}
+{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;try{fogVeil()}catch(e){console.error(e)}}}
+addEventListener("resize",()=>{fogKey="";if(G)try{fogVeil()}catch(e){}});
+
+/* ---------- Venus: gratitude and ingratitude ---------- */
+const venusB=()=>planetUp("venus")&&G.venus&&G.venus.mode==="b"?G.venus:null;
+const venusSpurned=pl=>!!(G.venusSpurn&&G.venusSpurn[pl]!=null&&G.moon.round<=G.venusSpurn[pl]);
+const venusFavored=pl=>{const V=venusB();return !!V&&(pl===V.target||!isEnemy(pl,V.target))};
+{const _sc=skyCapMod;skyCapMod=function(P){let m=_sc(P);const V=venusB();if(V&&P&&V.by!=null&&isEnemy(V.by,P.i)&&venusSpurned(P.i))m-=2*(eclipseOn("venus")?2:1);return m}}
+{const _at=attack;attack=function(r1,c1,r2,c2,mode){const V=venusB(),A=G.board[r1]&&G.board[r1][c1],D=G.board[r2]&&G.board[r2][c2];
+  if(V&&A&&D&&!isNPC(A.owner)&&!isNPC(D.owner)&&V.by!=null&&isEnemy(A.owner,V.by)&&venusFavored(D.owner)){
+    (G.venusHit=G.venusHit||{})[A.owner]=G.moon.round;
+    if(!venusSpurned(A.owner)){(G.venusSpurn=G.venusSpurn||{})[A.owner]=G.moon.round+2;const got=giveMana(V.target,2);
+      log(`<b>Venus is spurned</b>: ${plName(A.owner)} takes her gift and attacks ${plName(D.owner)}. The gift is gone for three rounds, and Venus pays ${plName(V.target)} ${got} mana for the ingratitude.`,"event");
+      notify(V.target,`${esc(G.p[A.owner].name)} spurned Venus: ${got} mana to ${esc(G.p[V.target].name)}.`)}}
+  return _at.apply(this,arguments)}}
+function venusGratitude(){const V=venusB();if(!V||V.by==null||G.p[V.target].out)return;const r=G.moon.round-1;if(V.since==null){V.since=G.moon.round;return}if(r<V.since)return;
+  const grateful=realPlayers().filter(i=>isEnemy(i,V.by)&&!venusSpurned(i)&&!(G.venusHit&&G.venusHit[i]===r));
+  if(!grateful.length)return;const got=giveMana(V.target,Math.min(2,grateful.length));
+  if(got)log(`<b>Venus's gratitude</b>: ${grateful.map(plName).join(", ")} held her gift in peace last round; ${plName(V.target)} gets ${got} mana.`)}
+/* the computer gives to the enemy when it is the weaker side */
+const venusAiMode=pl=>{const me=strength(pl),them=Math.max(1,...enemiesOf(pl).filter(i=>!isHorde(i)).map(strength));return me<them*.9&&!survival()?"b":"a"};
+{const _ask=ask;ask=function(pl,spec){if(spec&&spec.id==="venusmode"&&G.p[pl]&&G.p[pl].cpu)spec={...spec,ai:()=>spec.options.some(o=>o.id==="b")?venusAiMode(pl):"a"};return _ask(pl,spec)}}
+{const s=SP("venus");if(s)s.text=s.text.replace("Anyone can swear the Oath of Venus.","With the gift to the enemy, Venus keeps a ledger: each round an enemy holding her gift leaves your side alone, you get 1 mana (2 at most a round); an enemy who attacks your side anyway loses the gift for three rounds and Venus pays you 2. Anyone can swear the Oath of Venus.")}
+if(SKY_PARA.venus)SKY_PARA.venus=SKY_PARA.venus.replace("Under the Oath of Venus,","With the gift to the enemy, Venus keeps a ledger: every round an enemy holding her gift leaves the favored side alone, the favored player gets 1 mana of gratitude (2 at most a round), and an enemy who attacks the favored side anyway loses the gift for three rounds while Venus pays the favored player 2 mana. Under the Oath of Venus,");
+{const _pi=planetInfoHTML;planetInfoHTML=function(k){let h=_pi(k);if(k!=="venus"||!venusB())return h;const V=venusB(),sp=Object.keys(G.venusSpurn||{}).filter(i=>venusSpurned(+i)).map(i=>plN(+i));
+  const line=`<li>Venus's ledger: each round an enemy holding her gift leaves ${plN(V.target)}'s side alone, ${plN(V.target)} gets 1 mana (2 at most). Attack that side and the gift is gone for three rounds, and Venus pays ${plN(V.target)} 2.${sp.length?` Spurned: ${sp.join(", ")}.`:""}</li>`;
+  return h.replace("</ul>",line+"</ul>")}}
+
+/* ---------- the Bank's land ---------- */
+const PLOTS=8,PLOT_PRICE=1;
+const plotsOf=()=>G.plots||(G.plots=Array.from({length:PLOTS},(_,i)=>({i,owner:null,miners:[],prod:0})));
+const myPlots=pl=>plotsOf().filter(p=>p.owner===pl);
+const payDay=()=>!G.moon.gone?G.moon.i===4:G.moon.round%8===0;
+const handMiners=pl=>G.p[pl].hand.filter(c=>c.unit==="miner");
+function buyPlot(pl,p){const P=G.p[pl];if(p.owner!=null||!bankOpen()||bankBanned(pl)||P.jail)return false;if(!canAfford(pl,PLOT_PRICE)){if(!P.cpu)flash("Not enough mana.");return false}
+  spend(pl,PLOT_PRICE);p.owner=pl;p.prod=0;log(`${plName(pl)} buys plot ${p.i+1} from the Bank (1 mana).`,"event");return true}
+function plantMiner(pl,p){const m=handMiners(pl)[0];if(!m||p.owner!==pl||p.miners.length)return false;const P=G.p[pl];P.hand.splice(P.hand.indexOf(m),1);m.owner=pl;m.plotSince=G.moon.round;p.miners.push(m);
+  log(`${plName(pl)} puts a Miner to work on plot ${p.i+1}: no enemy can reach it there.`);return true}
+/* the Miners work at the start of their owner's turn */
+{const _bt=bankTurn;bankTurn=function(pl){_bt(pl);if(!G.p[pl]||isHorde(pl)||!G.plots)return;let got=0;
+  for(const p of myPlots(pl))for(const m of p.miners)if(m.plotSince<G.moon.round){let n=R(2)-(planetUp("jupiter")?0:1);if(n&&G.p[pl].minerX2!=null&&tnOf(pl)<=G.p[pl].minerX2)n*=2;p.prod+=n;got+=n}
+  if(got){const n=giveMana(pl,got);log(`${plName(pl)}'s Miners on the Bank's land bring in ${n} mana${n<got?" (the soul pile is full)":""}. The Bank's half is due at the Full Moon.`)}}}
+/* pay day: the Bank takes half */
+function landPayDay(){if(!G.plots||!bankOpen())return;const bk=npcIx("bank");
+  for(const pl of [...new Set(plotsOf().filter(p=>p.owner!=null).map(p=>p.owner))]){const P=G.p[pl],ps=myPlots(pl);if(!P||P.out){for(const p of ps){p.owner=null;p.miners=[];p.prod=0}continue}
+    const made=ps.reduce((a,p)=>a+p.prod,0),due=Math.ceil(made/2);ps.forEach(p=>p.prod=0);if(!due){P.landMiss=0;continue}
+    const paid=payQuiet(pl,Math.min(mana(pl),due));bankAdd(paid);const rest=due-paid;
+    if(!rest){P.landMiss=0;log(`Pay day: ${plName(pl)} pays the Bank its half of the land's ${made} mana (${due}).`);continue}
+    P.debt=(P.debt||0)+rest;if(P.debtAt==null)P.debtAt=tnOf(pl)+R(2);P.landMiss=(P.landMiss||0)+1;
+    let n=0;if(bk>=0)for(const t of freeTilesNear(pl,true).slice(0,R(2))){G.board[t[0]][t[1]]={owner:bk,cards:[mkUnit("debt",bk)],moved:true,attacked:true,hunt:pl,land:true};n++}
+    log(`<b>Pay day</b>: ${plName(pl)} owes the Bank ${due} for the land and pays ${paid}; ${rest} becomes mana debt${n?`, and ${n} Debt Collector${n>1?"s come":" comes"} to make them pay`:""} (${P.landMiss} missed).`,"event");
+    if(P.landMiss>=2){P.landMiss=0;let slaves=0;
+      for(const p of ps){for(const m of p.miners){m.owner=null;if(m.hp!=null)m.hp=m.maxHp;G.ether.push(m);
+          for(let k=0;k<2;k++){const s=mk(String(2+Math.floor(Math.random()*9)),pick(["S","H","D","C"]));s.unit="slave";s.owner=bk;(G.auction=G.auction||[]).push({card:s,seller:bk,bank:true,price:1,from:pl,id:(G.auctN=(G.auctN||0)+1)});slaves++}}
+        p.owner=null;p.miners=[];p.prod=0}
+      log(`<b>The Bank takes back ${plName(pl)}'s land</b>: two pay days missed. ${slaves?`The Miners are turned into ${slaves} Slave cards, sold at the Auction for 1 mana each to pay the debt.`:""}`,"event");
+      popup("The Bank takes the land back",`<p>${plName(pl)} missed two pay days in a row.</p><p>The Bank takes back every plot${slaves?`, and the Miners on them are turned into ${slaves} Slave cards, sold at the Auction for 1 mana each. What they sell for pays ${plName(pl)}'s debt`:""}.</p>`,pl)}
+    else popup("Pay day",`<p>${plName(pl)} couldn't pay the Bank its half of the land (${due} due, ${paid} paid).</p><p>${rest} mana becomes debt and Debt Collectors come. Miss the next pay day too and the Bank takes the land back.</p>`,pl)}
+  // the land's Debt Collectors go home once the debt is paid
+  if(bk>=0)for(const x of stacksOf(bk))if(x.st.land&&!(G.p[x.st.hunt]&&G.p[x.st.hunt].debt>0))G.board[x.r][x.c]=null}
+{const _cr=cycleRound;cycleRound=async function(){const out=await _cr.apply(this,arguments);if(G.over)return out;venusGratitude();if(G.moon.round>1&&payDay())landPayDay();render();return out}}
+/* what the Bank sells of a debtor's pays that debtor's debt */
+{const _bb=buyBankItem;buyBankItem=async function(pl,it){const from=it&&it.from,price=it&&it.price;const ok=await _bb(pl,it);
+  if(ok&&from!=null&&G.p[from]&&G.p[from].debt>0){const k=Math.min(G.p[from].debt,price);G.p[from].debt-=k;if(!G.p[from].debt)G.p[from].debtAt=null;log(`The sale pays ${k} of ${plName(from)}'s debt to the Bank.`)}
+  return ok}}
+/* the computer and the land */
+{const _ab=aiBank;aiBank=async function(pl,W,cast1){await _ab(pl,W,cast1);const P=G.p[pl];if(G.over||P.jail||!bankOpen()||bankBanned(pl))return;
+  for(const p of myPlots(pl))if(!p.miners.length&&handMiners(pl).length)plantMiner(pl,p);
+  if(handMiners(pl).length&&mana(pl)>=3&&Math.random()<.5){const p=plotsOf().find(q=>q.owner==null);if(p&&buyPlot(pl,p))plantMiner(pl,p)}}}
+
+/* the Land tab */
+function landHTML(V){const live=canAct()&&G.phase==="prep"&&G.active===V,P=G.p[V],open=bankOpen()&&!bankBanned(V)&&!P.jail,hm=handMiners(V).length;
+  const mine=myPlots(V),made=mine.reduce((a,p)=>a+p.prod,0);
+  const box=p=>{const own=p.owner,me=own===V;let body;
+    if(own==null)body=`<span class="dim">For sale</span>${live&&open?`<button class="btn sm" data-plot="${p.i}" ${canAfford(V,PLOT_PRICE)?"":"disabled"}>Buy · 1 mana</button>`:""}`;
+    else if(me)body=p.miners.length?`<span>${unitSVG("miner","#e8c24a",18)} A Miner at work</span><small class="dim">${p.prod} brought in since pay day</small>`:`<span class="dim">Yours, empty</span>${live&&hm?`<button class="btn sm" data-plant="${p.i}">Put a Miner from your hand</button>`:`<small class="dim">${hm?"":"No Miner in your hand"}</small>`}`;
+    else body=`<span class="dim">Owned by ${plName(own)}</span>${p.miners.length?`<small class="dim">a Miner at work</small>`:""}`;
+    return `<div class="plot${me?" mine":own!=null?" taken":""}"><b>Plot ${p.i+1}</b>${body}</div>`};
+  return `<p class="dim">Eight plots of the Bank's land, 1 mana each. A plot is a Miner slot no enemy can reach: a Miner in it brings 1d2 − 1 mana a turn, like a Miner in an Ace (1d2 under Jupiter). At every Full Moon (every eighth round without the Moon) the Bank takes half of what your plots brought in since. What you can't pay becomes debt and Debt Collectors come; miss two pay days in a row and the Bank takes the land back and sells each Miner as two Slave cards at the Auction.</p>
+${mine.length?`<p>Your plots: ${mine.length}. Brought in since the last pay day: <b>${made}</b>; the Bank's half: <b>${Math.ceil(made/2)}</b>${P.landMiss?` · <span class="neg">${P.landMiss} pay day missed</span>`:""}.</p>`:""}
+<div class="plots">${plotsOf().map(box).join("")}</div>${!open?`<p class="dim">${!bankOpen()?"The Bank is closed.":P.jail?"In Jail: no Bank business.":"No Bank business yet."}</p>`:live?"":`<p class="dim">Land is bought in your own prep phase.</p>`}`}
+function wireLand(el,V,re){el.querySelectorAll("[data-plot]").forEach(b=>b.onclick=()=>{if(!canAct())return;buyPlot(V,plotsOf()[+b.dataset.plot]);re()});
+  el.querySelectorAll("[data-plant]").forEach(b=>b.onclick=()=>{if(!canAct())return;plantMiner(V,plotsOf()[+b.dataset.plant]);re()})}
+
+if(window.__EC)Object.assign(window.__EC,{plotsOf,buyPlot,plantMiner,landPayDay,venusGratitude,fogVeil});
+
+/* ---------------- Online play (v36) ----------------
+   One player hosts: their browser runs the game. The others join with a room code; their browsers show the game as the host sends
+   it, from their own seat, and send back what they do. Nothing has to be installed and no account is needed: the connection is made
+   through the free PeerJS service, then runs directly between the browsers. (A room code starting with LOCAL connects tabs of the
+   same browser instead, for trying it alone.)
+   The host's setup is the usual one: each seat can be the host, a player who joined, or a computer. Online, play is always turn by
+   turn and there is no phase timer. A player who leaves is replaced by a computer. */
+
+const NET={role:null,code:null,name:"",seat:null,hostSeat:null,guests:{},ctx:null,pend:{},askN:0,rid:0,rets:{},sent:{},tr:null,queue:Promise.resolve()};
+const netOn=()=>!!NET.role&&NET.role!=="lobby";
+const PEER_SRC="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";
+const CODE_CH="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const newCode=()=>Array.from({length:5},()=>CODE_CH[Math.floor(Math.random()*CODE_CH.length)]).join("");
+function loadPeer(){if(window.Peer)return Promise.resolve();return new Promise((res,rej)=>{const s=document.createElement("script");s.src=PEER_SRC;s.onload=()=>res();s.onerror=()=>rej(new Error("The online library couldn't be loaded. Check the connection."));document.head.appendChild(s)})}
+
+/* ---------- the connection: PeerJS between devices, or a BroadcastChannel between tabs ---------- */
+function transport(code,isHost,on){
+  const local=/^LOCAL/i.test(code),me=isHost?"host":"g"+Math.random().toString(36).slice(2,9);const T={me,close(){}};
+  if(local){const bc=new BroadcastChannel("ec-net-"+code.toUpperCase());
+    bc.onmessage=e=>{const m=e.data;if(!m||m.to!==me&&m.to!=="*")return;on(m.from,m.d)};
+    T.send=(to,d)=>bc.postMessage({from:me,to,d:JSON.parse(JSON.stringify(d))});T.close=()=>{try{bc.postMessage({from:me,to:isHost?"*":"host",d:{t:"bye"}})}catch(e){}bc.close()};
+    return Promise.resolve(T)}
+  return loadPeer().then(()=>new Promise((res,rej)=>{
+    const conns={};const peer=isHost?new window.Peer("ec-"+code.toUpperCase()):new window.Peer();
+    const wire=c=>{c.on("data",raw=>{let d=raw;try{if(typeof raw==="string")d=JSON.parse(raw)}catch(e){return}on(c.peer,d)});c.on("close",()=>{delete conns[c.peer];on(c.peer,{t:"bye"})});c.on("error",()=>{})};
+    peer.on("error",e=>{if(!T.ready)rej(new Error(e.type==="unavailable-id"?"That room code is taken. Try again.":e.type==="peer-unavailable"?"No room with that code.":"The connection failed ("+e.type+")."));else on(isHost?"?":"host",{t:"neterr",msg:e.type})});
+    peer.on("open",()=>{
+      if(isHost){T.ready=true;T.me="host";peer.on("connection",c=>{conns[c.peer]=c;wire(c)});res(T)}
+      else{const c=peer.connect("ec-"+code.toUpperCase(),{reliable:true});conns.host=c;c.on("open",()=>{T.ready=true;res(T)});c.on("data",raw=>{let d=raw;try{if(typeof raw==="string")d=JSON.parse(raw)}catch(e){return}on("host",d)});c.on("close",()=>on("host",{t:"bye"}));setTimeout(()=>{if(!T.ready)rej(new Error("No room with that code answered."))},12000)}});
+    T.send=(to,d)=>{const c=conns[to];if(c&&c.open)c.send(JSON.stringify(d))};
+    T.close=()=>{try{peer.destroy()}catch(e){}}}))}
+const sendTo=(id,d)=>{if(NET.tr)NET.tr.send(id,d)};
+const sendHost=d=>sendTo("host",d);
+const guestIds=()=>Object.keys(NET.guests);
+
+/* ---------- the selection on each screen is its own ---------- */
+function uiSnap(){if(!G)return{};return{sel:G.sel?{r:G.sel.r,c:G.sel.c,pick:[...(G.sel.pick||[])]}:null,selHand:G.selHand?G.selHand.id:null,mode:G.mode||null,faceDown:!!G.faceDown,libPick:G.libPick?[...G.libPick]:null}}
+function applyUI(u){if(!G||!u)return;G.sel=u.sel&&G.board[u.sel.r]&&G.board[u.sel.r][u.sel.c]?{r:u.sel.r,c:u.sel.c,pick:new Set(u.sel.pick)}:null;
+  G.selHand=u.selHand!=null?cardById(u.selHand):null;G.mode=u.mode||null;G.faceDown=!!u.faceDown;G.libPick=u.libPick?new Set(u.libPick):null}
+
+/* ---------- small actions that used to live inside buttons ---------- */
+function ambushToggle(r,c){const st=G.board[r]&&G.board[r][c];if(!st)return;st.ambush=!st.ambush;log(st.ambush?`${plName(st.owner)} sets a stack in ambush.`:`${plName(st.owner)} leaves the ambush.`,"ai")}
+function libDone(){G.libation=false;G.libPick=null}
+function setCredit(pl,v){const P=G.p[pl];P.credit=!!v;log(`${plName(pl)} ${P.credit?"opens":"closes"} a line of credit at the Bank.`)}
+function setAutoBless(pl,v){G.p[pl].autoBless=!!v}
+
+/* ---------- what a joined player's clicks send to the host ---------- */
+const netClean=v=>JSON.parse(JSON.stringify(v===undefined?null:v,(k,x)=>x instanceof Event||typeof Node!=="undefined"&&x instanceof Node||typeof x==="function"?undefined:x))||[];
+const cid=c=>c&&c.id!=null?{cid:c.id}:c;
+const uncid=v=>v&&typeof v==="object"&&v.cid!=null?cardById(v.cid):v;
+const NETFN={
+ placeOpening:{get:()=>placeOpening,set:f=>placeOpening=f},
+ place:{get:()=>place,set:f=>place=f,map:a=>[cid(a[0]),a[1],a[2]],un:a=>[uncid(a[0]),a[1],a[2]]},
+ doMove:{get:()=>doMove,set:f=>doMove=f},
+ attack:{get:()=>attack,set:f=>attack=f},
+ attackMoon:{get:()=>attackMoon,set:f=>attackMoon=f},
+ nextPhase:{get:()=>nextPhase,set:f=>nextPhase=f,async:true},
+ rollDraw:{get:()=>rollDraw,set:f=>rollDraw=f},
+ cast:{get:()=>cast,set:f=>cast=f,async:true,map:a=>[a[0]&&a[0].id],un:a=>[SP(a[0])]},
+ sacrifice:{get:()=>sacrifice,set:f=>sacrifice=f,map:a=>[cid(a[0]),a[1]],un:a=>[uncid(a[0]),a[1]]},
+ sacrificeToSun:{get:()=>sacrificeToSun,set:f=>sacrificeToSun=f,map:a=>[cid(a[0]),a[1]],un:a=>[uncid(a[0]),a[1]]},
+ healAct:{get:()=>healAct,set:f=>healAct=f,map:a=>[a[0],a[1],a[2].x.id],un:a=>{const st=G.board[a[0]][a[1]];return [a[0],a[1],st?healTargets(st,a[0],a[1]).find(t=>t.x.id===a[2]):null]}},
+ repairAct:{get:()=>repairAct,set:f=>repairAct=f,map:a=>[a[0],a[1],a[2].b.id,a[2].act],un:a=>{const st=G.board[a[0]][a[1]];return [a[0],a[1],st?repairTargets(st,a[0],a[1]).find(t=>t.b.id===a[2]&&t.act===a[3]):null]}},
+ release:{get:()=>release,set:f=>release=f},
+ pourLibation:{get:()=>pourLibation,set:f=>pourLibation=f,map:a=>[a[0],a[1],[...(a[2]||[])]],un:a=>[a[0],a[1],new Set(a[2])]},
+ takeLoan:{get:()=>takeLoan,set:f=>takeLoan=f},
+ repay:{get:()=>repay,set:f=>repay=f},
+ sellCards:{get:()=>sellCards,set:f=>sellCards=f,map:a=>[a[0],a[1].map(c=>c.id)],un:a=>[a[0],a[1].map(cardById).filter(Boolean)]},
+ sellThrall:{get:()=>sellThrall,set:f=>sellThrall=f},
+ askLoan:{get:()=>askLoan,set:f=>askLoan=f,any:true},
+ answerLoan:{get:()=>answerLoan,set:f=>answerLoan=f,any:true,map:a=>[a[0].id,a[1]],un:a=>[p2pOf().find(x=>x.id===a[0]),a[1]]},
+ repayLoan:{get:()=>repayLoan,set:f=>repayLoan=f,any:true,map:a=>[a[0].id,a[1]],un:a=>[p2pOf().find(x=>x.id===a[0]),a[1]]},
+ buyPlot:{get:()=>buyPlot,set:f=>buyPlot=f,map:a=>[a[0],a[1].i],un:a=>[a[0],plotsOf()[a[1]]]},
+ plantMiner:{get:()=>plantMiner,set:f=>plantMiner=f,map:a=>[a[0],a[1].i],un:a=>[a[0],plotsOf()[a[1]]]},
+ mysteryBuy:{get:()=>mysteryBuy,set:f=>mysteryBuy=f,ret:true},
+ buyBankItem:{get:()=>buyBankItem,set:f=>buyBankItem=f,async:true,map:a=>[a[0],(G.auction||[]).indexOf(a[1])],un:a=>[a[0],G.auction[a[1]]]},
+ makeOffer:{get:()=>makeOffer,set:f=>makeOffer=f,async:true,map:a=>[(G.auction||[]).indexOf(a[0]),a[1]||null],un:a=>[G.auction[a[0]],a[1]||undefined]},
+ tradeCard:{get:()=>tradeCard,set:f=>tradeCard=f,async:true},
+ toggleOath:{get:()=>toggleOath,set:f=>toggleOath=f},
+ endAim:{get:()=>endAim,set:f=>endAim=f,aim:true},
+ tileClick:{get:()=>tileClick,set:f=>tileClick=f,aim:true,only:()=>!!(G&&G.aim)},   // a tile is only sent while aiming
+ setCredit:{get:()=>setCredit,set:f=>setCredit=f,any:true},
+ setAutoBless:{get:()=>setAutoBless,set:f=>setAutoBless=f,any:true},
+ ambushToggle:{get:()=>ambushToggle,set:f=>ambushToggle=f},
+ libDone:{get:()=>libDone,set:f=>libDone=f}};
+for(const [name,F] of Object.entries(NETFN)){const orig=F.get();
+  F.set(function(...a){
+    if(NET.role!=="guest")return orig.apply(this,a);
+    if(F.only&&!F.only())return orig.apply(this,a);
+    const rid=++NET.rid;a=a.filter(x=>!(x instanceof Event));sendHost({t:"cmd",fn:name,args:netClean(F.map?F.map(a):a),ui:uiSnap(),rid});
+    if(F.ret)return new Promise(res=>{NET.rets[rid]=res;setTimeout(()=>{if(NET.rets[rid]){delete NET.rets[rid];res(null)}},15000)});
+    return F.async?Promise.resolve():undefined})}
+
+/* ---------- the host runs what a joined player sends ---------- */
+const seatOfGuest=id=>{if(!G)return null;const i=G.p.findIndex(P=>P.net===id);return i<0?null:i};
+async function runCmd(id,m){
+  const seat=seatOfGuest(id),F=NETFN[m.fn];if(seat==null||!F||!G||G.over)return;const P=G.p[seat];if(P.out||P.cpu)return;
+  const aiming=G.aim&&G.aim.pl===seat;
+  if(F.aim){if(!aiming)return}else if(!F.any&&!(G.active===seat&&!G.busy))return;
+  const args=F.un?F.un(m.args||[]):(m.args||[]);
+  if(args.some(x=>x===undefined||x===null)&&["place","sacrifice","sacrificeToSun","healAct","repairAct","answerLoan","repayLoan","buyPlot","plantMiner","buyBankItem","makeOffer","cast"].includes(m.fn))return;
+  const host=uiSnap();NET.ctx=seat;applyUI(m.ui);let ret;
+  try{ret=await F.get().apply(null,args)}catch(e){console.error(e)}
+  finally{const u=uiSnap();if(NET.ctx===seat)NET.ctx=null;applyUI(host);sendTo(id,{t:"ui",ui:u});render()}
+  if(F.ret)sendTo(id,{t:"ret",rid:m.rid,v:ret==null?null:JSON.parse(JSON.stringify(ret,netRep))})}
+/* while a joined player's action runs, it is that player who can act */
+{const _ca=canAct;canAct=function(){if(NET.ctx!=null)return !!G&&!G.over&&!G.p[NET.ctx].out&&G.active===NET.ctx;return _ca()}}
+document.addEventListener("click",e=>{if(NET.ctx==null||NET.role!=="host")return;if(e.target.closest&&e.target.closest("#ov,#pop,#notes,#cinfo,#menu,.xclose"))return;e.stopPropagation();e.preventDefault()},true);
+
+/* ---------- questions for a joined player go to their screen ---------- */
+const netRep=function(k,v){if(typeof v==="function")return undefined;if(v instanceof Set)return{__set:[...v]};return v};
+const netRev=(k,v)=>v&&typeof v==="object"&&Array.isArray(v.__set)?new Set(v.__set):v;
+{const _ask=ask;ask=function(pl,spec){
+  if(NET.role==="host"&&G&&G.p[pl]&&G.p[pl].net&&!G.p[pl].cpu){const id=++NET.askN,to=G.p[pl].net;flushSnap();
+    return new Promise(res=>{NET.pend[id]={res,pl,spec};sendTo(to,{t:"ask",id,pl,spec:JSON.parse(JSON.stringify(spec,netRep))})})}
+  return _ask(pl,spec)}}
+/* popups and notes go to everyone; a joined player's own warnings go to them */
+{const _p=popup;popup=function(title,html,pl){_p(title,html,pl);if(NET.role==="host"&&G&&!G.opts.fast)for(const id of guestIds())sendTo(id,{t:"pop",title,html,pl})}}
+{const _n=notify;notify=function(pl,html){_n(pl,html);if(NET.role==="host"&&G&&!G.opts.fast)for(const id of guestIds())sendTo(id,{t:"note",pl,html})}}
+{const _f=flash;flash=function(t){if(NET.role==="host"&&NET.ctx!=null&&G&&G.p[NET.ctx]&&G.p[NET.ctx].net){sendTo(G.p[NET.ctx].net,{t:"flash",text:t});return}_f(t)}}
+/* every log line gets a number, so only new lines travel */
+{const _l=log;log=function(html,cls){_l(html,cls);if(G&&G.log[0])G.log[0].n=G.logN=(G.logN||0)+1}}
+
+/* ---------- the host sends the game to each joined player ---------- */
+const SNAP_SKIP_TOP=new Set(["journal","_vis","waiter","setupResolve","log","sel","selHand","mode","comparePick","faceDown","libPick","aim","shopT"]);
+function snapshot(full){
+  const aim=G.aim?{title:G.aim.title,pl:G.aim.pl,tiles:(()=>{const t=[];if(G.aim.valid)for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){try{if(G.aim.valid(r,c))t.push([r,c])}catch(e){}}return t})()}:null;
+  const g=JSON.stringify(G,function(k,v){if(this===G&&SNAP_SKIP_TOP.has(k))return undefined;if(k==="art"&&this===G.map)return undefined;if(k==="ground"&&this===G.map&&!full)return undefined;
+    if(typeof v==="function")return undefined;if(v instanceof Set)return{__set:[...v]};if(k==="hist"&&Array.isArray(v))return v.slice(-40);return v});
+  return{g,aim}}
+let snapT=null;
+function flushSnap(){clearTimeout(snapT);snapT=null;if(NET.role!=="host"||!G||!G.opts.online)return;let base=null;
+  for(const id of guestIds()){const st=NET.sent[id]||(NET.sent[id]={n:0,full:false});const full=!st.full;if(!base||full)base=snapshot(full);
+    const lines=G.log.filter(l=>!full?(l.n||0)>st.n:true);
+    sendTo(id,{t:"snap",full,g:base.g,aim:base.aim,log:lines.slice(0,full?600:200)});st.full=true;st.n=G.logN||0}}
+{const _rd=render;render=function(){_rd.apply(this,arguments);if(NET.role==="host"&&G&&G.opts.online&&!snapT)snapT=setTimeout(flushSnap,60)}}
+
+/* ---------- a joined player's screen ---------- */
+function applySnap(m){
+  const ui=NET.pendUI||(G?uiSnap():{}),old=G;NET.pendUI=null;let g;try{g=JSON.parse(m.g,netRev)}catch(e){console.error(e);return}
+  if(!m.full&&old&&old.map&&g.map)g.map.ground=old.map.ground;
+  if(g.map)g.map.art=old&&old.map&&old.map.seed===g.map.seed&&old.map.art?old.map.art:{};
+  g.log=m.full?m.log:[...m.log,...(old&&old.log?old.log:[])].slice(0,600);
+  g.journal=[];g.aim=m.aim;g.passing=false;G=g;COLS=g.board&&g.board[0]?g.board[0].length:(g.map&&g.map.cols)||COLS;applyUI(ui);
+  if(!NET.started){NET.started=true;ovHide();applyMoonTheme()}
+  render();
+  if(g.over&&!(old&&old.over)){const w=g.log.find(l=>l.cls==="win"),txt=w?w.html:"The game is over.";
+    ovShow(`<div class="ovbox"><h2>The game is over</h2><p>${txt}</p><p class="acts"><button class="btn" id="netAgain">Back to the room</button></p></div>`);$("#netAgain").onclick=()=>onlineLobby()}}
+{const _v=view;view=function(){if(NET.role==="guest"&&NET.seat!=null&&G)return NET.seat;if(NET.role==="host"&&NET.hostSeat!=null&&G&&G.opts.online)return NET.hostSeat;return _v()}}
+{const _ps=passScreen;passScreen=function(msg){if(G&&G.opts.online){if(NET.role==="host"&&typeof localSeats==="function"&&localSeats().length>1&&localSeats().includes(G.active))return _ps(msg);return Promise.resolve()}return _ps(msg)}}
+
+/* ---------- messages ---------- */
+function onNet(from,d){if(!d||!d.t)return;
+  if(NET.role==="guest"){
+    if(d.t==="welcome"){NET.hostName=d.host;lobbyMsg(`Connected to ${esc(d.host)}'s room. Waiting for the host to start the game.`)}
+    else if(d.t==="start"){NET.seat=d.seat;NET.started=false;lobbyMsg(`The game is starting. You are seat P${d.seat+1}.`)}
+    else if(d.t==="seatless")lobbyMsg("The host started the game without a seat for you. You can wait for the next one, or leave.");
+    else if(d.t==="snap")applySnap(d);
+    else if(d.t==="ui"){NET.pendUI=d.ui;applyUI(d.ui);render()}
+    else if(d.t==="ret"){const f=NET.rets[d.rid];if(f){delete NET.rets[d.rid];f(d.v)}}
+    else if(d.t==="ask"){(async()=>{const v=await askHuman(d.pl,JSON.parse(JSON.stringify(d.spec),netRev));sendHost({t:"ans",id:d.id,v})})()}
+    else if(d.t==="pop")popup(d.title,d.html,d.pl);
+    else if(d.t==="note")notify(d.pl,d.html);
+    else if(d.t==="flash")flash(d.text);
+    else if(d.t==="bye"){if(G)G.over=true;ovShow(`<div class="ovbox"><h2>The host left</h2><p>The room is closed.</p><p class="acts"><button class="btn" id="netOk">Back to the menu</button></p></div>`);$("#netOk").onclick=()=>{netLeave();startMode=null;showStart()}}
+    return}
+  if(NET.role==="host"||NET.role==="lobby-host"){
+    if(d.t==="hello"){NET.guests[from]={name:String(d.name||"Guest").slice(0,20)};sendTo(from,{t:"welcome",host:NET.name});lobbyRoster();
+      if(G&&G.opts.online&&!G.over)sendTo(from,{t:"seatless"})}
+    else if(d.t==="cmd"){NET.queue=NET.queue.then(()=>runCmd(from,d)).catch(e=>console.error(e))}
+    else if(d.t==="ans"){const p=NET.pend[d.id];if(p){delete NET.pend[d.id];p.res(d.v)}}
+    else if(d.t==="bye")guestLeft(from)}}
+function guestLeft(id){const g=NET.guests[id];delete NET.guests[id];delete NET.sent[id];lobbyRoster();if(!G||!G.opts.online||G.over)return;
+  const seat=seatOfGuest(id);if(seat==null)return;const P=G.p[seat];P.cpu="medium";P.net=null;
+  log(`<b>${plName(seat)} left the game.</b> A computer (Medium) plays the seat from here.`,"event");popup("A player left",`<p>${esc(P.name)} left the room. A computer plays their seat from now on.</p>`);
+  for(const [k,p] of Object.entries(NET.pend))if(p.pl===seat){delete NET.pend[k];p.res(p.spec&&p.spec.ai?p.spec.ai():AI.choose(seat,p.spec))}
+  if(G.active===seat&&G.waiter){const f=G.waiter;G.waiter=null;f()}
+  render()}
+function netLeave(){try{if(NET.tr)NET.tr.close()}catch(e){}Object.assign(NET,{role:null,tr:null,guests:{},seat:null,hostSeat:null,sent:{},pend:{},started:false})}
+addEventListener("beforeunload",()=>{try{if(NET.tr)NET.tr.close()}catch(e){}});
+
+/* ---------- the lobby ---------- */
+MODES.push(["online","Online","Play with friends on their own devices. One of you hosts and shares a room code; the others join with it. Seats can also be computers."]);
+function lobbyMsg(t){const e=$("#onMsg");if(e)e.innerHTML=t}
+function lobbyRoster(){const e=$("#onRoster");if(!e)return;const g=Object.values(NET.guests).map(x=>esc(x.name));
+  e.innerHTML=`<b>In the room:</b> ${esc(NET.name)} (you, the host)${g.length?", "+g.join(", "):""}.${g.length?"":" Share the code and wait for the others to join."}`}
+function onlineLobby(){
+  const nm=esc(PREF.netName||"");
+  if(NET.role==="guest"){ovShow(`<div class="ovbox setup online"><div class="shead"><h2>Online</h2></div><div class="onl"><p id="onMsg">${NET.hostName?`Connected to ${esc(NET.hostName)}'s room. Waiting for the host to start the game.`:"Connecting…"}</p></div><p class="acts sfoot"><button class="btn ghost" id="onLeave">Leave the room</button></p></div>`);
+    $("#onLeave").onclick=()=>{netLeave();startMode=null;showStart()};return}
+  if(NET.role==="lobby-host"||NET.role==="host"){ovShow(`<div class="ovbox setup online"><div class="shead"><h2>Online · your room</h2><p class="dim">Give this code to the others. They choose Online, then Join, and type it in.</p></div>
+<div class="onl"><p class="roomcode">${esc(NET.code)}</p><p><button class="btn ghost sm" id="onCopy">Copy the code</button></p><p id="onRoster"></p><p id="onMsg" class="dim">When everyone is in, set up the game: each seat can be you, a player in the room, or a computer.</p></div>
+<p class="acts sfoot"><button class="btn" id="onSetup">Set up the game →</button> <button class="btn ghost" id="onClose">Close the room</button></p></div>`);
+    lobbyRoster();$("#onCopy").onclick=()=>{try{navigator.clipboard.writeText(NET.code);flash("Copied.")}catch(e){}};$("#onSetup").onclick=()=>{NET.role="lobby-host";startMode="local";NET.inSetup=true;showStart()};
+    $("#onClose").onclick=()=>{netLeave();startMode=null;showStart()};return}
+  ovShow(`<div class="ovbox setup online"><div class="shead"><h2>Online</h2><p class="dim">One of you hosts: the game runs in the host's browser, and the others join with a room code. No account, nothing to install.</p></div>
+<div class="onl"><label class="f">Your name <input id="onName" maxlength="20" value="${nm}" placeholder="Name"></label>
+<fieldset class="pf"><legend>Host a game</legend><p class="dim">Opens a room and gives you a code to share.</p><button class="btn" id="onHost">Open a room</button></fieldset>
+<fieldset class="pf"><legend>Join a game</legend><label class="f">Room code <input id="onCode" maxlength="12" placeholder="ABCDE" autocapitalize="characters"></label> <button class="btn" id="onJoin">Join</button></fieldset>
+<p id="onMsg" class="dim"></p></div>
+<p class="acts sfoot"><button class="btn ghost" id="back">← Other modes</button></p></div>`);
+  const name=()=>{const v=($("#onName").value||"").trim().slice(0,20)||"Player";PREF.netName=v;savePrefs();return v};
+  $("#back").onclick=()=>{startMode=null;showStart()};
+  $("#onHost").onclick=async()=>{const n=name();const code=(($("#onCode").value||"").trim().toUpperCase().startsWith("LOCAL")?$("#onCode").value.trim().toUpperCase():newCode());lobbyMsg("Opening a room…");
+    try{NET.tr=await transport(code,true,onNet);Object.assign(NET,{role:"lobby-host",code,name:n,guests:{}});onlineLobby()}catch(e){lobbyMsg(esc(e.message))}};
+  $("#onJoin").onclick=async()=>{const n=name(),code=($("#onCode").value||"").trim().toUpperCase();if(!code){lobbyMsg("Type the room code first.");return}lobbyMsg("Connecting…");
+    try{NET.tr=await transport(code,false,onNet);Object.assign(NET,{role:"guest",code,name:n});sendHost({t:"hello",name:n,token:NET.token||undefined});onlineLobby()}catch(e){lobbyMsg(esc(e.message))}}}
+{const _ss=showStart;showStart=function(){
+  if(NET.role==="host"&&(!G||G.over)){NET.role="lobby-host";startMode="online"}
+  if(startMode==="online"||NET.role==="guest"){if(NET.role==="guest"&&G&&!G.over)return;return onlineLobby()}
+  if(startMode!=="local"&&NET.inSetup){NET.inSetup=false}
+  return _ss()}}
+/* the host's setup: each seat can be the host, someone in the room, or a computer */
+{const _sf=seatForm;seatForm=function(i,S,mode,L,taken){
+  if(!(NET.role==="lobby-host"&&NET.inSetup))return _sf(i,S,mode,L,taken);
+  const gs=guestIds();
+  if(S.type==="human"&&i>0){const used=new Set();S.type=gs.find(id=>!used.has(id))?"net:"+gs[(i-1)%Math.max(1,gs.length)]:"medium";if(!gs.length)S.type="medium"}
+  if(S.type&&S.type.startsWith("net:")&&!NET.guests[S.type.slice(4)])S.type="medium";
+  let h=_sf(i,S,"local",L,taken);
+  const opts=`<option value="human" ${S.type==="human"?"selected":""}>You (the host)</option>`+gs.map(id=>`<option value="net:${id}" ${S.type==="net:"+id?"selected":""}>Online · ${esc(NET.guests[id].name)}</option>`).join("");
+  h=h.replace(/<option value="human"[^>]*>Human<\/option>/,opts);
+  if(i===0&&S.type==="human")h=h.replace(/<span class="dim">Human<\/span>/,`<span class="dim">You (the host)</span>`);
+  return h}}
+{const _sg=startGame;startGame=function(opts){
+  if(!(NET.role==="lobby-host"&&NET.inSetup&&opts&&!opts.fast))return _sg(opts);
+  const ps=opts.players,local=ps.filter(p=>p.cpu==null&&!p.net).length,nets=ps.filter(p=>p.cpu&&String(p.cpu).startsWith("net:")).map(p=>p.cpu.slice(4));
+  if(new Set(nets).size<nets.length){flash("Each player in the room can only take one seat.");return}
+  for(const p of ps)if(p.cpu&&String(p.cpu).startsWith("net:")){p.net=p.cpu.slice(4);p.cpu=null}
+  Object.assign(opts,{online:true,timer:0,turns:"classic",mode:"local"});
+  NET.role="host";NET.inSetup=false;NET.sent={};NET.hostSeat=ps.findIndex(p=>p.cpu==null&&!p.net);if(NET.hostSeat<0)NET.hostSeat=0;
+  const out=_sg(opts);
+  G.p.forEach((P,i)=>{if(ps[i]&&ps[i].net)P.net=ps[i].net});
+  flushSnap();return out}}
+/* online, the joined players' own buttons that change only their screen keep working; the Bank's answers wait for your turn */
+{const _ob=openBank;openBank=function(){_ob();if(netOn()&&G&&G.active!==view())$("#ov").querySelectorAll("[data-lend],[data-nolend]").forEach(b=>b.disabled=true)}}
+
+if(window.__EC)Object.assign(window.__EC,{NET,netLeave,flushSnap,onlineLobby,applySnap,snapshot,ask:(...a)=>ask(...a)});
+
+/* ---------------- Online play, part 2 (v37) ----------------
+   Every screen sees the same animations and hears the same sounds: the host sends each one as it happens (where, who, what), and a
+   joined player's screen plays it from their own seat (the fog still hides what it hides).
+   A player who drops comes back to their own seat: reconnecting is automatic for a while, and reloading the page and joining the
+   same room again works too. The host's device can have more than one player on it (they pass it, as in a local game).
+   Someone who joins without a seat, or after the start, watches. And a chat for everyone in the room. */
+
+/* ---------- the host tells every screen what to show and play ---------- */
+function netFX(e){if(NET.role!=="host"||!G||!G.opts.online||G.opts.fast)return;const ids=guestIds();if(!ids.length)return;for(const id of ids)sendTo(id,{t:"fx",e})}
+const hostOnline=()=>NET.role==="host"&&G&&G.opts.online&&guestIds().length>0;
+{const _pl=place;place=function(card,r,c){const pl=card&&card.owner;const out=_pl.apply(this,arguments);if(hostOnline())netFX({k:"place",r,c,pl});return out}}
+{const _dm=doMove;doMove=function(r,c){const s=G.sel,st=s&&G.board[s.r]&&G.board[s.r][s.c],pl=st?st.owner:null;const out=_dm.apply(this,arguments);if(hostOnline()&&s)netFX({k:"move",a:[s.r,s.c],b:[r,c],pl});return out}}
+{const _at=attack;attack=function(r1,c1,r2,c2,mode){const A=G.board[r1]&&G.board[r1][c1];
+  if(hostOnline()&&A){const o=attackOptions(r1,c1).find(x=>x.r===r2&&x.c===c2&&(mode==null||x.mode===mode))||{},id=o.mode||mode;
+    const snd=id==="slug"?"slug":id==="gun"?"gun":id==="bow"?"arrow":id==="cannon"||hasK(A,"cannon")&&o.ranged?"cannon":id==="charge"||id==="charge2"?"charge":id==="ram"?"blunt":o.ranged?"arrow":"clash";
+    const kind=mode==="ram"||hasK(A,"cannon")&&o.ranged?"boom":hasK(A,"debt")||isNPC(A.owner)&&G.p[A.owner].npc==="bank"?"dollar":o.ranged?null:"blunt";
+    netFX({k:"strike",a:[r1,c1],b:[r2,c2],pl:A.owner,kind,snd})}
+  return _at.apply(this,arguments)}}
+{const _dg=damage;damage=function(r,c,n,d){const out=_dg.apply(this,arguments);if(hostOnline()&&n>0&&out!==0)netFX({k:"hit",r,c});return out}}
+{const _bu=bury;bury=function(card,r,c,st){const pl=st&&st.owner;const out=_bu.apply(this,arguments);if(hostOnline())netFX({k:"death",r,c,pl});return out}}
+{const _sc=sacrifice;sacrifice=function(card,from){const pl=G.active,m0=effMana(pl);const ok=_sc.apply(this,arguments);
+  if(ok&&hostOnline())netFX({k:"sac",pl,from:from==="hand"?"hand":from&&from.r!=null?[from.r,from.c]:null,got:Math.max(0,effMana(pl)-m0)});return ok}}
+{const _js=jokerSuicide;jokerSuicide=async function(r,c,st,pl){if(hostOnline())netFX({k:"suicide",r,c,pl});return _js.apply(this,arguments)}}
+{const _sh=shuffle;shuffle=function(a){const out=_sh(a);if(G&&hostOnline()){if(a===G.grave)netFX({k:"shuffle",pl:-1});else{const P=G.p.find(Q=>Q.deck===a);if(P&&!isHorde(P.i))netFX({k:"shuffle",pl:P.i})}}return out}}
+{const _ss=skyStrike;skyStrike=function(r,c,why){if(hostOnline())netFX({k:"meteor",r,c});return _ss.apply(this,arguments)}}
+{const _pg=pickGrave;pickGrave=async function(pl,n,title){const got=await _pg.apply(this,arguments);if(got&&hostOnline())netFX({k:"raise",pl,n:got});return got}}
+{const _sp=spend;spend=function(pl,n){if(n>0&&hostOnline())netFX({k:"pour",pl,n});return _sp.apply(this,arguments)}}
+{const _gm=giveMana;giveMana=function(pl,n){const got=_gm.apply(this,arguments);if(got>0&&hostOnline()&&G.phase!=="setup")netFX({k:"fill",pl,n:got});return got}}
+{const _ra=repairAct;repairAct=function(r,c,T){const out=_ra.apply(this,arguments);if(hostOnline())netFX({k:"repair",r,c});return out}}
+{const _ta=turnAsync;turnAsync=async function(pl){const P=G.p[pl];
+  if(hostOnline()&&P&&!isHorde(pl)){if(planetUp("saturn")&&paysSaturn(pl))netFX({k:"snd",s:"bell"});if(sunUp()&&P.tribe!=="firm"&&P.sunNext!=null&&tnOf(pl)>=P.sunNext)netFX({k:"snd",s:"drums"})}
+  return _ta.apply(this,arguments)}}
+{const _cr=cycleRound;cycleRound=async function(){const out=await _cr.apply(this,arguments);if(hostOnline()){if(cycleNow("venus"))netFX({k:"snd",s:"harp"});if(cycleNow("mercury"))netFX({k:"snd",s:"quill"})}return out}}
+
+/* ---------- a joined player's screen plays it ---------- */
+function playFX(e){window.__fxn=(window.__fxn||0)+1;if(!G)return;const V=view(),col=pl=>G.p[pl]?G.p[pl].color:"#ccc",fx=FX.on(),T=(r,c)=>FX.tile(r,c),see=(r,c)=>FX.sees(r,c);
+  switch(e.k){
+    case "place":if(e.pl===V||see(e.r,e.c)){if(fx)FX.burst(T(e.r,e.c),col(e.pl));AUD.place()}break;
+    case "move":if(e.pl===V||see(e.a[0],e.a[1])&&see(e.b[0],e.b[1])){if(fx)FX.slide(T(...e.a),T(...e.b),col(e.pl));AUD.move()}break;
+    case "strike":{const sa=e.pl===V||see(...e.a),sb=see(...e.b);if(!sa&&!sb)break;if(fx&&sa)FX.strike(T(...e.a),T(...e.b),col(e.pl));
+      if(fx&&sb){const r=T(...e.b);setTimeout(()=>{if(e.kind==="boom")FX.boom(r);else if(e.kind==="dollar"){FX.blunt(r);FX.dollar(r)}else if(e.kind==="blunt")FX.blunt(r)},180)}
+      if(e.snd&&AUD[e.snd])AUD[e.snd]();break}
+    case "hit":if(fx&&see(e.r,e.c))FX.hit(T(e.r,e.c),"#ff5a4a");break;
+    case "death":if(e.pl===V||see(e.r,e.c)){if(fx)FX.smoke(T(e.r,e.c));AUD.death()}break;
+    case "sac":{const r=e.from==="hand"?(e.pl===V?FX.rectOf($("#hand")):FX.rectOf(barOf(e.pl,".manabar"))):e.from&&(e.pl===V||see(...e.from))?T(...e.from):null;
+      if(fx&&r){FX.sigil(r,false);FX.pop(r,`+${e.got}`,"#8f80ee")}if(e.pl===V)AUD.fill();break}
+    case "suicide":if(fx&&(e.pl===V||see(e.r,e.c)))FX.sigil(T(e.r,e.c),true);break;
+    case "shuffle":if(fx)FX.shuffle(FX.rectOf(e.pl<0?$("#seegrave"):barOf(e.pl,".deckbar")));break;
+    case "cast":{const sp=SP(e.id);if(!sp)break;if(fx)castFX(sp,e.pl,e.sel,e.fires||[]);AUD.cast(sp.id==="robbank"?"Bank":sp.school);break}
+    case "meteor":AUD.meteor();if(fx&&see(e.r,e.c)){FX.meteor(T(e.r,e.c));for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++)if((dr||dc)&&see(e.r+dr,e.c+dc))FX.flames(T(e.r+dr,e.c+dc),520)}break;
+    case "raise":{if(fx){const a=FX.rectOf($("#seegrave")),b=e.pl===V?FX.rectOf($("#hand")):FX.rectOf(barOf(e.pl,".deckbar"));for(let i=0;i<e.n;i++)FX.wisp(a,b,i*160)}AUD.raise();break}
+    case "pour":if(e.pl===V){AUD.pour();if(fx)FX.pour(FX.rectOf(barOf(e.pl,".manabar")),e.n)}break;
+    case "fill":if(e.pl===V){AUD.fill();if(fx)FX.fill(FX.rectOf(barOf(e.pl,".manabar")),e.n)}break;
+    case "repair":if(see(e.r,e.c))AUD.repair();break;
+    case "snd":if(AUD[e.s])AUD[e.s]();if(e.s==="quill")setTimeout(()=>AUD.whispers(),2600);break}}
+
+/* ---------- more than one player on the host's device ---------- */
+const localSeats=()=>G?G.p.filter(P=>P.cpu==null&&!P.net&&!P.netAway).map(P=>P.i):[];
+{const _v=view;view=function(){
+  if(NET.role==="guest"&&NET.watch&&G)return NET.watchSeat!=null?NET.watchSeat:0;
+  if(NET.role==="host"&&G&&G.opts.online){const L=localSeats();if(L.length>1){if(L.includes(G.active))G.lastView=G.active;return L.includes(G.lastView)?G.lastView:L[0]}}
+  return _v()}}
+/* the setup: several seats can be "here" */
+{const _sf=seatForm;seatForm=function(i,S,mode,L,taken){let h=_sf(i,S,mode,L,taken);if(NET.role==="lobby-host"&&NET.inSetup)h=h.replace(">You (the host)</option>",">Here, on this device</option>").replace(">You (the host)</span>",">Here, on this device</span>");return h}}
+
+/* ---------- watching ---------- */
+{const _ca=canAct;canAct=function(){if(NET.role==="guest"&&NET.watch)return false;return _ca()}}
+{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G||NET.role!=="guest"||!NET.watch)return;const h=$("#hand");if(h)h.innerHTML='<p class="dim">You are watching this game.</p>';const hh=$("#handh");if(hh)hh.textContent="Watching"}}
+
+/* ---------- rejoining ---------- */
+const REJOIN_KEY="ec-net-rejoin";
+const rejoinSave=o=>{try{localStorage.setItem(REJOIN_KEY,JSON.stringify(o))}catch(e){}};
+const rejoinLoad=()=>{try{return JSON.parse(localStorage.getItem(REJOIN_KEY)||"null")}catch(e){return null}};
+const newToken=()=>Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);
+/* the host: tokens for every seat, and seats that wait for their player */
+{const _sg=startGame;startGame=function(opts){const was=NET.role==="lobby-host"&&NET.inSetup;const out=_sg(opts);
+  if(was&&NET.role==="host"&&G&&G.opts.online){
+    for(const P of G.p)if(P.net){P.netToken=newToken();sendTo(P.net,{t:"start",seat:P.i,token:P.netToken,code:NET.code})}
+    for(const id of guestIds())if(!G.p.some(P=>P.net===id))sendTo(id,{t:"start",seat:null,watch:true,watchSeat:NET.hostSeat});
+    NET.chat=NET.chat||[];flushSnap()}
+  return out}}
+{const _gl=guestLeft;guestLeft=function(id){const s=G&&G.opts.online&&!G.over?seatOfGuest(id):null;_gl(id);if(s!=null){const P=G.p[s];P.netAway=true;if(P.jail)P.jail.cpu="medium"}}}
+function netRejoin(from,tok,name){if(!G||!G.opts.online||G.over)return false;const P=G.p.find(Q=>Q.netToken&&Q.netToken===tok);if(!P)return false;
+  P.net=from;P.netAway=false;if(P.jail)P.jail.cpu=null;else P.cpu=null;NET.guests[from]={name:String(name||P.name).slice(0,20)};NET.sent[from]={n:0,full:false};
+  log(`<b>${plName(P.i)} is back.</b> The seat is theirs again.`,"event");notify(P.i,`${esc(P.name)} is back in the game.`);
+  sendTo(from,{t:"start",seat:P.i,token:tok,code:NET.code,rejoin:true});flushSnap();lobbyRoster();render();return true}
+/* the guest: remember the seat, come back on its own when the line drops */
+{const _on=onNet;onNet=function(from,d){
+  if(!d||!d.t)return _on(from,d);
+  if(NET.role==="guest"){
+    if(d.t==="start"){NET.watch=!!d.watch;NET.watchSeat=d.watchSeat;if(d.token)rejoinSave({code:NET.code,token:d.token,name:NET.name});
+      if(d.watch){NET.seat=null;NET.started=false;lobbyMsg("The game has started. You are watching it.");return}
+      if(d.rejoin){NET.seat=d.seat;NET.started=false;netBanner("");return}}
+    if(d.t==="fx"){setTimeout(()=>playFX(d.e),70);return}
+    if(d.t==="chat"){chatAdd(d.from,d.text);return}
+    if(d.t==="closing"){NET.closing=true;return _on(from,{t:"bye"})}
+    if(d.t==="bye"&&!NET.closing&&NET.code&&G&&!G.over){netReconnect();return}}
+  if(NET.role==="host"||NET.role==="lobby-host"){
+    if(d.t==="hello"&&d.token&&netRejoin(from,d.token,d.name))return;
+    if(d.t==="hello"&&G&&G.opts.online&&!G.over){NET.guests[from]={name:String(d.name||"Guest").slice(0,20)};NET.sent[from]={n:0,full:false};sendTo(from,{t:"welcome",host:NET.name});
+      sendTo(from,{t:"start",seat:null,watch:true,watchSeat:NET.hostSeat});(NET.chat||[]).slice(-20).forEach(m=>sendTo(from,{t:"chat",from:m.from,text:m.text}));flushSnap();lobbyRoster();return}
+    if(d.t==="chat"){const g=NET.guests[from];const nm=g?g.name:"?";chatAdd(nm,d.text);for(const id of guestIds())sendTo(id,{t:"chat",from:nm,text:String(d.text).slice(0,300)});return}}
+  return _on(from,d)}}
+/* the join button also sends the saved seat, when it's the same room */
+{const _jl=onlineLobby;onlineLobby=function(){_jl();const j=$("#onJoin");if(!j)return;const old=j.onclick;
+  j.onclick=async()=>{const code=($("#onCode").value||"").trim().toUpperCase(),saved=rejoinLoad();NET.token=saved&&saved.code===code?saved.token:null;return old()}}}
+let reTries=0;
+async function netReconnect(){if(NET.reconnecting)return;NET.reconnecting=true;reTries=0;netBanner("The connection dropped. Reconnecting…");
+  const saved=rejoinLoad();NET.token=saved&&saved.code===NET.code?saved.token:NET.token;
+  while(reTries<8&&NET.role==="guest"){reTries++;try{try{NET.tr&&NET.tr.close()}catch(e){}NET.tr=await transport(NET.code,false,onNet);sendHost({t:"hello",name:NET.name,token:NET.token});NET.reconnecting=false;netBanner("Reconnected.");setTimeout(()=>netBanner(""),2500);return}catch(e){await new Promise(r=>setTimeout(r,3000))}}
+  NET.reconnecting=false;netBanner("");_netLost()}
+function _netLost(){if(G)G.over=true;ovShow(`<div class="ovbox"><h2>Connection lost</h2><p>The game couldn't be reached again. You can join the room again with the same code: you'll get your seat back while the game is on.</p><p class="acts"><button class="btn" id="netOk">Back to the menu</button></p></div>`);$("#netOk").onclick=()=>{netLeave();startMode="online";showStart()}}
+function netBanner(t){let b=$("#netbanner");if(!t){if(b)b.hidden=true;return}if(!b){b=document.createElement("div");b.id="netbanner";b.setAttribute("role","status");document.body.appendChild(b)}b.textContent=t;b.hidden=false}
+/* the host closes the room on purpose: everyone is told */
+{const _nl=netLeave;netLeave=function(){if(NET.role==="host"||NET.role==="lobby-host")for(const id of guestIds())sendTo(id,{t:"closing"});NET.closing=false;NET.token=null;return _nl()}}
+
+/* ---------- the chat ---------- */
+function chatAdd(from,text){NET.chat=NET.chat||[];NET.chat.push({from,text:String(text).slice(0,300)});if(NET.chat.length>80)NET.chat.shift();
+  const open=$("#chatbox")&&!$("#chatbox").hidden;if(!open)NET.unread=(NET.unread||0)+1;chatPaint();if(!open&&from!==NET.name)AUD.ui()}
+function chatSend(text){text=String(text||"").trim().slice(0,300);if(!text)return;
+  if(NET.role==="guest")sendHost({t:"chat",text});else{chatAdd(NET.name||"Host",text);for(const id of guestIds())sendTo(id,{t:"chat",from:NET.name||"Host",text})}}
+function chatPaint(){
+  let btn=$("#chatbtn");const on=!!NET.role;if(!on){if(btn)btn.hidden=true;const bx=$("#chatbox");if(bx)bx.hidden=true;return}
+  if(!btn){btn=document.createElement("button");btn.id="chatbtn";btn.type="button";document.body.appendChild(btn);
+    btn.onclick=()=>{const bx=chatBox();bx.hidden=!bx.hidden;if(!bx.hidden){NET.unread=0;chatPaint();bx.querySelector("input").focus()}chatPaint()}}
+  btn.hidden=false;btn.innerHTML=`Chat${NET.unread?` <i class="bang">${NET.unread}</i>`:""}`;
+  const bx=$("#chatbox");if(bx&&!bx.hidden){const L=bx.querySelector(".chatlog");L.innerHTML=(NET.chat||[]).map(m=>`<li><b>${esc(m.from)}</b> ${esc(m.text)}</li>`).join("")||'<li class="dim">Nothing yet.</li>';L.scrollTop=L.scrollHeight}}
+function chatBox(){let bx=$("#chatbox");if(bx)return bx;bx=document.createElement("div");bx.id="chatbox";bx.hidden=true;
+  bx.innerHTML=`<div class="dhead"><b>Chat</b><button type="button" class="xclose" aria-label="Close the chat">×</button></div><ul class="chatlog"></ul><form class="chatin"><input maxlength="300" placeholder="Say something" aria-label="Message"><button class="btn sm">Send</button></form>`;
+  document.body.appendChild(bx);bx.querySelector(".xclose").onclick=()=>{bx.hidden=true;chatPaint()};
+  bx.querySelector("form").onsubmit=e=>{e.preventDefault();const i=bx.querySelector("input");chatSend(i.value);i.value=""};return bx}
+setInterval(()=>{try{chatPaint()}catch(e){}},1000);
+
+if(window.__EC)Object.assign(window.__EC,{playFX,netRejoin,chatSend,chatAdd,localSeats});
 
 })();
