@@ -16,6 +16,7 @@ const hostOnline=()=>NET.role==="host"&&G&&G.opts.online&&guestIds().length>0;
     const kind=mode==="ram"||hasK(A,"cannon")&&o.ranged?"boom":hasK(A,"debt")||isNPC(A.owner)&&G.p[A.owner].npc==="bank"?"dollar":o.ranged?null:"blunt";
     netFX({k:"strike",a:[r1,c1],b:[r2,c2],pl:A.owner,kind,snd})}
   return _at.apply(this,arguments)}}
+{const _bs=blindShot;blindShot=function(r1,c1,r2,c2,o){const A=G.board[r1]&&G.board[r1][c1],pl=A?A.owner:null;const out=_bs.apply(this,arguments);if(hostOnline()&&out&&out.win)netFX({k:"fogHit",pl});return out}}
 {const _dg=damage;damage=function(r,c,n,d){const out=_dg.apply(this,arguments);if(hostOnline()&&n>0&&out!==0)netFX({k:"hit",r,c});return out}}
 {const _bu=bury;bury=function(card,r,c,st){const pl=st&&st.owner;const out=_bu.apply(this,arguments);if(hostOnline())netFX({k:"death",r,c,pl});return out}}
 {const _sc=sacrifice;sacrifice=function(card,from){const pl=G.active,m0=effMana(pl);const ok=_sc.apply(this,arguments);
@@ -40,6 +41,7 @@ function playFX(e){window.__fxn=(window.__fxn||0)+1;if(!G)return;const V=view(),
     case "strike":{const sa=e.pl===V||see(...e.a),sb=see(...e.b);if(!sa&&!sb)break;if(fx&&sa)FX.strike(T(...e.a),T(...e.b),col(e.pl));
       if(fx&&sb){const r=T(...e.b);setTimeout(()=>{if(e.kind==="boom")FX.boom(r);else if(e.kind==="dollar"){FX.blunt(r);FX.dollar(r)}else if(e.kind==="blunt")FX.blunt(r)},180)}
       if(e.snd&&AUD[e.snd])AUD[e.snd]();break}
+    case "fogHit":if(e.pl===V)setTimeout(()=>AUD.hit(),260);break;
     case "hit":if(fx&&see(e.r,e.c))FX.hit(T(e.r,e.c),"#ff5a4a");break;
     case "death":if(e.pl===V||see(e.r,e.c)){if(fx)FX.smoke(T(e.r,e.c));AUD.death()}break;
     case "sac":{const r=e.from==="hand"?(e.pl===V?FX.rectOf($("#hand")):FX.rectOf(barOf(e.pl,".manabar"))):e.from&&(e.pl===V||see(...e.from))?T(...e.from):null;

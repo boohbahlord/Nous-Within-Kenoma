@@ -203,7 +203,7 @@ function render(){
   document.querySelectorAll("[data-hist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.hist,b)});
   wireCorners();wireMoon();wireStatus();
   if(histOpen!=null)fillHist();
-  $("#log").innerHTML=G.log.map(l=>`<li class="${l.cls}"${l.pl!=null&&G.p[l.pl]?` style="--pc:${G.p[l.pl].color}"`:""}>${l.t?`<time>${clock(l.t)}</time>`:""}<span class="lt">${l.fog&&!l.fog.seen[view()]&&isEnemy(l.fog.by,view())?l.fog.alt:l.html}</span></li>`).join("");
+  $("#log").innerHTML=G.log.filter(l=>!(l.fog&&l.fog.alt===""&&!l.fog.seen[view()]&&isEnemy(l.fog.by,view()))).map(l=>`<li class="${l.cls}"${l.pl!=null&&G.p[l.pl]?` style="--pc:${G.p[l.pl].color}"`:""}>${l.t?`<time>${clock(l.t)}</time>`:""}<span class="lt">${l.fog&&!l.fog.seen[view()]&&isEnemy(l.fog.by,view())?l.fog.alt:l.html}</span></li>`).join("");
   mountTimerOff();
 }
 function showEther(){viewBox("The Ether: Souls to Materially Conjure",G.ether,"ether",`${G.ether.length} souls wait in the Ether for a conjuring. Flesh Severance sends exiled souls back here.`)}
@@ -240,7 +240,7 @@ function renderSel(live){
 function autoMode(st){
   if(!st||st.owner!==G.active||!canAct())return null;
   if(G.phase==="prep"&&!st.moved)return "move";
-  if(G.phase==="attack"&&G.sel&&attackOptions(G.sel.r,G.sel.c).length)return "attack";
+  if(G.phase==="attack"&&G.sel&&(attackOptions(G.sel.r,G.sel.c).length||blindOptions(G.sel.r,G.sel.c).length))return "attack";
   return null;
 }
 function tileClick(r,c){
@@ -298,10 +298,10 @@ function mountTimerOff(){
 
 /* a stack with several weapons asks which one to use on this target */
 async function chooseAttack(r1,c1,r2,c2){
-  const opts=attackOptions(r1,c1).filter(o=>o.r===r2&&o.c===c2);
+  let opts=attackOptions(r1,c1).filter(o=>o.r===r2&&o.c===c2);if(!opts.length)opts=blindOptions(r1,c1).filter(o=>o.r===r2&&o.c===c2);
   let mode=opts[0]?opts[0].mode:null;
   if(opts.length>1){G.busy=true;
-    mode=await askHuman(G.active,{kind:"choice",title:"Which attack?",options:opts.map(o=>({id:o.mode,label:o.w.name,sub:o.w.text+(o.ranged?" From here a miss costs nothing.":"")})),cancel:"Cancel"});
+    mode=await askHuman(G.active,{kind:"choice",title:"Which attack?",options:opts.map(o=>({id:o.mode,label:o.w.name,sub:o.w.text+(o.blind?" Into the fog: if nothing is there, the shot is lost.":o.ranged?" From here a miss costs nothing.":"")})),cancel:"Cancel"});
     G.busy=false;if(mode==null){render();return}}
   attack(r1,c1,r2,c2,mode);G.mode=null;if(G.sel&&!G.board[G.sel.r][G.sel.c])G.sel=null;render();
 }

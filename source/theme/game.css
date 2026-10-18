@@ -1068,14 +1068,14 @@ table.tierolls td{padding:3px 12px 3px 0;border-bottom:1px solid #ffffff14}
 .mysbox .myscard{isolation:isolate}
 /* v35: the fog veil, the Bank's land */
 #board{position:relative}
-.tile.fog::after{background:#0b0907a6!important;animation:none!important}
-#board.newmoon .tile.fog::after{background:#050403c8!important}
-#board.fullmoon .tile.fog::after{background:#0d0f1494!important}
+.tile.fog::after{background:#0b090752!important;animation:none!important}
+#board.newmoon .tile.fog::after{background:#05040380!important}
+#board.fullmoon .tile.fog::after{background:#0d0f1448!important}
 .fogveil{position:absolute;inset:0;z-index:5;pointer-events:none;mask-size:100% 100%;-webkit-mask-size:100% 100%;mask-repeat:no-repeat;-webkit-mask-repeat:no-repeat;
-  background-image:var(--c1),var(--c2),linear-gradient(#0a0806b0,#0a0806b0);background-size:520px 520px,300px 300px,auto;background-blend-mode:screen,screen,normal;
+  background-image:var(--c1),var(--c2),linear-gradient(#0a080661,#0a080661);background-size:520px 520px,300px 300px,auto;background-blend-mode:screen,screen,normal;
   animation:fogveil 90s linear infinite;opacity:.95}
 @keyframes fogveil{from{background-position:0 0,0 0,0 0}to{background-position:520px 120px,-300px 60px,0 0}}
-#board.newmoon .fogveil{background-image:var(--c1),var(--c2),linear-gradient(#020101e6,#020101e6);filter:brightness(.42) contrast(1.25)}
+#board.newmoon .fogveil{background-image:var(--c1),var(--c2),linear-gradient(#0201019c,#0201019c);filter:brightness(.42) contrast(1.25)}
 #board.fullmoon .fogveil{background-image:var(--c1),var(--c2),linear-gradient(#1c2638a8,#1c2638a8);filter:sepia(.35) hue-rotate(175deg) saturate(1.25) brightness(1.12)}
 #board.bloodfield .fogveil{filter:sepia(1) hue-rotate(-40deg) saturate(2.4) brightness(.8)}
 @media (prefers-reduced-motion:reduce){.fogveil{animation:none}}
@@ -1096,6 +1096,7 @@ table.tierolls td{padding:3px 12px 3px 0;border-bottom:1px solid #ffffff14}
 #chatbtn{position:fixed;left:14px;bottom:14px;z-index:45;font:inherit;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--amber-hi);background:var(--well);border:1px solid var(--amber);padding:6px 14px;cursor:pointer;display:flex;align-items:center}
 #chatbtn .bang{margin-left:8px;width:auto;min-width:15px;padding:0 3px;border-radius:8px}
 #chatbox{position:fixed;left:14px;bottom:52px;z-index:46;width:min(340px,calc(100vw - 28px));max-height:min(420px,60vh);display:flex;flex-direction:column;background:var(--well);border:1px solid var(--amber);box-shadow:0 8px 30px #000a}
+#chatbox[hidden],#chatbtn[hidden]{display:none!important}
 #chatbox .dhead{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--rule)}
 #chatbox .chatlog{list-style:none;margin:0;padding:8px 12px;overflow:auto;flex:1;font-size:13.5px;line-height:1.5}
 #chatbox .chatlog b{color:var(--amber-hi);font-weight:400;margin-right:4px}

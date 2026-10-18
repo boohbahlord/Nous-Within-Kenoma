@@ -320,6 +320,7 @@ function doMove(r,c){
 function attackTargets(){
   const s=G.sel;if(!s)return[];const seen=new Set(),out=[];
   for(const o of attackOptions(s.r,s.c)){const k=o.r*16+o.c;if(!seen.has(k)){seen.add(k);out.push([o.r,o.c])}}
+  if(!G.p[G.active]||G.p[G.active].cpu==null)for(const o of blindOptions(s.r,s.c)){const k=o.r*16+o.c;if(!seen.has(k)){seen.add(k);out.push([o.r,o.c])}}   // fogged tiles a shooter can fire into
   return out;
 }
 const sacrificeAllowed=()=>G.phase==="prep"&&!G.spent&&!isHorde(G.active);

@@ -38,6 +38,7 @@ const AUD=(()=>{
     card:()=>once("card",40,t=>{nz(t,.045,.09,{f:2400,q:1.4});tone("sine",230,t,.07,.06,{f2:150})}),
     place:()=>once("place",60,t=>{tone("sine",150,t,.12,.2,{f2:70});nz(t,.06,.07,{type:"lowpass",f:900})}),
     move:()=>once("move",60,t=>{nz(t,.17,.06,{f:600,f2:1800,q:.8,att:.03})}),
+    hit:()=>once("hit",80,t=>{tone("sine",95,t,.2,.26,{f2:45});nz(t,.12,.16,{type:"lowpass",f:900,f2:200});tone("triangle",260,t+.06,.22,.06,{f2:140})}),   // a blow landing somewhere unseen
     death:()=>once("death",80,t=>{nz(t,.4,.14,{type:"lowpass",f:1200,f2:150});tone("triangle",330,t,.36,.05,{f2:110})}),
     clash:()=>once("clash",70,t=>{nz(t,.025,.07,{type:"highpass",f:3000});[1180,1770,2490,3310].forEach((f,i)=>tone("sine",f,t,.28+i*.04,.035/(1+i*.4)))}),
     blunt:()=>once("blunt",70,t=>{tone("sine",120,t,.14,.18,{f2:60});nz(t,.08,.08,{type:"lowpass",f:700})}),
@@ -110,6 +111,7 @@ document.addEventListener("click",e=>{if(!G||!e.target.closest)return;
   if(A&&AUD.ok()&&(A.owner===view()||sndSees(r1,c1)||sndSees(r2,c2))){const o=attackOptions(r1,c1).find(x=>x.r===r2&&x.c===c2&&(mode==null||x.mode===mode))||{};const id=o.mode||mode;
     snd=id==="slug"?"slug":id==="gun"?"gun":id==="bow"?"arrow":id==="cannon"||hasK(A,"cannon")&&o.ranged?"cannon":id==="charge"||id==="charge2"?"charge":id==="ram"?"blunt":o.ranged?"arrow":"clash"}
   if(snd)AUD[snd]();return _at.apply(this,arguments)}}
+{const _bs=blindShot;blindShot=function(r1,c1,r2,c2,o){const A=G.board[r1]&&G.board[r1][c1],mine=A&&A.owner===view();const out=_bs.apply(this,arguments);if(out&&out.win&&mine)setTimeout(()=>AUD.hit(),260);return out}}
 {const _bu=bury;bury=function(card,r,c,st){const hear=sndSees(r,c)||st&&st.owner===view();const out=_bu.apply(this,arguments);if(hear)AUD.death();return out}}
 {const _ra=repairAct;repairAct=function(r,c,T){const out=_ra.apply(this,arguments);if(G.board[r][c]&&(G.board[r][c].owner===view()||sndSees(r,c)))AUD.repair();return out}}
 {const _ss=skyStrike;skyStrike=function(r,c,why){AUD.meteor();return _ss.apply(this,arguments)}}
