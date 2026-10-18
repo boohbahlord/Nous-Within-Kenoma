@@ -20,3 +20,4 @@ const resurPrice=c=>resurD()+soulOf(c);
     log(`<b>Resurrection</b>: ${plName(pl)} pays ${cost} mana (${resurD()} + ${soulOf(c)}) and raises ${esc(nameOf(c))} from the grave.`,"event");render()}}
 /* the spell list shows the price this round */
 {const _rs=renderSpells;renderSpells=function(live){_rs(live);const b=document.querySelector('#spells [data-s="resur"] em');if(b&&G)b.textContent=`${resurD()} + worth`}}
+if(window.__EC)Object.assign(window.__EC,{loanLimit:pl=>loanLimit(pl),loanWhy,debtWatch,sendCollectors});

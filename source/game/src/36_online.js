@@ -68,7 +68,7 @@ const NETFN={
  sellCards:{get:()=>sellCards,set:f=>sellCards=f,map:a=>[a[0],a[1].map(c=>c.id)],un:a=>[a[0],a[1].map(cardById).filter(Boolean)]},
  sellThrall:{get:()=>sellThrall,set:f=>sellThrall=f},
  askLoan:{get:()=>askLoan,set:f=>askLoan=f,any:true},
- answerLoan:{get:()=>answerLoan,set:f=>answerLoan=f,any:true,map:a=>[a[0].id,a[1]],un:a=>[p2pOf().find(x=>x.id===a[0]),a[1]]},
+ answerLoan:{get:()=>answerLoan,set:f=>answerLoan=f,any:true,map:a=>[a[0].id,a[1],a[2]],un:a=>[p2pOf().find(x=>x.id===a[0]),a[1],a[2]]},
  repayLoan:{get:()=>repayLoan,set:f=>repayLoan=f,any:true,map:a=>[a[0].id,a[1]],un:a=>[p2pOf().find(x=>x.id===a[0]),a[1]]},
  buyPlot:{get:()=>buyPlot,set:f=>buyPlot=f,map:a=>[a[0],a[1].i],un:a=>[a[0],plotsOf()[a[1]]]},
  sellPlot:{get:()=>sellPlot,set:f=>sellPlot=f,map:a=>[a[0],a[1].i],un:a=>[a[0],plotsOf()[a[1]]]},

@@ -222,17 +222,18 @@ const SKY_ROWS=[
  ["jupiter","Jupiter","The Firmament; or the sky from the start.","Ace miners bring 1d2, two conjurings on sale each round, trades at the Auction."]];
 function skyExplainHTML(){return `<details class="sub"><summary>Heavenly Bodies explained</summary><div class="skygrid">${SKY_ROWS.map(([k,n,how,what])=>`<div class="skycard"><b>${n}</b><p>${what}</p><small>${how}</small><em class="skyform">${SKY_FORM[k]}</em></div>`).join("")}</div><p class="dim">Every Heavenly Body but the Moon can be eclipsed: 5% at the start of each round. Hover or tap the sky in a game for what it means for you.</p></details>`}
 const BANK_HELP=[
- ["Where mana goes","Every mana spent on a spell goes to the Bank. The Bank can only lend what it holds."],
- ["Loans","Mana now, from what the Bank holds. A loan grows 20% every 1d2 of your turns and is due in 4 of your turns; repay it with Repay. Whatever isn't paid then becomes mana debt."],
- ["Mana debt","Debt shows as mana below zero. Every soul you gain pays the debt first. Below zero the Bank lends six at most; at minus your maximum, five at most and at 30%."],
- ["Spend on credit","Not a loan: nothing is lent up front. Tick it to cast spells you can't afford; what your souls don't cover becomes mana debt at once, down to your lowest point."],
- ["Your lowest point","You lose the game if your mana falls below three times your maximum under zero (−18 with a maximum of 6)."],
- ["Selling","Sell cards from your hand or deck for their soul worth, or 1 less (rolled at the sale); a standard card worth only 1 can't be sold. They go to the Ether and your deck is reshuffled. Binah can sell thralls for 1 mana."],
+ ["Where mana goes","Every mana spent on a spell goes to the Bank. The Bank can go 8 into the red, no further."],
+ ["Loans","Mana now, paid out of the Bank's own mana: up to 12 (6 below zero, 5 at minus your maximum). Due in half the amount in your turns, at least 2 (12 mana: 6 turns). It grows by 1d2 every 3 of your turns. Whatever isn't repaid when it's due becomes mana debt."],
+ ["Loan limits","One loan at a time, one a round, and the next no sooner than 3 of your turns after the last."],
+ ["Credit","Not a loan: tick Spend on credit to cast spells you can't afford. What your souls don't cover becomes mana debt at once."],
+ ["Mana debt","Debt shows as mana below zero. It grows by 1d2 every 3 of your turns, and every soul you gain pays it first."],
+ ["Your lowest point","You can go down to −8. Below −8 you lose the game."],
+ ["Debt Collectors","Stay at −6 or lower for 3 of your turns and you are in default. From then on, at the start of each of your turns the Bank sends 1d2 Debt Collectors (six at most on the field) after whoever owes the most, until the debt is paid off. Every card they kill goes to the Ether, and its worth pays the debt."],
+ ["Selling","Sell cards from your hand or deck for their soul worth, or 1 less (rolled at the sale). A standard card worth only 1 can't be sold. Sold cards go to the Ether, and your deck is reshuffled. Binah can sell thralls for 1 mana."],
  ["Upselling","A spell bought more than twice in each of two rounds in a row costs 1d2 − 1 more."],
- ["When the Bank is in the red","The Ether goes on sale (1 less), and the Bank borrows from the richest player."],
- ["Debt Collectors","Anyone more than their maximum below zero is hunted by the Bank's Debt Collectors."],
+ ["When the Bank is in the red","The Ether goes on sale (1 less, never below 1), and the Bank asks the richest player for a loan."],
  ["The angry Banker","If Barbarians hold the middle of the field for 7d2 turns, every price goes up by 1 until they are gone."],
- ["Collapse","If the Bank is 12 in the red and every player 6 below zero, it collapses: mana and debts go to zero, every maximum falls to three, and prices wobble up for a while."]];
+ ["Collapse","If the Bank and every player are 3 or more below zero, the Bank collapses: mana and debts go to zero, every maximum falls to three, cards leave the decks for the Ether, and prices wobble up for a while."]];
 function bankExplainHTML(){return `<details class="sub"><summary>The Bank, Barbarians and meteors explained</summary><dl class="spellinfo">${BANK_HELP.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}
 <dt>Barbarians</dt><dd>A crimson band takes the middle every 4 + 1d12 turns and with every Blood Moon, and fights anyone beside it. The player who kills the most of a band gets an Ether sale; breaking a big band can earn debt forgiveness.</dd>
 <dt>Meteor</dt><dd>One round in a hundred: damage where it lands and maybe around it, then fire for two rounds.</dd>
