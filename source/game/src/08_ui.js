@@ -84,7 +84,7 @@ function pboxHTML(pl,top){
     if(showHand){
       const open=eclipseOn("sun")&&!G.passing||P.shownBy!=null&&!G.passing&&(P.shownBy===V||!isEnemy(P.shownBy,V))||!isEnemy(pl,V)&&G.p.filter(Q=>!Q.cpu).length===1&&!G.passing;
       h+=`<div class="handrow"><span class="bk">Hand ${P.hand.length}/${handCap(pl)}</span>${P.hand.map(c=>open?face(c,{cls:"sm"}):back(pl)).join("")}${open?'<span class="seenmark">seen</span>':""}</div>`;
-    }else h+=`<p class="stats"><span>Hand <b>${P.hand.length}/${handCap(pl)}</b></span>${P.od?`<span class="odn">overdrawn <b>${P.od}</b></span>`:""}</p>`;
+    }else h+=`<p class="stats"><span>Hand <b>${P.hand.length}/${handCap(pl)}</b></span>${P.od?`<span class="odn">overdrawn <b>${P.od}</b></span>`:""}${P.loot?`<span class="loot" title="From the Bank heist: pours into the soul pile at the start of each turn">stash <b>${P.loot}</b></span>`:""}</p>`;
   }
   if(top)h+=`<div class="traywrap">${trayHTML(P,pl)}</div>`;
   return h;
