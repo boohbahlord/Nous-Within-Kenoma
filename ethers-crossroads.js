@@ -919,9 +919,13 @@ async function nextPhase(){
   if(G.placing)cancelPlacing();
   if(G.waiter){const f=G.waiter;G.waiter=null;G.mode=null;G.selHand=null;f()}
 }
+/* once a draw roll overdraws, that turn's drawing is over: no misclicked or rage-quit spree can burn a whole deck */
+const overdrewNow=pl=>G.p[pl]&&G.p[pl].odTurn===G.turnNo;
 function rollDraw(){
+  if(overdrewNow(G.active)){flash("You overdrew this turn: no more draws until your next turn.");return}
   const n=R(4);tray(G.active,"Draw",[{s:4,v:n}],`draw ${n}`);
-  log(`${plName(G.active)} rolls d4: ${n}.`);draw(G.active,n);
+  log(`${plName(G.active)} rolls d4: ${n}.`);const r=draw(G.active,n);
+  if(r&&r.burned){G.p[G.active].odTurn=G.turnNo;log(`${plName(G.active)} overdrew: no more draws this turn.`)}
 }
 /* phase timer (off by default): 30, 60 or 90 seconds; the draw phase is 30 under the longer timers */
 let timerIv=null;
@@ -1793,7 +1797,7 @@ function pboxHTML(pl,top){
     if(showHand){
       const open=eclipseOn("sun")&&!G.passing||P.shownBy!=null&&!G.passing&&(P.shownBy===V||!isEnemy(P.shownBy,V))||!isEnemy(pl,V)&&G.p.filter(Q=>!Q.cpu).length===1&&!G.passing;
       h+=`<div class="handrow"><span class="bk">Hand ${P.hand.length}/${handCap(pl)}</span>${P.hand.map(c=>open?face(c,{cls:"sm"}):back(pl)).join("")}${open?'<span class="seenmark">seen</span>':""}</div>`;
-    }else h+=`<p class="stats"><span>Hand <b>${P.hand.length}/${handCap(pl)}</b></span>${P.od?`<span class="odn">overdrawn <b>${P.od}</b></span>`:""}</p>`;
+    }else h+=`<p class="stats"><span>Hand <b>${P.hand.length}/${handCap(pl)}</b></span>${P.od?`<span class="odn">overdrawn <b>${P.od}</b></span>`:""}${P.loot?`<span class="loot" title="From the Bank heist: pours into the soul pile at the start of each turn">stash <b>${P.loot}</b></span>`:""}</p>`;
   }
   if(top)h+=`<div class="traywrap">${trayHTML(P,pl)}</div>`;
   return h;
@@ -1898,7 +1902,7 @@ function render(){
   $("#mytray").innerHTML=hidden?"":trayHTML(P,V);
   // controls
   const ctl=[];
-  if(live&&G.phase==="draw")ctl.push(`<button class="btn" id="d4" ${P.deck.length?"":"disabled"}>Roll d4 and draw</button>`);
+  if(live&&G.phase==="draw")ctl.push(`<button class="btn" id="d4" ${P.deck.length&&!overdrewNow(G.active)?"":"disabled"}>${overdrewNow(G.active)?"Overdrew: no more draws":"Roll d4 and draw"}</button>`);
   if(live&&G.phase!=="moon")ctl.push(`<button class="btn ghost" id="next">${G.phase==="setup"?"Done setting up":G.nextLabel||"Next →"}</button>`);
   if(+G.opts.timer&&!G.over)ctl.push(`<span id="timer" class="timer" aria-live="off" title="time left in this phase">${G.deadline?Math.max(0,Math.ceil((G.deadline-Date.now())/1000))+"s":""}</span>`);
   ctl.push(`<button class="btn ghost sm" id="snd" aria-pressed="${SND.on}">sound: ${SND.on?"on":"off"}</button>`);
@@ -2050,8 +2054,8 @@ const INFO={
  trafficker:["Trafficker (Tiphareth of Kether)","Trafficker",[["Score","8 + 1d8 on attack, stacks like an Infantry"],["Chains","any enemy card that dies on the eight tiles around it, three prisoners at most"],["Life for Sell","puts a prisoner up at the Auction"],["Falls","its prisoners go free into the grave"]],"Three in Tiphareth of Kether's deck."],
  debt:["Debt Collector (Yaldabaoth)","Collector",[["Score","copies the leading card of whatever it fights, natural value and die, without its advantage"],["Rises","when an enemy refuses to pay Saturn"],["Price","each one still standing at a new round raises Saturn's price by 1"]],"Saturn's warden."],
  goatbull:["Goatbull (Jester Fool)","Goatbull",[["Comes back","when the BullGoat dies it goes back into the deck, and is drawn again as the Goatbull"],["Hearts","two"],["Horns","10d2 + 1d10, up close"],["Charge","10 + 2d20 at an enemy exactly two tiles away in a straight line with nothing between; it closes the gap"],["Stomp","an ability check: its 1d20 with advantage against the target's 1d20 with disadvantage (Samson rolls plain). Win: the stack is Behooved, pinned for 2d2 of its turns (1d2 on a tie), and can't move or attack. A 16 or more that the target doesn't match deals 1 damage; each later pinned round checks again and needs 5 less (11, then 6…)"],["Attacked","a Goatbull attacked while it pins loses its advantage in every later check"],["Falls","into the Outer Darkness"]],"The BullGoat, turned around."],
- scout:["Scout (support)","Scout",[["Sight","three tiles through the fog of war; it uncovers Assassins, ambushers and face-down cards within a round two tiles, and enemy Scouts within three"],["Hidden","enemies see it only from right beside it, or with their own Scout within three"],["Fights","never: no attack and no defense"],["Moves","one tile straight, two diagonal, or two forward or back"],["Comes","two in every deck; one with every Ace you put down (two with the Beginner's first), except for Lucifer & Ouroboros; the rest wait in the Ether for 1 mana"]],"A horse and a rider who sees far."],
- assassin:["Assassin (special)","Assassin",[["Hearts","two (a pair of Assassins has three)"],["Attack","10 + 1d12, the roll of a Jack"],["Defense","8, like an Infantry"],["Hidden","enemies see it only from right beside it, or with a Scout within two tiles"],["Moves","one tile straight, two diagonal, or two forward or back"],["Ambush","it can wait in ambush and strike, with advantage, any enemy that steps beside it"],["Stacks","with one other Assassin, nothing else"],["Conjure","2d2 + 1 mana; four per deck wait in the Ether"]],"The dagger in the dark."],
+ scout:["Scout (support)","Scout",[["Sight","two tiles out through the fog of war, in a diamond (straight two, diagonal one); everything it sees, Assassins, ambushers, face-down cards and enemy Scouts included, is uncovered"],["Hidden","enemies see it only from right beside it, or with their own Scout in sight of it"],["Fights","never: no attack and no defense"],["Moves","one tile straight, two diagonal, or two forward or back"],["Comes","two in every deck; one with every Ace you put down (two with the Beginner's first), except for Lucifer & Ouroboros; the rest wait in the Ether for 1 mana"]],"A horse and a rider who sees far."],
+ assassin:["Assassin (special)","Assassin",[["Hearts","two (a pair of Assassins has three)"],["Attack","10 + 1d12, the roll of a Jack"],["Defense","8, like an Infantry"],["Hidden","enemies see it only from right beside it, or with a Scout in sight of it"],["Moves","one tile straight, two diagonal, or two forward or back"],["Ambush","it can wait in ambush and strike, with advantage, any enemy that steps beside it"],["Stacks","with one other Assassin, nothing else"],["Conjure","2d2 + 1 mana; four per deck wait in the Ether"]],"The dagger in the dark."],
  archer:["Archer (standard)","Archer",[["Bow","1d20 + 1d10 at a stack exactly two tiles away, straight or diagonal (not the tiles right beside it); a miss costs it nothing"],["Suppress","instead of a shot: the target has disadvantage on its next attack, unless it waits out 1d2 of its turns; the Archer then rests 1d2 turns"],["Defense","none"],["Stacks","alone, with a Queen, or inside an Ace, the Tree or a Wall; never with another Archer"],["Conjure","1d2 mana (1 for the Beginner); eight per deck wait in the Ether"]],"A bow and an arrow."],
  cannon:["Cannon (standard)","Cannon",[["Fire","2d20 at a stack up to three tiles away in any direction, once every 1d2 + 2 turns; a miss costs it nothing"],["Against bases","two damage to a Wall; it can't take an Ace's last heart, and the Tree takes nothing from it"],["Defense","none; it can be captured when it stands alone"],["Moves","one step"],["Stacks","alone, or inside a base, where it still fires"],["Conjure","6 mana; one per deck"]],"Slow, loud and heavy."],
  healer:["Healer (support)","Healer",[["Shield","a blue shield over its stack turns one whole blow without anyone dying, then comes back in 1d4 rounds"],["Heal","one heart back to a card in its stack or beside it (not a base); then it waits 1d2 + 2 turns, and the shield is down for 3 turns"],["Either or","while the shield is broken it can't heal"],["Fights","never; it dies last in its stack, and can be captured when it stands alone"],["Stacks","with anything but a Queen; one per stack"],["Conjure","2 + 1d3 mana; four per deck"]],"The medical cross."],
@@ -2085,7 +2089,7 @@ function infoHTML(){
 <details class="cinfo"><summary>Spells explained</summary><div class="spellinfo">${spells}<p class="dim">New Moon: Clairvoyance and Naked Hand cost 6. Full Moon: Clairvoyance costs 2, Naked Hand is free, and no necromancy is cast. Blood Moon: Full Moon prices with no Full Moon drawbacks; necromancy is allowed. The moon turns one phase per round, once every player has had a turn.</p></div></details>
 <details class="cinfo"><summary>Further explanations</summary>
 <details class="sub"><summary>Substances explained</summary><dl class="spellinfo">${subs}</dl><p class="dim">Only the Beginner can be played by more than one player in a game. The full rules for each are on the All Rules page.</p></details>
-<details class="sub"><summary>Fog of war and stealth explained</summary><dl class="spellinfo"><dt>Fog of war</dt><dd>On by default (Rules tab). Each of your cards sees only the eight tiles around it, straight and diagonal; a Scout sees three tiles. Shaded tiles are out of sight: enemy cards there stay hidden, and the log only says that something moved out of sight.</dd><dt>Shooting into the fog</dt><dd>Archers, Cannons, Rifles and the Slugshot Cannon can fire at a fogged tile in reach. If nothing is there the shot is lost; if something is, it is a normal attack, but all you learn is whether it hit: you hear the blow land.</dd><dt>Scouts</dt><dd>Never attack or defend. They uncover Assassins, ambushers and face-down cards within a round two tiles, and enemy Scouts within three. Every Ace you put down brings one from the Ether.</dd><dt>Assassins</dt><dd>Hidden from enemies unless one of their cards stands right beside it (straight, not diagonal) or a Scout is near. Two hearts; 10 + 1d12 to attack, 8 to defend. Only another Assassin stacks with one.</dd><dt>Face down</dt><dd>Tick "Place it face down" before putting a card down. Enemies see only its back. Double disadvantage to attack, advantage to defend; it turns face up once it attacks or is attacked.</dd><dt>Ambush</dt><dd>Select an Assassin or face-down stack in your prep phase and press "Set an ambush": it turns sideways, hides like an Assassin, and strikes with advantage, out of turn, at the first enemy that steps beside it (diagonals too for a Jack's reach). Moving it ends the ambush.</dd><dt>Quiet Eyes and Bird's Eye</dt><dd>Quiet Eyes (Illusion) blinds enemies without a Scout to all but what is right beside them, 2 mana a round for 1d2 + 1 rounds. Bird's Eye (Sorcery) lifts the fog for your side for a round, but not a Delusion.</dd></dl></details>
+<details class="sub"><summary>Fog of war and stealth explained</summary><dl class="spellinfo"><dt>Fog of war</dt><dd>On by default (Rules tab). Each of your cards sees only the eight tiles around it, straight and diagonal; a Scout sees two tiles out in a diamond (two straight, one diagonal). Shaded tiles are out of sight: enemy cards there stay hidden, and the log only says that something moved out of sight.</dd><dt>Shooting into the fog</dt><dd>Archers, Cannons, Rifles and the Slugshot Cannon can fire at a fogged tile in reach. If nothing is there the shot is lost; if something is, it is a normal attack, but all you learn is whether it hit: you hear the blow land.</dd><dt>Scouts</dt><dd>Never attack or defend. Everything in a Scout's diamond of sight is uncovered: Assassins, ambushers, face-down cards and enemy Scouts. Every Ace you put down brings one from the Ether.</dd><dt>Assassins</dt><dd>Hidden from enemies unless one of their cards stands right beside it (straight, not diagonal) or a Scout is near. Two hearts; 10 + 1d12 to attack, 8 to defend. Only another Assassin stacks with one.</dd><dt>Face down</dt><dd>Tick "Place it face down" before putting a card down. Enemies see only its back. Double disadvantage to attack, advantage to defend; it turns face up once it attacks or is attacked.</dd><dt>Ambush</dt><dd>Select an Assassin or face-down stack in your prep phase and press "Set an ambush": it turns sideways, hides like an Assassin, and strikes with advantage, out of turn, at the first enemy that steps beside it (diagonals too for a Jack's reach). Moving it ends the ambush.</dd><dt>Quiet Eyes and Bird's Eye</dt><dd>Quiet Eyes (Illusion) blinds enemies without a Scout to all but what is right beside them, 2 mana a round for 1d2 + 1 rounds. Bird's Eye (Sorcery) lifts the fog for your side for a round, but not a Delusion.</dd></dl></details>
 <details class="sub"><summary>Siege, support and mining explained</summary><dl class="spellinfo"><dt>Bought from the Ether</dt><dd>Archers, Cannons, Healers, Walls, Repairmen, Battering Rams and Miners all wait in the Ether, a set for every deck, and come into your deck with their Conjure spells. The Beginner starts with two Archers, a Wall, two Repairmen and a Battering Ram in the deck, and a Miner in the first Ace.</dd><dt>Shooting</dt><dd>Archers and Cannons fire from wherever they stand, inside an Ace, the Tree or a Wall too, where the rest can't fight. Select the stack in the attack phase and click a highlighted target; a miss costs the shooter nothing. Only one shot a turn leaves a base.</dd><dt>Support cards</dt><dd>Healers, Repairmen, Battering Rams and Miners never fight. In a stack they die last (Miners first). Standing alone they can't defend: an enemy beside them chooses Capture or Destroy instead of an attack. A captured card rides in the stack's capture slot (one per stack) until you set it to work beside the stack; then it is yours.</dd><dt>Heal and Repair</dt><dd>Select the stack in your prep phase and press Heal a heart or Repair. The status line under the cards shows every cooldown.</dd><dt>Crystals</dt><dd>A crystal rises in the middle of the field every 1d6 + 4 turns. A Miner on it digs 1 + 1d3 mana on a 2 of 1d2 each turn, until the crystal's 12 mana are gone.</dd><dt>Field Libation</dt><dd>Necromancy, free, not under the Full Moon: pour out cards from your field; each one is worth its mana on a 2 of 1d2, and goes to the grave for nothing on a 1.</dd></dl></details>
 ${bankExplainHTML()}
 ${skyExplainHTML()}
@@ -2143,7 +2147,7 @@ function showStart(){
   }
   const mode=startMode,M=MODES.find(m=>m[0]===mode);
   const seatsS=[0,1,2,3].map(i=>({name:mode==="survival"&&i===0?"Survivor":`P${i+1}`,type:mode==="survival"||i===0?"human":mode==="cpu"?"medium":"human",
-    tribe:i===0?"binah":"random",color:COLORS[SEATCOL[i]][1],solid:SEATSOL[i],team:i%2,named:false}));
+    tribe:"beginner",color:COLORS[SEATCOL[i]][1],solid:SEATSOL[i],team:i%2,named:false}));
   let curLayout=null;
   const counts=mode==="survival"?[1,2,3,4]:[2,3,4];
   const forms=`<fieldset class="pf"><legend>Table</legend>
@@ -2163,7 +2167,7 @@ function showStart(){
 <label class="opt"><input type="radio" name="oelim" value="dark"><span>To the Outer Darkness<small>Their deck and hand are gone for good.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Field</legend>
 ${chk("ocrys","Crystals (default)","A crystal cluster rises in the middle of the field every 1d6 + 4 turns (Headquarters opens with one). A Miner standing on it digs out its 12 mana.",true)}
-${chk("ofog","Fog of war (default)","Each card sees only the eight tiles around it (a Scout three tiles); ranged cards can fire blind into the fog. Assassins, ambushers and Scouts stay hidden until you stand right beside them.",true)}
+${chk("ofog","Fog of war (default)","Each card sees only the eight tiles around it (a Scout two tiles out, in a diamond); ranged cards can fire blind into the fog. Assassins, ambushers and Scouts stay hidden until you stand right beside them.",true)}
 ${chk("obarb","Barbarians (default)","Every 4 + 1d12 turns a crimson band of Grunts, Infantry or Jacks (sometimes with an Ace) takes the middle of the field and fights everyone. Whoever kills the most earns an Ether sale; a big band can earn debt forgiveness.",true)}
 <label class="f">Hole in the middle <select id="ohole"><option value="0" selected>None (default)</option><option value="1">One or two tiles</option><option value="2">Doubled</option><option value="3">Tripled</option></select></label>
 <p class="dim">An empty pit in the center of the field, never on the River map and never in anyone's lines; it only grows where there is room.</p>
@@ -2186,8 +2190,8 @@ ${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the 
 <label class="opt"><input type="radio" name="dhand" value="below" ${PREF.hand!=="side"?"checked":""}><span>Under your deck (default)<small>Right below your own bars, with your dice box.</small></span></label>
 <label class="opt"><input type="radio" name="dhand" value="side" ${PREF.hand==="side"?"checked":""}><span>Beside the field<small>In the right-hand column, above the spells.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Selected stack box</legend><div class="opts">
-<label class="opt"><input type="radio" name="dsel" value="bottom" ${PREF.sel!=="top"?"checked":""}><span>Below the spells (default)<small>At the bottom of the right-hand column.</small></span></label>
-<label class="opt"><input type="radio" name="dsel" value="top" ${PREF.sel==="top"?"checked":""}><span>Above the spells<small>At the top of the right-hand column.</small></span></label></div></fieldset>
+<label class="opt"><input type="radio" name="dsel" value="bottom" ${PREF.sel!=="top"?"checked":""}><span>Below the spells${isPhone()?"":" (default)"}<small>At the bottom of the right-hand column.</small></span></label>
+<label class="opt"><input type="radio" name="dsel" value="top" ${PREF.sel==="top"?"checked":""}><span>Above the spells${isPhone()?" (default on a phone)":""}<small>At the top of the right-hand column.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Turn buttons</legend><div class="opts">
 <label class="opt"><input type="radio" name="dctl" value="bottom" ${PREF.ctl!=="top"?"checked":""}><span>Under the field (default)<small>Roll, next phase and end turn sit in a bar right below the board, on the page.</small></span></label>
 <label class="opt"><input type="radio" name="dctl" value="top" ${PREF.ctl==="top"?"checked":""}><span>At the top<small>Beside the moon and the phases.</small></span></label></div></fieldset>
@@ -2198,7 +2202,15 @@ ${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the 
 <fieldset class="pf pc-only"><legend>Page width</legend><div class="opts">
 <label class="opt"><input type="radio" name="dfull" value="0" ${PREF.full?"":"checked"}><span>Standard<small>The page keeps the width of the rest of the site.</small></span></label>
 <label class="opt"><input type="radio" name="dfull" value="1" ${PREF.full?"checked":""}><span>Full width (default)<small>The page fills the whole width of a wide screen, and the field grows with it. The default on a computer.</small></span></label></div></fieldset>
-<fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({"":"The burnt amber of the site.",jester:"Black, after chapter 26.",ten:"White on indigo, after chapters 1–4.",satan:"Crimson, after chapter 23."})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, text size, hand position, tile names, page width and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
+<fieldset class="pf"><legend>Animations</legend><div class="opts">
+<label class="opt"><input type="checkbox" id="danimc" ${PREF.fxCards!==false?"checked":""}><span>Card animations (on by default)<small>Moves, strikes, wounds, deaths (a white skull rises), sacrifices, mana and shuffles.</small></span></label>
+<label class="opt"><input type="checkbox" id="danimm" ${PREF.fxMagic!==false?"checked":""}><span>Magic and other animations (on by default)<small>Spells, the sky, fire and weather, and the drifting fog. Off, the fog of war stands still.</small></span></label></div>
+<p class="dim">Turning animations off helps slower phones. Also in the Display bar at the bottom of the game.</p></fieldset>
+<fieldset class="pf"><legend>Background lines</legend><div class="opts">
+<label class="opt"><input type="radio" name="dlines" value="1" ${PREF.lines!==false?"checked":""}><span>On (default)<small>Thin black lines across the page behind everything, and now and then a black bar.</small></span></label>
+<label class="opt"><input type="radio" name="dlines" value="0" ${PREF.lines===false?"checked":""}><span>Off<small>A plain background, on every page of the site.</small></span></label></div></fieldset>
+<fieldset class="pf"><legend>Brightness</legend><label class="f">Brightness <select id="dbright">${[.7,.8,.9,1,1.1,1.2,1.3].map(v=>`<option value="${v}" ${Math.abs((PREF.bright||1)-v)<.01?"selected":""}>${Math.round(v*100)}%${v===1?" (default)":""}</option>`).join("")}</select></label><p class="dim">For the whole site. Also in the Display bar at the bottom of the game.</p></fieldset>
+<fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({"":"The burnt amber of the site.",dull:"The burnt amber, duller and less orange, with a faint yellow tint.",office:"White pages, light grey panels and a blue accent, like an office suite.",jester:"Black, after chapter 26.",ten:"White on indigo, after chapters 1–4.",satan:"Crimson, after chapter 23."})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, text size, hand position, tile names, page width and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
   const suitSel=`<div id="suitpick" hidden><p class="dim">${mode==="local"?"P1 picks; P2 gets the other two suits.":mode==="cpu"?"You pick; the computer gets the other two suits.":"You pick; the other two suits wait in the Ether."}</p>
 <label class="f">Red suit <select id="osuitR"><option value="H">♥ Hearts</option><option value="D">♦ Diamonds</option></select></label>
 <label class="f">Black suit <select id="osuitB"><option value="S">♠ Spades</option><option value="C">♣ Clubs</option></select></label></div>`;
@@ -2320,7 +2332,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
       players=[A[0],B[0],A[1],B[1]];
     }
     if(mode==="survival")players.push({name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>!players.some(p=>p.solid===s)))||"dodeca",cpu:"horde"});
-    PREF.hand=val("dhand")||PREF.hand;PREF.sel=val("dsel")||PREF.sel;PREF.ctl=val("dctl")||PREF.ctl;PREF.theme=val("dtheme")??PREF.theme;PREF.coords=val("dcoord")==="1";PREF.full=val("dfull")==="1";savePrefs();applyPrefs();
+    PREF.hand=val("dhand")||PREF.hand;PREF.sel=val("dsel")||PREF.sel;PREF.ctl=val("dctl")||PREF.ctl;PREF.theme=val("dtheme")??PREF.theme;PREF.coords=val("dcoord")==="1";PREF.full=val("dfull")==="1";PREF.lines=val("dlines")!=="0";if($("#danimc")){PREF.fxCards=$("#danimc").checked;PREF.fxMagic=$("#danimm").checked}PREF.bright=+($("#dbright")||{}).value||1;savePrefs();applyPrefs();
     startGame({mode,players,mid:mode==="survival"||!!($("#omid")&&$("#omid").checked),aceLock:$("#olock").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off","saturn"].includes(val("omoonon")||"on"),
       map:val("omap"),cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
       decks:+val("odecks"),specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:+val("odecks")===1&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
@@ -2350,9 +2362,9 @@ const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{
   if(!p.v20){p.v20=1;if(typeof matchMedia!=="undefined"&&matchMedia("(min-width:901px)").matches)p.full=true}
   // v38: on a phone the Selected box sits above the spells by default (once; a later choice sticks)
   if(!p.v38m){p.v38m=1;if(isPhone())p.sel="top"}
-  return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:false,full:false,theme:""},p)})();
+  return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:false,full:false,theme:"",lines:true,bright:1},p)})();
 function savePrefs(){try{localStorage.setItem("ec-prefs2",JSON.stringify(PREF))}catch(e){}}
-const THEMES={"":["Kenoma",[]],jester:["Jester",["th-black","th-jester"]],ten:["Ten",["th-indigo","th-blue"]],satan:["Disturbed Satan",["th-crimson"]]};
+const THEMES={"":["Kenoma",[]],dull:["Kenoma (dull)",["th-dull"]],office:["Office",["th-office"]],jester:["Jester",["th-black","th-jester"]],ten:["Ten",["th-indigo","th-blue"]],satan:["Disturbed Satan",["th-crimson"]]};
 function applyMoonTheme(){
   const h=document.documentElement,b=!!(G&&G.moon.blood&&!G.over);
   for(const k in THEMES)for(const c of THEMES[k][1])h.classList.remove(c);
@@ -2395,23 +2407,24 @@ function applyPrefs(){
   if($("#actbar"))$("#actbar").hidden=PREF.ctl!=="bottom";
   document.body.classList.toggle("ctl-bottom",PREF.ctl==="bottom");
   const bar=$("#gbar");
-  if(bar){$("#ciV").textContent=Math.round(PREF.ci*100)+"%";$("#uiV").textContent=Math.round(PREF.ui*100)+"%";$("#tzV").textContent=Math.round(PREF.tz*100)+"%";
+  if(bar){$("#ciV").textContent=Math.round(PREF.ci*100)+"%";$("#uiV").textContent=Math.round(PREF.ui*100)+"%";$("#tzV").textContent=Math.round(PREF.tz*100)+"%";$("#brV").textContent=Math.round(PREF.bright*100)+"%";
     $("#pHand").textContent="Hand: "+(PREF.hand==="below"?"Under your deck":"Side");$("#pTheme").value=PREF.theme;
     $("#pCoord").textContent="Tile names: "+(PREF.coords?"On":"Off");$("#pCoord").setAttribute("aria-pressed",PREF.coords);
     $("#pFull").textContent="Page: "+(PREF.full?"Full width":"Standard");$("#pFull").setAttribute("aria-pressed",PREF.full);
     bar.classList.toggle("open",!!PREF.barOpen);$("#pMore").textContent=PREF.barOpen?"Display ▾":"Display ▴";$("#pMore").setAttribute("aria-expanded",!!PREF.barOpen)}
   applyMoonTheme();
+  if(window.nwkLook)window.nwkLook();   // the background lines and the brightness live in site.js, for every page
 }
 function mountBar(){
   const Rb=document.createElement("div");Rb.id="gbar";Rb.className="gbar";
-  Rb.innerHTML=`<span id="gmore"><label>Theme <select id="pTheme">${Object.entries(THEMES).map(([k,[n]])=>`<option value="${k}">${n}</option>`).join("")}</select></label><span class="gctl">Card Icons <button type="button" data-z="ci" data-d="-1" aria-label="Smaller card icons">−</button><b id="ciV"></b><button type="button" data-z="ci" data-d="1" aria-label="Bigger card icons">+</button></span><span class="gctl">UI Size <button type="button" data-z="ui" data-d="-1" aria-label="Smaller interface">−</button><b id="uiV"></b><button type="button" data-z="ui" data-d="1" aria-label="Bigger interface">+</button></span><span class="gctl">Text Size <button type="button" data-z="tz" data-d="-1" aria-label="Smaller text">−</button><b id="tzV"></b><button type="button" data-z="tz" data-d="1" aria-label="Bigger text">+</button></span><button type="button" id="pHand" class="gtog"></button><button type="button" id="pCoord" class="gtog"></button><button type="button" id="pFull" class="gtog pc-only"></button><button type="button" id="pReset" class="gtog" title="Card icons, interface and text back to 100%">Reset sizes</button></span><button type="button" id="pMore" class="gtog" aria-expanded="false" aria-controls="gmore">Display ▴</button>`;
+  Rb.innerHTML=`<span id="gmore"><label>Theme <select id="pTheme">${Object.entries(THEMES).map(([k,[n]])=>`<option value="${k}">${n}</option>`).join("")}</select></label><span class="gctl">Card Icons <button type="button" data-z="ci" data-d="-1" aria-label="Smaller card icons">−</button><b id="ciV"></b><button type="button" data-z="ci" data-d="1" aria-label="Bigger card icons">+</button></span><span class="gctl">UI Size <button type="button" data-z="ui" data-d="-1" aria-label="Smaller interface">−</button><b id="uiV"></b><button type="button" data-z="ui" data-d="1" aria-label="Bigger interface">+</button></span><span class="gctl">Text Size <button type="button" data-z="tz" data-d="-1" aria-label="Smaller text">−</button><b id="tzV"></b><button type="button" data-z="tz" data-d="1" aria-label="Bigger text">+</button></span><span class="gctl">Brightness <button type="button" data-z="bright" data-d="-1" aria-label="Darker">−</button><b id="brV"></b><button type="button" data-z="bright" data-d="1" aria-label="Brighter">+</button></span><button type="button" id="pHand" class="gtog"></button><button type="button" id="pCoord" class="gtog"></button><button type="button" id="pFull" class="gtog pc-only"></button><button type="button" id="pReset" class="gtog" title="Card icons, interface, text and brightness back to 100%">Reset sizes</button></span><button type="button" id="pMore" class="gtog" aria-expanded="false" aria-controls="gmore">Display ▴</button>`;
   document.body.append(Rb);savePrefs();
   $("#pTheme").onchange=e=>{PREF.theme=e.target.value;savePrefs();applyPrefs()};
-  Rb.querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{const k=b.dataset.z,lim=k==="ci"?[.8,1.8]:k==="tz"?[.8,1.8]:[.8,1.4];PREF[k]=Math.round(Math.min(lim[1],Math.max(lim[0],PREF[k]+ +b.dataset.d*.1))*10)/10;savePrefs();applyPrefs()});
+  Rb.querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{const k=b.dataset.z,lim=k==="ci"?[.8,1.8]:k==="tz"?[.8,1.8]:k==="bright"?[.7,1.3]:[.8,1.4];PREF[k]=Math.round(Math.min(lim[1],Math.max(lim[0],PREF[k]+ +b.dataset.d*.1))*10)/10;savePrefs();applyPrefs()});
   $("#pHand").onclick=()=>{PREF.hand=PREF.hand==="below"?"side":"below";savePrefs();applyPrefs()};
   $("#pCoord").onclick=()=>{PREF.coords=!PREF.coords;savePrefs();applyPrefs();if(G)render()};
   $("#pFull").onclick=()=>{PREF.full=!PREF.full;savePrefs();applyPrefs()};
-  $("#pReset").onclick=()=>{PREF.ci=1;PREF.ui=1;PREF.tz=1;savePrefs();applyPrefs();if(G)render()};
+  $("#pReset").onclick=()=>{PREF.ci=1;PREF.ui=1;PREF.tz=1;PREF.bright=1;savePrefs();applyPrefs();if(G)render()};
   $("#pMore").onclick=()=>{PREF.barOpen=!PREF.barOpen;savePrefs();applyPrefs()};
 }
 /* leaving mid-game asks first */
@@ -3458,19 +3471,22 @@ ${sel("mSel","Selected stack box",[["bottom","Below the spells"],["top","Above t
 ${sel("mCtl","Turn buttons",[["bottom","Under the field"],["top","At the top"]],PREF.ctl)}
 ${sel("mCoord","Tile names",[["0","Off"],["1","On"]],PREF.coords?"1":"0")}
 ${sel("mFull","Page width",[["0","Standard"],["1","Full width"]],PREF.full?"1":"0")}
+${sel("mLines","Background lines",[["1","On"],["0","Off"]],PREF.lines===false?"0":"1")}
+${sel("mAnimC","Card animations",[["1","On"],["0","Off"]],PREF.fxCards===false?"0":"1")}
+${sel("mAnimM","Magic animations",[["1","On"],["0","Off"]],PREF.fxMagic===false?"0":"1")}
 ${sel("mSpeed","Computer speed",[["slow","Slow"],["normal","Normal"],["fast","Fast"]],G.opts.cpuSpeed||"normal")}
 ${sel("mSnd","Sound",[["on","On"],["off","Off"]],SND.on?"on":"off")}
 </div>
-<div class="mgrid">${[["ci","Card icons",.8,1.8],["ui","Interface size",.8,1.4],["tz","Text size",.8,1.8]].map(([k,n])=>`<span class="gctl">${n} <button type="button" data-mz="${k}" data-d="-1">−</button><b id="mz${k}">${Math.round(PREF[k]*100)}%</b><button type="button" data-mz="${k}" data-d="1">+</button></span>`).join("")}</div>
+<div class="mgrid">${[["ci","Card icons",.8,1.8],["ui","Interface size",.8,1.4],["tz","Text size",.8,1.8],["bright","Brightness",.7,1.3]].map(([k,n])=>`<span class="gctl">${n} <button type="button" data-mz="${k}" data-d="-1">−</button><b id="mz${k}">${Math.round(PREF[k]*100)}%</b><button type="button" data-mz="${k}" data-d="1">+</button></span>`).join("")}</div>
 ${+G.opts.timer?`<p><button class="btn ghost" id="mTimer">Turn the phase timer off for this game</button></p>`:""}
 <p class="acts"><button class="btn" id="mResume">Resume</button></p></div>`;
   m.hidden=false;
   const upd=()=>{savePrefs();applyPrefs();render()};
   $("#mTheme").onchange=e=>{PREF.theme=e.target.value;upd()};$("#mHand").onchange=e=>{PREF.hand=e.target.value;upd()};
   $("#mSel").onchange=e=>{PREF.sel=e.target.value;upd()};$("#mCtl").onchange=e=>{PREF.ctl=e.target.value;upd()};
-  $("#mCoord").onchange=e=>{PREF.coords=e.target.value==="1";upd()};$("#mFull").onchange=e=>{PREF.full=e.target.value==="1";upd()};
+  $("#mCoord").onchange=e=>{PREF.coords=e.target.value==="1";upd()};$("#mLines").onchange=e=>{PREF.lines=e.target.value==="1";upd()};$("#mAnimC").onchange=e=>{PREF.fxCards=e.target.value==="1";upd()};$("#mAnimM").onchange=e=>{PREF.fxMagic=e.target.value==="1";upd()};$("#mFull").onchange=e=>{PREF.full=e.target.value==="1";upd()};
   $("#mSpeed").onchange=e=>{G.opts.cpuSpeed=e.target.value};$("#mSnd").onchange=e=>{if((e.target.value==="on")!==SND.on)SND.toggle();render()};
-  m.querySelectorAll("[data-mz]").forEach(b=>b.onclick=()=>{const k=b.dataset.mz,lim=k==="ui"?[.8,1.4]:[.8,1.8];PREF[k]=Math.round(Math.min(lim[1],Math.max(lim[0],PREF[k]+ +b.dataset.d*.1))*10)/10;$("#mz"+k).textContent=Math.round(PREF[k]*100)+"%";upd()});
+  m.querySelectorAll("[data-mz]").forEach(b=>b.onclick=()=>{const k=b.dataset.mz,lim=k==="ui"?[.8,1.4]:k==="bright"?[.7,1.3]:[.8,1.8];PREF[k]=Math.round(Math.min(lim[1],Math.max(lim[0],PREF[k]+ +b.dataset.d*.1))*10)/10;$("#mz"+k).textContent=Math.round(PREF[k]*100)+"%";upd()});
   if($("#mTimer"))$("#mTimer").onclick=()=>{G.opts.timer=0;stopTimer();log("The phase timer is switched off for the rest of the game.","event");$("#mTimer").remove()};
   $("#mResume").onclick=closeMenu;$("#mX").onclick=closeMenu;
 }
@@ -3481,7 +3497,7 @@ UNIT_ICON.goatbull=`<path d="M-9,-8C-11,-4 -9,-1 -6,-2 M9,-8C11,-4 9,-1 6,-2 M-6
 /* ---------------- Prompt 7: fog of war, Scouts, Assassins, face-down cards, ambush, Quiet Eyes, Bird's Eye ---------------- */
 
 /* ---------- who sees what ----------
-   Fog of war (on by default): every unit sees the eight tiles around it, a Scout three tiles. Assassins, ambushers and enemy Scouts
+   Fog of war (on by default): every unit sees the eight tiles around it, a Scout two tiles out in a diamond. Assassins, ambushers and enemy Scouts
    stay hidden unless one of your cards stands right next to them; your Scouts also uncover Assassins, ambushers and
    face-down cards within a round two tiles, and enemy Scouts within three. Bird's Eye lifts the fog for your side for a
    round. Quiet Eyes, cast by an enemy, hides everything not right beside you unless you have a Scout on the field.
@@ -3508,12 +3524,12 @@ function seesTile(V,r,c){
   const near=M.own.some(x=>Math.abs(x.r-r)+Math.abs(x.c-c)===1);  // right beside one of your cards
   if(stealthy(st)){
     if(near||eclipseOn("sun"))return true;   // the suns' eclipse shows every Assassin
-    const scoutR=(hasK(st,"scout")&&st.cards.every(c=>c.unit==="scout")?3:2)-(ff&&ff.cut?1:0);
-    return M.sc.some(x=>scoutR===3?Math.max(Math.abs(x.r-r),Math.abs(x.c-c))<=3:Math.hypot(x.r-r,x.c-c)<=2.01);
+    const scoutR=2-(ff&&ff.cut?1:0);   // your Scouts uncover them within their own diamond of sight
+    return M.sc.some(x=>Math.abs(x.r-r)+Math.abs(x.c-c)<=scoutR);
   }
   if(quietOn(V)&&!M.sc.length)return M.own.some(x=>Math.max(Math.abs(x.r-r),Math.abs(x.c-c))<=1);
   if(!ff&&(!fogOn()||birdOn(V)))return true;
-  return M.own.some(x=>Math.max(Math.abs(x.r-r),Math.abs(x.c-c))<=visR(x,ff));
+  return M.own.some(x=>inSight(x,r,c,ff));
 }
 /* a tile is foggy for you when none of your cards can see it */
 function fogTile(V,r,c){
@@ -3523,12 +3539,12 @@ function fogTile(V,r,c){
   const ff=firmFog(V);
   if(!ff&&(!fogOn()||birdOn(V)))return false;
   const M=visionMap(V);if(ff&&ff.blind)return !M.own.some(x=>x.r===r&&x.c===c);
-  return !M.own.some(x=>Math.max(Math.abs(x.r-r),Math.abs(x.c-c))<=visR(x,ff));
+  return !M.own.some(x=>inSight(x,r,c,ff));
 }
 /* a face-down enemy stack shows only its back, unless your Scout is within two tiles */
 function showsBack(V,r,c){
   const st=G.board[r][c];if(!st||!st.down||!isEnemy(st.owner,V)||eclipseOn("sun"))return false;
-  return !scoutsOf(V).some(x=>Math.hypot(x.r-r,x.c-c)<=2.01);
+  return !scoutsOf(V).some(x=>Math.abs(x.r-r)+Math.abs(x.c-c)<=2);
 }
 
 /* ---------- shooting into the fog ----------
@@ -3616,7 +3632,7 @@ function fullMoonScout(){   // the Beginner's free Scout each Full Moon
 
 /* ---------- spells ---------- */
 SPELLS.push(
- {id:"csc",name:"Scout Conjure",cost:1,school:"Conjuring",text:"A Scout's soul comes from the Ether into your deck. Scouts see three tiles through the fog, uncover Assassins, ambushers and face-down cards within two, move like Assassins and don't fight.",ok:()=>etherHasU("scout"),run:()=>conjureU("scout")},
+ {id:"csc",name:"Scout Conjure",cost:1,school:"Conjuring",text:"A Scout's soul comes from the Ether into your deck. Scouts see two tiles out through the fog in a diamond and uncover Assassins, ambushers and face-down cards there, move like Assassins and don't fight.",ok:()=>etherHasU("scout"),run:()=>conjureU("scout")},
  {id:"cas",dice:"2d2+1",name:"Assassin Conjure",cost:5,school:"Conjuring",text:"An Assassin's soul comes from the Ether into your deck. Two hearts, the defense of an Infantry (8) and the attack of a Jack (10 + 1d12); moves one tile straight, two diagonal, or two forward or back; hidden from enemies until they stand right beside it; can ambush; two can stack together.",ok:()=>etherHasU("assassin"),run:()=>conjureU("assassin")},
  {id:"quiet",name:"Quiet Eyes",cost:2,dice:"2 a round",school:"Illusion",text:"For 1d2 + 1 rounds, enemies without a Scout on the field see only the units right beside their own. 2 mana now and 2 at the start of every round it lasts; it ends when you can't pay. Scouts see through it.",
   ok:()=>!(G.quiet||[]).some(q=>q.by===G.active&&q.until>=G.moon.round),run:async()=>{
@@ -4094,7 +4110,7 @@ SPELLS.push(
    else if(d===1){const w=rollN(7,2),n=sum(w);P.maxAdd=(P.maxAdd||0)-1;const c=P.deck.pop();if(c){c.owner=null;G.ether.push(c)}tray(pl,"Gambling",[{s:10,v:d},...w],`−${n}`);
      log(`<b>Gambling</b>: ${plName(pl)} rolls a 1. One maximum mana is lost, ${n} mana of debt (7d2) is owed${c?", and a card leaves the deck for the Ether":""}.`,"event");addDebt(pl,n)}
    else{tray(pl,"Gambling",[{s:10,v:d}],"nothing");log(`Gambling: ${plName(pl)} rolls ${d}. Nothing.`)}}},
- {id:"maxmana",name:"Increase Max Mana",cost:6,school:"Conjuring",text:"Your maximum mana goes up by one for the rest of the game, eighteen at most.",ok:()=>soulCap(G.active)<18,run:async()=>{const P=me();P.maxAdd=(P.maxAdd||0)+1;log(`${plName(G.active)} buys one more maximum mana (${soulCap(G.active)}).`)}}
+ {id:"maxmana",name:"Increase Max Mana",cost:4,school:"Conjuring",text:"Your maximum mana goes up by one for the rest of the game, eighteen at most.",ok:()=>soulCap(G.active)<18,run:async()=>{const P=me();P.maxAdd=(P.maxAdd||0)+1;log(`${plName(G.active)} buys one more maximum mana (${soulCap(G.active)}).`)}}
 );
 const MYS={common:["2","3","4","5","6","7","8","9","10"],support:["scout","archer","healer","repair","miner","ram"],special:["J","Q","K","assassin"],rare:["A","JK","wall"],legend:["cannon","A"]};
 function mysteryCard(pl){const v=R(20),pool=v<=10?MYS.common:v<=15?MYS.support:v<=18?MYS.special:v===19?MYS.rare:MYS.legend,k=pick(pool);
@@ -4331,7 +4347,9 @@ function firmFog(V){const F=G.ffog;if(!F||!G.p[F.by]||G.p[F.by].out||tnOf(F.by)>
   const nm=G.moon.i===0&&!G.moon.gone;
   if(isEnemy(F.by,V))return nm?{blind:true}:{cut:1};
   return nm?{own:true}:null}
-const visR=(x,ff)=>ff&&ff.own||!hasK(x.st,"scout")?1:3-(ff&&ff.cut?1:0);   // every card sees the eight tiles around it; a Scout sees three
+const visR=(x,ff)=>ff&&ff.own||!hasK(x.st,"scout")?1:2-(ff&&ff.cut?1:0);
+/* every card sees the eight tiles around it; a Scout sees two tiles out in a diamond (which holds those eight too) */
+const inSight=(x,r,c,ff)=>{const dr=Math.abs(x.r-r),dc=Math.abs(x.c-c),v=visR(x,ff);return Math.max(dr,dc)<=1&&v>=1||hasK(x.st,"scout")&&!(ff&&ff.own)&&dr+dc<=v}
 
 /* ---------- drawings ---------- */
 function marsSVG(){return `<svg class="moon mars" viewBox="-44 -44 88 88" width="88" height="88" aria-hidden="true"><defs><radialGradient id="marsg" cx="38%" cy="34%"><stop offset="0" stop-color="#f08a5a"/><stop offset=".65" stop-color="#b3431f"/><stop offset="1" stop-color="#5a1a0c"/></radialGradient><radialGradient id="marsglow"><stop offset="55%" stop-color="#ff6a3a" stop-opacity=".35"/><stop offset="100%" stop-color="#ff6a3a" stop-opacity="0"/></radialGradient></defs><circle r="40" fill="url(#marsglow)"/><circle r="24" fill="url(#marsg)" stroke="#3a120a"/><circle cx="-7" cy="5" r="3.4" fill="#8a3216" opacity=".7"/><circle cx="8" cy="-6" r="2.2" fill="#8a3216" opacity=".7"/><circle cx="4" cy="10" r="1.6" fill="#8a3216" opacity=".7"/><path d="M-18,-6C-10,-9 4,-2 18,-5" stroke="#7a2a12" stroke-width="1.6" fill="none" opacity=".6"/>${G.moonLev?levOnMoon():""}</svg>`}
@@ -5021,7 +5039,7 @@ const SPELL_TEXT={
  ck:{e:"A King's soul comes from the Ether into your deck."},
  cjk:{e:"A Joker's soul comes from the Ether into your deck."},
  ca:{e:"An Ace's soul comes from the Ether into your deck."},
- csc:{e:"A Scout's soul comes from the Ether into your deck.",l:"Scouts see three tiles through the fog, uncover Assassins, ambushers and face-down cards within two, move like Assassins, and never fight."},
+ csc:{e:"A Scout's soul comes from the Ether into your deck.",l:"Scouts see two tiles out through the fog in a diamond and uncover Assassins, ambushers and face-down cards there, move like Assassins, and never fight."},
  cas:{e:"An Assassin's soul comes from the Ether into your deck.",l:"Two hearts, 10 + 1d12 to attack, 8 to defend. Hidden until an enemy stands right beside it. Can ambush. Only another Assassin stacks with it."},
  carch:{e:"An Archer's soul comes from the Ether into your deck.",l:"Shoots 1d20 + 1d10 at a stack exactly two tiles away, or suppresses it (disadvantage on its next attack). A miss costs nothing. No defense. 1 mana for the Beginner."},
  ccan:{e:"A Cannon's soul comes from the Ether into your deck.",l:"Fires 2d20 at anything up to three tiles away, once every 1d2 + 2 turns, two damage to a Wall. A miss costs nothing. No defense. Moves one step."},
@@ -5203,7 +5221,7 @@ const BANK_HELP=[
 function bankExplainHTML(){return `<details class="sub"><summary>The Bank, Barbarians and meteors explained</summary><dl class="spellinfo">${BANK_HELP.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}
 <dt>Barbarians</dt><dd>A crimson band takes the middle every 4 + 1d12 turns and with every Blood Moon, and fights anyone beside it. The player who kills the most of a band gets an Ether sale; breaking a big band can earn debt forgiveness.</dd>
 <dt>Meteor</dt><dd>One round in a hundred: damage where it lands and maybe around it, then fire for two rounds.</dd>
-<dt>Gambling, Increase Max Mana, Mystery Generation</dt><dd>Gambling (Sorcery, 1 mana): a 10 on 1d10 wins 7d2; a 1 costs a maximum mana, 7d2 of debt and a deck card. Increase Max Mana (Conjuring, 6): +1, eighteen at most. Mystery Generation (in the Auction, 3 to 8 mana): three brand-new cards of any rarity, wildcards included.</dd></dl></details>`}
+<dt>Gambling, Increase Max Mana, Mystery Generation</dt><dd>Gambling (Sorcery, 1 mana): a 10 on 1d10 wins 7d2; a 1 costs a maximum mana, 7d2 of debt and a deck card. Increase Max Mana (Conjuring, 4): +1, eighteen at most. Mystery Generation (in the Auction, 3 to 8 mana): three brand-new cards of any rarity, wildcards included.</dd></dl></details>`}
 
 /* ---------------- UI pass 3 (v22): the setup menu ----------------
    Options become small tiles of the same size. What a tile means shows when the mouse rests on it, or with the small
@@ -5954,9 +5972,9 @@ const bankBanned=pl=>!!(G.p[pl]&&G.p[pl].bankBan!=null&&tnOf(pl)<=G.p[pl].bankBa
 const etherBanned=pl=>!!(G.p[pl]&&G.p[pl].etherBan!=null&&tnOf(pl)<=G.p[pl].etherBan);
 const jailLeft=P=>Math.max(1,P.jail.until-Math.max(G.moon.round,P.jail.from+1)+1);   // the round they are caught in is not counted
 const robOk=pl=>!!(G&&G.p[pl]&&G.mercCyc===G.moon.round&&planetUp("mercury")&&bankOpen()&&!isHorde(pl)&&!G.p[pl].jail&&G.p[pl].robbed!==G.moon.round&&!bankBanned(pl));
-SPELLS.push({id:"robbank",name:"Rob the Bank",cost:0,school:"Bank",text:"Free, once, in a round of Mercury's cycle. Roll 1d20. A natural 20: every mana in the Bank is yours, and +5 maximum. A 1: Jail for 2d2 rounds (an easy computer plays for you, and you cast nothing); after Jail, no Ether and no Bank for ten turns, and no loans ever again. Anything else: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again.",
+SPELLS.push({id:"robbank",name:"Rob the Bank",cost:0,school:"Bank",text:"Free, once, in a round of Mercury's cycle. Roll 1d20. A natural 20: every mana in the Bank is yours (what doesn\u2019t fit in your soul pile waits in a stash and pours in each turn), and +5 maximum. A 1: Jail for 2d2 rounds (an easy computer plays for you, and you cast nothing); after Jail, no Ether and no Bank for ten turns, and no loans ever again. Anything else: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again.",
   ok:()=>robOk(G.active),run:async()=>{await robBank(G.active)}});
-SPELL_TEXT.robbank={n:"Mercury's cycle, once, in your prep phase.",e:"Roll 1d20. A natural 20: every mana in the Bank is yours, and +5 maximum. 2 to 19: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again. A 1: Jail for 2d2 rounds; an easy computer plays for you and you cast nothing.",l:"After Jail: no Ether and no Bank for ten turns, and no loans ever again."};
+SPELL_TEXT.robbank={n:"Mercury's cycle, once, in your prep phase.",e:"Roll 1d20. A natural 20: the Bank is emptied and every mana in it is yours (what doesn\u2019t fit in your soul pile waits in a stash and pours in at the start of each turn), and +5 maximum. 2 to 19: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again. A 1: Jail for 2d2 rounds; an easy computer plays for you and you cast nothing.",l:"After Jail: no Ether and no Bank for ten turns, and no loans ever again."};
 const ROB_FAILS=[
   n=>`The vault door ${n} broke open was painted on the wall. The guards laughed for a while before they drew their swords.`,
   n=>`The Banker was counting coins in the dark the whole time. He wrote down ${n}'s face and rang the bell.`,
@@ -5970,15 +5988,18 @@ function bankGrunts(pl){const B=npcIx("bank");if(B<0)return 0;const t=freeTilesN
 async function robBank(pl){
   const P=G.p[pl],B=G.bank,d=R(20),nm=plName(pl);P.robbed=G.moon.round;
   tray(pl,"Rob the Bank",[{s:20,v:d}],d===20?"the vault is yours":d===1?"caught: Jail":"failed");
-  if(d===20){P.maxAdd=(P.maxAdd||0)+5;const all=Math.max(0,B.mana),got=giveMana(pl,all);B.mana-=got;
-    log(`<b>${nm} robs the Bank</b> with a natural 20: ${got} mana and +5 maximum.`,"event");
-    popup("The heist",`<p>${nm} rolls a natural 20 and walks out of the vault with everything in it: <b>${got}</b> mana${got<all?` (${all-got} more wouldn't fit and stays behind)`:""}, and five more maximum mana.</p>`,pl)}
+  if(d===20){P.maxAdd=(P.maxAdd||0)+5;const all=Math.max(0,B.mana),got=giveMana(pl,all);B.mana=0;const left=all-got;if(left>0)P.loot=(P.loot||0)+left;
+    log(`<b>${nm} robs the Bank</b> with a natural 20: all ${all} mana and +5 maximum${left>0?` (${left} wait in a stash and pour into the soul pile as it has room, at the start of each turn)`:""}.`,"event");
+    popup("The heist",`<p>${nm} rolls a natural 20 and empties the vault: all <b>${all}</b> mana, and five more maximum mana.${left>0?` <b>${got}</b> go into the soul pile now; the other <b>${left}</b> wait in a stash and pour in at the start of each of ${nm}'s turns, as much as fits.`:""}</p>`,pl)}
   else if(d===1)goToJail(pl);
   else{P.noLoans=true;P.credit=false;const k=bankGrunts(pl);
     log(`${nm} tries to rob the Bank and fails (${d}). ${k?`A stack of ${k} Grunt${k>1?"s":""} comes out of the Bank after them, and `:""}${k?"they":"They"} can never take a loan again.`,"event");
     popup("The robbery fails",`<p>${pick(ROB_FAILS)(nm)}</p><p>${nm} rolled ${d}: not a 20.${k?` A stack of ${k} Grunt${k>1?"s":""} comes out of the Bank after them.`:""}</p><p>${nm} can never take a loan again.</p>`,pl)}
   render();checkWin();
 }
+/* the stash from a perfect heist pours into the soul pile at the start of each of the robber's turns, as much as fits */
+{const _ta=turnAsync;turnAsync=async function(pl){const P=G.p[pl];if(P&&P.loot>0&&!P.out){const got=giveMana(pl,P.loot);if(got){P.loot-=got;log(`${plName(pl)} takes ${got} mana from the Bank heist's stash${P.loot?` (${P.loot} left)`:""}.`)}}
+  return _ta.apply(this,arguments)}}
 /* ---------- Jail ---------- */
 function goToJail(pl){
   const P=G.p[pl],d=[R(2),R(2)],n=d[0]+d[1];tray(pl,"Jail",d.map(v=>({s:2,v})),`${n} rounds`,true);
@@ -6418,7 +6439,7 @@ if(window.__EC)Object.assign(window.__EC,{askLoan,answerLoan,repayLoan,buyBankIt
    hides from you, in fast games, or with reduced motion. */
 
 const FX={
-  on(){return !!G&&!G.opts.fast&&PREF.fx!==false&&!document.hidden&&!matchMedia("(prefers-reduced-motion: reduce)").matches},
+  on(){return !!G&&!G.opts.fast&&PREF.fx!==false&&(PREF.fxCards!==false||PREF.fxMagic!==false)&&!document.hidden&&!matchMedia("(prefers-reduced-motion: reduce)").matches},
   layer(){let l=document.getElementById("fx");if(!l){l=document.createElement("div");l.id="fx";l.setAttribute("aria-hidden","true");document.body.appendChild(l)}return l},
   tile(r,c){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);return t?t.getBoundingClientRect():null},
   rectOf(el){return el?el.getBoundingClientRect():null},
@@ -6478,7 +6499,7 @@ const later=f=>setTimeout(()=>{try{if(FX.on())f()}catch(e){console.error(e)}},0)
   return _at.apply(this,arguments)}}
 {const _dg=damage;damage=function(r,c,n,defending){const vis=FX.on()&&n>0&&FX.sees(r,c),rect=vis?FX.tile(r,c):null;
   const out=_dg.apply(this,arguments);if(rect&&out!==0)later(()=>FX.hit(rect,"#ff5a4a"));return out}}
-{const _bu=bury;bury=function(card,r,c,st){const rect=FX.on()&&FX.sees(r,c)?FX.tile(r,c):null;const out=_bu.apply(this,arguments);if(rect)later(()=>FX.smoke(rect));return out}}
+{const _bu=bury;bury=function(card,r,c,st){const rect=FX.on()&&FX.sees(r,c)?FX.tile(r,c):null;const out=_bu.apply(this,arguments);if(rect)later(()=>{FX.smoke(rect);FX.skull(rect)});return out}}
 
 /* ---------- sacrifices ---------- */
 {const _sac=sacrifice;sacrifice=function(card,from){const pl=G.active,V=view(),P=G.p[pl];let rect=null,btn=null,m0=effMana(pl);
@@ -6781,12 +6802,19 @@ let fogKey="";
 function fogVeil(){const B=$("#board");if(!B)return;let v=B.querySelector(":scope > .fogveil");const tiles=[...B.querySelectorAll(".tile.fog")];
   if(!tiles.length){if(v)v.remove();fogKey="";return}
   const br=B.getBoundingClientRect(),W=Math.round(br.width),H=Math.round(br.height);if(!W||!H)return;
-  const rects=tiles.map(t=>{const r=t.getBoundingClientRect();return [Math.round(r.left-br.left),Math.round(r.top-br.top),Math.round(r.width),Math.round(r.height)]});
+  const rects=tiles.map(t=>{const r=t.getBoundingClientRect();return [Math.round(r.left-br.left),Math.round(r.top-br.top),Math.round(r.width),Math.round(r.height),+t.dataset.r,+t.dataset.c]});
   const key=W+"x"+H+":"+rects.map(r=>r.join(",")).join(";");
   if(!v){v=document.createElement("div");v.className="fogveil";v.setAttribute("aria-hidden","true");B.appendChild(v);v.style.animationDelay=`-${(performance.now()/1000)%90}s`}
   if(key!==fogKey||!v.style.maskImage&&!v.style.webkitMaskImage){fogKey=key;
-    const g=rects.map(([x,y,w,h])=>`<rect x='${x-4}' y='${y-4}' width='${w+8}' height='${h+8}' rx='10'/>`).join("");
-    const m="url(\"data:image/svg+xml;utf8,"+encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'><filter id='b'><feGaussianBlur stdDeviation='9'/></filter><g fill='white' filter='url(%23b)'>${g}</g></svg>`).replace(/%2523/g,"%23")+"\")";
+    // v38: soft, uneven clouds around each fogged tile's middle (the same shape every time for the same tile), blurred hard,
+    // so neighbouring fog runs together and the edges drift loosely instead of filling each tile's square
+    const rnd=(r,c,k)=>{const x=Math.sin(r*127.1+c*311.7+k*74.7)*43758.5453;return x-Math.floor(x)};
+    const tw=rects.length?rects[0][2]:60;
+    const g=rects.map(([x,y,w,h,r,c])=>{let s="";const cx=x+w/2,cy=y+h/2;
+      for(let k=0;k<3;k++){const ox=(rnd(r,c,k)-.5)*w*.35,oy=(rnd(r,c,k+3)-.5)*h*.35,rx=w*(.38+rnd(r,c,k+6)*.2),ry=h*(.34+rnd(r,c,k+9)*.2);
+        s+=`<ellipse cx='${(cx+ox).toFixed(1)}' cy='${(cy+oy).toFixed(1)}' rx='${rx.toFixed(1)}' ry='${ry.toFixed(1)}' fill-opacity='${(.7+rnd(r,c,k+12)*.3).toFixed(2)}'/>`}
+      return s}).join("");
+    const m="url(\"data:image/svg+xml;utf8,"+encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'><filter id='b' x='-20%' y='-20%' width='140%' height='140%'><feGaussianBlur stdDeviation='${Math.max(8,tw*.2).toFixed(1)}'/></filter><g fill='white' filter='url(%23b)'>${g}</g></svg>`).replace(/%2523/g,"%23")+"\")";
     v.style.maskImage=m;v.style.webkitMaskImage=m}
   v.style.setProperty("--c1",FOG_CLOUDS[0]);v.style.setProperty("--c2",FOG_CLOUDS[1])}
 {const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;try{fogVeil()}catch(e){console.error(e)}}}
@@ -6823,13 +6851,38 @@ const plotsOf=()=>G.plots||(G.plots=Array.from({length:PLOTS},(_,i)=>({i,owner:n
 const myPlots=pl=>plotsOf().filter(p=>p.owner===pl);
 const payDay=()=>!G.moon.gone?G.moon.i===4:G.moon.round%8===0;
 const handMiners=pl=>G.p[pl].hand.filter(c=>c.unit==="miner");
-function buyPlot(pl,p){const P=G.p[pl];if(p.owner!=null||!bankOpen()||bankBanned(pl)||P.jail)return false;if(!canAfford(pl,PLOT_PRICE)){if(!P.cpu)flash("Not enough mana.");return false}
-  spend(pl,PLOT_PRICE);p.owner=pl;p.prod=0;log(`${plName(pl)} buys plot ${p.i+1} from the Bank (1 mana).`,"event");return true}
+/* v38: one plot every two of your turns; a plot the Bank holds with its Miner sells for 3 (plot and Miner together) */
+const BANK_PLOT_PRICE=3;
+const plotPrice=p=>p.bank&&p.miners.length?BANK_PLOT_PRICE:PLOT_PRICE;
+const plotWait=pl=>{const P=G.p[pl];return P.plotTn==null?0:Math.max(0,P.plotTn+2-tnOf(pl))};   // turns until the next plot can be bought
+function buyPlot(pl,p){const P=G.p[pl];if(p.owner!=null||!bankOpen()||bankBanned(pl)||P.jail)return false;
+  if(plotWait(pl)){if(!P.cpu)flash("One plot every two turns: wait a turn.");return false}
+  const price=plotPrice(p);if(!canAfford(pl,price)){if(!P.cpu)flash("Not enough mana.");return false}
+  spend(pl,price);const withM=p.bank&&p.miners.length;p.owner=pl;p.prod=0;p.bank=false;P.plotTn=tnOf(pl);
+  for(const m of p.miners){m.owner=pl;m.plotSince=G.moon.round}
+  log(`${plName(pl)} buys plot ${p.i+1} from the Bank${withM?", with the Miner on it":""} (${price} mana).`,"event");return true}
+/* selling a plot with its Miner: 2 to 3 mana (1 + 1d2, rolled after the sale). It settles the Bank's half of what the plot
+   brought in since pay day, then pays the seller's debt; what is left goes to the soul pile. The Bank keeps plot and Miner. */
+function sellPlot(pl,p){const P=G.p[pl];if(p.owner!==pl||!p.miners.length||!bankOpen()||P.jail)return false;
+  const d=R(2),v=1+d;tray(pl,"Land sale",[{s:2,v:d}],`${v} mana`);
+  let left=v;const half=Math.min(left,Math.ceil(p.prod/2));left-=half;if(half)bankAdd(half);
+  const debt=Math.min(left,P.debt||0);if(debt){P.debt-=debt;if(!P.debt)P.debtAt=null;bankAdd(debt);left-=debt}
+  const got=left?giveMana(pl,left):0;
+  p.owner=null;p.bank=true;p.prod=0;for(const m of p.miners)m.owner=null;
+  log(`${plName(pl)} sells plot ${p.i+1} and its Miner to the Bank for ${v} mana (1 + 1d2): ${[half?`${half} for the Bank's half of the land`:"",debt?`${debt} off the debt`:"",got?`${got} to the soul pile`:""].filter(Boolean).join(", ")||"nothing left over"}. The Bank sells it on for ${BANK_PLOT_PRICE}.`,"event");return true}
+/* a player out of the game (with others still playing): the Bank takes the land, Miners and all */
+{const _el=eliminate;eliminate=function(pl,why){const was=G.p[pl]&&G.p[pl].out;const out=_el.apply(this,arguments);
+  if(!was&&G.plots&&G.p[pl].out&&!G.over){const ps=myPlots(pl);for(const p of ps){p.owner=null;p.prod=0;p.bank=!!p.miners.length;for(const m of p.miners)m.owner=null}
+    if(ps.length)log(`The Bank takes ${plName(pl)}'s ${ps.length} plot${ps.length>1?"s":""} back${ps.some(p=>p.miners.length)?"; those with a Miner are for sale at "+BANK_PLOT_PRICE+" mana":""}.`)}
+  return out}}
 function plantMiner(pl,p){const m=handMiners(pl)[0];if(!m||p.owner!==pl||p.miners.length)return false;const P=G.p[pl];P.hand.splice(P.hand.indexOf(m),1);m.owner=pl;m.plotSince=G.moon.round;p.miners.push(m);
   log(`${plName(pl)} puts a Miner to work on plot ${p.i+1}: no enemy can reach it there.`);return true}
 /* the Miners work at the start of their owner's turn */
 {const _bt=bankTurn;bankTurn=function(pl){_bt(pl);if(!G.p[pl]||isHorde(pl)||!G.plots)return;let got=0;
   for(const p of myPlots(pl))for(const m of p.miners)if(m.plotSince<G.moon.round){let n=R(2)-(planetUp("jupiter")?0:1);if(n&&G.p[pl].minerX2!=null&&tnOf(pl)<=G.p[pl].minerX2)n*=2;p.prod+=n;got+=n}
+  // v38: Jupiter blesses the land itself: +1 a plot each turn while it is in the sky, +1d2 a plot during its eclipse
+  const jb=()=>eclipseOn("jupiter")?R(2):planetUp("jupiter")?1:0;let jup=0;for(const p of myPlots(pl)){const n=jb();p.prod+=n;jup+=n}
+  if(jup){got+=jup;log(`Jupiter over the Bank's land: ${plName(pl)}'s plots yield ${jup} more.`)}
   if(got){const n=giveMana(pl,got);log(`${plName(pl)}'s Miners on the Bank's land bring in ${n} mana${n<got?" (the soul pile is full)":""}. The Bank's half is due at the Full Moon.`)}}}
 /* pay day: the Bank takes half */
 function landPayDay(){if(!G.plots||!bankOpen())return;const bk=npcIx("bank");
@@ -6857,23 +6910,28 @@ function landPayDay(){if(!G.plots||!bankOpen())return;const bk=npcIx("bank");
 /* the computer and the land */
 {const _ab=aiBank;aiBank=async function(pl,W,cast1){await _ab(pl,W,cast1);const P=G.p[pl];if(G.over||P.jail||!bankOpen()||bankBanned(pl))return;
   for(const p of myPlots(pl))if(!p.miners.length&&handMiners(pl).length)plantMiner(pl,p);
-  if(handMiners(pl).length&&mana(pl)>=3&&Math.random()<.5){const p=plotsOf().find(q=>q.owner==null);if(p&&buyPlot(pl,p))plantMiner(pl,p)}}}
+  if(!plotWait(pl)){const bp=plotsOf().find(q=>q.owner==null&&q.bank&&q.miners.length);
+    if(bp&&mana(pl)>=BANK_PLOT_PRICE+2&&Math.random()<.5)buyPlot(pl,bp);
+    else if(handMiners(pl).length&&mana(pl)>=3&&Math.random()<.5){const p=plotsOf().find(q=>q.owner==null&&!(q.bank&&q.miners.length));if(p&&buyPlot(pl,p))plantMiner(pl,p)}}
+  if(P.debt>3)for(const p of myPlots(pl))if(p.miners.length&&Math.random()<.4){sellPlot(pl,p);break}}}
 
 /* the Land tab */
 function landHTML(V){const live=canAct()&&G.phase==="prep"&&G.active===V,P=G.p[V],open=bankOpen()&&!bankBanned(V)&&!P.jail,hm=handMiners(V).length;
   const mine=myPlots(V),made=mine.reduce((a,p)=>a+p.prod,0);
   const box=p=>{const own=p.owner,me=own===V;let body;
-    if(own==null)body=`<span class="dim">For sale</span>${live&&open?`<button class="btn sm" data-plot="${p.i}" ${canAfford(V,PLOT_PRICE)?"":"disabled"}>Buy · 1 mana</button>`:""}`;
-    else if(me)body=p.miners.length?`<span>${unitSVG("miner","#e8c24a",18)} A Miner at work</span><small class="dim">${p.prod} brought in since pay day</small>`:`<span class="dim">Yours, empty</span>${live&&hm?`<button class="btn sm" data-plant="${p.i}">Put a Miner from your hand</button>`:`<small class="dim">${hm?"":"No Miner in your hand"}</small>`}`;
+    const wait=plotWait(V),price=plotPrice(p);
+    if(own==null)body=`<span class="dim">${p.bank&&p.miners.length?`The Bank's, with a Miner`:"For sale"}</span>${live&&open?`<button class="btn sm" data-plot="${p.i}" ${canAfford(V,price)&&!wait?"":"disabled"}>${wait?`Next plot in ${wait} turn${wait>1?"s":""}`:`Buy · ${price} mana`}</button>`:""}`;
+    else if(me)body=p.miners.length?`<span>${unitSVG("miner","#e8c24a",18)} A Miner at work</span><small class="dim">${p.prod} brought in since pay day</small>${live&&open?`<button class="btn ghost sm" data-sell="${p.i}" title="Plot and Miner go to the Bank; rolled after the sale">Sell with its Miner · 2–3 mana</button>`:""}`:`<span class="dim">Yours, empty</span>${live&&hm?`<button class="btn sm" data-plant="${p.i}">Put a Miner from your hand</button>`:`<small class="dim">${hm?"":"No Miner in your hand"}</small>`}`;
     else body=`<span class="dim">Owned by ${plName(own)}</span>${p.miners.length?`<small class="dim">a Miner at work</small>`:""}`;
     return `<div class="plot${me?" mine":own!=null?" taken":""}"><b>Plot ${p.i+1}</b>${body}</div>`};
-  return `<p class="dim">Eight plots of the Bank's land, 1 mana each. A plot is a Miner slot no enemy can reach: a Miner in it brings 1d2 − 1 mana a turn, like a Miner in an Ace (1d2 under Jupiter). At every Full Moon (every eighth round without the Moon) the Bank takes half of what your plots brought in since. What you can't pay becomes debt and Debt Collectors come; miss two pay days in a row and the Bank takes the land back and sells each Miner as two Slave cards at the Auction.</p>
+  return `<p class="dim">Eight plots of the Bank's land, 1 mana each, one plot every two of your turns. A plot is a Miner slot no enemy can reach: a Miner in it brings 1d2 − 1 mana a turn, like a Miner in an Ace (1d2 under Jupiter); Jupiter in the sky adds 1 a plot each turn, 1d2 during its eclipse. A plot with its Miner sells back to the Bank for 2 to 3 mana (rolled after the sale), which pays your debt first; the Bank sells it on for 3. When a player is out, the Bank takes their land. At every Full Moon (every eighth round without the Moon) the Bank takes half of what your plots brought in since. What you can't pay becomes debt and Debt Collectors come; miss two pay days in a row and the Bank takes the land back and sells each Miner as two Slave cards at the Auction.</p>
 ${mine.length?`<p>Your plots: ${mine.length}. Brought in since the last pay day: <b>${made}</b>; the Bank's half: <b>${Math.ceil(made/2)}</b>${P.landMiss?` · <span class="neg">${P.landMiss} pay day missed</span>`:""}.</p>`:""}
 <div class="plots">${plotsOf().map(box).join("")}</div>${!open?`<p class="dim">${!bankOpen()?"The Bank is closed.":P.jail?"In Jail: no Bank business.":"No Bank business yet."}</p>`:live?"":`<p class="dim">Land is bought in your own prep phase.</p>`}`}
 function wireLand(el,V,re){el.querySelectorAll("[data-plot]").forEach(b=>b.onclick=()=>{if(!canAct())return;buyPlot(V,plotsOf()[+b.dataset.plot]);re()});
-  el.querySelectorAll("[data-plant]").forEach(b=>b.onclick=()=>{if(!canAct())return;plantMiner(V,plotsOf()[+b.dataset.plant]);re()})}
+  el.querySelectorAll("[data-plant]").forEach(b=>b.onclick=()=>{if(!canAct())return;plantMiner(V,plotsOf()[+b.dataset.plant]);re()});
+  el.querySelectorAll("[data-sell]").forEach(b=>b.onclick=()=>{if(!canAct())return;sellPlot(V,plotsOf()[+b.dataset.sell]);re()})}
 
-if(window.__EC)Object.assign(window.__EC,{plotsOf,buyPlot,plantMiner,landPayDay,venusGratitude,fogVeil});
+if(window.__EC)Object.assign(window.__EC,{giveMana,eliminate:(...a)=>eliminate(...a),plotsOf,buyPlot,sellPlot,plantMiner,landPayDay,venusGratitude,fogVeil});
 
 /* ---------------- Online play (v36) ----------------
    One player hosts: their browser runs the game. The others join with a room code; their browsers show the game as the host sends
@@ -6948,6 +7006,7 @@ const NETFN={
  answerLoan:{get:()=>answerLoan,set:f=>answerLoan=f,any:true,map:a=>[a[0].id,a[1]],un:a=>[p2pOf().find(x=>x.id===a[0]),a[1]]},
  repayLoan:{get:()=>repayLoan,set:f=>repayLoan=f,any:true,map:a=>[a[0].id,a[1]],un:a=>[p2pOf().find(x=>x.id===a[0]),a[1]]},
  buyPlot:{get:()=>buyPlot,set:f=>buyPlot=f,map:a=>[a[0],a[1].i],un:a=>[a[0],plotsOf()[a[1]]]},
+ sellPlot:{get:()=>sellPlot,set:f=>sellPlot=f,map:a=>[a[0],a[1].i],un:a=>[a[0],plotsOf()[a[1]]]},
  plantMiner:{get:()=>plantMiner,set:f=>plantMiner=f,map:a=>[a[0],a[1].i],un:a=>[a[0],plotsOf()[a[1]]]},
  mysteryBuy:{get:()=>mysteryBuy,set:f=>mysteryBuy=f,ret:true},
  buyBankItem:{get:()=>buyBankItem,set:f=>buyBankItem=f,async:true,map:a=>[a[0],(G.auction||[]).indexOf(a[1])],un:a=>[a[0],G.auction[a[1]]]},
@@ -6975,7 +7034,7 @@ async function runCmd(id,m){
   const aiming=G.aim&&G.aim.pl===seat;
   if(F.aim){if(!aiming)return}else if(!F.any&&!(G.active===seat&&!G.busy))return;
   const args=F.un?F.un(m.args||[]):(m.args||[]);
-  if(args.some(x=>x===undefined||x===null)&&["place","sacrifice","sacrificeToSun","healAct","repairAct","answerLoan","repayLoan","buyPlot","plantMiner","buyBankItem","makeOffer","cast"].includes(m.fn))return;
+  if(args.some(x=>x===undefined||x===null)&&["place","sacrifice","sacrificeToSun","healAct","repairAct","answerLoan","repayLoan","buyPlot","sellPlot","plantMiner","buyBankItem","makeOffer","cast"].includes(m.fn))return;
   const host=uiSnap();NET.ctx=seat;applyUI(m.ui);let ret;
   try{ret=await F.get().apply(null,args)}catch(e){console.error(e)}
   finally{const u=uiSnap();if(NET.ctx===seat)NET.ctx=null;applyUI(host);sendTo(id,{t:"ui",ui:u});render()}
@@ -7158,7 +7217,7 @@ function playFX(e){window.__fxn=(window.__fxn||0)+1;if(!G)return;const V=view(),
       if(e.snd&&AUD[e.snd])AUD[e.snd]();break}
     case "fogHit":if(e.pl===V)setTimeout(()=>AUD.hit(),260);break;
     case "hit":if(fx&&see(e.r,e.c))FX.hit(T(e.r,e.c),"#ff5a4a");break;
-    case "death":if(e.pl===V||see(e.r,e.c)){if(fx)FX.smoke(T(e.r,e.c));AUD.death()}break;
+    case "death":if(e.pl===V||see(e.r,e.c)){if(fx){const r=T(e.r,e.c);FX.smoke(r);FX.skull(r)}AUD.death()}break;
     case "sac":{const r=e.from==="hand"?(e.pl===V?FX.rectOf($("#hand")):FX.rectOf(barOf(e.pl,".manabar"))):e.from&&(e.pl===V||see(...e.from))?T(...e.from):null;
       if(fx&&r){FX.sigil(r,false);FX.pop(r,`+${e.got}`,"#8f80ee")}if(e.pl===V)AUD.fill();break}
     case "suicide":if(fx&&(e.pl===V||see(e.r,e.c)))FX.sigil(T(e.r,e.c),true);break;
@@ -7270,5 +7329,114 @@ function paintFolds(){const ph=isPhone();
 {const _mq=mountQuotes;mountQuotes=function(){_mq.apply(this,arguments);mountFolds()}}
 {const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);paintFolds()}}
 if(typeof matchMedia!=="undefined"){const mq=matchMedia(PHONE_Q);const re=()=>{try{applyPrefs();if(G)render()}catch(e){}};mq.addEventListener?mq.addEventListener("change",re):mq.addListener(re)}
+
+/* ---------------- v38: animation settings, the phone's animation question, the skull ----------------
+   Two switches, in Display before a game, in the menu and in the Display bar:
+     card animations — moves, strikes, wounds, deaths (smoke and the skull), sacrifices, mana, shuffles, the grave's wisps;
+     magic and other — spells and their signs, the sky, rain, wind, lightning, fire, and every drifting or glowing thing on the
+     page; with it off the fog of war stands still, a picture of itself.
+   On a phone, every game opens with a small window that asks which to keep: it shows the player's saved choice (or the
+   defaults, both on), "Confirm my choices" saves it, the X changes nothing.
+   When a card dies, a white skull rises from its tile and fades, like a spell leaving it. */
+const FX_CAT={burst:"cards",strike:"cards",hit:"cards",slide:"cards",smoke:"cards",sigil:"cards",pop:"cards",shuffle:"cards",wisp:"cards",
+  pour:"cards",fill:"cards",blunt:"cards",boom:"cards",dollar:"cards",skull:"cards",
+  symbol:"magic",area:"magic",fogroll:"magic",meteor:"magic",flames:"magic",lightning:"magic",wind:"magic",rain:"magic",spell:"magic"};
+let fxCtx=null;   // a spell's burst is magic, a sacrifice's sign is a card's: the outer effect decides
+const fxAllowed=k=>k==="magic"?PREF.fxMagic!==false:PREF.fxCards!==false;
+/* the skull */
+const SKULL_SVG=`<svg viewBox="0 0 64 64" width="100%" height="100%" aria-hidden="true"><path fill="#fbfaf6" d="M32 5C17.5 5 8 15.6 8 29c0 8.4 4 14.6 10 18v7.5c0 2.5 2 4.5 4.5 4.5h19c2.5 0 4.5-2 4.5-4.5V47c6-3.4 10-9.6 10-18C56 15.6 46.5 5 32 5Z"/><path fill="#16121c" d="M16.5 29.5c0-4.6 3.4-7.6 7.4-7.6 4.2 0 6.6 3.6 6.1 8-.4 3.9-3.2 6.8-7 6.8-3.8 0-6.5-3.2-6.5-7.2Zm31 0c0-4.6-3.4-7.6-7.4-7.6-4.2 0-6.6 3.6-6.1 8 .4 3.9 3.2 6.8 7 6.8 3.8 0 6.5-3.2 6.5-7.2ZM32 37.5l-3.6 7.2c-.4.9.2 1.8 1.2 1.8h4.8c1 0 1.6-.9 1.2-1.8L32 37.5Z"/><path stroke="#16121c" stroke-width="1.6" stroke-linecap="round" d="M26 50.5v7M32 50.5v7.5M38 50.5v7"/><path fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.2" d="M15 18c3-5.5 8.5-8.8 15-9.3"/></svg>`;
+FX.skull=function(rect){if(!rect)return;const s=Math.max(30,Math.min(rect.width,rect.height)*.78);
+  const e=FX.make("skull",rect,{w:s,h:s,html:SKULL_SVG,dy:-rect.height*.05});
+  FX.play(e,[{transform:"translateY(8px) scale(.55)",opacity:0,filter:"blur(3px) drop-shadow(0 0 0 #fff)"},
+    {transform:"translateY(0) scale(1.06)",opacity:1,filter:"blur(0) drop-shadow(0 0 12px #e8f0ff)",offset:.28},
+    {transform:"translateY(-6px) scale(1)",opacity:.95,filter:"blur(0) drop-shadow(0 0 8px #e8f0ff)",offset:.6},
+    {transform:`translateY(${-rect.height*.45}px) scale(1.12)`,opacity:0,filter:"blur(4px) drop-shadow(0 0 16px #fff)"}],1500,60,"ease-out");
+  FX.play(FX.make("ring",rect,{w:s*1.5,h:s*1.5,col:"#e8f0ff"}),[{transform:"scale(.3)",opacity:.9},{transform:"scale(1.2)",opacity:0}],700,60)};
+for(const [m,k] of Object.entries(FX_CAT)){const f=FX[m];if(typeof f!=="function")continue;
+  FX[m]=function(){const cat=fxCtx||k;if(!fxAllowed(cat))return m==="spell"?true:undefined;const prev=fxCtx;fxCtx=cat;try{return f.apply(this,arguments)}finally{fxCtx=prev}}}
+{const _cf=castFX;castFX=function(){if(!fxAllowed("magic"))return;const prev=fxCtx;fxCtx="magic";try{return _cf.apply(this,arguments)}finally{fxCtx=prev}}}
+/* magic off: every drifting or glowing thing on the page holds still (the fog becomes a picture of itself) */
+{const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);document.documentElement.classList.toggle("still-magic",PREF.fxMagic===false);paintAnimBtns()}}
+function paintAnimBtns(){const a=$("#pAnimC"),b=$("#pAnimM");if(a){a.textContent="Card animations: "+(PREF.fxCards!==false?"On":"Off");a.setAttribute("aria-pressed",PREF.fxCards!==false)}
+  if(b){b.textContent="Magic animations: "+(PREF.fxMagic!==false?"On":"Off");b.setAttribute("aria-pressed",PREF.fxMagic!==false)}}
+{const _mb=mountBar;mountBar=function(){_mb.apply(this,arguments);const g=$("#gmore");if(!g)return;
+  const mk=(id,k)=>{const b=document.createElement("button");b.type="button";b.id=id;b.className="gtog";b.onclick=()=>{PREF[k]=PREF[k]===false;savePrefs();applyPrefs()};return b};
+  const r=$("#pReset");g.insertBefore(mk("pAnimC","fxCards"),r);g.insertBefore(mk("pAnimM","fxMagic"),r);paintAnimBtns()}}
+
+/* ---------- the phone's question at the start of every game ---------- */
+function askAnimations(){
+  if(!isPhone())return;let box=$("#animask");if(!box){box=document.createElement("div");box.id="animask";document.body.appendChild(box)}
+  box.innerHTML=`<div class="ovbox" role="dialog" aria-labelledby="aaq"><button type="button" class="xclose" id="aaX" aria-label="Close without changing anything">×</button>
+<h2 id="aaq">Animations</h2><p class="dim">Turning animations off makes the game run smoother on slower phones.</p>
+<label class="chk"><input type="checkbox" id="aaC" ${PREF.fxCards!==false?"checked":""}> <span>Card animations<small>Moves, strikes, wounds, deaths, sacrifices and mana.</small></span></label>
+<label class="chk"><input type="checkbox" id="aaM" ${PREF.fxMagic!==false?"checked":""}> <span>Magic and other animations<small>Spells, the sky, fire and weather, the drifting fog (off: the fog stands still).</small></span></label>
+<p class="acts"><button type="button" class="btn" id="aaOk">Confirm my choices</button></p></div>`;
+  box.hidden=false;
+  $("#aaX").onclick=()=>{box.hidden=true};
+  $("#aaOk").onclick=()=>{PREF.fxCards=$("#aaC").checked;PREF.fxMagic=$("#aaM").checked;savePrefs();applyPrefs();box.hidden=true}}
+{const _sg=startGame;startGame=function(opts){const out=_sg.apply(this,arguments);if(!(opts&&opts.fast))try{askAnimations()}catch(e){console.error(e)}return out}}
+if(window.__EC)Object.assign(window.__EC,{askAnimations,FX});
+
+/* ---------------- v38: the info panels as folders ----------------
+   Card info opens on kinds of card (Standard, Special, Support, Bases, Wildcards, and the Wildcards by Substance); each folder
+   holds only a few cards, and the card's page opens right under them. Spells explained has a folder for each school, the
+   Substances' own spells in a folder of their own; Further explanations turns each list into the same buttons. One folder
+   is open at a time in each place, so a phone never shows a wall of buttons. */
+const CARD_TREE=[["Standard",["grunt","infantry","puppet","archer","cannon"]],["Special",["jack","queen","king","ace","joker","assassin"]],
+  ["Support",["scout","healer","repair","ram","miner"]],["Bases",["ace","tree","wall"]],
+  ["Wildcards",[["Angel Machine",["samson","antony"]],["Satan",["satan"]],["Jester Fool",["bullgoat","goatbull","puppet","tree"]],["Binah",["slavemaster","slave"]],
+    ["The Leviathan",["leviathan"]],["Tiphareth of Kether",["trafficker"]],["Yaldabaoth",["debt"]]]]];
+const shortInfo=k=>INFO[k][0].replace(/ \([^)]*\)$/,"");
+const ifold=(name,inner,n)=>`<details class="sub ifold"><summary>${esc(name)}${n?` <span class="ifn">${n}</span>`:""}</summary>${inner}</details>`;
+function cardTreeHTML(){
+  const tabs=ks=>`<div class="itabs">${ks.filter(k=>INFO[k]).map(k=>`<button type="button" class="itab" data-k="${k}">${esc(shortInfo(k))}</button>`).join("")}</div>`;
+  return CARD_TREE.map(([name,ks])=>Array.isArray(ks[0])?ifold(name,ks.map(([n2,k2])=>ifold(n2,tabs(k2),k2.length)).join(""),ks.length+" Substances"):ifold(name,tabs(ks),ks.length)).join("");
+}
+/* one list of terms (dt) and their answers (dd) becomes buttons, and the answer opens under them */
+function tabify(dl){
+  const pairs=[];let dt=null;for(const el of [...dl.children]){if(el.tagName==="DT")dt=el;else if(el.tagName==="DD"&&dt){pairs.push([dt,el]);dt=null}}
+  if(!pairs.length)return null;
+  const wrap=document.createElement("div");wrap.className="tabbed";
+  wrap.innerHTML=`<div class="itabs">${pairs.map(([t],i)=>`<button type="button" class="itab" data-i="${i}">${esc((t.firstChild&&t.firstChild.textContent||t.textContent).trim())}</button>`).join("")}</div><div class="tbody" hidden></div>`;
+  const body=wrap.querySelector(".tbody");
+  wrap.querySelectorAll(".itab").forEach(b=>b.onclick=()=>{const on=b.classList.contains("on");wrap.querySelectorAll(".itab").forEach(x=>x.classList.remove("on"));
+    if(on){body.hidden=true;return}b.classList.add("on");const [t,d]=pairs[+b.dataset.i];body.innerHTML=`<h4>${t.innerHTML}</h4><div>${d.innerHTML}</div>`;body.hidden=false});
+  dl.replaceWith(wrap);return wrap;
+}
+/* one folder open at a time among its siblings */
+function oneOpen(root){root.addEventListener("toggle",e=>{const d=e.target;if(!d.open||!d.classList||!d.classList.contains("ifold"))return;
+  for(const s of d.parentElement.children)if(s!==d&&s.tagName==="DETAILS"&&s.classList.contains("ifold"))s.open=false},true)}
+function infoTree(){
+  const box=$("#info");if(!box)return;
+  const [basics,cards,spells,further]=[...box.querySelectorAll(":scope > details.cinfo")];
+  // Card info
+  if(cards){const tabs=cards.querySelector(".itabs");if(tabs)tabs.remove();const body=$("#ibody");body.innerHTML='<p class="dim">Pick a kind of card, then a card.</p>';
+    cards.insertAdjacentHTML("beforeend",`<div class="ctree">${cardTreeHTML()}</div>`);cards.appendChild(body);
+    cards.querySelectorAll(".ctree .itab").forEach(b=>b.onclick=()=>{const on=b.classList.contains("on");cards.querySelectorAll(".ctree .itab").forEach(x=>x.classList.remove("on"));
+      if(on){body.innerHTML='<p class="dim">Pick a kind of card, then a card.</p>';cards.appendChild(body);return}
+      b.classList.add("on");b.parentElement.after(body);body.innerHTML=infoBody(b.dataset.k)});
+    oneOpen(cards)}
+  // Spells explained: a folder for each school, the Substances' spells in their own folder
+  if(spells){const si=spells.querySelector(".spellinfo");if(si){const parts=[];let h=null;
+    for(const el of [...si.children]){if(el.tagName==="H4")h=el;else if(el.tagName==="DL"&&h){parts.push([h.textContent,el]);h=null}}
+    const tree=document.createElement("div");tree.className="ctree";
+    for(const [school,dl] of parts){const d=document.createElement("details");d.className="sub ifold";
+      const all=[...dl.children],gen=document.createElement("dl"),sub=document.createElement("dl");
+      for(let i=0;i<all.length;i+=2){const dt=all[i],dd=all[i+1];if(!dd)break;const own=/·/.test(dt.querySelector("span")?.textContent||"");(own?sub:gen).append(dt,dd)}
+      const n=gen.children.length/2+sub.children.length/2;d.innerHTML=`<summary>${esc(school)} <span class="ifn">${n}</span></summary>`;
+      if(gen.children.length/2>9){   // a big school: split by price, so each folder holds a few
+        const tier=dt=>{const t=(dt.querySelector("span")?.textContent||"").trim();if(/^free/i.test(t))return "Free";if(/d\d/.test(t))return "Rolled prices";const n=parseInt(t,10);return isNaN(n)?"Other prices":n<=3?"1 to 3 mana":n<=6?"4 to 6 mana":"7 mana or more"};
+        const order=["Free","1 to 3 mana","4 to 6 mana","7 mana or more","Rolled prices","Other prices"],by={};const g=[...gen.children];
+        for(let i=0;i<g.length;i+=2){const k=tier(g[i]);(by[k]=by[k]||document.createElement("dl")).append(g[i],g[i+1])}
+        for(const k of order)if(by[k]){const f=document.createElement("details");f.className="sub ifold";f.innerHTML=`<summary>${k} <span class="ifn">${by[k].children.length/2}</span></summary>`;f.appendChild(by[k]);d.appendChild(f);tabify(by[k])}}
+      else if(gen.children.length){d.appendChild(gen);tabify(gen)}
+      if(sub.children.length){const s2=document.createElement("details");s2.className="sub ifold";s2.innerHTML=`<summary>The Substances' own ${esc(school.toLowerCase())} <span class="ifn">${sub.children.length/2}</span></summary>`;s2.appendChild(sub);d.appendChild(s2);tabify(sub)}
+      tree.appendChild(d)}
+    const note=si.querySelector(":scope > p.dim");si.innerHTML="";si.appendChild(tree);if(note)si.appendChild(note);oneOpen(si)}}
+  // Further explanations: the same buttons in each section
+  if(further){further.querySelectorAll(":scope > details.sub").forEach(d=>{d.classList.add("ifold");d.querySelectorAll(":scope > dl.spellinfo").forEach(tabify)});oneOpen(further)}
+  oneOpen(box);
+}
+{const _mi=mountInfo;mountInfo=function(){_mi.apply(this,arguments);try{infoTree()}catch(e){console.error(e)}}}
 
 })();

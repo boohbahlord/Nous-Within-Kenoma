@@ -31,6 +31,8 @@ html{background:var(--ground);color:var(--text)}
 body{margin:0;background:transparent;font-family:var(--mono);font-weight:200;font-size:17px;line-height:1.745;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 64px}
 svg.strings{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;pointer-events:none}
+svg.strings g{stroke:var(--string)}svg.strings rect{fill:var(--string)}
+html.th-office button.static-toggle{background:#ffffffd9;color:var(--dim)}
 a{color:var(--amber);text-decoration:none;border-bottom:1px solid var(--rule)}
 a:hover,a:focus-visible{color:var(--amber-hi);border-color:var(--amber-hi);outline:none}
 b,strong{font-weight:400;color:var(--amber-hi)}
@@ -158,6 +160,10 @@ html.th-indigo.th-blue{--text:#eceff8}
 html.th-crimson{--ground:#2a0507;--well:#36090c;--deep:#1d0304;--text:#f4cfcc;--dim:#c9918d;--amber:#ff8f86;--amber-hi:#ffc2bc;--rule:#5e1a1c}
 html.th-black{--ground:#000;--well:#0b0b0b;--deep:#000;--text:#f2f2f2;--dim:#b8b8b8;--amber:#ffffff;--amber-hi:#ffffff;--rule:#3a3a3a}
 html.th-black ol.toc a,html.th-black .pager{border-color:#3a3a3a}
+/* Kenoma (dull): the burnt amber gone quiet, the orange drained and a faint yellow left in it */
+html.th-dull{--ground:#18150f;--well:#201c14;--deep:#110f0a;--text:#e4dabd;--dim:#b2a785;--amber:#c8b273;--amber-hi:#e6d49a;--rule:#3d3524}
+/* Office: white paper, light grey panels, a blue ribbon accent; inspired by an office suite, not a copy of one */
+html.th-office{--ground:#f3f3f3;--well:#ffffff;--deep:#e9eaec;--text:#252525;--dim:#5f6368;--amber:#2b579a;--amber-hi:#1a3f78;--rule:#c8cacd;--string:#c8cacd;color-scheme:light}
 .crumbs .arrows a{margin:0 2px}
 .crumbs .arrows{color:var(--dim)}
 /* rules pages */
