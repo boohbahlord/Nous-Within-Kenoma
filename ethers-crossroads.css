@@ -965,3 +965,37 @@ body.tipi-on .tipi{display:inline-flex!important}
 .jailtag{background:#3a0b0e!important;color:#ffb3ad!important}
 table.tierolls{border-collapse:collapse;margin:6px 0 10px;font-size:14px}
 table.tierolls td{padding:3px 12px 3px 0;border-bottom:1px solid #ffffff14}
+/* v29: striking Substances and planets in the setup */
+.ovbox.setup label.opt>.bancheck{position:absolute;right:5px;bottom:5px;width:17px;height:17px;padding:0;border:1px solid #c9b48a99;border-radius:3px;background:#0006;cursor:pointer;z-index:2;display:inline-flex;align-items:center;justify-content:center}
+.ovbox.setup label.opt>.bancheck.on::after{content:"";width:8px;height:4px;border:solid #f1d27a;border-width:0 0 2px 2px;transform:translateY(-1px) rotate(-45deg)}
+.ovbox.setup label.opt>.bancheck:not(.on){border-color:#8e1b2088;background:#2a0809aa}
+.ovbox.setup label.opt>.bancheck:not(.on)::after{content:"×";color:#e0453a;font:600 13px/1 var(--mono)}
+.ovbox.setup label.opt>.bancheck:hover{border-color:#f1d27a}
+.ovbox.setup label.opt>.bancheck:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+.ovbox.setup label.opt.banned>span{opacity:.28;filter:grayscale(1)}
+.ovbox.setup label.opt.banned{border-style:dashed}
+.ovbox.setup label.opt.struck>span{opacity:.4;filter:grayscale(.8)}
+.ovbox.setup label.opt.struck>span::after{content:"Struck from Astrology";display:block;margin-top:4px;font-size:11px;color:#e0453a;letter-spacing:.03em}
+.ovbox.setup.nobans .bancheck{display:none}
+@media (hover:none){.ovbox.setup label.opt>.bancheck{width:24px;height:24px}}
+/* v30: the sky's cycles and glow, the full paragraph, cooldown bars */
+.mstrip span.ev{opacity:.8}
+.mstrip span.ev svg{filter:drop-shadow(0 0 2px #f1d27a66)}
+.mstrip span.past{opacity:.75}
+.mstrip span[data-tip]{cursor:help}
+#moon.skylit .mstrip span.ev.on{border-color:#f1d27a;box-shadow:0 0 6px #f1d27a88}
+#moon.skylit svg.moon{animation:skyshimmer 3.2s ease-in-out infinite}
+#moon.eclipsed.skylit svg.moon{animation-duration:1.8s}
+@keyframes skyshimmer{0%,100%{filter:drop-shadow(0 0 3px #f1d27a55) brightness(1)}50%{filter:drop-shadow(0 0 12px #f1d27acc) brightness(1.12)}}
+@media (prefers-reduced-motion:reduce){#moon.skylit svg.moon{animation:none;filter:drop-shadow(0 0 8px #f1d27a99)}}
+.skypara{margin-top:8px;padding-top:8px;border-top:1px solid var(--rule)}
+.skypara b{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:400;margin-bottom:4px}
+.skypara p{margin:0;font-size:13px;line-height:1.5}
+.spell.hascd{position:relative;padding-bottom:8px}
+.spell>.cdbar{position:absolute;left:4px;right:4px;bottom:2px;height:3px;border-radius:2px;background:#ffffff12;overflow:hidden;pointer-events:none}
+.spell>.cdbar>i{display:block;height:100%;width:calc(var(--f)*100%);background:var(--cc);border-radius:2px;transition:width .5s ease}
+.spell>.cdbar.full>i{box-shadow:0 0 4px var(--cc)}
+.spell.off>.cdbar{opacity:.85}
+#moon.eclipsed.skylit svg.moon{animation:eclshimmer 2.2s ease-in-out infinite}
+@keyframes eclshimmer{0%,100%{filter:brightness(.38) drop-shadow(0 0 6px #ffe2a8aa)}50%{filter:brightness(.5) drop-shadow(0 0 14px #ffe2a8ee)}}
+@media (prefers-reduced-motion:reduce){#moon.eclipsed.skylit svg.moon{animation:none;filter:brightness(.38) drop-shadow(0 0 7px #ffe2a8cc)}}

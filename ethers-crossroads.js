@@ -52,15 +52,15 @@ const SUBST_TEXT={
   "Rise to the Moon (at the New Moon): every enemy pays 2d4 deck cards, 2 hand cards and 1 mana each New Moon after.",
   "On the moon your maximum mana grows with the Outer Darkness, twelve at most, and it can be attacked only at the New Moon.",
   "Exile: one of your Jokers sends the souls it captured into the Outer Darkness."]},
- "firm":{"tag":"Master of the sky: it hangs planets in the moon's place.","pts":[
+ "firm":{"tag":"Master of the sky: it hangs Heavenly Bodies in the moon's place.","pts":[
   "Always the six-pointed star.",
   "Untouched by the Moon's and Saturn's harms, the Leviathan's toll and meteors.",
   "Starts with a Miner on the moon: 1d2 − 1 mana a turn.",
   "Sorcery and Illusion: Blood Moon, Rain and Fog.",
-  "Astrology: the Asteroid, and the planets Mars, the Second Sun, Venus, Jupiter and Mercury."]},
+  "Astrology: the Asteroid, and the Heavenly Bodies Mars, the Second Sun, Venus, Jupiter and Mercury."]},
  "yald":{"tag":"The Demiurge: it eats the sky and the dead, and brings Saturn.","pts":[
   "Always the symbol of Saturn.",
-  "Night's Judgement: eat the moon (at the New or Full Moon) or any planet.",
+  "Night's Judgement: eat the moon (at the New or Full Moon) or any Heavenly Body.",
   "God Hunger: eat 1d2 cards, twice a turn, for mana or for the hunger.",
   "At seven hunger, Regurgitate Saturn: every enemy pays each turn, or a Debt Collector rises.",
   "The Sun Cries: make the Second Sun weep until it becomes the Black Sun."]}
@@ -2066,7 +2066,7 @@ function infoHTML(){
 <li><b>The field.</b> Your cards are at the bottom. Click one of your stacks to see where it can go (prep) or what it can hit (attack); the highlighted tiles are your options. Rest the mouse on a card's top-right corner (or tap it) for its stats; drag that corner onto another stack to compare them.</li>
 <li><b>Your deck and mana bars.</b> The deck bar is your army in reserve; the mana bar (indigo) pays for spells. Sacrificing a card gives you its soul as mana.</li>
 <li><b>The turn bar under the field.</b> It says which phase you're in and has the buttons to roll or move on.</li>
-<li><b>The sky.</b> The moon turns once a round and changes prices and rules; planets can take its place. Hover or tap it to see what it means for you.</li>
+<li><b>The sky.</b> The moon turns once a round and changes prices and rules; Heavenly Bodies can take its place. Hover or tap it to see what it means for you.</li>
 <li><b>The right column.</b> The Bank, then the spells by school, cheapest first, then the stack you selected. Greyed out means you can't cast it right now; hover a spell (or long-press it) for its price, what it needs, what it does and why it's blocked. Conjuring is done in the Ether.</li>
 <li><b>The log</b> at the bottom: every action, with its time, in the color of the player who took it.</li></ul></details>
 <details class="sub"><summary>What are some good ways to play?</summary><ul>
@@ -2170,12 +2170,12 @@ ${chk("obank","The Bank opens with mana","The Bank starts with (2 × players)d2 
 ${chk("oeach","Each player rolls their own","On by default with one deck; off by default otherwise, when one roll sets the same starting mana for everyone.",false)}
 <p class="dim">Starting souls come from the Ether as soldier souls, worth 1 mana each.</p>
 </fieldset>
-<fieldset class="pf"><legend>The sky and spells</legend>
+<fieldset class="pf"><legend>Starting Heavenly Body</legend>
 <div class="opts skyopts">${SKY_OPTS.map(([v,nm,txt],i)=>`<label class="opt sky-${v}"><input type="radio" name="omoonon" value="${v}" ${i?"":"checked"}><span>${nm}<small>${txt}</small>${SKY_FORM[v==="on"?"moon":v]?`<em class="skyform">${SKY_FORM[v==="on"?"moon":v]}</em>`:""}</span></label>`).join("")}</div>
 ${chk("omoon","Moon combat bonus","Every attack adds 1d2 at the Full Moon, and every defense adds 1d2 at the New Moon.",true)}
-${chk("opshop","Planet shop","Any of the seven planets can be bought for the sky (Astrology) for 7 + 1d3 + 1d12 mana, rolled every round. It rises at the start of the next round; then no planet can be bought for six rounds.",true)}
+${chk("opshop","Heavenly Body shop","Any of the seven Heavenly Bodies can be bought for the sky (Astrology) for 7 + 1d3 + 1d12 mana, rolled every round. It rises at the start of the next round; then no Heavenly Body can be bought for six rounds.",true)}
 ${chk("oatk","Spells in the attack phase","Enchantments, curses, sorcery and illusions can also be cast while attacking. Necromancy, conjuring and sacrifices stay in prep.",false)}
-${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the game opens on a Blood Moon; each deck is shuffled and two thirds of it go to the grave; each player starts with a Joker in hand. With a planet in the sky: the game opens under that planet's eclipse.",false)}
+${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the game opens on a Blood Moon; each deck is shuffled and two thirds of it go to the grave; each player starts with a Joker in hand. With a Heavenly Body in the sky: the game opens under that Heavenly Body's eclipse.",false)}
 </fieldset>`;
   const display=`<fieldset class="pf"><legend>Your hand</legend><div class="opts">
 <label class="opt"><input type="radio" name="dhand" value="below" ${PREF.hand!=="side"?"checked":""}><span>Under your deck (default)<small>Right below your own bars, with your dice box.</small></span></label>
@@ -2306,7 +2306,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
       let name=(S.name.trim()||`P${i+1}`).slice(0,20);
       return{name,tribe:S.tribe,color:S.color,solid:S.solid,cpu};
     });
-    const blk=skyBlocked(val("omoonon")),bad=players.find(p=>blk.includes(p.tribe));if(bad){flash(`${TRIBES[bad.tribe].name} can't be played with that planet in the sky.`);return}
+    const blk=skyBlocked(val("omoonon")),bad=players.find(p=>blk.includes(p.tribe));if(bad){flash(`${TRIBES[bad.tribe].name} can't be played with that Heavenly Body in the sky.`);return}
     for(const t of Object.keys(TRIBES))if(t!=="random"&&t!=="beginner"&&players.filter(p=>p.tribe===t).length>1){flash(`Only one player can be ${TRIBES[t].name}. The Beginner is the only Substance more than one player can share.`);return}
     if(new Set(players.filter(p=>!TRIBES[p.tribe].color).map(p=>p.color)).size<players.filter(p=>!TRIBES[p.tribe].color).length){flash("Every player needs a different color.");return}
     if(L.startsWith("team")){ // seats alternate sides: A, B, A, B
@@ -2585,14 +2585,14 @@ function outerEdge(r,c,rot){
 
 /* Random becomes a real Substance before the game starts; fixed colors and symbols are applied */
 function resolveSubstances(opts){
-  const taken=new Set(skyBlocked(opts.moon));   // a planet in the sky from the start keeps out the Substance it would serve
+  const taken=new Set(skyBlocked(opts.moon));   // a Heavenly Body in the sky from the start keeps out the Substance it would serve
   // every Substance but the Beginner is played by one player at most
   for(const p of opts.players)if(p.tribe&&TRIBES[p.tribe]&&p.tribe!=="random"&&p.tribe!=="beginner"&&!TRIBES[p.tribe].soon)taken.add(p.tribe);
   for(const p of opts.players){
     if(p.cpu==="horde")continue;
     if(!p.tribe||!TRIBES[p.tribe]||p.tribe==="random"||TRIBES[p.tribe].soon){
-      const pool=PLAYABLE.filter(k=>k==="beginner"||!taken.has(k));
-      p.tribe=pick(pool);p.randomSub=true;if(p.tribe!=="beginner")taken.add(p.tribe);
+      const ban=opts.subBan||[],pool=PLAYABLE.filter(k=>(k==="beginner"||!taken.has(k))&&!ban.includes(k));
+      p.tribe=pool.length?pick(pool):"beginner";p.randomSub=true;if(p.tribe!=="beginner")taken.add(p.tribe);
     }
     const T=TRIBES[p.tribe];if(T.color)p.color=T.color;if(T.solid)p.solid=T.solid;
   }
@@ -4241,7 +4241,7 @@ Object.assign(UNIT_ICON,{
    The Firmament is above the moon's and Saturn's harms and meteors, keeps a Miner on the moon, and casts
    Blood Moon, Rain, Asteroid, Fog and Mars. */
 
-/* a planet that starts in the sky keeps out the Substance it would serve */
+/* a Heavenly Body that starts in the sky keeps out the Substance it would serve */
 const skyBlocked=sky=>sky==="saturn"?["yald"]:["mars","sun","venus","jupiter","mercury"].includes(sky)?["firm"]:[];
 const isFirm=pl=>!!(G.p[pl]&&G.p[pl].tribe==="firm");
 /* the Leviathan's New Moon: the real New Moon, or every eighth round while it coils on Mars */
@@ -4328,7 +4328,7 @@ const PLANETS={
 };
 const planetUp=k=>G.moon.gone===k;
 const sunUp=()=>G.moon.gone==="sun";
-const oathOf=pl=>G.p[pl]&&G.p[pl].oath&&(G.p[pl].oath==="earth"||G.p[pl].oath===OATH_SKY[sky()])?G.p[pl].oath:null;   // the Earth needs no planet
+const oathOf=pl=>G.p[pl]&&G.p[pl].oath&&(G.p[pl].oath==="earth"||G.p[pl].oath===OATH_SKY[sky()])?G.p[pl].oath:null;   // the Earth needs no Heavenly Body
 const OATH_SKY={sun:"earth",venus:"venus",jupiter:"jupiter"};
 const planetBy=()=>G.planetBy!=null&&G.p[G.planetBy]&&!G.p[G.planetBy].out?G.planetBy:null;
 
@@ -4342,7 +4342,7 @@ function skyCapMod(P){if(!G||!P)return 0;let m=0;const pl=P.i;
   if(G.jupMax&&G.jupMax[pl]&&G.moon.round<=G.jupMax.until)m+=G.jupMax[pl];   // a Jupiter eclipse (Prompt 10c)
   return m}
 
-/* ---------- setting a planet in the sky ---------- */
+/* ---------- setting a Heavenly Body in the sky ---------- */
 function setPlanet(k,by){
   const old=sky();
   if(G.moonLev&&(k==="sun"||k==="blacksun")){const L=G.moonLev;G.moonLev=null;L.card.hp=L.card.maxHp;G.p[L.owner].deck.push(L.card);shuffle(G.p[L.owner].deck);log(`The Leviathan can't lie on the Sun: it falls back into ${plName(L.owner)}'s deck.`,"event")}
@@ -4405,7 +4405,7 @@ function jupiterCost(sp,c){
   if(!planetUp("jupiter")||sp.school!=="Conjuring"||c<=1)return c;
   if(oathOf(G.active)==="jupiter")c-=1;   // the Oath of Jupiter: one less, but nothing that costs one already
   return Math.max(1,c)}
-/* after a purchase: Jupiter's sale may or may not pay off; the planet's master may get a mana */
+/* after a purchase: Jupiter's sale may or may not pay off; the Heavenly Body's master may get a mana */
 function skyBought(sp,cost){
   if(onJupSale(sp.id)&&cost>0){const v=R(2)-1;if(v){giveMana(G.active,v);log(`Jupiter's sale: ${plName(G.active)} gets ${v} mana back on ${esc(sp.name)}.`)}else log(`Jupiter's sale: no luck on ${esc(sp.name)} this time.`);jupKick()}
 }
@@ -4486,8 +4486,8 @@ SPELLS.push(
 function toggleOath(k){const P=me();if(P.oath==="saturn"&&P.satLocked){flash("You betrayed Saturn: its Oath holds you now.");return}if(P.oath===k){P.oath=null;log(`${plName(G.active)} breaks the ${SP("oath_"+k).name}.`);return}
   P.oath=k;P.venusAttacked=false;log(`${plName(G.active)} swears the ${SP("oath_"+k).name}.`,"event")}
 
-/* Night's Judgement eats whatever hangs in the sky: the moon at the New or Full Moon, any planet at any time */
-Object.assign(SP("judge"),{text:"Free: Yaldabaoth eats what hangs in the sky: the moon at the New Moon or the Full Moon, or Mars, the Second Sun (or the Black Sun), Venus or Jupiter at any time. A Leviathan on it falls back into its deck. Take its worth in mana, or count it toward the hunger (3, or 4 for Jupiter). An eaten planet never comes back.",
+/* Night's Judgement eats whatever hangs in the sky: the moon at the New or Full Moon, any Heavenly Body at any time */
+Object.assign(SP("judge"),{text:"Free: Yaldabaoth eats what hangs in the sky: the moon at the New Moon or the Full Moon, or Mars, the Second Sun (or the Black Sun), Venus or Jupiter at any time. A Leviathan on it falls back into its deck. Take its worth in mana, or count it toward the hunger (3, or 4 for Jupiter). An eaten Heavenly Body never comes back.",
   ok:()=>!G.moon.gone&&(G.moon.i===0||G.moon.i===4)||!!PLANETS[G.moon.gone],run:async()=>{
    const pl=G.active,P=me(),k=sky(),v=PLANETS[k]?PLANETS[k].hunger:3,nm=PLANETS[k]?PLANETS[k].name:"the moon";
    if(G.moonLev){const L=G.moonLev;G.moonLev=null;L.card.hp=L.card.maxHp;G.p[L.owner].deck.push(L.card);shuffle(G.p[L.owner].deck);log(`The Leviathan falls from the eaten sky back into ${plName(L.owner)}'s deck.`)}
@@ -4529,7 +4529,7 @@ async function aiPlanets(pl,W,cast1){
     for(const e of foes){let s=AI.value(e.st)*2;for(const f of foes)if(f!==e&&Math.max(Math.abs(f.r-e.r),Math.abs(f.c-e.c))===1)s+=AI.value(f.st)*.5;
       for(const m of stacksOf(pl))if(Math.max(Math.abs(m.r-e.r),Math.abs(m.c-e.c))<=1)s-=AI.value(m.st)*.6;if(!best||s>best.s)best={...e,s}}
     if(best&&best.s>(planetUp("blacksun")?6:9))await cast1("sunfall",best.r,best.c)}
-  if(G.moon.gone==="mars"||G.moon.gone==="saturn"||PLANETS[G.moon.gone]&&G.planetBy===pl)return;   // keep the planet it raised
+  if(G.moon.gone==="mars"||G.moon.gone==="saturn"||PLANETS[G.moon.gone]&&G.planetBy===pl)return;   // keep the Heavenly Body it raised
   const m=mana(pl);
   if(m>=(G.prices.venus||4)+1&&Math.random()<.4)await cast1("venus");
   else if(stacksOf(pl).reduce((a,x)=>a+x.st.cards.filter(c=>c.unit==="miner").length,0)>=1&&m>=(G.prices.jupiter||4)+2&&Math.random()<.25)await cast1("jupiter");
@@ -4593,7 +4593,7 @@ async function eclipseRound(){
   for(const b of [...(G.bribes||[])]){if(r>b.until||G.p[b.by].out||G.p[b.target].out){G.bribes.splice(G.bribes.indexOf(b),1);log(`The bribe against ${plName(b.target)} runs out.`);continue}
     if(b.paid===r)continue;const c=R(2)+R(3)+R(3);if(mana(b.by)>=c){payQuiet(b.by,c);bankAdd(c);b.paid=r;log(`${plName(b.by)} keeps the Banker bribed (${c} mana): ${plName(b.target)} pays more.`)}
     else{G.bribes.splice(G.bribes.indexOf(b),1);log(`${plName(b.by)} can't pay the Banker: the bribe against ${plName(b.target)} ends.`)}}
-  // each planet: 5% a round, or at once in Eclipse Mode
+  // each Heavenly Body: 5% a round, or at once in Eclipse Mode
   const k=sky();
   if(["sun","mars","venus","jupiter","mercury"].includes(k)&&!G.eclipse&&(Math.random()<.05||G.opts.eclipseStart&&!G.eclipsedOnce||G.forceEclipse)){G.forceEclipse=false;G.eclipsedOnce=true;await eclipse(k)}
 }
@@ -4944,7 +4944,7 @@ const SPELL_TEXT={
  gamble:{e:"Roll 1d10. On a 10 the Bank pays you 7d2 mana. On a 1 you lose one maximum mana, take 7d2 of mana debt, and a deck card goes to the Ether. Anything else: the mana is gone.",l:"Only while the Bank is open."},
  bolt:{n:"Three bolts, and an enemy stack selected.",e:"Lightning pins the stack for 1d2 + 1d2 − 1 of its turns: it can't move or attack.",l:"You earn a bolt for every card you lose defending, and for every card Antony kills. Against the Leviathan it takes one heart, no roll; with nothing selected it strikes a Leviathan on the moon."},
  lev:{n:"Your Leviathan on the field, at the New Moon.",e:"The Leviathan leaves the field and lies on the moon. From the next New Moon, every enemy pays a toll each New Moon: 2d4 random deck cards, 2 random hand cards and 1 mana, into the Outer Darkness.",l:"On the moon your maximum mana rises by one for every card in the Outer Darkness, twelve at most. It can be attacked only at the New Moon, and defends with advantage."},
- judge:{e:"Yaldabaoth eats what hangs in the sky. Take its worth in mana, or count it toward the hunger (3, or 4 for Jupiter).",l:"The moon only at the New Moon or the Full Moon; a planet at any time. What is eaten never comes back. A Leviathan on it falls back into its deck."},
+ judge:{e:"Yaldabaoth eats what hangs in the sky. Take its worth in mana, or count it toward the hunger (3, or 4 for Jupiter).",l:"The moon only at the New Moon or the Full Moon; a Heavenly Body at any time. What is eaten never comes back. A Leviathan on it falls back into its deck."},
  saturn:{n:"Hunger of seven, with the moon out of the sky.",e:"Saturn takes the moon's place. At the start of each of their turns, every enemy pays you 1 (a hand card, the top deck card or 1 mana) or refuses, and a Debt Collector rises on your ground.",l:"Each Debt Collector still standing at a new round raises the price by 1. Binah never pays."},
  lifesell:{n:"Select your stack with a Trafficker that holds prisoners.",e:"Put one prisoner up at the Auction. Any player can offer mana or hand cards for it, and you approve the sale."},
  cry:{n:"The Second Sun in the sky.",e:"Yaldabaoth makes the Sun weep. On the third time its flames go out and it becomes the Black Sun.",l:"Once every 1d3 turns. After that, the Firmament that raised it pays you 1d2 mana or 1d2 deck cards every 1d2 of its turns."},
@@ -5037,7 +5037,7 @@ function skyCommon(L){
 moonInfoHTML=function(){
   const m=G.moon,V=view(),P=G.p[V],L=[];
   if(["sun","blacksun","venus","jupiter","mercury","fallen"].includes(m.gone))return planetInfoHTML(m.gone);
-  if(m.gone==="off"){L.push("The moon is off for this game: no phases, no gifts, no tolls.");return skyBox("No moon","",L,"")}
+  if(m.gone==="off"){L.push("No starting Heavenly Body in this game: no phases, no gifts, no tolls.");return skyBox("No starting Heavenly Body","",L,"")}
   if(m.gone==="eaten"){L.push("Yaldabaoth ate the moon. No phases, no gifts, no tolls, no Blood Moon.");skyCommon(L);return skyBox("The empty sky","",L,"")}
   if(m.gone==="mars"){L.push("Each turn, every stack of only Grunts, Infantry or Puppets gets advantage on its next attack on 1–5 of 1d8.","The moon's phases are stopped.");
     if(G.moonLev)L.push("The Leviathan coils on Mars. Its toll and its weak spot come every eighth round.");skyCommon(L);return skyBox("Mars","",L,"mars")}
@@ -5109,7 +5109,7 @@ moonNote=function(){
 /* the sky options before a game: name, one short line, and the Form */
 const SKY_OPTS=[
  ["on","The Moon (default)","Turns one phase a round: grave gifts at the New Moon, a toll at the Full Moon."],
- ["off","No moon","No phases, no gifts, no tolls, no Blood Moon. Yaldabaoth can still bring Saturn."],
+ ["off","No Starting Heavenly Body","No moon and no Heavenly Body: no phases, no gifts, no tolls, no Blood Moon. Yaldabaoth can still bring Saturn."],
  ["saturn","Saturn","Everyone but Binah and the Firmament pays 1 a turn to the Bank, or a Debt Collector comes. No Yaldabaoth."],
  ["mars","Mars","Each turn, stacks of only Grunts and Infantry may get advantage on their next attack. No Firmament."],
  ["sun","The Second Sun","No fog of war; every 2d2 turns each player pays the Bank or goes blind for a turn. No Firmament."],
@@ -5119,7 +5119,7 @@ const SKY_OPTS=[
 /* Substances: one tag line for the setup, and a few points for the info panels */
 for(const k in SUBST_TEXT)if(TRIBES[k]){TRIBES[k].sub=SUBST_TEXT[k].tag;TRIBES[k].pts=SUBST_TEXT[k].pts}
 
-/* "Planets explained" and "The Bank explained", under the table */
+/* "Heavenly Bodies explained" and "The Bank explained", under the table */
 const SKY_ROWS=[
  ["moon","The Moon","The default sky.","Turns one phase a round. The New Moon gives 1d2 grave cards and makes Clairvoyance and Naked Hand cost 6. The Full Moon takes its toll, shuffles every deck and forbids drawing and necromancy. One Full Moon in twenty is a Blood Moon."],
  ["saturn","Saturn","Yaldabaoth, at seven hunger; or the sky from the start.","Every enemy pays 1 each turn (a hand card, the top deck card or 1 mana), or a Debt Collector rises. Binah never pays."],
@@ -5128,7 +5128,7 @@ const SKY_ROWS=[
  ["venus","Venus","The Firmament; or the sky from the start.","+2 mana a turn and +2 maximum for the caster or a teammate, or +1 a turn while every enemy gets +2 maximum."],
  ["mercury","Mercury","The Firmament; or the sky from the start.","Votes for Peace or Total War, bought Peace, and under its Oath Betrayal, Declare War and Bribe the Banker."],
  ["jupiter","Jupiter","The Firmament; or the sky from the start.","Ace miners bring 1d2, two conjurings on sale each round, trades at the Auction."]];
-function skyExplainHTML(){return `<details class="sub"><summary>Planets explained</summary><div class="skygrid">${SKY_ROWS.map(([k,n,how,what])=>`<div class="skycard"><b>${n}</b><p>${what}</p><small>${how}</small><em class="skyform">${SKY_FORM[k]}</em></div>`).join("")}</div><p class="dim">Every planet but the Moon can be eclipsed: 5% at the start of each round. Hover or tap the sky in a game for what it means for you.</p></details>`}
+function skyExplainHTML(){return `<details class="sub"><summary>Heavenly Bodies explained</summary><div class="skygrid">${SKY_ROWS.map(([k,n,how,what])=>`<div class="skycard"><b>${n}</b><p>${what}</p><small>${how}</small><em class="skyform">${SKY_FORM[k]}</em></div>`).join("")}</div><p class="dim">Every Heavenly Body but the Moon can be eclipsed: 5% at the start of each round. Hover or tap the sky in a game for what it means for you.</p></details>`}
 const BANK_HELP=[
  ["Where mana goes","Every mana spent on a spell goes to the Bank. The Bank can only lend what it holds."],
  ["Loans","Borrow up to what the Bank holds. A loan grows 20% every 1d2 turns and is due in 4 of your turns. Whatever isn't paid then becomes mana debt."],
@@ -5290,7 +5290,7 @@ infoBody=function(k){const [t,,rows,note]=INFO[k];const c=protoCard(INFO_PROTO[k
 
 /* ---------------- Prompt 12, part 1 (v25): the sky's menus ----------------
    Lightning and the Asteroid are Astrology now (they still follow Sorcery's timing). The Oaths have their own panel, like the Ether;
-   spells that only an Oath opens show only while it is sworn. The Firmament's planets have a panel of their own, for it alone. */
+   spells that only an Oath opens show only while it is sworn. The Firmament's Heavenly Bodies have a panel of their own, for it alone. */
 
 for(const id of ["bolt","asteroid"]){const s=SP(id);if(s){s.atkSchool=s.school;s.school="Astrology"}}
 
@@ -5309,18 +5309,18 @@ function inDrawer(s,V){
 }
 function astroPins(live,V){
   const sworn=V.oath?SP("oath_"+V.oath):null;
-  let h=`<button class="spell drawerbtn oaths ${live?"":"off"}" id="openOaths" data-tip="The Oaths: swear one to a planet (or the Earth) for its gifts and its price. One at a time."><span class="sn">Oaths${sworn?`<small class="dc">${esc(sworn.name.replace(/^Oath of (the )?/,""))} sworn</small>`:""}</span><em>›</em></button>`;
-  if(V.tribe==="firm")h+=`<button class="spell drawerbtn planets ${live?"":"off"}" id="openPlanets" data-tip="Your planets: hang one in the moon's place."><span class="sn">Planets<small class="dc">${FIRM_PLANETS.filter(id=>SP(id)&&spellReady(SP(id))).length} ready</small></span><em>›</em></button>`;
+  let h=`<button class="spell drawerbtn oaths ${live?"":"off"}" id="openOaths" data-tip="The Oaths: swear one to a Heavenly Body (or the Earth) for its gifts and its price. One at a time."><span class="sn">Oaths${sworn?`<small class="dc">${esc(sworn.name.replace(/^Oath of (the )?/,""))} sworn</small>`:""}</span><em>›</em></button>`;
+  if(V.tribe==="firm")h+=`<button class="spell drawerbtn planets ${live?"":"off"}" id="openPlanets" data-tip="Your Heavenly Bodies: hang one in the moon's place."><span class="sn">Heavenly Bodies<small class="dc">${FIRM_PLANETS.filter(id=>SP(id)&&spellReady(SP(id))).length} ready</small></span><em>›</em></button>`;
   return h;
 }
 function wireAstroPins(){
   if($("#openOaths"))$("#openOaths").onclick=()=>openDrawer("oaths");
   if($("#openPlanets"))$("#openPlanets").onclick=()=>openDrawer("planets");
 }
-/* ---------- one panel on the right, shared by the Oaths and the planets (the Ether keeps its own) ---------- */
+/* ---------- one panel on the right, shared by the Oaths and the Heavenly Bodies (the Ether keeps its own) ---------- */
 const DRAWERS={
   oaths:{title:"Oaths",fill:oathsHTML},
-  planets:{title:"Your planets",fill:planetsHTML}
+  planets:{title:"Your Heavenly Bodies",fill:planetsHTML}
 };
 let drawerKind=null;
 function openDrawer(k){closeEther();let e=$("#skypanel");
@@ -5345,13 +5345,13 @@ function oathsHTML(){
     const act=sworn?`<button class="btn ghost sm" data-break="${k}" ${live?"":"disabled"}>Break</button>`:`<button class="btn sm" data-cast="${sp.id}" ${ok?"":"disabled"}>Swear</button>`;
     return `<div class="orow${sworn?" sworn":""}"><div class="otop"><b>${esc(sp.name)}</b><span class="oneed">${need}</span></div><p>${esc(t.e||sp.text)}</p><div class="oact">${sworn?'<span class="otag">Sworn</span>':blk?`<span class="dim">${esc(blk)}</span>`:""}${act}</div></div>`}).join("");
   const opened=Object.entries(OATH_ONLY).filter(([,k])=>V.oath===k).map(([id])=>SP(id).name);
-  return [`One Oath at a time: swearing a new one breaks the old. An Oath to a planet only works while that planet is in the sky.${opened.length?` Your Oath opens: ${opened.join(", ")}.`:""}`,rows];
+  return [`One Oath at a time: swearing a new one breaks the old. An Oath to a Heavenly Body only works while that Heavenly Body is in the sky.${opened.length?` Your Oath opens: ${opened.join(", ")}.`:""}`,rows];
 }
 function planetsHTML(){
   const live=canAct()&&G.phase==="prep"&&G.active===view();
   const rows=FIRM_PLANETS.map(id=>{const sp=SP(id);if(!sp)return "";const ok=live&&spellReady(sp),c=spellCost(sp),blk=spellBlock(sp);
     return `<button class="spell eitem ${ok?"":"off"}" data-cast="${id}" data-sp="${id}"><span class="sn">${esc(sp.name)}${sp.dice?`<small class="dc">${sp.dice}</small>`:""}<small class="left">${esc(SKY_FORM[id]||"")}</small></span><em>${c?c+" mana":"free"}</em></button>`}).join("");
-  return [live?"Hang a planet in the moon's place. Prices are rolled each round.":"You can raise a planet in your own prep phase.",rows];
+  return [live?"Hang a Heavenly Body in the moon's place. Prices are rolled each round.":"You can raise a Heavenly Body in your own prep phase.",rows];
 }
 
 /* ---------------- Prompt 11 (v26): Mystery Generation ----------------
@@ -5746,11 +5746,11 @@ const sunSacOk=V=>V===G.active&&oathNow(V,"sun")&&sunUp();
 if(window.__EC)Object.assign(window.__EC,{saturnEclipse,spawnPuppets,saturnPaid,saturnMissed,oathRound,eclipse,sacrificeToSun,totalBlind,fireOf,giveFire,setPlanet,toggleOath,cast,SP});
 if(window.__EC)window.__EC.render=()=>render();
 
-/* ---------------- Prompt 12, part 2b (v28): the planet shop, Venus's and Mercury's cycles, Rob the Bank, Jail ----------------
-   The planet shop (a setting, on by default): any of the seven planets can be bought for the sky for 7 + 1d3 + 1d12 mana, each
-     rolled every round. Everyone is told at once; the planet rises at the start of the next round, with a second popup. After a
-     purchase no planet can be bought for six rounds. Nobody's Substance changes.
-   Cycles: a planet's cycle comes every sixth round it has hung in the sky.
+/* ---------------- Prompt 12, part 2b (v28): the Heavenly Body shop, Venus's and Mercury's cycles, Rob the Bank, Jail ----------------
+   The Heavenly Body shop (a setting, on by default): any of the seven Heavenly Bodies can be bought for the sky for 7 + 1d3 + 1d12 mana, each
+     rolled every round. Everyone is told at once; the Heavenly Body rises at the start of the next round, with a second popup. After a
+     purchase no Heavenly Body can be bought for six rounds. Nobody's Substance changes.
+   Cycles: a Heavenly Body's cycle comes every sixth round it has hung in the sky.
      Venus: under its Oath, support and base conjurings cost 1 less that round and every card heals a heart; without the Oath,
        only on a 4 of 1d4.
      Mercury: a vote to ban one school of spells for 1d3 rounds from the next round (a tie is a d20 roll-off; a Mercury Oath
@@ -5767,20 +5767,20 @@ const shopOn=()=>!!G&&G.opts.pshop!==false;
 const SH=()=>G.shop||(G.shop={pend:null,next:0});
 const isEaten=k=>(G.eatenP||[]).includes(k)||k==="mars"&&!!G.marsEaten;
 function shopBlock(k){const S=SH();
-  if(!shopOn())return "The planet shop is off in this game.";
+  if(!shopOn())return "The Heavenly Body shop is off in this game.";
   if(S.pend)return `${SHOP_NAME[S.pend.k]} rises next round.`;
-  if(G.moon.round<S.next)return `No planet can be bought until round ${S.next}.`;
+  if(G.moon.round<S.next)return `No Heavenly Body can be bought until round ${S.next}.`;
   if(sky()===k)return "Already in the sky.";
   if(isEaten(k))return "Eaten by Yaldabaoth: it never comes back.";
   return ""}
 
-/* ---------- the shop's spells: one for each planet, in the Astrology panel ---------- */
+/* ---------- the shop's spells: one for each Heavenly Body, in the Astrology panel ---------- */
 for(const k of SHOP_PL){
   PRICE["shop_"+k]=()=>7+R(3)+R(12);
   SPELLS.push({id:"shop_"+k,name:"Buy "+skyWord(k).replace(/^the /,"the "),cost:12,dice:"7+1d3+1d12",school:"Astrology",shop:k,text:"",
     ok:()=>!isHorde(G.active)&&!shopBlock(k),run:async()=>{await buyPlanet(G.active,k)}});
   const row=SKY_ROWS.find(r=>r[0]===k);
-  SPELL_TEXT["shop_"+k]={n:"The planet shop.",e:`${SHOP_NAME[k]} takes the sky at the start of the next round. ${row?row[3]:""}`,l:"7 + 1d3 + 1d12 mana, rolled every round. After any purchase, no planet can be bought for six rounds."};
+  SPELL_TEXT["shop_"+k]={n:"The Heavenly Body shop.",e:`${SHOP_NAME[k]} takes the sky at the start of the next round. ${row?row[3]:""}`,l:"7 + 1d3 + 1d12 mana, rolled every round. After any purchase, no Heavenly Body can be bought for six rounds."};
   const t=SPELL_TEXT["shop_"+k];SP("shop_"+k).text=[t.n,t.e,t.l].join(" ");
 }
 async function buyPlanet(pl,k){
@@ -5791,8 +5791,8 @@ async function buyPlanet(pl,k){
     const target=mates.length===1?pl:await ask(pl,{kind:"player",id:"venustarget",title:"Venus: for whom?",players:mates,ai:()=>pl});
     venus={by:pl,mode,target:target??pl}}
   S.pend={k,by:pl,round:G.moon.round,venus,from:sky()};S.next=G.moon.round+SHOP_LOCK;
-  log(`<b>The planet shop</b>: ${plName(pl)} buys ${skyWord(k)}. It replaces ${skyWord(sky())} at the start of the next round.`,"event");
-  popup("A planet is bought",`<p>${plName(pl)} has bought <b>${esc(SHOP_NAME[k])}</b>.</p><p>It takes the place of ${skyWord(sky())} at the start of the next round.</p><p class="dim">No planet can be bought again until round ${S.next}.</p>`,pl);
+  log(`<b>The Heavenly Body shop</b>: ${plName(pl)} buys ${skyWord(k)}. It replaces ${skyWord(sky())} at the start of the next round.`,"event");
+  popup("A Heavenly Body is bought",`<p>${plName(pl)} has bought <b>${esc(SHOP_NAME[k])}</b>.</p><p>It takes the place of ${skyWord(sky())} at the start of the next round.</p><p class="dim">No Heavenly Body can be bought again until round ${S.next}.</p>`,pl);
   notify(pl,`${esc(G.p[pl].name)} bought ${skyWord(k)}: it rises next round.`);
 }
 /* the swap, at the very start of the round (before the sky turns) */
@@ -5814,29 +5814,24 @@ function raisePlanet(){
   popup(`${SHOP_NAME[k]} rises`,`<p><b>${esc(SHOP_NAME[k])}</b> has replaced ${skyWord(old)} in the sky. ${plName(by)} bought it.</p>${k==="moon"?"<p>The Moon comes back as a Waxing Crescent.</p>":""}${OATH_SKY[old]&&OATH_SKY[old]!==OATH_SKY[k]?`<p class="dim">Oaths sworn to ${skyWord(old)} are broken.</p>`:""}`,by);
 }
 {const _ms=moonStart;moonStart=async function(){raisePlanet();return _ms()}}
-/* whoever bought the Second Sun isn't judged by it */
-{const _sa=skyAsync;skyAsync=async function(pl){if(sunUp()&&planetBy()===pl){const P=G.p[pl];P.sunNext=null;
-    for(const q of alive())if(!isHorde(q)&&!zoneTiles(q).length)eliminate(q,`${esc(G.p[q].name)} has no ground left to stand on`);checkWin();return}
-  return _sa(pl)}}
-
 /* ---------- the shop's panel ---------- */
 function shopHTML(){
   const live=canAct()&&G.phase==="prep"&&G.active===view(),S=SH();
   const rows=SHOP_PL.map(k=>{const sp=SP("shop_"+k),c=spellCost(sp),ok=live&&spellReady(sp),now=sky()===k,blk=shopBlock(k);
-    const left=now?"In the sky":isEaten(k)?"Eaten":S.pend&&S.pend.k===k?"Rises next round":"";
+    const left=now?"In the sky":isEaten(k)?"Eaten":planetStruck(k)?"Struck":S.pend&&S.pend.k===k?"Rises next round":"";
     return `<button class="spell eitem ${ok?"":"off"}" data-cast="shop_${k}" data-sp="shop_${k}" ${blk&&!ok?`data-tip="${esc(blk)}"`:""}><span class="sn">${esc(SHOP_NAME[k])}<small class="dc">${esc((SKY_FORM[k]||"").replace("Form of ",""))}</small>${left?`<small class="left">${left}</small>`:""}</span><em>${c} mana</em></button>`}).join("");
   const note=S.pend?`${plName(S.pend.by)} bought ${skyWord(S.pend.k)}: it rises at the start of the next round.`
-    :G.moon.round<S.next?`A planet was bought. The shop opens again in round ${S.next}.`
-    :live?"Buy a planet for the sky. It rises at the start of the next round. Prices (7 + 1d3 + 1d12) are rolled every round."
-    :"You can buy a planet in your own prep phase.";
-  return [`${note} After a purchase, no planet can be bought for six rounds.`,rows]}
-DRAWERS.shop={title:"Planet shop",fill:shopHTML};
+    :G.moon.round<S.next?`A Heavenly Body was bought. The shop opens again in round ${S.next}.`
+    :live?"Buy a Heavenly Body for the sky. It rises at the start of the next round. Prices (7 + 1d3 + 1d12) are rolled every round."
+    :"You can buy a Heavenly Body in your own prep phase.";
+  return [`${note} After a purchase, no Heavenly Body can be bought for six rounds.`,rows]}
+DRAWERS.shop={title:"Heavenly Body shop",fill:shopHTML};
 {const _p=astroPins;astroPins=function(live,V){let h=_p(live,V);if(!shopOn())return h;const S=SH();
   const st=S.pend?`${SHOP_NAME[S.pend.k]} next round`:G.moon.round<S.next?`opens round ${S.next}`:"open";
-  return h+`<button class="spell drawerbtn shop ${live?"":"off"}" id="openShop" data-tip="The planet shop: buy any of the seven planets for the sky. It rises at the start of the next round."><span class="sn">Planet shop<small class="dc">${esc(st)}</small></span><em>›</em></button>`}}
+  return h+`<button class="spell drawerbtn shop ${live?"":"off"}" id="openShop" data-tip="The Heavenly Body shop: buy any of the seven Heavenly Bodies for the sky. It rises at the start of the next round."><span class="sn">Heavenly Body shop<small class="dc">${esc(st)}</small></span><em>›</em></button>`}}
 {const _w=wireAstroPins;wireAstroPins=function(){_w();if($("#openShop"))$("#openShop").onclick=()=>openDrawer("shop")}}
 
-/* ---------- cycles: every sixth round a planet has hung in the sky ---------- */
+/* ---------- cycles: every sixth round a Heavenly Body has hung in the sky ---------- */
 const cycleNow=k=>planetUp(k)&&G.skySince!=null&&G.moon.round>G.skySince&&(G.moon.round-G.skySince)%CYCLE===0;
 const cycleNext=()=>{if(G.skySince==null)return null;let n=G.skySince+CYCLE;while(n<G.moon.round)n+=CYCLE;return n};
 const VENUS_CJ=new Set(["csc","cmine","crep","cram","cheal","ca","cwall"]);   // the Ether's support and base cards
@@ -5985,7 +5980,7 @@ function leaveJail(pl){const P=G.p[pl];if(!P.jail)return;P.cpu=P.jail.cpu;P.jail
 /* the sky's box: what's coming */
 {const _c=skyCommon;skyCommon=function(L){_c(L);const S=SH(),r=G.moon.round;
   if(S.pend)L.push(`${plN(S.pend.by)} bought ${skyWord(S.pend.k)}: it takes the sky next round.`);
-  else if(shopOn()&&r<S.next)L.push(`Planet shop: no planet can be bought until round ${S.next}.`);
+  else if(shopOn()&&r<S.next)L.push(`Heavenly Body shop: no Heavenly Body can be bought until round ${S.next}.`);
   const nx=cycleNext();
   if(planetUp("venus"))L.push(cycleNow("venus")?`<b>Venus's cycle</b> this round: ${G.venusCyc&&G.venusCyc.who.length?G.venusCyc.who.map(plN).join(", ")+" blessed":"nobody blessed"}.`:`Venus's cycle every ${CYCLE} rounds: under her Oath, support and base conjurings cost 1 less and every wounded card heals a heart (without it, a 4 on 1d4). Next: round ${nx}.`);
   if(planetUp("mercury"))L.push(cycleNow("mercury")?"<b>Mercury's cycle</b> this round: the Bank can be robbed.":`Mercury's cycle every ${CYCLE} rounds: a vote bans one school of spells for 1d3 rounds, and the Bank can be robbed. Next: round ${nx}.`);
@@ -5993,5 +5988,214 @@ function leaveJail(pl){const P=G.p[pl];if(!P.jail)return;P.cpu=P.jail.cpu;P.jail
   else if(G.mban)L.push(`Mercury's ban on ${esc(G.mban.school)} starts next round.`)}}
 
 if(window.__EC)Object.assign(window.__EC,{buyPlanet,raisePlanet,venusCycle,mercuryCycle,robBank,goToJail,leaveJail,cycleRound,shopBlock,spellCost:sp=>spellCost(sp),spellBlock:sp=>spellBlock(sp)});
+
+/* ---------------- Prompt 12, part 2c (v29): striking Substances and Heavenly Bodies before a game; the Sun and Saturn judge their buyer ----------------
+   Substances: a small check in every Substance tile strikes it from the game: nobody can pick it and Random never rolls it. One ban list
+     for the whole table (it shows in every seat). At least one stays; Random fades out by itself when only one is left. Only the Beginner
+     can be shared, so it is the last to go: it can be struck only while there are still as many other Substances as seats.
+     Survival has no bans.
+   Planets: a check on each Heavenly Body in "Starting Heavenly Body" strikes it from Astrology: it can't be bought in the Heavenly Body shop and the
+     Firmament can't raise it. The starting Heavenly Body itself can't be struck.
+   The Second Sun and Saturn bought in the shop judge and tax whoever bought them; their favors go to the Bank, like a sky from the
+     start, unless the buyer's own Substance already raises that Heavenly Body (the Firmament's Sun, Yaldabaoth's Saturn). */
+
+const SUB_BAN=new Set((PREF.subBan||[]).filter(k=>PLAYABLE.includes(k)));
+const PLANET_BAN=new Set(PREF.planetBan||[]);
+const SKY_KEY=v=>v==="on"?"moon":v;   // the setup calls the moon "on"
+const saveBans=()=>{PREF.subBan=[...SUB_BAN];PREF.planetBan=[...PLANET_BAN];savePrefs()};
+const setupSurvival=()=>startMode==="survival";
+const seatCount=()=>{const e=$("#pcount");return e?+e.value:2};
+const subsAllowed=()=>PLAYABLE.filter(k=>!SUB_BAN.has(k));
+function banBtn(on,what){const b=document.createElement("button");b.type="button";b.className="bancheck"+(on?" on":"");b.setAttribute("aria-pressed",on);
+  b.setAttribute("aria-label",on?`${what} is allowed in this game. Click to strike it.`:`${what} is struck from this game. Click to allow it.`);b.dataset.tip=on?"Allowed. Click to strike it from this game.":"Struck from this game. Click to allow it again.";return b}
+
+/* ---------- the rules for striking a Substance ---------- */
+function subFloorFix(){const N=seatCount();if(SUB_BAN.has("beginner")&&subsAllowed().length<N){SUB_BAN.delete("beginner");saveBans();return true}return false}
+function toggleSub(k){
+  if(SUB_BAN.has(k)){SUB_BAN.delete(k);saveBans();return true}
+  const N=seatCount(),after=subsAllowed().filter(x=>x!==k);
+  if(!after.length){flash("At least one Substance has to stay.");return false}
+  if(!after.includes("beginner")&&after.length<N){
+    flash(k==="beginner"?`The Beginner stays until ${N} other Substances are allowed: ${N} players need ${N} Substances, and only the Beginner can be shared.`:`With the Beginner struck, ${N} players need at least ${N} Substances.`);return false}
+  SUB_BAN.add(k);saveBans();return true}
+/* seats sitting on a struck Substance move to Random (or to the only one left) */
+function fixSeats(root){
+  const A=subsAllowed();
+  root.querySelectorAll('.seat input[name^="tr"]:checked').forEach(inp=>{const k=inp.value;
+    const bad=k==="random"?A.length<2:SUB_BAN.has(k);if(!bad)return;
+    const to=A.length>=2?"random":A[0];const t=inp.closest(".opts").querySelector(`input[value="${to}"]`);
+    if(t&&t!==inp){t.disabled=false;t.checked=true;t.dispatchEvent(new Event("change",{bubbles:true}))}})}
+
+/* ---------- painting the checks into the setup ---------- */
+function applyBans(root){
+  if(!root)return;const surv=setupSurvival();root.classList.toggle("nobans",surv);
+  if(!surv&&subFloorFix())flash("The Beginner is back: there are more seats than other Substances.");
+  const A=subsAllowed();
+  root.querySelectorAll('.seat label.opt input[name^="tr"]').forEach(inp=>{const lab=inp.closest("label.opt"),k=inp.value;
+    if(surv){lab.classList.remove("banned");return}
+    const isRand=k==="random",banned=isRand?A.length<2:SUB_BAN.has(k);
+    lab.classList.toggle("banned",banned);
+    if(banned)inp.disabled=true;else if(!lab.classList.contains("off"))inp.disabled=false;
+    if(isRand){lab.dataset.autonote=banned?"Random needs two Substances to choose from.":"";return}
+    let b=lab.querySelector(":scope > .bancheck");if(!b){b=banBtn(!banned,TRIBES[k].name);b.dataset.sub=k;lab.appendChild(b)}
+    else if(b.classList.contains("on")===banned){const nb=banBtn(!banned,TRIBES[k].name);nb.dataset.sub=k;b.replaceWith(nb)}});
+  if(!surv)fixSeats(root);
+  const sel=val("omoonon");
+  root.querySelectorAll('.skyopts label.opt input[name="omoonon"]').forEach(inp=>{const lab=inp.closest("label.opt"),v=inp.value;if(v==="off")return;
+    const k=SKY_KEY(v);if(v===sel&&PLANET_BAN.has(k)){PLANET_BAN.delete(k);saveBans()}
+    const struck=PLANET_BAN.has(k);lab.classList.toggle("struck",struck);
+    let b=lab.querySelector(":scope > .bancheck");const nm=SHOP_NAME[k]||k;
+    if(!b){b=banBtn(!struck,nm);b.dataset.planet=v;lab.appendChild(b)}else if(b.classList.contains("on")===struck){const nb=banBtn(!struck,nm);nb.dataset.planet=v;b.replaceWith(nb)}});
+  let note=root.querySelector("#plbannote");const sk=root.querySelector(".skyopts");
+  if(sk&&!note){note=document.createElement("p");note.id="plbannote";note.className="dim fixednote";sk.after(note)}
+  const nt=PLANET_BAN.size?`Struck from Astrology (no Heavenly Body shop, no Firmament): ${[...PLANET_BAN].map(k=>SHOP_NAME[k]||k).join(", ")}.`:"The check on a Heavenly Body strikes it from Astrology for this game: nobody can buy it in the Heavenly Body shop and the Firmament can't raise it.";
+  if(note&&note.textContent!==nt)note.textContent=nt;   // only when it changes: the setup watches itself for changes
+}
+{const _c=compactSetup;compactSetup=function(root){_c(root);root=root||document.querySelector(".ovbox.setup");if(root)applyBans(root)}}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest(".bancheck");if(!b)return;e.preventDefault();e.stopPropagation();
+  const root=b.closest(".ovbox.setup");if(!root)return;
+  if(b.dataset.sub){if(toggleSub(b.dataset.sub))applyBans(root)}
+  else if(b.dataset.planet){const v=b.dataset.planet,k=SKY_KEY(v);
+    if(!PLANET_BAN.has(k)&&val("omoonon")===v){flash("That is the starting Heavenly Body: pick another start first.");return}
+    PLANET_BAN.has(k)?PLANET_BAN.delete(k):PLANET_BAN.add(k);saveBans();applyBans(root)}},true);
+/* the bans go into the game only from the setup window (tests and quick starts are untouched) */
+{const _sg=startGame;startGame=function(opts){
+  if(document.querySelector("#ov:not([hidden]) .ovbox.setup")&&opts&&opts.mode!=="survival"){opts.subBan=[...SUB_BAN];opts.planetBan=[...PLANET_BAN].filter(k=>k!==SKY_KEY(opts.moon))}
+  return _sg(opts)}}
+
+/* ---------- in the game ---------- */
+const planetStruck=k=>!!(G&&(G.opts.planetBan||[]).includes(k));
+{const _sb=shopBlock;shopBlock=function(k){if(shopOn()&&planetStruck(k))return "Struck from this game.";return _sb(k)}}
+for(const k of ["mars","sun","venus","jupiter","mercury"]){const s=SP(k);if(s){const ok=s.ok;s.ok=()=>!planetStruck(k)&&ok()}}
+{const _pb=spellBlock;spellBlock=function(sp){if(sp&&["mars","sun","venus","jupiter","mercury"].includes(sp.id)&&sp.tribe==="firm"&&planetStruck(sp.id))return "Struck from this game.";return _pb(sp)}}
+
+/* a bought Second Sun or Saturn: its favors go to the Bank and it judges its buyer, unless the buyer's Substance raises it anyway */
+const OWN_PLANET={sun:"firm",saturn:"yald"};
+{const _rp=raisePlanet;raisePlanet=function(){const p=SH().pend;if(!p||G.moon.round<=p.round)return _rp();
+  const k=p.k,own=OWN_PLANET[k]&&G.p[p.by]&&G.p[p.by].tribe===OWN_PLANET[k];
+  _rp();
+  if(k==="sun"&&!own){G.planetBy=null;log(`The Second Sun answers to no one: ${plName(p.by)} is judged like everyone else, and what it takes goes to the Bank.`)}
+  if(k==="saturn"&&!own){G.saturnBy=null;G.saturnDebt=0;log(`Saturn answers to no one: ${plName(p.by)} pays its toll like everyone else, and the toll goes to the Bank.`)}}}
+
+if(window.__EC)Object.assign(window.__EC,{shopBlock:k=>shopBlock(k),raisePlanet:()=>raisePlanet(),SUB_BAN,PLANET_BAN});
+
+/* ---------------- Prompt 12, part 3 (v30): the sky's cycles, its glow, its full paragraph; cooldown bars on spells ----------------
+   Every Heavenly Body with a cycle gets a small strip like the Moon's phases: the Moon's eight phases, Venus's and Mercury's six
+   rounds, the Second Sun's countdown to your next judgement, Saturn's tolls toward your next Puppets (under its Oath). Each piece of a
+   strip has its own tip (hover, or hold on a phone): what happens then and when it comes. The event pieces glow, and the body itself
+   glows (a slow shimmer) while its event is on: the New and Full Moon, a Venus or Mercury cycle round, a toll or a judgement being
+   asked, an eclipse. Clicking the sky shows its lines and then a full paragraph on how it works.
+   Cooldown bars: a thin bar along the bottom of a spell, in its school's color. Uses left this turn (full = ready, empty = used),
+   turns of a cooldown (filling to the right), and anything that blocks a spell for a set time (Jail, Mercury's ban, the Ether ban,
+   the Heavenly Body shop's six rounds). Spells with no limit get no bar. Rob the Bank's bar is gold. */
+
+const SCHOOL_COL={Necromancy:"#4a3d9a",Enchantment:"#e3b944",Curse:"#c8202e",Sorcery:"#2f9a5a",Illusion:"#ec8a2c",Conjuring:"#5b48d6",Astrology:"#2fb8a8",Bank:"#e8c24a"};
+const rnds=n=>`${n} round${n===1?"":"s"}`,trns=n=>`${n} turn${n===1?"":"s"}`;
+
+/* ---------- the strips ---------- */
+const MOON_PH=i=>{const bonus=G.opts.moonBonus!==false;
+  if(i===0)return `Everyone raises 1d2 cards from the grave. Clairvoyance and Naked Hand cost 6.${bonus?" Every defense adds 1d2.":""}${oathNow(view(),"moon")?" Your Oath: 2d2 − 1 more.":""}`;
+  if(i===4)return `The toll: your strongest stack, or every soul and five deck cards. Every deck is shuffled; no drawing and no necromancy. Clairvoyance costs 2, Naked Hand is free.${bonus?" Every attack adds 1d2.":""} One in twenty is a Blood Moon.`;
+  return "Nothing happens."};
+function moonPieces(){const m=G.moon;
+  return MOON.map((n,i)=>{const d=(i-m.i+8)%8,ev=i===0||i===4;
+    const tip=`${n}${d?` (in ${rnds(d)})`:" (now)"}: ${MOON_PH(i)}`;
+    return `<span class="${i===m.i?"on":""}${ev?" ev":""}" data-tip="${esc(tip)}"><svg viewBox="-9 -9 18 18" width="18" height="18"><circle r="7" fill="${m.blood&&i===4?"#3b0608":"#1f1913"}" stroke="#5a4a3a" stroke-width=".6"/><g fill="${m.blood&&i===4?"#d3171e":"#e9e1cc"}">${moonPath(i,7)}</g></svg></span>`}).join("")}
+const pip=(col,ev,filled)=>`<svg viewBox="-9 -9 18 18" width="18" height="18">${ev?`<path d="M0,-7L2,-2L7,0L2,2L0,7L-2,2L-7,0L-2,-2Z" fill="${filled?col:"none"}" stroke="${col}" stroke-width="1"/>`:`<circle r="${filled?4.2:3.6}" fill="${filled?col:"none"}" stroke="${col}" stroke-width="1" opacity="${filled?1:.7}"/>`}</svg>`;
+const CYC_TXT={venus:"Venus's cycle. Under her Oath, support and base cards from the Ether cost 1 less this round and every wounded card of yours heals a heart. Without her Oath, only on a 4 of 1d4.",
+  mercury:"Mercury's cycle. Everyone votes to ban one school of spells for 1d3 rounds from the next round; a tie is a d20 roll-off, and the Oath of Mercury wins it. Anyone can try to Rob the Bank, once."};
+const CYC_COL={venus:"#ffd9a0",mercury:"#b9c8dc"};
+function roundPieces(k){const r=G.moon.round,since=G.skySince!=null&&G.skySince<=r?G.skySince:r,e=r-since;
+  const base=e>0?since+CYCLE*Math.floor((e-1)/CYCLE):since,cur=e>0?((e-1)%CYCLE)+1:0;
+  return Array.from({length:CYCLE},(_,j)=>{const s=j+1,rd=base+s,ev=s===CYCLE,d=rd-r;
+    const tip=`Round ${rd}${d>0?` (in ${rnds(d)})`:d===0?" (now)":""}: ${ev?CYC_TXT[k]:"nothing happens."}`;
+    return `<span class="${s===cur?"on":""}${ev?" ev":""}${s<cur?" past":""}" data-tip="${esc(tip)}">${pip(CYC_COL[k],ev,s<=cur)}</span>`}).join("")}
+function sunPieces(V){const P=G.p[V];if(!P||P.tribe==="firm"||isHorde(V)||P.sunNext==null)return "";
+  const tn=tnOf(V),from=P.sunFrom!=null&&P.sunFrom<P.sunNext?P.sunFrom:P.sunNext-2,n=P.sunNext-from,cur=tn-from;
+  return Array.from({length:n},(_,j)=>{const s=j+1,t=from+s,ev=s===n,d=t-tn;
+    const tip=`Your turn ${t}${d>0?` (in ${trns(d)})`:d===0?" (this turn)":""}: ${ev?"the Second Sun judges you: 1 mana, a wound to one of your stacks, or two deck cards; refuse and you are blind for that turn. Then it waits 2d2 turns again.":"nothing."}`;
+    return `<span class="${s===cur?"on":""}${ev?" ev":""}" data-tip="${esc(tip)}">${pip("#a78bff",ev,s<=cur)}</span>`}).join("")}
+function saturnPieces(V){const P=G.p[V];if(!P||P.oath!=="saturn")return "";const paid=P.satPaid||0;
+  return Array.from({length:9},(_,j)=>{const s=j+1,ev=!!SAT_MILES[s],n=SAT_MILES[s];
+    const tip=`Toll ${s}${s<=paid?" (paid)":s===paid+1?" (next)":""}: ${ev?`Saturn sends ${n} stack${n>1?"s":""} of 1d4 Puppets to fight for you.`:"no Puppets."}${P.satBlock>0?` You betrayed Saturn: the next ${P.satBlock} toll${P.satBlock>1?"s bring":" brings"} no Puppets.`:""}`;
+    return `<span class="${s===paid?"on":""}${ev?" ev":""}" data-tip="${esc(tip)}">${pip(P.satLocked?"#c8202e":"#d8c58a",ev,s<=paid)}</span>`}).join("")}
+moonStrip=function(){
+  const m=G.moon,k=sky(),V=view();let h="",lab="";
+  if(!m.gone){h=moonPieces();lab="Moon phases"}
+  else if(k==="venus"||k==="mercury"){h=roundPieces(k);lab=`${SHOP_NAME[k]}'s cycle`}
+  else if(k==="sun"){h=sunPieces(V);lab="Your next judgement"}
+  else if(k==="saturn"){h=saturnPieces(V);lab="Your tolls to Saturn"}
+  return h?`<div class="mstrip cyc-${k}" aria-label="${lab}">${h}</div>`:""};
+/* a piece of the strip shows its own tip, not the whole sky box */
+document.addEventListener("pointerover",e=>{if(e.target.closest&&e.target.closest(".mstrip [data-tip]")){const p=$("#cinfo");if(p&&p.dataset.hover)p.hidden=true}});
+
+/* ---------- the glow ---------- */
+function skyLit(){const m=G.moon,k=sky();
+  if(G.skyGlow||G.eclipse)return true;
+  if(!m.gone)return m.i===0||m.i===4;
+  if(k==="venus"||k==="mercury")return cycleNow(k);
+  return false}
+{const _ta=turnAsync;turnAsync=async function(pl){const P=G.p[pl];
+  const due=!!P&&!isHorde(pl)&&(planetUp("saturn")&&paysSaturn(pl)||sunUp()&&P.tribe!=="firm"&&P.sunNext!=null&&tnOf(pl)>=P.sunNext);
+  if(due){G.skyGlow=true;render()}
+  try{return await _ta(pl)}finally{if(due){G.skyGlow=false;render()}}}}
+{const _sa=skyAsync;skyAsync=async function(pl){const P=G.p[pl],b=P&&P.sunNext;await _sa(pl);if(P&&P.sunNext!=null&&P.sunNext!==b)P.sunFrom=tnOf(pl)}}
+
+/* ---------- clicking the sky: the whole story in a paragraph ---------- */
+const SKY_PARA={
+ moon:"The Moon turns one phase every round, after everyone has played, through eight phases; two of them do something. At the New Moon everyone raises 1d2 cards from the grave, Clairvoyance and Naked Hand cost 6, and every defense adds 1d2. At the Full Moon everyone pays its toll (their strongest stack, or every soul and five deck cards), every deck is shuffled, nobody draws or casts necromancy, Clairvoyance costs 2 and Naked Hand is free, and every attack adds 1d2. One Full Moon in twenty turns red: a Blood Moon gives New Moon gifts at Full Moon prices, and every card killed falls into the Outer Darkness. Anyone can swear the Oath of the Moon.",
+ saturn:"Saturn hangs in the Moon's place and stops its phases. At the start of each of their turns, everyone who owes it (every enemy of whoever raised it, or everyone if nobody did; never Binah or the Firmament) pays 1: a hand card, the top deck card or 1 mana. Whoever refuses gets a Debt Collector, and every Debt Collector still standing at the start of a round raises the price by one. Those who pay can swear the Oath of Saturn: Puppets fight for them after the 1st, 3rd, 6th and 9th toll, but one missed toll is a betrayal that locks the Oath and sends Saturn's own Puppets after them. Saturn has an eclipse (5% a round) with seven possible outcomes.",
+ mars:"Mars, the Form of Strife, stops the Moon's phases. At the start of each turn, every stack made only of Grunts, Infantry or Puppets has a 5 in 8 chance (1 to 5 on 1d8) of advantage on its next attack. A Leviathan can coil on Mars; its toll and its weak spot come every eighth round. Yaldabaoth can eat Mars, and then it never comes back. Like every Heavenly Body but the Moon, it can be eclipsed (5% a round).",
+ sun:"The Second Sun burns the fog of war away (Delusions still blind). Every 2d2 of your turns it judges you: pay 1 mana, take a wound on one of your stacks, or burn two deck cards; refuse and you are blind for that turn. What it takes goes to whoever raised it, or to the Bank. It never judges the Firmament. Yaldabaoth can make it cry; three times and it goes out as the Black Sun. Anyone else can swear the Oath of the Sun for fire mana, Scorched Earth and Blindness. The Leviathan can't lie on it.",
+ blacksun:"The Second Sun cried three times and went out: this is the Black Sun. The fog of war is back. The Firmament that raised it pays Yaldabaoth 1d2 mana or 1d2 deck cards every 1d2 of its turns. If it falls, it destroys the tile it lands on for good.",
+ venus:"Venus, the Form of Harmony. Whoever raised it chose a gift: +2 mana a turn and +2 maximum for one of their side, or +1 a turn while every enemy gets +2 maximum. Under the Oath of Venus, every turn you start without having attacked a player gives +2 mana and +2 maximum, and each attack on a player costs 1d2 mana and two maximum for 1d3 turns. Every sixth round is Venus's cycle: her sworn pay 1 less for support and base cards from the Ether that round, and every wounded card of theirs heals a heart; anyone else gets the same on a 4 of 1d4. Her eclipse doubles her gifts, heals every card and can mend a betrayal.",
+ jupiter:"Jupiter, the Form of Abundance. Miners in an Ace bring 1d2 a turn instead of 1d2 − 1. Every round two conjurings go on sale. Hand cards can be traded at the Auction, and a Jester's Sacrificial Suicide brings 1d2 − 1 more. Whoever raised it may get a mana when others buy on sale or trade. Under the Oath of Jupiter every conjuring costs one less, unless it already costs one.",
+ mercury:"Mercury, the Form of Guile. Anyone can call a vote for Peace or Total War (everyone must agree), or buy Peace for two rounds. Under the Oath of Mercury, Betrayal, Declare War and Bribe the Banker open up. Every sixth round is Mercury's cycle: everyone votes to ban one school of spells for 1d3 rounds from the next round (a tie is a d20 roll-off, and the Oath of Mercury wins it), and anyone can try to Rob the Bank, once.",
+ eaten:"Yaldabaoth ate what hung here. Nothing turns: no phases, no gifts, no tolls. What was eaten never comes back, but another Heavenly Body can still be raised or bought.",
+ fallen:"The Second Sun fell to the ground and the sky is empty: no phases, no gifts, no tolls, until another Heavenly Body is raised or bought.",
+ off:"This game started with no Heavenly Body: no phases, no gifts, no tolls, no Blood Moon. One can still be raised or bought."};
+let skyClick=0;
+document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("#moon")&&!e.target.closest(".mstrip"))skyClick=Date.now()},true);
+{const _mi=moonInfoHTML;moonInfoHTML=function(){const h=_mi();if(Date.now()-skyClick>400)return h;const k=sky(),t=SKY_PARA[k];if(!t)return h;
+  const shop=shopOn()?` ${SH().pend?`${SHOP_NAME[SH().pend.k]} takes the sky next round.`:G.moon.round<SH().next?`The Heavenly Body shop opens again in round ${SH().next}.`:"Any Heavenly Body can be bought in the Heavenly Body shop (Astrology)."}`:"";
+  return h+`<div class="skypara"><b>How it works</b><p>${esc(t)}${esc(shop)}</p></div>`}}
+
+/* ---------- cooldown bars ---------- */
+function coolOf(sp){
+  if(!G||!sp)return null;const pl=G.active,P=G.p[pl];if(!P)return null;const r=G.moon.round,tn=tnOf(pl);
+  const col=SCHOOL_COL[sp.school]||"#9a9a9a",out=(f,t)=>({f:Math.max(0,Math.min(1,f)),col,t});
+  // a block for a set time: the bar fills back up as it runs out
+  if(P.jail)return out((r-P.jail.from)/(P.jail.until-P.jail.from+1),"In Jail");
+  if(banOn()&&sp.school===G.mban.school)return out((r-G.mban.from+1)/(G.mban.until-G.mban.from+2),"Mercury's ban");
+  if(sp.school==="Conjuring"&&etherBanned(pl))return out(1-(P.etherBan-tn+1)/10,"No Ether");
+  if((sp.id==="robbank"||sp.id==="gamble")&&bankBanned(pl))return out(1-(P.bankBan-tn+1)/10,"No Bank");
+  if(sp.shop&&shopOn()&&r<SH().next)return out(1-(SH().next-r)/SHOP_LOCK,"The Heavenly Body shop is closed");
+  // the spell's own limit
+  if(sp.once)return out(P.once&&P.once[sp.id]?0:1,"Once a game");
+  switch(sp.id){
+    case "bless":return out(G.blessed?0:1,"Once a turn");
+    case "ritual":return out(G.blessed||G.ritual>0?0:1,"Once a turn, before Grave Blessing");
+    case "libation":return out(G.libation?0:1,"Once a turn");
+    case "hunger":return out(1-(P.hungerUses||0)/2,"Twice a turn");
+    case "moonjoker":return oathNow(pl,"moon")?out(1-(P.moonJokers||0)/2,"Twice between Full Moons"):null;
+    case "robbank":return G.mercCyc===r?{f:P.robbed===r?0:1,col:SCHOOL_COL.Bank,t:"One try"}:null;
+    case "ffog":return P.fogReady&&tn<P.fogReady?out(1-(P.fogReady-tn)/3,"Every 3 turns"):out(1,"Every 3 turns");
+    case "cry":{if(!(P.cryReady>tn))return out(1,"Every 1d3 turns");const from=P.cryFrom!=null?P.cryFrom:P.cryReady-3;return out((tn-from)/(P.cryReady-from),"Every 1d3 turns")}
+  }
+  return null}
+{const s=SP("cry");if(s){const run=s.run;s.run=async()=>{me().cryFrom=tnOf(G.active);return run()}}}
+function addBars(root){if(!root||!G)return;
+  root.querySelectorAll("button[data-s],button[data-cast],button[data-buy],#robBank").forEach(b=>{
+    const id=b.dataset.s||b.dataset.cast||b.dataset.buy||(b.id==="robBank"?"robbank":"");const sp=id&&SP(id);let bar=b.querySelector(":scope > .cdbar");
+    const c=sp?coolOf(sp):null;if(!c){if(bar)bar.remove();return}
+    if(!bar){bar=document.createElement("i");bar.className="cdbar";bar.setAttribute("aria-hidden","true");bar.innerHTML="<i></i>";b.appendChild(bar)}
+    bar.style.setProperty("--f",c.f.toFixed(3));bar.style.setProperty("--cc",c.col);bar.classList.toggle("full",c.f>=1);bar.classList.toggle("empty",c.f<=0);b.classList.add("hascd")})}
+{const _rs=renderSpells;renderSpells=function(live){_rs(live);addBars($("#spells"));addBars($("#bankslot"))}}
+{const _fe=fillEther;fillEther=function(){_fe();addBars($("#etherpanel"))}}
+{const _fd=fillDrawer;fillDrawer=function(){_fd();addBars($("#skypanel"))}}
+/* the sky box: lit while its event is on */
+{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;const M=$("#moon");if(M)M.classList.toggle("skylit",skyLit())}}
+
+if(window.__EC)Object.assign(window.__EC,{coolOf,skyLit,moonStrip:()=>moonStrip(),moonInfoHTML:()=>moonInfoHTML()});
 
 })();
