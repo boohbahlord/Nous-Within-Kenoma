@@ -1261,7 +1261,6 @@ html.th-darkfantasy .btn:hover,html.th-darkfantasy .btn:focus-visible{background
 html.th-darkfantasy .btn.ghost{background:#120d12cc;color:var(--amber-hi);border-color:#8a7442}
 html.th-darkfantasy .ovbox,html.th-darkfantasy .pbox,html.th-darkfantasy .cinfo,html.th-darkfantasy .gbar{border-color:#8a7442;box-shadow:0 0 0 1px #00000080,inset 0 0 24px #00000060}
 html.th-darkfantasy .label,html.th-darkfantasy h3{color:#c4c2cc;letter-spacing:.2em}
-html.th-darkfantasy .spell{background:#1a1419d9}
 html.th-darkfantasy #log li{border-bottom-color:#5b283055}
 html.th-earth .btn{color:#0e130d}
 html.th-earth .game h1{color:#cfe08c;text-shadow:0 0 14px #9bbf5e40}
