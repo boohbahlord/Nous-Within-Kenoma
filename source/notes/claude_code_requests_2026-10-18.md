@@ -72,6 +72,11 @@ The earlier to-do list (B1–B9, L1–L10, M1–M3, O1–O3, R1–R4) is in next
 15. Too many Scouts (during v44):
     > i also dont know why there are so mnay scouts in the game, it feels like the deck should only have two scouts and yet there are scouts littering the grave yard and i have way too much out on the field. Is this because of the enemy spam buying them? maybe. but if there are four per deck and i am beginner and have extra that might contribute, idk. u can take a look at it and fix it if neeed be.
 
+16. Free Jack Conjure (during v45):
+    > I dont know why there was a free jack conjure. It should of been that the Jack is operating under the 1d2-1 mana thing if there is a sell, sure, but also, it is supposed to be only one free per turn if they even ended up for free in the ether, because then it is just a matter of spam buying all of them before other players notice.
+17. Free Scout in the Ether (during v45):
+    > the scout in my game was free in the ether is why partly maybe, just like the jack i complained about, that cant be like that. Like i said, idk why the fuck the ether has things for free because it is the moon and it should sell for 1 mana at the lowest. Maybe if it was a special event then maybe some might be free if the rules say so, but it is only one free per turn IF i even allowed that.
+
 ## Digest
 Done and live:
 - C1 Site-wide click sound (v38). C2 Scout: 2-tile diamond; Beginner default (v39). C3 Overdraw: no more draw rolls in a turn after
@@ -151,3 +156,7 @@ were tested with the tab-to-tab stand-in that uses the same logic.
 - 15 fixed (PR 10): two Scouts in every deck (the Beginner had four); the opening Ace brings one (the Beginner's brought two);
   later Aces bring one only while you have no Scout on the field (was every Ace); the Beginner's free Full Moon Scout only while
   they hold fewer than two. The computer only conjures a Scout when it has none, so the enemy wasn't the main cause.
+- 16–17 fixed (PR 11): nothing in the Ether costs less than 1 mana. The free ones came from the Barbarian-slayer's Ether sale
+  (a flat 1 off) and the Venus blessing (1 off support cards, the Scout included). The sale now takes 1d2 − 1 off, rolled once a
+  turn. No Moon phase makes conjuring cheaper.
+- v45 part 1 deployed (PR 11): What you must know (H1), the start toast and the Help title (H2).
