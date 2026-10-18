@@ -51,6 +51,22 @@ The earlier to-do list (B1–B9, L1–L10, M1–M3, O1–O3, R1–R4) is in next
 
 10. > OH! and the dark fantasy theme should have some old pixel like or old bit video game dark fantasy sounding music playing! something that can play in the background and not annoy the player.
 
+11. > Let's add more dark fantasy music, and much in the same vain, some slower too, and then maybe not have it as loud i think too. Make the Dark Fantasy the default theme for Ether's crossroads as well.
+    >
+    > Make the host or player able to decide the NPCs Substance, color, or symbol.
+    >
+    > Make the default substance for computers be Random.
+    >
+    > For any planet Firmament can already by for cheaper, there should be an option removed for the normal expensive planet astrology spells, since they already have their own version. I dont know if there is a summon moon spell in astrology but their should be i didnt check. Also, firmament can still buy the other planets he himself doesnt have the ability to buy.
+    >
+    > There should be a random starting color option and random starting symbol option, both of which are default for the bot or computer.
+    >
+    > Also the Ether option should be obvious to all players in color as to where to find it, and maybe conjuring should go above necromancy in order, and it should have the Ether at the top from within the conjure list, which it might already be, but yeah.
+    >
+    > The menu you use to setup the game before playing shouldnt have horizontal scrolling, i dont like that i have to do that on a computer. Mobile doesnt need to do that btw for any part of that section.
+    >
+    > I think ALL of Ether's Crossroads pages should have this color scheme. The first song you set for dark fantasy is what plays on all the pages within Ether's crossroads on the website. Furthermore, there should be a volume setting with changes in volume by 5% or maybe 1%, and it can go over 100% up to 150%, since we are making it quieter. The songs in game will all randomize. Like i said, the Dark Fantasy theme is the default now, but, we will rename that theme to "Ether's Crossroads"
+
 ## Digest
 Done and live:
 - C1 Site-wide click sound (v38). C2 Scout: 2-tile diamond; Beginner default (v39). C3 Overdraw: no more draw rolls in a turn after
@@ -93,6 +109,18 @@ Built in v41 (all of the following):
 - RM Online rooms: Room title; Room description (limit 200 characters, shown on demand with an info button); player count and a
   player cap; the host's time zone; an "Open" room (no code needed: listed for anyone to join). Needs a shared room list without a
   server: open rooms are announced over a public relay; private rooms keep the code.
+
+To build (v43):
+- MU More dark fantasy songs in the same vein, some slower; quieter overall; a music volume in 5% steps up to 150%; in the game
+  the songs play in random order; on the other Ether's Crossroads pages (landing, rules) the first song plays.
+- TH2 The Dark Fantasy theme is renamed "Ether's Crossroads" and becomes the default; every Ether's Crossroads page (landing,
+  rules, play) wears the chosen theme, by default this one.
+- SE1 Computer seats: Substance, color and symbol can be set by the host/player (their fold opens like a person's);
+  computers default to Random Substance, Random color and Random symbol (new Random options for color and symbol).
+- SE2 The setup window never scrolls sideways, on a computer or a phone.
+- FI The Firmament: the regular (expensive) Astrology spell for a planet it already summons cheaper is hidden from it; it can
+  still buy the planets it has no spell of its own for. A Summon the Moon spell in Astrology if none exists.
+- ET The Ether entry stands out in color for everyone; Conjuring comes before Necromancy; the Ether sits at the top of Conjuring.
 
 ## Status (v41)
 Done: D1 (log fold on PC), FA1–FA3 (Field Automation: setup option, turn-bar button with confirm, configure window, simple modes,
