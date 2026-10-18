@@ -1237,3 +1237,19 @@ body.phone .itab{padding:8px 12px;font-size:13.5px}
 .fanote{margin:8px 0 0}
 #fapanel .fawide{padding:6px 14px 14px}
 #fapanel .fawide .faopts{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+/* ================= v41: rooms ================= */
+.roomset{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.roomset textarea{font:inherit;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:6px 10px;resize:vertical;width:100%}
+.roomset .rmdesc{display:flex;flex-direction:column;gap:4px}
+.roomset .rmrow{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
+.roomset select{font:inherit;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:4px 6px}
+.rmlist{list-style:none;margin:0;padding:0}
+.rmlist li{border-bottom:1px solid var(--rule);padding:8px 0}
+.rmlist .rmtop{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline}
+.rmlist .rmn{color:var(--amber-hi);font-size:13px}
+.rmlist .rmtag{font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--rule);padding:0 6px;color:var(--dim)}
+.rmlist .rmsub{font-size:12.5px}
+.rmlist .rmd>summary{cursor:pointer;color:var(--amber);font-size:13px}
+.rmlist p{margin:6px 0 0}
+#rmInfo h3{margin:0 0 4px;color:var(--amber-hi);font-weight:200}
+.glob .rmline{margin:4px 0 0;width:100%}
