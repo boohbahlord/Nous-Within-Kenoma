@@ -1193,3 +1193,13 @@ body.phone .itab{padding:8px 12px;font-size:13.5px}
 .fogveil{background-image:var(--c1),var(--c2),linear-gradient(#0a080638,#0a080638)!important;opacity:1}
 #board.newmoon .fogveil{background-image:var(--c1),var(--c2),linear-gradient(#02010166,#02010166)!important}
 #board.fullmoon .fogveil{background-image:var(--c1),var(--c2),linear-gradient(#1c263850,#1c263850)!important}
+/* ================= v38: the online lobby ================= */
+.lroster{list-style:none;margin:6px 0 0;padding:0}
+.lroster li{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 0;border-bottom:1px solid var(--rule)}
+.lroster .seatag{margin-left:auto;font-size:12px;letter-spacing:.1em;color:#000;background:var(--amber);padding:1px 8px}
+.lstatus{color:var(--amber-hi);margin:0}
+.glob .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px 16px}
+.glob .mgrid .f{display:flex;flex-direction:column;gap:4px}
+.glob .mgrid select{font:inherit;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:5px 6px}
+.glob .spanel{padding-top:10px}
+.ovbox.setup.glob .spanel{columns:auto!important}
