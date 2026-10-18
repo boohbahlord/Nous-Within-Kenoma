@@ -11,7 +11,7 @@
    hides from you, in fast games, or with reduced motion. */
 
 const FX={
-  on(){return !!G&&!G.opts.fast&&PREF.fx!==false&&!document.hidden&&!matchMedia("(prefers-reduced-motion: reduce)").matches},
+  on(){return !!G&&!G.opts.fast&&PREF.fx!==false&&(PREF.fxCards!==false||PREF.fxMagic!==false)&&!document.hidden&&!matchMedia("(prefers-reduced-motion: reduce)").matches},
   layer(){let l=document.getElementById("fx");if(!l){l=document.createElement("div");l.id="fx";l.setAttribute("aria-hidden","true");document.body.appendChild(l)}return l},
   tile(r,c){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);return t?t.getBoundingClientRect():null},
   rectOf(el){return el?el.getBoundingClientRect():null},
@@ -71,7 +71,7 @@ const later=f=>setTimeout(()=>{try{if(FX.on())f()}catch(e){console.error(e)}},0)
   return _at.apply(this,arguments)}}
 {const _dg=damage;damage=function(r,c,n,defending){const vis=FX.on()&&n>0&&FX.sees(r,c),rect=vis?FX.tile(r,c):null;
   const out=_dg.apply(this,arguments);if(rect&&out!==0)later(()=>FX.hit(rect,"#ff5a4a"));return out}}
-{const _bu=bury;bury=function(card,r,c,st){const rect=FX.on()&&FX.sees(r,c)?FX.tile(r,c):null;const out=_bu.apply(this,arguments);if(rect)later(()=>FX.smoke(rect));return out}}
+{const _bu=bury;bury=function(card,r,c,st){const rect=FX.on()&&FX.sees(r,c)?FX.tile(r,c):null;const out=_bu.apply(this,arguments);if(rect)later(()=>{FX.smoke(rect);FX.skull(rect)});return out}}
 
 /* ---------- sacrifices ---------- */
 {const _sac=sacrifice;sacrifice=function(card,from){const pl=G.active,V=view(),P=G.p[pl];let rect=null,btn=null,m0=effMana(pl);

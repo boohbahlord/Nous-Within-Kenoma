@@ -43,7 +43,7 @@ function playFX(e){window.__fxn=(window.__fxn||0)+1;if(!G)return;const V=view(),
       if(e.snd&&AUD[e.snd])AUD[e.snd]();break}
     case "fogHit":if(e.pl===V)setTimeout(()=>AUD.hit(),260);break;
     case "hit":if(fx&&see(e.r,e.c))FX.hit(T(e.r,e.c),"#ff5a4a");break;
-    case "death":if(e.pl===V||see(e.r,e.c)){if(fx)FX.smoke(T(e.r,e.c));AUD.death()}break;
+    case "death":if(e.pl===V||see(e.r,e.c)){if(fx){const r=T(e.r,e.c);FX.smoke(r);FX.skull(r)}AUD.death()}break;
     case "sac":{const r=e.from==="hand"?(e.pl===V?FX.rectOf($("#hand")):FX.rectOf(barOf(e.pl,".manabar"))):e.from&&(e.pl===V||see(...e.from))?T(...e.from):null;
       if(fx&&r){FX.sigil(r,false);FX.pop(r,`+${e.got}`,"#8f80ee")}if(e.pl===V)AUD.fill();break}
     case "suicide":if(fx&&(e.pl===V||see(e.r,e.c)))FX.sigil(T(e.r,e.c),true);break;

@@ -248,6 +248,8 @@ ${sel("mCtl","Turn buttons",[["bottom","Under the field"],["top","At the top"]],
 ${sel("mCoord","Tile names",[["0","Off"],["1","On"]],PREF.coords?"1":"0")}
 ${sel("mFull","Page width",[["0","Standard"],["1","Full width"]],PREF.full?"1":"0")}
 ${sel("mLines","Background lines",[["1","On"],["0","Off"]],PREF.lines===false?"0":"1")}
+${sel("mAnimC","Card animations",[["1","On"],["0","Off"]],PREF.fxCards===false?"0":"1")}
+${sel("mAnimM","Magic animations",[["1","On"],["0","Off"]],PREF.fxMagic===false?"0":"1")}
 ${sel("mSpeed","Computer speed",[["slow","Slow"],["normal","Normal"],["fast","Fast"]],G.opts.cpuSpeed||"normal")}
 ${sel("mSnd","Sound",[["on","On"],["off","Off"]],SND.on?"on":"off")}
 </div>
@@ -258,7 +260,7 @@ ${+G.opts.timer?`<p><button class="btn ghost" id="mTimer">Turn the phase timer o
   const upd=()=>{savePrefs();applyPrefs();render()};
   $("#mTheme").onchange=e=>{PREF.theme=e.target.value;upd()};$("#mHand").onchange=e=>{PREF.hand=e.target.value;upd()};
   $("#mSel").onchange=e=>{PREF.sel=e.target.value;upd()};$("#mCtl").onchange=e=>{PREF.ctl=e.target.value;upd()};
-  $("#mCoord").onchange=e=>{PREF.coords=e.target.value==="1";upd()};$("#mLines").onchange=e=>{PREF.lines=e.target.value==="1";upd()};$("#mFull").onchange=e=>{PREF.full=e.target.value==="1";upd()};
+  $("#mCoord").onchange=e=>{PREF.coords=e.target.value==="1";upd()};$("#mLines").onchange=e=>{PREF.lines=e.target.value==="1";upd()};$("#mAnimC").onchange=e=>{PREF.fxCards=e.target.value==="1";upd()};$("#mAnimM").onchange=e=>{PREF.fxMagic=e.target.value==="1";upd()};$("#mFull").onchange=e=>{PREF.full=e.target.value==="1";upd()};
   $("#mSpeed").onchange=e=>{G.opts.cpuSpeed=e.target.value};$("#mSnd").onchange=e=>{if((e.target.value==="on")!==SND.on)SND.toggle();render()};
   m.querySelectorAll("[data-mz]").forEach(b=>b.onclick=()=>{const k=b.dataset.mz,lim=k==="ui"?[.8,1.4]:k==="bright"?[.7,1.3]:[.8,1.8];PREF[k]=Math.round(Math.min(lim[1],Math.max(lim[0],PREF[k]+ +b.dataset.d*.1))*10)/10;$("#mz"+k).textContent=Math.round(PREF[k]*100)+"%";upd()});
   if($("#mTimer"))$("#mTimer").onclick=()=>{G.opts.timer=0;stopTimer();log("The phase timer is switched off for the rest of the game.","event");$("#mTimer").remove()};

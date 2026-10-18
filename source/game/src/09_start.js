@@ -167,6 +167,10 @@ ${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the 
 <fieldset class="pf pc-only"><legend>Page width</legend><div class="opts">
 <label class="opt"><input type="radio" name="dfull" value="0" ${PREF.full?"":"checked"}><span>Standard<small>The page keeps the width of the rest of the site.</small></span></label>
 <label class="opt"><input type="radio" name="dfull" value="1" ${PREF.full?"checked":""}><span>Full width (default)<small>The page fills the whole width of a wide screen, and the field grows with it. The default on a computer.</small></span></label></div></fieldset>
+<fieldset class="pf"><legend>Animations</legend><div class="opts">
+<label class="opt"><input type="checkbox" id="danimc" ${PREF.fxCards!==false?"checked":""}><span>Card animations (on by default)<small>Moves, strikes, wounds, deaths (a white skull rises), sacrifices, mana and shuffles.</small></span></label>
+<label class="opt"><input type="checkbox" id="danimm" ${PREF.fxMagic!==false?"checked":""}><span>Magic and other animations (on by default)<small>Spells, the sky, fire and weather, and the drifting fog. Off, the fog of war stands still.</small></span></label></div>
+<p class="dim">Turning animations off helps slower phones. Also in the Display bar at the bottom of the game.</p></fieldset>
 <fieldset class="pf"><legend>Background lines</legend><div class="opts">
 <label class="opt"><input type="radio" name="dlines" value="1" ${PREF.lines!==false?"checked":""}><span>On (default)<small>Thin black lines across the page behind everything, and now and then a black bar.</small></span></label>
 <label class="opt"><input type="radio" name="dlines" value="0" ${PREF.lines===false?"checked":""}><span>Off<small>A plain background, on every page of the site.</small></span></label></div></fieldset>
@@ -293,7 +297,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
       players=[A[0],B[0],A[1],B[1]];
     }
     if(mode==="survival")players.push({name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>!players.some(p=>p.solid===s)))||"dodeca",cpu:"horde"});
-    PREF.hand=val("dhand")||PREF.hand;PREF.sel=val("dsel")||PREF.sel;PREF.ctl=val("dctl")||PREF.ctl;PREF.theme=val("dtheme")??PREF.theme;PREF.coords=val("dcoord")==="1";PREF.full=val("dfull")==="1";PREF.lines=val("dlines")!=="0";PREF.bright=+($("#dbright")||{}).value||1;savePrefs();applyPrefs();
+    PREF.hand=val("dhand")||PREF.hand;PREF.sel=val("dsel")||PREF.sel;PREF.ctl=val("dctl")||PREF.ctl;PREF.theme=val("dtheme")??PREF.theme;PREF.coords=val("dcoord")==="1";PREF.full=val("dfull")==="1";PREF.lines=val("dlines")!=="0";if($("#danimc")){PREF.fxCards=$("#danimc").checked;PREF.fxMagic=$("#danimm").checked}PREF.bright=+($("#dbright")||{}).value||1;savePrefs();applyPrefs();
     startGame({mode,players,mid:mode==="survival"||!!($("#omid")&&$("#omid").checked),aceLock:$("#olock").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off","saturn"].includes(val("omoonon")||"on"),
       map:val("omap"),cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
       decks:+val("odecks"),specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:+val("odecks")===1&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
