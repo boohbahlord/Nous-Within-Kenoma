@@ -2090,7 +2090,7 @@ const INFO={
  trafficker:["Trafficker (Tiphareth of Kether)","Trafficker",[["Score","8 + 1d8 on attack, stacks like an Infantry"],["Chains","any enemy card that dies on the eight tiles around it, three prisoners at most"],["Life for Sell","puts a prisoner up at the Auction"],["Falls","its prisoners go free into the grave"]],"Three in Tiphareth of Kether's deck."],
  debt:["Debt Collector (Yaldabaoth)","Collector",[["Score","copies the leading card of whatever it fights, natural value and die, without its advantage"],["Rises","when an enemy refuses to pay Saturn"],["Price","each one still standing at a new round raises Saturn's price by 1"]],"Saturn's warden."],
  goatbull:["Goatbull (Jester Fool)","Goatbull",[["Comes back","when the BullGoat dies it goes back into the deck, and is drawn again as the Goatbull"],["Hearts","two"],["Horns","10d2 + 1d10, up close"],["Charge","10 + 2d20 at an enemy exactly two tiles away in a straight line with nothing between; it closes the gap"],["Stomp","an ability check: its 1d20 with advantage against the target's 1d20 with disadvantage (Samson rolls plain). Win: the stack is Behooved, pinned for 2d2 of its turns (1d2 on a tie), and can't move or attack. A 16 or more that the target doesn't match deals 1 damage; each later pinned round checks again and needs 5 less (11, then 6…)"],["Attacked","a Goatbull attacked while it pins loses its advantage in every later check"],["Falls","into the Outer Darkness"]],"The BullGoat, turned around."],
- scout:["Scout (support)","Scout",[["Sight","two tiles out through the fog of war, in a diamond (straight two, diagonal one); everything it sees, Assassins, ambushers, face-down cards and enemy Scouts included, is uncovered"],["Hidden","enemies see it only from right beside it, or with their own Scout in sight of it"],["Fights","never: no attack and no defense"],["Moves","one tile straight, two diagonal, or two forward or back"],["Comes","two in every deck; one with every Ace you put down (two with the Beginner's first), except for Lucifer & Ouroboros; the rest wait in the Ether for 1 mana"]],"A horse and a rider who sees far."],
+ scout:["Scout (support)","Scout",[["Sight","two tiles out through the fog of war, in a diamond (straight two, diagonal one); everything it sees, Assassins, ambushers, face-down cards and enemy Scouts included, is uncovered"],["Hidden","enemies see it only from right beside it, or with their own Scout in sight of it"],["Fights","never: no attack and no defense"],["Moves","one tile straight, two diagonal, or two forward or back"],["Comes","two in every deck; one with your opening Ace, and one with a later Ace while you have no Scout on the field (none for Lucifer & Ouroboros); the rest wait in the Ether for 1 mana"]],"A horse and a rider who sees far."],
  assassin:["Assassin (special)","Assassin",[["Hearts","two (a pair of Assassins has three)"],["Attack","10 + 1d12, the roll of a Jack"],["Defense","8, like an Infantry"],["Hidden","enemies see it only from right beside it, or with a Scout in sight of it"],["Moves","one tile straight, two diagonal, or two forward or back"],["Ambush","it can wait in ambush and strike, with advantage, any enemy that steps beside it"],["Stacks","with one other Assassin, nothing else"],["Conjure","2d2 + 1 mana; four per deck wait in the Ether"]],"The dagger in the dark."],
  archer:["Archer (standard)","Archer",[["Bow","1d20 + 1d10 at a stack exactly two tiles away, straight or diagonal (not the tiles right beside it); a miss costs it nothing"],["Suppress","instead of a shot: the target has disadvantage on its next attack, unless it waits out 1d2 of its turns; the Archer then rests 1d2 turns"],["Defense","none"],["Stacks","alone, with a Queen, or inside an Ace, the Tree or a Wall; never with another Archer"],["Conjure","1d2 mana (1 for the Beginner); eight per deck wait in the Ether"]],"A bow and an arrow."],
  cannon:["Cannon (standard)","Cannon",[["Fire","2d20 at a stack up to three tiles away in any direction, once every 1d2 + 2 turns; a miss costs it nothing"],["Against bases","two damage to a Wall; it can't take an Ace's last heart, and the Tree takes nothing from it"],["Defense","none; it can be captured when it stands alone"],["Moves","one step"],["Stacks","alone, or inside a base, where it still fires"],["Conjure","6 mana; one per deck"]],"Slow, loud and heavy."],
@@ -3656,25 +3656,28 @@ function deckCount(){const o=G.opts,L=o.layout||"duel",n=G.p.filter(P=>!isHorde(
   if(L==="duel")return o.decks||2;if(L.startsWith("team"))return 2;return o.ffaDeck==="half"?Math.ceil(n/2):n}
 function fogDecks(pls){
   const n=deckCount();let scouts=8*n,ass=4*n;
-  for(const pl of pls){const P=G.p[pl],k=P.tribe==="beginner"?4:2,a=P.tribe==="beginner"?1:0;
+  for(const pl of pls){const P=G.p[pl],k=2,a=P.tribe==="beginner"?1:0;   // v44: two Scouts in every deck, the Beginner's too
     for(let i=0;i<k&&scouts>0;i++){P.deck.push(mkUnit("scout",pl));scouts--}
     for(let i=0;i<a&&ass>0;i++){P.deck.push(mkUnit("assassin",pl));ass--}
     shuffle(P.deck)}
   for(let i=0;i<scouts;i++)G.ether.push(mkUnit("scout",null));
   for(let i=0;i<ass;i++)G.ether.push(mkUnit("assassin",null));
 }
-/* every Ace that goes down brings a Scout from the Ether (two for the Beginner's first), except for Lucifer & Ouroboros */
+/* v44: your opening Ace brings a Scout from the Ether; a later Ace brings one only while you have no Scout on the field.
+   Lucifer & Ouroboros get none. The Beginner's first Ace also brings a Miner. */
 function aceScout(pl,r,c,first){
   const P=G.p[pl],st=G.board[r][c];if(!st||P.tribe==="lucifer"||isHorde(pl)||G.bank&&G.bank.dead)return;
-  const k=first&&P.tribe==="beginner"?2:1;let got=0;
-  for(let i=0;i<k;i++){if(st.cards.length>6)break;const j=G.ether.findIndex(x=>x.unit==="scout");if(j<0)break;const s=G.ether.splice(j,1)[0];s.owner=pl;st.cards.push(s);got++}
+  let got=0;
+  if((first||!stacksOf(pl).some(x=>x.st!==st&&hasK(x.st,"scout")))&&st.cards.length<=6){const j=G.ether.findIndex(x=>x.unit==="scout");
+    if(j>=0){const s=G.ether.splice(j,1)[0];s.owner=pl;st.cards.push(s);got=1}}
   if(first&&P.tribe==="beginner"){const j=G.ether.findIndex(x=>x.unit==="miner");if(j>=0){const m=G.ether.splice(j,1)[0];m.owner=pl;m.inSlot=0;st.cards.push(m);log(`A Miner takes ${plName(pl)}'s first miner slot.`)}}
-  if(got)fogLog(pl,r,c,`${got===1?"A Scout rides":"Two Scouts ride"} out of the Ether to ${plName(pl)}.`);
-  if(got)log(`${got===1?"A Scout":"Two Scouts"} ride${got===1?"s":""} out of the Ether into ${plName(pl)}'s Ace on ${coord(r,c)}.`);
+  if(got){fogLog(pl,r,c,`A Scout rides out of the Ether to ${plName(pl)}.`);log(`A Scout rides out of the Ether into ${plName(pl)}'s Ace on ${coord(r,c)}.`)}
 }
 function fullMoonScout(){   // the Beginner's free Scout each Full Moon
   if(G.moon.i!==4)return;
-  for(const P of G.p){if(P.out||P.tribe!=="beginner")continue;const j=G.ether.findIndex(x=>x.unit==="scout");if(j<0)continue;
+  for(const P of G.p){if(P.out||P.tribe!=="beginner")continue;
+    if(stacksOf(P.i).reduce((n,x)=>n+x.st.cards.filter(c=>c.unit==="scout").length,0)+P.hand.filter(c=>c.unit==="scout").length>=2)continue;   // v44: only while they hold fewer than two
+    const j=G.ether.findIndex(x=>x.unit==="scout");if(j<0)continue;
     const s=G.ether.splice(j,1)[0];s.owner=P.i;if(P.hand.length<handCap(P.i))P.hand.push(s);else{P.deck.push(s);shuffle(P.deck)}
     log(`The Full Moon sends ${plName(P.i)} a free Scout from the Ether.`)}
 }
