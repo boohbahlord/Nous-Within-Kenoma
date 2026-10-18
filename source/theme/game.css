@@ -1175,3 +1175,15 @@ html.still-magic .foldable.foldglow>h3[data-fold]{text-shadow:0 0 8px var(--ambe
 #animask label.chk{display:flex;gap:10px;align-items:flex-start;margin:12px 0;cursor:pointer}
 #animask label.chk input{margin-top:3px;width:20px;height:20px;flex:none;accent-color:var(--amber)}
 #animask label.chk small{display:block;color:var(--dim);font-size:12.5px;margin-top:2px}
+/* ================= v38: the info panels as folders ================= */
+.ctree{padding:6px 12px 2px}
+details.cinfo details.ifold{margin:6px 0;border-left:1px solid var(--rule);padding-left:10px}
+details.cinfo details.ifold>summary{padding:6px 0;letter-spacing:.06em;text-transform:none;font-size:14px}
+details.cinfo details.ifold>summary .ifn{font-size:11.5px;color:var(--dim);margin-left:6px}
+details.cinfo details.ifold>.itabs,.tabbed>.itabs{padding:4px 0 8px}
+details.cinfo details.ifold .tabbed{margin:0}
+.tbody{border-top:1px solid var(--rule);padding:6px 0 10px;font-size:13.5px}
+.tbody h4{font-size:15px;color:var(--amber-hi);font-weight:200;margin:6px 0 4px}
+.tbody h4 span{font-size:12px;color:var(--dim);margin-left:6px}
+.ctree #ibody{padding:4px 0 12px}
+body.phone .itab{padding:8px 12px;font-size:13.5px}

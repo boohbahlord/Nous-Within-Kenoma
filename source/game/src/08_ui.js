@@ -189,7 +189,7 @@ function render(){
   $("#mytray").innerHTML=hidden?"":trayHTML(P,V);
   // controls
   const ctl=[];
-  if(live&&G.phase==="draw")ctl.push(`<button class="btn" id="d4" ${P.deck.length?"":"disabled"}>Roll d4 and draw</button>`);
+  if(live&&G.phase==="draw")ctl.push(`<button class="btn" id="d4" ${P.deck.length&&!overdrewNow(G.active)?"":"disabled"}>${overdrewNow(G.active)?"Overdrew: no more draws":"Roll d4 and draw"}</button>`);
   if(live&&G.phase!=="moon")ctl.push(`<button class="btn ghost" id="next">${G.phase==="setup"?"Done setting up":G.nextLabel||"Next →"}</button>`);
   if(+G.opts.timer&&!G.over)ctl.push(`<span id="timer" class="timer" aria-live="off" title="time left in this phase">${G.deadline?Math.max(0,Math.ceil((G.deadline-Date.now())/1000))+"s":""}</span>`);
   ctl.push(`<button class="btn ghost sm" id="snd" aria-pressed="${SND.on}">sound: ${SND.on?"on":"off"}</button>`);
