@@ -2,6 +2,7 @@
 import json, html, os, re, shutil
 
 OUT = 'site'
+SITE_V = '42'   # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 os.makedirs(OUT, exist_ok=True)
 shutil.copy('theme/site.js', f'{OUT}/site.js')
 open(f'{OUT}/site.css', 'w').write(open('theme/site.css').read().replace('/*@@GAME@@*/\n', ''))
@@ -19,8 +20,8 @@ def head(title, extra='', static=1, fx='strings bars', theme=''):
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>{esc(title)}</title>
 <link rel="preload" href="cascadia-code-latin-200-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="site.css">{extra}
-<script src="site.js" defer></script>
+<link rel="stylesheet" href="site.css?v={SITE_V}">{extra}
+<script src="site.js?v={SITE_V}" defer></script>
 </head>
 <body data-static="{static}" data-fx="{fx}">
 '''
