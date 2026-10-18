@@ -415,8 +415,8 @@ const SND=(()=>{
   try{on=localStorage.getItem("ec-sound")!=="off"}catch(e){}
   function ctx(){
     if(!on||G&&G.opts.fast)return null;
-    try{if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();master=ac.createGain();master.gain.value=1;master.connect(ac.destination)}
-      if(ac.state==="suspended")ac.resume();}catch(e){return null}
+    try{if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();master=ac.createGain();master.gain.value=sfxV();master.connect(ac.destination)}
+      master.gain.value=sfxV();if(ac.state==="suspended")ac.resume();}catch(e){return null}
     return ac;
   }
   function noise(a,dur){const b=a.createBuffer(1,Math.max(1,Math.floor(a.sampleRate*dur)),a.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const s=a.createBufferSource();s.buffer=b;return s}
@@ -1095,7 +1095,7 @@ const selEnemy=()=>selStack()&&isEnemy(selStack().owner,G.active);
 /* spells aimed at another player: with several enemies, the caster picks one */
 async function pickFoe(id,title){const es=enemiesOf(G.active).filter(pl=>!isHorde(pl));const t=es.length<=1?es[0]:await ask(G.active,{kind:"player",id,title,players:es});G.histTarget=t;return t}
 const selOwnJoker=()=>selOwn()&&hasK(selStack(),"joker");
-const SCHOOLS=["Necromancy","Enchantment","Curse","Sorcery","Illusion","Conjuring"];
+const SCHOOLS=["Conjuring","Necromancy","Enchantment","Curse","Sorcery","Illusion"];   // v43: Conjuring (and the Ether) first
 const SPELLS=[
  {id:"ritual",name:"Ritual Dice",cost:1,school:"Necromancy",text:"+2d6 to this turn's Grave Blessing.",ok:()=>!G.blessed&&G.ritual===0&&blessCap(G.active)>0,run:async()=>{G.ritual=2;log("Ritual Dice: two more dice for the Grave Blessing.")}},
  {id:"bless",name:"Grave Blessing",cost:0,school:"Necromancy",text:"Free, once a turn, before any other mana is spent. Roll 1d6, +1d6 per Ace you have on the field, +2d6 from Ritual Dice, 6 dice at most. Each natural 6 raises a card from the grave. Every card you overdrew to the grave takes 1d6 off the maximum.",ok:()=>!G.blessed&&!G.spentOther&&G.grave.length>0&&blessCap(G.active)>0,run:blessing},
@@ -1917,12 +1917,11 @@ function render(){
   if(live&&G.phase==="draw")ctl.push(`<button class="btn" id="d4" ${P.deck.length&&!overdrewNow(G.active)?"":"disabled"}>${overdrewNow(G.active)?"Overdrew: no more draws":"Roll d4 and draw"}</button>`);
   if(live&&G.phase!=="moon")ctl.push(`<button class="btn ghost" id="next">${G.phase==="setup"?"Done setting up":G.nextLabel||"Next →"}</button>`);
   if(+G.opts.timer&&!G.over)ctl.push(`<span id="timer" class="timer" aria-live="off" title="time left in this phase">${G.deadline?Math.max(0,Math.ceil((G.deadline-Date.now())/1000))+"s":""}</span>`);
-  ctl.push(`<button class="btn ghost sm" id="snd" aria-pressed="${SND.on}">sound: ${SND.on?"on":"off"}</button>`);
   $("#controls").innerHTML=ctl.join("");
   const ap=$("#actph");if(ap)ap.innerHTML=G.over?"Game over":G.passing?"":me().cpu?`${esc(me().name)} is playing…`:G.phase==="setup"?"<b>Setup</b>":G.phase==="moon"?"<b>Moon</b>":`<b>${({draw:"Draw",prep:"Prep",attack:"Attack"})[G.phase]||""}</b> · ${esc(me().name)}`;
   if($("#d4"))$("#d4").onclick=()=>{if(!canAct())return;rollDraw();render()};
   if($("#next"))$("#next").onclick=nextPhase;
-  $("#snd").onclick=()=>{SND.toggle();render()};
+  paintSndTop();
   renderSel(live);
   renderSpells(live);fitSide();
   document.querySelectorAll("[data-hist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.hist,b)});
@@ -2133,16 +2132,17 @@ function seatForm(i,S,mode,L,taken){taken=taken||new Set();
   let type;
   if(mode==="survival"||mode==="cpu"&&i===0)type=`<span class="dim">${mode==="cpu"?"You":"Human"}</span>`;
   else type=`<label class="f">Plays as <select data-seat="${i}" data-k="type">${(mode==="cpu"?[]:[["human","Human"]]).concat([["easy","Computer · Easy"],["medium","Computer · Medium"],["hard","Computer · Hard"]]).map(([v,t])=>`<option value="${v}" ${S.type===v?"selected":""}>${t}</option>`).join("")}</select></label>`;
-  return `<fieldset class="pf seat" style="--pc:${TRIBES[S.tribe]&&TRIBES[S.tribe].color||S.color}"><legend>P${i+1} ${team}</legend>
+  const pcol=TRIBES[S.tribe]&&TRIBES[S.tribe].color||(S.color==="random"?"#c9a274":S.color);
+  return `<fieldset class="pf seat" style="--pc:${pcol}"><legend>P${i+1} ${team}</legend>
 <div class="srow"><label class="f">Name <input data-seat="${i}" data-k="name" value="${esc(S.name)}" maxlength="20"></label>${type}</div>
-<details class="look" ${S.type==="human"||tm||S.open?"open":""}><summary>${tm?"Team, Substance, color and symbol":"Substance, color and symbol"}</summary>
+<details class="look" ${S.type==="human"||tm||S.open||!isPhone()?"open":""}><summary>${tm?"Team, Substance, color and symbol":"Substance, color and symbol"}${S.type!=="human"?` <span class="dim">· ${esc((TRIBES[S.tribe]||{}).name||"Random")}, ${S.color==="random"?"random color":"color"}, ${S.solid==="random"?"random symbol":"symbol"}</span>`:""}</summary>
 ${tm?`<div class="f"><span>Team</span><div class="opts">${[0,1].map(t=>`<label class="opt"><input type="radio" name="tm${n}" data-seat="${i}" data-k="team" value="${t}" ${S.team===t?"checked":""}><span>${t?"Side B":"Side A"}<small>${t?"Plays against Side A.":"Plays against Side B."} Each side needs two players.</small></span></label>`).join("")}</div></div>`:""}
 <div class="f"><span>Substance</span><div class="opts subs">${Object.entries(TRIBES).map(([k,t])=>{const off=t.soon||taken.has(k)&&k!==S.tribe;return `<label class="opt${off?" off":""}"><input type="radio" name="tr${n}" data-seat="${i}" data-k="tribe" value="${k}" ${k===S.tribe?"checked":""} ${off?"disabled":""}><span>${t.solid?`<i class="subsym">${solidSVG(t.solid,t.color||"#f3d6a6",18)}</i>`:""}${t.name}<small>${taken.has(k)&&k!==S.tribe?"Another player has it: only the Beginner can be played by more than one player.":t.sub}</small></span></label>`}).join("")}</div></div>
 ${(()=>{const T=TRIBES[S.tribe]||{};
   if(T.color)return `<p class="dim fixednote">${esc(T.name)} always plays in its own color and symbol: ${solidSVG(T.solid,T.color,20)}</p>`;
-  const colors=`<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex])=>`<label class="sw" title="${nm}"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="${hex}" ${hex===S.color?"checked":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}</div></div>`;
+  const colors=`<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex])=>`<label class="sw" title="${nm}"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="${hex}" ${hex===S.color?"checked":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}<label class="sw swrand" title="Random: a color nobody else has"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="random" ${S.color==="random"?"checked":""}><span>?</span><em>Random</em></label></div></div>`;
   if(T.solid)return colors+`<p class="dim fixednote">${esc(T.name)} always bears its own symbol: ${solidSVG(T.solid,S.color,20)}</p>`;
-  return colors+`<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="${k}" ${k===S.solid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}</div></div>`;
+  return colors+`<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="${k}" ${k===S.solid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}<label class="so-opt" title="Random: a symbol nobody else has"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="random" ${S.solid==="random"?"checked":""}><span><b class="sorand">?</b><em>Random</em></span></label></div></div>`;
 })()}
 </details></fieldset>`;
 }
@@ -2159,7 +2159,7 @@ function showStart(){
   }
   const mode=startMode,M=MODES.find(m=>m[0]===mode);
   const seatsS=[0,1,2,3].map(i=>({name:mode==="survival"&&i===0?"Survivor":`P${i+1}`,type:mode==="survival"||i===0?"human":mode==="cpu"?"medium":"human",
-    tribe:"beginner",color:COLORS[SEATCOL[i]][1],solid:SEATSOL[i],team:i%2,named:false}));
+    tribe:mode==="cpu"&&i>0?"random":"beginner",color:mode==="cpu"&&i>0?"random":COLORS[SEATCOL[i]][1],solid:mode==="cpu"&&i>0?"random":SEATSOL[i],team:i%2,named:false}));
   let curLayout=null;
   const counts=mode==="survival"?[1,2,3,4]:[2,3,4];
   const forms=`<fieldset class="pf"><legend>Table</legend>
@@ -2222,7 +2222,7 @@ ${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the 
 <label class="opt"><input type="radio" name="dlines" value="1" ${PREF.lines!==false?"checked":""}><span>On (default)<small>Thin black lines across the page behind everything, and now and then a black bar.</small></span></label>
 <label class="opt"><input type="radio" name="dlines" value="0" ${PREF.lines===false?"checked":""}><span>Off<small>A plain background, on every page of the site.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Brightness</legend><label class="f">Brightness <select id="dbright">${[.7,.8,.9,1,1.1,1.2,1.3].map(v=>`<option value="${v}" ${Math.abs((PREF.bright||1)-v)<.01?"selected":""}>${Math.round(v*100)}%${v===1?" (default)":""}</option>`).join("")}</select></label><p class="dim">For the whole site. Also in the Display bar at the bottom of the game.</p></fieldset>
-<fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({"":"The burnt amber of the site.",dull:"The burnt amber, duller and less orange, with a faint yellow tint.",office:"White pages, light grey panels and a blue accent, like an office suite.",officedark:"The Office theme in charcoal, for the night.",earth:"A night druid\u2019s grove: dark soil, moss and lichen gold.",darkfantasy:"An old dungeon: grey and crimson, gold and silver, with music.",jester:"Black, after chapter 26.",ten:"White on indigo, after chapters 1–4.",satan:"Crimson, after chapter 23."})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, text size, hand position, tile names, page width and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
+<fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({darkfantasy:"The default: an old dungeon in grey and crimson, gold and silver, with music.","":"The burnt amber of the rest of the site.",dull:"The burnt amber, duller and less orange, with a faint yellow tint.",office:"White pages, light grey panels and a blue accent, like an office suite.",officedark:"The Office theme in charcoal, for the night.",earth:"A night druid\u2019s grove: dark soil, moss and lichen gold.",jester:"Black, after chapter 26.",ten:"White on indigo, after chapters 1–4.",satan:"Crimson, after chapter 23."})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, text size, hand position, tile names, page width and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
   const suitSel=`<div id="suitpick" hidden><p class="dim">${mode==="local"?"P1 picks; P2 gets the other two suits.":mode==="cpu"?"You pick; the computer gets the other two suits.":"You pick; the other two suits wait in the Ether."}</p>
 <label class="f">Red suit <select id="osuitR"><option value="H">♥ Hearts</option><option value="D">♦ Diamonds</option></select></label>
 <label class="f">Black suit <select id="osuitB"><option value="S">♠ Spades</option><option value="C">♣ Clubs</option></select></label></div>`;
@@ -2276,7 +2276,9 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     $("#seats").querySelectorAll("[data-seat]").forEach(el=>el.addEventListener(el.tagName==="INPUT"&&el.type==="text"?"input":"change",()=>{
       const S=seatsS[+el.dataset.seat],k=el.dataset.k;S[k]=el.value;if(k==="name")S.named=true;
       if(k==="color")el.closest(".seat").style.setProperty("--pc",el.value);
-      if(k==="type"){el.closest(".seat").querySelector(".look").open=el.value==="human";turnUp()}
+      if(k==="tribe"||k==="color"||k==="solid")S.lookSet=true;
+      if(k==="type"){if(!S.lookSet){const i2=+el.dataset.seat,cpu=el.value!=="human";S.tribe=cpu?"random":"beginner";S.color=cpu?"random":COLORS[SEATCOL[i2]][1];S.solid=cpu?"random":SEATSOL[i2];drawSeats();return}
+        el.closest(".seat").querySelector(".look").open=el.value==="human"||!isPhone();turnUp()}
       if(k==="team"){S.team=+el.value;drawSeats()}
       if(k==="tribe"){S.open=true;drawSeats()}
     }));
@@ -2337,7 +2339,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     });
     const blk=skyBlocked(val("omoonon")),bad=players.find(p=>blk.includes(p.tribe));if(bad){flash(`${TRIBES[bad.tribe].name} can't be played with that Heavenly Body in the sky.`);return}
     for(const t of Object.keys(TRIBES))if(t!=="random"&&t!=="beginner"&&players.filter(p=>p.tribe===t).length>1){flash(`Only one player can be ${TRIBES[t].name}. The Beginner is the only Substance more than one player can share.`);return}
-    if(new Set(players.filter(p=>!TRIBES[p.tribe].color).map(p=>p.color)).size<players.filter(p=>!TRIBES[p.tribe].color).length){flash("Every player needs a different color.");return}
+    {const picked=players.filter(p=>!TRIBES[p.tribe].color&&p.color!=="random");if(new Set(picked.map(p=>p.color)).size<picked.length){flash("Every player needs a different color.");return}}   // Random finds a free color at the start
     if(L.startsWith("team")){ // seats alternate sides: A, B, A, B
       const A=players.filter((p,i)=>!seatsS[i].team),B=players.filter((p,i)=>seatsS[i].team);
       if(A.length!==2){flash("Each side needs two players.");return}
@@ -2374,9 +2376,12 @@ const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{
   if(!p.v20){p.v20=1;if(typeof matchMedia!=="undefined"&&matchMedia("(min-width:901px)").matches)p.full=true}
   // v38: on a phone the Selected box sits above the spells by default (once; a later choice sticks)
   if(!p.v38m){p.v38m=1;if(isPhone())p.sel="top"}
-  return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:false,full:false,theme:"",lines:true,bright:1},p)})();
+  // v43: the Ether's Crossroads theme is the default (once, for anyone who had never chosen a theme)
+  if(!p.v43t){p.v43t=1;if(p.theme==null||p.theme==="")p.theme="darkfantasy"}
+  return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:false,full:false,theme:"darkfantasy",lines:true,bright:1},p)})();
+const sfxV=()=>Math.max(0,Math.min(1.5,PREF.sfxVol==null?1:+PREF.sfxVol));   // v43: the sound effects' volume, 0 to 150%
 function savePrefs(){try{localStorage.setItem("ec-prefs2",JSON.stringify(PREF))}catch(e){}}
-const THEMES={"":["Kenoma",[]],dull:["Kenoma (dull)",["th-dull"]],office:["Office",["th-office"]],officedark:["Office Dark",["th-officedark"]],earth:["Earth",["th-earth"]],darkfantasy:["Dark Fantasy",["th-darkfantasy"]],jester:["Jester",["th-black","th-jester"]],ten:["Ten",["th-indigo","th-blue"]],satan:["Disturbed Satan",["th-crimson"]]};
+const THEMES={darkfantasy:["Ether's Crossroads",["th-darkfantasy"]],"":["Kenoma",[]],dull:["Kenoma (dull)",["th-dull"]],office:["Office",["th-office"]],officedark:["Office Dark",["th-officedark"]],earth:["Earth",["th-earth"]],jester:["Jester",["th-black","th-jester"]],ten:["Ten",["th-indigo","th-blue"]],satan:["Disturbed Satan",["th-crimson"]]};
 function applyMoonTheme(){
   const h=document.documentElement,b=!!(G&&G.moon.blood&&!G.over);
   for(const k in THEMES)for(const c of THEMES[k][1])h.classList.remove(c);
@@ -2643,6 +2648,12 @@ function resolveSubstances(opts){
     }
     const T=TRIBES[p.tribe];if(T.color)p.color=T.color;if(T.solid)p.solid=T.solid;
   }
+  // v43: Random color and Random symbol take what nobody else has (after the fixed ones of the Substances)
+  const ps=opts.players.filter(p=>p.cpu!=="horde");
+  const usedC=new Set(ps.filter(p=>TRIBES[p.tribe].color||p.color&&p.color!=="random").map(p=>TRIBES[p.tribe].color||p.color));
+  for(const p of ps)if(!TRIBES[p.tribe].color&&(!p.color||p.color==="random")){const free=COLORS.map(c=>c[1]).filter(c=>!usedC.has(c));p.color=pick(free.length?free:COLORS.map(c=>c[1]));usedC.add(p.color)}
+  const usedS=new Set(ps.filter(p=>TRIBES[p.tribe].solid||p.solid&&p.solid!=="random").map(p=>TRIBES[p.tribe].solid||p.solid));
+  for(const p of ps)if(!TRIBES[p.tribe].solid&&(!p.solid||p.solid==="random")){const free=Object.keys(SOLIDS).filter(k=>!usedS.has(k));p.solid=pick(free.length?free:Object.keys(SOLIDS));usedS.add(p.solid)}
   // a fixed color can collide with a color someone picked: the one who picked moves to a free color
   const used=new Set(opts.players.filter(p=>p.cpu!=="horde"&&TRIBES[p.tribe].color).map(p=>p.color));
   for(const p of opts.players){
@@ -3487,7 +3498,8 @@ ${sel("mLines","Background lines",[["1","On"],["0","Off"]],PREF.lines===false?"0
 ${sel("mAnimC","Card animations",[["1","On"],["0","Off"]],PREF.fxCards===false?"0":"1")}
 ${sel("mAnimM","Magic animations",[["1","On"],["0","Off"]],PREF.fxMagic===false?"0":"1")}
 ${sel("mSpeed","Computer speed",[["slow","Slow"],["normal","Normal"],["fast","Fast"]],G.opts.cpuSpeed||"normal")}
-${sel("mSnd","Sound",[["on","On"],["off","Off"]],SND.on?"on":"off")}
+<label class="f mslide">Sound effects <input type="range" id="mSfx" min="0" max="150" step="5" value="${SND.on?Math.round(sfxV()*100):0}"><b id="mSfxV"></b></label>
+<label class="f mslide">Music <input type="range" id="mMus" min="0" max="150" step="5" value="${SND.on&&PREF.music!==false?Math.round((PREF.musicVol==null?1:PREF.musicVol)*100):0}"><b id="mMusV"></b></label>
 </div>
 <div class="mgrid">${[["ci","Card icons",.8,1.8],["ui","Interface size",.8,1.4],["tz","Text size",.8,1.8],["bright","Brightness",.7,1.3]].map(([k,n])=>`<span class="gctl">${n} <button type="button" data-mz="${k}" data-d="-1">−</button><b id="mz${k}">${Math.round(PREF[k]*100)}%</b><button type="button" data-mz="${k}" data-d="1">+</button></span>`).join("")}</div>
 ${+G.opts.timer?`<p><button class="btn ghost" id="mTimer">Turn the phase timer off for this game</button></p>`:""}
@@ -3497,7 +3509,7 @@ ${+G.opts.timer?`<p><button class="btn ghost" id="mTimer">Turn the phase timer o
   $("#mTheme").onchange=e=>{PREF.theme=e.target.value;upd()};$("#mHand").onchange=e=>{PREF.hand=e.target.value;upd()};
   $("#mSel").onchange=e=>{PREF.sel=e.target.value;upd()};$("#mCtl").onchange=e=>{PREF.ctl=e.target.value;upd()};
   $("#mCoord").onchange=e=>{PREF.coords=e.target.value==="1";upd()};$("#mLines").onchange=e=>{PREF.lines=e.target.value==="1";upd()};$("#mAnimC").onchange=e=>{PREF.fxCards=e.target.value==="1";upd()};$("#mAnimM").onchange=e=>{PREF.fxMagic=e.target.value==="1";upd()};$("#mFull").onchange=e=>{PREF.full=e.target.value==="1";upd()};
-  $("#mSpeed").onchange=e=>{G.opts.cpuSpeed=e.target.value};$("#mSnd").onchange=e=>{if((e.target.value==="on")!==SND.on)SND.toggle();render()};
+  $("#mSpeed").onchange=e=>{G.opts.cpuSpeed=e.target.value};wireAudioSliders();
   m.querySelectorAll("[data-mz]").forEach(b=>b.onclick=()=>{const k=b.dataset.mz,lim=k==="ui"?[.8,1.4]:k==="bright"?[.7,1.3]:[.8,1.8];PREF[k]=Math.round(Math.min(lim[1],Math.max(lim[0],PREF[k]+ +b.dataset.d*.1))*10)/10;$("#mz"+k).textContent=Math.round(PREF[k]*100)+"%";upd()});
   if($("#mTimer"))$("#mTimer").onclick=()=>{G.opts.timer=0;stopTimer();log("The phase timer is switched off for the rest of the game.","event");$("#mTimer").remove()};
   $("#mResume").onclick=closeMenu;$("#mX").onclick=closeMenu;
@@ -4891,7 +4903,7 @@ function renderSpells(live){
     let pinned="";
     if(sc==="Conjuring"){const mx=list.find(s=>s.id==="maxmana");list=list.filter(s=>s.id!=="maxmana");
       const blk=SPELLS.filter(s=>ETHER_IDS.has(s.id)).map(spellBlock).find(Boolean)||"";
-      pinned=`<button class="spell ether ${live&&!blk?"":"off"}" id="openEther" data-tip="${esc(blk||"Open the Ether: every card you can conjure into your deck, by type, cheapest first.")}"><span class="sn">Ether<small class="dc">${G.ether.length} souls</small></span><em>shop ›</em></button>`+(mx?spellRow(mx,live):"")}
+      pinned=`<button class="spell ether ${live&&!blk?"":"off"}" id="openEther" data-tip="${esc(blk||"Open the Ether: every card you can conjure into your deck, by type, cheapest first.")}"><span class="sn"><i class="ethmark" aria-hidden="true">✦</i>Ether<small class="dc">${G.ether.length} souls</small></span><em>shop ›</em></button>`+(mx?spellRow(mx,live):"")}
     if(sc==="Astrology")pinned=astroPins(live,V);
     if(sc==="Necromancy")pinned=moonOathRow(view());
     list.sort(byPrice);
@@ -5863,11 +5875,13 @@ function shopBlock(k){const S=SH();
   if(isEaten(k))return "Eaten by Yaldabaoth: it never comes back.";
   return ""}
 
+/* v43: a Heavenly Body the Firmament already calls with its own, cheaper spell isn't in its shop (it keeps the rest) */
+const firmOwn=(pl,k)=>!!(G&&G.p[pl]&&G.p[pl].tribe==="firm"&&SPELLS.some(s=>s.tribe==="firm"&&s.id===k));
 /* ---------- the shop's spells: one for each Heavenly Body, in the Astrology panel ---------- */
 for(const k of SHOP_PL){
   PRICE["shop_"+k]=()=>7+R(3)+R(12);
   SPELLS.push({id:"shop_"+k,name:"Buy "+skyWord(k).replace(/^the /,"the "),cost:12,dice:"7+1d3+1d12",school:"Astrology",shop:k,text:"",
-    ok:()=>!isHorde(G.active)&&!shopBlock(k),run:async()=>{await buyPlanet(G.active,k)}});
+    ok:()=>!isHorde(G.active)&&!shopBlock(k)&&!firmOwn(G.active,k),run:async()=>{await buyPlanet(G.active,k)}});
   const row=SKY_ROWS.find(r=>r[0]===k);
   SPELL_TEXT["shop_"+k]={n:"The Heavenly Body shop.",e:`${SHOP_NAME[k]} takes the sky at the start of the next round. ${row?row[3]:""}`,l:"7 + 1d3 + 1d12 mana, rolled every round. After any purchase, no Heavenly Body can be bought for six rounds."};
   const t=SPELL_TEXT["shop_"+k];SP("shop_"+k).text=[t.n,t.e,t.l].join(" ");
@@ -5906,14 +5920,15 @@ function raisePlanet(){
 /* ---------- the shop's panel ---------- */
 function shopHTML(){
   const live=canAct()&&G.phase==="prep"&&G.active===view(),S=SH();
-  const rows=SHOP_PL.map(k=>{const sp=SP("shop_"+k),c=spellCost(sp),ok=live&&spellReady(sp),now=sky()===k,blk=shopBlock(k);
+  const V=view(),mine=SHOP_PL.filter(k=>firmOwn(V,k));
+  const rows=SHOP_PL.filter(k=>!mine.includes(k)).map(k=>{const sp=SP("shop_"+k),c=spellCost(sp),ok=live&&spellReady(sp),now=sky()===k,blk=shopBlock(k);
     const left=now?"In the sky":isEaten(k)?"Eaten":planetStruck(k)?"Struck":S.pend&&S.pend.k===k?"Rises next round":"";
     return `<button class="spell eitem ${ok?"":"off"}" data-cast="shop_${k}" data-sp="shop_${k}" ${blk&&!ok?`data-tip="${esc(blk)}"`:""}><span class="sn">${esc(SHOP_NAME[k])}<small class="dc">${esc((SKY_FORM[k]||"").replace("Form of ",""))}</small>${left?`<small class="left">${left}</small>`:""}</span><em>${c} mana</em></button>`}).join("");
   const note=S.pend?`${plName(S.pend.by)} bought ${skyWord(S.pend.k)}: it rises at the start of the next round.`
     :G.moon.round<S.next?`A Heavenly Body was bought. The shop opens again in round ${S.next}.`
     :live?"Buy a Heavenly Body for the sky. It rises at the start of the next round. Prices (7 + 1d3 + 1d12) are rolled every round."
     :"You can buy a Heavenly Body in your own prep phase.";
-  return [`${note} After a purchase, no Heavenly Body can be bought for six rounds.`,rows]}
+  return [`${note} After a purchase, no Heavenly Body can be bought for six rounds.${mine.length?` Your own spells call ${mine.map(k=>SHOP_NAME[k]).join(", ")} for less, so the shop shows only the rest.`:""}`,rows]}
 DRAWERS.shop={title:"Heavenly Body shop",fill:shopHTML};
 {const _p=astroPins;astroPins=function(live,V){let h=_p(live,V);if(!shopOn())return h;const S=SH();
   const st=S.pend?`${SHOP_NAME[S.pend.k]} next round`:G.moon.round<S.next?`opens round ${S.next}`:"open";
@@ -6668,12 +6683,12 @@ const AUD=(()=>{
   function ctx(){if(!SND.on)return null;try{
     if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();
       const comp=ac.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=3;comp.connect(ac.destination);
-      out=ac.createGain();out.gain.value=.6;out.connect(comp);
+      out=ac.createGain();out.gain.value=.6*sfxV();out.connect(comp);
       // a small shared room: every sound gets the same short tail
       const len=Math.floor(ac.sampleRate*1.3),ir=ac.createBuffer(2,len,ac.sampleRate);
       for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3)}
       room=ac.createConvolver();room.buffer=ir;const rg=ac.createGain();rg.gain.value=.22;room.connect(rg).connect(comp)}
-    if(ac.state==="suspended")ac.resume()}catch(e){return null}return ac}
+    out.gain.value=.6*sfxV();if(ac.state==="suspended")ac.resume()}catch(e){return null}return ac}
   const dest=g=>{g.connect(out);g.connect(room)};
   function env(g,t,peak,att,dec){g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+att);g.gain.exponentialRampToValueAtTime(.0001,t+att+dec)}
   function tone(type,f,t,dur,peak,o={}){const a=ac,osc=a.createOscillator(),g=a.createGain();osc.type=type;osc.frequency.setValueAtTime(f,t);
@@ -7681,20 +7696,23 @@ function faAsk(yes){let box=$("#faask");if(!box){box=document.createElement("div
 <p class="dim">Your hand, placing cards, spells and sacrifices stay yours. It moves your field at the end of your prep phase and attacks at the start of your attack phase; turn it off any time.</p>
 <p class="acts"><button type="button" class="btn" id="faY">Yes</button> <button type="button" class="btn ghost" id="faN">No</button></p></div>`;
   box.hidden=false;const close=()=>{box.hidden=true};$("#faY").onclick=()=>{close();yes()};$("#faN").onclick=close;$("#faX").onclick=close;$("#faN").focus()}
-function faToggle(){const V=view(),s=faState(V);if(s&&s.on){setFieldAuto(V,false,faMine());return}faAsk(()=>setFieldAuto(V,true,faMine()))}
+function faToggle(){const V=view(),s=faState(V);if(s&&s.on){setFieldAuto(V,false,faMine());return}
+  faAsk(()=>{const c=faMine();c.under=true;PREF.fa=c;PREF.faOpen=true;savePrefs();setFieldAuto(V,true,c)})}   // on: its controls go under the field (uncheck to remove)
 
 /* ---------- the settings, drawn the same in the window and under the field ---------- */
 const faVal=(k,c)=>({stance:{auto:"Automatic",offensive:"Offensive",defensive:"Defensive",center:"Center"}[c.stance],rush:c.rush?`${c.rush} round${c.rush>1?"s":""}`:"Off",
   lives:{preserve:"Preserve",balanced:"Balanced",throw:"Throw them in"}[c.lives],battles:{careful:"Careful",normal:"Normal",reckless:"Reckless"}[c.battles],
   formation:{auto:"Automatic",wide:"Wide",deep:"Deep"}[c.formation],bases:c.bases?"On":"Off",ambush:c.ambush?"On":"Off"})[k];
 function faPanelHTML(c,pl,pfx){
-  const radio=(key,opts)=>`<div class="opts faopts">${opts.map(([v,t,s])=>`<label class="opt"><input type="radio" name="fa${pfx}-${key}" data-fa="${key}" value="${v}" ${c[key]===v?"checked":""}><span>${t}${s?`<small>${s}</small>`:""}</span></label>`).join("")}</div>`;
-  const box=(path,on,t,s,dis)=>`<label class="chk"><input type="checkbox" data-fa="${path}" ${on?"checked":""} ${dis?"disabled":""}> <span><b>${t}</b>${s?`<small>${s}</small>`:""}</span></label>`;
-  const sec=(t,body,cls="")=>`<section class="fasec ${cls}"><h4>${t}</h4>${body}</section>`;
+  const ph=isPhone(),tip=t=>t&&!ph?` data-tip="${esc(t)}"`:"",sm=t=>t&&ph?`<small>${t}</small>`:"";   // a phone shows the line, a computer shows it on hover
+  const radio=(key,opts)=>`<div class="opts faopts">${opts.map(([v,t,s])=>`<label class="opt"${tip(s)}><input type="radio" name="fa${pfx}-${key}" data-fa="${key}" value="${v}" ${c[key]===v?"checked":""}><span>${t}${sm(s)}</span></label>`).join("")}</div>`;
+  const box=(path,on,t,s,dis)=>`<label class="chk"${tip(s)}><input type="checkbox" data-fa="${path}" ${on?"checked":""} ${dis?"disabled":""}> <span><b>${t}</b>${sm(s)}</span></label>`;
+  const sec=(t,body,cls="",hint)=>`<section class="fasec ${cls}"><h4${tip(hint)}>${t}</h4>${body}${hint&&ph?`<p class="dim">${hint}</p>`:""}</section>`;
   const s=pl!=null?faState(pl):null,left=s&&s.rushUntil!=null&&c.rush?Math.max(0,s.rushUntil-G.moon.round+1):null;
   const custom=c.mode==="custom",some=c.mode==="mostly"||custom;
-  let h=sec("Simple mode",radio("mode",[["full","Fully automatic","It decides everything, offense, defense or the center (the default)"],["mostly","Mostly automatic","You choose the stance and ambushes"],
-    ["attacks","Attacks only","It only attacks; you move every card"],["custom","Every option","Choose each setting yourself"]]),"famodes");
+  let h=sec("Where",box("under",c.under,"Show these controls under the field","A wide fold-down above Basics explained. On when you turn the automation on; uncheck it to remove it."),"fafull fawhere");
+  h+=sec("Simple mode",radio("mode",[["full","Fully automatic","It decides everything, offense, defense or the center (the default)"],["mostly","Mostly automatic","You choose the stance and ambushes"],
+    ["attacks","Attacks only","It only attacks; you move every card"],["custom","Every option","Choose each setting yourself"]]),"fafull famodes");
   h+=sec("Attack",box("",true,"Always on","Your field attacks enemies in sight when the odds say so.",true),"falock");
   if(some){h+=sec("Stance",radio("stance",[["auto","Automatic","Changes with the field"],["offensive","Offensive",""],["defensive","Defensive",""],["center","Control the center",""]]));
     h+=sec("Ambush",box("ambush",c.ambush,"Set ambushes","Assassins and face-down stacks with nothing in reach wait in ambush."))}
@@ -7702,14 +7720,13 @@ function faPanelHTML(c,pl,pfx){
     h+=sec("Rush the enemy",`<div class="farush">${box("rushon",c.rush>0,"Rush","Everything it controls goes for the enemy, whatever the stance.")}<span class="faspin"><button type="button" class="btn ghost sm" data-faact="rush-" aria-label="One round less">▼</button><b>${Math.max(1,c.rush)}</b><button type="button" class="btn ghost sm" data-faact="rush+" aria-label="One round more">▲</button> round${Math.max(1,c.rush)>1?"s":""}${left!=null?` <small class="dim">(${left?left+" left":"over"})</small>`:""}</span></div>`);
     h+=sec("Formation",radio("formation",[["auto","Automatic",""],["wide","Wide","Spread out, surround, take the advantage"],["deep","Deep","Columns: stack strength, even with fewer to stack with"]]));
     h+=sec("Lives",radio("lives",[["preserve","Preserve","Keep cards alive first"],["balanced","Balanced","The default"],["throw","Throw them in","Trade cards freely to hurt the enemy"]]));
-    h+=sec("Picking battles",radio("battles",[["careful","Careful","Fights only with good odds"],["normal","Normal",""],["reckless","Reckless","Takes long shots"]])+`<p class="dim">Lives ranks above this unless you change the order below.</p>`);
+    h+=sec("Picking battles",radio("battles",[["careful","Careful","Fights only with good odds"],["normal","Normal",""],["reckless","Reckless","Takes long shots"]]),"","Lives ranks above this unless you change the order in Hierarchical control.");
     h+=sec("Bases",box("bases",c.bases,"Target bases","Enemy Aces and the Tree are worth more to it.")+box("walls",c.walls,"Don't count non-obstructive walls","A Wall only matters when it stands between your field and a base."));
     h+=sec("Which cards it controls",`<div class="facats">${FA_CATS.map(([k,t,s2])=>box("ctl."+k,c.ctl[k],t,s2)).join("")}${!c.ctl.support?box("ctl.miners",c.ctl.miners,"Miners","Even with Support off"):""}</div>
-<details class="faextra" ${c.extra.length?"open":""}><summary>Yes, and… (add single kinds of card)</summary><div class="opts fakinds">${FA_KINDS.map(k=>`<label class="opt"><input type="checkbox" data-faextra="${k}" ${c.extra.includes(k)?"checked":""}><span>${esc(shortInfo(k))}</span></label>`).join("")}</div><p class="dim">These are added to the groups above, never taken away.</p></details>`);
-    h+=sec("Hierarchical control",box("hier",c.hier,"Rank the principles","When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.")+(c.hier?faHierHTML(c):""));
+<details class="faextra" ${c.extra.length?"open":""}><summary>Yes, and… (add single kinds of card)</summary><div class="opts fakinds">${FA_KINDS.map(k=>`<label class="opt"><input type="checkbox" data-faextra="${k}" ${c.extra.includes(k)?"checked":""}><span>${esc(shortInfo(k))}</span></label>`).join("")}</div><p class="dim">These are added to the groups above, never taken away.</p></details>`,"fafull");
+    h+=sec("Hierarchical control",box("hier",c.hier,"Rank the principles","When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.")+(c.hier?faHierHTML(c):""),"fafull");
   }
-  h+=sec("Where",box("under",c.under,"Show these controls under the field","A wide fold-down above Basics explained, instead of this window."));
-  h+=`<p class="dim fanote">Some options aren't the best choice for every situation on your field.</p>`;
+  h+=`<p class="dim fanote fafull">Some options aren't the best choice for every situation on your field.</p>`;
   return h}
 function faHierHTML(c){const pend=faHierHTML.pending,pairOf=k=>c.eq.find(p=>p.includes(k));
   return `<div class="fahier">${c.order.map((k,i)=>{const p=pairOf(k);return `<div class="facol${p?" eqpair":pend===k?" eqwait":""}"><span class="farank">${i+1}</span><b>${FA_PRINC.find(x=>x[0]===k)[1]}</b><small>${faVal(k,c)}</small>
@@ -7761,7 +7778,7 @@ let faSig="";
 
 /* ---------- the setup: Off, or how well it plays ---------- */
 {const _ss=showStart;showStart=function(){const out=_ss.apply(this,arguments);const p=document.querySelector('.ovbox.setup .spanel[data-p="rules"]');
-  if(p&&!$("#ofauto"))p.insertAdjacentHTML("beforeend",`<fieldset class="pf"><legend>Field Automation</legend><label class="f">Field Automation <select id="ofauto"><option value="off">Off: nobody can use it</option><option value="easy">On, plays like Easy</option><option value="medium" selected>On, plays like Medium (default)</option><option value="hard">On, plays like Hard</option></select></label><p class="dim">Lets a player hand the cards on their field to the computer during the game; their hand and spells stay theirs. Off hides the button for everyone.</p></fieldset>`);
+  if(p&&!$("#ofauto"))p.insertAdjacentHTML("beforeend",`<fieldset class="pf"><legend>Field Automation</legend><label class="f">Field Automation <select id="ofauto"><option value="off">Off</option><option value="easy">On · Easy</option><option value="medium" selected>On · Medium (default)</option><option value="hard">On · Hard</option></select></label><p class="dim">Lets a player hand the cards on their field to the computer during the game; their hand and spells stay theirs. Off hides the button for everyone.</p></fieldset>`);
   return out}}
 {const _sg=startGame;startGame=function(opts){const s=$("#ofauto");if(opts&&s)opts.fieldAuto=s.value;return _sg.apply(this,arguments)}}
 
@@ -7888,54 +7905,34 @@ async function paintRooms(){const box=$("#rmList");if(!box)return;box.innerHTML=
 {const _sg=startGame;startGame=function(opts){const out=_sg.apply(this,arguments);if(NET.room&&NET.room.open)dirSoon();return out}}
 if(window.__EC)Object.assign(window.__EC,{listRooms,dirBeat,DIR,TabPeer});
 
-/* ---------------- v41: the Dark Fantasy theme's music ----------------
-   An old-cartridge dungeon tune, made in the browser like every other sound here: a soft square-wave melody over a triangle
-   bass arpeggio in D minor, slow (76 a minute), with a faint echo, about fifty seconds before it loops. Quiet, so it stays
-   behind the game. It plays only with the Dark Fantasy theme, follows the sound switch, and has its own Music button. */
-
-const MUS=(()=>{
-  // the melody, two phrases of eight bars: [MIDI note or null for a rest, length in eighths]
-  const MEL=[[69,2],[65,1],[62,1],[64,1],[65,1],[67,2], [69,3],[70,1],[69,2],[67,2], [65,2],[62,1],[65,1],[70,2],[69,2], [67,4],[null,4],
-    [67,2],[70,1],[74,1],[72,2],[70,2], [69,3],[67,1],[65,2],[64,2], [64,2],[73,2],[76,2],[74,1],[73,1], [69,6],[null,2],
-    [74,2],[72,1],[69,1],[65,2],[69,2], [67,2],[64,1],[72,1],[70,2],[67,2], [65,2],[70,2],[74,2],[77,2], [75,4],[74,2],[72,2],
-    [70,2],[69,2],[67,2],[74,2], [73,3],[69,1],[64,2],[67,2], [65,2],[64,2],[62,4], [null,8]];
-  // one chord a bar: root (MIDI) and its third
-  const CH=[[50,3],[50,3],[46,4],[46,4],[43,3],[43,3],[45,4],[45,4],[50,3],[48,4],[46,4],[46,4],[43,3],[45,4],[50,3],[50,3]];
-  const ARP=t=>[0,7,12,7,12+t,7,12,7];
-  const E8=60/76/2;   // one eighth, in seconds
-  let ac=null,out=null,timer=null,next=0,step=0,mi=0,mLeft=0,playing=false;
-  const hz=m=>440*Math.pow(2,(m-69)/12);
-  function ctx(){if(ac)return ac;const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;ac=new A();
-    out=ac.createGain();out.gain.value=0;const lp=ac.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1700;
-    const dl=ac.createDelay(1);dl.delayTime.value=E8*3;const fb=ac.createGain();fb.gain.value=.24;const wet=ac.createGain();wet.gain.value=.3;
-    out.connect(lp);lp.connect(ac.destination);lp.connect(dl);dl.connect(fb);fb.connect(dl);dl.connect(wet);wet.connect(ac.destination);return ac}
-  function note(type,f,t,dur,peak){const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,t);
-    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+.012);g.gain.setTargetAtTime(peak*.55,t+.04,.08);g.gain.setTargetAtTime(0,t+Math.max(.05,dur-.06),.04);
-    o.connect(g).connect(out);o.start(t);o.stop(t+dur+.3)}
-  function tick(){if(!playing||!ac)return;
-    while(next<ac.currentTime+.35){
-      const bar=Math.floor(step/8)%16,i=step%8,[root,third]=CH[bar];
-      note("triangle",hz(root+ARP(third)[i]-12),next,E8*.9,.5);
-      if(mLeft<=0){const [m,len]=MEL[mi];mi=(mi+1)%MEL.length;mLeft=len;if(m)note("square",hz(m),next,len*E8*.92,.16)}
-      mLeft--;
-      if(i===4){const b=ac.createBuffer(1,ac.sampleRate*.04,ac.sampleRate),dd=b.getChannelData(0);for(let k=0;k<dd.length;k++)dd[k]=(Math.random()*2-1)*(1-k/dd.length);
-        const s=ac.createBufferSource(),g=ac.createGain();g.gain.value=.07;s.buffer=b;s.connect(g).connect(out);s.start(next)}
-      next+=E8;step++}}
-  function start(){if(playing)return;if(!ctx())return;if(ac.state==="suspended")ac.resume();playing=true;step=0;mi=0;mLeft=0;next=ac.currentTime+.1;
-    out.gain.cancelScheduledValues(ac.currentTime);out.gain.setTargetAtTime(.32,ac.currentTime,.8);timer=setInterval(tick,90);tick()}
-  function stop(){if(!playing)return;playing=false;clearInterval(timer);timer=null;if(ac){out.gain.cancelScheduledValues(ac.currentTime);out.gain.setTargetAtTime(0,ac.currentTime,.3)}}
-  return {start,stop,get on(){return playing}};
-})();
-const musicWanted=()=>PREF.theme==="darkfantasy"&&PREF.music!==false&&SND.on&&!document.hidden;
-function musicSync(){const b=$("#pMusic");if(b){b.hidden=PREF.theme!=="darkfantasy";b.textContent="Music: "+(PREF.music!==false?"On":"Off");b.setAttribute("aria-pressed",PREF.music!==false)}
-  if(musicWanted())MUS.start();else MUS.stop()}
-/* browsers start sound only after a click or a tap: the first one starts it */
-document.addEventListener("pointerdown",()=>{if(musicWanted()&&!MUS.on)MUS.start()},true);
-document.addEventListener("visibilitychange",musicSync);
+/* ---------------- v43: the game's side of the Ether's Crossroads music (the songs themselves are in ec-music.js) ----------------
+   The songs play with the Ether's Crossroads theme, in random order here. The Display bar has the Music switch and its volume
+   (0 to 150%, in steps of 5%); the sound switch turns the music off with everything else. */
+const MUSV=()=>Math.max(0,Math.min(1.5,PREF.musicVol==null?1:+PREF.musicVol));
+function musicSync(){const b=$("#pMusic"),on=PREF.theme==="darkfantasy";
+  if(b){b.hidden=!on;b.textContent="Music: "+(PREF.music!==false?"On":"Off");b.setAttribute("aria-pressed",PREF.music!==false)}
+  const v=$("#pMusicV");if(v){v.hidden=!on;const n=v.querySelector("b");if(n)n.textContent=Math.round(MUSV()*100)+"%"}
+  if(window.ECMusic)window.ECMusic.sync()}
 {const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);musicSync()}}
-{const _mb=mountBar;mountBar=function(){_mb.apply(this,arguments);const r=$("#pReset");if(!r)return;const b=document.createElement("button");b.type="button";b.id="pMusic";b.className="gtog";
-  b.onclick=()=>{PREF.music=PREF.music===false;savePrefs();musicSync()};r.parentNode.insertBefore(b,r);musicSync()}}
+{const _mb=mountBar;mountBar=function(){_mb.apply(this,arguments);const r=$("#pReset");if(!r)return;
+  const b=document.createElement("button");b.type="button";b.id="pMusic";b.className="gtog";b.onclick=()=>{PREF.music=PREF.music===false;savePrefs();musicSync()};
+  const v=document.createElement("span");v.id="pMusicV";v.className="gctl";v.innerHTML=`Music <button type="button" data-mv="-1" aria-label="Quieter music">−</button><b></b><button type="button" data-mv="1" aria-label="Louder music">+</button>`;
+  v.querySelectorAll("[data-mv]").forEach(x=>x.onclick=()=>{PREF.musicVol=Math.round(Math.max(0,Math.min(1.5,MUSV()+ +x.dataset.mv*.05))*100)/100;savePrefs();musicSync()});
+  r.parentNode.insertBefore(b,r);r.parentNode.insertBefore(v,r);musicSync()}}
 {const _t=SND.toggle;SND.toggle=function(){const v=_t.apply(this,arguments);musicSync();return v}}
-if(window.__EC)Object.assign(window.__EC,{MUS,musicSync});
+if(window.__EC)Object.assign(window.__EC,{musicSync});
+
+/* ---------------- v43: the sound switch at the top of the page, and the menu's audio sliders ----------------
+   "Sound: On/Off" sits beside Menu, All Rules and New game. The menu has two sliders, sound effects and music, 0 to 150% in steps
+   of 5%; with the sound off both read 0, a slider moved up turns the sound back on, and one moved to 0 turns that sound off. */
+function paintSndTop(){const b=$("#sndtop");if(b){b.textContent="Sound: "+(SND.on?"On":"Off");b.setAttribute("aria-pressed",SND.on)}
+  const a=$("#mSfx"),m=$("#mMus");
+  if(a){a.value=SND.on?Math.round(sfxV()*100):0;$("#mSfxV").textContent=a.value+"%"}
+  if(m){m.value=SND.on&&PREF.music!==false?Math.round((PREF.musicVol==null?1:+PREF.musicVol)*100):0;$("#mMusV").textContent=m.value+"%"}}
+function wireAudioSliders(){const a=$("#mSfx"),m=$("#mMus");
+  if(a)a.oninput=()=>{const v=+a.value/100;if(!v){if(SND.on)SND.toggle()}else{PREF.sfxVol=v;savePrefs();if(!SND.on)SND.toggle()}paintSndTop();if(typeof musicSync==="function")musicSync()};
+  if(m)m.oninput=()=>{const v=+m.value/100;if(!v)PREF.music=false;else{PREF.music=true;PREF.musicVol=v;if(!SND.on)SND.toggle()}savePrefs();paintSndTop();if(typeof musicSync==="function")musicSync()};
+  paintSndTop()}
+document.addEventListener("DOMContentLoaded",()=>{const b=$("#sndtop");if(b)b.onclick=()=>{SND.toggle();paintSndTop();if(typeof musicSync==="function")musicSync()};paintSndTop()});
 
 })();

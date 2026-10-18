@@ -1267,3 +1267,43 @@ html.th-earth .btn{color:#0e130d}
 html.th-earth .game h1{color:#cfe08c;text-shadow:0 0 14px #9bbf5e40}
 html.th-officedark .btn{color:#fff}
 #pMusic[hidden]{display:none}
+/* ================= v43: the setup window never scrolls sideways ================= */
+.ovbox.setup fieldset{min-width:0;max-width:100%}
+.ovbox.setup select,.ovbox.setup input[type=text],.ovbox.setup input:not([type]),.ovbox.setup textarea{max-width:100%}
+.ovbox.setup label.f{flex-wrap:wrap;max-width:100%}
+.ovbox.setup .spanel{overflow-x:hidden}
+.ovbox.setup .stabs{overflow-x:visible;flex-wrap:wrap}
+.ovbox.setup .stab{flex:1 1 auto}
+.ovbox.setup label.f select{min-width:0;max-width:100%;flex:0 1 auto}
+/* v43: the Random color and Random symbol choices */
+.sw.swrand span{background:conic-gradient(#ee7a3c,#e3b944,#45b89c,#4c92e6,#a77de8,#e4648f,#d7333b,#ee7a3c);display:grid;place-items:center;color:#000;font-weight:700;font-size:15px}
+.so-opt .sorand{display:grid;place-items:center;width:28px;height:28px;font-size:20px;font-weight:400;color:var(--text)}
+/* ================= v43: the Ether stands out for everyone ================= */
+.spell.ether{border-color:#7f97ff;background:linear-gradient(90deg,#24357e,#121a46);color:#eef2ff;box-shadow:0 0 0 1px #00000080,0 0 12px #5a78ff59}
+.spell.ether:hover{border-color:#b9c7ff;box-shadow:0 0 16px #7f97ff8c}
+.spell.ether.off{opacity:.85}
+.spell.ether .ethmark{font-style:normal;color:#b9c7ff;margin-right:7px;text-shadow:0 0 6px #7f97ff}
+html.th-office .spell.ether{background:linear-gradient(90deg,#dfe7ff,#eef2ff);border-color:#4c6fff;color:#1d2a7a;box-shadow:0 0 8px #4c6fff40}
+html.th-office .spell.ether .ethmark{color:#4c6fff;text-shadow:none}
+/* v43: the menu's audio sliders */
+#menu .mslide{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#menu .mslide input[type=range]{flex:1 1 140px;accent-color:var(--amber)}
+#menu .mslide b{min-width:3.4em;font-weight:400;color:var(--amber-hi)}
+/* ================= v43: Field Automation, compact ================= */
+.faconf .fabody,#fapanel .fawide{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));gap:0 18px;align-items:start}
+.faconf .fabody>.fafull,#fapanel .fawide>.fafull,#fapanel .fawide>p:first-child{grid-column:1/-1;max-width:none;margin:0}
+.fasec{padding:6px 0 7px}
+.fasec h4{margin:0 0 4px;font-size:11.5px}
+.faopts{grid-template-columns:repeat(auto-fill,minmax(min(100%,118px),1fr));gap:4px}
+.faopts .opt>span,.fakinds .opt>span{padding:5px 8px;min-height:0;font-size:13px;line-height:1.25}
+.fasec label.chk{margin:2px 0;font-size:13px}
+.facats{grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr))}
+.fakinds{grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:4px}
+.fahier{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px}
+.facol{min-height:96px;padding:6px 4px}
+.faconf{width:min(1100px,100%)}
+body.phone .faconf .fabody,body.phone #fapanel .fawide{display:block}
+body.phone .faopts .opt>span{padding:7px 9px}
+.fasec .faopts{display:flex;flex-wrap:wrap;gap:4px}
+.fasec .faopts .opt{flex:1 1 auto;width:auto;min-width:0}
+body.phone .fasec .faopts .opt{flex:1 1 140px}

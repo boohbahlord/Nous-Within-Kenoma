@@ -110,7 +110,7 @@ Built in v41 (all of the following):
   player cap; the host's time zone; an "Open" room (no code needed: listed for anyone to join). Needs a shared room list without a
   server: open rooms are announced over a public relay; private rooms keep the code.
 
-To build (v43):
+Built in v43 (all of the following):
 - MU More dark fantasy songs in the same vein, some slower; quieter overall; a music volume in 5% steps up to 150%; in the game
   the songs play in random order; on the other Ether's Crossroads pages (landing, rules) the first song plays.
 - TH2 The Dark Fantasy theme is renamed "Ether's Crossroads" and becomes the default; every Ether's Crossroads page (landing,
@@ -121,6 +121,16 @@ To build (v43):
 - FI The Firmament: the regular (expensive) Astrology spell for a planet it already summons cheaper is hidden from it; it can
   still buy the planets it has no spell of its own for. A Summon the Moon spell in Astrology if none exists.
 - ET The Ether entry stands out in color for everyone; Conjuring comes before Necromancy; the Ether sits at the top of Conjuring.
+
+12. > Also, the field automation UI should be more compact, both in the windows and in the bottom part you scroll through, but i imagine leaving the descriptions as being inside the boxes is great for mobile, it isnt good for PC tho, instead, PC should hover over the options with their mouse for more info.
+    >
+    > The part that allows the field automation to be placed below (like under the field where it already is), should be an option at the top of the Configure Automation Menu, and enabling automation automatically places it below the field, so now the player has to uncheck it to get rid of it
+13. > the sound off feature shouldnt be on the turn bar anymore, it can be at the top of the page, and changing it changes the audio slider in the menu accordingly
+- FA4 (built v43) Compact Field Automation: options in rows; descriptions inside the boxes on a phone, on hover on a computer;
+  "Show under the field" first, and turned on when the automation is turned on.
+- SO (built v43) "Sound: On/Off" at the top of the play page (beside Menu, All Rules, New game), out of the turn bar; the menu has
+  sound-effects and music sliders (0–150%) that read 0 when the sound is off; raising one turns it on.
+- The Moon: already in the Heavenly Body shop (Astrology) for everyone, so no new spell was needed.
 
 ## Status (v41)
 Done: D1 (log fold on PC), FA1–FA3 (Field Automation: setup option, turn-bar button with confirm, configure window, simple modes,
