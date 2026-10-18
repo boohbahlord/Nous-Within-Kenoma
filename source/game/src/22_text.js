@@ -54,7 +54,7 @@ const SPELL_TEXT={
  ck:{e:"A King's soul comes from the Ether into your deck."},
  cjk:{e:"A Joker's soul comes from the Ether into your deck."},
  ca:{e:"An Ace's soul comes from the Ether into your deck."},
- csc:{e:"A Scout's soul comes from the Ether into your deck.",l:"Scouts see three tiles through the fog, uncover Assassins, ambushers and face-down cards within two, move like Assassins, and never fight."},
+ csc:{e:"A Scout's soul comes from the Ether into your deck.",l:"Scouts see two tiles out through the fog in a diamond and uncover Assassins, ambushers and face-down cards there, move like Assassins, and never fight."},
  cas:{e:"An Assassin's soul comes from the Ether into your deck.",l:"Two hearts, 10 + 1d12 to attack, 8 to defend. Hidden until an enemy stands right beside it. Can ambush. Only another Assassin stacks with it."},
  carch:{e:"An Archer's soul comes from the Ether into your deck.",l:"Shoots 1d20 + 1d10 at a stack exactly two tiles away, or suppresses it (disadvantage on its next attack). A miss costs nothing. No defense. 1 mana for the Beginner."},
  ccan:{e:"A Cannon's soul comes from the Ether into your deck.",l:"Fires 2d20 at anything up to three tiles away, once every 1d2 + 2 turns, two damage to a Wall. A miss costs nothing. No defense. Moves one step."},
