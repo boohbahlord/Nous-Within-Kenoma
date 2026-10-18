@@ -97,3 +97,12 @@ Purpose: data for the hand-off document (Projects / Claude Code / Cowork). Verba
 **Workflow (the user's question this turn)**
 - Moving the work to Claude Code / Cowork / Projects with GitHub access; considering more usage/credits or a plan upgrade.
 - The user will send a screenshot of their folder layout (where the zips were saved and extracted before uploading).
+
+## Status (2026-10-18, Claude Code session)
+Built and live: v38 (B1–B9, M1–M3, site-wide click sound), v39 (L1–L10, R1–R4, Scout diamond sight, Beginner default,
+flowing fog, overdraw limit, Rob the Bank empties the Bank, Increase Max Mana 4), v40 (O1–O3 online lobby).
+Extra requests from chat, done: Scout sees 2 tiles out in a diamond; every seat defaults to the Beginner; fog lighter and
+flowing (no dark square per tile); once a draw roll overdraws, no more draw rolls that turn; Rob the Bank's natural 20 takes
+all the Bank's mana (overflow waits in a stash); Increase Max Mana costs 4.
+Open questions for the user: Quiet Eyes is nearly redundant under the new fog (change it?); B8 (long names) not reproduced
+after the card-label fix; "The game…" request was cut off.
