@@ -76,4 +76,4 @@ for(const [name,get,set] of [["claimLand",()=>claimLand,f=>claimLand=f],["strike
   if(ph==="attack")for(const {st,r,c} of stacksOf(pl)){if(!canAttackFrom(st))continue;const f=flagTargets(st,r,c,"strike")[0];if(f){strikeFlag(r,c,f.r,f.c);render()}}
   if(ph==="prep")for(const {st,r,c} of stacksOf(pl))if(st.cards.some(x=>x.unit==="claimer")&&!canSpawn(pl,r,c)&&!flagAt(r,c)){claimLand(r,c);render()}
   return out}}
-if(window.__EC)Object.assign(window.__EC,{claimLand,strikeFlag,repairFlag,flagAt,canPlace:(...a)=>canPlace(...a),place:(...a)=>place(...a)});
+if(window.__EC)Object.assign(window.__EC,{claimLand,strikeFlag,repairFlag,flagAt,canPlace:(...a)=>canPlace(...a),place:(...a)=>place(...a),pickGrave:(...a)=>pickGrave(...a),openSell:(...a)=>openSell(...a)});

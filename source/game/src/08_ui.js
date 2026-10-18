@@ -21,18 +21,30 @@ function askHuman(pl,spec){
       $("#ov").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{ovHide();res(+b.dataset.p)});return;
     }
     const cards=spec.cards;
-    ovShow(`<div class="ovbox ${BOXNAME[spec.box]||""}"><h2>${spec.title}</h2>${who}${spec.sub?`<p class="dim">${esc(spec.sub)}</p>`:""}<div class="pickrow">${cards.map((c,i)=>`<button class="pk" data-i="${i}" aria-label="${esc(nameOf(c))}">${face(c,{owner:spec.box==="outer"?c.darkOwner:c.owner,price:spec.price})}</button>`).join("")}</div>${spec.cancel?`<p><button class="btn ghost" id="mcancel">${esc(spec.cancel)}</button></p>`:""}</div>`);
-    $("#ov").querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{ovHide();res(+b.dataset.i)});
+    ovShow(`<div class="ovbox ${BOXNAME[spec.box]||""}"><h2>${spec.title}</h2>${who}${spec.sub?`<p class="dim">${esc(spec.sub)}</p>`:""}${pickCardsHTML(cards,c=>({owner:spec.box==="outer"?c.darkOwner:c.owner,price:spec.price}),spec.prices?i=>({tag:`${spec.prices[i]} mana`,off:!!(spec.offs&&spec.offs[i])}):null)}${spec.cancel?`<p><button class="btn ghost" id="mcancel">${esc(spec.cancel)}</button></p>`:""}</div>`);
+    $("#ov").querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{ovHide();res(+b.dataset.i)});wirePickTabs($("#ov"));
     if(spec.cancel)$("#mcancel").onclick=()=>{ovHide();res(null)};
   });
 }
+/* v45: a long list of cards to pick from (the grave, a hand, the Outer Darkness) reads like the Ether: tabs by kind of card,
+   each kind under its heading, and the same card folded into one button with a count */
+const pickKey=c=>[c.unit||"",c.rank,c.suit||"",c.color||"",c.puppet?"p":"",c.hp!=null?c.hp:""].join("|");
+function pickTabsHTML(groups,n){return `<div class="pktabs" role="tablist"><button type="button" class="pktab on" data-pt="all">All <b>${n}</b></button>${groups.map(([k,l])=>`<button type="button" class="pktab" data-pt="${k}">${k} <b>${l.length}</b></button>`).join("")}</div>`}
+function pickCardsHTML(cards,opt,extra){const btn=(c,i,n)=>{const x=extra?extra(i):null;return `<span class="ecount${x?" priced":""}"><button class="pk" data-i="${i}" aria-label="${esc(nameOf(c))}${n>1?` (${n})`:""}${x?`, ${x.tag}`:""}" ${x&&x.off?'disabled data-tip="You can\'t afford this one."':""}>${face(c,opt(c))}</button>${n>1?`<b>×${n}</b>`:""}${x?`<small class="pkprice${x.off?" off":""}">${x.tag}</small>`:""}</span>`};
+  if(cards.length<=8)return `<div class="pickrow">${cards.map((c,i)=>btn(c,i,1)).join("")}</div>`;
+  const idx=new Map(cards.map((c,i)=>[c,i])),groups=pileGroups([...cards]);
+  return pickTabsHTML(groups,cards.length)+groups.map(([k,l])=>{const by=new Map();for(const c of l){const key=pickKey(c);if(!by.has(key))by.set(key,[]);by.get(key).push(c)}
+    return `<div class="pkgrp" data-pg="${k}"><h3>${k} <span class="dim">${l.length}</span></h3><div class="pickrow">${[...by.values()].map(x=>btn(x[0],idx.get(x[0]),x.length)).join("")}</div></div>`}).join("")}
+function wirePickTabs(root,onTab){root.querySelectorAll(".pktab").forEach(b=>b.onclick=()=>{const t=b.dataset.pt;
+  root.querySelectorAll(".pktab").forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-selected",x===b)});
+  root.querySelectorAll("[data-pg]").forEach(g=>g.hidden=t!=="all"&&g.dataset.pg!==t);if(onTab)onTab(t)})}
 function viewBox(title,cards,box,note,owners){
   // every pile reads the same way: grouped by card type, each type sorted, with counts
   const own=c=>owners?c.darkOwner:c.owner;
   const groups=pileGroups(cards);
-  const body=cards.length?groups.map(([k,l])=>`<h3>${k} <span class="dim">${l.length}</span></h3><div class="pickrow">${(()=>{const by=new Map();for(const c of l){const key=(c.unit||c.rank)+(c.rank==="JK"?c.color:"")+(c.puppet?"p":"")+(box==="ether"?"":"|"+own(c));if(!by.has(key))by.set(key,[]);by.get(key).push(c)}return [...by.values()].map(x=>`<span class="ecount">${face(x[0],{owner:box==="ether"?null:own(x[0])})}${x.length>1?`<b>×${x.length}</b>`:""}</span>`).join("")})()}</div>`).join(""):'<p class="dim">Empty.</p>';
+  const body=cards.length?(cards.length>8?pickTabsHTML(groups,cards.length):"")+groups.map(([k,l])=>`<div class="pkgrp" data-pg="${k}"><h3>${k} <span class="dim">${l.length}</span></h3><div class="pickrow">${(()=>{const by=new Map();for(const c of l){const key=(c.unit||c.rank)+(c.rank==="JK"?c.color:"")+(c.puppet?"p":"")+(box==="ether"?"":"|"+own(c));if(!by.has(key))by.set(key,[]);by.get(key).push(c)}return [...by.values()].map(x=>`<span class="ecount">${face(x[0],{owner:box==="ether"?null:own(x[0])})}${x.length>1?`<b>×${x.length}</b>`:""}</span>`).join("")})()}</div></div>`).join(""):'<p class="dim">Empty.</p>';
   ovShow(`<div class="ovbox wide ${BOXNAME[box]||""}"><h2>${title}</h2>${note?`<p class="dim">${note}</p>`:""}${body}<p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
-  $("#mcancel").onclick=ovHide;
+  $("#mcancel").onclick=ovHide;wirePickTabs($("#ov"));
 }
 function passScreen(msg){
   return new Promise(res=>{
