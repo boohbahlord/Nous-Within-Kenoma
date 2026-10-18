@@ -279,7 +279,7 @@ const isVoid=(r,c)=>!!(G.void&&G.void[r]&&G.void[r][c]);
 const hq=()=>!!G.opts.hq&&!survival();
 const centerOut=()=>{const m=(COLS-1)/2;return [...Array(COLS).keys()].sort((a,b)=>Math.abs(a-m)-Math.abs(b-m)||a-b)};
 /* per-player turn state: in phases everyone plays at once, each player keeps their own */
-const TURNKEYS=["spent","spentOther","blessed","ritual","sevSum","prices","sel","selHand","mode","noDraw","libation"];
+const TURNKEYS=["spent","spentOther","blessed","ritual","sevSum","prices","sel","selHand","mode","noDraw","libation","saleD"];
 function setActive(pl){
   if(pl===G.active&&G.p[pl].ctx)return;
   const P=G.p[G.active];if(P){P.ctx={};for(const k of TURNKEYS)P.ctx[k]=G[k]}

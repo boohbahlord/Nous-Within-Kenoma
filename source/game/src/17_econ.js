@@ -42,13 +42,15 @@ function spend(pl,n){const have=mana(pl);
 function noteBuy(id){const B=G.bank;if(!B)return;const r=G.moon.round;(B.buys[r]=B.buys[r]||{})[id]=(B.buys[r][id]||0)+1}
 
 /* ---------- prices: the Bank's upsells, the angry Banker, Ether sales, the collapse ---------- */
+/* v45: a private Ether sale takes 1d2 − 1 off a conjuring, rolled once a turn for each, so the price you see is the price you pay */
+function saleCut(sp){const D=G.saleD||(G.saleD={});if(D[sp.id]==null)D[sp.id]=R(2)-1;return D[sp.id]}
 function spellCost(sp){
   let c=baseCost(sp);const B=G.bank;if(!B)return c;
   if(c>0){c+=(B.upsell[sp.id]||0)+(B.angry?1:0);if(G.inflation&&G.turnNo<=G.inflation.until)c+=G.inflation.add||0}
   c=jupiterCost(sp,c);c=mercuryCost(sp,c);
   if(sp.school==="Conjuring"&&c>0){
     if(B.mana<0&&!B.dead)c=Math.max(1,c-1);   // the Bank is broke: the Ether goes on sale
-    const P=G.p[G.active];if(P&&P.saleUntil!=null&&tnOf(G.active)<=P.saleUntil)c=Math.max(0,c-1);   // a Barbarian-slayer's private sale
+    const P=G.p[G.active];if(P&&P.saleUntil!=null&&tnOf(G.active)<=P.saleUntil)c=Math.max(0,c-saleCut(sp));   // a Barbarian-slayer's private sale: 1d2 − 1 off
   }
   return Math.max(0,c);
 }
@@ -316,7 +318,7 @@ function waveCleared(W){
   if(!ks.length){log("The last Barbarians of the band are gone.");return}
   const top=+ks[0][0],P=G.p[top];if(!P||P.out)return;
   P.saleUntil=tnOf(top)+3;
-  log(`<b>${plName(top)}</b> killed the most Barbarians (${ks[0][1]}): the Ether is on sale for them for three turns (every conjuring 1 less).`,"event");
+  log(`<b>${plName(top)}</b> killed the most Barbarians (${ks[0][1]}): the Ether is on sale for them for three turns (every conjuring 1d2 − 1 less, never below 1 mana).`,"event");
   if((W.aceKilled&&W.stacks>=2)||(W.stacks>=3&&!W.aces)){const d=P.debt||0,o=owedOf(top);P.debt=0;P.debtAt=null;P.loans=[];
     log(`<b>The Banker forgives ${plName(top)}'s debts</b>${d||o?` (${d+o} mana)`:""} for breaking the Barbarians.`,"event");
     popup("Debts forgiven",`<p>${plName(top)} broke a band of Barbarians${W.aceKilled?" and its Ace":""}. The Banker tears up their debts${d||o?`: ${d+o} mana`:""}.</p>`,top)}

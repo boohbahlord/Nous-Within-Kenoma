@@ -21,7 +21,7 @@ function moonPieces(){const m=G.moon;
     const tip=`${n}${d?` (in ${rnds(d)})`:" (now)"}: ${MOON_PH(i)}`;
     return `<span class="${i===m.i?"on":""}${ev?" ev":""}" data-tip="${esc(tip)}"><svg viewBox="-9 -9 18 18" width="18" height="18"><circle r="7" fill="${m.blood&&i===4?"#3b0608":"#1f1913"}" stroke="#5a4a3a" stroke-width=".6"/><g fill="${m.blood&&i===4?"#d3171e":"#e9e1cc"}">${moonPath(i,7)}</g></svg></span>`}).join("")}
 const pip=(col,ev,filled)=>`<svg viewBox="-9 -9 18 18" width="18" height="18">${ev?`<path d="M0,-7L2,-2L7,0L2,2L0,7L-2,2L-7,0L-2,-2Z" fill="${filled?col:"none"}" stroke="${col}" stroke-width="1"/>`:`<circle r="${filled?4.2:3.6}" fill="${filled?col:"none"}" stroke="${col}" stroke-width="1" opacity="${filled?1:.7}"/>`}</svg>`;
-const CYC_TXT={venus:"Venus's cycle. Under her Oath, support and base cards from the Ether cost 1 less this round and every wounded card of yours heals a heart. Without her Oath, only on a 4 of 1d4.",
+const CYC_TXT={venus:"Venus's cycle. Under her Oath, support and base cards from the Ether cost 1 less this round (never below 1 mana) and every wounded card of yours heals a heart. Without her Oath, only on a 4 of 1d4.",
   mercury:"Mercury's cycle. Everyone votes to ban one school of spells for 1d3 rounds from the next round; a tie is a d20 roll-off, and the Oath of Mercury wins it. Anyone can try to Rob the Bank, once."};
 const CYC_COL={venus:"#ffd9a0",mercury:"#b9c8dc"};
 function roundPieces(k){const r=G.moon.round,since=G.skySince!=null&&G.skySince<=r?G.skySince:r,e=r-since;

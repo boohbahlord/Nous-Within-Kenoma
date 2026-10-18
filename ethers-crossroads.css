@@ -1351,3 +1351,41 @@ body.phone .fasec .faopts .opt{flex:1 1 140px}
 #bankslot .spell.lazy.armed{border-color:#fff;box-shadow:0 0 0 1px #ffffff55,0 0 10px #ffffff33}
 #hand.lazy .cardbtn{outline:1px dashed #ffffffaa;outline-offset:2px}
 html.th-office .lazyico path{stroke:var(--text)}html.th-office #bankslot .spell.lazy.armed{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber)}html.th-office #hand.lazy .cardbtn{outline-color:var(--amber)}
+/* ================= v45 · What you must know, the Help title, the start-of-game toast ================= */
+.game header{display:flex;align-items:center;flex-wrap:wrap;gap:4px 18px}
+#mustknow{flex:1 1 auto;display:flex;justify-content:center;min-width:0}
+#mustknow[hidden]{display:none}
+#mkBtn{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;padding:4px 16px 5px;border:1px solid var(--amber);border-radius:3px;background:#00000038;box-shadow:0 0 12px #0000;transition:box-shadow .2s,background .2s;text-align:center}
+#mkBtn:hover,#mkBtn:focus-visible{background:#ffffff0d;box-shadow:0 0 14px color-mix(in srgb,var(--amber) 40%,transparent)}
+#mkBtn .mkt{font-size:22px;line-height:1.1;color:var(--amber-hi);letter-spacing:.02em}
+#mkBtn small{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-top:2px}
+html.th-darkfantasy #mkBtn .mkt,html.th-jester #mkBtn .mkt,html.th-crimson #mkBtn .mkt{font-family:"Grenze Gotisch","Old English Text MT",serif;font-weight:500;font-size:24px;color:#e0505b;text-shadow:0 0 10px #8e162270}
+html.th-darkfantasy #mkBtn{border-color:#8e1622}
+.ovbox.mkbox{max-width:min(760px,calc(96vw / var(--uiz,1)));font-size:13.5px;line-height:1.5}
+.ovbox.mkbox h2{margin:0 0 8px;font-size:20px}
+.ovbox.mkbox .mknever{margin:0 0 4px;text-align:right;font-size:12px}
+.ovbox.mkbox .mknever .link{color:var(--dim)}
+.ovbox.mkbox .mktldr{margin:0 0 10px;padding:8px 12px;border-left:3px solid var(--amber);background:#00000030}
+.ovbox.mkbox .mktldr b{display:block;font-size:10.5px;letter-spacing:.14em;color:var(--amber)}
+.ovbox.mkbox .mkbody p{margin:0 0 8px}
+.ovbox.mkbox .mkbody b{color:var(--amber-hi);font-weight:400}
+.ovbox.mkbox h3{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);margin:12px 0 6px}
+.ovbox.mkbox .mklist{margin:0 0 8px;padding-left:18px}
+.ovbox.mkbox .mklist li{margin:0 0 5px}
+.ovbox.mkbox .mkpoint{padding:6px 10px;border:1px dashed var(--rule)}
+.ovbox.mkbox .acts{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0}
+.ovbox.mkask{max-width:min(520px,calc(96vw / var(--uiz,1)))}
+.ovbox.mkask .acts{display:flex;flex-wrap:wrap;gap:8px}
+#helphead{display:flex;align-items:baseline;gap:14px;margin:22px 0 6px}
+#helphead h3{margin:0}
+#helphead .link{font-size:12px}
+#helptoast{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:10px;max-width:min(560px,calc(100vw - 24px));padding:9px 12px;background:#120d10f2;border:1px solid var(--amber);border-radius:4px;box-shadow:0 6px 24px #000a;font-size:13px;color:var(--text);transition:opacity .4s,transform .4s}
+#helptoast.out{opacity:0;transform:translate(-50%,8px)}
+#helptoast[hidden]{display:none}
+#helptoast .htx{all:unset;cursor:pointer;color:var(--dim);font-size:16px;padding:0 2px}
+html.th-office #helptoast{background:#eceef1f2}
+@media (max-width:640px){#mkBtn .mkt{font-size:19px}#mustknow{flex-basis:100%}#helptoast{bottom:72px;font-size:12.5px}}
+#helptoast>span{flex:1 1 auto;min-width:0}
+#helptoast .link{white-space:nowrap}
+.ovbox.mkbox .mknever{text-align:left;padding-right:40px}
+@media (max-width:640px){#helptoast{width:calc(100vw - 24px)}}
