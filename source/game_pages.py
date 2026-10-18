@@ -28,7 +28,7 @@ import json as _json
 _S = _json.load(open('game/text/substances.json'))
 _N = {"beginner":"Beginner","angel":"Angel Machine","satan":"Satan","binah":"Binah","jester":"Jester Fool","tiph":"Tiphareth of Kether","lucifer":"Lucifer &amp; Ouroboros","leviathan":"The Leviathan","firm":"The Firmament","yald":"Yaldabaoth"}
 MODES_HTML = MODES_HTML.replace('@@SUBTAGS@@', ''.join(f'<dt>{n}</dt><dd>{_S[k]["tag"]}</dd>' for k, n in _N.items()))
-land = head(EC + ' · Nous Within Kenoma', extra='<style>' + open('game/text/rules.css').read() + '</style>') + f'''<main class="wrap rules">
+land = head(EC + ' · Nous Within Kenoma', extra='<style>' + open('game/text/rules.css').read() + '</style>', ec=True) + f'''<main class="wrap rules">
 <nav class="crumbs"><a href="index.html">← Nous Within Kenoma</a></nav>
 <header><span class="num">A card game</span><h1>{EC}</h1></header>
 {ec_cards}
@@ -51,7 +51,7 @@ land = head(EC + ' · Nous Within Kenoma', extra='<style>' + open('game/text/rul
 open(f'{OUT}/ethers-crossroads.html', 'w').write(land)
 
 RULES_CSS = '<style>' + open('game/text/rules.css').read() + '</style>'
-rules = head('All Rules · ' + EC, extra=RULES_CSS) + f'''<main class="wrap rules">
+rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="wrap rules">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><a href="ethers-crossroads-play.html">Play Game →</a></nav>
 <header><span class="num">{EC}</span><h1>All Rules</h1></header>
 @@RULES_INDEX@@
@@ -283,8 +283,8 @@ b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({beha
 </main>''', 1)
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
-play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=42">') + f'''<main class="wide game">
-<nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button></span></nav>
+play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=43">', ec=True) + f'''<main class="wide game">
+<nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
   <div id="moon" aria-live="polite"></div>
@@ -322,7 +322,7 @@ play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="eth
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
 <script src="ethers-crossroads-quotes.js?v=4"></script>
-<script src="ethers-crossroads.js?v=42"></script>
+<script src="ethers-crossroads.js?v=43"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 

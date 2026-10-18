@@ -2,16 +2,21 @@
 import json, html, os, re, shutil
 
 OUT = 'site'
-SITE_V = '42'   # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+SITE_V = '43'   # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 os.makedirs(OUT, exist_ok=True)
 shutil.copy('theme/site.js', f'{OUT}/site.js')
+shutil.copy('theme/ec-music.js', f'{OUT}/ec-music.js')
 open(f'{OUT}/site.css', 'w').write(open('theme/site.css').read().replace('/*@@GAME@@*/\n', ''))
 shutil.copy('theme/game.css', f'{OUT}/ethers-crossroads.css')
 for f in os.listdir('assets'):
     shutil.copy('assets/' + f, f'{OUT}/{f}')
 esc = lambda s: html.escape(str(s), quote=True)
 
-def head(title, extra='', static=1, fx='strings bars', theme=''):
+# v43: the Ether's Crossroads pages wear the theme chosen in the game (by default the Ether's Crossroads theme), from the first paint
+EC_THEME = '''<script>try{var P=JSON.parse(localStorage.getItem("ec-prefs2")||"{}"),t=P.theme==null||(!P.v43t&&P.theme==="")?"darkfantasy":P.theme,
+M={darkfantasy:["th-darkfantasy"],dull:["th-dull"],office:["th-office"],officedark:["th-officedark"],earth:["th-earth"],jester:["th-black","th-jester"],ten:["th-indigo","th-blue"],satan:["th-crimson"]};
+(M[t]||[]).forEach(function(c){document.documentElement.classList.add(c)});document.documentElement.classList.add("ecpage")}catch(e){}</script>'''
+def head(title, extra='', static=1, fx='strings bars', theme='', ec=False):
     cls = f' class="{theme}"' if theme else ''
     return f'''<!doctype html>
 <html lang="en"{cls}>
@@ -20,7 +25,7 @@ def head(title, extra='', static=1, fx='strings bars', theme=''):
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>{esc(title)}</title>
 <link rel="preload" href="cascadia-code-latin-200-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="site.css?v={SITE_V}">{extra}
+<link rel="stylesheet" href="site.css?v={SITE_V}">{extra}{EC_THEME + chr(10) + f'<script src="ec-music.js?v={SITE_V}" defer></script>' if ec else ''}
 <script src="site.js?v={SITE_V}" defer></script>
 </head>
 <body data-static="{static}" data-fx="{fx}">

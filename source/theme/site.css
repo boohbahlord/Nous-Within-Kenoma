@@ -187,3 +187,15 @@ html.th-office{--ground:#f3f3f3;--well:#ffffff;--deep:#e9eaec;--text:#252525;--d
 .rules .formula{display:inline-block;background:var(--deep);border:1px solid var(--rule);padding:4px 10px;margin:4px 0}
 .rules .flow{letter-spacing:.06em;color:var(--amber-hi)}
 
+/* v43: the Ether's Crossroads theme on the landing and rules pages too */
+html.th-darkfantasy.ecpage main h1{font-family:"Grenze Gotisch","Old English Text MT",serif;font-weight:500;letter-spacing:.02em;color:#d33a46;text-shadow:0 0 12px #8e162280}
+html.th-darkfantasy.ecpage .rules h2{color:var(--amber-hi);border-bottom-color:#5b2830}
+html.th-darkfantasy.ecpage .rules h3{color:#c4c2cc}
+html.th-darkfantasy.ecpage a.card{background:#1a1419e0;border-color:#8a7442;box-shadow:inset 0 0 24px #00000060}
+html.th-darkfantasy.ecpage a.card:hover{border-color:var(--amber-hi)}
+html.th-darkfantasy.ecpage .rules main,html.th-darkfantasy.ecpage main.rules{background:#0d0a0eb8;padding-left:18px;padding-right:18px;box-shadow:0 0 0 1px #5b283055}
+/* v43: the music control on the landing and rules pages */
+#ecmusic{position:fixed;left:max(10px,env(safe-area-inset-left,0px));bottom:max(10px,env(safe-area-inset-bottom,0px));z-index:50;display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);background:rgba(0,0,0,.6);border:1px solid var(--rule);padding:3px 6px}
+#ecmusic[hidden]{display:none}
+#ecmusic button{font:inherit;color:var(--amber-hi);background:transparent;border:1px solid var(--rule);padding:2px 7px;cursor:pointer;text-transform:uppercase;letter-spacing:.1em}
+#ecmusic b{font-weight:400;min-width:3.4em;text-align:center;color:var(--text)}

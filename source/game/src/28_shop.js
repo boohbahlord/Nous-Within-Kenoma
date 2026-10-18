@@ -26,11 +26,13 @@ function shopBlock(k){const S=SH();
   if(isEaten(k))return "Eaten by Yaldabaoth: it never comes back.";
   return ""}
 
+/* v43: a Heavenly Body the Firmament already calls with its own, cheaper spell isn't in its shop (it keeps the rest) */
+const firmOwn=(pl,k)=>!!(G&&G.p[pl]&&G.p[pl].tribe==="firm"&&SPELLS.some(s=>s.tribe==="firm"&&s.id===k));
 /* ---------- the shop's spells: one for each Heavenly Body, in the Astrology panel ---------- */
 for(const k of SHOP_PL){
   PRICE["shop_"+k]=()=>7+R(3)+R(12);
   SPELLS.push({id:"shop_"+k,name:"Buy "+skyWord(k).replace(/^the /,"the "),cost:12,dice:"7+1d3+1d12",school:"Astrology",shop:k,text:"",
-    ok:()=>!isHorde(G.active)&&!shopBlock(k),run:async()=>{await buyPlanet(G.active,k)}});
+    ok:()=>!isHorde(G.active)&&!shopBlock(k)&&!firmOwn(G.active,k),run:async()=>{await buyPlanet(G.active,k)}});
   const row=SKY_ROWS.find(r=>r[0]===k);
   SPELL_TEXT["shop_"+k]={n:"The Heavenly Body shop.",e:`${SHOP_NAME[k]} takes the sky at the start of the next round. ${row?row[3]:""}`,l:"7 + 1d3 + 1d12 mana, rolled every round. After any purchase, no Heavenly Body can be bought for six rounds."};
   const t=SPELL_TEXT["shop_"+k];SP("shop_"+k).text=[t.n,t.e,t.l].join(" ");
@@ -69,14 +71,15 @@ function raisePlanet(){
 /* ---------- the shop's panel ---------- */
 function shopHTML(){
   const live=canAct()&&G.phase==="prep"&&G.active===view(),S=SH();
-  const rows=SHOP_PL.map(k=>{const sp=SP("shop_"+k),c=spellCost(sp),ok=live&&spellReady(sp),now=sky()===k,blk=shopBlock(k);
+  const V=view(),mine=SHOP_PL.filter(k=>firmOwn(V,k));
+  const rows=SHOP_PL.filter(k=>!mine.includes(k)).map(k=>{const sp=SP("shop_"+k),c=spellCost(sp),ok=live&&spellReady(sp),now=sky()===k,blk=shopBlock(k);
     const left=now?"In the sky":isEaten(k)?"Eaten":planetStruck(k)?"Struck":S.pend&&S.pend.k===k?"Rises next round":"";
     return `<button class="spell eitem ${ok?"":"off"}" data-cast="shop_${k}" data-sp="shop_${k}" ${blk&&!ok?`data-tip="${esc(blk)}"`:""}><span class="sn">${esc(SHOP_NAME[k])}<small class="dc">${esc((SKY_FORM[k]||"").replace("Form of ",""))}</small>${left?`<small class="left">${left}</small>`:""}</span><em>${c} mana</em></button>`}).join("");
   const note=S.pend?`${plName(S.pend.by)} bought ${skyWord(S.pend.k)}: it rises at the start of the next round.`
     :G.moon.round<S.next?`A Heavenly Body was bought. The shop opens again in round ${S.next}.`
     :live?"Buy a Heavenly Body for the sky. It rises at the start of the next round. Prices (7 + 1d3 + 1d12) are rolled every round."
     :"You can buy a Heavenly Body in your own prep phase.";
-  return [`${note} After a purchase, no Heavenly Body can be bought for six rounds.`,rows]}
+  return [`${note} After a purchase, no Heavenly Body can be bought for six rounds.${mine.length?` Your own spells call ${mine.map(k=>SHOP_NAME[k]).join(", ")} for less, so the shop shows only the rest.`:""}`,rows]}
 DRAWERS.shop={title:"Heavenly Body shop",fill:shopHTML};
 {const _p=astroPins;astroPins=function(live,V){let h=_p(live,V);if(!shopOn())return h;const S=SH();
   const st=S.pend?`${SHOP_NAME[S.pend.k]} next round`:G.moon.round<S.next?`opens round ${S.next}`:"open";

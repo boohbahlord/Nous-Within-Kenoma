@@ -15,6 +15,12 @@ function resolveSubstances(opts){
     }
     const T=TRIBES[p.tribe];if(T.color)p.color=T.color;if(T.solid)p.solid=T.solid;
   }
+  // v43: Random color and Random symbol take what nobody else has (after the fixed ones of the Substances)
+  const ps=opts.players.filter(p=>p.cpu!=="horde");
+  const usedC=new Set(ps.filter(p=>TRIBES[p.tribe].color||p.color&&p.color!=="random").map(p=>TRIBES[p.tribe].color||p.color));
+  for(const p of ps)if(!TRIBES[p.tribe].color&&(!p.color||p.color==="random")){const free=COLORS.map(c=>c[1]).filter(c=>!usedC.has(c));p.color=pick(free.length?free:COLORS.map(c=>c[1]));usedC.add(p.color)}
+  const usedS=new Set(ps.filter(p=>TRIBES[p.tribe].solid||p.solid&&p.solid!=="random").map(p=>TRIBES[p.tribe].solid||p.solid));
+  for(const p of ps)if(!TRIBES[p.tribe].solid&&(!p.solid||p.solid==="random")){const free=Object.keys(SOLIDS).filter(k=>!usedS.has(k));p.solid=pick(free.length?free:Object.keys(SOLIDS));usedS.add(p.solid)}
   // a fixed color can collide with a color someone picked: the one who picked moves to a free color
   const used=new Set(opts.players.filter(p=>p.cpu!=="horde"&&TRIBES[p.tribe].color).map(p=>p.color));
   for(const p of opts.players){

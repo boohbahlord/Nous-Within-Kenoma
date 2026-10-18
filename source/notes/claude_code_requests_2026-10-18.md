@@ -51,6 +51,22 @@ The earlier to-do list (B1–B9, L1–L10, M1–M3, O1–O3, R1–R4) is in next
 
 10. > OH! and the dark fantasy theme should have some old pixel like or old bit video game dark fantasy sounding music playing! something that can play in the background and not annoy the player.
 
+11. > Let's add more dark fantasy music, and much in the same vain, some slower too, and then maybe not have it as loud i think too. Make the Dark Fantasy the default theme for Ether's crossroads as well.
+    >
+    > Make the host or player able to decide the NPCs Substance, color, or symbol.
+    >
+    > Make the default substance for computers be Random.
+    >
+    > For any planet Firmament can already by for cheaper, there should be an option removed for the normal expensive planet astrology spells, since they already have their own version. I dont know if there is a summon moon spell in astrology but their should be i didnt check. Also, firmament can still buy the other planets he himself doesnt have the ability to buy.
+    >
+    > There should be a random starting color option and random starting symbol option, both of which are default for the bot or computer.
+    >
+    > Also the Ether option should be obvious to all players in color as to where to find it, and maybe conjuring should go above necromancy in order, and it should have the Ether at the top from within the conjure list, which it might already be, but yeah.
+    >
+    > The menu you use to setup the game before playing shouldnt have horizontal scrolling, i dont like that i have to do that on a computer. Mobile doesnt need to do that btw for any part of that section.
+    >
+    > I think ALL of Ether's Crossroads pages should have this color scheme. The first song you set for dark fantasy is what plays on all the pages within Ether's crossroads on the website. Furthermore, there should be a volume setting with changes in volume by 5% or maybe 1%, and it can go over 100% up to 150%, since we are making it quieter. The songs in game will all randomize. Like i said, the Dark Fantasy theme is the default now, but, we will rename that theme to "Ether's Crossroads"
+
 ## Digest
 Done and live:
 - C1 Site-wide click sound (v38). C2 Scout: 2-tile diamond; Beginner default (v39). C3 Overdraw: no more draw rolls in a turn after
@@ -93,6 +109,28 @@ Built in v41 (all of the following):
 - RM Online rooms: Room title; Room description (limit 200 characters, shown on demand with an info button); player count and a
   player cap; the host's time zone; an "Open" room (no code needed: listed for anyone to join). Needs a shared room list without a
   server: open rooms are announced over a public relay; private rooms keep the code.
+
+Built in v43 (all of the following):
+- MU More dark fantasy songs in the same vein, some slower; quieter overall; a music volume in 5% steps up to 150%; in the game
+  the songs play in random order; on the other Ether's Crossroads pages (landing, rules) the first song plays.
+- TH2 The Dark Fantasy theme is renamed "Ether's Crossroads" and becomes the default; every Ether's Crossroads page (landing,
+  rules, play) wears the chosen theme, by default this one.
+- SE1 Computer seats: Substance, color and symbol can be set by the host/player (their fold opens like a person's);
+  computers default to Random Substance, Random color and Random symbol (new Random options for color and symbol).
+- SE2 The setup window never scrolls sideways, on a computer or a phone.
+- FI The Firmament: the regular (expensive) Astrology spell for a planet it already summons cheaper is hidden from it; it can
+  still buy the planets it has no spell of its own for. A Summon the Moon spell in Astrology if none exists.
+- ET The Ether entry stands out in color for everyone; Conjuring comes before Necromancy; the Ether sits at the top of Conjuring.
+
+12. > Also, the field automation UI should be more compact, both in the windows and in the bottom part you scroll through, but i imagine leaving the descriptions as being inside the boxes is great for mobile, it isnt good for PC tho, instead, PC should hover over the options with their mouse for more info.
+    >
+    > The part that allows the field automation to be placed below (like under the field where it already is), should be an option at the top of the Configure Automation Menu, and enabling automation automatically places it below the field, so now the player has to uncheck it to get rid of it
+13. > the sound off feature shouldnt be on the turn bar anymore, it can be at the top of the page, and changing it changes the audio slider in the menu accordingly
+- FA4 (built v43) Compact Field Automation: options in rows; descriptions inside the boxes on a phone, on hover on a computer;
+  "Show under the field" first, and turned on when the automation is turned on.
+- SO (built v43) "Sound: On/Off" at the top of the play page (beside Menu, All Rules, New game), out of the turn bar; the menu has
+  sound-effects and music sliders (0–150%) that read 0 when the sound is off; raising one turns it on.
+- The Moon: already in the Heavenly Body shop (Astrology) for everyone, so no new spell was needed.
 
 ## Status (v41)
 Done: D1 (log fold on PC), FA1–FA3 (Field Automation: setup option, turn-bar button with confirm, configure window, simple modes,

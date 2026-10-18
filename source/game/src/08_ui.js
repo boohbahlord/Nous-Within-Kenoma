@@ -192,12 +192,11 @@ function render(){
   if(live&&G.phase==="draw")ctl.push(`<button class="btn" id="d4" ${P.deck.length&&!overdrewNow(G.active)?"":"disabled"}>${overdrewNow(G.active)?"Overdrew: no more draws":"Roll d4 and draw"}</button>`);
   if(live&&G.phase!=="moon")ctl.push(`<button class="btn ghost" id="next">${G.phase==="setup"?"Done setting up":G.nextLabel||"Next →"}</button>`);
   if(+G.opts.timer&&!G.over)ctl.push(`<span id="timer" class="timer" aria-live="off" title="time left in this phase">${G.deadline?Math.max(0,Math.ceil((G.deadline-Date.now())/1000))+"s":""}</span>`);
-  ctl.push(`<button class="btn ghost sm" id="snd" aria-pressed="${SND.on}">sound: ${SND.on?"on":"off"}</button>`);
   $("#controls").innerHTML=ctl.join("");
   const ap=$("#actph");if(ap)ap.innerHTML=G.over?"Game over":G.passing?"":me().cpu?`${esc(me().name)} is playing…`:G.phase==="setup"?"<b>Setup</b>":G.phase==="moon"?"<b>Moon</b>":`<b>${({draw:"Draw",prep:"Prep",attack:"Attack"})[G.phase]||""}</b> · ${esc(me().name)}`;
   if($("#d4"))$("#d4").onclick=()=>{if(!canAct())return;rollDraw();render()};
   if($("#next"))$("#next").onclick=nextPhase;
-  $("#snd").onclick=()=>{SND.toggle();render()};
+  paintSndTop();
   renderSel(live);
   renderSpells(live);fitSide();
   document.querySelectorAll("[data-hist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.hist,b)});
