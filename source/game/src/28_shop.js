@@ -149,10 +149,10 @@ async function cycleRound(){
 const bankBanned=pl=>!!(G.p[pl]&&G.p[pl].bankBan!=null&&tnOf(pl)<=G.p[pl].bankBan);
 const etherBanned=pl=>!!(G.p[pl]&&G.p[pl].etherBan!=null&&tnOf(pl)<=G.p[pl].etherBan);
 const jailLeft=P=>Math.max(1,P.jail.until-Math.max(G.moon.round,P.jail.from+1)+1);   // the round they are caught in is not counted
-const robOk=pl=>!!(G&&G.p[pl]&&G.mercCyc===G.moon.round&&planetUp("mercury")&&bankOpen()&&!isHorde(pl)&&!G.p[pl].jail&&G.p[pl].robbed!==G.moon.round&&!bankBanned(pl));
-SPELLS.push({id:"robbank",name:"Rob the Bank",cost:0,school:"Bank",text:"Free, once, in a round of Mercury's cycle. Roll 1d20. A natural 20: every mana in the Bank is yours (what doesn\u2019t fit in your soul pile waits in a stash and pours in each turn), and +5 maximum. A 1: Jail for 2d2 rounds (an easy computer plays for you, and you cast nothing); after Jail, no Ether and no Bank for ten turns, and no loans ever again. Anything else: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again.",
+const robOk=pl=>!!(G&&G.p[pl]&&G.mercCyc===G.moon.round&&planetUp("mercury")&&bankOpen()&&G.bank&&G.bank.mana>0&&!isHorde(pl)&&!G.p[pl].jail&&G.p[pl].robbed!==G.moon.round&&!bankBanned(pl));   // v44: nothing to rob from an empty Bank
+SPELLS.push({id:"robbank",name:"Rob the Bank",cost:0,school:"Bank",text:"Free, once, in a round of Mercury's cycle. Roll 1d20. A natural 20: +5 maximum mana, and as much of the Bank\u2019s mana as your soul pile can hold. Not while the Bank is empty. A 1: Jail for 2d2 rounds (an easy computer plays for you, and you cast nothing); after Jail, no Ether and no Bank for ten turns, and no loans ever again. Anything else: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again.",
   ok:()=>robOk(G.active),run:async()=>{await robBank(G.active)}});
-SPELL_TEXT.robbank={n:"Mercury's cycle, once, in your prep phase.",e:"Roll 1d20. A natural 20: the Bank is emptied and every mana in it is yours (what doesn\u2019t fit in your soul pile waits in a stash and pours in at the start of each turn), and +5 maximum. 2 to 19: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again. A 1: Jail for 2d2 rounds; an easy computer plays for you and you cast nothing.",l:"After Jail: no Ether and no Bank for ten turns, and no loans ever again."};
+SPELL_TEXT.robbank={n:"Mercury's cycle, once, in your prep phase.",e:"Roll 1d20. A natural 20: +5 maximum mana, and as much of the Bank\u2019s mana as your soul pile can hold. The Bank can\u2019t be robbed while it is empty. 2 to 19: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again. A 1: Jail for 2d2 rounds; an easy computer plays for you and you cast nothing.",l:"After Jail: no Ether and no Bank for ten turns, and no loans ever again."};
 const ROB_FAILS=[
   n=>`The vault door ${n} broke open was painted on the wall. The guards laughed for a while before they drew their swords.`,
   n=>`The Banker was counting coins in the dark the whole time. He wrote down ${n}'s face and rang the bell.`,
@@ -166,9 +166,9 @@ function bankGrunts(pl){const B=npcIx("bank");if(B<0)return 0;const t=freeTilesN
 async function robBank(pl){
   const P=G.p[pl],B=G.bank,d=R(20),nm=plName(pl);P.robbed=G.moon.round;
   tray(pl,"Rob the Bank",[{s:20,v:d}],d===20?"the vault is yours":d===1?"caught: Jail":"failed");
-  if(d===20){P.maxAdd=(P.maxAdd||0)+5;const all=Math.max(0,B.mana),got=giveMana(pl,all);B.mana=0;const left=all-got;if(left>0)P.loot=(P.loot||0)+left;
-    log(`<b>${nm} robs the Bank</b> with a natural 20: all ${all} mana and +5 maximum${left>0?` (${left} wait in a stash and pour into the soul pile as it has room, at the start of each turn)`:""}.`,"event");
-    popup("The heist",`<p>${nm} rolls a natural 20 and empties the vault: all <b>${all}</b> mana, and five more maximum mana.${left>0?` <b>${got}</b> go into the soul pile now; the other <b>${left}</b> wait in a stash and pour in at the start of each of ${nm}'s turns, as much as fits.`:""}</p>`,pl)}
+  if(d===20){P.maxAdd=(P.maxAdd||0)+5;const got=giveMana(pl,Math.max(0,B.mana));B.mana-=got;   // v44: as much as the soul pile holds (after the +5), no more than the Bank has
+    log(`<b>${nm} robs the Bank</b> with a natural 20: ${got} mana (as much as the soul pile holds) and +5 maximum.`,"event");
+    popup("The heist",`<p>${nm} rolls a natural 20 and walks out with <b>${got}</b> mana, as much as the soul pile can hold, and five more maximum mana. The Bank keeps ${Math.max(0,B.mana)}.</p>`,pl)}
   else if(d===1)goToJail(pl);
   else{P.noLoans=true;P.credit=false;const k=bankGrunts(pl);
     log(`${nm} tries to rob the Bank and fails (${d}). ${k?`A stack of ${k} Grunt${k>1?"s":""} comes out of the Bank after them, and `:""}${k?"they":"They"} can never take a loan again.`,"event");

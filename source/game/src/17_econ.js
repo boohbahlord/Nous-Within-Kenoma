@@ -67,10 +67,13 @@ function repay(pl,n){const P=G.p[pl];n=Math.min(n,mana(pl),owedOf(pl));if(n<=0)r
   for(const L of [...P.loans]){const k=Math.min(L.owed,left);L.owed-=k;left-=k;if(L.owed<=0)P.loans.splice(P.loans.indexOf(L),1);if(!left)break}
   log(`${plName(pl)} pays the Bank ${paid} mana${P.loans.length?` (${owedOf(pl)} still owed)`:"; every loan is settled"}.`);return paid}
 /* selling to the Bank: cards from your hand or deck go to the Ether for their conjuring price */
-function sellCards(pl,cards){const P=G.p[pl];let price=0;
-  for(const c of cards){const L=P.hand.includes(c)?P.hand:P.deck;L.splice(L.indexOf(c),1);price+=costOf(c)||1;c.owner=null;if(c.hp!=null)c.hp=c.maxHp;G.ether.push(c)}
-  shuffle(P.deck);const got=giveMana(pl,price);G.bank.mana-=got;
-  log(`${plName(pl)} sells ${cards.length} card${cards.length>1?"s":""} to the Bank for ${got} mana${got<price?` (${price-got} more would not fit in the soul pile)`:""}; the deck is reshuffled.`,"event");return got}
+/* v44: the Bank pays a card's soul worth, less 0 or 1 (rolled at the sale); a standard card worth only 1 can't be sold */
+const sellable=c=>!(cardClass(c)==="Standard"&&soulOf(c)<=1);
+const sellRange=c=>[Math.max(0,soulOf(c)-1),soulOf(c)];
+function sellCards(pl,cards){const P=G.p[pl];let price=0;const rolls=[];cards=cards.filter(sellable);if(!cards.length)return 0;
+  for(const c of cards){const L=P.hand.includes(c)?P.hand:P.deck;L.splice(L.indexOf(c),1);const d=R(2);rolls.push({s:2,v:d});price+=Math.max(0,soulOf(c)-(d-1));c.owner=null;if(c.hp!=null)c.hp=c.maxHp;G.ether.push(c)}
+  shuffle(P.deck);tray(pl,"Sale to the Bank",rolls,`${price} mana`);const got=giveMana(pl,price);G.bank.mana-=got;
+  log(`${plName(pl)} sells ${cards.length} card${cards.length>1?"s":""} to the Bank for ${got} mana (soul worth, less 1 on each 2 of 1d2)${got<price?`; ${price-got} more would not fit in the soul pile`:""}. The deck is reshuffled.`,"event");return got}
 function sellThrall(pl){const P=G.p[pl];const c=(P.thralls||[]).shift();if(!c)return;c.owner=null;G.ether.push(c);const got=giveMana(pl,1);G.bank.mana-=got;
   log(`${plName(pl)} sells a thrall to the Bank (+${got} mana).`)}
 
@@ -201,10 +204,10 @@ ${live&&!B.dead?`<div class="bacts">
 }
 function openSell(V){const P=G.p[V],pick=new Set();
   const draw=()=>{const list=[...P.hand.map(c=>[c,"hand"]),...P.deck.map(c=>[c,"deck"])];
-    const tot=list.filter(([c])=>pick.has(c.id)).reduce((a,[c])=>a+(costOf(c)||1),0);
-    ovShow(`<div class="ovbox wide"><h2>Sell to the Bank</h2><p class="dim">Each card sells for its conjuring price and goes to the Ether. The deck is reshuffled afterwards. The Bank holds ${G.bank.mana} mana.</p>
-<div class="pickrow sell">${list.map(([c,w])=>`<label class="sellc ${pick.has(c.id)?"on":""}"><input type="checkbox" data-sl="${c.id}" ${pick.has(c.id)?"checked":""}>${face(c,{cls:"sm",noci:true})}<small>${w} · ${costOf(c)||1}</small></label>`).join("")}</div>
-<p><button class="btn" id="sellGo" ${pick.size?"":"disabled"}>Sell ${pick.size} for ${tot} mana</button> <button class="btn ghost" id="mcancel">Back</button></p></div>`);
+    const chosen=list.filter(([c])=>pick.has(c.id)),lo=chosen.reduce((a,[c])=>a+sellRange(c)[0],0),hi=chosen.reduce((a,[c])=>a+sellRange(c)[1],0);
+    ovShow(`<div class="ovbox wide"><h2>Sell to the Bank</h2><p class="dim">A card sells for its soul worth, or 1 less (rolled at the sale), and goes to the Ether; the deck is reshuffled. Standard cards worth only 1 can't be sold. The Bank holds ${G.bank.mana} mana.</p>
+<div class="pickrow sell">${list.map(([c,w])=>{const ok=sellable(c),[a,b]=sellRange(c);return `<label class="sellc ${pick.has(c.id)?"on":""} ${ok?"":"off"}" ${ok?"":'data-tip="A standard card worth only 1 can\'t be sold to the Bank."'}><input type="checkbox" data-sl="${c.id}" ${pick.has(c.id)?"checked":""} ${ok?"":"disabled"}>${face(c,{cls:"sm",noci:true})}<small>${w} · ${ok?(a===b?a:a+"–"+b):"—"}</small></label>`}).join("")}</div>
+<p><button class="btn" id="sellGo" ${pick.size?"":"disabled"}>Sell ${pick.size} for ${lo===hi?lo:lo+"–"+hi} mana</button> <button class="btn ghost" id="mcancel">Back</button></p></div>`);
     $("#ov").querySelectorAll("[data-sl]").forEach(i=>i.onchange=()=>{const id=+i.dataset.sl;i.checked?pick.add(id):pick.delete(id);draw()});
     $("#mcancel").onclick=openBank;
     $("#sellGo").onclick=()=>{const cs=[...P.hand,...P.deck].filter(c=>pick.has(c.id));sellCards(V,cs);render();openBank()}};

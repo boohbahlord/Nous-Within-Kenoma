@@ -227,7 +227,7 @@ const BANK_HELP=[
  ["Mana debt","Debt shows as mana below zero. Every soul you gain pays the debt first. Below zero the Bank lends six at most; at minus your maximum, five at most and at 30%."],
  ["Spend on credit","Tick it to cast spells you can't afford. The cost becomes mana debt."],
  ["Your lowest point","You lose the game if your mana falls below three times your maximum under zero (−18 with a maximum of 6)."],
- ["Selling","Sell cards from your hand or deck for their conjuring price. They go to the Ether and your deck is reshuffled. Binah can sell thralls for 1 mana."],
+ ["Selling","Sell cards from your hand or deck for their soul worth, or 1 less (rolled at the sale); a standard card worth only 1 can't be sold. They go to the Ether and your deck is reshuffled. Binah can sell thralls for 1 mana."],
  ["Upselling","A spell bought more than twice in each of two rounds in a row costs 1d2 − 1 more."],
  ["When the Bank is in the red","The Ether goes on sale (1 less), and the Bank borrows from the richest player."],
  ["Debt Collectors","Anyone more than their maximum below zero is hunted by the Bank's Debt Collectors."],
