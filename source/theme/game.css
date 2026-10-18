@@ -1187,3 +1187,9 @@ details.cinfo details.ifold .tabbed{margin:0}
 .tbody h4 span{font-size:12px;color:var(--dim);margin-left:6px}
 .ctree #ibody{padding:4px 0 12px}
 body.phone .itab{padding:8px 12px;font-size:13.5px}
+/* ================= v38: the fog flows: no dark square on each tile, a thinner veil with ragged soft edges ================= */
+.tile.fog::after,#board.newmoon .tile.fog::after,#board.fullmoon .tile.fog::after{background:none!important;animation:none!important}
+#board:not(.mapped) .tile.fog{background:inherit}
+.fogveil{background-image:var(--c1),var(--c2),linear-gradient(#0a080638,#0a080638)!important;opacity:1}
+#board.newmoon .fogveil{background-image:var(--c1),var(--c2),linear-gradient(#02010166,#02010166)!important}
+#board.fullmoon .fogveil{background-image:var(--c1),var(--c2),linear-gradient(#1c263850,#1c263850)!important}

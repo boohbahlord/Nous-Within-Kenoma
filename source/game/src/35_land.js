@@ -17,12 +17,19 @@ let fogKey="";
 function fogVeil(){const B=$("#board");if(!B)return;let v=B.querySelector(":scope > .fogveil");const tiles=[...B.querySelectorAll(".tile.fog")];
   if(!tiles.length){if(v)v.remove();fogKey="";return}
   const br=B.getBoundingClientRect(),W=Math.round(br.width),H=Math.round(br.height);if(!W||!H)return;
-  const rects=tiles.map(t=>{const r=t.getBoundingClientRect();return [Math.round(r.left-br.left),Math.round(r.top-br.top),Math.round(r.width),Math.round(r.height)]});
+  const rects=tiles.map(t=>{const r=t.getBoundingClientRect();return [Math.round(r.left-br.left),Math.round(r.top-br.top),Math.round(r.width),Math.round(r.height),+t.dataset.r,+t.dataset.c]});
   const key=W+"x"+H+":"+rects.map(r=>r.join(",")).join(";");
   if(!v){v=document.createElement("div");v.className="fogveil";v.setAttribute("aria-hidden","true");B.appendChild(v);v.style.animationDelay=`-${(performance.now()/1000)%90}s`}
   if(key!==fogKey||!v.style.maskImage&&!v.style.webkitMaskImage){fogKey=key;
-    const g=rects.map(([x,y,w,h])=>`<rect x='${x-4}' y='${y-4}' width='${w+8}' height='${h+8}' rx='10'/>`).join("");
-    const m="url(\"data:image/svg+xml;utf8,"+encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'><filter id='b'><feGaussianBlur stdDeviation='9'/></filter><g fill='white' filter='url(%23b)'>${g}</g></svg>`).replace(/%2523/g,"%23")+"\")";
+    // v38: soft, uneven clouds around each fogged tile's middle (the same shape every time for the same tile), blurred hard,
+    // so neighbouring fog runs together and the edges drift loosely instead of filling each tile's square
+    const rnd=(r,c,k)=>{const x=Math.sin(r*127.1+c*311.7+k*74.7)*43758.5453;return x-Math.floor(x)};
+    const tw=rects.length?rects[0][2]:60;
+    const g=rects.map(([x,y,w,h,r,c])=>{let s="";const cx=x+w/2,cy=y+h/2;
+      for(let k=0;k<3;k++){const ox=(rnd(r,c,k)-.5)*w*.35,oy=(rnd(r,c,k+3)-.5)*h*.35,rx=w*(.38+rnd(r,c,k+6)*.2),ry=h*(.34+rnd(r,c,k+9)*.2);
+        s+=`<ellipse cx='${(cx+ox).toFixed(1)}' cy='${(cy+oy).toFixed(1)}' rx='${rx.toFixed(1)}' ry='${ry.toFixed(1)}' fill-opacity='${(.7+rnd(r,c,k+12)*.3).toFixed(2)}'/>`}
+      return s}).join("");
+    const m="url(\"data:image/svg+xml;utf8,"+encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'><filter id='b' x='-20%' y='-20%' width='140%' height='140%'><feGaussianBlur stdDeviation='${Math.max(8,tw*.2).toFixed(1)}'/></filter><g fill='white' filter='url(%23b)'>${g}</g></svg>`).replace(/%2523/g,"%23")+"\")";
     v.style.maskImage=m;v.style.webkitMaskImage=m}
   v.style.setProperty("--c1",FOG_CLOUDS[0]);v.style.setProperty("--c2",FOG_CLOUDS[1])}
 {const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;try{fogVeil()}catch(e){console.error(e)}}}
