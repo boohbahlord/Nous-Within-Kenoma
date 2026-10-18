@@ -54,7 +54,7 @@ const SPELL_TEXT={
  ck:{e:"A King's soul comes from the Ether into your deck."},
  cjk:{e:"A Joker's soul comes from the Ether into your deck."},
  ca:{e:"An Ace's soul comes from the Ether into your deck."},
- csc:{e:"A Scout's soul comes from the Ether into your deck.",l:"Scouts see three tiles through the fog, uncover Assassins, ambushers and face-down cards within two, move like Assassins, and never fight."},
+ csc:{e:"A Scout's soul comes from the Ether into your deck.",l:"Scouts see two tiles out through the fog in a diamond and uncover Assassins, ambushers and face-down cards there, move like Assassins, and never fight."},
  cas:{e:"An Assassin's soul comes from the Ether into your deck.",l:"Two hearts, 10 + 1d12 to attack, 8 to defend. Hidden until an enemy stands right beside it. Can ambush. Only another Assassin stacks with it."},
  carch:{e:"An Archer's soul comes from the Ether into your deck.",l:"Shoots 1d20 + 1d10 at a stack exactly two tiles away, or suppresses it (disadvantage on its next attack). A miss costs nothing. No defense. 1 mana for the Beginner."},
  ccan:{e:"A Cannon's soul comes from the Ether into your deck.",l:"Fires 2d20 at anything up to three tiles away, once every 1d2 + 2 turns, two damage to a Wall. A miss costs nothing. No defense. Moves one step."},
@@ -236,4 +236,4 @@ const BANK_HELP=[
 function bankExplainHTML(){return `<details class="sub"><summary>The Bank, Barbarians and meteors explained</summary><dl class="spellinfo">${BANK_HELP.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}
 <dt>Barbarians</dt><dd>A crimson band takes the middle every 4 + 1d12 turns and with every Blood Moon, and fights anyone beside it. The player who kills the most of a band gets an Ether sale; breaking a big band can earn debt forgiveness.</dd>
 <dt>Meteor</dt><dd>One round in a hundred: damage where it lands and maybe around it, then fire for two rounds.</dd>
-<dt>Gambling, Increase Max Mana, Mystery Generation</dt><dd>Gambling (Sorcery, 1 mana): a 10 on 1d10 wins 7d2; a 1 costs a maximum mana, 7d2 of debt and a deck card. Increase Max Mana (Conjuring, 6): +1, eighteen at most. Mystery Generation (in the Auction, 3 to 8 mana): three brand-new cards of any rarity, wildcards included.</dd></dl></details>`}
+<dt>Gambling, Increase Max Mana, Mystery Generation</dt><dd>Gambling (Sorcery, 1 mana): a 10 on 1d10 wins 7d2; a 1 costs a maximum mana, 7d2 of debt and a deck card. Increase Max Mana (Conjuring, 4): +1, eighteen at most. Mystery Generation (in the Auction, 3 to 8 mana): three brand-new cards of any rarity, wildcards included.</dd></dl></details>`}

@@ -17,12 +17,19 @@ let fogKey="";
 function fogVeil(){const B=$("#board");if(!B)return;let v=B.querySelector(":scope > .fogveil");const tiles=[...B.querySelectorAll(".tile.fog")];
   if(!tiles.length){if(v)v.remove();fogKey="";return}
   const br=B.getBoundingClientRect(),W=Math.round(br.width),H=Math.round(br.height);if(!W||!H)return;
-  const rects=tiles.map(t=>{const r=t.getBoundingClientRect();return [Math.round(r.left-br.left),Math.round(r.top-br.top),Math.round(r.width),Math.round(r.height)]});
+  const rects=tiles.map(t=>{const r=t.getBoundingClientRect();return [Math.round(r.left-br.left),Math.round(r.top-br.top),Math.round(r.width),Math.round(r.height),+t.dataset.r,+t.dataset.c]});
   const key=W+"x"+H+":"+rects.map(r=>r.join(",")).join(";");
   if(!v){v=document.createElement("div");v.className="fogveil";v.setAttribute("aria-hidden","true");B.appendChild(v);v.style.animationDelay=`-${(performance.now()/1000)%90}s`}
   if(key!==fogKey||!v.style.maskImage&&!v.style.webkitMaskImage){fogKey=key;
-    const g=rects.map(([x,y,w,h])=>`<rect x='${x-4}' y='${y-4}' width='${w+8}' height='${h+8}' rx='10'/>`).join("");
-    const m="url(\"data:image/svg+xml;utf8,"+encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'><filter id='b'><feGaussianBlur stdDeviation='9'/></filter><g fill='white' filter='url(%23b)'>${g}</g></svg>`).replace(/%2523/g,"%23")+"\")";
+    // v38: soft, uneven clouds around each fogged tile's middle (the same shape every time for the same tile), blurred hard,
+    // so neighbouring fog runs together and the edges drift loosely instead of filling each tile's square
+    const rnd=(r,c,k)=>{const x=Math.sin(r*127.1+c*311.7+k*74.7)*43758.5453;return x-Math.floor(x)};
+    const tw=rects.length?rects[0][2]:60;
+    const g=rects.map(([x,y,w,h,r,c])=>{let s="";const cx=x+w/2,cy=y+h/2;
+      for(let k=0;k<3;k++){const ox=(rnd(r,c,k)-.5)*w*.35,oy=(rnd(r,c,k+3)-.5)*h*.35,rx=w*(.38+rnd(r,c,k+6)*.2),ry=h*(.34+rnd(r,c,k+9)*.2);
+        s+=`<ellipse cx='${(cx+ox).toFixed(1)}' cy='${(cy+oy).toFixed(1)}' rx='${rx.toFixed(1)}' ry='${ry.toFixed(1)}' fill-opacity='${(.7+rnd(r,c,k+12)*.3).toFixed(2)}'/>`}
+      return s}).join("");
+    const m="url(\"data:image/svg+xml;utf8,"+encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'><filter id='b' x='-20%' y='-20%' width='140%' height='140%'><feGaussianBlur stdDeviation='${Math.max(8,tw*.2).toFixed(1)}'/></filter><g fill='white' filter='url(%23b)'>${g}</g></svg>`).replace(/%2523/g,"%23")+"\")";
     v.style.maskImage=m;v.style.webkitMaskImage=m}
   v.style.setProperty("--c1",FOG_CLOUDS[0]);v.style.setProperty("--c2",FOG_CLOUDS[1])}
 {const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;try{fogVeil()}catch(e){console.error(e)}}}
@@ -59,13 +66,38 @@ const plotsOf=()=>G.plots||(G.plots=Array.from({length:PLOTS},(_,i)=>({i,owner:n
 const myPlots=pl=>plotsOf().filter(p=>p.owner===pl);
 const payDay=()=>!G.moon.gone?G.moon.i===4:G.moon.round%8===0;
 const handMiners=pl=>G.p[pl].hand.filter(c=>c.unit==="miner");
-function buyPlot(pl,p){const P=G.p[pl];if(p.owner!=null||!bankOpen()||bankBanned(pl)||P.jail)return false;if(!canAfford(pl,PLOT_PRICE)){if(!P.cpu)flash("Not enough mana.");return false}
-  spend(pl,PLOT_PRICE);p.owner=pl;p.prod=0;log(`${plName(pl)} buys plot ${p.i+1} from the Bank (1 mana).`,"event");return true}
+/* v38: one plot every two of your turns; a plot the Bank holds with its Miner sells for 3 (plot and Miner together) */
+const BANK_PLOT_PRICE=3;
+const plotPrice=p=>p.bank&&p.miners.length?BANK_PLOT_PRICE:PLOT_PRICE;
+const plotWait=pl=>{const P=G.p[pl];return P.plotTn==null?0:Math.max(0,P.plotTn+2-tnOf(pl))};   // turns until the next plot can be bought
+function buyPlot(pl,p){const P=G.p[pl];if(p.owner!=null||!bankOpen()||bankBanned(pl)||P.jail)return false;
+  if(plotWait(pl)){if(!P.cpu)flash("One plot every two turns: wait a turn.");return false}
+  const price=plotPrice(p);if(!canAfford(pl,price)){if(!P.cpu)flash("Not enough mana.");return false}
+  spend(pl,price);const withM=p.bank&&p.miners.length;p.owner=pl;p.prod=0;p.bank=false;P.plotTn=tnOf(pl);
+  for(const m of p.miners){m.owner=pl;m.plotSince=G.moon.round}
+  log(`${plName(pl)} buys plot ${p.i+1} from the Bank${withM?", with the Miner on it":""} (${price} mana).`,"event");return true}
+/* selling a plot with its Miner: 2 to 3 mana (1 + 1d2, rolled after the sale). It settles the Bank's half of what the plot
+   brought in since pay day, then pays the seller's debt; what is left goes to the soul pile. The Bank keeps plot and Miner. */
+function sellPlot(pl,p){const P=G.p[pl];if(p.owner!==pl||!p.miners.length||!bankOpen()||P.jail)return false;
+  const d=R(2),v=1+d;tray(pl,"Land sale",[{s:2,v:d}],`${v} mana`);
+  let left=v;const half=Math.min(left,Math.ceil(p.prod/2));left-=half;if(half)bankAdd(half);
+  const debt=Math.min(left,P.debt||0);if(debt){P.debt-=debt;if(!P.debt)P.debtAt=null;bankAdd(debt);left-=debt}
+  const got=left?giveMana(pl,left):0;
+  p.owner=null;p.bank=true;p.prod=0;for(const m of p.miners)m.owner=null;
+  log(`${plName(pl)} sells plot ${p.i+1} and its Miner to the Bank for ${v} mana (1 + 1d2): ${[half?`${half} for the Bank's half of the land`:"",debt?`${debt} off the debt`:"",got?`${got} to the soul pile`:""].filter(Boolean).join(", ")||"nothing left over"}. The Bank sells it on for ${BANK_PLOT_PRICE}.`,"event");return true}
+/* a player out of the game (with others still playing): the Bank takes the land, Miners and all */
+{const _el=eliminate;eliminate=function(pl,why){const was=G.p[pl]&&G.p[pl].out;const out=_el.apply(this,arguments);
+  if(!was&&G.plots&&G.p[pl].out&&!G.over){const ps=myPlots(pl);for(const p of ps){p.owner=null;p.prod=0;p.bank=!!p.miners.length;for(const m of p.miners)m.owner=null}
+    if(ps.length)log(`The Bank takes ${plName(pl)}'s ${ps.length} plot${ps.length>1?"s":""} back${ps.some(p=>p.miners.length)?"; those with a Miner are for sale at "+BANK_PLOT_PRICE+" mana":""}.`)}
+  return out}}
 function plantMiner(pl,p){const m=handMiners(pl)[0];if(!m||p.owner!==pl||p.miners.length)return false;const P=G.p[pl];P.hand.splice(P.hand.indexOf(m),1);m.owner=pl;m.plotSince=G.moon.round;p.miners.push(m);
   log(`${plName(pl)} puts a Miner to work on plot ${p.i+1}: no enemy can reach it there.`);return true}
 /* the Miners work at the start of their owner's turn */
 {const _bt=bankTurn;bankTurn=function(pl){_bt(pl);if(!G.p[pl]||isHorde(pl)||!G.plots)return;let got=0;
   for(const p of myPlots(pl))for(const m of p.miners)if(m.plotSince<G.moon.round){let n=R(2)-(planetUp("jupiter")?0:1);if(n&&G.p[pl].minerX2!=null&&tnOf(pl)<=G.p[pl].minerX2)n*=2;p.prod+=n;got+=n}
+  // v38: Jupiter blesses the land itself: +1 a plot each turn while it is in the sky, +1d2 a plot during its eclipse
+  const jb=()=>eclipseOn("jupiter")?R(2):planetUp("jupiter")?1:0;let jup=0;for(const p of myPlots(pl)){const n=jb();p.prod+=n;jup+=n}
+  if(jup){got+=jup;log(`Jupiter over the Bank's land: ${plName(pl)}'s plots yield ${jup} more.`)}
   if(got){const n=giveMana(pl,got);log(`${plName(pl)}'s Miners on the Bank's land bring in ${n} mana${n<got?" (the soul pile is full)":""}. The Bank's half is due at the Full Moon.`)}}}
 /* pay day: the Bank takes half */
 function landPayDay(){if(!G.plots||!bankOpen())return;const bk=npcIx("bank");
@@ -93,20 +125,25 @@ function landPayDay(){if(!G.plots||!bankOpen())return;const bk=npcIx("bank");
 /* the computer and the land */
 {const _ab=aiBank;aiBank=async function(pl,W,cast1){await _ab(pl,W,cast1);const P=G.p[pl];if(G.over||P.jail||!bankOpen()||bankBanned(pl))return;
   for(const p of myPlots(pl))if(!p.miners.length&&handMiners(pl).length)plantMiner(pl,p);
-  if(handMiners(pl).length&&mana(pl)>=3&&Math.random()<.5){const p=plotsOf().find(q=>q.owner==null);if(p&&buyPlot(pl,p))plantMiner(pl,p)}}}
+  if(!plotWait(pl)){const bp=plotsOf().find(q=>q.owner==null&&q.bank&&q.miners.length);
+    if(bp&&mana(pl)>=BANK_PLOT_PRICE+2&&Math.random()<.5)buyPlot(pl,bp);
+    else if(handMiners(pl).length&&mana(pl)>=3&&Math.random()<.5){const p=plotsOf().find(q=>q.owner==null&&!(q.bank&&q.miners.length));if(p&&buyPlot(pl,p))plantMiner(pl,p)}}
+  if(P.debt>3)for(const p of myPlots(pl))if(p.miners.length&&Math.random()<.4){sellPlot(pl,p);break}}}
 
 /* the Land tab */
 function landHTML(V){const live=canAct()&&G.phase==="prep"&&G.active===V,P=G.p[V],open=bankOpen()&&!bankBanned(V)&&!P.jail,hm=handMiners(V).length;
   const mine=myPlots(V),made=mine.reduce((a,p)=>a+p.prod,0);
   const box=p=>{const own=p.owner,me=own===V;let body;
-    if(own==null)body=`<span class="dim">For sale</span>${live&&open?`<button class="btn sm" data-plot="${p.i}" ${canAfford(V,PLOT_PRICE)?"":"disabled"}>Buy · 1 mana</button>`:""}`;
-    else if(me)body=p.miners.length?`<span>${unitSVG("miner","#e8c24a",18)} A Miner at work</span><small class="dim">${p.prod} brought in since pay day</small>`:`<span class="dim">Yours, empty</span>${live&&hm?`<button class="btn sm" data-plant="${p.i}">Put a Miner from your hand</button>`:`<small class="dim">${hm?"":"No Miner in your hand"}</small>`}`;
+    const wait=plotWait(V),price=plotPrice(p);
+    if(own==null)body=`<span class="dim">${p.bank&&p.miners.length?`The Bank's, with a Miner`:"For sale"}</span>${live&&open?`<button class="btn sm" data-plot="${p.i}" ${canAfford(V,price)&&!wait?"":"disabled"}>${wait?`Next plot in ${wait} turn${wait>1?"s":""}`:`Buy · ${price} mana`}</button>`:""}`;
+    else if(me)body=p.miners.length?`<span>${unitSVG("miner","#e8c24a",18)} A Miner at work</span><small class="dim">${p.prod} brought in since pay day</small>${live&&open?`<button class="btn ghost sm" data-sell="${p.i}" title="Plot and Miner go to the Bank; rolled after the sale">Sell with its Miner · 2–3 mana</button>`:""}`:`<span class="dim">Yours, empty</span>${live&&hm?`<button class="btn sm" data-plant="${p.i}">Put a Miner from your hand</button>`:`<small class="dim">${hm?"":"No Miner in your hand"}</small>`}`;
     else body=`<span class="dim">Owned by ${plName(own)}</span>${p.miners.length?`<small class="dim">a Miner at work</small>`:""}`;
     return `<div class="plot${me?" mine":own!=null?" taken":""}"><b>Plot ${p.i+1}</b>${body}</div>`};
-  return `<p class="dim">Eight plots of the Bank's land, 1 mana each. A plot is a Miner slot no enemy can reach: a Miner in it brings 1d2 − 1 mana a turn, like a Miner in an Ace (1d2 under Jupiter). At every Full Moon (every eighth round without the Moon) the Bank takes half of what your plots brought in since. What you can't pay becomes debt and Debt Collectors come; miss two pay days in a row and the Bank takes the land back and sells each Miner as two Slave cards at the Auction.</p>
+  return `<p class="dim">Eight plots of the Bank's land, 1 mana each, one plot every two of your turns. A plot is a Miner slot no enemy can reach: a Miner in it brings 1d2 − 1 mana a turn, like a Miner in an Ace (1d2 under Jupiter); Jupiter in the sky adds 1 a plot each turn, 1d2 during its eclipse. A plot with its Miner sells back to the Bank for 2 to 3 mana (rolled after the sale), which pays your debt first; the Bank sells it on for 3. When a player is out, the Bank takes their land. At every Full Moon (every eighth round without the Moon) the Bank takes half of what your plots brought in since. What you can't pay becomes debt and Debt Collectors come; miss two pay days in a row and the Bank takes the land back and sells each Miner as two Slave cards at the Auction.</p>
 ${mine.length?`<p>Your plots: ${mine.length}. Brought in since the last pay day: <b>${made}</b>; the Bank's half: <b>${Math.ceil(made/2)}</b>${P.landMiss?` · <span class="neg">${P.landMiss} pay day missed</span>`:""}.</p>`:""}
 <div class="plots">${plotsOf().map(box).join("")}</div>${!open?`<p class="dim">${!bankOpen()?"The Bank is closed.":P.jail?"In Jail: no Bank business.":"No Bank business yet."}</p>`:live?"":`<p class="dim">Land is bought in your own prep phase.</p>`}`}
 function wireLand(el,V,re){el.querySelectorAll("[data-plot]").forEach(b=>b.onclick=()=>{if(!canAct())return;buyPlot(V,plotsOf()[+b.dataset.plot]);re()});
-  el.querySelectorAll("[data-plant]").forEach(b=>b.onclick=()=>{if(!canAct())return;plantMiner(V,plotsOf()[+b.dataset.plant]);re()})}
+  el.querySelectorAll("[data-plant]").forEach(b=>b.onclick=()=>{if(!canAct())return;plantMiner(V,plotsOf()[+b.dataset.plant]);re()});
+  el.querySelectorAll("[data-sell]").forEach(b=>b.onclick=()=>{if(!canAct())return;sellPlot(V,plotsOf()[+b.dataset.sell]);re()})}
 
-if(window.__EC)Object.assign(window.__EC,{plotsOf,buyPlot,plantMiner,landPayDay,venusGratitude,fogVeil});
+if(window.__EC)Object.assign(window.__EC,{giveMana,eliminate:(...a)=>eliminate(...a),plotsOf,buyPlot,sellPlot,plantMiner,landPayDay,venusGratitude,fogVeil});

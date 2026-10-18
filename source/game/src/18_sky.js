@@ -34,7 +34,9 @@ function firmFog(V){const F=G.ffog;if(!F||!G.p[F.by]||G.p[F.by].out||tnOf(F.by)>
   const nm=G.moon.i===0&&!G.moon.gone;
   if(isEnemy(F.by,V))return nm?{blind:true}:{cut:1};
   return nm?{own:true}:null}
-const visR=(x,ff)=>ff&&ff.own||!hasK(x.st,"scout")?1:3-(ff&&ff.cut?1:0);   // every card sees the eight tiles around it; a Scout sees three
+const visR=(x,ff)=>ff&&ff.own||!hasK(x.st,"scout")?1:2-(ff&&ff.cut?1:0);
+/* every card sees the eight tiles around it; a Scout sees two tiles out in a diamond (which holds those eight too) */
+const inSight=(x,r,c,ff)=>{const dr=Math.abs(x.r-r),dc=Math.abs(x.c-c),v=visR(x,ff);return Math.max(dr,dc)<=1&&v>=1||hasK(x.st,"scout")&&!(ff&&ff.own)&&dr+dc<=v}
 
 /* ---------- drawings ---------- */
 function marsSVG(){return `<svg class="moon mars" viewBox="-44 -44 88 88" width="88" height="88" aria-hidden="true"><defs><radialGradient id="marsg" cx="38%" cy="34%"><stop offset="0" stop-color="#f08a5a"/><stop offset=".65" stop-color="#b3431f"/><stop offset="1" stop-color="#5a1a0c"/></radialGradient><radialGradient id="marsglow"><stop offset="55%" stop-color="#ff6a3a" stop-opacity=".35"/><stop offset="100%" stop-color="#ff6a3a" stop-opacity="0"/></radialGradient></defs><circle r="40" fill="url(#marsglow)"/><circle r="24" fill="url(#marsg)" stroke="#3a120a"/><circle cx="-7" cy="5" r="3.4" fill="#8a3216" opacity=".7"/><circle cx="8" cy="-6" r="2.2" fill="#8a3216" opacity=".7"/><circle cx="4" cy="10" r="1.6" fill="#8a3216" opacity=".7"/><path d="M-18,-6C-10,-9 4,-2 18,-5" stroke="#7a2a12" stroke-width="1.6" fill="none" opacity=".6"/>${G.moonLev?levOnMoon():""}</svg>`}

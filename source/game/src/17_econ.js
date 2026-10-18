@@ -155,7 +155,7 @@ SPELLS.push(
    else if(d===1){const w=rollN(7,2),n=sum(w);P.maxAdd=(P.maxAdd||0)-1;const c=P.deck.pop();if(c){c.owner=null;G.ether.push(c)}tray(pl,"Gambling",[{s:10,v:d},...w],`−${n}`);
      log(`<b>Gambling</b>: ${plName(pl)} rolls a 1. One maximum mana is lost, ${n} mana of debt (7d2) is owed${c?", and a card leaves the deck for the Ether":""}.`,"event");addDebt(pl,n)}
    else{tray(pl,"Gambling",[{s:10,v:d}],"nothing");log(`Gambling: ${plName(pl)} rolls ${d}. Nothing.`)}}},
- {id:"maxmana",name:"Increase Max Mana",cost:6,school:"Conjuring",text:"Your maximum mana goes up by one for the rest of the game, eighteen at most.",ok:()=>soulCap(G.active)<18,run:async()=>{const P=me();P.maxAdd=(P.maxAdd||0)+1;log(`${plName(G.active)} buys one more maximum mana (${soulCap(G.active)}).`)}}
+ {id:"maxmana",name:"Increase Max Mana",cost:4,school:"Conjuring",text:"Your maximum mana goes up by one for the rest of the game, eighteen at most.",ok:()=>soulCap(G.active)<18,run:async()=>{const P=me();P.maxAdd=(P.maxAdd||0)+1;log(`${plName(G.active)} buys one more maximum mana (${soulCap(G.active)}).`)}}
 );
 const MYS={common:["2","3","4","5","6","7","8","9","10"],support:["scout","archer","healer","repair","miner","ram"],special:["J","Q","K","assassin"],rare:["A","JK","wall"],legend:["cannon","A"]};
 function mysteryCard(pl){const v=R(20),pool=v<=10?MYS.common:v<=15?MYS.support:v<=18?MYS.special:v===19?MYS.rare:MYS.legend,k=pick(pool);

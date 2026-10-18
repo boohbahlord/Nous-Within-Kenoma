@@ -1,7 +1,7 @@
 /* ---------------- Prompt 7: fog of war, Scouts, Assassins, face-down cards, ambush, Quiet Eyes, Bird's Eye ---------------- */
 
 /* ---------- who sees what ----------
-   Fog of war (on by default): every unit sees the eight tiles around it, a Scout three tiles. Assassins, ambushers and enemy Scouts
+   Fog of war (on by default): every unit sees the eight tiles around it, a Scout two tiles out in a diamond. Assassins, ambushers and enemy Scouts
    stay hidden unless one of your cards stands right next to them; your Scouts also uncover Assassins, ambushers and
    face-down cards within a round two tiles, and enemy Scouts within three. Bird's Eye lifts the fog for your side for a
    round. Quiet Eyes, cast by an enemy, hides everything not right beside you unless you have a Scout on the field.
@@ -28,12 +28,12 @@ function seesTile(V,r,c){
   const near=M.own.some(x=>Math.abs(x.r-r)+Math.abs(x.c-c)===1);  // right beside one of your cards
   if(stealthy(st)){
     if(near||eclipseOn("sun"))return true;   // the suns' eclipse shows every Assassin
-    const scoutR=(hasK(st,"scout")&&st.cards.every(c=>c.unit==="scout")?3:2)-(ff&&ff.cut?1:0);
-    return M.sc.some(x=>scoutR===3?Math.max(Math.abs(x.r-r),Math.abs(x.c-c))<=3:Math.hypot(x.r-r,x.c-c)<=2.01);
+    const scoutR=2-(ff&&ff.cut?1:0);   // your Scouts uncover them within their own diamond of sight
+    return M.sc.some(x=>Math.abs(x.r-r)+Math.abs(x.c-c)<=scoutR);
   }
   if(quietOn(V)&&!M.sc.length)return M.own.some(x=>Math.max(Math.abs(x.r-r),Math.abs(x.c-c))<=1);
   if(!ff&&(!fogOn()||birdOn(V)))return true;
-  return M.own.some(x=>Math.max(Math.abs(x.r-r),Math.abs(x.c-c))<=visR(x,ff));
+  return M.own.some(x=>inSight(x,r,c,ff));
 }
 /* a tile is foggy for you when none of your cards can see it */
 function fogTile(V,r,c){
@@ -43,12 +43,12 @@ function fogTile(V,r,c){
   const ff=firmFog(V);
   if(!ff&&(!fogOn()||birdOn(V)))return false;
   const M=visionMap(V);if(ff&&ff.blind)return !M.own.some(x=>x.r===r&&x.c===c);
-  return !M.own.some(x=>Math.max(Math.abs(x.r-r),Math.abs(x.c-c))<=visR(x,ff));
+  return !M.own.some(x=>inSight(x,r,c,ff));
 }
 /* a face-down enemy stack shows only its back, unless your Scout is within two tiles */
 function showsBack(V,r,c){
   const st=G.board[r][c];if(!st||!st.down||!isEnemy(st.owner,V)||eclipseOn("sun"))return false;
-  return !scoutsOf(V).some(x=>Math.hypot(x.r-r,x.c-c)<=2.01);
+  return !scoutsOf(V).some(x=>Math.abs(x.r-r)+Math.abs(x.c-c)<=2);
 }
 
 /* ---------- shooting into the fog ----------
@@ -136,7 +136,7 @@ function fullMoonScout(){   // the Beginner's free Scout each Full Moon
 
 /* ---------- spells ---------- */
 SPELLS.push(
- {id:"csc",name:"Scout Conjure",cost:1,school:"Conjuring",text:"A Scout's soul comes from the Ether into your deck. Scouts see three tiles through the fog, uncover Assassins, ambushers and face-down cards within two, move like Assassins and don't fight.",ok:()=>etherHasU("scout"),run:()=>conjureU("scout")},
+ {id:"csc",name:"Scout Conjure",cost:1,school:"Conjuring",text:"A Scout's soul comes from the Ether into your deck. Scouts see two tiles out through the fog in a diamond and uncover Assassins, ambushers and face-down cards there, move like Assassins and don't fight.",ok:()=>etherHasU("scout"),run:()=>conjureU("scout")},
  {id:"cas",dice:"2d2+1",name:"Assassin Conjure",cost:5,school:"Conjuring",text:"An Assassin's soul comes from the Ether into your deck. Two hearts, the defense of an Infantry (8) and the attack of a Jack (10 + 1d12); moves one tile straight, two diagonal, or two forward or back; hidden from enemies until they stand right beside it; can ambush; two can stack together.",ok:()=>etherHasU("assassin"),run:()=>conjureU("assassin")},
  {id:"quiet",name:"Quiet Eyes",cost:2,dice:"2 a round",school:"Illusion",text:"For 1d2 + 1 rounds, enemies without a Scout on the field see only the units right beside their own. 2 mana now and 2 at the start of every round it lasts; it ends when you can't pay. Scouts see through it.",
   ok:()=>!(G.quiet||[]).some(q=>q.by===G.active&&q.until>=G.moon.round),run:async()=>{

@@ -1141,3 +1141,55 @@ body.phone .tile.sel .stack{outline:2px solid var(--amber-hi);outline-offset:-1p
 body.phone .cardbtn.on .cf{outline:2px solid var(--amber-hi);outline-offset:1px;box-shadow:inset 0 0 0 2px #efe2c8,inset 0 0 0 3px var(--pc),0 0 0 4px #000,0 0 12px var(--amber)}
 /* long names break inside their box on a phone instead of running across the screen */
 body.phone .ovbox,body.phone #selbox,body.phone #info,body.phone .pbox,body.phone #log,body.phone #pop{overflow-wrap:anywhere}
+/* ================= v38: the Office theme: white and light grey panels, a blue accent ================= */
+html.th-office .gbar,html.th-office #gbar.open{background:#ffffffeb;border-color:var(--rule);color:var(--text);box-shadow:0 2px 10px #0002}
+html.th-office .tray,html.th-office #histpop,html.th-office #pop .popbox,html.th-office #aimbar{background:#fff;color:var(--text);border-color:var(--rule)}
+html.th-office #pop{background:#0003}html.th-office #menu{background:#0004}
+html.th-office .deckbar,html.th-office .manabar{background:#e4e6ea;border-color:#b9bcc2}
+html.th-office .bankbar{background:linear-gradient(90deg,#fff4cf,#fbe9ad);color:#5c4300;border-color:#d6b54a}
+html.th-office .bankbar:hover{background:linear-gradient(90deg,#ffefbd,#f7df93)}
+html.th-office .blindnote{background:#ece6fb;color:#3a2a6a}
+html.th-office .spell.ether,html.th-office #etherpanel,html.th-office #etherpanel .spell{background:#eef0fb;color:#22265a}
+html.th-office .spell.drawerbtn,html.th-office #skypanel,html.th-office #skypanel .orow,html.th-office #skypanel .spell{background:#e8f4f3;color:#123c3c}
+html.th-office .myscard.back{background:repeating-linear-gradient(45deg,#e1e4ea 0 6px,#d5d9e0 6px 12px)}html.th-office .myscard.back .mysback{background:#c9ced8}
+html.th-office .stack.facedown{background:#cfd4dc}
+html.th-office .ovbox.bank .plot.mine{background:linear-gradient(#fff6d8,#f5e7b8)}
+html.th-office .cb{background:repeating-linear-gradient(45deg,#e7e9ed 0 3px,#dcdfe4 3px 6px)}
+html.th-office ::-webkit-scrollbar-track{background:#e9eaec}
+html.th-office .ovbox,html.th-office .pbox,html.th-office .qbox,html.th-office details.sub,html.th-office #log,html.th-office .stabs,html.th-office .sfoot{border-color:var(--rule)}
+html.th-office .ovbox{box-shadow:0 10px 40px #0003}
+html.th-office .stab.on{color:#fff}
+html.th-office #log li{border-bottom-color:#0000001a}
+html.th-office .label,html.th-office h3{border-color:var(--rule)}
+/* ================= v38: animations ================= */
+#fx .skull{position:fixed;pointer-events:none;will-change:transform,opacity,filter}
+#fx .skull svg{display:block}
+/* magic and other animations off: the page holds still (the fog veil becomes a picture of itself) */
+html.still-magic *,html.still-magic *::before,html.still-magic *::after{animation:none!important}
+html.still-magic .foldable.foldglow>h3[data-fold]{text-shadow:0 0 8px var(--amber)}
+/* the phone's question at the start of a game */
+#animask{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:16px;background:#000a}
+#animask[hidden]{display:none}
+#animask .ovbox{position:relative;max-width:420px;width:100%}
+#animask .xclose{position:absolute;top:8px;right:10px}
+#animask label.chk{display:flex;gap:10px;align-items:flex-start;margin:12px 0;cursor:pointer}
+#animask label.chk input{margin-top:3px;width:20px;height:20px;flex:none;accent-color:var(--amber)}
+#animask label.chk small{display:block;color:var(--dim);font-size:12.5px;margin-top:2px}
+/* ================= v38: the info panels as folders ================= */
+.ctree{padding:6px 12px 2px}
+details.cinfo details.ifold{margin:6px 0;border-left:1px solid var(--rule);padding-left:10px}
+details.cinfo details.ifold>summary{padding:6px 0;letter-spacing:.06em;text-transform:none;font-size:14px}
+details.cinfo details.ifold>summary .ifn{font-size:11.5px;color:var(--dim);margin-left:6px}
+details.cinfo details.ifold>.itabs,.tabbed>.itabs{padding:4px 0 8px}
+details.cinfo details.ifold .tabbed{margin:0}
+.tbody{border-top:1px solid var(--rule);padding:6px 0 10px;font-size:13.5px}
+.tbody h4{font-size:15px;color:var(--amber-hi);font-weight:200;margin:6px 0 4px}
+.tbody h4 span{font-size:12px;color:var(--dim);margin-left:6px}
+.ctree #ibody{padding:4px 0 12px}
+body.phone .itab{padding:8px 12px;font-size:13.5px}
+/* ================= v38: the fog flows: no dark square on each tile, a thinner veil with ragged soft edges ================= */
+.tile.fog::after,#board.newmoon .tile.fog::after,#board.fullmoon .tile.fog::after{background:none!important;animation:none!important}
+#board:not(.mapped) .tile.fog{background:inherit}
+.fogveil{background-image:var(--c1),var(--c2),linear-gradient(#0a080638,#0a080638)!important;opacity:1}
+#board.newmoon .fogveil{background-image:var(--c1),var(--c2),linear-gradient(#02010166,#02010166)!important}
+#board.fullmoon .fogveil{background-image:var(--c1),var(--c2),linear-gradient(#1c263850,#1c263850)!important}

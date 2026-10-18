@@ -1,6 +1,8 @@
 /* Nous Within Kenoma page effects.
    - strings: thin black lines stretched across the page (data-fx contains "strings")
-   - bars: rare black gaps, some across the screen, some inside boxes (data-fx contains "bars")
+   - bars: rare black gaps across the screen behind the page (data-fx contains "bars"); never on buttons or boxes
+   - the reader's look, shared with the game's Display settings (localStorage "ec-prefs2"): lines (the strings and bars
+     on or off) and bright (the page's brightness, 0.7 to 1.3)
    - static: animated fuzzy static with faint scanlines and an occasional flicker, behind the text.
      Level comes from <body data-static="0-4">; the reader can only switch it off (bottom-right button). */
 (function(){
@@ -10,9 +12,14 @@
   function el(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
 
   /* ---------- strings and background bars ---------- */
+  const lookPref=()=>{try{return JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){return {}}};
+  function look(){const P=lookPref(),b=+P.bright||1;
+    document.documentElement.style.filter=Math.abs(b-1)>.01?`brightness(${b})`:"";
+    document.documentElement.classList.toggle("nolines",P.lines===false)}
   function drawStrings(){
     const W=innerWidth,H=innerHeight;
     document.querySelector("svg.strings")?.remove();
+    if(lookPref().lines===false)return;
     const s=el("svg",{class:"strings",viewBox:`0 0 ${W} ${H}`,preserveAspectRatio:"none","aria-hidden":"true"});
     const g=el("g",{stroke:"#000",fill:"none"},s);
     if(fx.includes("strings")){
@@ -33,18 +40,6 @@
     }
     body.prepend(s);
   }
-  function boxBars(){
-    if(!fx.includes("bars"))return;
-    document.querySelectorAll("a.card,.ix,.infobox,.kinds li a").forEach(box=>{
-      if(R()>.2)return;
-      const b=document.createElement("i");b.className="bar";b.setAttribute("aria-hidden","true");
-      const full=R()<.3,w=full?100:20+R()*55;
-      b.style.cssText=`height:${2+Math.floor(R()*2)}px;top:${(8+R()*84).toFixed(1)}%;width:${w.toFixed(1)}%;${R()<.5?"left:0":"right:0"}`;
-      if(getComputedStyle(box).position==="static")box.style.position="relative";
-      box.appendChild(b);
-    });
-  }
-
   /* ---------- static ---------- */
   const KEY="nwk-static";
   let on=true;try{on=localStorage.getItem(KEY)!=="off"}catch(e){}
@@ -91,6 +86,7 @@
   document.addEventListener("visibilitychange",()=>{if(!LV||!on)return;if(document.hidden){cancelAnimationFrame(raf);raf=0}else if(!reduce&&!raf)raf=requestAnimationFrame(loop)});
 
   /* pages can raise or lower the static while open (the game's Blood Moon does) */
+  window.nwkLook=()=>{drawStrings();look()};   // the game's Display settings call this after a change
   window.nwkStatic={level(n){
     n=Math.max(0,Math.min(4,n|0));if(n===LV)return;LV=n;ALPHA=[0,.035,.065,.1,.13][LV]||0;
     if(!LV){stop();return}
@@ -101,7 +97,7 @@
     if(on)start();
   }};
   function go(){
-    drawStrings();boxBars();
+    drawStrings();look();
     if(LV>0){toggleButton();if(on)start()}
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",go);else go();
