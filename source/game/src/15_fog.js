@@ -1,7 +1,7 @@
 /* ---------------- Prompt 7: fog of war, Scouts, Assassins, face-down cards, ambush, Quiet Eyes, Bird's Eye ---------------- */
 
 /* ---------- who sees what ----------
-   Fog of war (on by default): every unit sees two tiles around it, a Scout three. Assassins, ambushers and enemy Scouts
+   Fog of war (on by default): every unit sees the eight tiles around it, a Scout three tiles. Assassins, ambushers and enemy Scouts
    stay hidden unless one of your cards stands right next to them; your Scouts also uncover Assassins, ambushers and
    face-down cards within a round two tiles, and enemy Scouts within three. Bird's Eye lifts the fog for your side for a
    round. Quiet Eyes, cast by an enemy, hides everything not right beside you unless you have a Scout on the field.
@@ -49,6 +49,43 @@ function fogTile(V,r,c){
 function showsBack(V,r,c){
   const st=G.board[r][c];if(!st||!st.down||!isEnemy(st.owner,V)||eclipseOn("sun"))return false;
   return !scoutsOf(V).some(x=>Math.hypot(x.r-r,x.c-c)<=2.01);
+}
+
+/* ---------- shooting into the fog ----------
+   A ranged weapon may fire at any fogged tile in its reach. With no enemy there the shot always fails; with one there it is an
+   ordinary attack, but the shooter learns only whether it hit (and hears the blow land). */
+function blindOptions(r,c){
+  const st=G.board[r]&&G.board[r][c];if(!st||st.attacked||st.hypo||st.stun||st.pin||choked(st.owner))return[];
+  const V=st.owner,known=new Set(attackOptions(r,c).map(o=>o.r*16+o.c)),tiles=[],out=[];
+  for(let r2=0;r2<G.rows;r2++)for(let c2=0;c2<COLS;c2++){if(isVoid(r2,c2)||known.has(r2*16+c2)||!fogTile(V,r2,c2))continue;
+    const t=G.board[r2][c2];if(t&&!isEnemy(t.owner,V)&&!warFoe(V,t.owner))continue;tiles.push([r2,c2])}
+  if(!tiles.length)return out;
+  if(!(hasBase(st)&&repLocked(st)))for(const card of st.cards){const U=card.unit&&UNIT[card.unit];if(!U||!U.shooter||!shotReady(card,V))continue;
+    const A={owner:V,cards:[card],odds:st.odds,down:st.down};
+    for(const [r2,c2] of tiles)for(const w of U.weapons)if(w.id!=="suppress"&&reaches(w.reach,r,c,r2,c2))out.push({r:r2,c:c2,mode:w.id,ranged:true,w,A,card,blind:true})}
+  const u=canAttackFrom(st)&&soloUnit(st);
+  if(u)for(const w of UNIT[u.unit].weapons)if(w.reach==="gun")for(const [r2,c2] of tiles)if(!near8(r,c,r2,c2)&&reaches(w.reach,r,c,r2,c2))out.push({r:r2,c:c2,mode:w.id,ranged:true,w,blind:true});
+  return out;
+}
+function blindPick(r1,c1,r2,c2,mode){
+  const st=G.board[r1]&&G.board[r1][c1];if(!st||!fogOn()&&!G.ffog)return null;
+  if(attackOptions(r1,c1).some(o=>o.r===r2&&o.c===c2))return null;
+  return blindOptions(r1,c1).find(o=>o.r===r2&&o.c===c2&&(mode==null||o.mode===mode))||null;
+}
+function blindShot(r1,c1,r2,c2,o){
+  const A=G.board[r1][c1],pl=A.owner,D=G.board[r2][c2];
+  const real=D&&(isEnemy(D.owner,pl)||warFoe(pl,D.owner))&&!peaceBlock(pl,D.owner)&&!D.hypo&&!shielded(D.owner);
+  const lost=`${plName(pl)} fires into the fog on ${coord(r2,c2)} (${esc(o.w.name)}). The shot is lost in the fog.`;
+  if(!real){   // nothing there: it looks exactly like a miss
+    A.attacked=true;if(o.card&&o.card.unit==="cannon")o.card.readyAt=(G.p[pl].tn||0)+R(2)+2;
+    G.histTile=`${coord(r1,c1)} → ${coord(r2,c2)}`;tray(pl,"Attack",o.w.roll?o.w.roll():[],"lost in the fog");G.histTile=null;
+    log(lost,"combat");return{win:false,line:"",blind:true}}
+  const seen=G.p.map(P=>P.i!==pl&&(!isEnemy(D.owner,P.i)||seesTile(P.i,r2,c2))),L0=G.log[0];
+  const res=attackRun(r1,c1,r2,c2,o.mode,o)||{};
+  const end=L0?G.log.indexOf(L0):G.log.length,fresh=G.log.slice(0,end<0?G.log.length:end);
+  const main=fresh.find(l=>l.cls==="combat");
+  for(const l of fresh)if(!l.fog)l.fog={by:D.owner,seen,alt:l===main?(res.win?`${plName(pl)} fires into the fog on ${coord(r2,c2)} (${esc(o.w.name)}). Something in the fog is hit.`:lost):""};
+  return Object.assign(res,{blind:true});
 }
 
 /* ---------- ambush ---------- */

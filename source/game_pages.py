@@ -283,7 +283,7 @@ b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({beha
 </main>''', 1)
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
-play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=37">') + f'''<main class="wide game">
+play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=38">') + f'''<main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
@@ -311,8 +311,8 @@ play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="eth
 </aside>
 </div>
 <section id="info" aria-label="Card and spell info"></section>
-<h3 class="label" style="margin:22px 0 6px">Log</h3>
-<ol id="log"></ol>
+<section id="logwrap" aria-label="Log"><h3 class="label" style="margin:22px 0 6px">Log</h3>
+<ol id="log"></ol></section>
 <section id="quotes" aria-label="Passages from the book">
   <h3 class="label">From the book</h3>
   <div class="qbox" tabindex="0"><p id="qtext"></p><p id="qsrc" class="dim"></p></div>
@@ -322,7 +322,7 @@ play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="eth
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
 <script src="ethers-crossroads-quotes.js?v=4"></script>
-<script src="ethers-crossroads.js?v=37"></script>
+<script src="ethers-crossroads.js?v=38"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 

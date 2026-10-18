@@ -1,7 +1,12 @@
 /* ---------------- display preferences, page themes, leave warning, quotes ---------------- */
+/* a phone: a touch screen no wider than a small tablet held sideways, or any narrow window */
+const PHONE_Q="(pointer:coarse) and (max-width:1000px), (max-width:600px)";
+const isPhone=()=>typeof matchMedia!=="undefined"&&matchMedia(PHONE_Q).matches;
 const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){}
   // v20: full width is the default on a computer screen (once; a later choice sticks)
   if(!p.v20){p.v20=1;if(typeof matchMedia!=="undefined"&&matchMedia("(min-width:901px)").matches)p.full=true}
+  // v38: on a phone the Selected box sits above the spells by default (once; a later choice sticks)
+  if(!p.v38m){p.v38m=1;if(isPhone())p.sel="top"}
   return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:false,full:false,theme:""},p)})();
 function savePrefs(){try{localStorage.setItem("ec-prefs2",JSON.stringify(PREF))}catch(e){}}
 const THEMES={"":["Kenoma",[]],jester:["Jester",["th-black","th-jester"]],ten:["Ten",["th-indigo","th-blue"]],satan:["Disturbed Satan",["th-crimson"]]};
@@ -34,9 +39,10 @@ function applyTextScale(f){
 }
 function applyPrefs(){
   const h=document.documentElement;
-  applyTextScale(PREF.tz);
+  const ph=isPhone();document.body.classList.toggle("phone",ph);
+  applyTextScale(PREF.tz*(ph?.9:1));   // a phone's 100% is 90% text, and 80% for the interface and card icons
   document.body.classList.toggle("fullw",!!PREF.full);
-  h.style.setProperty("--ci",PREF.ci);h.style.setProperty("--uiz",PREF.ui);
+  h.style.setProperty("--ci",PREF.ci*(ph?.8:1));h.style.setProperty("--uiz",PREF.ui*(ph?.8:1));
   const wrap=$("#handwrap"),slot=$("#handslot"),side=$("#sidehand");
   if(wrap&&slot&&side){const dest=PREF.hand==="below"?slot:side;if(wrap.parentNode!==dest)dest.appendChild(wrap)}
   document.body.classList.toggle("hand-below",PREF.hand==="below");
@@ -67,16 +73,27 @@ function mountBar(){
 }
 /* leaving mid-game asks first */
 const inGame=()=>G&&!G.over;
+let leaving=false;   // set once the player has said yes, so the browser doesn't ask a second time
 function confirmLeave(go){
   if(!inGame()){go();return}
   let box=$("#leavebox");if(!box){box=document.createElement("div");box.id="leavebox";document.body.appendChild(box)}
   box.innerHTML=`<div class="ovbox" role="alertdialog" aria-labelledby="lvq"><h2 id="lvq">Are you sure you want to end your game session?</h2><p class="dim">The game in progress will be lost.</p><p class="acts"><button class="btn" id="lvy">End the session</button> <button class="btn ghost" id="lvn">Keep playing</button></p></div>`;
   box.hidden=false;$("#lvn").focus();
-  $("#lvy").onclick=()=>{box.hidden=true;go()};$("#lvn").onclick=()=>{box.hidden=true};
+  $("#lvy").onclick=()=>{box.hidden=true;leaving=true;go()};$("#lvn").onclick=()=>{box.hidden=true};
 }
 function guardLinks(){
   document.querySelectorAll(".game .crumbs a").forEach(a=>a.addEventListener("click",e=>{if(!inGame())return;e.preventDefault();confirmLeave(()=>{location.href=a.href})}));
 }
+/* the phone's Back button (and a swipe back) asks too: a game in progress keeps one extra history entry to catch it */
+let backTrap=false;
+function armBackTrap(){if(backTrap||!inGame())return;try{history.pushState({ecGame:1},"",location.href);backTrap=true}catch(e){}}
+addEventListener("popstate",()=>{if(!backTrap)return;backTrap=false;
+  if(!inGame())return;
+  confirmLeave(()=>{history.back()});
+  const keep=$("#lvn");if(keep)keep.addEventListener("click",armBackTrap,{once:true})});
+addEventListener("beforeunload",e=>{if(inGame()&&!G.opts.fast&&!leaving){e.preventDefault();e.returnValue=""}});
+{const _rd=render;render=function(){_rd.apply(this,arguments);armBackTrap()}}
+
 /* passages from the book, for whoever is waiting */
 function mountQuotes(){
   const Q=window.EC_QUOTES||[],box=$("#quotes");if(!box||!Q.length)return;

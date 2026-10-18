@@ -161,8 +161,12 @@ function attackOptions(r,c){
 function netFx(...fx){let n=0;for(const f of fx){if(f==="adv")n++;if(f==="dis")n--}return n}
 const cmpSign=(a,b)=>a>b?">":a<b?"<":"=";
 function attack(r1,c1,r2,c2,mode){
+  const b=blindPick(r1,c1,r2,c2,mode);if(b)return blindShot(r1,c1,r2,c2,b);   // a shot into the fog of war
+  return attackRun(r1,c1,r2,c2,mode,null);
+}
+function attackRun(r1,c1,r2,c2,mode,forced){
   const A=G.board[r1][c1],D=G.board[r2][c2],atkPl=A.owner,defPl=D.owner;
-  const opt=attackOptions(r1,c1).find(o=>o.r===r2&&o.c===c2&&(mode==null||o.mode===mode))||{mode:null,ranged:false};
+  const opt=forced||attackOptions(r1,c1).find(o=>o.r===r2&&o.c===c2&&(mode==null||o.mode===mode))||{mode:null,ranged:false};
   const w=opt.A?opt.w:weaponOf(A,opt.mode);
   if(w&&w.special==="stomp")return stomp(r1,c1,r2,c2);
   if(opt.mode==="suppress")return suppress(r1,c1,r2,c2,opt);
@@ -209,7 +213,7 @@ function attack(r1,c1,r2,c2,mode){
   }
   if(dmgD>0&&w&&w.id==="cannon"){const ace=D.cards.find(x=>kind(x)==="ace");if(ace&&(ace.hp||1)<=1&&!D.cards.some(x=>x.unit==="miner")){dmgD=0;notes.push("A Cannon can't take an Ace's last heart.")}}
   const line=`${ra.total}${cmpSign(ra.total,rd.total)}${rd.total}`;
-  tray(atkPl,"Attack",ra.dice,line);tray(defPl,"Defense",rd.dice,line,true);G.histTile=null;
+  tray(atkPl,"Attack",ra.dice,opt.blind?(dmgD?"a hit in the fog":"lost in the fog"):line);tray(defPl,"Defense",rd.dice,line,true);G.histTile=null;
   log(`<b>${plName(atkPl)}</b> attacks from ${coord(r1,c1)} to ${coord(r2,c2)}: <span class="dice">${ra.parts.join(", ")}</span> = <b>${ra.total}</b> vs <span class="dice">${rd.parts.join(", ")}</span> = <b>${rd.total}</b> <span class="tot">(${esc(line)})</span>. ${notes.join(" ")} ${dmgD?`Defender takes ${dmgD} damage.`:""}${dmgA?`Attacker takes ${dmgA} damage.`:""}${!dmgA&&!dmgD?"No damage.":""}`,"combat");
   G.fight={A,D,atkPl,defPl,ranged:!!opt.ranged};
   if(dmgD)warDamagePay(atkPl,defPl,dmgD,D);
