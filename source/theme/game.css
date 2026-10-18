@@ -1253,3 +1253,17 @@ body.phone .itab{padding:8px 12px;font-size:13.5px}
 .rmlist p{margin:6px 0 0}
 #rmInfo h3{margin:0 0 4px;color:var(--amber-hi);font-weight:200}
 .glob .rmline{margin:4px 0 0;width:100%}
+/* ================= v41: Office Dark, Earth, Dark Fantasy ================= */
+html.th-darkfantasy .game h1,html.th-darkfantasy .ovbox h2{font-family:"Grenze Gotisch","Old English Text MT",serif;font-weight:500;letter-spacing:.02em;color:#d33a46;text-shadow:0 0 12px #8e162280}
+html.th-darkfantasy .game h1{font-size:clamp(30px,5vw,42px)}
+html.th-darkfantasy .stab.on,html.th-darkfantasy .btn{background:linear-gradient(#a01c28,#7a121c);border-color:#c9a24a;color:#f1e6c8}
+html.th-darkfantasy .btn:hover,html.th-darkfantasy .btn:focus-visible{background:linear-gradient(#b8222f,#8e1622)}
+html.th-darkfantasy .btn.ghost{background:#120d12cc;color:var(--amber-hi);border-color:#8a7442}
+html.th-darkfantasy .ovbox,html.th-darkfantasy .pbox,html.th-darkfantasy .cinfo,html.th-darkfantasy .gbar{border-color:#8a7442;box-shadow:0 0 0 1px #00000080,inset 0 0 24px #00000060}
+html.th-darkfantasy .label,html.th-darkfantasy h3{color:#c4c2cc;letter-spacing:.2em}
+html.th-darkfantasy .spell{background:#1a1419d9}
+html.th-darkfantasy #log li{border-bottom-color:#5b283055}
+html.th-earth .btn{color:#0e130d}
+html.th-earth .game h1{color:#cfe08c;text-shadow:0 0 14px #9bbf5e40}
+html.th-officedark .btn{color:#fff}
+#pMusic[hidden]{display:none}
