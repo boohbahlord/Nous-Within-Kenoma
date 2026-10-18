@@ -1275,3 +1275,6 @@ html.th-officedark .btn{color:#fff}
 .ovbox.setup .stabs{overflow-x:visible;flex-wrap:wrap}
 .ovbox.setup .stab{flex:1 1 auto}
 .ovbox.setup label.f select{min-width:0;max-width:100%;flex:0 1 auto}
+/* v43: the Random color and Random symbol choices */
+.sw.swrand span{background:conic-gradient(#ee7a3c,#e3b944,#45b89c,#4c92e6,#a77de8,#e4648f,#d7333b,#ee7a3c);display:grid;place-items:center;color:#000;font-weight:700;font-size:15px}
+.so-opt .sorand{display:grid;place-items:center;width:28px;height:28px;font-size:20px;font-weight:400;color:var(--text)}
