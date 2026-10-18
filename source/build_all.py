@@ -5,6 +5,7 @@ OUT = 'site'
 SITE_V = '43'   # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 os.makedirs(OUT, exist_ok=True)
 shutil.copy('theme/site.js', f'{OUT}/site.js')
+shutil.copy('theme/ec-music.js', f'{OUT}/ec-music.js')
 open(f'{OUT}/site.css', 'w').write(open('theme/site.css').read().replace('/*@@GAME@@*/\n', ''))
 shutil.copy('theme/game.css', f'{OUT}/ethers-crossroads.css')
 for f in os.listdir('assets'):
@@ -24,7 +25,7 @@ def head(title, extra='', static=1, fx='strings bars', theme='', ec=False):
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>{esc(title)}</title>
 <link rel="preload" href="cascadia-code-latin-200-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="site.css?v={SITE_V}">{extra}{EC_THEME if ec else ''}
+<link rel="stylesheet" href="site.css?v={SITE_V}">{extra}{EC_THEME + chr(10) + f'<script src="ec-music.js?v={SITE_V}" defer></script>' if ec else ''}
 <script src="site.js?v={SITE_V}" defer></script>
 </head>
 <body data-static="{static}" data-fx="{fx}">

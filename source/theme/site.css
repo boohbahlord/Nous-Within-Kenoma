@@ -194,3 +194,8 @@ html.th-darkfantasy.ecpage .rules h3{color:#c4c2cc}
 html.th-darkfantasy.ecpage a.card{background:#1a1419e0;border-color:#8a7442;box-shadow:inset 0 0 24px #00000060}
 html.th-darkfantasy.ecpage a.card:hover{border-color:var(--amber-hi)}
 html.th-darkfantasy.ecpage .rules main,html.th-darkfantasy.ecpage main.rules{background:#0d0a0eb8;padding-left:18px;padding-right:18px;box-shadow:0 0 0 1px #5b283055}
+/* v43: the music control on the landing and rules pages */
+#ecmusic{position:fixed;left:max(10px,env(safe-area-inset-left,0px));bottom:max(10px,env(safe-area-inset-bottom,0px));z-index:50;display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);background:rgba(0,0,0,.6);border:1px solid var(--rule);padding:3px 6px}
+#ecmusic[hidden]{display:none}
+#ecmusic button{font:inherit;color:var(--amber-hi);background:transparent;border:1px solid var(--rule);padding:2px 7px;cursor:pointer;text-transform:uppercase;letter-spacing:.1em}
+#ecmusic b{font-weight:400;min-width:3.4em;text-align:center;color:var(--text)}
