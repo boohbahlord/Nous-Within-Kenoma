@@ -999,3 +999,44 @@ table.tierolls td{padding:3px 12px 3px 0;border-bottom:1px solid #ffffff14}
 #moon.eclipsed.skylit svg.moon{animation:eclshimmer 2.2s ease-in-out infinite}
 @keyframes eclshimmer{0%,100%{filter:brightness(.38) drop-shadow(0 0 6px #ffe2a8aa)}50%{filter:brightness(.5) drop-shadow(0 0 14px #ffe2a8ee)}}
 @media (prefers-reduced-motion:reduce){#moon.eclipsed.skylit svg.moon{animation:none;filter:brightness(.38) drop-shadow(0 0 7px #ffe2a8cc)}}
+/* v31: loans between players, notices, the Bank's bargains */
+.ovbox.bank .btabs{display:flex;gap:2px;border-bottom:1px solid var(--rule);margin:4px 0 12px}
+.ovbox.bank .btabs .stab{margin-top:0;font-size:12.5px;padding:6px 14px}
+.ovbox.bank .p2p h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);font-weight:400;margin:12px 0 6px}
+.ovbox.bank .p2pl{margin:0;padding-left:18px;line-height:1.7}
+.ovbox.bank .p2pask{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ovbox.bank .neg{color:#ff8f86}
+.bang{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;margin-left:6px;border-radius:50%;background:#f1d27a;color:#1a120b;font:700 11px/1 var(--mono);font-style:normal;vertical-align:middle}
+.bankbar.notify{box-shadow:0 0 0 1px #f1d27a,0 0 12px #f1d27a66;animation:notifyglow 2.6s ease-in-out infinite}
+#shared .auct-l.notify{text-shadow:0 0 8px #f1d27a99;animation:notifyglow 2.6s ease-in-out infinite}
+@keyframes notifyglow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.25)}}
+@media (prefers-reduced-motion:reduce){.bankbar.notify,#shared .auct-l.notify{animation:none}}
+/* v32: mist, moonlight, animations */
+.tile.fog::after{background:
+  radial-gradient(ellipse 60% 40% at 20% 30%,#c9c2b41f,transparent 70%),
+  radial-gradient(ellipse 50% 35% at 75% 65%,#c9c2b418,transparent 70%),
+  radial-gradient(ellipse 70% 45% at 50% 100%,#c9c2b414,transparent 70%),
+  #0b0907c4;background-size:340px 260px,420px 300px,520px 360px,auto;background-attachment:fixed;animation:mistdrift 38s linear infinite}
+@keyframes mistdrift{from{background-position:0 0,0 0,0 0,0 0}to{background-position:340px 60px,-420px 40px,520px -30px,0 0}}
+#board.newmoon .tile{filter:brightness(.78) saturate(.85)}
+#board.newmoon .tile.fog::after{background-color:#050403dc}
+#board.fullmoon::before{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:radial-gradient(ellipse 80% 60% at 50% 0%,#dfe8ff1c,transparent 70%)}
+#board.fullmoon .tile.fog::after{background:
+  radial-gradient(ellipse 60% 40% at 20% 30%,#dfe8ff2e,transparent 70%),
+  radial-gradient(ellipse 50% 35% at 75% 65%,#dfe8ff24,transparent 70%),
+  radial-gradient(ellipse 70% 45% at 50% 100%,#dfe8ff1a,transparent 70%),
+  #0d0f14b8;background-size:340px 260px,420px 300px,520px 360px,auto;background-attachment:fixed}
+@media (prefers-reduced-motion:reduce){.tile.fog::after{animation:none}}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:40;overflow:hidden}
+#fx .fx{position:fixed;pointer-events:none}
+#fx .ring{border:2px solid var(--fc);border-radius:50%;box-shadow:0 0 10px var(--fc)}
+#fx .glow{border-radius:50%;background:radial-gradient(circle,var(--fc) 0,transparent 68%);opacity:0;mix-blend-mode:screen}
+#fx .wash{background:var(--fc);border-radius:3px;mix-blend-mode:screen}
+#fx .streak{height:4px;transform-origin:0 50%;background:linear-gradient(90deg,transparent,var(--fc) 40%,#fff 90%,transparent);border-radius:2px;filter:drop-shadow(0 0 4px var(--fc))}
+#fx .flash{background:var(--fc);border-radius:3px;mix-blend-mode:screen}
+#fx .ghost{border:2px solid var(--fc);border-radius:4px;background:color-mix(in srgb,var(--fc) 22%,transparent)}
+#fx .puff{border-radius:50%;background:radial-gradient(circle,#b8b0a4aa,#6f685e55 55%,transparent 72%)}
+#fx .sigil{display:flex;align-items:center;justify-content:center;color:#8f80ee;font:400 22px/1 "Segoe UI Symbol","DejaVu Sans",serif;text-shadow:0 0 8px var(--fc),0 0 2px #000}
+#fx .sigil.big{font-size:46px}
+#fx .popn{display:flex;align-items:center;justify-content:flex-start;color:var(--fc);font:600 15px/1 var(--mono);text-shadow:0 0 6px #000,0 0 10px var(--fc)}
+#fx .minicard{border:1px solid #e6d6bd;background:#2a1d12;border-radius:2px}
