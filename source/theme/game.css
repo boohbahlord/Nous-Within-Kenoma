@@ -1203,3 +1203,37 @@ body.phone .itab{padding:8px 12px;font-size:13.5px}
 .glob .mgrid select{font:inherit;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:5px 6px}
 .glob .spanel{padding-top:10px}
 .ovbox.setup.glob .spanel{columns:auto!important}
+/* ================= v41: Field Automation ================= */
+.fabar{display:inline-flex;gap:3px;align-items:center}
+.fabar .fatog{white-space:nowrap}
+.fabar .facfgb{padding:4px 7px;line-height:1}
+.faov{position:fixed;inset:0;z-index:82;display:grid;place-items:center;padding:16px;background:#000a}
+.faov[hidden]{display:none}
+.faov>.ovbox{position:relative;max-height:calc(100dvh - 32px);display:flex;flex-direction:column}
+.faov .xclose{position:absolute;top:8px;right:10px}
+#faask .ovbox{max-width:520px}
+.faconf{width:min(980px,100%)}
+.faconf .fabody{overflow:auto;min-height:0;padding-right:4px}
+.fasec{border-top:1px solid var(--rule);padding:8px 0 10px}
+.fasec h4{margin:0 0 6px;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:400}
+.faopts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,170px),1fr));gap:6px}
+.fasec label.chk{display:flex;gap:8px;align-items:flex-start;margin:4px 0;cursor:pointer}
+.fasec label.chk small{display:block;color:var(--dim);font-size:12px}
+.falock label.chk{opacity:.8;cursor:default}
+.farush{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px}
+.faspin{display:inline-flex;align-items:center;gap:6px}
+.faspin b{min-width:1.4em;text-align:center}
+.facats{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:2px 14px}
+.faextra{margin-top:6px}.faextra>summary{cursor:pointer;color:var(--amber)}
+.fakinds{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:5px;margin-top:6px}
+.fahier{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;margin-top:8px}
+.facol{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;border:1px solid var(--rule);background:var(--deep);padding:8px 6px;min-height:118px}
+.facol .farank{font-size:11px;color:var(--dim)}
+.facol small{color:var(--dim);font-size:12px}
+.facol .facolbtns{display:flex;gap:3px;margin-top:auto}
+.facol .facolbtns .btn{padding:3px 7px}
+.facol.eqwait{border-color:#e3b944;background:color-mix(in srgb,#e3b944 16%,var(--deep))}
+.facol.eqpair{border-color:#5fbf6f;background:color-mix(in srgb,#5fbf6f 16%,var(--deep))}
+.fanote{margin:8px 0 0}
+#fapanel .fawide{padding:6px 14px 14px}
+#fapanel .fawide .faopts{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}

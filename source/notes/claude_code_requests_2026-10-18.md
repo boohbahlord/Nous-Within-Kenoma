@@ -45,6 +45,12 @@ The earlier to-do list (B1–B9, L1–L10, M1–M3, O1–O3, R1–R4) is in next
    >
    > Remember all the UI princples i talked about in the conversation for claude? if not that is unfortunate. I think ui design principle was included in rich enough detail possibly
 
+9. > There can also be a new them for the office choice that is dark mode equivalent. We can also make a "Earth" theme that captures the vibe of a night druid, something dark, earthy, and rich.
+   >
+   > There can be a "Dark Fantasy" theme, based off the feel or vibe of an old dark fantasy dungeon, and maybe the backgound can be an image of a stone brick or cobblestone wall with dark fantasy interior, including spell books, tomes, candles, a chalice, statue, painting of a jester, and a torch on the wall. The Blood dungeon background page image is highly detailed but also quite pixelated, resulting in the hiding of imperfections and a vibe. There might be dark blood on the walls or especially the floor. The colors of the UI gotta be some kind of grey or crimson red mix with gold and silver accents. This one gotta be GOOD! oh yeah! (:
+
+10. > OH! and the dark fantasy theme should have some old pixel like or old bit video game dark fantasy sounding music playing! something that can play in the background and not annoy the player.
+
 ## Digest
 Done and live:
 - C1 Site-wide click sound (v38). C2 Scout: 2-tile diamond; Beginner default (v39). C3 Overdraw: no more draw rolls in a turn after
@@ -80,6 +86,10 @@ To build (v41):
      12. "Show these controls under the field": a checkbox; when on, a wide fold-down above Basics Explained holds every control,
          page-wide, no inner scroll; when off it doesn't exist.
      A note: some options aren't the best choice for every situation on your field.
+- TH Themes: Office Dark (Office's dark-mode twin); Earth (night druid: dark, earthy, rich); Dark Fantasy (old dungeon: grey and
+  crimson UI with gold and silver accents; a detailed, pixelated background drawn in code: stone/cobblestone wall, spell books, tomes,
+  candles, a chalice, a statue, a painting of a jester, a torch, dark blood on the wall and floor); with it, quiet old-8-bit dark
+  fantasy background music (synthesized, soft, looping, never in the way; follows the sound switch, with its own on/off).
 - RM Online rooms: Room title; Room description (limit 200 characters, shown on demand with an info button); player count and a
   player cap; the host's time zone; an "Open" room (no code needed: listed for anyone to join). Needs a shared room list without a
   server: open rooms are announced over a public relay; private rooms keep the code.
