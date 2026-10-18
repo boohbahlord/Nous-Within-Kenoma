@@ -7,7 +7,7 @@ const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{
   if(!p.v20){p.v20=1;if(typeof matchMedia!=="undefined"&&matchMedia("(min-width:901px)").matches)p.full=true}
   // v38: on a phone the Selected box sits above the spells by default (once; a later choice sticks)
   if(!p.v38m){p.v38m=1;if(isPhone())p.sel="top"}
-  return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:false,full:false,theme:""},p)})();
+  return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:false,full:false,theme:"",lines:true,bright:1},p)})();
 function savePrefs(){try{localStorage.setItem("ec-prefs2",JSON.stringify(PREF))}catch(e){}}
 const THEMES={"":["Kenoma",[]],jester:["Jester",["th-black","th-jester"]],ten:["Ten",["th-indigo","th-blue"]],satan:["Disturbed Satan",["th-crimson"]]};
 function applyMoonTheme(){
@@ -52,23 +52,24 @@ function applyPrefs(){
   if($("#actbar"))$("#actbar").hidden=PREF.ctl!=="bottom";
   document.body.classList.toggle("ctl-bottom",PREF.ctl==="bottom");
   const bar=$("#gbar");
-  if(bar){$("#ciV").textContent=Math.round(PREF.ci*100)+"%";$("#uiV").textContent=Math.round(PREF.ui*100)+"%";$("#tzV").textContent=Math.round(PREF.tz*100)+"%";
+  if(bar){$("#ciV").textContent=Math.round(PREF.ci*100)+"%";$("#uiV").textContent=Math.round(PREF.ui*100)+"%";$("#tzV").textContent=Math.round(PREF.tz*100)+"%";$("#brV").textContent=Math.round(PREF.bright*100)+"%";
     $("#pHand").textContent="Hand: "+(PREF.hand==="below"?"Under your deck":"Side");$("#pTheme").value=PREF.theme;
     $("#pCoord").textContent="Tile names: "+(PREF.coords?"On":"Off");$("#pCoord").setAttribute("aria-pressed",PREF.coords);
     $("#pFull").textContent="Page: "+(PREF.full?"Full width":"Standard");$("#pFull").setAttribute("aria-pressed",PREF.full);
     bar.classList.toggle("open",!!PREF.barOpen);$("#pMore").textContent=PREF.barOpen?"Display ▾":"Display ▴";$("#pMore").setAttribute("aria-expanded",!!PREF.barOpen)}
   applyMoonTheme();
+  if(window.nwkLook)window.nwkLook();   // the background lines and the brightness live in site.js, for every page
 }
 function mountBar(){
   const Rb=document.createElement("div");Rb.id="gbar";Rb.className="gbar";
-  Rb.innerHTML=`<span id="gmore"><label>Theme <select id="pTheme">${Object.entries(THEMES).map(([k,[n]])=>`<option value="${k}">${n}</option>`).join("")}</select></label><span class="gctl">Card Icons <button type="button" data-z="ci" data-d="-1" aria-label="Smaller card icons">−</button><b id="ciV"></b><button type="button" data-z="ci" data-d="1" aria-label="Bigger card icons">+</button></span><span class="gctl">UI Size <button type="button" data-z="ui" data-d="-1" aria-label="Smaller interface">−</button><b id="uiV"></b><button type="button" data-z="ui" data-d="1" aria-label="Bigger interface">+</button></span><span class="gctl">Text Size <button type="button" data-z="tz" data-d="-1" aria-label="Smaller text">−</button><b id="tzV"></b><button type="button" data-z="tz" data-d="1" aria-label="Bigger text">+</button></span><button type="button" id="pHand" class="gtog"></button><button type="button" id="pCoord" class="gtog"></button><button type="button" id="pFull" class="gtog pc-only"></button><button type="button" id="pReset" class="gtog" title="Card icons, interface and text back to 100%">Reset sizes</button></span><button type="button" id="pMore" class="gtog" aria-expanded="false" aria-controls="gmore">Display ▴</button>`;
+  Rb.innerHTML=`<span id="gmore"><label>Theme <select id="pTheme">${Object.entries(THEMES).map(([k,[n]])=>`<option value="${k}">${n}</option>`).join("")}</select></label><span class="gctl">Card Icons <button type="button" data-z="ci" data-d="-1" aria-label="Smaller card icons">−</button><b id="ciV"></b><button type="button" data-z="ci" data-d="1" aria-label="Bigger card icons">+</button></span><span class="gctl">UI Size <button type="button" data-z="ui" data-d="-1" aria-label="Smaller interface">−</button><b id="uiV"></b><button type="button" data-z="ui" data-d="1" aria-label="Bigger interface">+</button></span><span class="gctl">Text Size <button type="button" data-z="tz" data-d="-1" aria-label="Smaller text">−</button><b id="tzV"></b><button type="button" data-z="tz" data-d="1" aria-label="Bigger text">+</button></span><span class="gctl">Brightness <button type="button" data-z="bright" data-d="-1" aria-label="Darker">−</button><b id="brV"></b><button type="button" data-z="bright" data-d="1" aria-label="Brighter">+</button></span><button type="button" id="pHand" class="gtog"></button><button type="button" id="pCoord" class="gtog"></button><button type="button" id="pFull" class="gtog pc-only"></button><button type="button" id="pReset" class="gtog" title="Card icons, interface, text and brightness back to 100%">Reset sizes</button></span><button type="button" id="pMore" class="gtog" aria-expanded="false" aria-controls="gmore">Display ▴</button>`;
   document.body.append(Rb);savePrefs();
   $("#pTheme").onchange=e=>{PREF.theme=e.target.value;savePrefs();applyPrefs()};
-  Rb.querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{const k=b.dataset.z,lim=k==="ci"?[.8,1.8]:k==="tz"?[.8,1.8]:[.8,1.4];PREF[k]=Math.round(Math.min(lim[1],Math.max(lim[0],PREF[k]+ +b.dataset.d*.1))*10)/10;savePrefs();applyPrefs()});
+  Rb.querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{const k=b.dataset.z,lim=k==="ci"?[.8,1.8]:k==="tz"?[.8,1.8]:k==="bright"?[.7,1.3]:[.8,1.4];PREF[k]=Math.round(Math.min(lim[1],Math.max(lim[0],PREF[k]+ +b.dataset.d*.1))*10)/10;savePrefs();applyPrefs()});
   $("#pHand").onclick=()=>{PREF.hand=PREF.hand==="below"?"side":"below";savePrefs();applyPrefs()};
   $("#pCoord").onclick=()=>{PREF.coords=!PREF.coords;savePrefs();applyPrefs();if(G)render()};
   $("#pFull").onclick=()=>{PREF.full=!PREF.full;savePrefs();applyPrefs()};
-  $("#pReset").onclick=()=>{PREF.ci=1;PREF.ui=1;PREF.tz=1;savePrefs();applyPrefs();if(G)render()};
+  $("#pReset").onclick=()=>{PREF.ci=1;PREF.ui=1;PREF.tz=1;PREF.bright=1;savePrefs();applyPrefs();if(G)render()};
   $("#pMore").onclick=()=>{PREF.barOpen=!PREF.barOpen;savePrefs();applyPrefs()};
 }
 /* leaving mid-game asks first */
