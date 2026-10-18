@@ -1285,3 +1285,7 @@ html.th-officedark .btn{color:#fff}
 .spell.ether .ethmark{font-style:normal;color:#b9c7ff;margin-right:7px;text-shadow:0 0 6px #7f97ff}
 html.th-office .spell.ether{background:linear-gradient(90deg,#dfe7ff,#eef2ff);border-color:#4c6fff;color:#1d2a7a;box-shadow:0 0 8px #4c6fff40}
 html.th-office .spell.ether .ethmark{color:#4c6fff;text-shadow:none}
+/* v43: the menu's audio sliders */
+#menu .mslide{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#menu .mslide input[type=range]{flex:1 1 140px;accent-color:var(--amber)}
+#menu .mslide b{min-width:3.4em;font-weight:400;color:var(--amber-hi)}

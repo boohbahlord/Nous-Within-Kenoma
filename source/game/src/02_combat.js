@@ -4,8 +4,8 @@ const SND=(()=>{
   try{on=localStorage.getItem("ec-sound")!=="off"}catch(e){}
   function ctx(){
     if(!on||G&&G.opts.fast)return null;
-    try{if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();master=ac.createGain();master.gain.value=1;master.connect(ac.destination)}
-      if(ac.state==="suspended")ac.resume();}catch(e){return null}
+    try{if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();master=ac.createGain();master.gain.value=sfxV();master.connect(ac.destination)}
+      master.gain.value=sfxV();if(ac.state==="suspended")ac.resume();}catch(e){return null}
     return ac;
   }
   function noise(a,dur){const b=a.createBuffer(1,Math.max(1,Math.floor(a.sampleRate*dur)),a.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const s=a.createBufferSource();s.buffer=b;return s}

@@ -15,12 +15,12 @@ const AUD=(()=>{
   function ctx(){if(!SND.on)return null;try{
     if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();
       const comp=ac.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=3;comp.connect(ac.destination);
-      out=ac.createGain();out.gain.value=.6;out.connect(comp);
+      out=ac.createGain();out.gain.value=.6*sfxV();out.connect(comp);
       // a small shared room: every sound gets the same short tail
       const len=Math.floor(ac.sampleRate*1.3),ir=ac.createBuffer(2,len,ac.sampleRate);
       for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3)}
       room=ac.createConvolver();room.buffer=ir;const rg=ac.createGain();rg.gain.value=.22;room.connect(rg).connect(comp)}
-    if(ac.state==="suspended")ac.resume()}catch(e){return null}return ac}
+    out.gain.value=.6*sfxV();if(ac.state==="suspended")ac.resume()}catch(e){return null}return ac}
   const dest=g=>{g.connect(out);g.connect(room)};
   function env(g,t,peak,att,dec){g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+att);g.gain.exponentialRampToValueAtTime(.0001,t+att+dec)}
   function tone(type,f,t,dur,peak,o={}){const a=ac,osc=a.createOscillator(),g=a.createGain();osc.type=type;osc.frequency.setValueAtTime(f,t);

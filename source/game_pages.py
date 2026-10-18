@@ -284,7 +284,7 @@ b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({beha
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
 play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=43">', ec=True) + f'''<main class="wide game">
-<nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button></span></nav>
+<nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
   <div id="moon" aria-live="polite"></div>
