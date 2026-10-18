@@ -40,7 +40,7 @@ function applyUI(u){if(!G||!u)return;G.sel=u.sel&&G.board[u.sel.r]&&G.board[u.se
 
 /* ---------- small actions that used to live inside buttons ---------- */
 function ambushToggle(r,c){const st=G.board[r]&&G.board[r][c];if(!st)return;st.ambush=!st.ambush;log(st.ambush?`${plName(st.owner)} sets a stack in ambush.`:`${plName(st.owner)} leaves the ambush.`,"ai")}
-function libDone(){G.libation=false;G.libPick=null}
+function libDone(){if(G.libation==="armed")G.libation=false;G.libPick=null}   // cancelling before any Pour gives the free spell back
 function setCredit(pl,v){const P=G.p[pl];P.credit=!!v;log(`${plName(pl)} ${P.credit?"opens":"closes"} a line of credit at the Bank.`)}
 function setAutoBless(pl,v){G.p[pl].autoBless=!!v}
 

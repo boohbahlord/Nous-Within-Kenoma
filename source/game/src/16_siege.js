@@ -149,14 +149,14 @@ function pourLibation(r,c,ids){
   if(!st.cards.length){G.board[r][c]=null;freeCaptive(st,r,c);G.sel=null}else if(G.sel)for(const x of cards)G.sel.pick.delete(x.id);
   tray(G.active,"Field Libation",d,`+${got} mana`);
   log(`<b>Field Libation</b> on ${coord(r,c)}: ${cards.length} card${cards.length>1?"s":""} poured out (1d2 each: ${d.map(x=>x.v).join(", ")}); +${got} mana, ${lost} to the grave for nothing.`);
-  G.libPick=new Set();checkWin();
+  G.libPick=null;G.libation="done";checkWin();   // one Pour a turn: the X marks go, and the spell is spent until your next turn
 }
 
 /* ---------- spells ---------- */
 PRICE.carch=()=>R(2);PRICE.cheal=()=>2+R(3);
 SPELLS.push(
  {id:"libation",name:"Field Libation",cost:0,school:"Necromancy",text:"Free, but not under the Full Moon. Your stacks show an X: select one, check the cards to pour out and press Pour. Each card rolls 1d2: a 2 gives you its soul's mana, a 1 sends it to the grave for nothing. Not a great move.",
-  ok:()=>G.moon.i!==4&&!G.libation&&stacksOf(G.active).some(x=>x.st.cards.some(c=>canSacOnField(x.st,c))),run:async()=>{G.libation=true;G.libPick=new Set();log(`${plName(G.active)} prepares a Field Libation.`);if(!me().cpu)flash("Field Libation: select one of your stacks marked with an X, check the cards, then press Pour.")}},
+  ok:()=>G.moon.i!==4&&!G.libation&&stacksOf(G.active).some(x=>x.st.cards.some(c=>canSacOnField(x.st,c))),run:async()=>{G.libation="armed";G.libPick=new Set();log(`${plName(G.active)} prepares a Field Libation.`);if(!me().cpu)flash("Field Libation: select one of your stacks marked with an X, check the cards, then press Pour.")}},
  {id:"carch",dice:"1d2",name:"Archer Conjure",cost:1,school:"Conjuring",text:"An Archer's soul comes from the Ether into your deck. 1d20 + 1d10 at a stack exactly two tiles away (straight or diagonal); a miss costs nothing; no defense. Suppress instead: the target attacks with disadvantage next time. Stacks alone, with a Queen, or inside an Ace, the Tree or a Wall. 1 mana for the Beginner.",ok:()=>etherHasU("archer"),run:()=>conjureU("archer")},
  {id:"ccan",name:"Cannon Conjure",cost:6,school:"Conjuring",text:"A Cannon's soul comes from the Ether into your deck. 2d20 at anything up to three tiles away, once every 1d2 + 2 turns; a miss costs nothing; two damage to a Wall; no defense. Stands alone or inside a base; moves one step.",ok:()=>etherHasU("cannon"),run:()=>conjureU("cannon")},
  {id:"cheal",dice:"2+1d3",name:"Healer Conjure",cost:3,school:"Conjuring",text:"A Healer's soul comes from the Ether into your deck. Its blue shield turns one blow from its stack, then comes back in 1d4 rounds; or it heals one heart of a card in its stack or beside it. Stacks with anything but a Queen.",ok:()=>etherHasU("healer"),run:()=>conjureU("healer")},
@@ -177,7 +177,7 @@ function siegeDecor(inner,st,V,r,c){
   if(st.captive)b.push(`<span class="capt" title="Captured: ${esc(nameOf(st.captive))}">⛓${unitSVG(st.captive.unit,"#5b3a1a",12)}</span>`);
   if(st.supp)b.push(`<span class="supp" title="Suppressed: disadvantage on its next attack (${st.supp.n} turn${st.supp.n>1?"s":""})">▼${st.supp.n}</span>`);
   if(mine){const sh=st.cards.find(isShooter);if(sh&&!shotReady(sh,st.owner))b.push(`<span class="cd" title="The ${esc(UNIT[sh.unit].name)} rests ${sh.readyAt-tnOf(st.owner)} more turn(s)">⟳${sh.readyAt-tnOf(st.owner)}</span>`)}
-  if(G.libation&&st.owner===G.active&&V===G.active&&G.phase==="prep"&&st.cards.some(x=>canSacOnField(st,x))){cls.push("libx");b.push(`<span class="xmark" aria-hidden="true">✕</span>`)}
+  if(G.libation==="armed"&&st.owner===G.active&&V===G.active&&G.phase==="prep"&&st.cards.some(x=>canSacOnField(st,x))){cls.push("libx");b.push(`<span class="xmark" aria-hidden="true">✕</span>`)}
   if(!cls.length&&!b.length)return inner;
   let h=cls.length?inner.replace('class="stack ',`class="stack ${cls.join(" ")} `):inner;
   if(b.length&&h.endsWith("</div>"))h=h.slice(0,-6)+b.join("")+"</div>";
@@ -198,8 +198,8 @@ function siegeActs(st,mine,s){
     if(healReady(st)&&healTargets(st,s.r,s.c).length)out.push(`<button class="btn ghost sm" id="healBtn">Heal a heart</button>`);
     if(repairReady(st)&&repairTargets(st,s.r,s.c).length)out.push(`<button class="btn ghost sm" id="repBtn">Repair</button>`);
     if(st.captive&&releaseSpots(st,s.r,s.c).length)out.push(`<button class="btn ghost sm" id="relBtn">Set the captive to work</button>`);
-    if(G.libation&&st.cards.some(x=>canSacOnField(st,x))){const L=G.libPick||(G.libPick=new Set());
-      out.push(`<div class="libbox"><p><b>Field Libation</b>: check the cards to pour out.</p>${st.cards.filter(x=>canSacOnField(st,x)).map(x=>`<label><input type="checkbox" data-lib="${x.id}" ${L.has(x.id)?"checked":""}> ${esc(nameOf(x))} (${soulOf(x)} mana on a 2)</label>`).join("")}<button class="btn sm" id="pourBtn" ${L.size?"":"disabled"}>Pour</button> <button class="btn ghost sm" id="libDone">Done</button></div>`)}
+    if(G.libation==="armed"&&st.cards.some(x=>canSacOnField(st,x))){const L=G.libPick||(G.libPick=new Set());
+      out.push(`<div class="libbox"><p><b>Field Libation</b>: check the cards to pour out.</p>${st.cards.filter(x=>canSacOnField(st,x)).map(x=>`<label><input type="checkbox" data-lib="${x.id}" ${L.has(x.id)?"checked":""}> ${esc(nameOf(x))} (${soulOf(x)} mana on a 2)</label>`).join("")}<button class="btn sm" id="pourBtn" ${L.size?"":"disabled"}>Pour</button> <button class="btn ghost sm" id="libDone">Cancel</button></div>`)}
   }
   return out;
 }
@@ -277,3 +277,8 @@ Object.assign(UNIT_ICON,{
  miner:`<path d="M-10,-3C-5,-9 5,-9 10,-3 M0,-7V10"/>`,
  wall:`<path d="M-10,9V-3H-7V-7H-4V-3H-1V-7H2V-3H5V-7H8V-3H10V9Z M-10,3H10 M-4,3V9 M4,3V9 M0,-3V3"/>`
 });
+/* while a Field Libation waits for its Pour, its row in the spell list cancels it */
+{const _rs=renderSpells;renderSpells=function(live){_rs(live);const b=document.querySelector('#spells [data-s="libation"]');
+  if(!b||!G||G.libation!=="armed"||G.active!==view())return;b.classList.remove("off");b.classList.add("armed");
+  const em=b.querySelector("em");if(em)em.textContent="cancel";b.dataset.tip="Field Libation is waiting: select a stack marked with an X, check the cards and press Pour. Click here to cancel it.";
+  b.onclick=()=>{if(!canAct())return;libDone();render()}}}
