@@ -1771,18 +1771,30 @@ function askHuman(pl,spec){
       $("#ov").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{ovHide();res(+b.dataset.p)});return;
     }
     const cards=spec.cards;
-    ovShow(`<div class="ovbox ${BOXNAME[spec.box]||""}"><h2>${spec.title}</h2>${who}${spec.sub?`<p class="dim">${esc(spec.sub)}</p>`:""}<div class="pickrow">${cards.map((c,i)=>`<button class="pk" data-i="${i}" aria-label="${esc(nameOf(c))}">${face(c,{owner:spec.box==="outer"?c.darkOwner:c.owner,price:spec.price})}</button>`).join("")}</div>${spec.cancel?`<p><button class="btn ghost" id="mcancel">${esc(spec.cancel)}</button></p>`:""}</div>`);
-    $("#ov").querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{ovHide();res(+b.dataset.i)});
+    ovShow(`<div class="ovbox ${BOXNAME[spec.box]||""}"><h2>${spec.title}</h2>${who}${spec.sub?`<p class="dim">${esc(spec.sub)}</p>`:""}${pickCardsHTML(cards,c=>({owner:spec.box==="outer"?c.darkOwner:c.owner,price:spec.price}),spec.prices?i=>({tag:`${spec.prices[i]} mana`,off:!!(spec.offs&&spec.offs[i])}):null)}${spec.cancel?`<p><button class="btn ghost" id="mcancel">${esc(spec.cancel)}</button></p>`:""}</div>`);
+    $("#ov").querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{ovHide();res(+b.dataset.i)});wirePickTabs($("#ov"));
     if(spec.cancel)$("#mcancel").onclick=()=>{ovHide();res(null)};
   });
 }
+/* v45: a long list of cards to pick from (the grave, a hand, the Outer Darkness) reads like the Ether: tabs by kind of card,
+   each kind under its heading, and the same card folded into one button with a count */
+const pickKey=c=>[c.unit||"",c.rank,c.suit||"",c.color||"",c.puppet?"p":"",c.hp!=null?c.hp:""].join("|");
+function pickTabsHTML(groups,n){return `<div class="pktabs" role="tablist"><button type="button" class="pktab on" data-pt="all">All <b>${n}</b></button>${groups.map(([k,l])=>`<button type="button" class="pktab" data-pt="${k}">${k} <b>${l.length}</b></button>`).join("")}</div>`}
+function pickCardsHTML(cards,opt,extra){const btn=(c,i,n)=>{const x=extra?extra(i):null;return `<span class="ecount${x?" priced":""}"><button class="pk" data-i="${i}" aria-label="${esc(nameOf(c))}${n>1?` (${n})`:""}${x?`, ${x.tag}`:""}" ${x&&x.off?'disabled data-tip="You can\'t afford this one."':""}>${face(c,opt(c))}</button>${n>1?`<b>×${n}</b>`:""}${x?`<small class="pkprice${x.off?" off":""}">${x.tag}</small>`:""}</span>`};
+  if(cards.length<=8)return `<div class="pickrow">${cards.map((c,i)=>btn(c,i,1)).join("")}</div>`;
+  const idx=new Map(cards.map((c,i)=>[c,i])),groups=pileGroups([...cards]);
+  return pickTabsHTML(groups,cards.length)+groups.map(([k,l])=>{const by=new Map();for(const c of l){const key=pickKey(c);if(!by.has(key))by.set(key,[]);by.get(key).push(c)}
+    return `<div class="pkgrp" data-pg="${k}"><h3>${k} <span class="dim">${l.length}</span></h3><div class="pickrow">${[...by.values()].map(x=>btn(x[0],idx.get(x[0]),x.length)).join("")}</div></div>`}).join("")}
+function wirePickTabs(root,onTab){root.querySelectorAll(".pktab").forEach(b=>b.onclick=()=>{const t=b.dataset.pt;
+  root.querySelectorAll(".pktab").forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-selected",x===b)});
+  root.querySelectorAll("[data-pg]").forEach(g=>g.hidden=t!=="all"&&g.dataset.pg!==t);if(onTab)onTab(t)})}
 function viewBox(title,cards,box,note,owners){
   // every pile reads the same way: grouped by card type, each type sorted, with counts
   const own=c=>owners?c.darkOwner:c.owner;
   const groups=pileGroups(cards);
-  const body=cards.length?groups.map(([k,l])=>`<h3>${k} <span class="dim">${l.length}</span></h3><div class="pickrow">${(()=>{const by=new Map();for(const c of l){const key=(c.unit||c.rank)+(c.rank==="JK"?c.color:"")+(c.puppet?"p":"")+(box==="ether"?"":"|"+own(c));if(!by.has(key))by.set(key,[]);by.get(key).push(c)}return [...by.values()].map(x=>`<span class="ecount">${face(x[0],{owner:box==="ether"?null:own(x[0])})}${x.length>1?`<b>×${x.length}</b>`:""}</span>`).join("")})()}</div>`).join(""):'<p class="dim">Empty.</p>';
+  const body=cards.length?(cards.length>8?pickTabsHTML(groups,cards.length):"")+groups.map(([k,l])=>`<div class="pkgrp" data-pg="${k}"><h3>${k} <span class="dim">${l.length}</span></h3><div class="pickrow">${(()=>{const by=new Map();for(const c of l){const key=(c.unit||c.rank)+(c.rank==="JK"?c.color:"")+(c.puppet?"p":"")+(box==="ether"?"":"|"+own(c));if(!by.has(key))by.set(key,[]);by.get(key).push(c)}return [...by.values()].map(x=>`<span class="ecount">${face(x[0],{owner:box==="ether"?null:own(x[0])})}${x.length>1?`<b>×${x.length}</b>`:""}</span>`).join("")})()}</div></div>`).join(""):'<p class="dim">Empty.</p>';
   ovShow(`<div class="ovbox wide ${BOXNAME[box]||""}"><h2>${title}</h2>${note?`<p class="dim">${note}</p>`:""}${body}<p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
-  $("#mcancel").onclick=ovHide;
+  $("#mcancel").onclick=ovHide;wirePickTabs($("#ov"));
 }
 function passScreen(msg){
   return new Promise(res=>{
@@ -4225,13 +4237,15 @@ ${live&&!B.dead?`<div class="bacts">
   if($("#bThrall"))$("#bThrall").onclick=()=>{sellThrall(V);render();openBank()};
   if($("#bSell"))$("#bSell").onclick=()=>openSell(V);
 }
-function openSell(V){const P=G.p[V],pick=new Set();
-  const draw=()=>{const list=[...P.hand.map(c=>[c,"hand"]),...P.deck.map(c=>[c,"deck"])];
+function openSell(V){const P=G.p[V],pick=new Set();let tab="all";
+  const draw=()=>{const list=[...P.hand.map(c=>[c,"hand"]),...P.deck.map(c=>[c,"deck"])],where=new Map(list);
     const chosen=list.filter(([c])=>pick.has(c.id)),lo=chosen.reduce((a,[c])=>a+sellRange(c)[0],0),hi=chosen.reduce((a,[c])=>a+sellRange(c)[1],0);
     ovShow(`<div class="ovbox wide"><h2>Sell to the Bank</h2><p class="dim">A card sells for its soul worth, or 1 less (rolled at the sale), and goes to the Ether; the deck is reshuffled. Standard cards worth only 1 can't be sold. The Bank holds ${G.bank.mana} mana.</p>
-<div class="pickrow sell">${list.map(([c,w])=>{const ok=sellable(c),[a,b]=sellRange(c);return `<label class="sellc ${pick.has(c.id)?"on":""} ${ok?"":"off"}" ${ok?"":'data-tip="A standard card worth only 1 can\'t be sold to the Bank."'}><input type="checkbox" data-sl="${c.id}" ${pick.has(c.id)?"checked":""} ${ok?"":"disabled"}>${face(c,{cls:"sm",noci:true})}<small>${w} · ${ok?(a===b?a:a+"–"+b):"—"}</small></label>`}).join("")}</div>
+${(()=>{const groups=pileGroups(list.map(x=>x[0]));const one=([c,w])=>{const ok=sellable(c),[a,b]=sellRange(c);return `<label class="sellc ${pick.has(c.id)?"on":""} ${ok?"":"off"}" ${ok?"":'data-tip="A standard card worth only 1 can\'t be sold to the Bank."'}><input type="checkbox" data-sl="${c.id}" ${pick.has(c.id)?"checked":""} ${ok?"":"disabled"}>${face(c,{cls:"sm",noci:true})}<small>${w} · ${ok?(a===b?a:a+"–"+b):"—"}</small></label>`};
+  return pickTabsHTML(groups,list.length).replace(/class="pktab on" data-pt="all"/,`class="pktab${tab==="all"?" on":""}" data-pt="all"`).replace(/class="pktab" data-pt="([^"]+)"/g,(m,k)=>`class="pktab${tab===k?" on":""}" data-pt="${k}"`)+groups.map(([k,l])=>`<div class="pkgrp" data-pg="${k}" ${tab!=="all"&&tab!==k?"hidden":""}><h3>${k} <span class="dim">${l.length}</span></h3><div class="pickrow sell">${l.map(c=>one([c,where.get(c)])).join("")}</div></div>`).join("")})()}
 <p><button class="btn" id="sellGo" ${pick.size?"":"disabled"}>Sell ${pick.size} for ${lo===hi?lo:lo+"–"+hi} mana</button> <button class="btn ghost" id="mcancel">Back</button></p></div>`);
     $("#ov").querySelectorAll("[data-sl]").forEach(i=>i.onchange=()=>{const id=+i.dataset.sl;i.checked?pick.add(id):pick.delete(id);draw()});
+    wirePickTabs($("#ov"),t=>{tab=t});
     $("#mcancel").onclick=openBank;
     $("#sellGo").onclick=()=>{const cs=[...P.hand,...P.deck].filter(c=>pick.has(c.id));sellCards(V,cs);render();openBank()}};
   draw()}
@@ -8155,6 +8169,29 @@ for(const [name,get,set] of [["claimLand",()=>claimLand,f=>claimLand=f],["strike
   if(ph==="attack")for(const {st,r,c} of stacksOf(pl)){if(!canAttackFrom(st))continue;const f=flagTargets(st,r,c,"strike")[0];if(f){strikeFlag(r,c,f.r,f.c);render()}}
   if(ph==="prep")for(const {st,r,c} of stacksOf(pl))if(st.cards.some(x=>x.unit==="claimer")&&!canSpawn(pl,r,c)&&!flagAt(r,c)){claimLand(r,c);render()}
   return out}}
-if(window.__EC)Object.assign(window.__EC,{claimLand,strikeFlag,repairFlag,flagAt,canPlace:(...a)=>canPlace(...a),place:(...a)=>place(...a)});
+if(window.__EC)Object.assign(window.__EC,{claimLand,strikeFlag,repairFlag,flagAt,canPlace:(...a)=>canPlace(...a),place:(...a)=>place(...a),pickGrave:(...a)=>pickGrave(...a),openSell:(...a)=>openSell(...a)});
+
+/* ---------------- v45: Resurrection, priced by the card ----------------
+   Clicking Resurrection opens the grave to look through first: nothing is paid until a card is picked, and Cancel costs
+   nothing. The price is 1d2 (rolled each round) plus the soul worth of the card raised, shown under every card; the cards
+   you can't afford are greyed out. */
+delete PRICE.resur;PRICE.resurd=()=>R(2);
+const resurD=()=>G.prices&&G.prices.resurd!=null?G.prices.resurd:(G.prices=G.prices||{},G.prices.resurd=R(2));
+const resurPrice=c=>resurD()+soulOf(c);
+{const s=SP("resur");s.cost=0;s.dice="1d2 + worth";
+  s.text="Look through the grave first, then raise one card into your hand. It costs 1d2 (rolled each round) plus that card's soul worth; nothing is paid until you pick.";
+  SPELL_TEXT.resur={n:"Room in your hand.",e:"Look through the grave, then raise one card of your choice into your hand.",l:"Costs 1d2 (rolled each round) plus the soul worth of the card you raise. Nothing is paid until you pick; Cancel costs nothing."};
+  s.run=async()=>{const pl=G.active,grave=G.grave;if(!grave.length)return;
+    const prices=grave.map(resurPrice),offs=prices.map(n=>!canAfford(pl,n));
+    const best=()=>{let b=null;grave.forEach((c,i)=>{if(offs[i])return;const v=AI.value({cards:[c],owner:pl});if(!b||v>b.v)b={i,v}});return b?b.i:null};
+    const i=await ask(pl,{kind:"cards",id:"resur",title:`Resurrection: ${resurD()} (1d2 this round) + the card's worth`,sub:"Pick the card to raise. Nothing is paid until you pick; Cancel costs nothing.",cards:grave,prices,offs,cancel:"Cancel",box:"limbo",ai:best});
+    if(i==null||!grave[i])return;
+    const c=grave[i],cost=resurPrice(c);if(!canAfford(pl,cost)){if(!G.p[pl].cpu)flash("Not enough mana for that one.");return}
+    if(me().hand.length>=handCap(pl)){flash("Your hand is full.");return}
+    spend(pl,cost);noteBuy("resur");G.spentOther=true;grave.splice(grave.indexOf(c),1);c.owner=pl;G.p[pl].hand.push(c);
+    tray(pl,"Resurrection",[{s:2,v:resurD()}],`+ ${soulOf(c)} = ${cost} mana`);
+    log(`<b>Resurrection</b>: ${plName(pl)} pays ${cost} mana (${resurD()} + ${soulOf(c)}) and raises ${esc(nameOf(c))} from the grave.`,"event");render()}}
+/* the spell list shows the price this round */
+{const _rs=renderSpells;renderSpells=function(live){_rs(live);const b=document.querySelector('#spells [data-s="resur"] em');if(b&&G)b.textContent=`${resurD()} + worth`}}
 
 })();

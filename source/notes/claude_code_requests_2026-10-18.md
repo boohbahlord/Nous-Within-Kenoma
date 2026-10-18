@@ -77,6 +77,14 @@ The earlier to-do list (B1–B9, L1–L10, M1–M3, O1–O3, R1–R4) is in next
 17. Free Scout in the Ether (during v45):
     > the scout in my game was free in the ether is why partly maybe, just like the jack i complained about, that cant be like that. Like i said, idk why the fuck the ether has things for free because it is the moon and it should sell for 1 mana at the lowest. Maybe if it was a special event then maybe some might be free if the rules say so, but it is only one free per turn IF i even allowed that.
 
+18. Sort the grave and similar lists (during v45):
+    > The grave should allow players to sort through it by kinds or type in a way similar to the Ether so they arent scrolling through an entire deck, same for when selling things to the banker or anything else similiar
+19. Resurrection (during v45):
+    > The resurrection spell should allow a preview of the grave when you click it without spending, and it's cost is also added into the mana worth of the card ur resurrecting. The spell should then cost 1d2 PLUS the worth of the card you ressurect, that is it's cost in mana, depending on the turn.
+20. King of the Hill later (during v45):
+    > let's put the note for king of the hill into a note and leave it there, we dont have to do it today, i want to delay that update for later
+21. > where is the one screen that shows me your plan u had ?
+
 ## Digest
 Done and live:
 - C1 Site-wide click sound (v38). C2 Scout: 2-tile diamond; Beginner default (v39). C3 Overdraw: no more draw rolls in a turn after
@@ -160,3 +168,10 @@ were tested with the tab-to-tab stand-in that uses the same logic.
   (a flat 1 off) and the Venus blessing (1 off support cards, the Scout included). The sale now takes 1d2 − 1 off, rolled once a
   turn. No Moon phase makes conjuring cheaper.
 - v45 part 1 deployed (PR 11): What you must know (H1), the start toast and the Help title (H2).
+- 18 done: every long card picker (Grave Blessing, Resurrection, the New Moon gift, trades, the Outer Darkness) and the grave
+  view and the Sell window have tabs by kind (All, Standard, Special, Support, Base, Wildcard), a heading per kind, and the same
+  card folded into one button with a count.
+- 19 done: Resurrection opens the grave first; nothing is paid until a card is picked; the price is 1d2 (rolled each round)
+  plus the soul worth of the card raised, shown under each card. "Worth" read as the card's soul worth (its mana as a soul).
+- 20 done: King of the Hill moved to notes/king_of_the_hill_later.md, marked deferred.
+- 21: the plan is Part C of notes/v44_sheet_2026-10-18.md (sent to the user as a file).

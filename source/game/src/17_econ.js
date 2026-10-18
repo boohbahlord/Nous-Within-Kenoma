@@ -211,13 +211,15 @@ ${live&&!B.dead?`<div class="bacts">
   if($("#bThrall"))$("#bThrall").onclick=()=>{sellThrall(V);render();openBank()};
   if($("#bSell"))$("#bSell").onclick=()=>openSell(V);
 }
-function openSell(V){const P=G.p[V],pick=new Set();
-  const draw=()=>{const list=[...P.hand.map(c=>[c,"hand"]),...P.deck.map(c=>[c,"deck"])];
+function openSell(V){const P=G.p[V],pick=new Set();let tab="all";
+  const draw=()=>{const list=[...P.hand.map(c=>[c,"hand"]),...P.deck.map(c=>[c,"deck"])],where=new Map(list);
     const chosen=list.filter(([c])=>pick.has(c.id)),lo=chosen.reduce((a,[c])=>a+sellRange(c)[0],0),hi=chosen.reduce((a,[c])=>a+sellRange(c)[1],0);
     ovShow(`<div class="ovbox wide"><h2>Sell to the Bank</h2><p class="dim">A card sells for its soul worth, or 1 less (rolled at the sale), and goes to the Ether; the deck is reshuffled. Standard cards worth only 1 can't be sold. The Bank holds ${G.bank.mana} mana.</p>
-<div class="pickrow sell">${list.map(([c,w])=>{const ok=sellable(c),[a,b]=sellRange(c);return `<label class="sellc ${pick.has(c.id)?"on":""} ${ok?"":"off"}" ${ok?"":'data-tip="A standard card worth only 1 can\'t be sold to the Bank."'}><input type="checkbox" data-sl="${c.id}" ${pick.has(c.id)?"checked":""} ${ok?"":"disabled"}>${face(c,{cls:"sm",noci:true})}<small>${w} · ${ok?(a===b?a:a+"–"+b):"—"}</small></label>`}).join("")}</div>
+${(()=>{const groups=pileGroups(list.map(x=>x[0]));const one=([c,w])=>{const ok=sellable(c),[a,b]=sellRange(c);return `<label class="sellc ${pick.has(c.id)?"on":""} ${ok?"":"off"}" ${ok?"":'data-tip="A standard card worth only 1 can\'t be sold to the Bank."'}><input type="checkbox" data-sl="${c.id}" ${pick.has(c.id)?"checked":""} ${ok?"":"disabled"}>${face(c,{cls:"sm",noci:true})}<small>${w} · ${ok?(a===b?a:a+"–"+b):"—"}</small></label>`};
+  return pickTabsHTML(groups,list.length).replace(/class="pktab on" data-pt="all"/,`class="pktab${tab==="all"?" on":""}" data-pt="all"`).replace(/class="pktab" data-pt="([^"]+)"/g,(m,k)=>`class="pktab${tab===k?" on":""}" data-pt="${k}"`)+groups.map(([k,l])=>`<div class="pkgrp" data-pg="${k}" ${tab!=="all"&&tab!==k?"hidden":""}><h3>${k} <span class="dim">${l.length}</span></h3><div class="pickrow sell">${l.map(c=>one([c,where.get(c)])).join("")}</div></div>`).join("")})()}
 <p><button class="btn" id="sellGo" ${pick.size?"":"disabled"}>Sell ${pick.size} for ${lo===hi?lo:lo+"–"+hi} mana</button> <button class="btn ghost" id="mcancel">Back</button></p></div>`);
     $("#ov").querySelectorAll("[data-sl]").forEach(i=>i.onchange=()=>{const id=+i.dataset.sl;i.checked?pick.add(id):pick.delete(id);draw()});
+    wirePickTabs($("#ov"),t=>{tab=t});
     $("#mcancel").onclick=openBank;
     $("#sellGo").onclick=()=>{const cs=[...P.hand,...P.deck].filter(c=>pick.has(c.id));sellCards(V,cs);render();openBank()}};
   draw()}
