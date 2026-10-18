@@ -57,7 +57,7 @@ Done and live:
   one overdraws (v39). C4 Fog: light, flowing, no square per tile (v39). C5 Rob the Bank: a natural 20 empties the Bank; overflow
   in a stash (v39). C6 Increase Max Mana costs 4 (v39).
 
-To build (v41):
+Built in v41 (all of the following):
 - D1 Log: a fold-down on PC too, closed by default (phones already have it).
 - FA Field Automation (only the cards on the field: moves, attacks, ambush, stance; never the hand, placement, spells, sacrifices):
   - FA1 A small toggle button in the turn bar (by Sound and End turn), PC and phone. Turning it on asks "Are you sure?" with an
@@ -93,3 +93,11 @@ To build (v41):
 - RM Online rooms: Room title; Room description (limit 200 characters, shown on demand with an info button); player count and a
   player cap; the host's time zone; an "Open" room (no code needed: listed for anyone to join). Needs a shared room list without a
   server: open rooms are announced over a public relay; private rooms keep the code.
+
+## Status (v41)
+Done: D1 (log fold on PC), FA1–FA3 (Field Automation: setup option, turn-bar button with confirm, configure window, simple modes,
+every option, hierarchy with equals, under-field panel), RM (titles, descriptions, cap, time zone, open rooms list with a
+self-electing list keeper over PeerJS), TH (Office Dark, Earth, Dark Fantasy with the pixel-art dungeon and chiptune music).
+Naming: "Give me stupid version" is labelled "Simple mode" (Fully automatic / Mostly automatic / Attacks only / Every option).
+Not tested against the real PeerJS service from here (no outside network in the test machine): the room list and the lobby
+were tested with the tab-to-tab stand-in that uses the same logic.

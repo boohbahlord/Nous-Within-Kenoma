@@ -1268,8 +1268,9 @@ const AI=(()=>{
     hard:  {mc:48,noise:0,  thr:.46,spell:1,  skipMove:0,  bias:.12,draw:2},
     horde: {mc:36,noise:0,  thr:.4, spell:0,  skipMove:0,  bias:1,  draw:0}
   };
-  const L=pl=>LV[G.p[pl].cpu]||LV.medium;
-  const lvl=pl=>G.p[pl].cpu;
+  let FAX=null;   // v38: Field Automation plays a person's field with their settings (see 42_fieldauto.js)
+  const L=pl=>FAX&&FAX.pl===pl?LV[FAX.level]||LV.medium:LV[G.p[pl].cpu]||LV.medium;
+  const lvl=pl=>FAX&&FAX.pl===pl?FAX.level:G.p[pl].cpu;
   const jit=pl=>1+(Math.random()*2-1)*L(pl).noise;
   const PUSH={atk:1.5,def:.2,dist:1.1,ally:0},OFF={atk:1.3,def:.7,dist:.35,ally:.1},DEF={atk:.8,def:1.35,dist:.06,ally:.35},HORDE={atk:1.5,def:.35,dist:.7,ally:.05};
   let cache=new Map();
@@ -1288,8 +1289,8 @@ const AI=(()=>{
     const j=st.cards.find(c=>kind(c)==="joker");if(j)t+=2.5+capMana(j);
     return t;
   }
-  const gain=E=>((killsOnHit(E)?value(E):value(E)/E.cards.length)+threat(E)*.35)*(hq()&&hasK(E,"ace")?3:1);   // in Headquarters the enemy bases are the prize
-  const loss=S=>killsOnHit(S)?value(S):value(S)/S.cards.length;
+  const gain=E=>((killsOnHit(E)?value(E):value(E)/E.cards.length)+threat(E)*.35)*(hq()&&hasK(E,"ace")?3:1)*(FAX?FAX.gainMul(E):1);   // in Headquarters the enemy bases are the prize
+  const loss=S=>(killsOnHit(S)?value(S):value(S)/S.cards.length)*(FAX?FAX.lossMul:1);
   const dist=(r1,c1,r2,c2)=>Math.abs(r1-r2)+Math.abs(c1-c2);
   /* walking distance around the river and cut corners (straight steps over open tiles) */
   let pcache=new Map();
@@ -1326,7 +1327,8 @@ const AI=(()=>{
     if(near===99){   // nothing in sight (fog of war): head for the enemy's ground
       let d=99;for(const e of enemiesOf(pl))for(const [er,ec] of zoneTiles(e))d=Math.min(d,walk(r,c,er,ec));near=d===99?0:d*.8}
     // the Horde and offense push toward the enemy's back line too
-    return W.atk*opp-W.def*risk-W.dist*near+W.ally*allies;
+    const ctr=W.ctr?Math.abs(r-(G.rows-1)/2)+Math.abs(c-(COLS-1)/2):0;   // Field Automation: holding the center
+    return W.atk*opp-W.def*risk-W.dist*near+W.ally*allies-(W.ctr||0)*ctr;
   }
   function stance(pl){
     if(isHorde(pl))return HORDE;
@@ -1386,6 +1388,7 @@ const AI=(()=>{
       if(Math.random()<lv.skipMove)continue;
       if(st.cards.every(c=>c.unit==="miner"))continue;   // lone Miners have their own errands
       let grp=st.cards.filter(c=>!isBase(c)&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter)));   // Miners, Repairmen and shooters stay in their baseif(!grp.length||st.stun)continue;
+      if(FAX&&!FAX.ok(grp))continue;   // Field Automation: a stack it doesn't control stays where the player put it
       if(!stackLegal(grp)){ // too many to leave together (a full Ace): send out the strongest group that can stand on its own
         const g2=[];for(const c of [...grp].sort((a,b)=>rate(b)-rate(a)))if(stackLegal([...g2,c]))g2.push(c);grp=g2;if(!grp.length)continue}
       const inAce=hasBase(st);const S={cards:grp,owner:pl,hypo:st.hypo};
@@ -1395,7 +1398,7 @@ const AI=(()=>{
       for(const [r,c] of tg){
         const t=G.board[r][c];
         let s;
-        if(t){const M={cards:[...t.cards,...grp],owner:pl,hypo:0};s=tileScore(pl,M,r,c,W,true)-tileScore(pl,t,r,c,W,true)+.2}
+        if(t){const M={cards:[...t.cards,...grp],owner:pl,hypo:0};s=tileScore(pl,M,r,c,W,true)-tileScore(pl,t,r,c,W,true)+.2+(W.stack||0)}
         else s=tileScore(pl,S,r,c,W,true);
         s*=jit(pl);
         if(!best||s>best.s)best={r,c,s};
@@ -1410,6 +1413,7 @@ const AI=(()=>{
     const lv=L(pl);let best=null;
     for(const {st,r,c} of stacksOf(pl)){
       for(const o of attackOptions(r,c)){
+        if(FAX&&!FAX.okAtk(st,o))continue;   // Field Automation: only the cards it controls
         const r2=o.r,c2=o.c,E=G.board[r2][c2];
         if(o.mode==="capture"||o.mode==="destroy"||o.mode==="ram"){const sc=(o.mode==="capture"?value(E)+2:o.mode==="ram"?3.5:value(E)*.8+.5)*jit(pl);if(!best||sc>best.sc)best={r,c,r2,c2,sc,p:1,mode:o.mode};continue}
         if(o.mode==="suppress"){if(lvl(pl)!=="easy"&&canAttackFrom({cards:E.cards,attacked:false})&&Math.random()<.12){const sc=.45;if(!best||sc>best.sc)best={r,c,r2,c2,sc,p:1,mode:o.mode}}continue}
@@ -1417,7 +1421,7 @@ const AI=(()=>{
         const sc=(p*gain(E)*(o.mode==="stomp"?.6:1)-(1-p)*loss(st))*jit(pl);
         const late=isHorde(pl)?0:G.turnNo>90?Math.min(.25,.1+(G.turnNo-90)/200):!G.p[pl].deck.length?.1:0;
   
-        const go=p>=(lv.thr-late)*(lvl(pl)==="easy"?(.7+Math.random()*.6):1)||(lvl(pl)!=="easy"&&sc>.4)||isHorde(pl);   // the Horde never holds back: whatever it can reach, it hits
+        const go=p>=(lv.thr-late+(FAX?FAX.thrAdj:0))*(lvl(pl)==="easy"?(.7+Math.random()*.6):1)||(lvl(pl)!=="easy"&&sc>.4)||isHorde(pl);   // the Horde never holds back: whatever it can reach, it hits
         if(go&&(!best||sc>best.sc))best={r,c,r2,c2,sc,p,mode:o.mode};
       }
     }
@@ -1587,7 +1591,15 @@ const AI=(()=>{
     for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){if(!canPlace(card,r,c))continue;const s=placeScore(pl,card,r,c,W);if(!best||s>best.s)best={r,c,s}}
     return best?[best.r,best.c]:null;
   }
-  return{phase,setup,choose,winP,value,LV,bestSpot};
+  /* Field Automation: the field of a person, with their settings in ctx (built in 42_fieldauto.js) */
+  async function field(pl,ph,ctx){FAX=Object.assign({pl},ctx);cache.clear();pcache.clear();
+    try{
+      if(ph==="prep"){if(ctx.moves)await moves(pl,ctx.W);
+        if(ctx.ambushP>0)for(const {st,r,c} of stacksOf(pl)){if(!canAmbush(st)||st.ambush||st.moved||st.attacked||!ctx.ok(st.cards.filter(x=>!isBase(x))))continue;
+          if(!attackOptions(r,c).length&&Math.random()<ctx.ambushP){st.ambush=true;log(`${plName(pl)}'s field sets a stack in ambush.`,"ai")}}}
+      else if(ph==="attack")await attacks(pl);
+    }finally{FAX=null;cache.clear();G.sel=null}}
+  return{phase,setup,choose,winP,value,LV,bestSpot,field,stance:pl=>stance(pl),W:{PUSH,OFF,DEF},enemyStacks:pl=>enemyStacks(pl)};
 })();
 
 /* ---------------- Survival ---------------- */
@@ -2210,7 +2222,7 @@ ${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the 
 <label class="opt"><input type="radio" name="dlines" value="1" ${PREF.lines!==false?"checked":""}><span>On (default)<small>Thin black lines across the page behind everything, and now and then a black bar.</small></span></label>
 <label class="opt"><input type="radio" name="dlines" value="0" ${PREF.lines===false?"checked":""}><span>Off<small>A plain background, on every page of the site.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Brightness</legend><label class="f">Brightness <select id="dbright">${[.7,.8,.9,1,1.1,1.2,1.3].map(v=>`<option value="${v}" ${Math.abs((PREF.bright||1)-v)<.01?"selected":""}>${Math.round(v*100)}%${v===1?" (default)":""}</option>`).join("")}</select></label><p class="dim">For the whole site. Also in the Display bar at the bottom of the game.</p></fieldset>
-<fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({"":"The burnt amber of the site.",dull:"The burnt amber, duller and less orange, with a faint yellow tint.",office:"White pages, light grey panels and a blue accent, like an office suite.",jester:"Black, after chapter 26.",ten:"White on indigo, after chapters 1–4.",satan:"Crimson, after chapter 23."})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, text size, hand position, tile names, page width and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
+<fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({"":"The burnt amber of the site.",dull:"The burnt amber, duller and less orange, with a faint yellow tint.",office:"White pages, light grey panels and a blue accent, like an office suite.",officedark:"The Office theme in charcoal, for the night.",earth:"A night druid\u2019s grove: dark soil, moss and lichen gold.",darkfantasy:"An old dungeon: grey and crimson, gold and silver, with music.",jester:"Black, after chapter 26.",ten:"White on indigo, after chapters 1–4.",satan:"Crimson, after chapter 23."})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, text size, hand position, tile names, page width and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
   const suitSel=`<div id="suitpick" hidden><p class="dim">${mode==="local"?"P1 picks; P2 gets the other two suits.":mode==="cpu"?"You pick; the computer gets the other two suits.":"You pick; the other two suits wait in the Ether."}</p>
 <label class="f">Red suit <select id="osuitR"><option value="H">♥ Hearts</option><option value="D">♦ Diamonds</option></select></label>
 <label class="f">Black suit <select id="osuitB"><option value="S">♠ Spades</option><option value="C">♣ Clubs</option></select></label></div>`;
@@ -2364,7 +2376,7 @@ const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{
   if(!p.v38m){p.v38m=1;if(isPhone())p.sel="top"}
   return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:false,full:false,theme:"",lines:true,bright:1},p)})();
 function savePrefs(){try{localStorage.setItem("ec-prefs2",JSON.stringify(PREF))}catch(e){}}
-const THEMES={"":["Kenoma",[]],dull:["Kenoma (dull)",["th-dull"]],office:["Office",["th-office"]],jester:["Jester",["th-black","th-jester"]],ten:["Ten",["th-indigo","th-blue"]],satan:["Disturbed Satan",["th-crimson"]]};
+const THEMES={"":["Kenoma",[]],dull:["Kenoma (dull)",["th-dull"]],office:["Office",["th-office"]],officedark:["Office Dark",["th-officedark"]],earth:["Earth",["th-earth"]],darkfantasy:["Dark Fantasy",["th-darkfantasy"]],jester:["Jester",["th-black","th-jester"]],ten:["Ten",["th-indigo","th-blue"]],satan:["Disturbed Satan",["th-crimson"]]};
 function applyMoonTheme(){
   const h=document.documentElement,b=!!(G&&G.moon.blood&&!G.over);
   for(const k in THEMES)for(const c of THEMES[k][1])h.classList.remove(c);
@@ -7017,6 +7029,7 @@ const NETFN={
  tileClick:{get:()=>tileClick,set:f=>tileClick=f,aim:true,only:()=>!!(G&&G.aim)},   // a tile is only sent while aiming
  setCredit:{get:()=>setCredit,set:f=>setCredit=f,any:true},
  setAutoBless:{get:()=>setAutoBless,set:f=>setAutoBless=f,any:true},
+ setFieldAuto:{get:()=>setFieldAuto,set:f=>setFieldAuto=f,any:true},
  ambushToggle:{get:()=>ambushToggle,set:f=>ambushToggle=f},
  libDone:{get:()=>libDone,set:f=>libDone=f}};
 for(const [name,F] of Object.entries(NETFN)){const orig=F.get();
@@ -7309,7 +7322,7 @@ setInterval(()=>{try{chatPaint()}catch(e){}},1000);
 
 if(window.__EC)Object.assign(window.__EC,{playFX,netRejoin,chatSend,chatAdd,localSeats});
 
-/* ---------------- v38: phones ----------------
+/* ---------------- v38: phones (and the log everywhere) ----------------
    On a phone the Spells box, the Log and the book's passages fold shut behind their headings, closed by default, and glow until
    the player first touches them; once opened they open fully, so the page scrolls instead of a box inside it. */
 const FOLDS=[["spells",".spellpanel",".spellpanel>h3"],["log","#logwrap","#logwrap>h3"],["quotes","#quotes","#quotes>h3"]];
@@ -7321,11 +7334,12 @@ function mountFolds(){
   paintFolds();
 }
 const foldOpen=k=>!!(PREF.fold&&PREF.fold[k]);
+const FOLD_ALWAYS=new Set(["log"]);   // v38: the log folds on a computer too, closed by default
 function paintFolds(){const ph=isPhone();
   for(const [k,box,head] of FOLDS){const B=document.querySelector(box),H=document.querySelector(head);if(!B||!H)continue;
-    const shut=ph&&!foldOpen(k);B.classList.toggle("folded",shut);B.classList.toggle("foldable",ph);
+    const on=ph||FOLD_ALWAYS.has(k),shut=on&&!foldOpen(k);B.classList.toggle("folded",shut);B.classList.toggle("foldable",on);
     B.classList.toggle("foldglow",ph&&!(PREF.foldSeen&&PREF.foldSeen[k]));
-    if(ph)H.setAttribute("aria-expanded",!shut);else H.removeAttribute("aria-expanded")}}
+    if(on)H.setAttribute("aria-expanded",!shut);else H.removeAttribute("aria-expanded")}}
 {const _mq=mountQuotes;mountQuotes=function(){_mq.apply(this,arguments);mountFolds()}}
 {const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);paintFolds()}}
 if(typeof matchMedia!=="undefined"){const mq=matchMedia(PHONE_Q);const re=()=>{try{applyPrefs();if(G)render()}catch(e){}};mq.addEventListener?mq.addEventListener("change",re):mq.addListener(re)}
@@ -7464,7 +7478,7 @@ function lobbySend(){clearTimeout(lobbyT);lobbyT=setTimeout(()=>{lobbyT=null;if(
   const roster=[{id:"host",name:NET.name,host:true,seat:seats.findIndex(s=>s&&s.type==="human"),tribe:(seats.find(s=>s&&s.type==="human")||{}).tribe||null}]
     .concat(guestIds().map(id=>{const g=NET.guests[id],si=seats.findIndex(s=>s&&s.type==="net:"+id);return {id,name:g.name,pick:g.pick||null,seat:si}}));
   const taken=seats.filter(Boolean).map((s,i)=>({i,tribe:s.tribe,type:s.type}));
-  for(const id of guestIds())sendTo(id,{t:"lobby",host:NET.name,roster,taken,status:NET.status,you:id})},80)}
+  const room=myRoom();for(const id of guestIds())sendTo(id,{t:"lobby",host:NET.name,roster,taken,status:NET.status,you:id,room})},80)}
 function setStatus(k){if(NET.status===k)return;NET.status=k;lobbySend()}
 /* the room screen shows the same list */
 {const _lr=lobbyRoster;lobbyRoster=function(){_lr();const e=$("#onRoster");
@@ -7489,7 +7503,7 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
 /* ---------- a joined player's lobby ---------- */
 let lobbyTab="lobby";
 function guestLobby(){
-  ovShow(`<div class="ovbox setup online glob"><div class="shead"><h2>Online${NET.hostName?` · ${esc(NET.hostName)}'s room`:""}</h2><p class="dim">Choose your player and your look while the host sets up the game.</p></div>
+  ovShow(`<div class="ovbox setup online glob"><div class="shead"><h2>Online${NET.hostName?` · ${esc(NET.hostName)}'s room`:""}</h2><p class="dim">Choose your player and your look while the host sets up the game.</p>${NET.roomInfo?`<p class="rmline"><b>${esc(NET.roomInfo.title)}</b>${NET.roomInfo.desc?` <span class="dim">· ${esc(NET.roomInfo.desc)}</span>`:""}</p>`:""}</div>
 <div class="stabs" role="tablist">${[["lobby","Lobby"],["me","Your player"],["display","Display"]].map(([k,t])=>`<button type="button" role="tab" class="stab ${k===lobbyTab?"on":""}" data-lt="${k}" aria-selected="${k===lobbyTab}">${t}</button>`).join("")}</div>
 <div class="spanel" data-lp="lobby" ${lobbyTab==="lobby"?"":"hidden"}><div class="onl"><p id="onMsg" class="lstatus"></p><div id="gRoster"></div></div></div>
 <div class="spanel" data-lp="me" ${lobbyTab==="me"?"":"hidden"}><div id="gMe"></div></div>
@@ -7561,5 +7575,367 @@ ${sel("gTz","Text size",pct(.8,1.8),PREF.tz)}
     if(d.t==="bye"){const out=_on(from,d);lobbySend();return out}}
   return _on(from,d)}}
 if(window.__EC)Object.assign(window.__EC,{guestLobby,lobbySend});
+
+/* ---------------- v41: Field Automation ----------------
+   A person can hand the cards on their field to the computer: moves, attacks and ambushes. The hand, placing cards, spells,
+   sacrifices and everything else stay theirs. Before a game the Rules tab sets it for the table: Off (the button isn't there), or
+   how well it plays (Easy, Medium by default, Hard); online, the host's choice holds for everyone.
+   In the game: a small "Auto field" button by the turn buttons (it asks first, the X counts as No), and a small square beside it
+   that opens its settings. The field moves at the end of your prep phase (after you place and cast) and attacks at the start of
+   your attack phase; the stacks it doesn't control are yours to move and attack with as usual.
+   The settings, top to bottom: the simple modes; Attack (always on); Stance; Ambush; then, for every option: Rush, Formation,
+   Lives, Picking battles, Target bases (with walls that don't block the way ignored), which cards it controls ("Yes, and…" adds
+   single kinds of card), Hierarchical control (the order in which these principles win when they pull apart; two can be made
+   equal, and then the state of the field decides between them), and the same controls under the field instead of a window. */
+
+const FA_PRINC=[["stance","Stance"],["rush","Rush"],["lives","Lives"],["battles","Picking battles"],["formation","Formation"],["bases","Target bases"],["ambush","Ambush"]];
+const FA_CATS=[["soldiers","Soldiers","Grunts, Infantry, Puppets"],["specials","Specials","Jacks, Queens, Kings, Jokers, Assassins"],["support","Support","Scouts, Healers, Repairmen, Rams, Miners"],
+  ["ranged","Ranged","Archers and Cannons"],["wildcards","Wildcards","the Substances' own cards"]];
+const FA_KINDS=["grunt","infantry","puppet","jack","queen","king","joker","assassin","scout","healer","repair","ram","miner","archer","cannon",
+  "samson","antony","satan","bullgoat","goatbull","slavemaster","slave","leviathan","trafficker","debt"];
+const FA_DEF={mode:"full",stance:"auto",rush:0,formation:"auto",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,
+  ctl:{soldiers:true,specials:true,support:true,miners:true,ranged:true,wildcards:true},extra:[],hier:false,order:FA_PRINC.map(p=>p[0]),eq:[],under:false};
+const faClean=c=>{c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringify(FA_DEF));
+  for(const k of ["mode","stance","formation","lives","battles"])if(typeof c[k]==="string")o[k]=c[k];
+  o.rush=Math.max(0,Math.min(9,Math.round(+c.rush||0)));for(const k of ["ambush","bases","walls","hier","under"])if(typeof c[k]==="boolean")o[k]=c[k];
+  if(c.ctl)for(const k in o.ctl)if(typeof c.ctl[k]==="boolean")o.ctl[k]=c.ctl[k];
+  if(Array.isArray(c.extra))o.extra=c.extra.filter(k=>FA_KINDS.includes(k));
+  if(Array.isArray(c.order)&&c.order.length===FA_PRINC.length&&FA_PRINC.every(([k])=>c.order.includes(k)))o.order=[...c.order];
+  if(Array.isArray(c.eq))o.eq=c.eq.filter(p=>Array.isArray(p)&&p.length===2&&p.every(k=>o.order.includes(k)));return o};
+const faMine=()=>faClean(PREF.fa);   // this device's settings
+const faAllowed=()=>!!G&&(G.opts.fieldAuto||"medium")!=="off";
+const faLevel=()=>{const v=G&&G.opts.fieldAuto;return ["easy","medium","hard"].includes(v)?v:"medium"};
+const faState=pl=>G&&G.p[pl]&&G.p[pl].fa||null;
+const faOn=pl=>faAllowed()&&!!(faState(pl)&&faState(pl).on)&&!G.p[pl].cpu&&!isNPC(pl);
+/* the simple modes narrow everything to a few choices */
+function faEff(c){c=faClean(c);const d=JSON.parse(JSON.stringify(FA_DEF));
+  if(c.mode==="full")return Object.assign(d,{mode:"full",under:c.under});
+  if(c.mode==="mostly")return Object.assign(d,{mode:"mostly",stance:c.stance,ambush:c.ambush,under:c.under});
+  if(c.mode==="attacks")return Object.assign(d,{mode:"attacks",ambush:false,under:c.under});
+  return c}
+
+/* ---------- which cards it controls ---------- */
+const faKind=c=>c.unit||(c.puppet?"puppet":kind(c));
+function faCat(c){const u=c.unit;if(u==="miner")return "miners";if(u&&UNIT[u]&&UNIT[u].shooter)return "ranged";if(["scout","healer","repair","ram"].includes(u))return "support";
+  if(u==="assassin")return "specials";if(u)return "wildcards";if(c.puppet)return "soldiers";const k=kind(c);return k==="grunt"||k==="infantry"?"soldiers":"specials"}
+function faControls(c,cfg){if(cfg.extra.includes(faKind(c)))return true;const k=faCat(c);return k==="miners"?cfg.ctl.support||cfg.ctl.miners:!!cfg.ctl[k]}
+
+/* ---------- the hierarchy: higher principles pull harder; equals share a rank, and the field decides between them ---------- */
+const FA_AGGR={stance:c=>({offensive:1,defensive:-1}[c.stance]||0),rush:c=>c.rush?1:0,lives:c=>({throw:1,preserve:-1}[c.lives]||0),
+  battles:c=>({reckless:1,careful:-1}[c.battles]||0),formation:()=>0,bases:c=>c.bases?1:0,ambush:c=>c.ambush?-1:0};
+function faScales(c,pl){const sc={};for(const [k] of FA_PRINC)sc[k]=1;if(!c.hier)return sc;
+  const pairOf=k=>c.eq.find(p=>p.includes(k));let rank=0;const seen=new Set();
+  for(const k of c.order){if(seen.has(k))continue;const p=pairOf(k);const grp=p?p:[k];for(const g of grp){seen.add(g);sc[g]=Math.max(.35,1-.15*rank)}rank++}
+  // between two equals the field decides: behind, the more careful one leads; ahead, the bolder one
+  const mine=stacksOf(pl).reduce((a,x)=>a+AI.value(x.st),0),foe=AI.enemyStacks(pl).reduce((a,x)=>a+AI.value(x.st),0),behind=mine<foe;
+  for(const [a,b] of c.eq){const da=FA_AGGR[a](c),db=FA_AGGR[b](c);if(da===db)continue;const lead=(behind?da<db:da>db)?a:b;sc[lead]=Math.min(1,sc[lead]+.1)}
+  return sc}
+const faMix=(a,b,t)=>{const o={...a};for(const k of ["atk","def","dist","ally","ctr"])o[k]=(a[k]||0)*(1-t)+(b[k]||0)*t;return o};
+const FA_CENTER={atk:1,def:.9,dist:.15,ally:.25,ctr:.6};
+const faRushing=pl=>{const s=faState(pl);return !!(s&&s.cfg&&s.cfg.rush>0&&s.rushUntil!=null&&G.moon.round<=s.rushUntil)};
+/* a Wall matters only when it stands between your field and an enemy base */
+function faWallBlocks(pl,wr,wc){const bases=AI.enemyStacks(pl).filter(e=>hasBase(e.st)&&!hasK(e.st,"wall"));const mine=stacksOf(pl);
+  const d=(a,b,c,e)=>Math.abs(a-c)+Math.abs(b-e);
+  return bases.some(b=>d(wr,wc,b.r,b.c)<=2&&mine.some(m=>d(m.r,m.c,wr,wc)+d(wr,wc,b.r,b.c)<=d(m.r,m.c,b.r,b.c)+1))}
+function faCtx(pl){
+  const s=faState(pl),c=faEff(s&&s.cfg),sc=faScales(c,pl);
+  let W={...AI.stance(pl)};
+  const fixed={offensive:AI.W.OFF,defensive:AI.W.DEF,center:FA_CENTER}[c.stance];if(fixed)W=faMix(W,fixed,sc.stance);
+  if(faRushing(pl))W=faMix(W,AI.W.PUSH,sc.rush);
+  W.ally=(W.ally||0)+({wide:.5,deep:-.15}[c.formation]||0)*sc.formation;W.stack=({deep:.8,wide:-.1}[c.formation]||0)*sc.formation;
+  const lv={preserve:1,balanced:0,throw:-1}[c.lives]||0;W.def=(W.def||0)*(1+.4*lv*sc.lives);
+  const thrAdj=(lv>0?.12:lv<0?-.15:0)*sc.lives+({careful:.08,reckless:-.1}[c.battles]||0)*sc.battles;
+  const ok=grp=>grp.length>0&&grp.every(x=>faControls(x,c));
+  return {level:faLevel(),W,thrAdj,lossMul:1+.5*lv*sc.lives,moves:c.mode!=="attacks",ambushP:c.ambush?.7*sc.ambush:0,ok,
+    okAtk:(st,o)=>o.card?faControls(o.card,c):ok(st.cards.filter(x=>!isBase(x))),
+    gainMul:E=>{let m=1;if(c.bases&&hasBase(E)&&!hasK(E,"wall"))m*=1+sc.bases;
+      if(c.walls&&hasK(E,"wall")){const at=AI.enemyStacks(pl).find(e=>e.st===E);if(at&&!faWallBlocks(pl,at.r,at.c))m*=1-.7*sc.bases}return m}}}
+
+/* ---------- when it plays: the end of your prep phase (after you place and cast), the start of your attack phase ---------- */
+async function faRun(pl,ph){if(!faOn(pl)||G.over)return;const was=G.busy;G.busy=true;render();
+  try{await AI.field(pl,ph,faCtx(pl))}catch(e){console.error(e);log("Field automation stumbles: "+esc(e.message))}
+  G.busy=was;render()}
+{const _ap=actPhase;actPhase=async function(pl,ph){
+  if(ph==="attack"&&faOn(pl))await faRun(pl,"attack");
+  const out=await _ap.apply(this,arguments);
+  if(ph==="prep"&&faOn(pl)&&!G.over&&G.active===pl)await faRun(pl,"prep");
+  return out}}
+
+/* ---------- switching it on and off (a joined player's choice travels to the host) ---------- */
+function setFieldAuto(pl,on,cfg){
+  if(!G||!G.p[pl]||isNPC(pl)||!faAllowed())return;if(NET.ctx!=null&&NET.ctx!==pl)return;
+  const P=G.p[pl],prev=P.fa||{},c=faClean(cfg);P.fa={on:!!on,cfg:c,rushUntil:prev.rushUntil};
+  if(c.rush>0&&(!prev.cfg||prev.cfg.rush!==c.rush||prev.rushUntil==null||G.moon.round>prev.rushUntil))P.fa.rushUntil=G.moon.round+c.rush-1;
+  if(!c.rush)P.fa.rushUntil=null;
+  if(!!prev.on!==!!on){log(`${plName(pl)} ${on?"hands the field to the computer (Field Automation on)":"takes the field back (Field Automation off)"}.`,"event");
+    if(on&&G.active===pl&&G.phase==="attack"&&!G.busy)setTimeout(()=>{if(faOn(pl)&&G.active===pl&&G.phase==="attack")faRun(pl,"attack")},50)}
+  render()}
+/* this device's settings changed: keep them, and send them on if the automation is running */
+function faSave(c){PREF.fa=faClean(c);savePrefs();const V=view(),s=faState(V);if(G&&s&&s.on)setFieldAuto(V,true,PREF.fa);paintFA()}
+
+/* ---------- the question ---------- */
+function faAsk(yes){let box=$("#faask");if(!box){box=document.createElement("div");box.id="faask";box.className="faov";document.body.appendChild(box)}
+  box.innerHTML=`<div class="ovbox" role="alertdialog" aria-labelledby="faq"><button type="button" class="xclose" id="faX" aria-label="Close: no">×</button>
+<h2 id="faq">Automate your field?</h2>
+<p>The computer (${({easy:"Easy",medium:"Medium",hard:"Hard"})[faLevel()]}) moves and attacks with the cards on your field, following the settings in the small square beside the button: by default, every card, and it decides when to attack, defend or hold the center.</p>
+<p class="dim">Your hand, placing cards, spells and sacrifices stay yours. It moves your field at the end of your prep phase and attacks at the start of your attack phase; turn it off any time.</p>
+<p class="acts"><button type="button" class="btn" id="faY">Yes</button> <button type="button" class="btn ghost" id="faN">No</button></p></div>`;
+  box.hidden=false;const close=()=>{box.hidden=true};$("#faY").onclick=()=>{close();yes()};$("#faN").onclick=close;$("#faX").onclick=close;$("#faN").focus()}
+function faToggle(){const V=view(),s=faState(V);if(s&&s.on){setFieldAuto(V,false,faMine());return}faAsk(()=>setFieldAuto(V,true,faMine()))}
+
+/* ---------- the settings, drawn the same in the window and under the field ---------- */
+const faVal=(k,c)=>({stance:{auto:"Automatic",offensive:"Offensive",defensive:"Defensive",center:"Center"}[c.stance],rush:c.rush?`${c.rush} round${c.rush>1?"s":""}`:"Off",
+  lives:{preserve:"Preserve",balanced:"Balanced",throw:"Throw them in"}[c.lives],battles:{careful:"Careful",normal:"Normal",reckless:"Reckless"}[c.battles],
+  formation:{auto:"Automatic",wide:"Wide",deep:"Deep"}[c.formation],bases:c.bases?"On":"Off",ambush:c.ambush?"On":"Off"})[k];
+function faPanelHTML(c,pl,pfx){
+  const radio=(key,opts)=>`<div class="opts faopts">${opts.map(([v,t,s])=>`<label class="opt"><input type="radio" name="fa${pfx}-${key}" data-fa="${key}" value="${v}" ${c[key]===v?"checked":""}><span>${t}${s?`<small>${s}</small>`:""}</span></label>`).join("")}</div>`;
+  const box=(path,on,t,s,dis)=>`<label class="chk"><input type="checkbox" data-fa="${path}" ${on?"checked":""} ${dis?"disabled":""}> <span><b>${t}</b>${s?`<small>${s}</small>`:""}</span></label>`;
+  const sec=(t,body,cls="")=>`<section class="fasec ${cls}"><h4>${t}</h4>${body}</section>`;
+  const s=pl!=null?faState(pl):null,left=s&&s.rushUntil!=null&&c.rush?Math.max(0,s.rushUntil-G.moon.round+1):null;
+  const custom=c.mode==="custom",some=c.mode==="mostly"||custom;
+  let h=sec("Simple mode",radio("mode",[["full","Fully automatic","It decides everything, offense, defense or the center (the default)"],["mostly","Mostly automatic","You choose the stance and ambushes"],
+    ["attacks","Attacks only","It only attacks; you move every card"],["custom","Every option","Choose each setting yourself"]]),"famodes");
+  h+=sec("Attack",box("",true,"Always on","Your field attacks enemies in sight when the odds say so.",true),"falock");
+  if(some){h+=sec("Stance",radio("stance",[["auto","Automatic","Changes with the field"],["offensive","Offensive",""],["defensive","Defensive",""],["center","Control the center",""]]));
+    h+=sec("Ambush",box("ambush",c.ambush,"Set ambushes","Assassins and face-down stacks with nothing in reach wait in ambush."))}
+  if(custom){
+    h+=sec("Rush the enemy",`<div class="farush">${box("rushon",c.rush>0,"Rush","Everything it controls goes for the enemy, whatever the stance.")}<span class="faspin"><button type="button" class="btn ghost sm" data-faact="rush-" aria-label="One round less">▼</button><b>${Math.max(1,c.rush)}</b><button type="button" class="btn ghost sm" data-faact="rush+" aria-label="One round more">▲</button> round${Math.max(1,c.rush)>1?"s":""}${left!=null?` <small class="dim">(${left?left+" left":"over"})</small>`:""}</span></div>`);
+    h+=sec("Formation",radio("formation",[["auto","Automatic",""],["wide","Wide","Spread out, surround, take the advantage"],["deep","Deep","Columns: stack strength, even with fewer to stack with"]]));
+    h+=sec("Lives",radio("lives",[["preserve","Preserve","Keep cards alive first"],["balanced","Balanced","The default"],["throw","Throw them in","Trade cards freely to hurt the enemy"]]));
+    h+=sec("Picking battles",radio("battles",[["careful","Careful","Fights only with good odds"],["normal","Normal",""],["reckless","Reckless","Takes long shots"]])+`<p class="dim">Lives ranks above this unless you change the order below.</p>`);
+    h+=sec("Bases",box("bases",c.bases,"Target bases","Enemy Aces and the Tree are worth more to it.")+box("walls",c.walls,"Don't count non-obstructive walls","A Wall only matters when it stands between your field and a base."));
+    h+=sec("Which cards it controls",`<div class="facats">${FA_CATS.map(([k,t,s2])=>box("ctl."+k,c.ctl[k],t,s2)).join("")}${!c.ctl.support?box("ctl.miners",c.ctl.miners,"Miners","Even with Support off"):""}</div>
+<details class="faextra" ${c.extra.length?"open":""}><summary>Yes, and… (add single kinds of card)</summary><div class="opts fakinds">${FA_KINDS.map(k=>`<label class="opt"><input type="checkbox" data-faextra="${k}" ${c.extra.includes(k)?"checked":""}><span>${esc(shortInfo(k))}</span></label>`).join("")}</div><p class="dim">These are added to the groups above, never taken away.</p></details>`);
+    h+=sec("Hierarchical control",box("hier",c.hier,"Rank the principles","When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.")+(c.hier?faHierHTML(c):""));
+  }
+  h+=sec("Where",box("under",c.under,"Show these controls under the field","A wide fold-down above Basics explained, instead of this window."));
+  h+=`<p class="dim fanote">Some options aren't the best choice for every situation on your field.</p>`;
+  return h}
+function faHierHTML(c){const pend=faHierHTML.pending,pairOf=k=>c.eq.find(p=>p.includes(k));
+  return `<div class="fahier">${c.order.map((k,i)=>{const p=pairOf(k);return `<div class="facol${p?" eqpair":pend===k?" eqwait":""}"><span class="farank">${i+1}</span><b>${FA_PRINC.find(x=>x[0]===k)[1]}</b><small>${faVal(k,c)}</small>
+<span class="facolbtns"><button type="button" class="btn ghost sm" data-faact="up:${k}" aria-label="Higher priority" ${i?"":"disabled"}>▲</button><button type="button" class="btn ghost sm" data-faact="eq:${k}" aria-label="Equal" aria-pressed="${!!p||pend===k}">=</button><button type="button" class="btn ghost sm" data-faact="down:${k}" aria-label="Lower priority" ${i<c.order.length-1?"":"disabled"}>▼</button></span></div>`}).join("")}</div>`}
+/* every change goes through here */
+function faWire(root){
+  const c=faMine();
+  root.querySelectorAll("[data-fa]").forEach(i=>{const path=i.dataset.fa;if(!path)return;i.onchange=()=>{const c2=faMine();
+    if(path==="rushon")c2.rush=i.checked?Math.max(1,c2.rush||1):0;
+    else if(path.startsWith("ctl."))c2.ctl[path.slice(4)]=i.checked;
+    else if(i.type==="checkbox")c2[path]=i.checked;else c2[path]=i.value;
+    faSave(c2)}});
+  root.querySelectorAll("[data-faextra]").forEach(i=>i.onchange=()=>{const c2=faMine(),k=i.dataset.faextra;c2.extra=c2.extra.filter(x=>x!==k);if(i.checked)c2.extra.push(k);faSave(c2)});
+  root.querySelectorAll("[data-faact]").forEach(b=>b.onclick=()=>{const c2=faMine(),[a,k]=b.dataset.faact.split(":");
+    if(a==="rush+"||a==="rush-"){c2.rush=Math.max(1,Math.min(9,(c2.rush||1)+(a==="rush+"?1:-1)));faSave(c2);return}
+    const blocks=[];const seen=new Set();for(const x of c2.order){if(seen.has(x))continue;const p=c2.eq.find(q=>q.includes(x));const g=p?c2.order.filter(y=>p.includes(y)):[x];g.forEach(y=>seen.add(y));blocks.push(g)}
+    const bi=blocks.findIndex(g=>g.includes(k));
+    if(a==="up"&&bi>0)[blocks[bi-1],blocks[bi]]=[blocks[bi],blocks[bi-1]];
+    if(a==="down"&&bi<blocks.length-1)[blocks[bi+1],blocks[bi]]=[blocks[bi],blocks[bi+1]];
+    if(a==="eq"){const p=c2.eq.find(q=>q.includes(k));
+      if(p){c2.eq=c2.eq.filter(q=>q!==p);faHierHTML.pending=null}
+      else if(faHierHTML.pending&&faHierHTML.pending!==k&&!c2.eq.some(q=>q.includes(faHierHTML.pending))){const a2=faHierHTML.pending;faHierHTML.pending=null;c2.eq.push([a2,k]);
+        // the second joins the first, side by side
+        const fl=blocks.flat().filter(x=>x!==k);fl.splice(fl.indexOf(a2)+1,0,k);c2.order=fl;faSave(c2);return}
+      else faHierHTML.pending=faHierHTML.pending===k?null:k}
+    c2.order=blocks.flat();faSave(c2)})}
+function faWindow(){let box=$("#facfg");if(!box){box=document.createElement("div");box.id="facfg";box.className="faov";document.body.appendChild(box)}
+  box.hidden=false;paintFA()}
+/* paint the window and the fold-down, wherever they are */
+function paintFA(){const V=G?view():null,c=faMine();
+  const w=$("#facfg");if(w&&!w.hidden){const sc=w.querySelector(".fabody")?w.querySelector(".fabody").scrollTop:0;
+    w.innerHTML=`<div class="ovbox wide faconf" role="dialog" aria-labelledby="facq"><button type="button" class="xclose" id="facX" aria-label="Close">×</button><h2 id="facq">Configure field automation</h2><div class="fabody">${faPanelHTML(c,V,"w")}</div><p class="acts"><button type="button" class="btn" id="facOk">Done</button></p></div>`;
+    w.querySelector(".fabody").scrollTop=sc;faWire(w);$("#facX").onclick=$("#facOk").onclick=()=>{w.hidden=true}}
+  const info=$("#info");if(!info)return;let d=$("#fapanel");
+  const want=!!(G&&!G.over&&faAllowed()&&c.under&&G.p[V]&&!G.p[V].cpu&&!isNPC(V));
+  if(!want){if(d)d.remove();return}
+  if(!d){d=document.createElement("details");d.id="fapanel";d.className="cinfo fapanel";if(PREF.faOpen)d.open=true;d.addEventListener("toggle",()=>{PREF.faOpen=d.open;savePrefs()});info.prepend(d)}
+  const on=faOn(V);d.innerHTML=`<summary>Field automation · ${on?"On":"Off"}</summary><div class="fawide"><p><button type="button" class="btn ${on?"":"ghost"} sm" id="faTogU" aria-pressed="${on}">${on?"Turn it off":"Turn it on"}</button></p>${faPanelHTML(c,V,"u")}</div>`;
+  faWire(d);$("#faTogU").onclick=faToggle}
+
+/* ---------- the button by the turn buttons ---------- */
+let faSig="";
+{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;const ctl=$("#controls");const V=view();
+  const show=faAllowed()&&!G.over&&G.phase!=="setup"&&G.p[V]&&!G.p[V].cpu&&!isNPC(V)&&!(NET.role==="guest"&&NET.watch);
+  if(ctl&&show&&!ctl.querySelector(".fabar")){const on=faOn(V);
+    ctl.insertAdjacentHTML("beforeend",`<span class="fabar"><button type="button" class="btn ${on?"":"ghost"} sm fatog" aria-pressed="${on}" title="The computer moves and attacks with the cards on your field">Auto field: ${on?"On":"Off"}</button><button type="button" class="btn ghost sm facfgb" title="Configure field automation" aria-label="Configure field automation">▦</button></span>`);
+    ctl.querySelector(".fatog").onclick=faToggle;ctl.querySelector(".facfgb").onclick=faWindow}
+  const sig=JSON.stringify([show,faOn(V),PREF.fa,G.moon.round]);if(sig!==faSig){faSig=sig;paintFA()}}}
+
+/* ---------- the setup: Off, or how well it plays ---------- */
+{const _ss=showStart;showStart=function(){const out=_ss.apply(this,arguments);const p=document.querySelector('.ovbox.setup .spanel[data-p="rules"]');
+  if(p&&!$("#ofauto"))p.insertAdjacentHTML("beforeend",`<fieldset class="pf"><legend>Field Automation</legend><label class="f">Field Automation <select id="ofauto"><option value="off">Off: nobody can use it</option><option value="easy">On, plays like Easy</option><option value="medium" selected>On, plays like Medium (default)</option><option value="hard">On, plays like Hard</option></select></label><p class="dim">Lets a player hand the cards on their field to the computer during the game; their hand and spells stay theirs. Off hides the button for everyone.</p></fieldset>`);
+  return out}}
+{const _sg=startGame;startGame=function(opts){const s=$("#ofauto");if(opts&&s)opts.fieldAuto=s.value;return _sg.apply(this,arguments)}}
+
+if(window.__EC)Object.assign(window.__EC,{setFieldAuto,faCtx,faRun,faWindow,faEff,FA_DEF});
+
+/* ---------------- v41: room titles, descriptions, a player cap, and open rooms anyone can join ----------------
+   A host names the room (a title of 40 characters, a description of 200), sets how many players it holds (2 to 8, the host
+   counted), and can make it Open: listed for anyone, no code needed. Each listed room shows its title, players, the host's time
+   zone and whether a game is on; its description opens on demand.
+   There is no server: the host of one open room keeps the list at a fixed address on the same free connection service the game
+   uses, and every open room checks in with it every 20 seconds. When that host leaves, the next open room to check in takes the
+   list over. Rooms that stop checking in drop off after a minute. (Room codes starting with LOCAL use a stand-in between tabs.) */
+
+const ROOM_DIR="ec-rooms-v1",ROOM_TTL=60000,ROOM_BEAT=20000;
+const roomTZ=()=>{try{const z=Intl.DateTimeFormat().resolvedOptions().timeZone||"",o=-new Date().getTimezoneOffset(),h=Math.trunc(o/60),m=Math.abs(o%60);
+  const off=`UTC${o>=0?"+":"−"}${Math.abs(h)}${m?":"+String(m).padStart(2,"0"):""}`,city=z.split("/").pop().replace(/_/g," ");return !city||/^(UTC|GMT|Etc)/.test(z)?(o?off:"UTC"):`${city} (${off})`}catch(e){return ""}};
+const cleanRoom=r=>({code:String(r&&r.code||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,12),title:String(r&&r.title||"").slice(0,40),desc:String(r&&r.desc||"").slice(0,200),
+  players:Math.max(1,Math.min(8,+(r&&r.players)||1)),cap:Math.max(2,Math.min(8,+(r&&r.cap)||4)),tz:String(r&&r.tz||"").slice(0,40),playing:!!(r&&r.playing),local:!!(r&&r.local)});
+
+/* ---------- a stand-in for the connection service between tabs of one browser (for LOCAL rooms and for trying it alone) ---------- */
+class TabPeer{
+  constructor(id){this.id=id||"tp-"+Math.random().toString(36).slice(2,9);this.h={};this.c={};this.open=false;this.taken=false;this.dead=false;
+    this.bc=new BroadcastChannel("ec-tabpeer");this.bc.onmessage=e=>this._m(e.data);
+    if(id){this.bc.postMessage({k:"who",id});setTimeout(()=>{if(this.dead)return;if(this.taken)this._e("unavailable-id");else{this.open=true;this._f("open",this.id)}},250)}
+    else setTimeout(()=>{this.open=true;this._f("open",this.id)},10)}
+  on(ev,f){(this.h[ev]=this.h[ev]||[]).push(f)}
+  _f(ev,...a){for(const f of this.h[ev]||[])try{f(...a)}catch(e){console.error(e)}}
+  _e(type){this._f("error",{type})}
+  _conn(cid,peer){const self=this,C={peer,open:false,h:{},on(ev,f){(C.h[ev]=C.h[ev]||[]).push(f)},_f(ev,...a){for(const f of C.h[ev]||[])f(...a)},
+      send(d){if(C.open)self.bc.postMessage({k:"data",cid,to:peer,from:self.id,d})},close(){if(!C.open)return;C.open=false;self.bc.postMessage({k:"close",cid,to:peer});C._f("close");delete self.c[cid]}};
+    this.c[cid]=C;return C}
+  connect(id){const cid=Math.random().toString(36).slice(2),C=this._conn(cid,id);this.bc.postMessage({k:"conn",to:id,from:this.id,cid});
+    setTimeout(()=>{if(!C.open&&!this.dead)this._e("peer-unavailable")},1200);return C}
+  _m(m){if(!m||this.dead)return;
+    if(m.k==="who"&&m.id===this.id&&this.open)this.bc.postMessage({k:"have",id:this.id});
+    else if(m.k==="have"&&m.id===this.id&&!this.open)this.taken=true;
+    else if(m.k==="conn"&&m.to===this.id&&this.open){const C=this._conn(m.cid,m.from);C.open=true;this.bc.postMessage({k:"connok",cid:m.cid,to:m.from});this._f("connection",C);setTimeout(()=>C._f("open"),0)}
+    else if(m.k==="connok"&&m.to===this.id&&this.c[m.cid]){const C=this.c[m.cid];C.open=true;C._f("open")}
+    else if(m.k==="data"&&m.to===this.id&&this.c[m.cid])this.c[m.cid]._f("data",m.d);
+    else if(m.k==="close"&&m.to===this.id&&this.c[m.cid]){const C=this.c[m.cid];C.open=false;C._f("close");delete this.c[m.cid]}}
+  destroy(){if(this.dead)return;for(const C of Object.values(this.c))try{C.close()}catch(e){}this.dead=true;try{this.bc.close()}catch(e){}}
+}
+const roomsLocal=()=>/^LOCAL/i.test(NET.code||"")||!!window.__EC_LOCALDIR;
+const newPeer=async(id,local)=>{if(local)return new TabPeer(id);await loadPeer();return id?new window.Peer(id):new window.Peer()};
+const send1=(c,d)=>{try{c.send(d)}catch(e){}};
+const parse=raw=>{try{return typeof raw==="string"?JSON.parse(raw):raw}catch(e){return null}};
+
+/* ---------- the list keeper (one open room's host) and the check-ins ---------- */
+const DIR={peer:null,keeper:false,rooms:{},conn:null,beat:null,busy:false};
+function dirKeep(peer){DIR.peer=peer;DIR.keeper=true;
+  peer.on("connection",c=>{c.on("data",raw=>{const d=parse(raw);if(!d)return;
+    if(d.t==="reg"&&d.room){const r=cleanRoom(d.room);if(r.code)DIR.rooms[r.code]=Object.assign(r,{at:Date.now()})}
+    else if(d.t==="unreg"&&d.code)delete DIR.rooms[String(d.code).toUpperCase()];
+    else if(d.t==="list")send1(c,{t:"rooms",rooms:dirList()})})})}
+function dirList(){const now=Date.now();for(const [k,r] of Object.entries(DIR.rooms))if(now-r.at>ROOM_TTL)delete DIR.rooms[k];return Object.values(DIR.rooms).map(r=>{const o={...r};delete o.at;return o})}
+function myRoom(){const R=NET.room||{};return cleanRoom({code:NET.code,title:R.title||`${NET.name}'s room`,desc:R.desc,players:1+guestIds().length,cap:R.cap,tz:roomTZ(),playing:!!(G&&G.opts.online&&!G.over),local:roomsLocal()})}
+async function dirBeat(){if(DIR.busy)return;DIR.busy=true;
+  try{const open=(NET.role==="lobby-host"||NET.role==="host")&&NET.room&&NET.room.open;
+    if(!open){if(DIR.conn)try{send1(DIR.conn,{t:"unreg",code:NET.code});DIR.conn.close()}catch(e){}DIR.conn=null;
+      if(DIR.keeper){delete DIR.rooms[NET.code];if(!Object.keys(DIR.rooms).length){try{DIR.peer.destroy()}catch(e){}DIR.peer=null;DIR.keeper=false}}return}
+    const me=myRoom();
+    if(DIR.keeper){DIR.rooms[me.code]=Object.assign(me,{at:Date.now()});return}
+    if(DIR.conn&&DIR.conn.open){send1(DIR.conn,{t:"reg",room:me});return}
+    // reach the keeper, or become it
+    const local=roomsLocal(),p=await newPeer(undefined,local);
+    const ok=await new Promise(res=>{let done=false;const fin=v=>{if(!done){done=true;res(v)}};
+      p.on("open",()=>{const c=p.connect(ROOM_DIR,{reliable:true});c.on("open",()=>{DIR.conn=c;DIR.connPeer=p;send1(c,{t:"reg",room:me});fin(true)});c.on("close",()=>{if(DIR.conn===c)DIR.conn=null})});
+      p.on("error",e=>{if(e&&e.type==="peer-unavailable")fin(false)});setTimeout(()=>fin(false),6000)});
+    if(ok)return;try{p.destroy()}catch(e){}
+    const k=await newPeer(ROOM_DIR,local);
+    await new Promise(res=>{k.on("open",()=>{dirKeep(k);DIR.rooms[me.code]=Object.assign(me,{at:Date.now()});res()});k.on("error",()=>{try{k.destroy()}catch(e){}res()});setTimeout(res,6000)});
+  }catch(e){console.error(e)}finally{DIR.busy=false}}
+function dirStart(){clearInterval(DIR.beat);DIR.beat=setInterval(dirBeat,ROOM_BEAT);dirBeat()}
+function dirStop(){clearInterval(DIR.beat);DIR.beat=null;const was=NET.room&&NET.room.open;if(NET.room)NET.room.open=false;if(was)dirBeat();
+  setTimeout(()=>{if(DIR.keeper&&!Object.keys(DIR.rooms).length){try{DIR.peer.destroy()}catch(e){}DIR.peer=null;DIR.keeper=false}},500)}
+let beatSoon=null;const dirSoon=()=>{clearTimeout(beatSoon);beatSoon=setTimeout(()=>{if(NET.room&&NET.room.open)dirBeat()},300)};
+/* anyone: ask the keeper for the list */
+async function listRooms(local){
+  if(DIR.keeper)return dirList();
+  const p=await newPeer(undefined,local);
+  return await new Promise(res=>{let done=false;const fin=v=>{if(!done){done=true;try{p.destroy()}catch(e){}res(v)}};
+    p.on("open",()=>{const c=p.connect(ROOM_DIR,{reliable:true});c.on("open",()=>send1(c,{t:"list"}));c.on("data",raw=>{const d=parse(raw);if(d&&d.t==="rooms")fin((d.rooms||[]).map(cleanRoom))})});
+    p.on("error",()=>fin([]));setTimeout(()=>fin([]),7000)})}
+
+/* ---------- the Online screen: room details for the host, the list of open rooms for everyone ---------- */
+{const _ol=onlineLobby;onlineLobby=function(){const out=_ol.apply(this,arguments);
+  if(!NET.role){const host=$("#onHost");if(host){const R=PREF.netRoom||{};
+      host.insertAdjacentHTML("beforebegin",`<div class="roomset"><label class="f">Room title <input id="rmTitle" maxlength="40" placeholder="${esc(PREF.netName||"My")}'s room" value="${esc(R.title||"")}"></label>
+<label class="f rmdesc">Description <textarea id="rmDesc" maxlength="200" rows="3" placeholder="House rules, the mood, who it's for (200 characters)">${esc(R.desc||"")}</textarea><small class="dim" id="rmCount"></small></label>
+<div class="rmrow"><label class="f">Players <select id="rmCap">${[2,3,4,5,6,7,8].map(n=>`<option value="${n}" ${n===(R.cap||4)?"selected":""}>${n}${n===4?" (default)":""}</option>`).join("")}</select></label>
+<label class="chk"><input type="checkbox" id="rmOpen" ${R.open?"checked":""}> <span><b>Open room</b><small>Listed for anyone to join, no code needed.</small></span></label></div></div>`);
+      const cnt=()=>{$("#rmCount").textContent=`${$("#rmDesc").value.length}/200`};$("#rmDesc").addEventListener("input",cnt);cnt();
+      host.addEventListener("click",()=>{NET.room={title:$("#rmTitle").value.trim().slice(0,40),desc:$("#rmDesc").value.trim().slice(0,200),cap:+$("#rmCap").value||4,open:$("#rmOpen").checked};
+        PREF.netRoom=NET.room;savePrefs()},true)}
+    const onl=document.querySelector(".ovbox.online .onl");
+    if(onl&&!$("#rmList")){const nm=onl.querySelector(":scope > label.f");(nm||onl).insertAdjacentHTML(nm?"afterend":"beforeend",`<fieldset class="pf"><legend>Open rooms</legend><div id="rmList"><p class="dim">Looking for open rooms…</p></div><p><button type="button" class="btn ghost sm" id="rmRefresh">Refresh</button></p></fieldset>`);
+      $("#rmRefresh").onclick=paintRooms;paintRooms()}}
+  if((NET.role==="lobby-host"||NET.role==="host")&&NET.room){const R=NET.room,code=document.querySelector(".ovbox.online .roomcode");
+    if(code&&!$("#rmInfo"))code.insertAdjacentHTML("beforebegin",`<div id="rmInfo"><h3>${esc(R.title||`${NET.name}'s room`)}</h3>${R.desc?`<p class="dim">${esc(R.desc)}</p>`:""}<p class="dim">Up to ${R.cap||4} players · ${R.open?"Open: listed for anyone to join":"Private: only with the code"} · ${esc(roomTZ())}</p></div>`);
+    if(R.open&&!DIR.beat)dirStart()}
+  return out}}
+async function paintRooms(){const box=$("#rmList");if(!box)return;box.innerHTML='<p class="dim">Looking for open rooms…</p>';
+  const local=($("#onCode")&&/^LOCAL/i.test($("#onCode").value))||!!window.__EC_LOCALDIR;
+  let rooms=[];try{rooms=await listRooms(local)}catch(e){}
+  if(!$("#rmList"))return;
+  if(!rooms.length){box.innerHTML='<p class="dim">No open rooms right now. Open one yourself, or join a friend with their code.</p>';return}
+  rooms.sort((a,b)=>a.playing-b.playing||b.players-a.players);
+  box.innerHTML=`<ul class="rmlist">${rooms.map((r,i)=>`<li><div class="rmtop"><b>${esc(r.title||"A room")}</b><span class="rmn">${r.players}/${r.cap} players</span>${r.playing?'<span class="rmtag">playing</span>':""}</div>
+<div class="rmsub dim">${esc(r.tz||"")}</div>${r.desc?`<details class="rmd"><summary>About this room</summary><p>${esc(r.desc)}</p></details>`:""}
+<p><button type="button" class="btn sm" data-rmjoin="${i}" ${r.players>=r.cap?"disabled":""}>${r.players>=r.cap?"Full":r.playing?"Join and watch":"Join"}</button></p></li>`).join("")}</ul>`;
+  box.querySelectorAll("[data-rmjoin]").forEach(b=>b.onclick=()=>{const r=rooms[+b.dataset.rmjoin];$("#onCode").value=r.code;$("#onJoin").click()})}
+
+/* ---------- the host: the cap, the list, and the room's details for everyone in it ---------- */
+{const _on=onNet;onNet=function(from,d){
+  if(d&&(NET.role==="lobby-host"||NET.role==="host")){
+    if(d.t==="hello"&&!(d.token&&G&&G.p.some(P=>P.netToken===d.token))){const cap=NET.room&&NET.room.cap||8;
+      if(!NET.guests[from]&&1+guestIds().length>=cap){sendTo(from,{t:"full",cap});return}}
+    if(d.t==="hello"||d.t==="bye"){const out=_on(from,d);dirSoon();return out}}
+  if(d&&NET.role==="guest"){
+    if(d.t==="full"){netLeave();ovShow(`<div class="ovbox"><h2>The room is full</h2><p>It holds ${+d.cap||""} players. Try another room, or ask the host to make room.</p><p class="acts"><button class="btn" id="netOk">Back</button></p></div>`);$("#netOk").onclick=()=>{startMode="online";showStart()};return}
+    if(d.t==="lobby"&&d.room){const first=!NET.roomInfo;NET.roomInfo=cleanRoom(d.room);if(first&&$(".glob"))setTimeout(guestLobby,0)}}
+  return _on(from,d)}}
+{const _nl=netLeave;netLeave=function(){if(NET.role==="lobby-host"||NET.role==="host")dirStop();return _nl.apply(this,arguments)}}
+{const _sg=startGame;startGame=function(opts){const out=_sg.apply(this,arguments);if(NET.room&&NET.room.open)dirSoon();return out}}
+if(window.__EC)Object.assign(window.__EC,{listRooms,dirBeat,DIR,TabPeer});
+
+/* ---------------- v41: the Dark Fantasy theme's music ----------------
+   An old-cartridge dungeon tune, made in the browser like every other sound here: a soft square-wave melody over a triangle
+   bass arpeggio in D minor, slow (76 a minute), with a faint echo, about fifty seconds before it loops. Quiet, so it stays
+   behind the game. It plays only with the Dark Fantasy theme, follows the sound switch, and has its own Music button. */
+
+const MUS=(()=>{
+  // the melody, two phrases of eight bars: [MIDI note or null for a rest, length in eighths]
+  const MEL=[[69,2],[65,1],[62,1],[64,1],[65,1],[67,2], [69,3],[70,1],[69,2],[67,2], [65,2],[62,1],[65,1],[70,2],[69,2], [67,4],[null,4],
+    [67,2],[70,1],[74,1],[72,2],[70,2], [69,3],[67,1],[65,2],[64,2], [64,2],[73,2],[76,2],[74,1],[73,1], [69,6],[null,2],
+    [74,2],[72,1],[69,1],[65,2],[69,2], [67,2],[64,1],[72,1],[70,2],[67,2], [65,2],[70,2],[74,2],[77,2], [75,4],[74,2],[72,2],
+    [70,2],[69,2],[67,2],[74,2], [73,3],[69,1],[64,2],[67,2], [65,2],[64,2],[62,4], [null,8]];
+  // one chord a bar: root (MIDI) and its third
+  const CH=[[50,3],[50,3],[46,4],[46,4],[43,3],[43,3],[45,4],[45,4],[50,3],[48,4],[46,4],[46,4],[43,3],[45,4],[50,3],[50,3]];
+  const ARP=t=>[0,7,12,7,12+t,7,12,7];
+  const E8=60/76/2;   // one eighth, in seconds
+  let ac=null,out=null,timer=null,next=0,step=0,mi=0,mLeft=0,playing=false;
+  const hz=m=>440*Math.pow(2,(m-69)/12);
+  function ctx(){if(ac)return ac;const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;ac=new A();
+    out=ac.createGain();out.gain.value=0;const lp=ac.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1700;
+    const dl=ac.createDelay(1);dl.delayTime.value=E8*3;const fb=ac.createGain();fb.gain.value=.24;const wet=ac.createGain();wet.gain.value=.3;
+    out.connect(lp);lp.connect(ac.destination);lp.connect(dl);dl.connect(fb);fb.connect(dl);dl.connect(wet);wet.connect(ac.destination);return ac}
+  function note(type,f,t,dur,peak){const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,t);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+.012);g.gain.setTargetAtTime(peak*.55,t+.04,.08);g.gain.setTargetAtTime(0,t+Math.max(.05,dur-.06),.04);
+    o.connect(g).connect(out);o.start(t);o.stop(t+dur+.3)}
+  function tick(){if(!playing||!ac)return;
+    while(next<ac.currentTime+.35){
+      const bar=Math.floor(step/8)%16,i=step%8,[root,third]=CH[bar];
+      note("triangle",hz(root+ARP(third)[i]-12),next,E8*.9,.5);
+      if(mLeft<=0){const [m,len]=MEL[mi];mi=(mi+1)%MEL.length;mLeft=len;if(m)note("square",hz(m),next,len*E8*.92,.16)}
+      mLeft--;
+      if(i===4){const b=ac.createBuffer(1,ac.sampleRate*.04,ac.sampleRate),dd=b.getChannelData(0);for(let k=0;k<dd.length;k++)dd[k]=(Math.random()*2-1)*(1-k/dd.length);
+        const s=ac.createBufferSource(),g=ac.createGain();g.gain.value=.07;s.buffer=b;s.connect(g).connect(out);s.start(next)}
+      next+=E8;step++}}
+  function start(){if(playing)return;if(!ctx())return;if(ac.state==="suspended")ac.resume();playing=true;step=0;mi=0;mLeft=0;next=ac.currentTime+.1;
+    out.gain.cancelScheduledValues(ac.currentTime);out.gain.setTargetAtTime(.32,ac.currentTime,.8);timer=setInterval(tick,90);tick()}
+  function stop(){if(!playing)return;playing=false;clearInterval(timer);timer=null;if(ac){out.gain.cancelScheduledValues(ac.currentTime);out.gain.setTargetAtTime(0,ac.currentTime,.3)}}
+  return {start,stop,get on(){return playing}};
+})();
+const musicWanted=()=>PREF.theme==="darkfantasy"&&PREF.music!==false&&SND.on&&!document.hidden;
+function musicSync(){const b=$("#pMusic");if(b){b.hidden=PREF.theme!=="darkfantasy";b.textContent="Music: "+(PREF.music!==false?"On":"Off");b.setAttribute("aria-pressed",PREF.music!==false)}
+  if(musicWanted())MUS.start();else MUS.stop()}
+/* browsers start sound only after a click or a tap: the first one starts it */
+document.addEventListener("pointerdown",()=>{if(musicWanted()&&!MUS.on)MUS.start()},true);
+document.addEventListener("visibilitychange",musicSync);
+{const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);musicSync()}}
+{const _mb=mountBar;mountBar=function(){_mb.apply(this,arguments);const r=$("#pReset");if(!r)return;const b=document.createElement("button");b.type="button";b.id="pMusic";b.className="gtog";
+  b.onclick=()=>{PREF.music=PREF.music===false;savePrefs();musicSync()};r.parentNode.insertBefore(b,r);musicSync()}}
+{const _t=SND.toggle;SND.toggle=function(){const v=_t.apply(this,arguments);musicSync();return v}}
+if(window.__EC)Object.assign(window.__EC,{MUS,musicSync});
 
 })();
