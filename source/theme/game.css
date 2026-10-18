@@ -1306,3 +1306,41 @@ body.phone .faopts .opt>span{padding:7px 9px}
 .fasec .faopts{display:flex;flex-wrap:wrap;gap:4px}
 .fasec .faopts .opt{flex:1 1 auto;width:auto;min-width:0}
 body.phone .fasec .faopts .opt{flex:1 1 140px}
+/* ================= v44 · the Bank: compact, the Banker's portrait, loans and credit explained on hover or hold ================= */
+.ovbox.bank{font-size:13.5px}
+.ovbox.bank h2{font-size:20px;margin:0 0 8px}
+.ovbox.bank .bankhead{gap:12px;align-items:flex-start}
+.ovbox.bank .bankpic{width:88px;height:88px;flex:none;image-rendering:pixelated;border:1px solid #000;box-shadow:0 0 0 1px #c9a23a66,0 2px 8px #000a;border-radius:2px}
+.ovbox.bank .bankinfo{flex:1;min-width:0}
+.ovbox.bank .bwho{margin:0 0 6px;line-height:1.4}
+.ovbox.bank .bstat{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0;padding:0;border:0}
+.ovbox.bank .bstat>div{padding:4px 8px;border:1px solid var(--rule);background:#0000002e;border-radius:3px;cursor:help;min-width:0}
+.ovbox.bank .bstat dt{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ovbox.bank .bstat dd{margin:0;white-space:nowrap}
+.ovbox.bank .bstat dd b{font-size:15px}
+.ovbox.bank .bstat dd small{color:var(--dim);font-size:11px}
+.ovbox.bank .bstat dd.neg b{color:#ff8f86}
+.ovbox.bank .bloans{margin:6px 0 0;padding-left:18px;font-size:12.5px}
+.ovbox.bank .bnote{margin:6px 0 0;font-size:12.5px}
+.ovbox.bank .bacts{margin:10px 0 0;border-top:1px solid var(--rule);padding-top:6px}
+.ovbox.bank .bacts p.brow{display:grid;grid-template-columns:76px auto auto minmax(0,1fr);align-items:center;gap:4px 10px;margin:0;padding:5px 0;border-bottom:1px solid #ffffff10}
+.ovbox.bank .bacts p.brow small{flex:none;font-size:12px;min-width:0}
+.ovbox.bank .bacts p.brow .btn{justify-self:start}
+.ovbox.bank .bkey{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);white-space:nowrap}
+.ovbox.bank .bkey[data-tip]{cursor:help}
+.ovbox.bank .bkey .q{display:inline-grid;place-items:center;width:14px;height:14px;margin-left:3px;border:1px solid currentColor;border-radius:50%;font:normal 10px/1 sans-serif;letter-spacing:0}
+.ovbox.bank .bacts p.bsellrow{grid-template-columns:auto auto minmax(0,1fr);border-bottom:0;padding-top:8px}
+.ovbox.bank .btn.bsell{background:linear-gradient(#5a4614,#3a2d0e);border-color:#e8c24a;color:#ffe6a0;font-weight:600}
+.ovbox.bank .btn.bsell:hover{background:linear-gradient(#6c5418,#46360f)}
+.ovbox.bank details.bankhelp{margin:10px 0 8px;padding:4px 10px}
+.ovbox.bank details.bankhelp dl{font-size:12.5px;gap:4px 14px}
+@media (max-width:640px){
+ .ovbox.bank .bankpic{width:64px;height:64px}
+ .ovbox.bank .bstat{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .ovbox.bank .bankhead{flex-wrap:wrap}
+ .ovbox.bank .bankinfo{flex-basis:calc(100% - 76px)}
+ .ovbox.bank .bacts p.brow{grid-template-columns:62px auto minmax(0,1fr)}
+ .ovbox.bank .bstat>div{padding:3px 8px}
+ .ovbox.bank .bacts p.brow small{grid-column:1/-1}
+ .ovbox.bank .bacts p.bsellrow{grid-template-columns:auto auto}
+}

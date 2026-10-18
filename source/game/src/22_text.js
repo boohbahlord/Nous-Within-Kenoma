@@ -223,9 +223,9 @@ const SKY_ROWS=[
 function skyExplainHTML(){return `<details class="sub"><summary>Heavenly Bodies explained</summary><div class="skygrid">${SKY_ROWS.map(([k,n,how,what])=>`<div class="skycard"><b>${n}</b><p>${what}</p><small>${how}</small><em class="skyform">${SKY_FORM[k]}</em></div>`).join("")}</div><p class="dim">Every Heavenly Body but the Moon can be eclipsed: 5% at the start of each round. Hover or tap the sky in a game for what it means for you.</p></details>`}
 const BANK_HELP=[
  ["Where mana goes","Every mana spent on a spell goes to the Bank. The Bank can only lend what it holds."],
- ["Loans","Borrow up to what the Bank holds. A loan grows 20% every 1d2 turns and is due in 4 of your turns. Whatever isn't paid then becomes mana debt."],
+ ["Loans","Mana now, from what the Bank holds. A loan grows 20% every 1d2 of your turns and is due in 4 of your turns; repay it with Repay. Whatever isn't paid then becomes mana debt."],
  ["Mana debt","Debt shows as mana below zero. Every soul you gain pays the debt first. Below zero the Bank lends six at most; at minus your maximum, five at most and at 30%."],
- ["Spend on credit","Tick it to cast spells you can't afford. The cost becomes mana debt."],
+ ["Spend on credit","Not a loan: nothing is lent up front. Tick it to cast spells you can't afford; what your souls don't cover becomes mana debt at once, down to your lowest point."],
  ["Your lowest point","You lose the game if your mana falls below three times your maximum under zero (−18 with a maximum of 6)."],
  ["Selling","Sell cards from your hand or deck for their soul worth, or 1 less (rolled at the sale); a standard card worth only 1 can't be sold. They go to the Ether and your deck is reshuffled. Binah can sell thralls for 1 mana."],
  ["Upselling","A spell bought more than twice in each of two rounds in a row costs 1d2 − 1 more."],
