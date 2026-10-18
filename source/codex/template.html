@@ -1,0 +1,112 @@
+<title>%%TITLE%%</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Spectral:ital,wght@0,400;0,500;1,400&display=swap">
+<style>
+/* Layout: a bound codex on deep indigo. Index left (a select on phones), entries right. Each entry can switch between the forms it takes. */
+:root{
+  --ink:#110b2e; --vellum:#1b1442; --well:#160f38; --bone:#e7dcc6; --dim:#a69dc9; --gilt:#c9a45c; --rule:#3b3175;
+  --display:"IM Fell English SC","IM Fell English",Georgia,serif;
+  --body:"Spectral",Georgia,"Times New Roman",serif;
+  color-scheme:dark;
+}
+html,body{background:var(--ink);color:var(--bone)}
+body{font-family:var(--body);font-size:16.5px;line-height:1.62;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 60px}
+header{max-width:1240px;margin:0 auto 18px;display:flex;flex-wrap:wrap;gap:6px 24px;align-items:baseline;justify-content:space-between}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(28px,4.4vw,42px);letter-spacing:.02em;margin:0;color:var(--gilt);text-wrap:balance}
+.sub{color:var(--dim);font-style:italic;margin:4px 0 0;max-width:64ch;flex-basis:100%}
+.other{font-size:14px;color:var(--gilt);text-decoration:none;border-bottom:1px solid var(--rule)}
+.other:hover,.other:focus-visible{color:var(--bone);border-color:var(--gilt);outline:none}
+.wrap{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:270px minmax(0,1fr);gap:28px;align-items:start}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr)}}
+nav.index{position:sticky;top:max(12px,env(safe-area-inset-top,0px));max-height:calc(100vh - 24px);overflow:auto;border:1px solid var(--rule);background:var(--well);padding:12px 14px 16px;border-radius:2px}
+@media (max-width:860px){nav.index{display:none}}
+nav.index h2{font-family:var(--display);font-weight:400;font-size:15px;letter-spacing:.08em;color:var(--dim);margin:14px 0 4px}
+nav.index h2:first-child{margin-top:2px}
+nav.index ul{list-style:none;margin:0;padding:0}
+nav.index a{display:block;padding:3px 6px;color:var(--bone);text-decoration:none;font-size:15px;border-left:2px solid transparent}
+nav.index a:hover,nav.index a:focus-visible{color:var(--gilt);border-color:var(--gilt);outline:none}
+nav.index a.cur{color:var(--gilt);border-color:var(--gilt)}
+.tools{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin:0 0 18px}
+.tools input,.tools select{font-family:var(--body);font-size:15px;background:var(--vellum);color:var(--bone);border:1px solid var(--rule);padding:7px 10px;border-radius:2px;min-width:0}
+.tools input{flex:1 1 220px}
+.tools input:focus-visible,.tools select:focus-visible{outline:1px solid var(--gilt)}
+#jump{display:none;flex:1 1 220px}
+@media (max-width:860px){#jump{display:block}}
+.count{color:var(--dim);font-size:14px}
+section.cat>h2{font-family:var(--display);font-weight:400;font-size:21px;letter-spacing:.06em;color:var(--dim);margin:30px 0 10px;border-bottom:1px solid var(--rule);padding-bottom:6px}
+section.cat:first-of-type>h2{margin-top:6px}
+article{background:var(--vellum);border:1px solid var(--rule);border-radius:2px;padding:20px 22px 18px;margin:0 0 16px;scroll-margin-top:14px}
+article:target{border-color:var(--gilt)}
+article h3{font-family:var(--display);font-weight:400;font-size:clamp(23px,3vw,28px);color:var(--gilt);margin:0;text-wrap:balance}
+.meta{font-size:13.5px;color:var(--dim);letter-spacing:.03em;margin:2px 0 8px}
+.lead{font-style:italic;color:var(--bone);opacity:.92;margin:0 0 12px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.tabs button{font-family:var(--body);font-size:14px;background:transparent;color:var(--dim);border:1px solid var(--rule);padding:4px 11px;border-radius:14px;cursor:pointer}
+.tabs button:hover,.tabs button:focus-visible{color:var(--bone);border-color:var(--gilt);outline:none}
+.tabs button[aria-selected="true"]{color:var(--ink);background:var(--gilt);border-color:var(--gilt)}
+.form h4{font-family:var(--display);font-weight:400;font-size:17px;letter-spacing:.04em;margin:0 0 4px;color:var(--bone)}
+.form h4 span{font-family:var(--body);font-size:13px;color:var(--dim);letter-spacing:.02em;margin-left:8px}
+.form p{margin:0 0 10px;max-width:72ch}
+.note{border-left:2px dotted var(--gilt);padding-left:10px;color:var(--gilt);font-style:italic;margin:10px 0 0;max-width:72ch}
+.empty{color:var(--dim);font-style:italic}
+mark{background:#c9a45c33;color:inherit}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+<header>
+  <h1>Nous Within Kenoma · %%TITLE%%</h1>
+  <a class="other" href="%%OTHERHREF%%">%%OTHER%% →</a>
+  <p class="sub">%%SUB%%</p>
+</header>
+
+<div class="wrap">
+  <nav class="index" id="index" aria-label="Entries"></nav>
+  <main>
+    <div class="tools">
+      <input id="q" type="search" placeholder="Search names and text…" aria-label="Search the codex">
+      <select id="jump" aria-label="Jump to an entry"><option value="">Jump to an entry…</option></select>
+      <span class="count" id="count"></span>
+    </div>
+    <div id="entries"></div>
+  </main>
+</div>
+
+<script>
+const CATS=%%CATS%%;
+const E=%%DATA%%;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const box=document.getElementById("entries"),idx=document.getElementById("index"),jump=document.getElementById("jump"),q=document.getElementById("q"),count=document.getElementById("count");
+const sel={};
+function formHtml(e,i){const f=e.forms[i];return `<div class="form" role="tabpanel" id="p-${e.id}" aria-labelledby="t-${e.id}-${i}"><h4>${esc(f.t)}<span>ch. ${esc(f.ch)}</span></h4><p>${esc(f.x)}</p></div>`}
+function art(e){
+  const i=sel[e.id]||0;
+  const tabs=e.forms.length>1?`<div class="tabs" role="tablist" aria-label="Forms of ${esc(e.name)}">${e.forms.map((f,k)=>`<button type="button" role="tab" id="t-${e.id}-${k}" aria-controls="p-${e.id}" aria-selected="${k===i}" tabindex="${k===i?0:-1}" data-e="${e.id}" data-k="${k}">${esc(f.t)}</button>`).join("")}</div>`:"";
+  return `<article id="${e.id}"><h3>${esc(e.name)}</h3><p class="meta">${esc(e.cat)} · ch. ${esc(e.ch)}${e.forms.length>1?` · ${e.forms.length} forms`:""}</p><p class="lead">${esc(e.lead)}</p>${tabs}${formHtml(e,i)}${e.notes.map(n=>`<p class="note">${esc(n)}</p>`).join("")}</article>`;
+}
+function matches(e,t){if(!t)return true;t=t.toLowerCase();return [e.name,e.lead,e.ch,...e.forms.map(f=>f.t+" "+f.x),...e.notes].join(" ").toLowerCase().includes(t)}
+function render(){
+  const t=q.value.trim();let n=0;
+  box.innerHTML=CATS.map(c=>{const list=E.filter(e=>e.cat===c&&matches(e,t));n+=list.length;return list.length?`<section class="cat"><h2>${esc(c)}</h2>${list.map(art).join("")}</section>`:""}).join("")||`<p class="empty">Nothing in the codex matches “${esc(t)}”.</p>`;
+  count.textContent=t?`${n} of ${E.length} entries`:`${E.length} entries`;
+}
+function wireTabs(){}
+box.addEventListener("click",ev=>{const b=ev.target.closest("button[role=tab]");if(!b)return;sel[b.dataset.e]=+b.dataset.k;swap(b.dataset.e,true)});
+box.addEventListener("keydown",ev=>{const b=ev.target.closest("button[role=tab]");if(!b||!["ArrowRight","ArrowLeft","Home","End"].includes(ev.key))return;ev.preventDefault();
+  const e=E.find(x=>x.id===b.dataset.e),L=e.forms.length;let k=+b.dataset.k;
+  k=ev.key==="ArrowRight"?(k+1)%L:ev.key==="ArrowLeft"?(k-1+L)%L:ev.key==="Home"?0:L-1;sel[e.id]=k;swap(e.id,true)});
+function swap(id,focus){const a=document.getElementById(id);const e=E.find(x=>x.id===id);const k=sel[id]||0;
+  a.querySelectorAll("button[role=tab]").forEach((b,j)=>{b.setAttribute("aria-selected",j===k);b.tabIndex=j===k?0:-1});
+  a.querySelector(".form").outerHTML=formHtml(e,k);if(focus)a.querySelector(`#t-${id}-${k}`).focus()}
+idx.innerHTML=CATS.map(c=>`<h2>${esc(c)}</h2><ul>${E.filter(e=>e.cat===c).map(e=>`<li><a href="#${e.id}" data-id="${e.id}">${esc(e.name)}</a></li>`).join("")}</ul>`).join("");
+CATS.forEach(c=>{const g=document.createElement("optgroup");g.label=c;E.filter(e=>e.cat===c).forEach(e=>{const o=document.createElement("option");o.value=e.id;o.textContent=e.name;g.appendChild(o)});jump.appendChild(g)});
+jump.addEventListener("change",()=>{if(!jump.value)return;if(q.value){q.value="";render()}location.hash=jump.value;document.getElementById(jump.value)?.scrollIntoView()});
+idx.addEventListener("click",ev=>{const a=ev.target.closest("a");if(a&&q.value){q.value="";render()}});
+q.addEventListener("input",render);
+render();
+const links=[...idx.querySelectorAll("a")];
+const io=new IntersectionObserver(es=>{es.forEach(x=>{if(x.isIntersecting){links.forEach(a=>a.classList.toggle("cur",a.dataset.id===x.target.id))}})},{rootMargin:"0px 0px -70% 0px"});
+function observe(){io.disconnect();box.querySelectorAll("article").forEach(a=>io.observe(a))}
+observe();q.addEventListener("input",observe);
+if(location.hash){const t=document.getElementById(location.hash.slice(1));t&&t.scrollIntoView()}
+</script>

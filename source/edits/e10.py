@@ -1,0 +1,15 @@
+E={
+10:"The awakening witness, this angel, keeps stretching his long arms and grip-strength up and through the clouds, grabbing the spine-rope with screams of suffer, and the volume of his cries erupts lightning down on the Earth, where possessed humans flee in cowardice.",
+12:"The Angel grows more intense with every stretch upwards, never slowing. He is eventually amongst the stars and the archons, but they do not attempt to bind him; not even one dares. Where this angel carries himself is beyond even them, and soon enough he is at the gates of the Devil-God.",
+16:"The screams of the angel are like a war horn signal amongst this mocking heaven theater. The demiurge, ruler of the material, is in ignorance of the perfect light above.",
+18:"Reaching once higher from his spine, the angel pulls himself into the land of memory forms, a part of this fake heaven. He stands tall in swirls of delusion lands without ground, ripping his spine out from his neck and into a makeshift spear, thralling blood up from the wound as a fountain spitting iron.",
+22:"*“HHSssssh!”* The old evil hisses in the same hatred of a child caught wrong; their lion head revealed from their speak, and their snake tongue rolls at the could-be executioner.",
+24:"The pull hearkens past desperate tail thrashes, pulling hard with the jut of angel-torque. Seconds of grate of scale drag keep pulling, still yet by the angel. A long, long scuffing and throwing of the slither escape; failing. Prey weight heavy but powerless against murder-play: scraping the long and longer yet tail, as he is pulled closer to the angel like rope. Road burns across the puppet master’s home, staining his memories. Screeching and screaming echo.",
+26:"The False-God screeches once again in their instant burning pull of Demi-God weight. “*Hhssssss!*”",
+30:"“I find you weak, serpent!” the angel announces firmly.",
+32:"The angel looks stoic yet proud over evil’s attempts.",
+36:"Then, another below the demiurge nearby draws in, and his name is Satan. The Satan slams hard and up into the angel, a rushing swoosh and a thudding throw tackle downwards. The angel was pulled up before a slamming blunt force crushed him into and from this beastly grapple. He bites his tongue into a bloodier severance from the sheer impact of this force, casting it down from the delusion lands and below.",
+42:"The angel knows he must see through onto his heavenly calling, screaming once more with a ripped vocal cord, shedding his speech forever. “You think this is all there is!?”",
+46:"“Nothing ever was, Antony.” Satan whispers with wet blood spilling from his spoken jaw clench grit. He stands up, before tearing at his wings, a shluking sound glulkes with thick gore.",
+50:"Satan rips once more when grabbing his emotive head, where the instant power, explosive, tears at every resistance; wet fiber strings open long as blood slings from vial execution, slinging slush sounds. The release of the body is almost instant in its separation; the loud sleek slews tremendously from the power. The angel is now only a head, having been separated completely from their form.",
+}

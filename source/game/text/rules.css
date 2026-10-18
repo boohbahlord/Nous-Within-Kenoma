@@ -1,0 +1,28 @@
+/* rules page, v21: substances as blocks, the sky as a table, a short contents line */
+.rules .toc{font-size:13.5px;color:var(--dim);line-height:1.9}
+.rules h4{font-size:14px;color:var(--amber-hi);margin:16px 0 4px;font-weight:400}
+.rules .substs{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:14px;margin:10px 0 14px}
+.rules .subst{border:1px solid var(--rule);border-left:2px solid var(--amber);padding:10px 14px;background:rgba(0,0,0,.18)}
+.rules .subst h4{margin:0 0 2px}
+.rules .subst .tag{margin:0 0 6px;color:var(--text);font-style:italic}
+.rules .subst ul{margin:0 0 6px;font-size:14px}
+.rules .subst details summary{cursor:pointer;color:var(--amber);font-size:13px}
+.rules .subst details p{font-size:13.5px;color:var(--dim)}
+.rules table.skytable td:nth-child(2){white-space:nowrap;color:var(--amber-hi);font-style:italic}
+.rules dl.subtags{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px}
+.rules dl.subtags dt{color:var(--amber-hi)}.rules dl.subtags dd{margin:0}
+@media (max-width:640px){.rules dl.subtags{grid-template-columns:1fr}.rules dl.subtags dd{margin:0 0 6px}}
+/* the rules index, like the site's index pages, and a way back to it */
+.rules .rindex{margin:22px 0 10px}
+.rules .rindex>h2.label{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);border:0;margin:0 0 4px;padding:0}
+.rules ol.toc{padding-left:0}
+.rules ol.toc>li{margin:0}
+.rules ol.toc>li>a{grid-template-columns:4ch minmax(0,1fr)}
+.rules ol.subtoc{list-style:none;margin:0;padding:4px 0 8px calc(4ch + 18px);display:flex;flex-wrap:wrap;gap:4px 16px;border-bottom:1px solid #000;font-size:13.5px}
+.rules ol.subtoc li{margin:0}
+.rules ol.subtoc a{display:inline;padding:0;border:0;border-bottom:1px solid var(--rule);color:var(--dim);background:none}
+.rules ol.subtoc a:hover,.rules ol.subtoc a:focus-visible{color:var(--amber-hi);border-color:var(--amber)}
+.rules h2,.rules h3,.rules .subst{scroll-margin-top:14px}
+a.totop{position:fixed;left:max(12px,env(safe-area-inset-left,0px));bottom:max(12px,env(safe-area-inset-bottom,0px));z-index:50;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);background:rgba(0,0,0,.78);border:1px solid var(--amber);padding:6px 12px;text-decoration:none}
+a.totop:hover,a.totop:focus-visible{color:#000;background:var(--amber);outline:none}
+a.totop[hidden]{display:none}

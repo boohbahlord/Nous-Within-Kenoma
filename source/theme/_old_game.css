@@ -1,0 +1,76 @@
+/* ---------------- Ether's Crossroads ---------------- */
+.game h1{margin-bottom:4px}
+.gtop{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between;border-top:1px solid #000;border-bottom:1px solid #000;padding:10px 0;margin:14px 0 18px}
+#phases{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+#phases span.on{color:var(--amber-hi);border-bottom:1px solid var(--amber)}
+#phases i{font-style:normal;margin:0 8px;color:var(--rule)}
+#who{font-size:14px;color:var(--dim);flex:1 1 260px}
+#controls{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font-family:var(--mono);font-weight:200;font-size:14px;color:var(--ground);background:var(--amber);border:1px solid var(--amber);padding:7px 14px;cursor:pointer}
+.btn:hover,.btn:focus-visible{background:var(--amber-hi);outline:none}
+.btn.ghost{background:transparent;color:var(--amber)}
+.btn.ghost:hover{color:var(--amber-hi);border-color:var(--amber-hi)}
+.btn.sm{font-size:13px;padding:5px 10px}
+.btn.on{background:var(--amber-hi);color:#000}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+button.link{all:unset;cursor:pointer;color:var(--amber);border-bottom:1px solid var(--rule)}
+.glayout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:22px;align-items:start}
+@media (max-width:900px){.glayout{grid-template-columns:minmax(0,1fr)}}
+.pbox h3{margin:0 0 4px;font-size:15px;color:var(--amber-hi)}
+.pbox dl{display:flex;flex-wrap:wrap;gap:2px 14px;margin:0 0 10px;font-size:13px}
+.pbox dt{color:var(--dim)}.pbox dd{margin:0 8px 0 -8px}
+#board{display:grid;gap:4px;margin:8px 0 10px}
+#board .row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;position:relative;padding-top:15px}
+#board .rl{position:absolute;top:0;left:0;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+#board .row.midline .tile{background:#0f0a06}
+.tile{position:relative;aspect-ratio:1/0.82;min-height:56px;background:var(--deep);border:1px solid var(--rule);color:var(--text);font-family:var(--mono);cursor:pointer;padding:0;overflow:hidden}
+.tile:hover,.tile:focus-visible{border-color:var(--amber);outline:none}
+.tile.sel{border-color:var(--amber-hi);box-shadow:inset 0 0 0 1px var(--amber-hi)}
+.tile.tmove{background:#2e2213;border-color:var(--amber)}
+.tile.tplace{background:#22301c;border-color:#8fbf74}
+.tile.tatk{background:#3a1410;border-color:#ff7a66}
+.stack{position:absolute;inset:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:1px solid var(--rule);background:var(--well)}
+.stack.theirs{background:#120c08;border-style:dashed}
+.stack .lead{font-size:clamp(14px,2.3vw,20px);color:var(--text)}
+.stack.red .lead{color:#ff9a82}
+.stack .cnt{position:absolute;top:2px;right:4px;font-size:11px;color:var(--amber)}
+.stack .mini{font-size:9.5px;color:var(--dim);max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:0 3px}
+.stack .odds{position:absolute;top:2px;left:4px;font-size:11px}.stack .odds.adv{color:#8fbf74}.stack .odds.dis{color:#ff7a66}
+.stack .souls{position:absolute;bottom:2px;left:4px;font-size:10.5px;color:#c9b3ff}
+.stack .used{position:absolute;bottom:2px;right:4px;font-size:9.5px;color:var(--dim);letter-spacing:.08em}
+.theirs-label{color:var(--dim)}
+.gside h3{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin:0 0 8px;border-bottom:1px solid #000;padding-bottom:4px}
+.gside>div{margin-bottom:20px}
+#hand{display:flex;flex-wrap:wrap;gap:8px}
+.hc{display:flex;flex-direction:column;align-items:center;gap:3px}
+.card{font-family:var(--mono);font-weight:200;font-size:16px;min-width:46px;height:60px;padding:0 6px;background:#efe2c8;color:#15100b;border:1px solid #000;cursor:pointer}
+.card.red{color:#a3150c}
+.card.on{outline:2px solid var(--amber-hi);outline-offset:2px}
+.card.sm{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:22px;font-size:12px;padding:0 4px;cursor:default}
+.mini-btn{font-family:var(--mono);font-size:10.5px;background:transparent;color:var(--dim);border:1px solid var(--rule);padding:1px 5px;cursor:pointer}
+.mini-btn:hover{color:var(--amber-hi);border-color:var(--amber)}
+#selbox ul.cards{list-style:none;margin:6px 0;padding:0;font-size:13px}
+#selbox li{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:3px 0;border-bottom:1px solid #00000066}
+#selbox .acts{display:flex;gap:8px;margin:8px 0}
+#selbox p{margin:0 0 6px;font-size:13.5px}
+#spells h4{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:10px 0 4px}
+.spell{display:flex;justify-content:space-between;gap:8px;width:100%;text-align:left;font-family:var(--mono);font-weight:200;font-size:13px;color:var(--text);background:var(--well);border:1px solid var(--rule);padding:5px 8px;margin:0 0 4px;cursor:pointer}
+.spell em{font-style:normal;color:var(--amber)}
+.spell:hover{border-color:var(--amber)}
+.spell.off{opacity:.42}
+.spell.armed{border-color:#c9b3ff}
+.dim{color:var(--dim);font-size:13px}
+#log{list-style:none;margin:0;padding:0;font-size:13px;max-height:280px;overflow:auto;border-top:1px solid #000}
+#log li{padding:5px 0;border-bottom:1px solid #00000066}
+#log li.turn{color:var(--amber-hi);letter-spacing:.06em}
+#log li.combat .dice{color:var(--dim)}
+#log li.win{color:#8fbf74}
+#ov{position:fixed;inset:0;z-index:60;background:rgba(5,3,2,.86);display:grid;place-items:center;padding:16px}
+#ov[hidden]{display:none}
+.ovbox{max-width:560px;width:100%;max-height:90vh;overflow:auto;background:var(--well);border:1px solid var(--amber);padding:22px 24px}
+.ovbox h2{margin:0 0 10px;color:var(--amber-hi);font-size:20px}
+.ovbox label.f{display:flex;flex-direction:column;gap:3px;margin:10px 0;font-size:13px;color:var(--dim)}
+.ovbox input[type=text],.ovbox label.f input{font-family:var(--mono);font-size:15px;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:7px 9px}
+.ovbox label.chk{display:flex;gap:8px;align-items:flex-start;margin:8px 0;font-size:13.5px}
+.pickrow{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+#flash{position:fixed;left:50%;bottom:58px;transform:translateX(-50%);z-index:70;background:#000;color:var(--amber-hi);border:1px solid var(--amber);padding:8px 14px;font-size:13.5px;max-width:90vw}
