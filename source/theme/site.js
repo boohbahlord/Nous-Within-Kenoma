@@ -107,3 +107,20 @@
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",go);else go();
   let lw=innerWidth,tm;addEventListener("resize",()=>{clearTimeout(tm);tm=setTimeout(()=>{if(Math.abs(innerWidth-lw)>40){drawStrings();lw=innerWidth}},200)});
 })();
+
+/* the game's soft click on every page: buttons, links, cards and choices answer a press with the same small sound.
+   It follows the game's sound switch (sound: on/off), and stays quiet while a game is running (the game plays its own). */
+(function(){
+  let ac=null,last=0;
+  const on=()=>{try{return localStorage.getItem("ec-sound")!=="off"}catch(e){return true}};
+  function tone(f,t,dur,peak){const o=ac.createOscillator(),g=ac.createGain();o.type="sine";o.frequency.setValueAtTime(f,t);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+.004);g.gain.exponentialRampToValueAtTime(.0001,t+.004+dur);
+    o.connect(g).connect(ac.destination);o.start(t);o.stop(t+dur+.05)}
+  function click(){const n=Date.now();if(n-last<40)return;last=n;
+    try{if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();if(ac.state==="suspended")ac.resume();
+      const t=ac.currentTime+.01;tone(1320,t,.03,.03);tone(660,t,.04,.017)}catch(e){}}
+  document.addEventListener("click",e=>{
+    if(!on()||!e.target.closest)return;
+    if(window.__EC&&window.__EC.G&&!window.__EC.G.over)return;   // in a game, the game's own sounds answer
+    if(e.target.closest("button,a[href],summary,label,select,.card,[role=button],[role=tab]"))click()},true);
+})();

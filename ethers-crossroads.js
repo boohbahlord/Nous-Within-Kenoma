@@ -572,8 +572,12 @@ function attackOptions(r,c){
 function netFx(...fx){let n=0;for(const f of fx){if(f==="adv")n++;if(f==="dis")n--}return n}
 const cmpSign=(a,b)=>a>b?">":a<b?"<":"=";
 function attack(r1,c1,r2,c2,mode){
+  const b=blindPick(r1,c1,r2,c2,mode);if(b)return blindShot(r1,c1,r2,c2,b);   // a shot into the fog of war
+  return attackRun(r1,c1,r2,c2,mode,null);
+}
+function attackRun(r1,c1,r2,c2,mode,forced){
   const A=G.board[r1][c1],D=G.board[r2][c2],atkPl=A.owner,defPl=D.owner;
-  const opt=attackOptions(r1,c1).find(o=>o.r===r2&&o.c===c2&&(mode==null||o.mode===mode))||{mode:null,ranged:false};
+  const opt=forced||attackOptions(r1,c1).find(o=>o.r===r2&&o.c===c2&&(mode==null||o.mode===mode))||{mode:null,ranged:false};
   const w=opt.A?opt.w:weaponOf(A,opt.mode);
   if(w&&w.special==="stomp")return stomp(r1,c1,r2,c2);
   if(opt.mode==="suppress")return suppress(r1,c1,r2,c2,opt);
@@ -620,7 +624,7 @@ function attack(r1,c1,r2,c2,mode){
   }
   if(dmgD>0&&w&&w.id==="cannon"){const ace=D.cards.find(x=>kind(x)==="ace");if(ace&&(ace.hp||1)<=1&&!D.cards.some(x=>x.unit==="miner")){dmgD=0;notes.push("A Cannon can't take an Ace's last heart.")}}
   const line=`${ra.total}${cmpSign(ra.total,rd.total)}${rd.total}`;
-  tray(atkPl,"Attack",ra.dice,line);tray(defPl,"Defense",rd.dice,line,true);G.histTile=null;
+  tray(atkPl,"Attack",ra.dice,opt.blind?(dmgD?"a hit in the fog":"lost in the fog"):line);tray(defPl,"Defense",rd.dice,line,true);G.histTile=null;
   log(`<b>${plName(atkPl)}</b> attacks from ${coord(r1,c1)} to ${coord(r2,c2)}: <span class="dice">${ra.parts.join(", ")}</span> = <b>${ra.total}</b> vs <span class="dice">${rd.parts.join(", ")}</span> = <b>${rd.total}</b> <span class="tot">(${esc(line)})</span>. ${notes.join(" ")} ${dmgD?`Defender takes ${dmgD} damage.`:""}${dmgA?`Attacker takes ${dmgA} damage.`:""}${!dmgA&&!dmgD?"No damage.":""}`,"combat");
   G.fight={A,D,atkPl,defPl,ranged:!!opt.ranged};
   if(dmgD)warDamagePay(atkPl,defPl,dmgD,D);
@@ -1062,6 +1066,7 @@ function doMove(r,c){
 function attackTargets(){
   const s=G.sel;if(!s)return[];const seen=new Set(),out=[];
   for(const o of attackOptions(s.r,s.c)){const k=o.r*16+o.c;if(!seen.has(k)){seen.add(k);out.push([o.r,o.c])}}
+  if(!G.p[G.active]||G.p[G.active].cpu==null)for(const o of blindOptions(s.r,s.c)){const k=o.r*16+o.c;if(!seen.has(k)){seen.add(k);out.push([o.r,o.c])}}   // fogged tiles a shooter can fire into
   return out;
 }
 const sacrificeAllowed=()=>G.phase==="prep"&&!G.spent&&!isHorde(G.active);
@@ -1907,7 +1912,7 @@ function render(){
   document.querySelectorAll("[data-hist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.hist,b)});
   wireCorners();wireMoon();wireStatus();
   if(histOpen!=null)fillHist();
-  $("#log").innerHTML=G.log.map(l=>`<li class="${l.cls}"${l.pl!=null&&G.p[l.pl]?` style="--pc:${G.p[l.pl].color}"`:""}>${l.t?`<time>${clock(l.t)}</time>`:""}<span class="lt">${l.fog&&!l.fog.seen[view()]&&isEnemy(l.fog.by,view())?l.fog.alt:l.html}</span></li>`).join("");
+  $("#log").innerHTML=G.log.filter(l=>!(l.fog&&l.fog.alt===""&&!l.fog.seen[view()]&&isEnemy(l.fog.by,view()))).map(l=>`<li class="${l.cls}"${l.pl!=null&&G.p[l.pl]?` style="--pc:${G.p[l.pl].color}"`:""}>${l.t?`<time>${clock(l.t)}</time>`:""}<span class="lt">${l.fog&&!l.fog.seen[view()]&&isEnemy(l.fog.by,view())?l.fog.alt:l.html}</span></li>`).join("");
   mountTimerOff();
 }
 function showEther(){viewBox("The Ether: Souls to Materially Conjure",G.ether,"ether",`${G.ether.length} souls wait in the Ether for a conjuring. Flesh Severance sends exiled souls back here.`)}
@@ -1944,7 +1949,7 @@ function renderSel(live){
 function autoMode(st){
   if(!st||st.owner!==G.active||!canAct())return null;
   if(G.phase==="prep"&&!st.moved)return "move";
-  if(G.phase==="attack"&&G.sel&&attackOptions(G.sel.r,G.sel.c).length)return "attack";
+  if(G.phase==="attack"&&G.sel&&(attackOptions(G.sel.r,G.sel.c).length||blindOptions(G.sel.r,G.sel.c).length))return "attack";
   return null;
 }
 function tileClick(r,c){
@@ -2002,10 +2007,10 @@ function mountTimerOff(){
 
 /* a stack with several weapons asks which one to use on this target */
 async function chooseAttack(r1,c1,r2,c2){
-  const opts=attackOptions(r1,c1).filter(o=>o.r===r2&&o.c===c2);
+  let opts=attackOptions(r1,c1).filter(o=>o.r===r2&&o.c===c2);if(!opts.length)opts=blindOptions(r1,c1).filter(o=>o.r===r2&&o.c===c2);
   let mode=opts[0]?opts[0].mode:null;
   if(opts.length>1){G.busy=true;
-    mode=await askHuman(G.active,{kind:"choice",title:"Which attack?",options:opts.map(o=>({id:o.mode,label:o.w.name,sub:o.w.text+(o.ranged?" From here a miss costs nothing.":"")})),cancel:"Cancel"});
+    mode=await askHuman(G.active,{kind:"choice",title:"Which attack?",options:opts.map(o=>({id:o.mode,label:o.w.name,sub:o.w.text+(o.blind?" Into the fog: if nothing is there, the shot is lost.":o.ranged?" From here a miss costs nothing.":"")})),cancel:"Cancel"});
     G.busy=false;if(mode==null){render();return}}
   attack(r1,c1,r2,c2,mode);G.mode=null;if(G.sel&&!G.board[G.sel.r][G.sel.c])G.sel=null;render();
 }
@@ -2080,7 +2085,7 @@ function infoHTML(){
 <details class="cinfo"><summary>Spells explained</summary><div class="spellinfo">${spells}<p class="dim">New Moon: Clairvoyance and Naked Hand cost 6. Full Moon: Clairvoyance costs 2, Naked Hand is free, and no necromancy is cast. Blood Moon: Full Moon prices with no Full Moon drawbacks; necromancy is allowed. The moon turns one phase per round, once every player has had a turn.</p></div></details>
 <details class="cinfo"><summary>Further explanations</summary>
 <details class="sub"><summary>Substances explained</summary><dl class="spellinfo">${subs}</dl><p class="dim">Only the Beginner can be played by more than one player in a game. The full rules for each are on the All Rules page.</p></details>
-<details class="sub"><summary>Fog of war and stealth explained</summary><dl class="spellinfo"><dt>Fog of war</dt><dd>On by default (Rules tab). Each of your cards sees two tiles around it, a Scout three. Shaded tiles are out of sight: enemy cards there stay hidden, and the log only says that something moved out of sight.</dd><dt>Scouts</dt><dd>Never attack or defend. They uncover Assassins, ambushers and face-down cards within a round two tiles, and enemy Scouts within three. Every Ace you put down brings one from the Ether.</dd><dt>Assassins</dt><dd>Hidden from enemies unless one of their cards stands right beside it (straight, not diagonal) or a Scout is near. Two hearts; 10 + 1d12 to attack, 8 to defend. Only another Assassin stacks with one.</dd><dt>Face down</dt><dd>Tick "Place it face down" before putting a card down. Enemies see only its back. Double disadvantage to attack, advantage to defend; it turns face up once it attacks or is attacked.</dd><dt>Ambush</dt><dd>Select an Assassin or face-down stack in your prep phase and press "Set an ambush": it turns sideways, hides like an Assassin, and strikes with advantage, out of turn, at the first enemy that steps beside it (diagonals too for a Jack's reach). Moving it ends the ambush.</dd><dt>Quiet Eyes and Bird's Eye</dt><dd>Quiet Eyes (Illusion) blinds enemies without a Scout to all but what is right beside them, 2 mana a round for 1d2 + 1 rounds. Bird's Eye (Sorcery) lifts the fog for your side for a round, but not a Delusion.</dd></dl></details>
+<details class="sub"><summary>Fog of war and stealth explained</summary><dl class="spellinfo"><dt>Fog of war</dt><dd>On by default (Rules tab). Each of your cards sees only the eight tiles around it, straight and diagonal; a Scout sees three tiles. Shaded tiles are out of sight: enemy cards there stay hidden, and the log only says that something moved out of sight.</dd><dt>Shooting into the fog</dt><dd>Archers, Cannons, Rifles and the Slugshot Cannon can fire at a fogged tile in reach. If nothing is there the shot is lost; if something is, it is a normal attack, but all you learn is whether it hit: you hear the blow land.</dd><dt>Scouts</dt><dd>Never attack or defend. They uncover Assassins, ambushers and face-down cards within a round two tiles, and enemy Scouts within three. Every Ace you put down brings one from the Ether.</dd><dt>Assassins</dt><dd>Hidden from enemies unless one of their cards stands right beside it (straight, not diagonal) or a Scout is near. Two hearts; 10 + 1d12 to attack, 8 to defend. Only another Assassin stacks with one.</dd><dt>Face down</dt><dd>Tick "Place it face down" before putting a card down. Enemies see only its back. Double disadvantage to attack, advantage to defend; it turns face up once it attacks or is attacked.</dd><dt>Ambush</dt><dd>Select an Assassin or face-down stack in your prep phase and press "Set an ambush": it turns sideways, hides like an Assassin, and strikes with advantage, out of turn, at the first enemy that steps beside it (diagonals too for a Jack's reach). Moving it ends the ambush.</dd><dt>Quiet Eyes and Bird's Eye</dt><dd>Quiet Eyes (Illusion) blinds enemies without a Scout to all but what is right beside them, 2 mana a round for 1d2 + 1 rounds. Bird's Eye (Sorcery) lifts the fog for your side for a round, but not a Delusion.</dd></dl></details>
 <details class="sub"><summary>Siege, support and mining explained</summary><dl class="spellinfo"><dt>Bought from the Ether</dt><dd>Archers, Cannons, Healers, Walls, Repairmen, Battering Rams and Miners all wait in the Ether, a set for every deck, and come into your deck with their Conjure spells. The Beginner starts with two Archers, a Wall, two Repairmen and a Battering Ram in the deck, and a Miner in the first Ace.</dd><dt>Shooting</dt><dd>Archers and Cannons fire from wherever they stand, inside an Ace, the Tree or a Wall too, where the rest can't fight. Select the stack in the attack phase and click a highlighted target; a miss costs the shooter nothing. Only one shot a turn leaves a base.</dd><dt>Support cards</dt><dd>Healers, Repairmen, Battering Rams and Miners never fight. In a stack they die last (Miners first). Standing alone they can't defend: an enemy beside them chooses Capture or Destroy instead of an attack. A captured card rides in the stack's capture slot (one per stack) until you set it to work beside the stack; then it is yours.</dd><dt>Heal and Repair</dt><dd>Select the stack in your prep phase and press Heal a heart or Repair. The status line under the cards shows every cooldown.</dd><dt>Crystals</dt><dd>A crystal rises in the middle of the field every 1d6 + 4 turns. A Miner on it digs 1 + 1d3 mana on a 2 of 1d2 each turn, until the crystal's 12 mana are gone.</dd><dt>Field Libation</dt><dd>Necromancy, free, not under the Full Moon: pour out cards from your field; each one is worth its mana on a 2 of 1d2, and goes to the grave for nothing on a 1.</dd></dl></details>
 ${bankExplainHTML()}
 ${skyExplainHTML()}
@@ -2158,7 +2163,7 @@ function showStart(){
 <label class="opt"><input type="radio" name="oelim" value="dark"><span>To the Outer Darkness<small>Their deck and hand are gone for good.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Field</legend>
 ${chk("ocrys","Crystals (default)","A crystal cluster rises in the middle of the field every 1d6 + 4 turns (Headquarters opens with one). A Miner standing on it digs out its 12 mana.",true)}
-${chk("ofog","Fog of war (default)","You see enemy cards only within two tiles of your own (three for a Scout). Assassins, ambushers and Scouts stay hidden until you stand right beside them.",true)}
+${chk("ofog","Fog of war (default)","Each card sees only the eight tiles around it (a Scout three tiles); ranged cards can fire blind into the fog. Assassins, ambushers and Scouts stay hidden until you stand right beside them.",true)}
 ${chk("obarb","Barbarians (default)","Every 4 + 1d12 turns a crimson band of Grunts, Infantry or Jacks (sometimes with an Ace) takes the middle of the field and fights everyone. Whoever kills the most earns an Ether sale; a big band can earn debt forgiveness.",true)}
 <label class="f">Hole in the middle <select id="ohole"><option value="0" selected>None (default)</option><option value="1">One or two tiles</option><option value="2">Doubled</option><option value="3">Tripled</option></select></label>
 <p class="dim">An empty pit in the center of the field, never on the River map and never in anyone's lines; it only grows where there is room.</p>
@@ -2337,9 +2342,14 @@ window.__EC={get G(){return G},startGame,stackLegal,canPlace,nextPhase,render,AI
   force(o){G.forceMoon=o},jokerSuicide,mk,damage,mkUnit,attack,attackOptions,doMove,seesTile,fogTile,ambushCheck,siegeTurn,siegeEnd,spawnCrystal,spawnBarbarians,meteor,collapse,takeLoan,repay,bankTurn,econRound,effMana:p=>effMana(p),spend,openBank,mysteryGen,skyTurn,firmFog,setPlanet,sunFall,planetTurn,skyAsync,tradeCard,eclipse:k=>eclipse(k),startPeace:(a,b)=>startPeace(a,b),startWar:(a,b)=>startWar(a,b)};
 
 /* ---------------- display preferences, page themes, leave warning, quotes ---------------- */
+/* a phone: a touch screen no wider than a small tablet held sideways, or any narrow window */
+const PHONE_Q="(pointer:coarse) and (max-width:1000px), (max-width:600px)";
+const isPhone=()=>typeof matchMedia!=="undefined"&&matchMedia(PHONE_Q).matches;
 const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){}
   // v20: full width is the default on a computer screen (once; a later choice sticks)
   if(!p.v20){p.v20=1;if(typeof matchMedia!=="undefined"&&matchMedia("(min-width:901px)").matches)p.full=true}
+  // v38: on a phone the Selected box sits above the spells by default (once; a later choice sticks)
+  if(!p.v38m){p.v38m=1;if(isPhone())p.sel="top"}
   return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:false,full:false,theme:""},p)})();
 function savePrefs(){try{localStorage.setItem("ec-prefs2",JSON.stringify(PREF))}catch(e){}}
 const THEMES={"":["Kenoma",[]],jester:["Jester",["th-black","th-jester"]],ten:["Ten",["th-indigo","th-blue"]],satan:["Disturbed Satan",["th-crimson"]]};
@@ -2372,9 +2382,10 @@ function applyTextScale(f){
 }
 function applyPrefs(){
   const h=document.documentElement;
-  applyTextScale(PREF.tz);
+  const ph=isPhone();document.body.classList.toggle("phone",ph);
+  applyTextScale(PREF.tz*(ph?.9:1));   // a phone's 100% is 90% text, and 80% for the interface and card icons
   document.body.classList.toggle("fullw",!!PREF.full);
-  h.style.setProperty("--ci",PREF.ci);h.style.setProperty("--uiz",PREF.ui);
+  h.style.setProperty("--ci",PREF.ci*(ph?.8:1));h.style.setProperty("--uiz",PREF.ui*(ph?.8:1));
   const wrap=$("#handwrap"),slot=$("#handslot"),side=$("#sidehand");
   if(wrap&&slot&&side){const dest=PREF.hand==="below"?slot:side;if(wrap.parentNode!==dest)dest.appendChild(wrap)}
   document.body.classList.toggle("hand-below",PREF.hand==="below");
@@ -2405,16 +2416,27 @@ function mountBar(){
 }
 /* leaving mid-game asks first */
 const inGame=()=>G&&!G.over;
+let leaving=false;   // set once the player has said yes, so the browser doesn't ask a second time
 function confirmLeave(go){
   if(!inGame()){go();return}
   let box=$("#leavebox");if(!box){box=document.createElement("div");box.id="leavebox";document.body.appendChild(box)}
   box.innerHTML=`<div class="ovbox" role="alertdialog" aria-labelledby="lvq"><h2 id="lvq">Are you sure you want to end your game session?</h2><p class="dim">The game in progress will be lost.</p><p class="acts"><button class="btn" id="lvy">End the session</button> <button class="btn ghost" id="lvn">Keep playing</button></p></div>`;
   box.hidden=false;$("#lvn").focus();
-  $("#lvy").onclick=()=>{box.hidden=true;go()};$("#lvn").onclick=()=>{box.hidden=true};
+  $("#lvy").onclick=()=>{box.hidden=true;leaving=true;go()};$("#lvn").onclick=()=>{box.hidden=true};
 }
 function guardLinks(){
   document.querySelectorAll(".game .crumbs a").forEach(a=>a.addEventListener("click",e=>{if(!inGame())return;e.preventDefault();confirmLeave(()=>{location.href=a.href})}));
 }
+/* the phone's Back button (and a swipe back) asks too: a game in progress keeps one extra history entry to catch it */
+let backTrap=false;
+function armBackTrap(){if(backTrap||!inGame())return;try{history.pushState({ecGame:1},"",location.href);backTrap=true}catch(e){}}
+addEventListener("popstate",()=>{if(!backTrap)return;backTrap=false;
+  if(!inGame())return;
+  confirmLeave(()=>{history.back()});
+  const keep=$("#lvn");if(keep)keep.addEventListener("click",armBackTrap,{once:true})});
+addEventListener("beforeunload",e=>{if(inGame()&&!G.opts.fast&&!leaving){e.preventDefault();e.returnValue=""}});
+{const _rd=render;render=function(){_rd.apply(this,arguments);armBackTrap()}}
+
 /* passages from the book, for whoever is waiting */
 function mountQuotes(){
   const Q=window.EC_QUOTES||[],box=$("#quotes");if(!box||!Q.length)return;
@@ -3459,7 +3481,7 @@ UNIT_ICON.goatbull=`<path d="M-9,-8C-11,-4 -9,-1 -6,-2 M9,-8C11,-4 9,-1 6,-2 M-6
 /* ---------------- Prompt 7: fog of war, Scouts, Assassins, face-down cards, ambush, Quiet Eyes, Bird's Eye ---------------- */
 
 /* ---------- who sees what ----------
-   Fog of war (on by default): every unit sees two tiles around it, a Scout three. Assassins, ambushers and enemy Scouts
+   Fog of war (on by default): every unit sees the eight tiles around it, a Scout three tiles. Assassins, ambushers and enemy Scouts
    stay hidden unless one of your cards stands right next to them; your Scouts also uncover Assassins, ambushers and
    face-down cards within a round two tiles, and enemy Scouts within three. Bird's Eye lifts the fog for your side for a
    round. Quiet Eyes, cast by an enemy, hides everything not right beside you unless you have a Scout on the field.
@@ -3507,6 +3529,43 @@ function fogTile(V,r,c){
 function showsBack(V,r,c){
   const st=G.board[r][c];if(!st||!st.down||!isEnemy(st.owner,V)||eclipseOn("sun"))return false;
   return !scoutsOf(V).some(x=>Math.hypot(x.r-r,x.c-c)<=2.01);
+}
+
+/* ---------- shooting into the fog ----------
+   A ranged weapon may fire at any fogged tile in its reach. With no enemy there the shot always fails; with one there it is an
+   ordinary attack, but the shooter learns only whether it hit (and hears the blow land). */
+function blindOptions(r,c){
+  const st=G.board[r]&&G.board[r][c];if(!st||st.attacked||st.hypo||st.stun||st.pin||choked(st.owner))return[];
+  const V=st.owner,known=new Set(attackOptions(r,c).map(o=>o.r*16+o.c)),tiles=[],out=[];
+  for(let r2=0;r2<G.rows;r2++)for(let c2=0;c2<COLS;c2++){if(isVoid(r2,c2)||known.has(r2*16+c2)||!fogTile(V,r2,c2))continue;
+    const t=G.board[r2][c2];if(t&&!isEnemy(t.owner,V)&&!warFoe(V,t.owner))continue;tiles.push([r2,c2])}
+  if(!tiles.length)return out;
+  if(!(hasBase(st)&&repLocked(st)))for(const card of st.cards){const U=card.unit&&UNIT[card.unit];if(!U||!U.shooter||!shotReady(card,V))continue;
+    const A={owner:V,cards:[card],odds:st.odds,down:st.down};
+    for(const [r2,c2] of tiles)for(const w of U.weapons)if(w.id!=="suppress"&&reaches(w.reach,r,c,r2,c2))out.push({r:r2,c:c2,mode:w.id,ranged:true,w,A,card,blind:true})}
+  const u=canAttackFrom(st)&&soloUnit(st);
+  if(u)for(const w of UNIT[u.unit].weapons)if(w.reach==="gun")for(const [r2,c2] of tiles)if(!near8(r,c,r2,c2)&&reaches(w.reach,r,c,r2,c2))out.push({r:r2,c:c2,mode:w.id,ranged:true,w,blind:true});
+  return out;
+}
+function blindPick(r1,c1,r2,c2,mode){
+  const st=G.board[r1]&&G.board[r1][c1];if(!st||!fogOn()&&!G.ffog)return null;
+  if(attackOptions(r1,c1).some(o=>o.r===r2&&o.c===c2))return null;
+  return blindOptions(r1,c1).find(o=>o.r===r2&&o.c===c2&&(mode==null||o.mode===mode))||null;
+}
+function blindShot(r1,c1,r2,c2,o){
+  const A=G.board[r1][c1],pl=A.owner,D=G.board[r2][c2];
+  const real=D&&(isEnemy(D.owner,pl)||warFoe(pl,D.owner))&&!peaceBlock(pl,D.owner)&&!D.hypo&&!shielded(D.owner);
+  const lost=`${plName(pl)} fires into the fog on ${coord(r2,c2)} (${esc(o.w.name)}). The shot is lost in the fog.`;
+  if(!real){   // nothing there: it looks exactly like a miss
+    A.attacked=true;if(o.card&&o.card.unit==="cannon")o.card.readyAt=(G.p[pl].tn||0)+R(2)+2;
+    G.histTile=`${coord(r1,c1)} → ${coord(r2,c2)}`;tray(pl,"Attack",o.w.roll?o.w.roll():[],"lost in the fog");G.histTile=null;
+    log(lost,"combat");return{win:false,line:"",blind:true}}
+  const seen=G.p.map(P=>P.i!==pl&&(!isEnemy(D.owner,P.i)||seesTile(P.i,r2,c2))),L0=G.log[0];
+  const res=attackRun(r1,c1,r2,c2,o.mode,o)||{};
+  const end=L0?G.log.indexOf(L0):G.log.length,fresh=G.log.slice(0,end<0?G.log.length:end);
+  const main=fresh.find(l=>l.cls==="combat");
+  for(const l of fresh)if(!l.fog)l.fog={by:D.owner,seen,alt:l===main?(res.win?`${plName(pl)} fires into the fog on ${coord(r2,c2)} (${esc(o.w.name)}). Something in the fog is hit.`:lost):""};
+  return Object.assign(res,{blind:true});
 }
 
 /* ---------- ambush ---------- */
@@ -4272,7 +4331,7 @@ function firmFog(V){const F=G.ffog;if(!F||!G.p[F.by]||G.p[F.by].out||tnOf(F.by)>
   const nm=G.moon.i===0&&!G.moon.gone;
   if(isEnemy(F.by,V))return nm?{blind:true}:{cut:1};
   return nm?{own:true}:null}
-const visR=(x,ff)=>ff&&ff.own?1:(hasK(x.st,"scout")?3:2)-(ff&&ff.cut?1:0);
+const visR=(x,ff)=>ff&&ff.own||!hasK(x.st,"scout")?1:3-(ff&&ff.cut?1:0);   // every card sees the eight tiles around it; a Scout sees three
 
 /* ---------- drawings ---------- */
 function marsSVG(){return `<svg class="moon mars" viewBox="-44 -44 88 88" width="88" height="88" aria-hidden="true"><defs><radialGradient id="marsg" cx="38%" cy="34%"><stop offset="0" stop-color="#f08a5a"/><stop offset=".65" stop-color="#b3431f"/><stop offset="1" stop-color="#5a1a0c"/></radialGradient><radialGradient id="marsglow"><stop offset="55%" stop-color="#ff6a3a" stop-opacity=".35"/><stop offset="100%" stop-color="#ff6a3a" stop-opacity="0"/></radialGradient></defs><circle r="40" fill="url(#marsglow)"/><circle r="24" fill="url(#marsg)" stroke="#3a120a"/><circle cx="-7" cy="5" r="3.4" fill="#8a3216" opacity=".7"/><circle cx="8" cy="-6" r="2.2" fill="#8a3216" opacity=".7"/><circle cx="4" cy="10" r="1.6" fill="#8a3216" opacity=".7"/><path d="M-18,-6C-10,-9 4,-2 18,-5" stroke="#7a2a12" stroke-width="1.6" fill="none" opacity=".6"/>${G.moonLev?levOnMoon():""}</svg>`}
@@ -6599,6 +6658,7 @@ const AUD=(()=>{
     card:()=>once("card",40,t=>{nz(t,.045,.09,{f:2400,q:1.4});tone("sine",230,t,.07,.06,{f2:150})}),
     place:()=>once("place",60,t=>{tone("sine",150,t,.12,.2,{f2:70});nz(t,.06,.07,{type:"lowpass",f:900})}),
     move:()=>once("move",60,t=>{nz(t,.17,.06,{f:600,f2:1800,q:.8,att:.03})}),
+    hit:()=>once("hit",80,t=>{tone("sine",95,t,.2,.26,{f2:45});nz(t,.12,.16,{type:"lowpass",f:900,f2:200});tone("triangle",260,t+.06,.22,.06,{f2:140})}),   // a blow landing somewhere unseen
     death:()=>once("death",80,t=>{nz(t,.4,.14,{type:"lowpass",f:1200,f2:150});tone("triangle",330,t,.36,.05,{f2:110})}),
     clash:()=>once("clash",70,t=>{nz(t,.025,.07,{type:"highpass",f:3000});[1180,1770,2490,3310].forEach((f,i)=>tone("sine",f,t,.28+i*.04,.035/(1+i*.4)))}),
     blunt:()=>once("blunt",70,t=>{tone("sine",120,t,.14,.18,{f2:60});nz(t,.08,.08,{type:"lowpass",f:700})}),
@@ -6671,6 +6731,7 @@ document.addEventListener("click",e=>{if(!G||!e.target.closest)return;
   if(A&&AUD.ok()&&(A.owner===view()||sndSees(r1,c1)||sndSees(r2,c2))){const o=attackOptions(r1,c1).find(x=>x.r===r2&&x.c===c2&&(mode==null||x.mode===mode))||{};const id=o.mode||mode;
     snd=id==="slug"?"slug":id==="gun"?"gun":id==="bow"?"arrow":id==="cannon"||hasK(A,"cannon")&&o.ranged?"cannon":id==="charge"||id==="charge2"?"charge":id==="ram"?"blunt":o.ranged?"arrow":"clash"}
   if(snd)AUD[snd]();return _at.apply(this,arguments)}}
+{const _bs=blindShot;blindShot=function(r1,c1,r2,c2,o){const A=G.board[r1]&&G.board[r1][c1],mine=A&&A.owner===view();const out=_bs.apply(this,arguments);if(out&&out.win&&mine)setTimeout(()=>AUD.hit(),260);return out}}
 {const _bu=bury;bury=function(card,r,c,st){const hear=sndSees(r,c)||st&&st.owner===view();const out=_bu.apply(this,arguments);if(hear)AUD.death();return out}}
 {const _ra=repairAct;repairAct=function(r,c,T){const out=_ra.apply(this,arguments);if(G.board[r][c]&&(G.board[r][c].owner===view()||sndSees(r,c)))AUD.repair();return out}}
 {const _ss=skyStrike;skyStrike=function(r,c,why){AUD.meteor();return _ss.apply(this,arguments)}}
@@ -7070,6 +7131,7 @@ const hostOnline=()=>NET.role==="host"&&G&&G.opts.online&&guestIds().length>0;
     const kind=mode==="ram"||hasK(A,"cannon")&&o.ranged?"boom":hasK(A,"debt")||isNPC(A.owner)&&G.p[A.owner].npc==="bank"?"dollar":o.ranged?null:"blunt";
     netFX({k:"strike",a:[r1,c1],b:[r2,c2],pl:A.owner,kind,snd})}
   return _at.apply(this,arguments)}}
+{const _bs=blindShot;blindShot=function(r1,c1,r2,c2,o){const A=G.board[r1]&&G.board[r1][c1],pl=A?A.owner:null;const out=_bs.apply(this,arguments);if(hostOnline()&&out&&out.win)netFX({k:"fogHit",pl});return out}}
 {const _dg=damage;damage=function(r,c,n,d){const out=_dg.apply(this,arguments);if(hostOnline()&&n>0&&out!==0)netFX({k:"hit",r,c});return out}}
 {const _bu=bury;bury=function(card,r,c,st){const pl=st&&st.owner;const out=_bu.apply(this,arguments);if(hostOnline())netFX({k:"death",r,c,pl});return out}}
 {const _sc=sacrifice;sacrifice=function(card,from){const pl=G.active,m0=effMana(pl);const ok=_sc.apply(this,arguments);
@@ -7094,6 +7156,7 @@ function playFX(e){window.__fxn=(window.__fxn||0)+1;if(!G)return;const V=view(),
     case "strike":{const sa=e.pl===V||see(...e.a),sb=see(...e.b);if(!sa&&!sb)break;if(fx&&sa)FX.strike(T(...e.a),T(...e.b),col(e.pl));
       if(fx&&sb){const r=T(...e.b);setTimeout(()=>{if(e.kind==="boom")FX.boom(r);else if(e.kind==="dollar"){FX.blunt(r);FX.dollar(r)}else if(e.kind==="blunt")FX.blunt(r)},180)}
       if(e.snd&&AUD[e.snd])AUD[e.snd]();break}
+    case "fogHit":if(e.pl===V)setTimeout(()=>AUD.hit(),260);break;
     case "hit":if(fx&&see(e.r,e.c))FX.hit(T(e.r,e.c),"#ff5a4a");break;
     case "death":if(e.pl===V||see(e.r,e.c)){if(fx)FX.smoke(T(e.r,e.c));AUD.death()}break;
     case "sac":{const r=e.from==="hand"?(e.pl===V?FX.rectOf($("#hand")):FX.rectOf(barOf(e.pl,".manabar"))):e.from&&(e.pl===V||see(...e.from))?T(...e.from):null;
@@ -7186,5 +7249,26 @@ function chatBox(){let bx=$("#chatbox");if(bx)return bx;bx=document.createElemen
 setInterval(()=>{try{chatPaint()}catch(e){}},1000);
 
 if(window.__EC)Object.assign(window.__EC,{playFX,netRejoin,chatSend,chatAdd,localSeats});
+
+/* ---------------- v38: phones ----------------
+   On a phone the Spells box, the Log and the book's passages fold shut behind their headings, closed by default, and glow until
+   the player first touches them; once opened they open fully, so the page scrolls instead of a box inside it. */
+const FOLDS=[["spells",".spellpanel",".spellpanel>h3"],["log","#logwrap","#logwrap>h3"],["quotes","#quotes","#quotes>h3"]];
+function mountFolds(){
+  for(const [k,box,head] of FOLDS){const B=document.querySelector(box),H=document.querySelector(head);if(!B||!H||H.dataset.fold)continue;
+    H.dataset.fold=k;H.setAttribute("role","button");H.tabIndex=0;
+    const go=()=>{PREF.fold=PREF.fold||{};PREF.fold[k]=!foldOpen(k);(PREF.foldSeen=PREF.foldSeen||{})[k]=1;savePrefs();paintFolds()};
+    H.addEventListener("click",go);H.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}})}
+  paintFolds();
+}
+const foldOpen=k=>!!(PREF.fold&&PREF.fold[k]);
+function paintFolds(){const ph=isPhone();
+  for(const [k,box,head] of FOLDS){const B=document.querySelector(box),H=document.querySelector(head);if(!B||!H)continue;
+    const shut=ph&&!foldOpen(k);B.classList.toggle("folded",shut);B.classList.toggle("foldable",ph);
+    B.classList.toggle("foldglow",ph&&!(PREF.foldSeen&&PREF.foldSeen[k]));
+    if(ph)H.setAttribute("aria-expanded",!shut);else H.removeAttribute("aria-expanded")}}
+{const _mq=mountQuotes;mountQuotes=function(){_mq.apply(this,arguments);mountFolds()}}
+{const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);paintFolds()}}
+if(typeof matchMedia!=="undefined"){const mq=matchMedia(PHONE_Q);const re=()=>{try{applyPrefs();if(G)render()}catch(e){}};mq.addEventListener?mq.addEventListener("change",re):mq.addListener(re)}
 
 })();
