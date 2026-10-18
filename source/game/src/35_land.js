@@ -105,7 +105,7 @@ function landPayDay(){if(!G.plots||!bankOpen())return;const bk=npcIx("bank");
     const made=ps.reduce((a,p)=>a+p.prod,0),due=Math.ceil(made/2);ps.forEach(p=>p.prod=0);if(!due){P.landMiss=0;continue}
     const paid=payQuiet(pl,Math.min(mana(pl),due));bankAdd(paid);const rest=due-paid;
     if(!rest){P.landMiss=0;log(`Pay day: ${plName(pl)} pays the Bank its half of the land's ${made} mana (${due}).`);continue}
-    P.debt=(P.debt||0)+rest;if(P.debtAt==null)P.debtAt=tnOf(pl)+R(2);P.landMiss=(P.landMiss||0)+1;
+    P.debt=(P.debt||0)+rest;if(P.debtAt==null)P.debtAt=tnOf(pl)+3;P.landMiss=(P.landMiss||0)+1;
     let n=0;if(bk>=0)for(const t of freeTilesNear(pl,true).slice(0,R(2))){G.board[t[0]][t[1]]={owner:bk,cards:[mkUnit("debt",bk)],moved:true,attacked:true,hunt:pl,land:true};n++}
     log(`<b>Pay day</b>: ${plName(pl)} owes the Bank ${due} for the land and pays ${paid}; ${rest} becomes mana debt${n?`, and ${n} Debt Collector${n>1?"s come":" comes"} to make them pay`:""} (${P.landMiss} missed).`,"event");
     if(P.landMiss>=2){P.landMiss=0;let slaves=0;

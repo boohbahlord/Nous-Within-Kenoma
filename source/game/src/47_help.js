@@ -10,13 +10,13 @@ const MK_BODY=`<p><b>Cards are life and money at once.</b> Every card you draw, 
 <p><b>The sky changes the rules.</b> The Moon turns once a round and moves prices up and down (the Full and New Moons most of all). Heavenly Bodies can take its place, each with its own cycle, and now and then a rare eclipse brings a strange effect.</p>
 <p><b>The dead come back.</b> Fallen cards go to the grave. Grave Blessing (free, once a turn) rolls dice, and every 6 raises a card from the grave into your hand.</p>`;
 const MK_MORE=`<h3>Tell me more</h3><ul class="mklist">
-<li><b>How you win:</b> the last player (or side) with anything on the field and a deck, hand or mana left wins. A player whose mana sinks below their lowest point (three times their maximum under zero) is out.</li>
+<li><b>How you win:</b> the last player (or side) with anything on the field and a deck, hand or mana left wins. A player whose mana sinks below −8 is out.</li>
 <li><b>A turn:</b> draw (roll a d4 and draw that many, or skip), prep (place, move one step, sacrifice, cast) and attack (each stack may attack a neighbor once).</li>
 <li><b>Fights:</b> the attacker's best card plus its die against the defender's best card. The loser takes a damage, which removes its lowest card. Kings with Queens, Aces and Walls defend well.</li>
 <li><b>Drawing too much hurts:</b> cards past your hand limit go to the grave, and each one takes 1d6 off this round's Grave Blessing.</li>
 <li><b>The Ether</b> (top of the spells) sells new cards: Scouts, Miners, Repairmen, Archers, Aces and more. Conjured cards go into your deck.</li>
 <li><b>Fog of war:</b> you only see near your own cards. Scouts see two tiles out and uncover hidden Assassins and ambushers.</li>
-<li><b>The Bank:</b> loans give you mana now and are due in 4 turns; credit lets you cast what you can't afford and turns the rest into debt. Hover or hold a word in the Bank for the details.</li></ul>
+<li><b>The Bank:</b> a loan gives you mana now, due in half its amount in turns (at least 2); credit lets you cast what you can't afford and turns the rest into debt. Stay at −6 or lower for 3 turns and the Debt Collectors come every turn until you pay. Hover or hold a word in the Bank for the details.</li></ul>
 <p class="mkpoint">Everything else is in the <b>Help</b> index at the bottom of the page: basics, every card, every spell, the sky and the Bank, always there while you play. Hover (or press and hold) anything on the screen for what it does.</p>`;
 const mkHidden=()=>PREF.mkHide==="never"||PREF.mkHide==="next";
 function mountMustKnow(){const h=document.querySelector(".game header");if(!h||$("#mustknow"))return;

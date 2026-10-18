@@ -61,25 +61,36 @@ async function buyBankItem(pl,it){const P=G.p[pl];if(!G.auction.includes(it))ret
   $("#ov").querySelectorAll("[data-bbuy]").forEach(b=>b.onclick=async()=>{if(!canAct())return;await buyBankItem(G.active,G.auction[+b.dataset.bbuy]);viewAuction()})}}
 
 /* ---------- loans between players ---------- */
-const P2P_DUE=4,P2P_RATE=.2;
+const P2P_DUE=4,P2P_RATE=.2,P2P_MIN=2,P2P_MAX=12;
 const p2pOf=()=>G.p2p||(G.p2p=[]);
 const lenders=pl=>alive().filter(i=>i!==pl&&!isHorde(i)&&!G.p[i].jail);
 const loanReqsFor=V=>p2pOf().filter(L=>L.to===V&&L.state==="ask");
 function askLoan(from,to,n){
-  if(p2pOf().some(L=>L.from===from&&L.to===to&&["ask","open","late"].includes(L.state))){if(!G.p[from].cpu)flash(`You already have a loan or a request with ${G.p[to].name}.`);return null}
+  if(p2pOf().some(L=>L.from===from&&L.to===to&&["ask","offer","open","late"].includes(L.state))){if(!G.p[from].cpu)flash(`You already have a loan or a request with ${G.p[to].name}.`);return null}
   const L={id:(G.p2pN=(G.p2pN||0)+1),from,to,n,owed:n,state:"ask",round:G.moon.round};p2pOf().push(L);
   log(`${plName(from)} asks ${plName(to)} for a loan of ${n} mana.`,"event");
-  if(G.p[to].cpu)answerLoan(L,aiLend(L));
+  if(G.p[to].cpu)answerLoan(L,aiLend(L),2+R(6)+R(4));
   else notify(to,`${esc(G.p[from].name)} asks ${esc(G.p[to].name)} for a loan of ${n} mana (the Bank window).`);
   return L}
 function aiLend(L){const m=mana(L.to);if(m<L.n+3)return false;if(!isEnemy(L.from,L.to))return true;return m>=L.n+6&&Math.random()<.4}
-function answerLoan(L,yes){
+/* v46: the lender sets when the loan is due (2 to 12 of the borrower's turns); the borrower then sees the terms and takes the
+   loan or turns it down. A loan grows by 1d2 every 3 of the borrower's turns until it is paid. */
+function answerLoan(L,yes,due){
   if(L.state!=="ask")return;
   if(!yes){L.state="no";log(`${plName(L.to)} refuses to lend ${plName(L.from)} ${L.n} mana.`);notify(L.from,`${esc(G.p[L.to].name)} refuses the loan.`);return}
   if(mana(L.to)<L.n){if(!G.p[L.to].cpu)flash(`You hold only ${mana(L.to)} mana.`);return}
-  const paid=payQuiet(L.to,L.n),got=giveMana(L.from,paid);L.state="open";L.owed=paid;L.due=tnOf(L.from)+P2P_DUE;L.intAt=tnOf(L.from)+R(2);
-  log(`<b>${plName(L.to)} lends ${plName(L.from)} ${paid} mana</b>${got<paid?` (${got} fit in the soul pile)`:""}. 20% interest every 1d2 of ${plName(L.from)}'s turns, due in ${P2P_DUE}; if it isn't paid, the Bank collects.`,"event");
-  notify(L.from,`${esc(G.p[L.to].name)} lends ${esc(G.p[L.from].name)} ${paid} mana.`)}
+  due=Math.max(P2P_MIN,Math.min(P2P_MAX,Math.round(+due||P2P_DUE)));L.state="offer";L.dueN=due;render();
+  loanOffer(L,due)}   // the borrower's answer comes later; the lender's click is done
+async function loanOffer(L,due){
+  const ok=await ask(L.from,{kind:"yesno",id:"loanterms",title:`${esc(G.p[L.to].name)} will lend you ${L.n} mana`,
+    text:`You must pay it back within <b>${due}</b> of your turns. It grows by 1d2 every 3 of your turns until it is paid. If it isn't paid in time, what you can't pay is taken from your souls, and the Bank sends Debt Collectors after you for the rest; what they take goes to ${esc(G.p[L.to].name)}.`,
+    yes:"Take the loan",no:"No, thanks",ai:()=>due>=3||mana(L.from)<=0});
+  if(L.state!=="offer")return;
+  if(!ok){L.state="no";L.declined=true;log(`${plName(L.from)} turns down ${plName(L.to)}'s terms (due in ${due} turns).`);notify(L.to,`${esc(G.p[L.from].name)} turns down the loan.`);render();return}
+  if(mana(L.to)<L.n){L.state="no";log(`${plName(L.to)} no longer holds ${L.n} mana: the loan falls through.`);render();return}
+  const paid=payQuiet(L.to,L.n),got=giveMana(L.from,paid);L.state="open";L.owed=paid;L.due=tnOf(L.from)+due;L.intAt=tnOf(L.from)+3;
+  log(`<b>${plName(L.to)} lends ${plName(L.from)} ${paid} mana</b>${got<paid?` (${got} fit in the soul pile)`:""}: due in ${due} of ${plName(L.from)}'s turns, growing by 1d2 every 3 turns; if it isn't paid, the Bank collects.`,"event");
+  notify(L.from,`${esc(G.p[L.to].name)} lends ${esc(G.p[L.from].name)} ${paid} mana.`);render()}
 function repayLoan(L,k){k=Math.min(k,L.owed,mana(L.from));if(k<=0)return 0;const paid=payQuiet(L.from,k),got=giveMana(L.to,paid);L.owed-=paid;
   log(`${plName(L.from)} pays ${plName(L.to)} back ${paid} mana${L.owed?` (${L.owed} still owed)`:"; the loan is settled"}.`);if(!L.owed)loanSettled(L);return paid}
 function loanSettled(L){L.state="done";L.owed=0;const bk=npcIx("bank");if(bk>=0)for(const x of stacksOf(bk))if(x.st.loan===L.id)G.board[x.r][x.c]=null;
@@ -89,9 +100,9 @@ function sendLoanCollectors(L){const bk=npcIx("bank");if(bk<0)return 0;let n=0;c
 /* a loan comes due at the start of the borrower's turn */
 {const _bt=bankTurn;bankTurn=function(pl){_bt(pl);const tn=tnOf(pl);
   for(const L of p2pOf()){
-    if(["ask","open","late"].includes(L.state)&&(G.p[L.from].out||G.p[L.to].out)){L.state="void";continue}
+    if(["ask","offer","open","late"].includes(L.state)&&(G.p[L.from].out||G.p[L.to].out)){L.state="void";continue}
     if(L.from!==pl)continue;
-    if(["open","late"].includes(L.state)&&L.owed>0&&L.intAt!=null&&tn>=L.intAt){const add=Math.max(1,Math.ceil(L.owed*P2P_RATE));L.owed+=add;L.intAt=tn+R(2);log(`Interest: ${plName(pl)}'s loan from ${plName(L.to)} grows by ${add} (20%) to ${L.owed}.`)}
+    if(["open","late"].includes(L.state)&&L.owed>0&&L.intAt!=null&&tn>=L.intAt){const add=R(2);L.owed+=add;L.intAt=tn+3;log(`Interest: ${plName(pl)}'s loan from ${plName(L.to)} grows by ${add} (1d2) to ${L.owed}.`)}
     if(L.state==="open"&&tn>=L.due){const take=Math.min(mana(pl),L.owed);if(take)repayLoan(L,take);
       if(L.owed>0){L.state="late";const n=sendLoanCollectors(L);
         log(`<b>${plName(pl)}'s loan from ${plName(L.to)} is due</b> and ${L.owed} mana is still owed. The Bank sends ${n} Debt Collector${n===1?"":"s"} after ${plName(pl)}; what they take goes to ${plName(L.to)}.`,"event");
@@ -101,17 +112,17 @@ function sendLoanCollectors(L){const bk=npcIx("bank");if(bk<0)return 0;let n=0;c
 /* the computer borrows when it is poor, and answers a person's request at once (see askLoan) */
 {const _ab=aiBank;aiBank=async function(pl,W,cast1){await _ab(pl,W,cast1);const P=G.p[pl];if(P.jail||G.over)return;
   for(const L of p2pOf())if(L.from===pl&&L.state==="open"&&mana(pl)>=L.owed+3)repayLoan(L,L.owed);
-  for(const L of loanReqsFor(pl))answerLoan(L,aiLend(L));
+  for(const L of loanReqsFor(pl))answerLoan(L,aiLend(L),2+R(6)+R(4));
   if(mana(pl)<=1&&Math.random()<.08){const t=lenders(pl).filter(i=>!isEnemy(pl,i)||Math.random()<.3).sort((a,b)=>mana(b)-mana(a))[0];if(t!=null&&mana(t)>=4)askLoan(pl,t,1+R(3))}}}
 
 /* ---------- the Bank window: a tab for loans between players ---------- */
 function p2pHTML(V){
   const live=canAct()&&G.phase==="prep"&&G.active===V,P=G.p[V],tt=n=>`${n} turn${n===1?"":"s"}`,L=p2pOf();
-  const reqs=loanReqsFor(V).map(x=>`<li><b>${plName(x.from)}</b> asks you for <b>${x.n}</b> mana, due in ${P2P_DUE} of their turns. <button class="btn sm" data-lend="${x.id}" ${mana(V)>=x.n&&!G.busy?"":"disabled"}>Lend ${x.n}</button> <button class="btn ghost sm" data-nolend="${x.id}">Refuse</button></li>`).join("");
-  const mine=L.filter(x=>x.from===V&&["ask","open","late","no"].includes(x.state)&&(x.state!=="no"||x.round>=G.moon.round-1)).map(x=>`<li>${x.state==="ask"?`You asked ${plName(x.to)} for ${x.n}: waiting.`:x.state==="no"?`${plName(x.to)} refused your request.`:`You owe ${plName(x.to)} <b>${x.owed}</b>${x.state==="late"?` <span class="neg">late: the Bank's Debt Collectors are after you</span>`:` · due in ${tt(Math.max(0,x.due-tnOf(V)))} · 20% every 1d2 turns`}${live&&mana(V)?` <button class="btn sm" data-repay="${x.id}">Pay back ${Math.min(mana(V),x.owed)}</button>`:""}`}</li>`).join("");
+  const reqs=loanReqsFor(V).map(x=>`<li><b>${plName(x.from)}</b> asks you for <b>${x.n}</b> mana. <label class="ldue">Due in <select data-ldue="${x.id}">${Array.from({length:P2P_MAX-P2P_MIN+1},(_,i)=>P2P_MIN+i).map(n=>`<option ${n===P2P_DUE?"selected":""}>${n}</option>`).join("")}</select> of their turns</label> <button class="btn sm" data-lend="${x.id}" ${mana(V)>=x.n&&!G.busy?"":"disabled"}>Lend ${x.n}</button> <button class="btn ghost sm" data-nolend="${x.id}">Refuse</button></li>`).join("");
+  const mine=L.filter(x=>x.from===V&&["ask","offer","open","late","no"].includes(x.state)&&(x.state!=="no"||x.round>=G.moon.round-1)).map(x=>`<li>${x.state==="ask"?`You asked ${plName(x.to)} for ${x.n}: waiting.`:x.state==="offer"?`${plName(x.to)} offers ${x.n}, due in ${x.dueN} turns: waiting for your answer.`:x.state==="no"?`${plName(x.to)} refused your request.`:`You owe ${plName(x.to)} <b>${x.owed}</b>${x.state==="late"?` <span class="neg">late: the Bank's Debt Collectors are after you</span>`:` · due in ${tt(Math.max(0,x.due-tnOf(V)))} · grows 1d2 every 3 turns`}${live&&mana(V)?` <button class="btn sm" data-repay="${x.id}">Pay back ${Math.min(mana(V),x.owed)}</button>`:""}`}</li>`).join("");
   const lent=L.filter(x=>x.to===V&&["open","late"].includes(x.state)).map(x=>`<li>${plName(x.from)} owes you <b>${x.owed}</b>${x.state==="late"?" (late: the Bank is collecting for you)":` · due in ${tt(Math.max(0,x.due-tnOf(x.from)))}`}</li>`).join("");
   const who=lenders(V);
-  const form=live&&!P.jail&&who.length?`<p class="p2pask"><label>Ask <select id="p2pTo">${who.map(i=>`<option value="${i}">${esc(G.p[i].name)}</option>`).join("")}</select></label> <label>for <select id="p2pN">${[1,2,3,4,5,6,7,8].map(n=>`<option>${n}</option>`).join("")}</select> mana</label> <button class="btn sm" id="p2pGo">Ask for a loan</button></p><p class="dim">20% interest every 1d2 of your turns, until it is paid. Due in ${P2P_DUE} of your turns. What you can't pay then is taken from your souls, and the Bank sends Debt Collectors after you for the rest; what they kill goes to the lender.</p>`:`<p class="dim">${P.jail?"In Jail: no loans.":"You can ask for a loan in your own prep phase."}</p>`;
+  const form=live&&!P.jail&&who.length?`<p class="p2pask"><label>Ask <select id="p2pTo">${who.map(i=>`<option value="${i}">${esc(G.p[i].name)}</option>`).join("")}</select></label> <label>for <select id="p2pN">${[1,2,3,4,5,6,7,8].map(n=>`<option>${n}</option>`).join("")}</select> mana</label> <button class="btn sm" id="p2pGo">Ask for a loan</button></p><p class="dim">The lender sets when it is due (2 to 12 of your turns), and you see the terms before you take it. It grows by 1d2 every 3 of your turns until it is paid. If it isn't paid in time, what you can't pay is taken from your souls, and the Bank's Debt Collectors come for the rest; what they take goes to the lender.</p>`:`<p class="dim">${P.jail?"In Jail: no loans.":"You can ask for a loan in your own prep phase."}</p>`;
   return `${reqs?`<h3>Asked of you</h3><ul class="p2pl">${reqs}</ul>`:""}${mine?`<h3>Your loans</h3><ul class="p2pl">${mine}</ul>`:""}${lent?`<h3>What others owe you</h3><ul class="p2pl">${lent}</ul>`:""}<h3>Ask another player</h3>${form}`}
 let bankTab="bank";
 {const _ob=openBank;openBank=function(){_ob();const box=$("#ov .ovbox.bank");if(!box||!G)return;const V=view();
@@ -127,7 +138,7 @@ let bankTab="bank";
   const show=t=>{bankTab=t;tabs.querySelectorAll("[data-bt]").forEach(b=>{const on=b.dataset.bt===t;b.classList.toggle("on",on);b.setAttribute("aria-selected",on)});main.hidden=t!=="bank";other.hidden=t!=="p2p";land.hidden=t!=="land"};
   tabs.querySelectorAll("[data-bt]").forEach(b=>b.onclick=()=>show(b.dataset.bt));show(n?"p2p":bankTab);
   const re=()=>{render();openBank()};wireLand(land,V,re);
-  other.querySelectorAll("[data-lend]").forEach(b=>b.onclick=()=>{const L=p2pOf().find(x=>x.id===+b.dataset.lend);if(L)answerLoan(L,true);re()});
+  other.querySelectorAll("[data-lend]").forEach(b=>b.onclick=()=>{const L=p2pOf().find(x=>x.id===+b.dataset.lend);const d=other.querySelector(`[data-ldue="${b.dataset.lend}"]`);if(L)answerLoan(L,true,d?+d.value:P2P_DUE);re()});
   other.querySelectorAll("[data-nolend]").forEach(b=>b.onclick=()=>{const L=p2pOf().find(x=>x.id===+b.dataset.nolend);if(L)answerLoan(L,false);re()});
   other.querySelectorAll("[data-repay]").forEach(b=>b.onclick=()=>{const L=p2pOf().find(x=>x.id===+b.dataset.repay);if(L)repayLoan(L,L.owed);re()});
   if($("#p2pGo"))$("#p2pGo").onclick=()=>{askLoan(V,+$("#p2pTo").value,+$("#p2pN").value);bankTab="p2p";re()}}}

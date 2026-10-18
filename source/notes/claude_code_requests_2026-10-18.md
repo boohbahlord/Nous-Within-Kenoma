@@ -85,6 +85,12 @@ The earlier to-do list (B1–B9, L1–L10, M1–M3, O1–O3, R1–R4) is in next
     > let's put the note for king of the hill into a note and leave it there, we dont have to do it today, i want to delay that update for later
 21. > where is the one screen that shows me your plan u had ?
 
+22. The Bank's rules (asked first as questions, 2026-10-18):
+    > Whenever a player gets a loan or credit, it takes one mana from the bank for every mana they get. The player should not be able to get credit the next round after going negative, and after that first round, they have to wait the amount of turns they spent in mana from credit. Furthermore, the loan will not be able to be done more then once a round, and it cannot be done again until the first loan is paid off. If the loan isn't paid off in the amount of rounds numbered in the mana loaned (so 6 rounds for 12 mana loaned for example), then the players is unable to draw credit until the debt is paid off once they failed that. The debt still grows 1d2 mana every 3 turns. This should be the new rule about debt: If a player has -6 mana for more than 1d3+1 turns then that automatically summons debt collectors, like 1d3 at least or whatever it was before. They keep spawning to attack the character that owes the bank every turn until the debt is paid off. Remember the debt collectors take mana in the form of the cards they damage. Before we implement this, help me understand anything I'm missing or something like that. What are other bank rules? The bank rules confuse me rn for loans when i read the info, specifically near the end when the engllish looks bad...
+23. The Bank's rules, final:
+    > implement the limits i talked about and let a player go only to -8 in debt, the bank can only go -8 in debt too now. If everyone is -3 mana including the bank, then that causes the economic collapse event. The debt collectors should target anyone who causes them to spawn in the first place, and they spawn when debt is left unpaid for three turns instead of four, and it should spawn 1d2 of them every turn until the debt is paid off by everyone, in the order of who owes the most debt first. If two are guilty of this, then that dice roll for how often the spawn is rolled twice. Loans are due for players by the one who accepts the loan, and the player who requested the loan gets a pop up message asking if they still want to do the loan (because they have to review how many turns it is owed in. The player could decide if it is 2 turns to 12 turns. Just provide a limit of how often loans can be done per turns and how many turns till they can be done again. With credit, you can let a player spend themselves into they lose without limiting it.
+24. > remember to do the new songs as well, but idc ab the pixel maps rn you can defer that
+
 ## Digest
 Done and live:
 - C1 Site-wide click sound (v38). C2 Scout: 2-tile diamond; Beginner default (v39). C3 Overdraw: no more draw rolls in a turn after
@@ -175,3 +181,11 @@ were tested with the tab-to-tab stand-in that uses the same logic.
   plus the soul worth of the card raised, shown under each card. "Worth" read as the card's soul worth (its mana as a soul).
 - 20 done: King of the Hill moved to notes/king_of_the_hill_later.md, marked deferred.
 - 21: the plan is Part C of notes/v44_sheet_2026-10-18.md (sent to the user as a file).
+- 22–23 done (PR 14): the floor is −8 for players and the Bank; the collapse comes when the Bank and every player are at −3 or
+  lower; mana debt and loans grow by 1d2 every 3 turns; Bank loans: one at a time, one a round, the next no sooner than 3 turns
+  after the last, due in half the amount in turns (at least 2), paid out of the Bank's mana (the Bank down to −8); credit has
+  no limit but the −8 floor; at −6 or lower for 3 turns a player is in default: 1d2 Debt Collectors at the start of each of
+  their turns (six at most on the field), aimed at whoever in default owes most, until the debt is paid off; player loans: the
+  lender sets 2–12 turns, the borrower sees the terms in a popup and takes or declines it. Gambling's 7d2 debt and payout
+  stop at the floors. The Bank's texts rewritten in plain English.
+- 24: T3 (pixel-art battle maps) deferred by the user; M1 (new songs) is next.
