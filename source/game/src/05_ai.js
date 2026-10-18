@@ -10,8 +10,9 @@ const AI=(()=>{
     hard:  {mc:48,noise:0,  thr:.46,spell:1,  skipMove:0,  bias:.12,draw:2},
     horde: {mc:36,noise:0,  thr:.4, spell:0,  skipMove:0,  bias:1,  draw:0}
   };
-  const L=pl=>LV[G.p[pl].cpu]||LV.medium;
-  const lvl=pl=>G.p[pl].cpu;
+  let FAX=null;   // v38: Field Automation plays a person's field with their settings (see 42_fieldauto.js)
+  const L=pl=>FAX&&FAX.pl===pl?LV[FAX.level]||LV.medium:LV[G.p[pl].cpu]||LV.medium;
+  const lvl=pl=>FAX&&FAX.pl===pl?FAX.level:G.p[pl].cpu;
   const jit=pl=>1+(Math.random()*2-1)*L(pl).noise;
   const PUSH={atk:1.5,def:.2,dist:1.1,ally:0},OFF={atk:1.3,def:.7,dist:.35,ally:.1},DEF={atk:.8,def:1.35,dist:.06,ally:.35},HORDE={atk:1.5,def:.35,dist:.7,ally:.05};
   let cache=new Map();
@@ -30,8 +31,8 @@ const AI=(()=>{
     const j=st.cards.find(c=>kind(c)==="joker");if(j)t+=2.5+capMana(j);
     return t;
   }
-  const gain=E=>((killsOnHit(E)?value(E):value(E)/E.cards.length)+threat(E)*.35)*(hq()&&hasK(E,"ace")?3:1);   // in Headquarters the enemy bases are the prize
-  const loss=S=>killsOnHit(S)?value(S):value(S)/S.cards.length;
+  const gain=E=>((killsOnHit(E)?value(E):value(E)/E.cards.length)+threat(E)*.35)*(hq()&&hasK(E,"ace")?3:1)*(FAX?FAX.gainMul(E):1);   // in Headquarters the enemy bases are the prize
+  const loss=S=>(killsOnHit(S)?value(S):value(S)/S.cards.length)*(FAX?FAX.lossMul:1);
   const dist=(r1,c1,r2,c2)=>Math.abs(r1-r2)+Math.abs(c1-c2);
   /* walking distance around the river and cut corners (straight steps over open tiles) */
   let pcache=new Map();
@@ -68,7 +69,8 @@ const AI=(()=>{
     if(near===99){   // nothing in sight (fog of war): head for the enemy's ground
       let d=99;for(const e of enemiesOf(pl))for(const [er,ec] of zoneTiles(e))d=Math.min(d,walk(r,c,er,ec));near=d===99?0:d*.8}
     // the Horde and offense push toward the enemy's back line too
-    return W.atk*opp-W.def*risk-W.dist*near+W.ally*allies;
+    const ctr=W.ctr?Math.abs(r-(G.rows-1)/2)+Math.abs(c-(COLS-1)/2):0;   // Field Automation: holding the center
+    return W.atk*opp-W.def*risk-W.dist*near+W.ally*allies-(W.ctr||0)*ctr;
   }
   function stance(pl){
     if(isHorde(pl))return HORDE;
@@ -128,6 +130,7 @@ const AI=(()=>{
       if(Math.random()<lv.skipMove)continue;
       if(st.cards.every(c=>c.unit==="miner"))continue;   // lone Miners have their own errands
       let grp=st.cards.filter(c=>!isBase(c)&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter)));   // Miners, Repairmen and shooters stay in their baseif(!grp.length||st.stun)continue;
+      if(FAX&&!FAX.ok(grp))continue;   // Field Automation: a stack it doesn't control stays where the player put it
       if(!stackLegal(grp)){ // too many to leave together (a full Ace): send out the strongest group that can stand on its own
         const g2=[];for(const c of [...grp].sort((a,b)=>rate(b)-rate(a)))if(stackLegal([...g2,c]))g2.push(c);grp=g2;if(!grp.length)continue}
       const inAce=hasBase(st);const S={cards:grp,owner:pl,hypo:st.hypo};
@@ -137,7 +140,7 @@ const AI=(()=>{
       for(const [r,c] of tg){
         const t=G.board[r][c];
         let s;
-        if(t){const M={cards:[...t.cards,...grp],owner:pl,hypo:0};s=tileScore(pl,M,r,c,W,true)-tileScore(pl,t,r,c,W,true)+.2}
+        if(t){const M={cards:[...t.cards,...grp],owner:pl,hypo:0};s=tileScore(pl,M,r,c,W,true)-tileScore(pl,t,r,c,W,true)+.2+(W.stack||0)}
         else s=tileScore(pl,S,r,c,W,true);
         s*=jit(pl);
         if(!best||s>best.s)best={r,c,s};
@@ -152,6 +155,7 @@ const AI=(()=>{
     const lv=L(pl);let best=null;
     for(const {st,r,c} of stacksOf(pl)){
       for(const o of attackOptions(r,c)){
+        if(FAX&&!FAX.okAtk(st,o))continue;   // Field Automation: only the cards it controls
         const r2=o.r,c2=o.c,E=G.board[r2][c2];
         if(o.mode==="capture"||o.mode==="destroy"||o.mode==="ram"){const sc=(o.mode==="capture"?value(E)+2:o.mode==="ram"?3.5:value(E)*.8+.5)*jit(pl);if(!best||sc>best.sc)best={r,c,r2,c2,sc,p:1,mode:o.mode};continue}
         if(o.mode==="suppress"){if(lvl(pl)!=="easy"&&canAttackFrom({cards:E.cards,attacked:false})&&Math.random()<.12){const sc=.45;if(!best||sc>best.sc)best={r,c,r2,c2,sc,p:1,mode:o.mode}}continue}
@@ -159,7 +163,7 @@ const AI=(()=>{
         const sc=(p*gain(E)*(o.mode==="stomp"?.6:1)-(1-p)*loss(st))*jit(pl);
         const late=isHorde(pl)?0:G.turnNo>90?Math.min(.25,.1+(G.turnNo-90)/200):!G.p[pl].deck.length?.1:0;
   
-        const go=p>=(lv.thr-late)*(lvl(pl)==="easy"?(.7+Math.random()*.6):1)||(lvl(pl)!=="easy"&&sc>.4)||isHorde(pl);   // the Horde never holds back: whatever it can reach, it hits
+        const go=p>=(lv.thr-late+(FAX?FAX.thrAdj:0))*(lvl(pl)==="easy"?(.7+Math.random()*.6):1)||(lvl(pl)!=="easy"&&sc>.4)||isHorde(pl);   // the Horde never holds back: whatever it can reach, it hits
         if(go&&(!best||sc>best.sc))best={r,c,r2,c2,sc,p,mode:o.mode};
       }
     }
@@ -329,5 +333,13 @@ const AI=(()=>{
     for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){if(!canPlace(card,r,c))continue;const s=placeScore(pl,card,r,c,W);if(!best||s>best.s)best={r,c,s}}
     return best?[best.r,best.c]:null;
   }
-  return{phase,setup,choose,winP,value,LV,bestSpot};
+  /* Field Automation: the field of a person, with their settings in ctx (built in 42_fieldauto.js) */
+  async function field(pl,ph,ctx){FAX=Object.assign({pl},ctx);cache.clear();pcache.clear();
+    try{
+      if(ph==="prep"){if(ctx.moves)await moves(pl,ctx.W);
+        if(ctx.ambushP>0)for(const {st,r,c} of stacksOf(pl)){if(!canAmbush(st)||st.ambush||st.moved||st.attacked||!ctx.ok(st.cards.filter(x=>!isBase(x))))continue;
+          if(!attackOptions(r,c).length&&Math.random()<ctx.ambushP){st.ambush=true;log(`${plName(pl)}'s field sets a stack in ambush.`,"ai")}}}
+      else if(ph==="attack")await attacks(pl);
+    }finally{FAX=null;cache.clear();G.sel=null}}
+  return{phase,setup,choose,winP,value,LV,bestSpot,field,stance:pl=>stance(pl),W:{PUSH,OFF,DEF},enemyStacks:pl=>enemyStacks(pl)};
 })();

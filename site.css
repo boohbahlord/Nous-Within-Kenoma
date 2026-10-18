@@ -162,6 +162,15 @@ html.th-black{--ground:#000;--well:#0b0b0b;--deep:#000;--text:#f2f2f2;--dim:#b8b
 html.th-black ol.toc a,html.th-black .pager{border-color:#3a3a3a}
 /* Kenoma (dull): the burnt amber gone quiet, the orange drained and a faint yellow left in it */
 html.th-dull{--ground:#18150f;--well:#201c14;--deep:#110f0a;--text:#e4dabd;--dim:#b2a785;--amber:#c8b273;--amber-hi:#e6d49a;--rule:#3d3524}
+/* Office Dark: the same ribbon in charcoal */
+html.th-officedark{--ground:#1b1c1f;--well:#26282c;--deep:#151619;--text:#e3e5e8;--dim:#a0a4ab;--amber:#5b9bf0;--amber-hi:#8ab8ff;--rule:#3a3d43;--string:#000}
+/* Earth: a night druid's grove: dark soil and moss, pale bone text, lichen-gold light */
+html.th-earth{--ground:#0e130d;--well:#151c13;--deep:#0a0e09;--text:#dcd8c0;--dim:#9fa486;--amber:#9bbf5e;--amber-hi:#cfe08c;--rule:#2e3b25;--string:#030502;
+  background:radial-gradient(ellipse 120% 70% at 50% -10%,#1d2c18,#0e130d 62%) fixed}
+/* Dark Fantasy: an old dungeon behind everything; grey and crimson panels, gold and silver */
+html.th-darkfantasy{--ground:#0d0a0e;--well:#1b161cea;--deep:#100c11ee;--text:#dcd9df;--dim:#a49ba6;--amber:#c9a24a;--amber-hi:#efd583;--rule:#5b2830;--string:#000;
+  background:linear-gradient(#0a070bb3,#0a070bcc),url(dark-fantasy.png) center/cover fixed;image-rendering:pixelated}
+html.th-darkfantasy body{image-rendering:auto}
 /* Office: white paper, light grey panels, a blue ribbon accent; inspired by an office suite, not a copy of one */
 html.th-office{--ground:#f3f3f3;--well:#ffffff;--deep:#e9eaec;--text:#252525;--dim:#5f6368;--amber:#2b579a;--amber-hi:#1a3f78;--rule:#c8cacd;--string:#c8cacd;color-scheme:light}
 .crumbs .arrows a{margin:0 2px}

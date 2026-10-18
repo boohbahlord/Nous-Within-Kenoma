@@ -82,6 +82,7 @@ const NETFN={
  tileClick:{get:()=>tileClick,set:f=>tileClick=f,aim:true,only:()=>!!(G&&G.aim)},   // a tile is only sent while aiming
  setCredit:{get:()=>setCredit,set:f=>setCredit=f,any:true},
  setAutoBless:{get:()=>setAutoBless,set:f=>setAutoBless=f,any:true},
+ setFieldAuto:{get:()=>setFieldAuto,set:f=>setFieldAuto=f,any:true},
  ambushToggle:{get:()=>ambushToggle,set:f=>ambushToggle=f},
  libDone:{get:()=>libDone,set:f=>libDone=f}};
 for(const [name,F] of Object.entries(NETFN)){const orig=F.get();

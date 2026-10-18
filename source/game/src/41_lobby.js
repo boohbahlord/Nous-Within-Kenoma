@@ -23,7 +23,7 @@ function lobbySend(){clearTimeout(lobbyT);lobbyT=setTimeout(()=>{lobbyT=null;if(
   const roster=[{id:"host",name:NET.name,host:true,seat:seats.findIndex(s=>s&&s.type==="human"),tribe:(seats.find(s=>s&&s.type==="human")||{}).tribe||null}]
     .concat(guestIds().map(id=>{const g=NET.guests[id],si=seats.findIndex(s=>s&&s.type==="net:"+id);return {id,name:g.name,pick:g.pick||null,seat:si}}));
   const taken=seats.filter(Boolean).map((s,i)=>({i,tribe:s.tribe,type:s.type}));
-  for(const id of guestIds())sendTo(id,{t:"lobby",host:NET.name,roster,taken,status:NET.status,you:id})},80)}
+  const room=myRoom();for(const id of guestIds())sendTo(id,{t:"lobby",host:NET.name,roster,taken,status:NET.status,you:id,room})},80)}
 function setStatus(k){if(NET.status===k)return;NET.status=k;lobbySend()}
 /* the room screen shows the same list */
 {const _lr=lobbyRoster;lobbyRoster=function(){_lr();const e=$("#onRoster");
@@ -48,7 +48,7 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
 /* ---------- a joined player's lobby ---------- */
 let lobbyTab="lobby";
 function guestLobby(){
-  ovShow(`<div class="ovbox setup online glob"><div class="shead"><h2>Online${NET.hostName?` · ${esc(NET.hostName)}'s room`:""}</h2><p class="dim">Choose your player and your look while the host sets up the game.</p></div>
+  ovShow(`<div class="ovbox setup online glob"><div class="shead"><h2>Online${NET.hostName?` · ${esc(NET.hostName)}'s room`:""}</h2><p class="dim">Choose your player and your look while the host sets up the game.</p>${NET.roomInfo?`<p class="rmline"><b>${esc(NET.roomInfo.title)}</b>${NET.roomInfo.desc?` <span class="dim">· ${esc(NET.roomInfo.desc)}</span>`:""}</p>`:""}</div>
 <div class="stabs" role="tablist">${[["lobby","Lobby"],["me","Your player"],["display","Display"]].map(([k,t])=>`<button type="button" role="tab" class="stab ${k===lobbyTab?"on":""}" data-lt="${k}" aria-selected="${k===lobbyTab}">${t}</button>`).join("")}</div>
 <div class="spanel" data-lp="lobby" ${lobbyTab==="lobby"?"":"hidden"}><div class="onl"><p id="onMsg" class="lstatus"></p><div id="gRoster"></div></div></div>
 <div class="spanel" data-lp="me" ${lobbyTab==="me"?"":"hidden"}><div id="gMe"></div></div>
