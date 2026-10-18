@@ -1040,3 +1040,29 @@ table.tierolls td{padding:3px 12px 3px 0;border-bottom:1px solid #ffffff14}
 #fx .sigil.big{font-size:46px}
 #fx .popn{display:flex;align-items:center;justify-content:flex-start;color:var(--fc);font:600 15px/1 var(--mono);text-shadow:0 0 6px #000,0 0 10px var(--fc)}
 #fx .minicard{border:1px solid #e6d6bd;background:#2a1d12;border-radius:2px}
+/* v33: signs, effects, Mystery Generation's reveal */
+#fx .sign{display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 0 6px var(--fc)) drop-shadow(0 0 1px #000)}
+#fx .sign svg{overflow:visible}
+#fx .svgfx svg{overflow:visible;display:block}
+#fx .bolt{filter:drop-shadow(0 0 8px #9fd4ff)}
+#fx .boomcore{border-radius:50%;background:radial-gradient(circle,#fffbe8 0,#ffd27a 30%,#ff7a2a 55%,transparent 72%);mix-blend-mode:screen}
+#fx .spark{border-radius:50%;background:#ffd27a;box-shadow:0 0 6px #ff9a3a}
+#fx .meteorball{border-radius:50%;background:radial-gradient(circle at 40% 40%,#fff3c4,#ff9a3a 45%,#b8320a 75%);box-shadow:0 0 18px #ff7a2a,-14px -14px 26px #ff7a2a66}
+#fx .flame{border-radius:50% 50% 45% 45%/60% 60% 40% 40%;background:radial-gradient(ellipse at 50% 70%,#fff2b0 0,#ffb347 35%,#ff5a1a 65%,transparent 75%);mix-blend-mode:screen}
+#fx .drop{background:linear-gradient(#9ec9ff00,#9ec9ffcc);border-radius:1px}
+#fx .gust{background:linear-gradient(90deg,transparent,#e6f1ffaa,transparent);border-radius:2px}
+#fx .fogsheet{background:radial-gradient(ellipse 50% 60% at 30% 50%,#d8d2c8aa,transparent 70%),radial-gradient(ellipse 45% 55% at 70% 40%,color-mix(in srgb,var(--fc) 40%,#d8d2c8 60%),transparent 70%);filter:blur(6px)}
+#fx .wispo{border-radius:50%;background:radial-gradient(circle,#efeaff 0,#9a8cf2 45%,transparent 72%);box-shadow:0 0 14px #9a8cf2}
+#fx .dropm{border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:#6f5cf0;box-shadow:0 0 5px #8c7cff}
+#fx .dropm.up{background:#b8acff}
+#fx .impact{filter:drop-shadow(0 0 6px #ff9a5a)}
+.mysbox .myscard{position:relative}
+.mysbox .myscard.fresh{animation:mysflip .55s cubic-bezier(.3,.7,.3,1) both}
+.mysbox .myscard.fresh::after{content:"";position:absolute;inset:-6px;border-radius:8px;pointer-events:none;box-shadow:0 0 0 2px var(--rc),0 0 22px var(--rc);opacity:0;animation:mysglow 1.4s ease-out .3s both}
+.mysbox .myscard.fresh.tier-epic::after,.mysbox .myscard.fresh.tier-legendary::after,.mysbox .myscard.fresh.tier-mythic::after{animation-duration:2.4s}
+.mysbox .myscard.tier-legendary::before,.mysbox .myscard.tier-mythic::before{content:"";position:absolute;inset:-26px;z-index:-1;pointer-events:none;border-radius:50%;background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--rc) 55%,transparent) 0 8deg,transparent 8deg 22deg);mask:radial-gradient(circle,#000 30%,transparent 70%);-webkit-mask:radial-gradient(circle,#000 30%,transparent 70%);animation:mysrays 9s linear infinite;opacity:.8}
+@keyframes mysflip{0%{transform:perspective(600px) rotateY(90deg) scale(.9);opacity:.3}100%{transform:perspective(600px) rotateY(0) scale(1);opacity:1}}
+@keyframes mysglow{0%{opacity:0}25%{opacity:1}100%{opacity:.25}}
+@keyframes mysrays{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.mysbox .myscard.tier-legendary::before,.mysbox .myscard.tier-mythic::before{animation:none}}
+.mysbox .myscard{isolation:isolate}

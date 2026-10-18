@@ -6448,16 +6448,252 @@ const FX_OATH=id=>id.startsWith("oath_");
   const tileSpell=/\bSelect\b|\bselected\b/.test(sp.text||"");
   later(()=>{
     const fresh=(G.fires||[]).filter(f=>!fires0.has(f.r+","+f.c)).map(f=>[f.r,f.c]).filter(([r,c])=>FX.sees(r,c));
-    if(fresh.length)FX.area(fresh,"#ff7a2a",.6);
-    if(sp.shop||FX_SKY.has(sp.id)){FX.burst(FX.rectOf($("#moon svg.moon")||$("#moon")),col,true);FX.area(FX.all().filter(([r,c])=>FX.sees(r,c)),col,.18);return}
-    if(FX_OATH(sp.id)){FX.burst(FX.rectOf($("#moon svg.moon")||$("#moon")),col,false);FX.burst(FX.rectOf(barOf(pl,".manabar")),col);return}
-    if(FX_AREA.has(sp.id)){FX.area(FX.all().filter(([r,c])=>FX.sees(r,c)),col,.38);return}
-    if(tileSpell&&sel&&(pl===view()||FX.sees(sel.r,sel.c))){FX.burst(FX.tile(sel.r,sel.c),col);return}
-    if(sp.school==="Conjuring"){FX.burst(FX.rectOf($("#seeether")),col);FX.burst(FX.rectOf(barOf(pl,".deckbar")),col);return}
-    if(sp.school==="Necromancy"){FX.burst(FX.rectOf($("#seegrave")),col);return}
-    if(sp.id==="robbank"){FX.burst(FX.rectOf($("#bankslot")),SCHOOL_COL.Bank);return}
-    if(!fresh.length)FX.burst(FX.rectOf(barOf(pl,".manabar")),col)})}}
+    if(fresh.length){FX.area(fresh,"#ff7a2a",.6);if(FX.flames)fresh.forEach(([r,c],i)=>FX.flames(FX.tile(r,c),i*40))}
+    const land=(rect,big)=>{if(!rect)return;FX.burst(rect,col,big);if(FX.symbol)FX.symbol(rect,sp.school,big)};   // v33: the school's sign rises where it lands
+    if(FX.spell&&FX.spell(sp,sel,pl))return;   // v33: spells with their own effect (lightning, rain, wind, fog...)
+    if(sp.shop||FX_SKY.has(sp.id)){land(FX.rectOf($("#moon svg.moon")||$("#moon")),true);FX.area(FX.all().filter(([r,c])=>FX.sees(r,c)),col,.18);return}
+    if(FX_OATH(sp.id)){land(FX.rectOf($("#moon svg.moon")||$("#moon")),false);FX.burst(FX.rectOf(barOf(pl,".manabar")),col);return}
+    if(FX_AREA.has(sp.id)){FX.area(FX.all().filter(([r,c])=>FX.sees(r,c)),col,.38);land(FX.rectOf($("#board")),true);return}
+    if(tileSpell&&sel&&(pl===view()||FX.sees(sel.r,sel.c))){land(FX.tile(sel.r,sel.c));return}
+    if(sp.school==="Conjuring"){land(FX.rectOf($("#seeether")));FX.burst(FX.rectOf(barOf(pl,".deckbar")),col);return}
+    if(sp.school==="Necromancy"){land(FX.rectOf($("#seegrave")));return}
+    if(sp.id==="robbank"){FX.burst(FX.rectOf($("#bankslot")),SCHOOL_COL.Bank);if(FX.dollar)FX.dollar(FX.rectOf($("#bankslot")));return}
+    if(!fresh.length)land(FX.rectOf(barOf(pl,".manabar")))})}}
 
 if(window.__EC)Object.assign(window.__EC,{FX,cast:sp=>cast(sp),sacrifice:(...a)=>sacrifice(...a),doMove:(r,c)=>doMove(r,c),attack:(...a)=>attack(...a),damage:(...a)=>damage(...a)});
+
+/* ---------------- Prompt 12, part 4b (v33): the schools' signs, the rest of the effects, Mystery Generation's reveal ----------------
+   Every spell raises its school's sign where it lands: Necromancy Saturn (lead) ♄, Enchantment Jupiter ♃, Curse Mars ♂, Sorcery the
+   Sun ☉ (with rays, to tell it from gold), Illusion Neptune ♆, Conjuring alchemical gold ☉, Astrology the Earth ⊕. The sacrifice sign
+   is bigger. Effects: lightning (Lightning Strike), meteor and boom (Asteroid, meteors), fire (flames on burning tiles), rain (Rain),
+   wind (Bird's Eye, Teleport), fog (the Firmament's Fog, Quiet Eyes), wisp (cards raised from the grave), pour and fill (mana spent and
+   gained), blunt (melee blows), boom (Cannons and Rams). "$" pops on the Bank window's buttons and where a Debt Collector strikes.
+   Mystery Generation: a card turns over with its rarity's glow; Epic and up shine longer, Legendary and Mythic with rays. */
+
+/* ---------- the signs, drawn so every device shows the same ---------- */
+const SIGN={
+ Necromancy:`<path d="M6 5h7 M9.5 2v12 M9.5 11c0-3 7-3.5 7 1c0 3-4 4-4 7c0 2 2 3 4 2"/>`,                                  // Saturn, lead
+ Enchantment:`<path d="M5 8c0-4.5 7.5-4.5 7.5 0c0 3-4 6-7.5 9.5h14 M16 3v18"/>`,                                            // Jupiter
+ Curse:`<circle cx="10" cy="14" r="5.6"/><path d="M14 10l6-6 M14.5 4h5.5v5.5"/>`,                                               // Mars
+ Sorcery:`<circle cx="12" cy="12" r="5.2"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><path d="M12 2.2v2.6M12 19.2v2.6M2.2 12h2.6M19.2 12h2.6M5.1 5.1l1.8 1.8M17.1 17.1l1.8 1.8M5.1 18.9l1.8-1.8M17.1 6.9l1.8-1.8"/>`,   // the Sun
+ Illusion:`<path d="M12 3.5v18 M8.5 18.5h7 M5 6.5v2c0 3.5 3 5.5 7 5.5s7-2 7-5.5v-2 M3.5 8l1.5-3 1.5 3 M10.5 6l1.5-3 1.5 3 M17.5 8l1.5-3 1.5 3"/>`,   // Neptune
+ Conjuring:`<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/>`,              // gold
+ Astrology:`<circle cx="12" cy="12" r="8"/><path d="M12 4v16 M4 12h16"/>`,                                                     // the Earth
+ Bank:`<path d="M15.5 7.5c-1-1.6-6.5-2.2-6.5 1c0 3.6 7 2.2 7 6c0 3.2-5.6 2.8-7 1 M12 4v16"/>`};                                 // $
+const signSVG=(k,px)=>`<svg viewBox="0 0 24 24" width="${px}" height="${px}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${SIGN[k]||SIGN.Astrology}</svg>`;
+const SIGN_TXT={Necromancy:"#9a8cf2",Enchantment:"#f0cc5a",Curse:"#ff4a52",Sorcery:"#4fd384",Illusion:"#ffa04a",Conjuring:"#8c7cff",Astrology:"#4fe0cf",Bank:"#f1d27a"};
+FX.symbol=function(rect,school,big,px){if(!rect)return;const s=px||(big?78:46);
+  const e=FX.make("sign",rect,{w:s,h:s,col:SCHOOL_COL[school]||"#ccc",html:signSVG(school,s)});if(!e)return;e.style.color=SIGN_TXT[school]||"#eee";
+  FX.play(e,[{transform:"translateY(8px) scale(.55)",opacity:0},{transform:"translateY(-4px) scale(1)",opacity:1,offset:.28},{transform:`translateY(${big?-40:-24}px) scale(${big?1.25:1.08})`,opacity:0}],big?1400:1050)};
+/* the sacrifice: Saturn's sign, bigger than before */
+FX.sigil=function(rect,big){if(!rect)return;FX.symbol(rect,"Necromancy",big,big?Math.max(96,rect.height*1.4):Math.max(56,rect.height*.85));if(big)FX.burst(rect,SCHOOL_COL.Necromancy,true)};
+FX.dollar=function(rect){if(!rect)return;FX.symbol(rect,"Bank",false,34)};
+
+/* ---------- the effects ---------- */
+FX.svgAt=function(rect,html,cls,w,h,o={}){const e=FX.make("svgfx "+(cls||""),rect,{w,h,html:`<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${html}</svg>`,...o});return e};
+FX.lightning=function(rect){if(!rect)return;const h=Math.min(rect.top+rect.height/2,420),w=rect.width;let x=w/2,y=0,d=`M${x} 0`;
+  while(y<h-10){y+=10+Math.random()*18;x=w/2+(Math.random()-.5)*w*.55;d+=` L${x.toFixed(1)} ${Math.min(y,h).toFixed(1)}`}
+  const e=FX.svgAt(rect,`<path d="${d}" fill="none" stroke="#e8f4ff" stroke-width="3" stroke-linejoin="bevel"/><path d="${d}" fill="none" stroke="#7fc4ff" stroke-width="7" opacity=".35"/>`,"bolt",w,h,{dy:-h/2});
+  FX.play(e,[{opacity:0},{opacity:1,offset:.08},{opacity:.2,offset:.25},{opacity:1,offset:.4},{opacity:0}],520,0,"linear");FX.hit(rect,"#bfe3ff")};
+FX.boom=function(rect,delay=0){if(!rect)return;const s=Math.max(rect.width,rect.height);
+  FX.play(FX.make("boomcore",rect,{w:s*.9,h:s*.9}),[{transform:"scale(.2)",opacity:1},{transform:"scale(1)",opacity:.9,offset:.3},{transform:"scale(1.3)",opacity:0}],600,delay);
+  FX.play(FX.make("ring",rect,{w:s*1.3,h:s*1.3,col:"#ffb347"}),[{transform:"scale(.3)",opacity:1},{transform:"scale(1.2)",opacity:0}],700,delay);
+  for(let i=0;i<6;i++){const a=Math.PI*2*i/6+Math.random()*.5,dd=s*(.5+Math.random()*.3);
+    FX.play(FX.make("spark",rect,{w:5,h:5}),[{transform:"translate(0,0)",opacity:1},{transform:`translate(${Math.cos(a)*dd}px,${Math.sin(a)*dd}px)`,opacity:0}],520,delay+40)}};
+FX.meteor=function(rect){if(!rect)return;const s=Math.max(18,rect.width*.35),e=FX.make("meteorball",rect,{w:s,h:s});
+  FX.play(e,[{transform:`translate(${innerWidth*.35}px,${-innerHeight*.5}px)`,opacity:.2},{transform:"translate(0,0)",opacity:1}],520,0,"ease-in");FX.boom(rect,480)};
+FX.flames=function(rect,delay=0){if(!rect)return;for(let i=0;i<4;i++){const dx=(Math.random()-.5)*rect.width*.6,s=rect.width*(.16+Math.random()*.1);
+  FX.play(FX.make("flame",rect,{w:s,h:s*1.6,dx,dy:rect.height*.22}),[{transform:"translateY(0) scale(.6)",opacity:0},{transform:"translateY(-6px) scale(1)",opacity:1,offset:.3},{transform:`translateY(${-rect.height*.45}px) scale(.4)`,opacity:0}],800,delay+i*90)}};
+FX.rain=function(){const B=FX.rectOf($("#board"));if(!B)return;for(let i=0;i<46;i++){const x=Math.random()*B.width,e=FX.make("drop",{left:B.left+x,top:B.top,width:0,height:0},{w:2,h:16});
+  FX.play(e,[{transform:"translateY(0)",opacity:0},{transform:`translateY(${B.height*.2}px)`,opacity:.8,offset:.15},{transform:`translateY(${B.height}px)`,opacity:0}],700+Math.random()*300,Math.random()*700,"linear")}};
+FX.wind=function(rect){const B=rect||FX.rectOf($("#board"));if(!B)return;for(let i=0;i<10;i++){const y=B.top+B.height*(.1+.8*Math.random()),e=FX.make("gust",{left:B.left,top:y,width:0,height:0},{w:B.width*.35,h:2});
+  FX.play(e,[{transform:"translateX(0)",opacity:0},{transform:`translateX(${B.width*.4}px)`,opacity:.7,offset:.4},{transform:`translateX(${B.width*.9}px)`,opacity:0}],900,i*70,"ease-in-out")}};
+FX.fogroll=function(col){const B=FX.rectOf($("#board"));if(!B)return;const e=FX.make("fogsheet",B,{col});
+  FX.play(e,[{transform:"translateX(-40%)",opacity:0},{transform:"translateX(0)",opacity:.75,offset:.45},{transform:"translateX(25%)",opacity:0}],1600,0,"ease-in-out")};
+FX.wisp=function(a,b,delay=0){if(!a||!b)return;const e=FX.make("wispo",a,{w:14,h:14,col:SCHOOL_COL.Necromancy});const dx=b.left+b.width/2-(a.left+a.width/2),dy=b.top+b.height/2-(a.top+a.height/2);
+  FX.play(e,[{transform:"translate(0,0) scale(.6)",opacity:0},{transform:`translate(${dx*.4}px,${dy*.4-40}px) scale(1.1)`,opacity:1,offset:.45},{transform:`translate(${dx}px,${dy}px) scale(.5)`,opacity:0}],900,delay,"ease-in-out")};
+FX.pour=function(rect,n){if(!rect)return;for(let i=0;i<Math.min(6,n);i++){const dx=(Math.random()-.5)*rect.width*.7;
+  FX.play(FX.make("dropm",rect,{w:5,h:8,dx}),[{transform:"translateY(0)",opacity:1},{transform:"translateY(26px)",opacity:0}],520,i*60,"ease-in")}};
+FX.fill=function(rect,n){if(!rect)return;for(let i=0;i<Math.min(6,n);i++){const dx=(Math.random()-.5)*rect.width*.7;
+  FX.play(FX.make("dropm up",rect,{w:5,h:5,dx,dy:14}),[{transform:"translateY(0) scale(.6)",opacity:0},{transform:"translateY(-6px) scale(1)",opacity:1,offset:.4},{transform:"translateY(-18px)",opacity:0}],600,i*60)}};
+FX.blunt=function(rect){if(!rect)return;const s=rect.width*.55;
+  const e=FX.svgAt(rect,`<path d="M30 2l5 17 17-5-11 14 13 11-18-1 2 18-10-15-10 15 2-18-18 1 13-11-11-14 17 5z" fill="#fff3d6" stroke="#ff9a5a" stroke-width="2" transform="scale(${(s/60).toFixed(3)})"/>`,"impact",s,s);
+  FX.play(e,[{transform:"scale(.3) rotate(-10deg)",opacity:1},{transform:"scale(1) rotate(0)",opacity:.9,offset:.35},{transform:"scale(1.1)",opacity:0}],380,90)};
+
+/* ---------- where they play ---------- */
+const sel2=sel=>sel&&FX.sees(sel.r,sel.c)?FX.tile(sel.r,sel.c):null;
+FX.spell=function(sp,sel,pl){const col=SCHOOL_COL[sp.school];
+  if(sp.id==="bolt"){const t=sel2(sel);if(t){FX.lightning(t);FX.symbol(t,sp.school)}else FX.lightning(FX.rectOf($("#moon svg.moon")));return true}
+  if(sp.id==="rain"){FX.rain();FX.symbol(FX.rectOf($("#board")),sp.school,true);return true}
+  if(sp.id==="bird"){FX.wind();FX.symbol(FX.rectOf($("#board")),sp.school,true);return true}
+  if(sp.id==="tele"){const t=sel2(sel);if(t){FX.wind(t);FX.symbol(t,sp.school)}return !!t}
+  if(sp.id==="ffog"||sp.id==="quiet"){FX.fogroll(col);FX.symbol(FX.rectOf($("#board")),sp.school,true);return true}
+  return false};
+{const _ss=skyStrike;skyStrike=function(r,c,why){const rect=FX.on()&&FX.sees(r,c)?FX.tile(r,c):null;const out=_ss.apply(this,arguments);if(rect)later(()=>{FX.meteor(rect);for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++)if((dr||dc)&&FX.sees(r+dr,c+dc))FX.flames(FX.tile(r+dr,c+dc),520)});return out}}
+/* melee blows land blunt; Cannons and Rams go boom; a Debt Collector's blow shows "$" */
+{const _at=attack;attack=function(r1,c1,r2,c2,mode){
+  const A=G.board[r1]&&G.board[r1][c1];let kind2=null;
+  if(FX.on()&&A&&FX.sees(r2,c2)){const o=attackOptions(r1,c1).find(x=>x.r===r2&&x.c===c2&&(mode==null||x.mode===mode))||{};
+    kind2=mode==="ram"||hasK(A,"cannon")&&o.ranged?"boom":hasK(A,"debt")||isNPC(A.owner)&&G.p[A.owner].npc==="bank"?"dollar":o.ranged?null:"blunt"}
+  const rect=kind2?FX.tile(r2,c2):null;const out=_at.apply(this,arguments);
+  if(rect)later(()=>{if(kind2==="boom")FX.boom(rect,180);else if(kind2==="dollar"){FX.blunt(rect);FX.dollar(rect)}else FX.blunt(rect)});return out}}
+/* the grave gives a card back: a wisp from the grave to the hand */
+{const _pg=pickGrave;pickGrave=async function(pl,n,title){const got=await _pg.apply(this,arguments);
+  if(got&&FX.on()){const a=FX.rectOf($("#seegrave")),b=pl===view()?FX.rectOf($("#hand")):FX.rectOf(barOf(pl,".deckbar"));for(let i=0;i<got;i++)FX.wisp(a,b,i*160)}return got}}
+/* mana poured out and filled in */
+{const _sp=spend;spend=function(pl,n){if(FX.on()&&n>0){const r=FX.rectOf(barOf(pl,".manabar"));later(()=>FX.pour(r,n))}return _sp.apply(this,arguments)}}
+{const _gm=giveMana;giveMana=function(pl,n){const got=_gm.apply(this,arguments);if(got>0&&FX.on()&&G.phase!=="setup"){const r=FX.rectOf(barOf(pl,".manabar"));later(()=>FX.fill(r,got))}return got}}
+/* the Bank window: every option clicked shows "$" */
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("#ov .ovbox.bank button, #ov .ovbox.bank input[type=checkbox]");if(!b||b.id==="mcancel"||b.dataset.bt||!FX.on())return;FX.dollar(b.getBoundingClientRect())},true);
+
+/* ---------- Mystery Generation: turning a card over ---------- */
+const MYS_SEEN=new WeakSet();
+{const _mc=mysCardHTML;mysCardHTML=function(g,i,shown){let h=_mc(g,i,shown);if(!shown||!g)return h;
+  const fresh=!MYS_SEEN.has(g.card);MYS_SEEN.add(g.card);
+  return h.replace('class="myscard shown"',`class="myscard shown tier-${g.tier.k}${fresh&&!matchMedia("(prefers-reduced-motion: reduce)").matches?" fresh":""}"`)}}
+
+if(window.__EC)Object.assign(window.__EC,{signSVG});
+
+/* ---------------- Prompt 12, part 5 (v34): sound ----------------
+   One family of small synthesized sounds (no files: everything is made in the browser), quiet, short and simple, all through the
+   same soft room so they sound like one game. The sound switch (sound: on/off) turns all of it off.
+   The table: a click for buttons, its own tap for cards; place, move, death; a single sword clash for blows up close, a bow, a gun,
+   Samson's slug cannon, a cannon, a charge, a repair; mana filling like a flask and pouring out like a liquid; a thud when a deck
+   loses cards and a soft rise when a card comes back from the grave; a small chime in each school's own interval for a spell.
+   The sky: the Blood Moon's static for as long as it lasts; one ambience for the New and the Full Moon; Saturn's church bell at
+   every toll; Mars's war horn; Venus's harp (the opening of the Bach–Gounod Ave Maria, about fifteen seconds); Jupiter's coins;
+   the Sun's march drums, again at every judgement; Mercury's quill and whispers. They play when the body rises and at its cycle or
+   event; each eclipse has its own ambience while it lasts. */
+
+const AUD=(()=>{
+  let ac=null,out=null,room=null;
+  const ok=()=>SND.on&&!!G&&!G.opts.fast&&!document.hidden;
+  function ctx(){if(!SND.on)return null;try{
+    if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();
+      const comp=ac.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=3;comp.connect(ac.destination);
+      out=ac.createGain();out.gain.value=.6;out.connect(comp);
+      // a small shared room: every sound gets the same short tail
+      const len=Math.floor(ac.sampleRate*1.3),ir=ac.createBuffer(2,len,ac.sampleRate);
+      for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3)}
+      room=ac.createConvolver();room.buffer=ir;const rg=ac.createGain();rg.gain.value=.22;room.connect(rg).connect(comp)}
+    if(ac.state==="suspended")ac.resume()}catch(e){return null}return ac}
+  const dest=g=>{g.connect(out);g.connect(room)};
+  function env(g,t,peak,att,dec){g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+att);g.gain.exponentialRampToValueAtTime(.0001,t+att+dec)}
+  function tone(type,f,t,dur,peak,o={}){const a=ac,osc=a.createOscillator(),g=a.createGain();osc.type=type;osc.frequency.setValueAtTime(f,t);
+    if(o.f2)osc.frequency.exponentialRampToValueAtTime(o.f2,t+(o.glide||dur));if(o.det)osc.detune.value=o.det;
+    let node=osc;if(o.lp){const f1=a.createBiquadFilter();f1.type="lowpass";f1.frequency.value=o.lp;node.connect(f1);node=f1}
+    node.connect(g);env(g,t,peak,o.att||.004,dur);dest(g);osc.start(t);osc.stop(t+dur+.05);return osc}
+  function nz(t,dur,peak,o={}){const a=ac,b=a.createBuffer(1,Math.max(1,Math.floor(a.sampleRate*(dur+.05))),a.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+    const s=a.createBufferSource();s.buffer=b;const f=a.createBiquadFilter();f.type=o.type||"bandpass";f.frequency.setValueAtTime(o.f||1000,t);if(o.f2)f.frequency.exponentialRampToValueAtTime(o.f2,t+dur);f.Q.value=o.q||1;
+    const g=a.createGain();s.connect(f).connect(g);env(g,t,peak,o.att||.003,dur);dest(g);s.start(t);s.stop(t+dur+.05);return g}
+  const play=fn=>{if(!ok())return;const a=ctx();if(!a)return;try{fn(a.currentTime+.01)}catch(e){console.error(e)}};
+  const last={};const once=(k,ms,fn)=>{const n=Date.now();if(last[k]&&n-last[k]<ms)return;last[k]=n;play(fn)};
+  /* ---------- the table ---------- */
+  const S={
+    ui:()=>once("ui",40,t=>{tone("sine",1320,t,.03,.045);tone("sine",660,t,.04,.025)}),
+    card:()=>once("card",40,t=>{nz(t,.045,.09,{f:2400,q:1.4});tone("sine",230,t,.07,.06,{f2:150})}),
+    place:()=>once("place",60,t=>{tone("sine",150,t,.12,.2,{f2:70});nz(t,.06,.07,{type:"lowpass",f:900})}),
+    move:()=>once("move",60,t=>{nz(t,.17,.06,{f:600,f2:1800,q:.8,att:.03})}),
+    death:()=>once("death",80,t=>{nz(t,.4,.14,{type:"lowpass",f:1200,f2:150});tone("triangle",330,t,.36,.05,{f2:110})}),
+    clash:()=>once("clash",70,t=>{nz(t,.025,.07,{type:"highpass",f:3000});[1180,1770,2490,3310].forEach((f,i)=>tone("sine",f,t,.28+i*.04,.035/(1+i*.4)))}),
+    blunt:()=>once("blunt",70,t=>{tone("sine",120,t,.14,.18,{f2:60});nz(t,.08,.08,{type:"lowpass",f:700})}),
+    arrow:()=>once("arrow",70,t=>{nz(t,.18,.07,{f:1500,f2:4200,q:2,att:.02});tone("sine",180,t+.17,.08,.09,{f2:120})}),
+    gun:()=>once("gun",70,t=>{nz(t,.32,.22,{type:"lowpass",f:3000,f2:400});tone("sine",120,t,.22,.2,{f2:40})}),
+    slug:()=>once("slug",90,t=>{nz(t,.6,.26,{type:"lowpass",f:2400,f2:200});tone("sine",80,t,.5,.28,{f2:30});nz(t+.02,.3,.1,{type:"highpass",f:2500})}),
+    cannon:()=>once("cannon",90,t=>{nz(t,.9,.26,{type:"lowpass",f:1500,f2:120});tone("sine",90,t,.6,.3,{f2:30})}),
+    charge:()=>once("charge",90,t=>{nz(t,.5,.09,{type:"lowpass",f:200,f2:900,att:.35});tone("sine",130,t+.48,.18,.24,{f2:55});nz(t+.48,.1,.1,{type:"lowpass",f:800})}),
+    repair:()=>once("repair",90,t=>{for(let i=0;i<4;i++)nz(t+i*.06,.015,.09,{f:3200,q:3});tone("sine",2100,t+.27,.2,.04)}),
+    fill:()=>once("fill",140,t=>{const a=ac,o=a.createOscillator(),g=a.createGain(),lfo=a.createOscillator(),lg=a.createGain();o.type="sine";o.frequency.setValueAtTime(420,t);o.frequency.exponentialRampToValueAtTime(1000,t+.45);
+      lfo.type="square";lfo.frequency.value=17;lg.gain.value=.025;lfo.connect(lg).connect(g.gain);o.connect(g);env(g,t,.045,.02,.45);dest(g);o.start(t);lfo.start(t);o.stop(t+.55);lfo.stop(t+.55)}),
+    pour:()=>once("pour",140,t=>{for(let i=0;i<4;i++)tone("sine",950-i*150,t+i*.09,.1,.04,{f2:600-i*80});nz(t,.5,.025,{f:900,q:.7,att:.05})}),
+    deckHit:()=>once("deck",120,t=>{tone("square",110,t,.18,.05,{f2:70,lp:900});nz(t,.1,.1,{f:600,q:1.2})}),
+    raise:()=>once("raise",120,t=>{tone("triangle",220,t,.3,.06,{f2:440});nz(t,.3,.025,{type:"highpass",f:2000,att:.1})}),
+    cast:(school)=>once("cast",80,t=>{const I={Necromancy:[196,233],Enchantment:[392,494],Curse:[233,247],Sorcery:[330,494],Illusion:[370,466],Conjuring:[523,659],Astrology:[440,660],Bank:[784,988]}[school]||[440,554];
+      I.forEach((f,i)=>tone("sine",f,t+i*.07,.6,.04));if(school==="Illusion")tone("sine",932,t+.14,.5,.015,{det:30})}),
+    zap:()=>SND.zap(),
+    meteor:()=>once("meteor",200,t=>{nz(t,.6,.08,{f:1200,f2:300,q:1.5,att:.4});nz(t+.55,.9,.26,{type:"lowpass",f:1500,f2:120});tone("sine",90,t+.55,.6,.3,{f2:30})}),
+    /* ---------- the sky ---------- */
+    bell:()=>once("bell",900,t=>{tone("sine",1800,t,.02,.03);[[.5,.05],[1,.06],[1.19,.04],[1.5,.03],[2,.03],[2.51,.02],[3,.015]].forEach(([r,a])=>tone("sine",196*r,t,3.6/(.6+r*.4),a,{att:.006}))}),
+    horn:()=>once("horn",2500,t=>{const a=ac;[[65,73,.05],[92,103.8,.025]].forEach(([f0,f1,pk])=>{for(const det of [-6,6]){const o=a.createOscillator(),f=a.createBiquadFilter(),g=a.createGain(),v=a.createOscillator(),vg=a.createGain();
+      o.type="sawtooth";o.frequency.setValueAtTime(f0,t);o.frequency.linearRampToValueAtTime(f1,t+.35);o.detune.value=det;v.frequency.value=4.5;vg.gain.value=1.2;v.connect(vg).connect(o.frequency);
+      f.type="lowpass";f.frequency.setValueAtTime(500,t);f.frequency.linearRampToValueAtTime(1100,t+1);f.frequency.linearRampToValueAtTime(400,t+2.8);
+      o.connect(f).connect(g);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(pk,t+.45);g.gain.setValueAtTime(pk,t+2);g.gain.exponentialRampToValueAtTime(.0001,t+2.9);dest(g);o.start(t);v.start(t);o.stop(t+3);v.stop(t+3)}})}),
+    harp:()=>once("harp",12000,t=>{
+      // Bach's Prelude in C, the first bars, as Gounod's Ave Maria opens: each bar's pattern twice
+      const N=n=>440*Math.pow(2,(n-69)/12),bars=[[60,64,67,72,76],[60,62,69,74,77],[59,62,67,74,77],[60,64,67,72,76],[60,64,69,76,81],[60,62,66,69,74],[59,62,67,74,79],[59,60,64,67,72]];
+      const st=.105;let k=0;for(const b of bars)for(let rep=0;rep<2;rep++){const pat=[b[0],b[1],b[2],b[3],b[4],b[2],b[3],b[4]];for(const n of pat){const tt=t+k*st,f=N(n);tone("triangle",f,tt,1.5,.03,{lp:2600});tone("sine",f*2,tt,.6,.008);k++}}}),
+    coins:()=>once("coins",4000,t=>{for(let i=0;i<70;i++){const tt=t+Math.pow(Math.random(),1.4)*4.8,f=2200+Math.random()*3000,d=.08+Math.random()*.16;tone("sine",f,tt,d,.022);tone("sine",f*2.76,tt,d*.6,.008)}}),
+    drums:()=>once("drums",1800,t=>{const b=60/112/2;const P="B.S.B.SSB.S.BSSS";
+      for(let i=0;i<P.length*2;i++){const ch=P[i%P.length],tt=t+i*b;if(ch==="B")tone("sine",95,tt,.22,.16,{f2:55});if(ch==="S"){nz(tt,.12,.08,{f:1800,q:.7});tone("triangle",190,tt,.06,.03)}}}),
+    quill:()=>once("quill",6000,t=>{let tt=t;while(tt<t+7){const d=.06+Math.random()*.18;nz(tt,d,.03+Math.random()*.03,{f:3600+Math.random()*1800,q:3,att:.01});tt+=d+Math.random()*.12+(Math.random()<.12?.4:0)}}),
+    whispers:()=>once("whisper",3500,t=>{let tt=t+.3;while(tt<t+4){const d=.12+Math.random()*.14,F=Math.random()<.5?[700,1200]:[350,2300];for(const f of F)nz(tt,d,.018,{f,q:6,att:.04});nz(tt,d,.008,{type:"highpass",f:4000,att:.03});tt+=d+Math.random()*.1+(Math.random()<.2?.35:0)}}),
+    moonchime:()=>once("moonchime",2000,t=>{[440,554,659,880].forEach((f,i)=>tone("sine",f,t+i*.18,1.6,.025))})
+  };
+  /* ---------- loops: ambiences ---------- */
+  let amb=null,ambKey=null;
+  function stopAmb(){if(!amb)return;const A=amb;amb=null;A.timers.forEach(clearInterval);const a=ac;if(a)A.gains.forEach(g=>{try{g.gain.cancelScheduledValues(a.currentTime);g.gain.setTargetAtTime(0,a.currentTime,.4)}catch(e){}});setTimeout(()=>A.nodes.forEach(n=>{try{n.stop()}catch(e){}}),2000)}
+  function drone(A,f,type,peak,lp,det=0){const a=ac,o=a.createOscillator(),g=a.createGain(),fl=a.createBiquadFilter();o.type=type;o.frequency.value=f;o.detune.value=det;fl.type="lowpass";fl.frequency.value=lp||800;
+    const l=a.createOscillator(),lg=a.createGain();l.frequency.value=.11+Math.random()*.08;lg.gain.value=peak*.4;l.connect(lg).connect(g.gain);
+    o.connect(fl).connect(g);g.gain.setValueAtTime(0,a.currentTime);g.gain.linearRampToValueAtTime(peak,a.currentTime+2.5);dest(g);o.start();l.start();A.nodes.push(o,l);A.gains.push(g)}
+  function hiss(A,peak,f,q){const a=ac,len=a.sampleRate*2,b=a.createBuffer(1,len,a.sampleRate),d=b.getChannelData(0);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*(Math.random()<.004?3:1);
+    const s=a.createBufferSource();s.buffer=b;s.loop=true;const fl=a.createBiquadFilter();fl.type="bandpass";fl.frequency.value=f;fl.Q.value=q;const g=a.createGain();s.connect(fl).connect(g);
+    g.gain.setValueAtTime(0,a.currentTime);g.gain.linearRampToValueAtTime(peak,a.currentTime+1.5);dest(g);s.start();A.nodes.push(s);A.gains.push(g);
+    A.timers.push(setInterval(()=>{if(!ac)return;const t=ac.currentTime;g.gain.setTargetAtTime(peak*(.4+Math.random()*1.3),t,.05)},260))}
+  const AMB={
+    moon:A=>{drone(A,110,"sine",.018,600);drone(A,164.8,"sine",.012,600,4);drone(A,220,"triangle",.006,900,-5)},
+    blood:A=>{hiss(A,.022,1300,.8);drone(A,55,"sine",.03,300);drone(A,55.7,"sine",.022,300)},
+    "ecl-sun":A=>{drone(A,82,"sawtooth",.012,260);A.timers.push(setInterval(()=>S.drums(),9000));S.drums()},
+    "ecl-blacksun":A=>{drone(A,61,"sawtooth",.012,220);drone(A,92,"sine",.01,300)},
+    "ecl-mars":A=>{drone(A,49,"sawtooth",.012,240);A.timers.push(setInterval(()=>S.horn(),11000));S.horn()},
+    "ecl-venus":A=>{drone(A,130.8,"sine",.008,500);A.timers.push(setInterval(()=>S.harp(),18000));S.harp()},
+    "ecl-jupiter":A=>{drone(A,98,"sine",.01,600);drone(A,147,"sine",.007,600);A.timers.push(setInterval(()=>S.coins(),8000));S.coins()},
+    "ecl-mercury":A=>{drone(A,73,"triangle",.01,400);A.timers.push(setInterval(()=>{S.quill();setTimeout(()=>S.whispers(),2500)},10000));S.quill();setTimeout(()=>S.whispers(),2500)},
+    "ecl-saturn":A=>{drone(A,49,"sawtooth",.014,300);drone(A,73.5,"sawtooth",.009,300);A.timers.push(setInterval(()=>S.bell(),9000));S.bell()}};
+  function setAmb(k){if(k===ambKey)return;stopAmb();if(!k||!AMB[k]||!ok()){ambKey=k&&AMB[k]?null:k;return}ambKey=k;const a=ctx();if(!a)return;amb={nodes:[],gains:[],timers:[]};try{AMB[k](amb)}catch(e){console.error(e)}}
+  Object.assign(S,{setAmb,stopAmb,ok});Object.defineProperty(S,"ambKey",{get:()=>ambKey});return S;
+})();
+
+/* ---------- what plays when ---------- */
+const sndSees=(r,c)=>{const V=view();return !totalBlind(V)&&!fogTile(V,r,c)};
+/* buttons and cards */
+document.addEventListener("click",e=>{if(!G||!e.target.closest)return;
+  const card=e.target.closest(".cardbtn,.pk,.myscard.back,#board .tile");
+  if(card){if(!card.matches(".tile")||card.querySelector(".stack"))AUD.card();return}
+  if(e.target.closest("button,summary,label.opt,label.chk,select"))AUD.ui()},true);
+{const _pl=place;place=function(card,r,c){const out=_pl.apply(this,arguments);if(card&&(card.owner===view()||sndSees(r,c)))AUD.place();return out}}
+{const _dm=doMove;doMove=function(r,c){const s=G.sel,st=s&&G.board[s.r][s.c],own=st?st.owner:null;const hear=own===view()||s&&sndSees(s.r,s.c)&&sndSees(r,c);const out=_dm.apply(this,arguments);if(hear)AUD.move();return out}}
+{const _at=attack;attack=function(r1,c1,r2,c2,mode){const A=G.board[r1]&&G.board[r1][c1];let snd=null;
+  if(A&&AUD.ok()&&(A.owner===view()||sndSees(r1,c1)||sndSees(r2,c2))){const o=attackOptions(r1,c1).find(x=>x.r===r2&&x.c===c2&&(mode==null||x.mode===mode))||{};const id=o.mode||mode;
+    snd=id==="slug"?"slug":id==="gun"?"gun":id==="bow"?"arrow":id==="cannon"||hasK(A,"cannon")&&o.ranged?"cannon":id==="charge"||id==="charge2"?"charge":id==="ram"?"blunt":o.ranged?"arrow":"clash"}
+  if(snd)AUD[snd]();return _at.apply(this,arguments)}}
+{const _bu=bury;bury=function(card,r,c,st){const hear=sndSees(r,c)||st&&st.owner===view();const out=_bu.apply(this,arguments);if(hear)AUD.death();return out}}
+{const _ra=repairAct;repairAct=function(r,c,T){const out=_ra.apply(this,arguments);if(G.board[r][c]&&(G.board[r][c].owner===view()||sndSees(r,c)))AUD.repair();return out}}
+{const _ss=skyStrike;skyStrike=function(r,c,why){AUD.meteor();return _ss.apply(this,arguments)}}
+/* mana in and out */
+{const _sp=spend;spend=function(pl,n){if(n>0&&pl===view())AUD.pour();return _sp.apply(this,arguments)}}
+{const _gm=giveMana;giveMana=function(pl,n){const got=_gm.apply(this,arguments);if(got>0&&pl===view()&&G.phase!=="setup")AUD.fill();return got}}
+{const _sac=sacrifice;sacrifice=function(card,from){const ok=_sac.apply(this,arguments);if(ok&&G.active===view())AUD.fill();return ok}}
+/* the grave gives back; the deck loses */
+{const _pg=pickGrave;pickGrave=async function(pl,n,title){const got=await _pg.apply(this,arguments);if(got)AUD.raise();return got}}
+{const _dr=draw;draw=function(pl){const P=G.p[pl],b=P?P.deck.length:0;const out=_dr.apply(this,arguments);if(P)P._drawn=(P._drawn||0)+Math.max(0,b-P.deck.length);return out}}
+/* spells: a chime in the school's interval */
+{const _c=cast;cast=async function(sp){const L0=G&&G.log[0];const out=await _c.apply(this,arguments);
+  if(sp&&G){const i=G.log.findIndex(l=>/ casts <b>/.test(l.html)),j=L0?G.log.indexOf(L0):-1;if(i>=0&&(j<0||i<j))AUD.cast(sp.id==="robbank"?"Bank":sp.school)}return out}}
+/* the sky: risings, cycles, tolls and judgements, ambiences */
+const SKY_SND={moon:"moonchime",saturn:"bell",mars:"horn",venus:"harp",jupiter:"coins",sun:"drums",blacksun:"drums",mercury:"quill"};
+{const _ta=turnAsync;turnAsync=async function(pl){const P=G.p[pl];
+  if(P&&!isHorde(pl)){if(planetUp("saturn")&&paysSaturn(pl))AUD.bell();if(sunUp()&&P.tribe!=="firm"&&P.sunNext!=null&&tnOf(pl)>=P.sunNext)AUD.drums()}
+  return _ta.apply(this,arguments)}}
+{const _cr=cycleRound;cycleRound=async function(){const out=await _cr.apply(this,arguments);if(cycleNow("venus"))AUD.harp();if(cycleNow("mercury")){AUD.quill();setTimeout(()=>AUD.whispers(),2600)}return out}}
+{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;
+  // a deck that shrank without being drawn from has lost cards
+  for(const P of G.p){if(isNPC(P.i)||isHorde(P.i))continue;const n=P.deck.length;if(P._deckN!=null&&n<P._deckN-(P._drawn||0)&&G.phase!=="setup"&&(P.i===view()||!isEnemy(P.i,view())))AUD.deckHit();P._deckN=n;P._drawn=0}
+  const k=sky();if(G._sndSky!==k){if(G._sndSky!==undefined&&SKY_SND[k]){AUD[SKY_SND[k]]();if(k==="mercury")setTimeout(()=>AUD.whispers(),2600)}G._sndSky=k}
+  const m=G.moon;AUD.setAmb(G.over?null:m.blood?"blood":G.eclipse?"ecl-"+G.eclipse.k:!m.gone&&(m.i===0||m.i===4)?"moon":null)}}
+/* the sound switch also stops an ambience at once */
+{const _t=SND.toggle;SND.toggle=function(){const v=_t.call(SND);if(!v)AUD.setAmb(null);return v}}
+document.addEventListener("visibilitychange",()=>{if(document.hidden)AUD.setAmb(null)});
+
+if(window.__EC)Object.assign(window.__EC,{AUD});
 
 })();
