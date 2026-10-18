@@ -71,6 +71,7 @@ const NETFN={
  answerLoan:{get:()=>answerLoan,set:f=>answerLoan=f,any:true,map:a=>[a[0].id,a[1]],un:a=>[p2pOf().find(x=>x.id===a[0]),a[1]]},
  repayLoan:{get:()=>repayLoan,set:f=>repayLoan=f,any:true,map:a=>[a[0].id,a[1]],un:a=>[p2pOf().find(x=>x.id===a[0]),a[1]]},
  buyPlot:{get:()=>buyPlot,set:f=>buyPlot=f,map:a=>[a[0],a[1].i],un:a=>[a[0],plotsOf()[a[1]]]},
+ sellPlot:{get:()=>sellPlot,set:f=>sellPlot=f,map:a=>[a[0],a[1].i],un:a=>[a[0],plotsOf()[a[1]]]},
  plantMiner:{get:()=>plantMiner,set:f=>plantMiner=f,map:a=>[a[0],a[1].i],un:a=>[a[0],plotsOf()[a[1]]]},
  mysteryBuy:{get:()=>mysteryBuy,set:f=>mysteryBuy=f,ret:true},
  buyBankItem:{get:()=>buyBankItem,set:f=>buyBankItem=f,async:true,map:a=>[a[0],(G.auction||[]).indexOf(a[1])],un:a=>[a[0],G.auction[a[1]]]},
@@ -98,7 +99,7 @@ async function runCmd(id,m){
   const aiming=G.aim&&G.aim.pl===seat;
   if(F.aim){if(!aiming)return}else if(!F.any&&!(G.active===seat&&!G.busy))return;
   const args=F.un?F.un(m.args||[]):(m.args||[]);
-  if(args.some(x=>x===undefined||x===null)&&["place","sacrifice","sacrificeToSun","healAct","repairAct","answerLoan","repayLoan","buyPlot","plantMiner","buyBankItem","makeOffer","cast"].includes(m.fn))return;
+  if(args.some(x=>x===undefined||x===null)&&["place","sacrifice","sacrificeToSun","healAct","repairAct","answerLoan","repayLoan","buyPlot","sellPlot","plantMiner","buyBankItem","makeOffer","cast"].includes(m.fn))return;
   const host=uiSnap();NET.ctx=seat;applyUI(m.ui);let ret;
   try{ret=await F.get().apply(null,args)}catch(e){console.error(e)}
   finally{const u=uiSnap();if(NET.ctx===seat)NET.ctx=null;applyUI(host);sendTo(id,{t:"ui",ui:u});render()}
