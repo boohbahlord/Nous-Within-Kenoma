@@ -1267,3 +1267,11 @@ html.th-earth .btn{color:#0e130d}
 html.th-earth .game h1{color:#cfe08c;text-shadow:0 0 14px #9bbf5e40}
 html.th-officedark .btn{color:#fff}
 #pMusic[hidden]{display:none}
+/* ================= v43: the setup window never scrolls sideways ================= */
+.ovbox.setup fieldset{min-width:0;max-width:100%}
+.ovbox.setup select,.ovbox.setup input[type=text],.ovbox.setup input:not([type]),.ovbox.setup textarea{max-width:100%}
+.ovbox.setup label.f{flex-wrap:wrap;max-width:100%}
+.ovbox.setup .spanel{overflow-x:hidden}
+.ovbox.setup .stabs{overflow-x:visible;flex-wrap:wrap}
+.ovbox.setup .stab{flex:1 1 auto}
+.ovbox.setup label.f select{min-width:0;max-width:100%;flex:0 1 auto}

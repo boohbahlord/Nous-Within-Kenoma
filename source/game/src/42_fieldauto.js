@@ -183,7 +183,7 @@ let faSig="";
 
 /* ---------- the setup: Off, or how well it plays ---------- */
 {const _ss=showStart;showStart=function(){const out=_ss.apply(this,arguments);const p=document.querySelector('.ovbox.setup .spanel[data-p="rules"]');
-  if(p&&!$("#ofauto"))p.insertAdjacentHTML("beforeend",`<fieldset class="pf"><legend>Field Automation</legend><label class="f">Field Automation <select id="ofauto"><option value="off">Off: nobody can use it</option><option value="easy">On, plays like Easy</option><option value="medium" selected>On, plays like Medium (default)</option><option value="hard">On, plays like Hard</option></select></label><p class="dim">Lets a player hand the cards on their field to the computer during the game; their hand and spells stay theirs. Off hides the button for everyone.</p></fieldset>`);
+  if(p&&!$("#ofauto"))p.insertAdjacentHTML("beforeend",`<fieldset class="pf"><legend>Field Automation</legend><label class="f">Field Automation <select id="ofauto"><option value="off">Off</option><option value="easy">On · Easy</option><option value="medium" selected>On · Medium (default)</option><option value="hard">On · Hard</option></select></label><p class="dim">Lets a player hand the cards on their field to the computer during the game; their hand and spells stay theirs. Off hides the button for everyone.</p></fieldset>`);
   return out}}
 {const _sg=startGame;startGame=function(opts){const s=$("#ofauto");if(opts&&s)opts.fieldAuto=s.value;return _sg.apply(this,arguments)}}
 
