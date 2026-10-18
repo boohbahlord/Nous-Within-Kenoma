@@ -103,20 +103,23 @@ function faAsk(yes){let box=$("#faask");if(!box){box=document.createElement("div
 <p class="dim">Your hand, placing cards, spells and sacrifices stay yours. It moves your field at the end of your prep phase and attacks at the start of your attack phase; turn it off any time.</p>
 <p class="acts"><button type="button" class="btn" id="faY">Yes</button> <button type="button" class="btn ghost" id="faN">No</button></p></div>`;
   box.hidden=false;const close=()=>{box.hidden=true};$("#faY").onclick=()=>{close();yes()};$("#faN").onclick=close;$("#faX").onclick=close;$("#faN").focus()}
-function faToggle(){const V=view(),s=faState(V);if(s&&s.on){setFieldAuto(V,false,faMine());return}faAsk(()=>setFieldAuto(V,true,faMine()))}
+function faToggle(){const V=view(),s=faState(V);if(s&&s.on){setFieldAuto(V,false,faMine());return}
+  faAsk(()=>{const c=faMine();c.under=true;PREF.fa=c;PREF.faOpen=true;savePrefs();setFieldAuto(V,true,c)})}   // on: its controls go under the field (uncheck to remove)
 
 /* ---------- the settings, drawn the same in the window and under the field ---------- */
 const faVal=(k,c)=>({stance:{auto:"Automatic",offensive:"Offensive",defensive:"Defensive",center:"Center"}[c.stance],rush:c.rush?`${c.rush} round${c.rush>1?"s":""}`:"Off",
   lives:{preserve:"Preserve",balanced:"Balanced",throw:"Throw them in"}[c.lives],battles:{careful:"Careful",normal:"Normal",reckless:"Reckless"}[c.battles],
   formation:{auto:"Automatic",wide:"Wide",deep:"Deep"}[c.formation],bases:c.bases?"On":"Off",ambush:c.ambush?"On":"Off"})[k];
 function faPanelHTML(c,pl,pfx){
-  const radio=(key,opts)=>`<div class="opts faopts">${opts.map(([v,t,s])=>`<label class="opt"><input type="radio" name="fa${pfx}-${key}" data-fa="${key}" value="${v}" ${c[key]===v?"checked":""}><span>${t}${s?`<small>${s}</small>`:""}</span></label>`).join("")}</div>`;
-  const box=(path,on,t,s,dis)=>`<label class="chk"><input type="checkbox" data-fa="${path}" ${on?"checked":""} ${dis?"disabled":""}> <span><b>${t}</b>${s?`<small>${s}</small>`:""}</span></label>`;
-  const sec=(t,body,cls="")=>`<section class="fasec ${cls}"><h4>${t}</h4>${body}</section>`;
+  const ph=isPhone(),tip=t=>t&&!ph?` data-tip="${esc(t)}"`:"",sm=t=>t&&ph?`<small>${t}</small>`:"";   // a phone shows the line, a computer shows it on hover
+  const radio=(key,opts)=>`<div class="opts faopts">${opts.map(([v,t,s])=>`<label class="opt"${tip(s)}><input type="radio" name="fa${pfx}-${key}" data-fa="${key}" value="${v}" ${c[key]===v?"checked":""}><span>${t}${sm(s)}</span></label>`).join("")}</div>`;
+  const box=(path,on,t,s,dis)=>`<label class="chk"${tip(s)}><input type="checkbox" data-fa="${path}" ${on?"checked":""} ${dis?"disabled":""}> <span><b>${t}</b>${sm(s)}</span></label>`;
+  const sec=(t,body,cls="",hint)=>`<section class="fasec ${cls}"><h4${tip(hint)}>${t}</h4>${body}${hint&&ph?`<p class="dim">${hint}</p>`:""}</section>`;
   const s=pl!=null?faState(pl):null,left=s&&s.rushUntil!=null&&c.rush?Math.max(0,s.rushUntil-G.moon.round+1):null;
   const custom=c.mode==="custom",some=c.mode==="mostly"||custom;
-  let h=sec("Simple mode",radio("mode",[["full","Fully automatic","It decides everything, offense, defense or the center (the default)"],["mostly","Mostly automatic","You choose the stance and ambushes"],
-    ["attacks","Attacks only","It only attacks; you move every card"],["custom","Every option","Choose each setting yourself"]]),"famodes");
+  let h=sec("Where",box("under",c.under,"Show these controls under the field","A wide fold-down above Basics explained. On when you turn the automation on; uncheck it to remove it."),"fafull fawhere");
+  h+=sec("Simple mode",radio("mode",[["full","Fully automatic","It decides everything, offense, defense or the center (the default)"],["mostly","Mostly automatic","You choose the stance and ambushes"],
+    ["attacks","Attacks only","It only attacks; you move every card"],["custom","Every option","Choose each setting yourself"]]),"fafull famodes");
   h+=sec("Attack",box("",true,"Always on","Your field attacks enemies in sight when the odds say so.",true),"falock");
   if(some){h+=sec("Stance",radio("stance",[["auto","Automatic","Changes with the field"],["offensive","Offensive",""],["defensive","Defensive",""],["center","Control the center",""]]));
     h+=sec("Ambush",box("ambush",c.ambush,"Set ambushes","Assassins and face-down stacks with nothing in reach wait in ambush."))}
@@ -124,14 +127,13 @@ function faPanelHTML(c,pl,pfx){
     h+=sec("Rush the enemy",`<div class="farush">${box("rushon",c.rush>0,"Rush","Everything it controls goes for the enemy, whatever the stance.")}<span class="faspin"><button type="button" class="btn ghost sm" data-faact="rush-" aria-label="One round less">▼</button><b>${Math.max(1,c.rush)}</b><button type="button" class="btn ghost sm" data-faact="rush+" aria-label="One round more">▲</button> round${Math.max(1,c.rush)>1?"s":""}${left!=null?` <small class="dim">(${left?left+" left":"over"})</small>`:""}</span></div>`);
     h+=sec("Formation",radio("formation",[["auto","Automatic",""],["wide","Wide","Spread out, surround, take the advantage"],["deep","Deep","Columns: stack strength, even with fewer to stack with"]]));
     h+=sec("Lives",radio("lives",[["preserve","Preserve","Keep cards alive first"],["balanced","Balanced","The default"],["throw","Throw them in","Trade cards freely to hurt the enemy"]]));
-    h+=sec("Picking battles",radio("battles",[["careful","Careful","Fights only with good odds"],["normal","Normal",""],["reckless","Reckless","Takes long shots"]])+`<p class="dim">Lives ranks above this unless you change the order below.</p>`);
+    h+=sec("Picking battles",radio("battles",[["careful","Careful","Fights only with good odds"],["normal","Normal",""],["reckless","Reckless","Takes long shots"]]),"","Lives ranks above this unless you change the order in Hierarchical control.");
     h+=sec("Bases",box("bases",c.bases,"Target bases","Enemy Aces and the Tree are worth more to it.")+box("walls",c.walls,"Don't count non-obstructive walls","A Wall only matters when it stands between your field and a base."));
     h+=sec("Which cards it controls",`<div class="facats">${FA_CATS.map(([k,t,s2])=>box("ctl."+k,c.ctl[k],t,s2)).join("")}${!c.ctl.support?box("ctl.miners",c.ctl.miners,"Miners","Even with Support off"):""}</div>
-<details class="faextra" ${c.extra.length?"open":""}><summary>Yes, and… (add single kinds of card)</summary><div class="opts fakinds">${FA_KINDS.map(k=>`<label class="opt"><input type="checkbox" data-faextra="${k}" ${c.extra.includes(k)?"checked":""}><span>${esc(shortInfo(k))}</span></label>`).join("")}</div><p class="dim">These are added to the groups above, never taken away.</p></details>`);
-    h+=sec("Hierarchical control",box("hier",c.hier,"Rank the principles","When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.")+(c.hier?faHierHTML(c):""));
+<details class="faextra" ${c.extra.length?"open":""}><summary>Yes, and… (add single kinds of card)</summary><div class="opts fakinds">${FA_KINDS.map(k=>`<label class="opt"><input type="checkbox" data-faextra="${k}" ${c.extra.includes(k)?"checked":""}><span>${esc(shortInfo(k))}</span></label>`).join("")}</div><p class="dim">These are added to the groups above, never taken away.</p></details>`,"fafull");
+    h+=sec("Hierarchical control",box("hier",c.hier,"Rank the principles","When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.")+(c.hier?faHierHTML(c):""),"fafull");
   }
-  h+=sec("Where",box("under",c.under,"Show these controls under the field","A wide fold-down above Basics explained, instead of this window."));
-  h+=`<p class="dim fanote">Some options aren't the best choice for every situation on your field.</p>`;
+  h+=`<p class="dim fanote fafull">Some options aren't the best choice for every situation on your field.</p>`;
   return h}
 function faHierHTML(c){const pend=faHierHTML.pending,pairOf=k=>c.eq.find(p=>p.includes(k));
   return `<div class="fahier">${c.order.map((k,i)=>{const p=pairOf(k);return `<div class="facol${p?" eqpair":pend===k?" eqwait":""}"><span class="farank">${i+1}</span><b>${FA_PRINC.find(x=>x[0]===k)[1]}</b><small>${faVal(k,c)}</small>

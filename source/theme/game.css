@@ -1289,3 +1289,21 @@ html.th-office .spell.ether .ethmark{color:#4c6fff;text-shadow:none}
 #menu .mslide{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 #menu .mslide input[type=range]{flex:1 1 140px;accent-color:var(--amber)}
 #menu .mslide b{min-width:3.4em;font-weight:400;color:var(--amber-hi)}
+/* ================= v43: Field Automation, compact ================= */
+.faconf .fabody,#fapanel .fawide{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));gap:0 18px;align-items:start}
+.faconf .fabody>.fafull,#fapanel .fawide>.fafull,#fapanel .fawide>p:first-child{grid-column:1/-1;max-width:none;margin:0}
+.fasec{padding:6px 0 7px}
+.fasec h4{margin:0 0 4px;font-size:11.5px}
+.faopts{grid-template-columns:repeat(auto-fill,minmax(min(100%,118px),1fr));gap:4px}
+.faopts .opt>span,.fakinds .opt>span{padding:5px 8px;min-height:0;font-size:13px;line-height:1.25}
+.fasec label.chk{margin:2px 0;font-size:13px}
+.facats{grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr))}
+.fakinds{grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:4px}
+.fahier{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px}
+.facol{min-height:96px;padding:6px 4px}
+.faconf{width:min(1100px,100%)}
+body.phone .faconf .fabody,body.phone #fapanel .fawide{display:block}
+body.phone .faopts .opt>span{padding:7px 9px}
+.fasec .faopts{display:flex;flex-wrap:wrap;gap:4px}
+.fasec .faopts .opt{flex:1 1 auto;width:auto;min-width:0}
+body.phone .fasec .faopts .opt{flex:1 1 140px}
