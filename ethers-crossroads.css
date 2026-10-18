@@ -914,3 +914,54 @@ body.tipi-on .tipi{display:inline-flex!important}
 #skypanel .spell{background:#0d2223;border-color:#2c4a49;color:#e6f4f1}
 #skypanel .spell em{color:#e6d38a}
 #skypanel .spell small.left{margin-left:8px;font-size:11px;color:#9fbdb8;font-style:italic}
+/* v26: Mystery Generation — three cards face down, turned one at a time; loot-box colors for rarity */
+.ovbox.mysbox{max-width:min(760px,calc(96vw / var(--uiz,1)))}
+.mysrow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:14px 0 10px}
+.myscard{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:calc(150px * var(--ci));border:1px solid var(--rule);background:var(--deep);padding:12px 8px}
+.myscard.back{cursor:pointer;font:inherit;color:inherit;background:repeating-linear-gradient(45deg,#1a120b 0 6px,#140e09 6px 12px)}
+.myscard.back .mysback{display:flex;align-items:center;justify-content:center;width:calc(60px * var(--ci));height:calc(86px * var(--ci));border:1px solid #e6d38a88;border-radius:5px;background:#2a1d10;box-shadow:inset 0 0 0 3px #1a120b,inset 0 0 0 4px #e6d38a55}
+.myscard.back:hover,.myscard.back:focus-visible{border-color:var(--amber);outline:none}
+.mysbox .myscard.back[disabled],.mysbox:not(:has(#mysAll)) .myscard.back{cursor:default}
+.myscard.shown{border-color:var(--rc);box-shadow:inset 0 0 0 1px var(--rc),0 0 18px color-mix(in srgb,var(--rc) 45%,transparent);background:radial-gradient(ellipse at 50% 35%,color-mix(in srgb,var(--rc) 22%,transparent),transparent 70%),var(--deep)}
+.myscard.shown b{color:var(--rc);font-weight:400;letter-spacing:.12em;text-transform:uppercase;font-size:12px}
+.myscard.shown small{color:var(--dim);font-size:11px}
+.myslegend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11.5px;color:var(--dim);border-top:1px solid var(--rule);padding-top:8px;margin-top:6px}
+.myslegend span{display:inline-flex;align-items:center;gap:5px}
+.myslegend i{width:10px;height:10px;border:1px solid var(--rc);background:color-mix(in srgb,var(--rc) 50%,transparent)}
+@media (max-width:520px){.mysrow{gap:8px}}
+.myscard.shown .cf{zoom:1.4}
+/* v27: the Sun's sacrifice, fire mana, the blind veil, aiming at a tile, the Moon's demand */
+.mini-btn.sunsac{color:#ffb35a;border-color:#a8601e}
+.mini-btn.sunsac:hover{color:#ffd29a;border-color:#ffb35a}
+.firetag{font-size:11px;letter-spacing:.06em;color:#1a0d02;background:#ffb35a;padding:0 6px}
+#board{position:relative}
+#board.blinded .stack,#board.blinded .mapbg{filter:brightness(.05)}
+#board.blinded .tile{background:#030202!important}
+.blindveil{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,#0008,#000e);color:#d6c9ff;text-align:center;padding:20px}
+.blindveil b{font-family:"Grenze Gotisch","Old English Text MT",serif;font-weight:500;font-size:clamp(28px,4vw,46px);letter-spacing:.06em;color:#e8deff;text-shadow:0 0 18px #6b4fd8}
+.blindveil span{font-size:13px;color:#b9aedb;max-width:28em}
+.tile.taim{outline:2px dashed #ffb35a;outline-offset:-3px}
+.tile.fire.scorch,.tile.fire{box-shadow:inset 0 0 18px #ff5a1e88}
+#aimbar{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:90;display:flex;align-items:center;gap:12px;background:#120a04f0;border:1px solid #ffb35a;color:#ffd29a;padding:8px 14px;font-size:13px}
+#aimbar[hidden]{display:none}
+.moonreq{border:1px solid #8a1418;background:#2a0507;color:#f4cfcc;padding:6px 9px;margin:0 0 6px;font-size:12.5px;line-height:1.45}
+.moonreq b.bl{font-weight:500;font-size:16px;color:#ff8f86;display:block}
+.moonreq.done{border-color:#3d4a40;background:#121a14;color:#9fe8b4}
+.cin.sky.whisper p{margin:4px 0;font-size:22px;color:#d0161d;text-align:center}
+#whisper{position:fixed;z-index:30;pointer-events:none;font-family:"Grenze Gotisch","Old English Text MT",serif;font-size:clamp(34px,5vw,64px);color:#d0161d;opacity:0;transition:opacity 1.4s ease;max-width:60vw;text-shadow:0 0 22px #000}
+#whisper.on{opacity:.22}
+@media (prefers-reduced-motion:reduce){#whisper{transition:none}}
+.blindveil{justify-content:flex-start;padding-top:min(18%,120px);background:linear-gradient(#000e,#000c)}
+#board.blinded .tile>*:not(.coord){visibility:hidden}
+#aimbar{top:auto;bottom:64px}
+/* v28: the planet shop, Rob the Bank, Jail, Mercury's tie */
+#bankslot .spell.robbank{width:100%;margin:0 0 8px;background:linear-gradient(90deg,#4a0d10,#2a0809);border:1px solid #8e1b20;color:#f1b7b2}
+#bankslot .spell.robbank:not(.off):hover{background:linear-gradient(90deg,#5e1115,#330a0c)}
+#bankslot .spell.robbank em{color:#ff8f86}
+#bankslot .spell.robbank.off{opacity:.55}
+.jailstrip{position:absolute;left:0;right:0;top:96px;z-index:21;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;gap:4px 18px;padding:12px 16px;background:#000b;pointer-events:none;text-align:center}
+.jailstrip b{font-family:"Grenze Gotisch","Old English Text MT",serif;font-weight:500;font-size:clamp(26px,4vw,44px);letter-spacing:.05em;color:#e3262e;text-shadow:0 0 14px #000}
+.jailstrip span{font-size:14px;color:#ff8a80}
+.jailtag{background:#3a0b0e!important;color:#ffb3ad!important}
+table.tierolls{border-collapse:collapse;margin:6px 0 10px;font-size:14px}
+table.tierolls td{padding:3px 12px 3px 0;border-bottom:1px solid #ffffff14}

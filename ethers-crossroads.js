@@ -76,7 +76,7 @@ const SUITNAME={S:"Spades",H:"Hearts",D:"Diamonds",C:"Clubs"};
 let COLS=5;const SOUL_CAP=6, HAND_CAP=6;   // COLS is set by the map for each game; SOUL_CAP is also what a Joker can hold
 /* a Substance can raise a player's own limits. Mana can go up to three times the maximum for a round (the surplus);
    anything over the maximum fades at the start of the next round */
-const surCap=pl=>Math.min(54,soulCap(pl)*3);
+const surCap=pl=>G&&G.satStrict&&!oathNow(pl,"saturn")?soulCap(pl):Math.min(54,soulCap(pl)*3);   // a strict Saturn (its eclipse) allows no surplus
 const handCap=pl=>G&&G.p[pl]?({jester:7,beginner:8}[G.p[pl].tribe]||HAND_CAP):HAND_CAP;
 function soulCap(pl){
   if(!G||!G.p[pl])return SOUL_CAP;const P=G.p[pl];
@@ -1882,13 +1882,14 @@ function render(){
   const P=G.p[V];
   $("#handh").textContent=G.p.filter(Q=>!Q.cpu).length>1?`${P.name}'s hand`:"Your hand";
   const hidden=G.passing;
-  $("#hand").innerHTML=P.hand.length?P.hand.map((c,i)=>hidden?back(V):`<div class="hc"><button class="cardbtn ${G.selHand===c?"on":""}" data-h="${i}" aria-label="${esc(nameOf(c))}">${face(c)}</button>${live&&sacrificeAllowed()&&canSacCard(c)?`<button class="mini-btn" data-sh="${i}" title="Sacrifice to your soul pile (+${soulOf(c)} mana)">sac +${soulOf(c)}</button>`:""}</div>`).join(""):'<p class="dim">No cards in hand.</p>';
+  $("#hand").innerHTML=P.hand.length?P.hand.map((c,i)=>hidden?back(V):`<div class="hc"><button class="cardbtn ${G.selHand===c?"on":""}" data-h="${i}" aria-label="${esc(nameOf(c))}">${face(c)}</button>${live&&sacrificeAllowed()&&canSacCard(c)?`<button class="mini-btn" data-sh="${i}" title="Sacrifice to your soul pile (+${soulOf(c)} mana)">sac +${soulOf(c)}</button>${sunSacOk(V)?`<button class="mini-btn sunsac" data-sunh="${i}" title="Sacrifice to the Second Sun (+${soulOf(c)} fire mana)">sun +${soulOf(c)}</button>`:""}`:""}</div>`).join(""):'<p class="dim">No cards in hand.</p>';
   $("#hand").querySelectorAll("[data-h]").forEach(b=>b.onclick=()=>{
     if(!canAct())return;
     if(!(G.phase==="setup"&&G.setupStep==="more"||G.phase==="prep")){flash(G.phase==="setup"?"Place your Ace and Jack first.":"Cards are placed during setup or the prep phase.");return}
     if(G.placing){flash("Put the Slave down first.");return}
     const c=P.hand[+b.dataset.h];G.selHand=G.selHand===c?null:c;G.mode=null;render()});
   $("#hand").querySelectorAll("[data-sh]").forEach(b=>b.onclick=()=>{if(!canAct())return;sacrifice(P.hand[+b.dataset.sh],"hand");render()});
+  $("#hand").querySelectorAll("[data-sunh]").forEach(b=>b.onclick=()=>{if(!canAct())return;sacrificeToSun(P.hand[+b.dataset.sunh],"hand");render()});
   $("#mytray").innerHTML=hidden?"":trayHTML(P,V);
   // controls
   const ctl=[];
@@ -1922,7 +1923,7 @@ function renderSel(live){
   const rows=st.cards.map(c=>{
     const k=kind(c),cap=capMana(c);
     const chk=mine&&!isBase(c)&&G.phase==="prep"?`<input type="checkbox" data-pk="${c.id}" ${s.pick.has(c.id)?"checked":""} aria-label="include ${esc(nameOf(c))} in the moving group">`:"";
-    const sac=mine&&sacrificeAllowed()&&canSacOnField(st,c)?`<button class="mini-btn" data-sc="${c.id}">sac +${soulOf(c)}</button>`:"";
+    const sac=mine&&sacrificeAllowed()&&canSacOnField(st,c)?`<button class="mini-btn" data-sc="${c.id}">sac +${soulOf(c)}</button>${sunSacOk(view())?`<button class="mini-btn sunsac" data-sunc="${c.id}">sun +${soulOf(c)}</button>`:""}`:"";
     const stat=c.unit&&UNIT[c.unit].desc&&!UNIT[c.unit].shooter?UNIT[c.unit].desc:c.unit&&UNIT[c.unit].weapons?UNIT[c.unit].weapons.map(w=>w.name+": "+w.text).join("; "):`${nat(c)}${die(c)?" + d"+die(c):""}`;
     return `<li>${chk}${face(c,{cls:"sm"})} ${esc(typeWord(c))} · ${esc(stat)}${c.maxHp?" · "+heartsHTML(c):""}${c.hate?' · <span class="hatetag">Hate</span>':""}${(c.prisoners||[]).length?` · ⛓ ${c.prisoners.length} prisoner${c.prisoners.length>1?"s":""}`:""}${cap?` · ✦${cap} captured`:""} ${sac}</li>`}).join("");
   const acts=siegeActs(st,mine,s);
@@ -1936,6 +1937,7 @@ function renderSel(live){
   $("#cmpType").onclick=()=>openBrowser(st,st.cards.length>1?`Stack of ${st.cards.length}`:nameOf(st.cards[0]));
   box.querySelectorAll("[data-pk]").forEach(i=>i.onchange=()=>{const id=+i.dataset.pk;i.checked?s.pick.add(id):s.pick.delete(id);G.mode=autoMode(st);render()});
   box.querySelectorAll("[data-sc]").forEach(b=>b.onclick=()=>{const c=st.cards.find(x=>x.id===+b.dataset.sc);sacrifice(c,{r:s.r,c:s.c});render()});
+  box.querySelectorAll("[data-sunc]").forEach(b=>b.onclick=()=>{const c=st.cards.find(x=>x.id===+b.dataset.sunc);sacrificeToSun(c,{r:s.r,c:s.c});render()});
   wireSiege(st,s);
 }
 /* selecting your own stack shows where it can go (prep) or what it can hit (attack) straight away */
@@ -2171,6 +2173,7 @@ ${chk("oeach","Each player rolls their own","On by default with one deck; off by
 <fieldset class="pf"><legend>The sky and spells</legend>
 <div class="opts skyopts">${SKY_OPTS.map(([v,nm,txt],i)=>`<label class="opt sky-${v}"><input type="radio" name="omoonon" value="${v}" ${i?"":"checked"}><span>${nm}<small>${txt}</small>${SKY_FORM[v==="on"?"moon":v]?`<em class="skyform">${SKY_FORM[v==="on"?"moon":v]}</em>`:""}</span></label>`).join("")}</div>
 ${chk("omoon","Moon combat bonus","Every attack adds 1d2 at the Full Moon, and every defense adds 1d2 at the New Moon.",true)}
+${chk("opshop","Planet shop","Any of the seven planets can be bought for the sky (Astrology) for 7 + 1d3 + 1d12 mana, rolled every round. It rises at the start of the next round; then no planet can be bought for six rounds.",true)}
 ${chk("oatk","Spells in the attack phase","Enchantments, curses, sorcery and illusions can also be cast while attacking. Necromancy, conjuring and sacrifices stay in prep.",false)}
 ${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the game opens on a Blood Moon; each deck is shuffled and two thirds of it go to the grave; each player starts with a Joker in hand. With a planet in the sky: the game opens under that planet's eclipse.",false)}
 </fieldset>`;
@@ -2316,7 +2319,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     startGame({mode,players,mid:mode==="survival"||!!($("#omid")&&$("#omid").checked),aceLock:$("#olock").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off","saturn"].includes(val("omoonon")||"on"),
       map:val("omap"),cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
       decks:+val("odecks"),specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:+val("odecks")===1&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
-      startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",atkSpells:$("#oatk").checked,
+      startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",atkSpells:$("#oatk").checked,pshop:$("#opshop")?$("#opshop").checked:true,
       layout:L,turns:$("#oturns").value,timer:+$("#otimer").value,cpuSpeed:$("#ospeed").value,elimDark:val("oelim")==="dark",ffaDeck:val("offa"),shareDeck:$("#oshare").checked});
   };
 }
@@ -2852,7 +2855,7 @@ function deluSees(V,r,c){   // the Delusion's own rule: only what your cards can
   for(const {r:a,c:b} of stacksOf(V)){const dr=Math.abs(a-r),dc=Math.abs(b-c);if(dr<=1&&dc<=1||dr===0&&dc===2||dc===0&&dr===2)return true}
   return false;
 }
-const hiddenFrom=(V,r,c)=>{const st=G.board[r][c];return !!(st&&isEnemy(st.owner,V)&&!seesTile(V,r,c))};
+const hiddenFrom=(V,r,c)=>{const st=G.board[r][c];return !!(st&&(totalBlind(V)||isEnemy(st.owner,V)&&!seesTile(V,r,c)))};   // the blind see nothing, their own cards too
 function applyDelusion(t,by){
   const d=rollN(2,2),n=sum(d);G.p[t].delu={turns:n,maxCut:0,diceCut:0,by};
   tray(by,by===t?"Delusion of Ouroboros":"Delusion of Lucifer",d,`${n} turns`);
@@ -2896,7 +2899,7 @@ async function turnAsync(pl){   // the start of a turn that may ask something: S
     opts.push({id:"no",label:"Refuse",sub:S==null?"The Bank sends a Debt Collector after you.":"Yaldabaoth regurgitates a Debt Collector onto the field."});
     const ch=opts.length===1?"no":await ask(pl,{kind:"choice",id:"saturn",title:`Saturn: ${esc(P.name)} owes ${n-i} more`,options:opts,
       ai:()=>P.deck.length>8?"deck":mana(pl)>=2?"mana":P.hand.length?"hand":P.deck.length?"deck":"no"});
-    if(ch==="no"||ch==null){spawnDebt(pl);break}
+    if(ch==="no"||ch==null){spawnDebt(pl);if(G.satStrict&&!oathNow(pl,"saturn"))spawnDebt(pl);saturnMissed(pl);break}
     let c=null;
     if(ch==="hand")c=P.hand.splice(Math.floor(Math.random()*P.hand.length),1)[0];
     if(ch==="deck")c=P.deck.pop();
@@ -2904,6 +2907,7 @@ async function turnAsync(pl){   // the start of a turn that may ask something: S
     if(c){if(S==null){bankAdd(soulOf(c));toGrave(c,"spent")}else if(!(c.unit&&c.unit!=="slave")&&addSoul(S,c));else toGrave(c,"spent");paid++}
   }
   if(paid)log(`${plName(pl)} pays Saturn ${paid} (to ${S==null?"the Bank":plName(S)+"'s soul pile"}).`);
+  saturnPaid(pl,paid,n);
   render();
 }
 function spawnDebt(pl){
@@ -3491,6 +3495,7 @@ function seesTile(V,r,c){
 }
 /* a tile is foggy for you when none of your cards can see it */
 function fogTile(V,r,c){
+  if(V!=null&&totalBlind(V))return true;
   if(V==null||!G.p[V]||blindFor(V))return false;
   if(sunBlind(V))return !visionMap(V).own.some(x=>x.r===r&&x.c===c);
   const ff=firmFog(V);
@@ -4221,7 +4226,7 @@ async function aiBank(pl,W,cast1){
   if(lv==="hard"&&effMana(pl)<0&&loanLimit(pl)>=2)takeLoan(pl,Math.min(loanLimit(pl),-effMana(pl)+1));   // borrow out of a hole before the interest bites
   if(lv!=="easy"&&soulCap(pl)<10&&mana(pl)>=8&&Math.random()<.3)await cast1("maxmana");
   if(lv==="easy"&&mana(pl)>=2&&Math.random()<.15)await cast1("gamble");
-  const cost=G.prices&&G.prices.mystery;if(cost!=null&&mana(pl)>=cost+3&&P.deck.length<P.start*.6&&Math.random()<.3)await mysteryGen(pl);
+  if(mana(pl)>=MYS_MAX+3&&P.deck.length<P.start*.6&&Math.random()<.3)await mysteryGen(pl);
 }
 
 /* ---------- symbols ---------- */
@@ -4361,9 +4366,9 @@ async function skyAsync(pl){
     opts.push({id:"no",label:"Refuse",sub:"Blinded by the Sun for this turn: you can't see even what is beside you."});
     const ch=opts.length===1?"no":await ask(pl,{kind:"choice",id:"sunjudge",title:`The Second Sun judges ${esc(P.name)}`,options:opts,
       ai:()=>mana(pl)>=2?"mana":P.deck.length>8?"deck":stacksOf(pl).length>3?"hurt":opts[0].id});
-    if(ch==="mana"){payQuiet(pl,1);if(by!=null)giveMana(by,1);else bankAdd(1);log(`${plName(pl)} worships the Earth before the Second Sun: 1 mana${by!=null?` to ${plName(by)}`:" to the Bank"}.`)}
-    else if(ch==="hurt"){const x=pick(stacksOf(pl));log(`${plName(pl)} offers the Second Sun a wound on ${coord(x.r,x.c)}.`);damage(x.r,x.c,1,false)}
-    else if(ch==="deck"){for(let i=0;i<2;i++)toGrave(P.deck.pop(),"burn");log(`${plName(pl)} burns two deck cards in the Second Sun.`)}
+    if(ch==="mana"){payQuiet(pl,1);if(by!=null)giveMana(by,1);else bankAdd(1);log(`${plName(pl)} worships the Earth before the Second Sun: 1 mana${by!=null?` to ${plName(by)}`:" to the Bank"}.`);sunPayback(pl,1)}
+    else if(ch==="hurt"){const x=pick(stacksOf(pl));log(`${plName(pl)} offers the Second Sun a wound on ${coord(x.r,x.c)}.`);damage(x.r,x.c,1,false);sunPayback(pl,1)}
+    else if(ch==="deck"){let w=0;for(let i=0;i<2;i++){const c=P.deck.pop();w+=soulOf(c);toGrave(c,"burn")}log(`${plName(pl)} burns two deck cards in the Second Sun.`);sunPayback(pl,w)}
     else{P.sunBlind=tnOf(pl);G._vis=null;log(`<b>The Second Sun</b> blinds ${plName(pl)} for this turn.`,"event");notify(pl,`${esc(P.name)} is blinded by the Sun this turn.`)}
     render();
   }
@@ -4478,7 +4483,7 @@ SPELLS.push(
      log(`<b>The Sun cries a third time</b> and its flames go out: <b>the Black Sun</b>.`,"event");popup("The Black Sun",`<p>${plName(G.active)} makes the Second Sun weep a third time. Its flames go out.</p><p>The fog of war returns. The Firmament that raised it now pays Yaldabaoth 1d2 mana or 1d2 deck cards every 1d2 of its turns.</p>`,G.active)}
    else{log(`<b>The Sun cries</b> (${G.sunTears} of 3): ${plName(G.active)}'s Yaldabaoth dims it.`,"event");applyMoonTheme()}}}
 );
-function toggleOath(k){const P=me();if(P.oath===k){P.oath=null;log(`${plName(G.active)} breaks the ${SP("oath_"+k).name}.`);return}
+function toggleOath(k){const P=me();if(P.oath==="saturn"&&P.satLocked){flash("You betrayed Saturn: its Oath holds you now.");return}if(P.oath===k){P.oath=null;log(`${plName(G.active)} breaks the ${SP("oath_"+k).name}.`);return}
   P.oath=k;P.venusAttacked=false;log(`${plName(G.active)} swears the ${SP("oath_"+k).name}.`,"event")}
 
 /* Night's Judgement eats whatever hangs in the sky: the moon at the New or Full Moon, any planet at any time */
@@ -4780,7 +4785,7 @@ function spellRow(s,live){
   if(s.id==="slaves"){const n=(G.p[G.active].thralls||[]).length;extra+=`<span class="chips" aria-label="${n} of 10 thralls">${Array.from({length:10},(_,i)=>`<i class="${i<n?"f":""}">${unitSVG("chip",i<n?"#9fe8b4":"#3d4a40",11)}</i>`).join("")}</span>`}
   if(s.once)extra+=`<small class="dc once">${G.p[G.active].once&&G.p[G.active].once[s.id]?"used":"once"}</small>`;
   const block=spellBlock(s);
-  const btn=`<button class="spell${s.tribe?" subsp":""} ${ok?"":"off"} ${moon} ${s.school==="Necromancy"?"nec":""} ${s.id==="sever"&&P.sevArmed?"armed":""}" data-s="${s.id}" data-sp="${s.id}"><span class="sn">${esc(s.name)}${extra}</span><em>${s.id==="hypo"&&!selOwn()?"3+":cost?cost+" mana":"free"}</em></button>`;
+  const btn=`<button class="spell${s.tribe?" subsp":""} ${ok?"":"off"} ${moon} ${s.school==="Necromancy"?"nec":""} ${s.id==="sever"&&P.sevArmed?"armed":""}" data-s="${s.id}" data-sp="${s.id}"><span class="sn">${esc(s.name)}${extra}</span><em>${s.fire?fireCost(s)+" fire":s.id==="hypo"&&!selOwn()?"3+":cost?cost+" mana":"free"}</em></button>`;
   if(s.id!=="bless")return btn;
   const on=!!G.p[view()].autoBless;
   return `<div class="spellrow"><button type="button" class="autotog${on?" on":""}" id="autoBless" aria-pressed="${on}" data-tip="Cast Grave Blessing for you at the start of every prep phase.">${on?"auto":"auto"}</button>${btn}</div>`;
@@ -4799,6 +4804,7 @@ function renderSpells(live){
       const blk=SPELLS.filter(s=>ETHER_IDS.has(s.id)).map(spellBlock).find(Boolean)||"";
       pinned=`<button class="spell ether ${live&&!blk?"":"off"}" id="openEther" data-tip="${esc(blk||"Open the Ether: every card you can conjure into your deck, by type, cheapest first.")}"><span class="sn">Ether<small class="dc">${G.ether.length} souls</small></span><em>shop ›</em></button>`+(mx?spellRow(mx,live):"")}
     if(sc==="Astrology")pinned=astroPins(live,V);
+    if(sc==="Necromancy")pinned=moonOathRow(view());
     list.sort(byPrice);
     return `<details class="school" data-sc="${sc}" ${(PREF.shut||[]).includes(sc)?"":"open"}><summary>${sc}</summary>${pinned}${list.map(s=>spellRow(s,live)).join("")}</details>`}).join("");
   box.scrollTop=keep;
@@ -4994,6 +5000,7 @@ function priceWords(s){
   if(s.id==="hypo")return "3, plus 1 for each card past the first";
   const now=G&&G.prices&&G.prices[s.id]!=null?G.prices[s.id]:null;
   if(s.id==="clair"||s.id==="naked"){if(G&&newPrices())return "6 mana (New Moon)";if(G&&fullPrices())return s.id==="clair"?"2 mana (Full Moon)":"free (Full Moon)"}
+  if(s.fire)return `${s.dice} mana, rolled each round${now!=null?` · ${now} fire now`:""}`;
   if(s.dice)return `${s.dice}, rolled each round${now!=null?` · ${now?now+" mana":"free"} now`:""}`;
   const c=G?spellCost(s):s.cost;return c?c+" mana":"free";
 }
@@ -5041,6 +5048,7 @@ moonInfoHTML=function(){
     else if(P.tribe==="firm")L.push("You are the Firmament: Saturn's tax doesn't touch you.");
     else if(S==null||isEnemy(V,S))L.push(`At the start of each of your turns, pay ${price} (a hand card, the top deck card or 1 mana) or a Debt Collector rises.`);
     if(G.saturnDebt)L.push(`Debt Collectors still standing have raised the price by ${G.saturnDebt}.`);
+    if(paysSaturn(V))L.push(P.oath==="saturn"?(P.satLocked?"You betrayed Saturn: its Puppets come for you, and its Oath holds you.":`Your Oath of Saturn: ${P.satPaid||0} tolls paid. Puppets come after the 1st, 3rd, 6th and 9th.`):"You can swear the Oath of Saturn (Astrology): pay its toll and its Puppets fight for you.");
     skyCommon(L);return skyBox("Saturn","",L,"saturn")}
   const bonus=G.opts.moonBonus!==false;
   if(m.blood)L.push("New Moon gifts at Full Moon prices.","Every card killed falls into the Outer Darkness, and so do a Joker's souls when it shoots itself.");
@@ -5048,6 +5056,7 @@ moonInfoHTML=function(){
   else if(m.i===4)L.push("The toll is paid and decks are shuffled.","No drawing and no necromancy.","Clairvoyance costs 2; Naked Hand is free.",bonus?"Every attack adds 1d2.":"");
   else L.push(`No effect this phase. Next: ${MOON[(m.i+1)%8]}.`);
   L.push("Turns one phase a round, after every player has had a turn.");
+  if(P.oath!=="moon")L.push("You can swear the Oath of the Moon (Astrology).");
   if(G.moonLev){const h=G.moonLev.card.hp;L.push(`The Leviathan lies on the moon (${h} heart${h===1?"":"s"}). ${G.moonLev.owner===V?"Your maximum mana rises with the Outer Darkness.":P.tribe==="tiph"?"You are immune to its toll.":"Its toll each New Moon: 2d4 deck cards, 2 hand cards and 1 mana."} It can be attacked only at the New Moon.`)}
   skyCommon(L);
   return skyBox("The Moon",MOON[m.i]+(m.blood?" · Blood Moon":""),L,"moon");
@@ -5057,7 +5066,7 @@ planetInfoHTML=function(k){
   if(k==="sun"){L.push(by!=null?`Raised by ${plN(by)}.`:"","No fog of war while it burns. Delusions still blind.","The Leviathan can't lie on it.");
     L.push(P.tribe==="firm"?"It doesn't judge you.":`Every 2d2 of your turns it judges you: 1 mana${by!=null?" to "+plN(by):" to the Bank"}, one damage to one of your stacks, or two deck cards. Refuse and you are blind for that turn.`);
     L.push(`It has cried ${G.sunTears||0} of 3 times. At three it becomes the Black Sun.`);
-    if(P.tribe!=="firm")L.push(oath("earth","no necromancy; Sorcery dice prices roll twice and keep the lower."));
+    if(P.tribe!=="firm")L.push(oath("sun","fire mana from sacrifices to the Sun and from its judgements; Scorched Earth and Blindness."));
     skyCommon(L);return skyBox("The Second Sun","",L,"sun")}
   if(k==="blacksun"){L.push("The Second Sun cried three times and its flames went out. The fog of war is back.");
     if(G.blackBy!=null)L.push(`The Firmament that raised it pays ${plN(G.blackBy)} 1d2 mana or 1d2 deck cards every 1d2 of its turns.`);
@@ -5135,7 +5144,7 @@ const BANK_HELP=[
 function bankExplainHTML(){return `<details class="sub"><summary>The Bank, Barbarians and meteors explained</summary><dl class="spellinfo">${BANK_HELP.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}
 <dt>Barbarians</dt><dd>A crimson band takes the middle every 4 + 1d12 turns and with every Blood Moon, and fights anyone beside it. The player who kills the most of a band gets an Ether sale; breaking a big band can earn debt forgiveness.</dd>
 <dt>Meteor</dt><dd>One round in a hundred: damage where it lands and maybe around it, then fire for two rounds.</dd>
-<dt>Gambling, Increase Max Mana, Mystery Generation</dt><dd>Gambling (Sorcery, 1 mana): a 10 on 1d10 wins 7d2; a 1 costs a maximum mana, 7d2 of debt and a deck card. Increase Max Mana (Conjuring, 6): +1, eighteen at most. Mystery Generation (in the Auction): 1d3 brand-new cards.</dd></dl></details>`}
+<dt>Gambling, Increase Max Mana, Mystery Generation</dt><dd>Gambling (Sorcery, 1 mana): a 10 on 1d10 wins 7d2; a 1 costs a maximum mana, 7d2 of debt and a deck card. Increase Max Mana (Conjuring, 6): +1, eighteen at most. Mystery Generation (in the Auction, 3 to 8 mana): three brand-new cards of any rarity, wildcards included.</dd></dl></details>`}
 
 /* ---------------- UI pass 3 (v22): the setup menu ----------------
    Options become small tiles of the same size. What a tile means shows when the mouse rests on it, or with the small
@@ -5344,5 +5353,645 @@ function planetsHTML(){
     return `<button class="spell eitem ${ok?"":"off"}" data-cast="${id}" data-sp="${id}"><span class="sn">${esc(sp.name)}${sp.dice?`<small class="dc">${sp.dice}</small>`:""}<small class="left">${esc(SKY_FORM[id]||"")}</small></span><em>${c?c+" mana":"free"}</em></button>`}).join("");
   return [live?"Hang a planet in the moon's place. Prices are rolled each round.":"You can raise a planet in your own prep phase.",rows];
 }
+
+/* ---------------- Prompt 11 (v26): Mystery Generation ----------------
+   Three cards wait face down. The price is a range (1d2 + 2d3: 3 to 8 mana) and is rolled when you pay. Once paid, all three are
+   yours at once, in your deck, even if you close the window; reveal them one at a time by clicking, or all at once.
+   Rarity has loot-box colors. Wildcards are 5% in all, each with its own share by strength (cards that come back as another card count
+   as stronger); the Collector, Slave, Slavemaster and Trafficker never come out. A wildcard comes alone: its Substance's spells don't. */
+
+const MYS_TIERS=[
+  {k:"common",   name:"Common",   col:"#b9b4a8",p:47.5, pool:["2","3","4","5","6","7","8","9","10"]},
+  {k:"uncommon", name:"Uncommon", col:"#5fbf5a",p:23.75,pool:["scout","archer","healer","repair","miner","ram"]},
+  {k:"rare",     name:"Rare",     col:"#4c92e6",p:14.25,pool:["J","Q","K","assassin"]},
+  {k:"epic",     name:"Epic",     col:"#a77de8",p:4.75, pool:["A","JK","wall"]},
+  {k:"legendary",name:"Legendary",col:"#f0a030",p:4.75, pool:["cannon"]},
+  {k:"mythic",   name:"Mythic",   col:"#e0453a",p:5,    pool:[]}];
+/* a wildcard's power: its best attack on average × its hearts, × 1.5 if it comes back as another card; rounded to tens so equal
+   strength means equal rarity. Its share of the 5% is the inverse of its power. */
+const WILD_POWER={antony:50,goatbull:60,leviathan:70,samson:90,bullgoat:90,satan:120};
+const WILD_SHARE=(()=>{const inv=Object.fromEntries(Object.entries(WILD_POWER).map(([k,v])=>[k,1/v]));const t=Object.values(inv).reduce((a,b)=>a+b,0);
+  return Object.fromEntries(Object.entries(inv).map(([k,v])=>[k,5*v/t]))})();   // percent of all draws
+const MYS_MIN=3,MYS_MAX=8;
+const mysPrice=()=>[{s:2,v:R(2)},{s:3,v:R(3)},{s:3,v:R(3)}];
+function mysteryRoll(pl){
+  let x=Math.random()*100,tier=MYS_TIERS[0];
+  for(const T of MYS_TIERS){if(x<T.p){tier=T;break}x-=T.p}
+  let k,chance;
+  if(tier.k==="mythic"){let y=Math.random()*5;for(const [w,s] of Object.entries(WILD_SHARE)){k=w;chance=s;if(y<s)break;y-=s}}
+  else{k=pick(tier.pool);chance=tier.p/tier.pool.length}
+  const c=UNIT[k]?mkUnit(k,pl):k==="JK"?mk("JK",null,pick(["red","black"])):mk(k,pick(["S","H","D","C"]));c.owner=pl;c.mys=tier.k;
+  return {card:c,tier,chance}}
+/* the purchase: three cards into the deck, the price rolled now */
+function mysteryBuy(pl){
+  const P=G.p[pl];if(!canAfford(pl,MYS_MAX))return null;
+  const dice=mysPrice(),cost=dice.reduce((a,d)=>a+d.v,0);spend(pl,cost);
+  const got=[0,1,2].map(()=>mysteryRoll(pl));for(const g of got)P.deck.push(g.card);shuffle(P.deck);
+  tray(pl,"Mystery Generation",dice,`${cost} mana`);
+  log(`<b>Mystery Generation</b>: ${plName(pl)} pays ${cost} mana and three brand-new cards are made from thin air into the deck: ${got.map(g=>`${esc(nameOf(g.card))} (${g.tier.name})`).join(", ")}.`,"event");
+  return {cost,got}}
+/* the computer buys straight away; a person gets the window */
+mysteryGen=async function(pl){return !!mysteryBuy(pl)};
+mysteryHTML=function(live){
+  return `<div class="mystery"><div class="mhead">${unitSVG("mystery","var(--amber-hi)",34)}<div><b>Mystery Generation</b> · ${MYS_MIN} to ${MYS_MAX} mana<br><span class="dim">Three brand-new cards of any rarity, made from thin air into your deck. The price is rolled when you pay.</span></div></div>${live?`<button class="btn sm" id="mysBtn">Open</button>`:""}</div>`};
+wireMystery=function(){if($("#mysBtn"))$("#mysBtn").onclick=()=>{if(!canAct())return;openMystery()}};
+
+function mysCardHTML(g,i,shown){
+  if(!shown)return `<button type="button" class="myscard back" data-i="${i}" aria-label="Reveal card ${i+1}"><span class="mysback">${unitSVG("mystery","#e6d38a",40)}</span></button>`;
+  return `<div class="myscard shown" style="--rc:${g.tier.col}">${face(g.card,{noci:true})}<b>${g.tier.name}</b><small>${+g.chance.toFixed(2)}% chance per card</small></div>`}
+function openMystery(){
+  const pl=G.active,V=view();let buy=null;const shown=[false,false,false];
+  const draw=()=>{
+    const can=canAfford(pl,MYS_MAX);
+    const legend=MYS_TIERS.map(T=>`<span style="--rc:${T.col}"><i></i>${T.name} ${T.p}%</span>`).join("");
+    ovShow(`<div class="ovbox wide mysbox"><h2>Mystery Generation</h2>
+<p class="dim">${buy?`Paid <b>${buy.cost}</b> mana. All three cards are already in your deck. Click a card to turn it over, or turn them all.`:`Three cards, face down. They cost ${MYS_MIN} to ${MYS_MAX} mana (1d2 + 2d3), rolled when you pay, and they are yours the moment you do.`}</p>
+<div class="mysrow">${[0,1,2].map(i=>mysCardHTML(buy&&buy.got[i],i,buy&&shown[i])).join("")}</div>
+<p class="acts">${buy?`<button class="btn" id="mysAll" ${shown.every(Boolean)?"disabled":""}>Turn them all</button>`:`<button class="btn" id="mysPay" ${can?"":"disabled"}>Pay ${MYS_MIN}–${MYS_MAX} mana</button>${can?"":`<small class="dim">You need ${MYS_MAX} mana, the most it can cost${G.p[pl].credit?"":", or credit at the Bank"}.</small>`}`}
+<button class="btn ghost" id="mcancel">Close</button></p>
+<div class="myslegend">${legend}</div></div>`);
+    $("#mcancel").onclick=()=>{ovHide();render()};
+    if($("#mysPay"))$("#mysPay").onclick=()=>{if(!canAct()||buy)return;buy=mysteryBuy(pl);render();draw()};
+    if($("#mysAll"))$("#mysAll").onclick=()=>{shown.fill(true);draw()};
+    $("#ov").querySelectorAll(".myscard.back").forEach(b=>b.onclick=()=>{if(!buy)return;shown[+b.dataset.i]=true;draw()});
+  };
+  draw();
+}
+/* the Leviathan rises to the moon only for a player who is the Leviathan */
+{const s=SP("lev");if(s){const ok=s.ok;s.ok=()=>me().tribe==="leviathan"&&ok()}}
+if(window.__EC){window.__EC.mysteryRoll=mysteryRoll;window.__EC.mysteryBuy=mysteryBuy}
+
+/* ---------------- Prompt 12, part 2a (v27): three new Oaths, Saturn's eclipse, Venus's eclipse ----------------
+   Oath of the Sun: the Second Sun's blessing — fire mana (3 at most, 6 with the surplus) from sacrifices to the Sun and from its
+     judgement; Scorched Earth and Blindness are paid with it.
+   Oath of the Moon: more from the New Moon, more at the Full Moon; a Joker must shoot itself before each Full Moon; Moon Jokers.
+   Oath of Saturn: paid tolls bring Puppets that fight for you; a missed toll is a betrayal, and Saturn's Puppets come for you.
+   Saturn gets an eclipse (one outcome, rolled on d100). Venus's eclipse also heals and can mend a betrayal. */
+
+/* ---------- which sky each Oath needs ---------- */
+OATH_SKY.sun="sun";OATH_SKY.moon="moon";OATH_SKY.saturn="saturn";
+OATHS.splice(0,OATHS.length,["earth","Any sky"],["sun","The Second Sun in the sky"],["moon","The Moon in the sky"],["saturn","Saturn in the sky"],["venus","Venus in the sky"],["jupiter","Jupiter in the sky"],["mercury","Mercury in the sky"]);
+Object.assign(OATH_ONLY,{scorch:"sun",sunblind:"sun",moonjoker:"moon"});
+const oathNow=(pl,k)=>oathOf(pl)===k;
+/* changing the sky ends every Oath to the old sky (the Earth stays); a Saturn-sworn player who missed a toll can't be released */
+{const _sp=setPlanet;setPlanet=function(k,by){const keep=G.p.map(P=>P.oath);_sp(k,by);
+  G.p.forEach((P,i)=>{if(keep[i]==="earth")P.oath="earth";if(keep[i]==="saturn"&&P.satLocked)P.oath="saturn"})}}
+
+/* ---------- the Oath spells ---------- */
+const OATH_TXT={
+  sun:{n:"The Second Sun in the sky.",e:"The Sun's blessing: you gain fire mana (3 at most, 6 for a round) by sacrificing cards to the Sun, and from every judgement it takes from you. Fire mana pays for Scorched Earth and Blindness.",l:"Cast again to break the Oath. The Sun still judges you."},
+  moon:{n:"The Moon in the sky.",e:"Every New Moon, 2d2 − 1 more cards from the grave. Every Full Moon, +2 mana and +2 maximum. Jokers conjure for one less, and twice between Full Moons you can conjure a Moon Joker from nowhere. A Joker that shoots itself at the New Moon goes back into your deck, and under a Blood Moon your dead don't fall into the Outer Darkness.",l:"A Joker of yours must shoot itself before each Full Moon. If none does, you get no grave cards at the next New Moon and lose one maximum mana."},
+  saturn:{n:"Saturn in the sky, and a toll to pay.",e:"Pay Saturn's toll and Saturn sends Puppets to fight for you: one stack of 1d4 after the first toll, two after the third and the sixth, three after the ninth. The computer moves them.",l:"Miss one toll and you betray Saturn: no Puppets for the next three tolls, Saturn's own Puppets come for you three turns after every missed toll, and you can no longer break the Oath."}
+};
+SPELLS.push(
+ {id:"oath_sun",name:"Oath of the Sun",cost:0,school:"Astrology",text:"",ok:()=>sunUp()&&me().tribe!=="firm",run:async()=>{toggleOath("sun")}},
+ {id:"oath_moon",name:"Oath of the Moon",cost:0,school:"Astrology",text:"",ok:()=>!G.moon.gone,run:async()=>{toggleOath("moon");const P=me();if(P.oath==="moon")P.moonDone=false}},
+ {id:"oath_saturn",name:"Oath of Saturn",cost:0,school:"Astrology",text:"",ok:()=>planetUp("saturn")&&paysSaturn(G.active),run:async()=>{toggleOath("saturn")}},
+ {id:"scorch",name:"Scorched Earth",cost:0,school:"Astrology",fire:true,dice:"1d2+2 fire",text:"",
+  ok:()=>oathNow(G.active,"sun")&&fireOf(G.active)>=fireCost(SP("scorch")),run:async()=>{await scorchedEarth(G.active)}},
+ {id:"sunblind",name:"Blindness",cost:0,school:"Astrology",fire:true,dice:"2+1d2 fire",text:"",
+  ok:()=>oathNow(G.active,"sun")&&fireOf(G.active)>=fireCost(SP("sunblind"))&&enemiesOf(G.active).some(e=>!isNPC(e)&&!isHorde(e)),run:async()=>{await castBlindness(G.active)}},
+ {id:"moonjoker",name:"Moon Joker",cost:1,school:"Conjuring",text:"",
+  ok:()=>oathNow(G.active,"moon")&&(me().moonJokers||0)<2,run:async()=>{const P=me(),c=mk("JK",null,pick(["red","black"]));c.owner=G.active;P.deck.push(c);shuffle(P.deck);P.moonJokers=(P.moonJokers||0)+1;
+   log(`A Moon Joker is made from nothing into ${plName(G.active)}'s deck (${P.moonJokers} of 2 before the Full Moon).`,"event")}}
+);
+PRICE.scorch=()=>R(2)+2;PRICE.sunblind=()=>2+R(2);
+Object.assign(SPELL_TEXT,{
+ oath_sun:OATH_TXT.sun,oath_moon:OATH_TXT.moon,oath_saturn:OATH_TXT.saturn,
+ scorch:{n:"The Oath of the Sun. Choose any tile.",e:"The ground burns in a circle two tiles around it, the middle included, for 1d3 turns. Each turn a stack standing in the fire takes one damage on a 4 of 1d4, your own included.",l:"Paid with fire mana. It never takes the last heart of an Ace or the Tree."},
+ sunblind:{n:"The Oath of the Sun. Choose an enemy player.",e:"From the start of the next round to its end they are blind: they see nothing on the field, not even their own cards.",l:"Paid with fire mana. They are told what happened."},
+ moonjoker:{n:"The Oath of the Moon.",e:"A new Joker, made from nothing (not from the Ether), comes into your deck.",l:"Twice between Full Moons."}});
+for(const id of ["oath_sun","oath_moon","oath_saturn","scorch","sunblind","moonjoker"]){const s=SP(id),t=SPELL_TEXT[id];s.text=[t.n,t.e,t.l].filter(Boolean).join(" ")}
+
+/* ---------- fire mana ---------- */
+const FIRE_MAX=3,FIRE_SUR=6;
+const fireOf=pl=>G.p[pl]?G.p[pl].fire||0:0;
+const fireCost=sp=>G&&G.prices&&G.prices[sp.id]!=null?G.prices[sp.id]:PRICE[sp.id]?PRICE[sp.id]():0;
+function giveFire(pl,n){const P=G.p[pl];const before=P.fire||0;P.fire=Math.min(FIRE_SUR,before+n);return P.fire-before}
+{const _sc=spellCost;spellCost=function(sp){if(sp&&sp.fire)return 0;let c=_sc(sp);
+  if(sp&&sp.id==="cjk"&&G&&oathNow(G.active,"moon"))c=Math.max(0,c-1);   // the Moon's Jokers come cheaper
+  return c}}
+function payFire(pl,sp){const n=fireCost(sp);G.p[pl].fire=Math.max(0,fireOf(pl)-n);return n}
+/* sacrificing to the Sun: the card's worth in fire mana, the card burns to the grave */
+function sacrificeToSun(card,from){
+  const pl=G.active,P=me();if(!oathNow(pl,"sun")||!sunUp())return false;
+  if(fireOf(pl)>=FIRE_SUR){flash(`You hold ${FIRE_SUR} fire mana, the most there can be.`);return false}
+  if(from==="hand")P.hand.splice(P.hand.indexOf(card),1);
+  else{const st=G.board[from.r][from.c];st.cards.splice(st.cards.indexOf(card),1);
+    if(card.captured&&card.captured.length){for(const s of card.captured)toGrave(s,"death");card.captured=[]}
+    if(!st.cards.length){G.board[from.r][from.c]=null;G.sel=null}else if(G.sel)G.sel.pick.delete(card.id)}
+  const got=giveFire(pl,soulOf(card));toGrave(card,"burn");
+  log(`${plName(pl)} sacrifices ${esc(nameOf(card))} to the Second Sun (+${got} fire mana, ${fireOf(pl)} in all).`);
+  if(from!=="hand")checkWin();return true}
+/* the Sun's judgement gives a sworn player back its worth in fire mana */
+function sunPayback(pl,worth){if(!oathNow(pl,"sun")||worth<=0)return;const g=giveFire(pl,worth);if(g)log(`The Sun's blessing: ${plName(pl)} gets ${g} fire mana back for the judgement.`)}
+
+/* ---------- Scorched Earth and Blindness ---------- */
+/* a tile picked on the field: a person clicks, the computer is told */
+function aimTile(pl,title,valid,aiPick){
+  if(G.p[pl].cpu)return Promise.resolve(aiPick());
+  return new Promise(res=>{G.aim={title,valid,res};render()})}
+function endAim(v){const A=G.aim;if(!A)return;G.aim=null;A.res(v);render()}
+{const _tc=tileClick;tileClick=function(r,c){
+  if(G&&G.aim){if(G.aim.valid(r,c))endAim([r,c]);else flash("Choose one of the marked tiles.");return}
+  const st=G&&G.board[r]&&G.board[r][c];
+  if(st&&st.sat&&!G.selHand&&st.owner===view()&&!(G.sel&&G.mode)){flash("Saturn's Puppets move on their own.");return}
+  return _tc(r,c)}}
+const circle2=(r,c)=>{const o=[];for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++){const rr=r+dr,cc=c+dc;if(Math.hypot(dr,dc)<=2.25&&rr>=0&&cc>=0&&rr<G.rows&&cc<COLS&&!isVoid(rr,cc))o.push([rr,cc])}return o};
+async function scorchedEarth(pl){
+  const sp=SP("scorch"),foes=enemiesOf(pl).flatMap(stacksOf);
+  const t=await aimTile(pl,"Scorched Earth: choose the middle of the fire",(r,c)=>!isVoid(r,c),()=>{
+    let best=null;for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){if(isVoid(r,c))continue;const a=circle2(r,c);
+      const s=a.reduce((v,[rr,cc])=>{const st=G.board[rr][cc];return v+(st?(isEnemy(st.owner,pl)?AI.value(st):st.owner===pl?-1.4*AI.value(st):0):0)},0);if(!best||s>best.s)best={s,r,c}}
+    return best&&best.s>0?[best.r,best.c]:null});
+  if(!t){giveFire(pl,0);log(`${plName(pl)} lets the fire go out before it starts.`);return}
+  const n=payFire(pl,sp),turns=R(3),[r,c]=t,area=circle2(r,c);
+  G.fires=G.fires||[];for(const [rr,cc] of area)G.fires.push({r:rr,c:cc,until:G.moon.round+turns,scorch:true,by:pl,turns});
+  log(`<b>Scorched Earth</b>: ${plName(pl)} pays ${n} fire mana and the ground burns around ${coord(r,c)} for ${turns} turn${turns>1?"s":""} (${area.length} tiles).`,"event");
+  notify(null,`Scorched Earth: the ground burns around ${coord(r,c)}.`);
+}
+const scorchAt=(r,c)=>(G.fires||[]).some(f=>f.scorch&&f.r===r&&f.c===c&&f.until>=G.moon.round);
+/* at the start of a player's turn: each of their stacks in the scorched ground takes one damage on a 4 of 1d4 */
+function scorchTurn(pl){
+  for(const {st,r,c} of stacksOf(pl)){if(!scorchAt(r,c)||R(4)!==4)continue;
+    const base=st.cards.find(x=>kind(x)==="ace"||x.unit==="tree");
+    if(base&&base.hp<=1){log(`The scorched ground can't take the last heart of ${plName(pl)}'s ${nameOf(base)} on ${coord(r,c)}.`);continue}
+    log(`The scorched ground burns ${plName(pl)}'s stack on ${coord(r,c)}.`,"event");damage(r,c,1,false)}
+}
+async function castBlindness(pl){
+  const sp=SP("sunblind"),foes=enemiesOf(pl).filter(e=>!isNPC(e)&&!isHorde(e)&&!G.p[e].out);
+  const t=foes.length===1?foes[0]:await ask(pl,{kind:"player",id:"sunblind",title:"Blindness: who goes blind?",players:foes,ai:()=>foes.sort((a,b)=>strength(b)-strength(a))[0]});
+  if(t==null){log(`${plName(pl)} holds the Sun's blindness back.`);return}
+  const n=payFire(pl,sp),P=G.p[t];P.blindRound=G.moon.round+1;G.histTarget=t;
+  log(`<b>Blindness</b>: ${plName(pl)} pays ${n} fire mana. ${plName(t)} will be blind for the whole of the next round.`,"event");
+  notify(t,`${esc(P.name)} will be blind next round: the Sun's blessing of ${esc(G.p[pl].name)}.`);
+}
+const totalBlind=V=>!!(G&&V!=null&&G.p[V]&&(G.p[V].blindRound===G.moon.round||sunBlind(V)));
+/* blindness hides everything on the field, your own cards too, behind a dark veil */
+
+
+/* ---------- the Oath of the Moon ---------- */
+const fullIn=()=>G.moon.gone?null:(4-G.moon.i+8)%8;   // rounds until the next Full Moon (0: this round)
+const MOON_WORDS=["A Joker must commit itself.","Before the Full Moon, a Joker dies by its own hand.","The Moon asks for a Joker.","A Joker must give itself to the Moon.","The Moon waits for a Joker's death."];
+function moonOathRow(V){
+  const P=G.p[V];if(!P||!oathNow(V,"moon"))return "";
+  const n=fullIn(),done=P.moonDone;
+  return `<div class="moonreq${done?" done":""}">${done?"The Moon is answered: a Joker gave itself.":`<b class="bl">${n===0?"The Full Moon is here.":`${n} round${n===1?"":"s"} to the Full Moon.`}</b> A Joker of yours must shoot itself (Sacrificial Suicide) before then.`}</div>`}
+{const _mi=moonInfoHTML;moonInfoHTML=function(){
+  const V=view(),P=G.p[V];
+  if(P&&oathNow(V,"moon")&&!P.moonDone&&G.moonWhisper!==G.moon.round){G.moonWhisper=G.moon.round;
+    return `<div class="cin sky whisper"><p class="bl">${pick(MOON_WORDS)}</p></div>`}
+  let h=_mi.apply(this,arguments);
+  if(P&&oathNow(V,"moon"))h=h.replace('</ul>',`<li>${P.moonDone?"Your Oath of the Moon is kept: a Joker gave itself.":`Your Oath of the Moon: a Joker must shoot itself within ${fullIn()} round${fullIn()===1?"":"s"}.`}</li></ul>`);
+  return h}}
+function moonWhisper(){
+  const V=view(),P=G.p[V];if(!P||P.cpu||!oathNow(V,"moon")||P.moonDone)return;
+  let w=$("#whisper");if(!w){w=document.createElement("div");w.id="whisper";w.setAttribute("aria-hidden","true");document.body.appendChild(w)}
+  w.textContent=pick(MOON_WORDS);w.style.left=(8+Math.random()*55)+"vw";w.style.top=(18+Math.random()*55)+"vh";w.className="on";
+  setTimeout(()=>{w.className=""},4200)}
+{const _sk=skyCapMod;skyCapMod=function(P){let m=_sk(P);if(P&&G&&!G.moon.gone&&G.moon.i===4&&P.oath==="moon")m+=2;return m}}
+{const _nm=newMoonGift;newMoonGift=async function(){
+  if(G.noGraveNext&&!G.moon.blood)return _nm();
+  // a player who broke the Moon's demand gets nothing from this New Moon
+  const skip=G.p.filter(P=>P.moonNoGrave&&!P.out);
+  if(skip.length){log(`${skip.map(P=>plName(P.i)).join(", ")} get${skip.length===1?"s":""} nothing from this New Moon: no Joker gave itself before the Full Moon.`,"event")}
+  await _nm();
+  for(const pl of order()){const P=G.p[pl];if(P.moonNoGrave){P.moonNoGrave=false;continue}
+    if(G.moon.blood||!oathNow(pl,"moon")||!G.grave.length)continue;
+    const d=rollN(2,2),n=sum(d)-1;tray(pl,"Oath of the Moon",d,`+${n} from the grave`);log(`The Oath of the Moon: ${plName(pl)} rolls 2d2 − 1 = ${n} more from the grave.`);render();
+    await pickGrave(pl,n,"Oath of the Moon")}
+}}
+/* the New Moon gift skips a player who failed the Moon: patched pickGrave refuses them once */
+{const _pg=pickGrave;pickGrave=async function(pl,n,title){if(G.p[pl].moonNoGrave&&(title==="New Moon"||title==="Blood Moon"))return 0;return _pg(pl,n,title)}}
+/* a Joker's suicide answers the Moon; at the New Moon the Joker goes back into the deck */
+{const _js=jokerSuicide;jokerSuicide=async function(r,c,st,pl){
+  if(!isHorde(pl)&&G.p[pl]&&oathNow(pl,"moon"))G.p[pl].moonDone=true;
+  G._moonBack=!isHorde(pl)&&oathNow(pl,"moon")&&G.moon.i===0&&!G.moon.gone&&!G.moon.blood?pl:null;
+  try{await _js(r,c,st,pl)}finally{G._moonBack=null}}}
+{const _tg=toGrave;toGrave=function(c,cause){
+  if(c&&G&&G._moonBack!=null&&kind(c)==="joker"&&cause==="death"&&c.owner===G._moonBack){const P=G.p[G._moonBack];P.deck.push(c);shuffle(P.deck);G._moonBack=null;log(`The New Moon gives ${plName(P.i)}'s Joker back: it returns to the deck.`,"event");return}
+  if(c&&G&&(G.moon.blood||warOD())&&cause==="death"&&c.owner!=null&&G.p[c.owner]&&oathNow(c.owner,"moon")&&!(c.unit&&!UNIT[c.unit].ether)){G.grave.push(c);return}   // the Moon keeps its own from the Outer Darkness
+  return _tg(c,cause)}}
+
+/* ---------- the Oath of Saturn ---------- */
+function paysSaturn(pl){const S=G.saturnBy,P=G.p[pl];if(!P||isHorde(pl)||isNPC(pl))return false;
+  if(P.tribe==="firm"||P.tribe==="binah")return false;return S==null||isEnemy(pl,S)}
+const SAT_MILES={1:1,3:2,6:2,9:3};
+function saturnPaid(pl,paid,owed){
+  const P=G.p[pl];if(!oathNow(pl,"saturn")||paid<owed)return;
+  if(P.satBlock>0){P.satBlock--;log(`Saturn remembers ${plName(pl)}'s betrayal: no Puppets for this toll (${P.satBlock} more).`);return}
+  P.satPaid=(P.satPaid||0)+1;const k=SAT_MILES[P.satPaid];
+  if(k){const n=spawnPuppets(pl,k,false);if(n){log(`<b>Saturn</b> is paid (${P.satPaid} toll${P.satPaid>1?"s":""}): ${n} stack${n>1?"s":""} of Puppets rise to fight for ${plName(pl)}.`,"event");notify(pl,`Saturn sends ${esc(P.name)} ${n} stack${n>1?"s":""} of Puppets.`)}}
+}
+function saturnMissed(pl){
+  const P=G.p[pl];if(!oathNow(pl,"saturn"))return;
+  if(!P.satLocked)popup("You betray Saturn",`<p>${plName(pl)} missed Saturn's toll while under its Oath.</p><p>For the next three tolls Saturn sends no Puppets. Three turns after every missed toll, Saturn's own Puppets come for ${plName(pl)}. The Oath can no longer be broken.</p>`,pl);
+  P.satLocked=true;P.satBlock=3;P.satOwed=(P.satOwed||0)+1;if(P.satHostAt==null)P.satHostAt=tnOf(pl)+3;
+  log(`${plName(pl)} betrays Saturn: no Puppets for three tolls, and Saturn's Puppets will come.`,"event");
+}
+/* Saturn's hostile Puppets: every three of the betrayer's turns, one stack for every toll missed since the last */
+function saturnHostTurn(pl){
+  const P=G.p[pl];if(P.satHostAt==null||tnOf(pl)<P.satHostAt)return;
+  const n=P.satOwed||0;P.satOwed=0;P.satHostAt=n?tnOf(pl)+3:null;if(!n)return;
+  const k=spawnPuppets(pl,n,true);if(k)log(`<b>Saturn</b> sends ${k} stack${k>1?"s":""} of Puppets after ${plName(pl)} for the missed toll${n>1?"s":""}.`,"event");
+}
+function freeTilesNear(pl,hostile){
+  const out=[],mine=stacksOf(pl),mid=[(G.rows-1)/2,(COLS-1)/2],side=new Set([pl,...alliesOf(pl)].flatMap(i=>zoneTiles(i).map(t=>t.join())));
+  for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){if(G.board[r][c]||isVoid(r,c))continue;
+    const dMine=mine.length?Math.min(...mine.map(x=>Math.abs(x.r-r)+Math.abs(x.c-c))):9,dMid=Math.hypot(r-mid[0],c-mid[1]);
+    const score=hostile?(dMine>=2?dMine:99):(side.has(r+","+c)?0:dMid)+Math.random();out.push([r,c,score])}
+  return out.sort((a,b)=>a[2]-b[2])}
+/* a stack of 1d4 Puppets: for the player (theirs, moved by the computer), or Saturn's own, hunting the betrayer */
+function spawnPuppets(pl,stacks,hostile){
+  const S=npcIx("saturn");if(hostile&&S<0)return 0;let n=0;const tiles=freeTilesNear(pl,hostile);
+  for(let i=0;i<stacks&&tiles.length;i++){const [r,c]=tiles.shift();const owner=hostile?S:pl,k=R(4);
+    const cards=Array.from({length:k},()=>{const p=mk("2",pick(["S","H","D","C"]));p.puppet=true;p.owner=owner;return p});
+    G.board[r][c]={owner,cards,moved:true,attacked:true,hypo:0,sat:!hostile,hunt:hostile?pl:null};n++}
+  render();return n}
+/* the player's Saturn Puppets act for them at the end of the player's turn (a computer player moves them itself) */
+function saturnAllies(pl){
+  if(G.p[pl].cpu)return;
+  for(const x of stacksOf(pl).filter(x=>x.st.sat)){const {st}=x;let r=x.r,c=x.c;if(G.board[r][c]!==st)continue;st.attacked=false;st.moved=false;
+    const tryHit=()=>{let best=null;for(const o of attackOptions(r,c)){if(o.mode==="capture"||o.mode==="destroy")continue;const E=G.board[o.r][o.c];if(!E||!isEnemy(E.owner,pl))continue;const p=AI.winP(st,E,24,o.mode),s=p*AI.value(E);if(p>=.4&&(!best||s>best.s))best={o,s}}
+      if(best){attack(r,c,best.o.r,best.o.c,best.o.mode);return true}return false};
+    if(tryHit())continue;
+    // protect what is threatened most, or close in on the nearest enemy
+    const foes=enemiesOf(pl).flatMap(stacksOf),mine=stacksOf(pl).filter(y=>!y.st.sat);
+    const threat=mine.map(m=>({m,d:Math.min(9,...foes.map(f=>Math.abs(f.r-m.r)+Math.abs(f.c-m.c)))})).filter(t=>t.d<=2).sort((a,b)=>a.d-b.d)[0];
+    const goal=threat?threat.m:foes.sort((a,b)=>(Math.abs(a.r-r)+Math.abs(a.c-c))-(Math.abs(b.r-r)+Math.abs(b.c-c)))[0];if(!goal)continue;
+    let step=null;for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){const rr=r+dr,cc=c+dc;if(rr<0||cc<0||rr>=G.rows||cc>=COLS||isVoid(rr,cc)||G.board[rr][cc])continue;if(peaceOn()&&G.zone[rr]&&G.zone[rr][cc]>=0&&G.zone[rr][cc]!==pl)continue;
+      const d=Math.abs(goal.r-rr)+Math.abs(goal.c-cc);if(d<Math.abs(goal.r-r)+Math.abs(goal.c-c)&&(!step||d<step.d))step={rr,cc,d}}
+    if(step){G.board[step.rr][step.cc]=st;G.board[r][c]=null;st.moved=true;r=step.rr;c=step.cc;tryHit()}
+  }
+}
+/* Saturn's own Puppets: chase whoever they were sent after; wild ones strike anyone beside them but Saturn's sworn */
+async function saturnNPC(){
+  const S=npcIx("saturn");if(S<0)return;
+  for(const {st,r,c} of stacksOf(S)){if(G.over||G.board[r][c]!==st)continue;st.attacked=false;st.moved=false;
+    const who=st.hunt;
+    const ok=E=>E&&!isNPC(E.owner)&&(who!=null?E.owner===who:!oathNow(E.owner,"saturn"));
+    let o=attackOptions(r,c).find(o=>o.mode!=="capture"&&o.mode!=="destroy"&&ok(G.board[o.r][o.c]));
+    if(!o&&who!=null){if(!G.p[who]||G.p[who].out){G.board[r][c]=null;continue}
+      const tl=stacksOf(who);if(!tl.length)continue;const dist=(a,b)=>Math.min(...tl.map(x=>Math.abs(x.r-a)+Math.abs(x.c-b)));let best=null;
+      for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){const rr=r+dr,cc=c+dc;if(rr<0||cc<0||rr>=G.rows||cc>=COLS||isVoid(rr,cc)||G.board[rr][cc])continue;const d=dist(rr,cc);if(d<dist(r,c)&&(!best||d<best.d))best={rr,cc,d}}
+      if(best){G.board[best.rr][best.cc]=st;G.board[r][c]=null;st.moved=true;o=attackOptions(best.rr,best.cc).find(o=>o.mode!=="capture"&&o.mode!=="destroy"&&ok(G.board[o.r][o.c]));if(o){attack(best.rr,best.cc,o.r,o.c,o.mode);render();await sleep(300)}}
+      continue}
+    if(o){attack(r,c,o.r,o.c,o.mode);render();await sleep(300)}
+  }
+}
+{const _an=addNPCs;addNPCs=function(){_an();if(survival())return;const i=G.p.length,P=mkPlayer(i,{name:"Saturn's Puppets",color:"#9a8a5a",solid:"dodeca",cpu:"npc"});P.npc="saturn";P.team=100+i;G.p.push(P);
+  G.map.seats[i]={side:"none",rot:0,fwd:[0,0],back:[],zone:[]}}}
+
+/* ---------- Saturn's eclipse: one outcome, rolled on d100 ---------- */
+const SAT_ECL=[[5,"collapse"],[25,"collectors"],[20,"grunts"],[25,"meteor"],[10,"tithe"],[5,"banker"],[10,"strict"]];
+const satSafe=pl=>oathNow(pl,"saturn");
+async function saturnEclipse(){
+  let x=R(100),k="meteor";for(const [p,id] of SAT_ECL){if(x<=p){k=id;break}x-=p}
+  G.eclipse={k:"saturn",round:G.moon.round,what:k};applyMoonTheme();
+  log(`<b>An eclipse of Saturn.</b>`,"event");
+  const B=G.bank,pls=realPlayers();let html="";
+  if(k==="collapse"){html="<p>The rings darken and the markets fall: <b>the Bank collapses</b>.</p><p class='dim'>Those under the Oath of Saturn are spared unless they are 6 or more in mana debt.</p>";if(B&&!B.dead)collapse();else html+="<p class='dim'>(There is no Bank left to fall.)</p>"}
+  if(k==="collectors"){const T=pls.filter(i=>effMana(i)<-3&&!satSafe(i));const bk=npcIx("bank");let n=0;
+    for(const pl of T){if(bk<0)break;const t=freeTilesNear(pl,true)[0];if(!t)continue;G.board[t[0]][t[1]]={owner:bk,cards:[mkUnit("debt",bk)],moved:true,attacked:true,hunt:pl};n++}
+    html=`<p>Saturn's shadow falls on the debtors: <b>Debt Collectors</b> rise after everyone more than 3 mana in debt${T.length?`: ${T.map(plName).join(", ")}`:" (no one is)"}.</p>`}
+  if(k==="grunts"){const S=npcIx("saturn");let n=0;if(S>=0){const mid=[(G.rows-1)/2,(COLS-1)/2],zones=new Set(G.p.flatMap((P,i)=>isNPC(i)?[]:seat(i).zone.map(t=>t.join())));
+    const tiles=[];for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(!G.board[r][c]&&!isVoid(r,c)&&!zones.has(r+","+c))tiles.push([r,c]);tiles.sort((a,b)=>Math.hypot(a[0]-mid[0],a[1]-mid[1])-Math.hypot(b[0]-mid[0],b[1]-mid[1]));
+    for(let i=0;i<3&&tiles.length;i++){const [r,c]=tiles.shift();const cards=Array.from({length:R(4)},()=>mk(String(1+R(5)),pick(["S","H","D","C"])));cards.forEach(q=>q.owner=S);G.board[r][c]={owner:S,cards,moved:true,attacked:true,wild:true};n++}}
+    html=`<p>Saturn spits out <b>${n} stack${n===1?"":"s"} of Grunts</b>. They fight anyone beside them, except those under its Oath.</p>`}
+  if(k==="meteor"){html="<p>Something falls from Saturn's ring: <b>a meteor</b>.</p>";meteor()}
+  if(k==="tithe"){const hit=pls.filter(i=>!satSafe(i));for(const pl of hit){const P=G.p[pl];P.maxAdd=(P.maxAdd||0)-3;for(let i=0;i<3&&P.deck.length;i++)toGrave(P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0],"burn");payQuiet(pl,Math.min(3,mana(pl)))}
+    html=`<p>Saturn takes its tithe: <b>three maximum mana, three deck cards and three mana</b> from ${hit.length?hit.map(plName).join(", "):"no one"}.</p>`}
+  if(k==="banker"){if(B&&!B.dead){B.dead=true;html="<p>The Banker looks up at the dark ring, clutches his chest and falls over the ledger. <b>The Bank is closed</b> and the Ether shuts its doors.</p>"}else html="<p>Saturn's shadow passes over an empty Bank.</p>"}
+  if(k==="strict"){G.satStrict=true;html="<p>Saturn binds the economy: <b>no surplus mana for the rest of the game</b>, and Debt Collectors come more often for debts to the Bank or to Saturn.</p><p class='dim'>Those under the Oath of Saturn are spared.</p>"}
+  popup("Saturn eclipsed",html);render();checkWin();
+}
+{const _ec=eclipse;eclipse=async function(k){if(k==="saturn")return saturnEclipse();return _ec(k)}}
+{const _ee=endEclipse;endEclipse=function(){if(G.eclipse&&G.eclipse.k==="saturn"){G.eclipse=null;log("The eclipse of Saturn passes.");applyMoonTheme();G._vis=null;return}return _ee()}}
+{const _er=eclipseRound;eclipseRound=async function(){await _er();if(G.over)return;
+  if(sky()==="saturn"&&!G.eclipse&&(Math.random()<.05||G.opts.eclipseStart&&!G.eclipsedOnce||G.forceEclipse)){G.forceEclipse=false;G.eclipsedOnce=true;await saturnEclipse()}}}
+
+/* ---------- Venus's eclipse also heals every card, and can mend a betrayal ---------- */
+{const _ec2=eclipse;eclipse=async function(k){await _ec2(k);if(k!=="venus")return;
+  let healed=0;for(const st of G.board.flat())if(st)for(const c of st.cards)if(c.hp!=null&&c.hp<c.maxHp){c.hp=c.maxHp;healed++}
+  log(`Venus's eclipse heals every card on the field${healed?` (${healed})`:""}.`,"event");
+  for(const b of [...(G.betrayed||[])]){const pls=[b.by,...b.mates].filter(i=>G.p[i]&&!G.p[i].out);if(pls.length<2)continue;let all=true;
+    for(const pl of pls){const yes=await ask(pl,{kind:"yesno",id:"venusmend",title:`Venus eclipsed: ${esc(G.p[pl].name)}`,text:`Venus offers to mend the betrayal of ${plName(b.by)}. Will you stand on one team again with ${pls.filter(i=>i!==pl).map(plName).join(" and ")}?`,yes:"Rejoin",no:"Refuse",ai:()=>aiVote(pl,"Peace")});if(!yes){all=false;break}}
+    if(all){for(const pl of pls)G.p[pl].team=b.team;G.betrayed.splice(G.betrayed.indexOf(b),1);G._vis=null;log(`<b>Venus mends the betrayal</b>: ${pls.map(plName).join(" and ")} are one team again.`,"event");popup("A betrayal mended",`<p>Under the eclipse of Venus, ${pls.map(plName).join(" and ")} stand together again.</p>`)}
+    else log(`The betrayal of ${plName(b.by)} stays unmended.`)}
+}}
+/* remember who betrayed whom, so Venus can mend it */
+{const s=SP("betray");if(s){const run=s.run;s.run=async()=>{const pl=G.active,team=G.p[pl].team,mates=alliesOf(pl).filter(i=>!isHorde(i));await run();
+  if(G.p[pl].team!==team)(G.betrayed=G.betrayed||[]).push({by:pl,team,mates})}}}
+
+/* ---------- the strict economy and the collapse ---------- */
+{const _cl=collapse;collapse=function(){
+  const keep=realPlayers().filter(i=>oathNow(i,"saturn")&&effMana(i)>-6).map(i=>{const P=G.p[i];return {i,souls:[...P.souls],debt:P.debt,loans:[...(P.loans||[])],maxAdd:P.maxAdd,deck:[...P.deck],board:stacksOf(i).map(x=>({r:x.r,c:x.c,st:x.st,cards:[...x.st.cards]}))}});
+  _cl();
+  for(const k of keep){const P=G.p[k.i];P.souls=k.souls;P.debt=k.debt;P.loans=k.loans;P.maxAdd=k.maxAdd;P.deck=k.deck;
+    for(const b of k.board){b.st.cards=b.cards;G.board[b.r][b.c]=b.st}
+    G.ether=G.ether.filter(c=>!k.deck.includes(c)&&!k.board.some(b=>b.cards.includes(c)));
+    log(`Saturn shields ${plName(k.i)} from the collapse.`,"event")}
+  render()}}
+{const _bc=bankCollectors;bankCollectors=async function(){if(G.satStrict)G.collNext=Math.min(G.collNext||0,G.moon.round);return _bc()}}
+
+/* ---------- the turn and the round ---------- */
+{const _st=substanceTurn;substanceTurn=function(pl){_st(pl);scorchTurn(pl);saturnHostTurn(pl)}}
+{const _et=endTurn;endTurn=function(pl){if(G.p[pl]&&!G.p[pl].out&&!isHorde(pl))saturnAllies(pl);return _et(pl)}}
+{const _nr=newRound;newRound=async function(){await _nr();if(G.over)return;await oathRound()}}
+async function oathRound(){
+  // fire mana: the surplus over 3 fades with the round
+  for(const P of G.p)if((P.fire||0)>FIRE_MAX){P.fire=FIRE_MAX}
+  // the Full Moon checks the Moon's demand
+  if(!G.moon.gone&&G.moon.i===4){
+    for(const pl of realPlayers()){const P=G.p[pl];if(!oathNow(pl,"moon"))continue;
+      const got=giveMana(pl,2);log(`The Full Moon keeps its Oath: ${plName(pl)} gets ${got} mana and two more maximum this round.`);
+      if(!P.moonDone){P.maxAdd=(P.maxAdd||0)-1;P.moonNoGrave=true;log(`${plName(pl)} broke the Moon's demand: no Joker gave itself. One maximum mana is lost, and the next New Moon gives nothing.`,"event");
+        popup("The Moon is not answered",`<p>No Joker of ${plName(pl)}'s shot itself before the Full Moon.</p><p>One maximum mana is lost, and the next New Moon gives ${plName(pl)} nothing from the grave.</p>`,pl)}
+      P.moonDone=false;P.moonJokers=0}
+  }
+  // blindness this round: tell the blind
+  for(const pl of realPlayers()){const P=G.p[pl];if(P.blindRound===G.moon.round){G._vis=null;
+    popup("You are blind",`<p>${plName(pl)} is blinded by the Second Sun for this whole round.</p><p>You see nothing on the field, not even your own cards. It ends when the round does.</p>`,pl)}}
+  await saturnNPC();
+  if(Math.random()<.6)setTimeout(moonWhisper,1500+Math.random()*6000);
+  render();
+}
+
+/* ---------- the computer and the Oaths ---------- */
+{const _ap=aiPlanets;aiPlanets=async function(pl,W,cast1){await _ap(pl,W,cast1);if(G.over)return;const P=G.p[pl],lv=P.cpu;
+  if(sunUp()&&P.oath!=="sun"&&P.tribe!=="firm"&&P.oath!=="earth"&&Math.random()<(lv==="hard"?.5:.25))await cast1("oath_sun");
+  if(!G.moon.gone&&P.oath!=="moon"&&!P.oath&&[...P.hand,...P.deck].some(c=>kind(c)==="joker")&&Math.random()<(lv==="hard"?.35:.15))await cast1("oath_moon");
+  if(planetUp("saturn")&&P.oath!=="saturn"&&!P.oath&&paysSaturn(pl)&&P.deck.length>10&&Math.random()<.35)await cast1("oath_saturn");
+  if(oathNow(pl,"sun")){if(fireOf(pl)>=fireCost(SP("sunblind"))&&Math.random()<.35)await cast1("sunblind");if(fireOf(pl)>=fireCost(SP("scorch"))&&Math.random()<.5)await cast1("scorch")}
+  if(oathNow(pl,"moon")){if(!P.moonDone){const j=stacksOf(pl).find(x=>hasK(x.st,"joker"));if(j&&fullIn()<=2)await cast1("suicide",j.r,j.c)}
+    if((P.moonJokers||0)<2&&mana(pl)>=3&&Math.random()<.4)await cast1("moonjoker")}
+}}
+
+/* ---------- on the screen: the Sun's sacrifice, fire mana, the blind veil, aiming at a tile ---------- */
+const sunSacOk=V=>V===G.active&&oathNow(V,"sun")&&sunUp();
+{const _et=econTags;econTags=function(P){const t=_et(P);
+  if(oathNow(P.i,"sun"))t.push(`<span class="firetag" title="Fire mana: 3 at most, 6 for a round">Fire ${fireOf(P.i)}/${FIRE_MAX}</span>`);
+  if(totalBlind(P.i)&&!sunBlind(P.i))t.push(`<span class="debttag">Blind</span>`);
+  if(P.satLocked)t.push(`<span class="debttag">Betrayed Saturn</span>`);
+  if(oathNow(P.i,"saturn")&&!P.satLocked)t.push(`<span class="oathtag">Saturn ${P.satPaid||0} paid</span>`);
+  return t}}
+{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;
+  const B=$("#board");if(B){const bl=totalBlind(view());B.classList.toggle("blinded",bl);
+    let v=B.querySelector(".blindveil");if(bl&&!v){v=document.createElement("div");v.className="blindveil";v.innerHTML=`<b>Blind</b><span>You see nothing on the field this round, not even your own cards.</span>`;B.appendChild(v)}else if(!bl&&v)v.remove();
+    if(G.aim){B.querySelectorAll("button.tile").forEach(t=>{if(G.aim.valid(+t.dataset.r,+t.dataset.c))t.classList.add("taim")})}}
+  let a=$("#aimbar");
+  if(G.aim){if(!a){a=document.createElement("div");a.id="aimbar";document.body.appendChild(a)}a.innerHTML=`<span>${esc(G.aim.title)}</span><button class="btn ghost sm" type="button">Cancel</button>`;a.hidden=false;a.querySelector("button").onclick=()=>endAim(null)}
+  else if(a)a.hidden=true;
+}}
+if(window.__EC)Object.assign(window.__EC,{saturnEclipse,spawnPuppets,saturnPaid,saturnMissed,oathRound,eclipse,sacrificeToSun,totalBlind,fireOf,giveFire,setPlanet,toggleOath,cast,SP});
+if(window.__EC)window.__EC.render=()=>render();
+
+/* ---------------- Prompt 12, part 2b (v28): the planet shop, Venus's and Mercury's cycles, Rob the Bank, Jail ----------------
+   The planet shop (a setting, on by default): any of the seven planets can be bought for the sky for 7 + 1d3 + 1d12 mana, each
+     rolled every round. Everyone is told at once; the planet rises at the start of the next round, with a second popup. After a
+     purchase no planet can be bought for six rounds. Nobody's Substance changes.
+   Cycles: a planet's cycle comes every sixth round it has hung in the sky.
+     Venus: under its Oath, support and base conjurings cost 1 less that round and every card heals a heart; without the Oath,
+       only on a 4 of 1d4.
+     Mercury: a vote to ban one school of spells for 1d3 rounds from the next round (a tie is a d20 roll-off; a Mercury Oath
+       wins it outright); and the Bank can be robbed, once each, that round.
+   Rob the Bank (d20): 20, all the Bank's mana and +5 maximum; 2–19, a stack of 1d4 Grunts from the Bank comes after the robber
+     and no more loans, ever; 1, Jail for 2d2 rounds (an easy computer plays for them, no spells), and after Jail no Ether and no
+     Bank for ten turns, and no loans, ever. */
+
+const SHOP_PL=["moon","mercury","venus","sun","mars","jupiter","saturn"];
+const SHOP_NAME={moon:"The Moon",mercury:"Mercury",venus:"Venus",sun:"The Second Sun",mars:"Mars",jupiter:"Jupiter",saturn:"Saturn"};
+const SHOP_LOCK=6,CYCLE=6;
+const skyWord=k=>SHOP_NAME[k]?SHOP_NAME[k].replace(/^The /,"the "):k==="blacksun"?"the Black Sun":"the empty sky";
+const shopOn=()=>!!G&&G.opts.pshop!==false;
+const SH=()=>G.shop||(G.shop={pend:null,next:0});
+const isEaten=k=>(G.eatenP||[]).includes(k)||k==="mars"&&!!G.marsEaten;
+function shopBlock(k){const S=SH();
+  if(!shopOn())return "The planet shop is off in this game.";
+  if(S.pend)return `${SHOP_NAME[S.pend.k]} rises next round.`;
+  if(G.moon.round<S.next)return `No planet can be bought until round ${S.next}.`;
+  if(sky()===k)return "Already in the sky.";
+  if(isEaten(k))return "Eaten by Yaldabaoth: it never comes back.";
+  return ""}
+
+/* ---------- the shop's spells: one for each planet, in the Astrology panel ---------- */
+for(const k of SHOP_PL){
+  PRICE["shop_"+k]=()=>7+R(3)+R(12);
+  SPELLS.push({id:"shop_"+k,name:"Buy "+skyWord(k).replace(/^the /,"the "),cost:12,dice:"7+1d3+1d12",school:"Astrology",shop:k,text:"",
+    ok:()=>!isHorde(G.active)&&!shopBlock(k),run:async()=>{await buyPlanet(G.active,k)}});
+  const row=SKY_ROWS.find(r=>r[0]===k);
+  SPELL_TEXT["shop_"+k]={n:"The planet shop.",e:`${SHOP_NAME[k]} takes the sky at the start of the next round. ${row?row[3]:""}`,l:"7 + 1d3 + 1d12 mana, rolled every round. After any purchase, no planet can be bought for six rounds."};
+  const t=SPELL_TEXT["shop_"+k];SP("shop_"+k).text=[t.n,t.e,t.l].join(" ");
+}
+async function buyPlanet(pl,k){
+  const S=SH();let venus=null;
+  if(k==="venus"){const mates=[pl,...alliesOf(pl).filter(i=>!isHorde(i))];
+    const opts=[{id:"a",label:"+2 mana a turn and +2 maximum",sub:"for you or a teammate"}];if(!survival())opts.push({id:"b",label:"+1 mana a turn, every enemy +2 maximum",sub:"for you or a teammate"});
+    const mode=await ask(pl,{kind:"choice",id:"venusmode",title:"Venus: which gift?",options:opts,ai:()=>"a"})||"a";
+    const target=mates.length===1?pl:await ask(pl,{kind:"player",id:"venustarget",title:"Venus: for whom?",players:mates,ai:()=>pl});
+    venus={by:pl,mode,target:target??pl}}
+  S.pend={k,by:pl,round:G.moon.round,venus,from:sky()};S.next=G.moon.round+SHOP_LOCK;
+  log(`<b>The planet shop</b>: ${plName(pl)} buys ${skyWord(k)}. It replaces ${skyWord(sky())} at the start of the next round.`,"event");
+  popup("A planet is bought",`<p>${plName(pl)} has bought <b>${esc(SHOP_NAME[k])}</b>.</p><p>It takes the place of ${skyWord(sky())} at the start of the next round.</p><p class="dim">No planet can be bought again until round ${S.next}.</p>`,pl);
+  notify(pl,`${esc(G.p[pl].name)} bought ${skyWord(k)}: it rises next round.`);
+}
+/* the swap, at the very start of the round (before the sky turns) */
+function raisePlanet(){
+  const S=SH(),p=S.pend;if(!p||G.moon.round<=p.round)return;S.pend=null;
+  const {k,by}=p,old=sky();
+  if(G.eclipse)endEclipse();
+  if(G.moonLev&&(k==="saturn"||k==="sun")){const L=G.moonLev;G.moonLev=null;L.card.hp=L.card.maxHp;G.p[L.owner].deck.push(L.card);shuffle(G.p[L.owner].deck);log(`The Leviathan can't lie on ${skyWord(k)}: it falls back into ${plName(L.owner)}'s deck.`,"event")}
+  if(PLANETS[k])setPlanet(k,by);
+  else{const keep=G.p.map(P=>P.oath);
+    G.moon.gone=k==="moon"?null:k;G.moon.i=k==="moon"?1:-1;G.moon.blood=false;G.planetBy=k==="moon"?null:by;
+    G.p.forEach((P,i)=>{if(P.oath&&P.oath!==OATH_SKY[k]&&keep[i]!=="earth"&&!(keep[i]==="saturn"&&P.satLocked))P.oath=null});
+    checkMoonMiner();if(old==="jupiter")G.jupSale=null}
+  if(k==="saturn"){G.saturnBy=by;G.saturnDebt=0}else if(old==="saturn")G.saturnBy=null;
+  if(k==="venus")G.venus=p.venus||{by,mode:"a",target:by};else if(old==="venus")G.venus=null;
+  if(k==="jupiter")rollJupSale();
+  G._vis=null;applyMoonTheme();
+  log(`<b>${esc(SHOP_NAME[k])}</b> takes the sky: it replaces ${skyWord(old)}, bought by ${plName(by)}.`,"event");
+  popup(`${SHOP_NAME[k]} rises`,`<p><b>${esc(SHOP_NAME[k])}</b> has replaced ${skyWord(old)} in the sky. ${plName(by)} bought it.</p>${k==="moon"?"<p>The Moon comes back as a Waxing Crescent.</p>":""}${OATH_SKY[old]&&OATH_SKY[old]!==OATH_SKY[k]?`<p class="dim">Oaths sworn to ${skyWord(old)} are broken.</p>`:""}`,by);
+}
+{const _ms=moonStart;moonStart=async function(){raisePlanet();return _ms()}}
+/* whoever bought the Second Sun isn't judged by it */
+{const _sa=skyAsync;skyAsync=async function(pl){if(sunUp()&&planetBy()===pl){const P=G.p[pl];P.sunNext=null;
+    for(const q of alive())if(!isHorde(q)&&!zoneTiles(q).length)eliminate(q,`${esc(G.p[q].name)} has no ground left to stand on`);checkWin();return}
+  return _sa(pl)}}
+
+/* ---------- the shop's panel ---------- */
+function shopHTML(){
+  const live=canAct()&&G.phase==="prep"&&G.active===view(),S=SH();
+  const rows=SHOP_PL.map(k=>{const sp=SP("shop_"+k),c=spellCost(sp),ok=live&&spellReady(sp),now=sky()===k,blk=shopBlock(k);
+    const left=now?"In the sky":isEaten(k)?"Eaten":S.pend&&S.pend.k===k?"Rises next round":"";
+    return `<button class="spell eitem ${ok?"":"off"}" data-cast="shop_${k}" data-sp="shop_${k}" ${blk&&!ok?`data-tip="${esc(blk)}"`:""}><span class="sn">${esc(SHOP_NAME[k])}<small class="dc">${esc((SKY_FORM[k]||"").replace("Form of ",""))}</small>${left?`<small class="left">${left}</small>`:""}</span><em>${c} mana</em></button>`}).join("");
+  const note=S.pend?`${plName(S.pend.by)} bought ${skyWord(S.pend.k)}: it rises at the start of the next round.`
+    :G.moon.round<S.next?`A planet was bought. The shop opens again in round ${S.next}.`
+    :live?"Buy a planet for the sky. It rises at the start of the next round. Prices (7 + 1d3 + 1d12) are rolled every round."
+    :"You can buy a planet in your own prep phase.";
+  return [`${note} After a purchase, no planet can be bought for six rounds.`,rows]}
+DRAWERS.shop={title:"Planet shop",fill:shopHTML};
+{const _p=astroPins;astroPins=function(live,V){let h=_p(live,V);if(!shopOn())return h;const S=SH();
+  const st=S.pend?`${SHOP_NAME[S.pend.k]} next round`:G.moon.round<S.next?`opens round ${S.next}`:"open";
+  return h+`<button class="spell drawerbtn shop ${live?"":"off"}" id="openShop" data-tip="The planet shop: buy any of the seven planets for the sky. It rises at the start of the next round."><span class="sn">Planet shop<small class="dc">${esc(st)}</small></span><em>›</em></button>`}}
+{const _w=wireAstroPins;wireAstroPins=function(){_w();if($("#openShop"))$("#openShop").onclick=()=>openDrawer("shop")}}
+
+/* ---------- cycles: every sixth round a planet has hung in the sky ---------- */
+const cycleNow=k=>planetUp(k)&&G.skySince!=null&&G.moon.round>G.skySince&&(G.moon.round-G.skySince)%CYCLE===0;
+const cycleNext=()=>{if(G.skySince==null)return null;let n=G.skySince+CYCLE;while(n<G.moon.round)n+=CYCLE;return n};
+const VENUS_CJ=new Set(["csc","cmine","crep","cram","cheal","ca","cwall"]);   // the Ether's support and base cards
+const venusBlessed=pl=>!!(G&&G.venusCyc&&G.venusCyc.round===G.moon.round&&planetUp("venus")&&G.venusCyc.who.includes(pl));
+function venusCycle(){
+  const who=[],rolls=[];
+  for(const pl of realPlayers()){if(oathNow(pl,"venus")){who.push(pl);continue}
+    const d=R(4);rolls.push([pl,d]);tray(pl,"Venus's cycle",[{s:4,v:d}],d===4?"blessed":"passed over",true);if(d===4)who.push(pl)}
+  G.venusCyc={round:G.moon.round,who};let healed=0;
+  for(const pl of who)for(const {st} of stacksOf(pl))for(const c of st.cards)if(c.maxHp&&c.hp<c.maxHp){c.hp++;healed++}
+  log(`<b>Venus's cycle</b>: ${who.length?`${who.map(plName).join(", ")} ${who.length===1?"is":"are"} blessed this round (support and base conjurings 1 less, ${healed} heart${healed===1?"":"s"} healed)`:"Venus blesses no one this round"}.`,"event");
+  popup("Venus's cycle",`<p>Every sixth round Venus is generous to those sworn to her: this round their support and base cards from the Ether (Scout, Miner, Repairman, Battering Ram, Healer, Ace, Wall) cost 1 less, and every wounded card of theirs heals one heart.</p>
+<p>${who.length?`Blessed: ${who.map(plName).join(", ")}.`:"Nobody is blessed this time."}</p>${rolls.length?`<p class="dim">Without her Oath, a 4 on 1d4: ${rolls.map(([pl,d])=>`${plName(pl)} ${d}`).join(", ")}.</p>`:""}`);
+}
+{const _sc=spellCost;spellCost=function(sp){let c=_sc(sp);if(sp&&c>0&&VENUS_CJ.has(sp.id)&&G&&venusBlessed(G.active))c=Math.max(0,c-1);return c}}
+
+/* Mercury: a vote to ban a school of spells */
+const banOn=()=>!!(G&&G.mban&&G.moon.round>=G.mban.from&&G.moon.round<=G.mban.until);
+function aiBanVote(pl){if(Math.random()<.3)return "none";
+  const mine=new Set(SPELLS.filter(s=>(!s.tribe||s.tribe===G.p[pl].tribe)&&s.school!=="Astrology").map(s=>s.school));
+  const opts=SCHOOLS.filter(s=>s!=="Astrology");const theirs=opts.filter(s=>!["Conjuring"].includes(s)||mana(pl)<4);
+  return pick(theirs.length?theirs:opts)||"none"}
+async function mercuryCycle(){
+  const r=G.moon.round;G.mercCyc=r;
+  const opts=[...SCHOOLS.map(s=>({id:s,label:s,sub:`No ${s} spells for anyone`})),{id:"none",label:"Ban nothing"}];
+  const back={};
+  for(const pl of realPlayers()){const v=await ask(pl,{kind:"choice",id:"mercban",title:`Mercury's cycle: ${G.p[pl].name} votes to ban a school of spells for 1d3 rounds`,options:opts,ai:()=>aiBanVote(pl)})||"none";
+    (back[v]=back[v]||[]).push(pl);log(`${plName(pl)} votes to ban ${v==="none"?"nothing":v}.`)}
+  const top=Math.max(...Object.values(back).map(a=>a.length)),tied=Object.keys(back).filter(k=>back[k].length===top);
+  let win=tied[0],tie="";
+  if(tied.length>1){
+    const merc=tied.filter(s=>back[s].some(pl=>oathNow(pl,"mercury")));
+    if(merc.length===1){win=merc[0];tie=`<p>A tie between ${tied.map(s=>s==="none"?"no ban":s).join(" and ")}. ${back[win].filter(pl=>oathNow(pl,"mercury")).map(plName).join(", ")} swore the Oath of Mercury and wins the tie without dice.</p>`}
+    else{let pool=merc.length?merc:tied,rows=[];
+      for(let tries=0;tries<10&&pool.length>1;tries++){const best={};
+        for(const s of pool){for(const pl of back[s]){const d=R(20);rows.push([pl,s,d]);tray(pl,"Mercury's tie",[{s:20,v:d}],`for ${s==="none"?"no ban":s}`,true);best[s]=Math.max(best[s]||0,d)}}
+        const hi=Math.max(...Object.values(best));pool=pool.filter(s=>best[s]===hi)}
+      win=pool[0];
+      tie=`<p>A tie between ${tied.map(s=>s==="none"?"no ban":s).join(" and ")}: everyone behind them rolls 1d20, and the highest roll wins.</p><table class="tierolls">${rows.map(([pl,s,d])=>`<tr><td>${plName(pl)}</td><td>${s==="none"?"no ban":s}</td><td><b>${d}</b></td></tr>`).join("")}</table>`}
+    popup("Mercury's vote: a tie",`${tie}<p>The winner: <b>${win==="none"?"no ban":esc(win)}</b>.</p>`)}
+  if(win==="none"){G.mban=null;log("Mercury's vote: nothing is banned.","event")}
+  else{const d=R(3);G.mban={school:win,from:r+1,until:r+d};
+    log(`<b>Mercury's ban</b>: no ${win} spells for anyone from round ${r+1} to round ${r+d} (1d3 = ${d}).`,"event");
+    popup("Mercury's ban",`<p>The vote bans <b>${esc(win)}</b>. From the start of the next round, nobody can cast ${esc(win)} spells for ${d} round${d>1?"s":""} (1d3), until the end of round ${r+d}.</p>`)}
+  if(bankOpen())notify(null,"Mercury's cycle: the Bank can be robbed this round (Rob the Bank, under the Bank).");
+}
+/* ---------- the start of each round: Jail, the sky's age, the cycles ---------- */
+async function cycleRound(){
+  for(const P of G.p)if(P.jail&&G.moon.round>P.jail.until)leaveJail(P.i);
+  if(G._skyK!==sky()){G._skyK=sky();G.skySince=G.moon.round}
+  if(G.mban&&G.moon.round===G.mban.from)notify(null,`Mercury's ban begins: no ${esc(G.mban.school)} spells until the end of round ${G.mban.until}.`);
+  if(G.mban&&G.moon.round>G.mban.until){log(`Mercury's ban on ${G.mban.school} ends.`,"event");G.mban=null}
+  if(cycleNow("venus"))venusCycle();
+  if(cycleNow("mercury"))await mercuryCycle();
+  render();
+}
+{const _nr=newRound;newRound=async function(){await _nr();if(G.over)return;await cycleRound()}}
+
+/* ---------- Rob the Bank ---------- */
+const bankBanned=pl=>!!(G.p[pl]&&G.p[pl].bankBan!=null&&tnOf(pl)<=G.p[pl].bankBan);
+const etherBanned=pl=>!!(G.p[pl]&&G.p[pl].etherBan!=null&&tnOf(pl)<=G.p[pl].etherBan);
+const jailLeft=P=>Math.max(1,P.jail.until-Math.max(G.moon.round,P.jail.from+1)+1);   // the round they are caught in is not counted
+const robOk=pl=>!!(G&&G.p[pl]&&G.mercCyc===G.moon.round&&planetUp("mercury")&&bankOpen()&&!isHorde(pl)&&!G.p[pl].jail&&G.p[pl].robbed!==G.moon.round&&!bankBanned(pl));
+SPELLS.push({id:"robbank",name:"Rob the Bank",cost:0,school:"Bank",text:"Free, once, in a round of Mercury's cycle. Roll 1d20. A natural 20: every mana in the Bank is yours, and +5 maximum. A 1: Jail for 2d2 rounds (an easy computer plays for you, and you cast nothing); after Jail, no Ether and no Bank for ten turns, and no loans ever again. Anything else: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again.",
+  ok:()=>robOk(G.active),run:async()=>{await robBank(G.active)}});
+SPELL_TEXT.robbank={n:"Mercury's cycle, once, in your prep phase.",e:"Roll 1d20. A natural 20: every mana in the Bank is yours, and +5 maximum. 2 to 19: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again. A 1: Jail for 2d2 rounds; an easy computer plays for you and you cast nothing.",l:"After Jail: no Ether and no Bank for ten turns, and no loans ever again."};
+const ROB_FAILS=[
+  n=>`The vault door ${n} broke open was painted on the wall. The guards laughed for a while before they drew their swords.`,
+  n=>`The Banker was counting coins in the dark the whole time. He wrote down ${n}'s face and rang the bell.`,
+  n=>`${n}'s tunnel came up under the guardhouse instead of the vault.`,
+  n=>`One coin slipped out of ${n}'s sack and rang on the marble floor. The whole Bank heard it.`,
+  n=>`The sack had a hole in it: a trail of mana led the guards straight back to ${n}.`,
+  n=>`The Banker's ledger already had ${n}'s name in it, under "expected".`];
+function bankGrunts(pl){const B=npcIx("bank");if(B<0)return 0;const t=freeTilesNear(pl,true)[0];if(!t)return 0;const k=R(4);
+  const cards=Array.from({length:k},()=>{const c=mk(String(1+R(4)),pick(["S","H","D","C"]));c.owner=B;return c});
+  G.board[t[0]][t[1]]={owner:B,cards,moved:true,attacked:true,hunt:pl};return k}
+async function robBank(pl){
+  const P=G.p[pl],B=G.bank,d=R(20),nm=plName(pl);P.robbed=G.moon.round;
+  tray(pl,"Rob the Bank",[{s:20,v:d}],d===20?"the vault is yours":d===1?"caught: Jail":"failed");
+  if(d===20){P.maxAdd=(P.maxAdd||0)+5;const all=Math.max(0,B.mana),got=giveMana(pl,all);B.mana-=got;
+    log(`<b>${nm} robs the Bank</b> with a natural 20: ${got} mana and +5 maximum.`,"event");
+    popup("The heist",`<p>${nm} rolls a natural 20 and walks out of the vault with everything in it: <b>${got}</b> mana${got<all?` (${all-got} more wouldn't fit and stays behind)`:""}, and five more maximum mana.</p>`,pl)}
+  else if(d===1)goToJail(pl);
+  else{P.noLoans=true;P.credit=false;const k=bankGrunts(pl);
+    log(`${nm} tries to rob the Bank and fails (${d}). ${k?`A stack of ${k} Grunt${k>1?"s":""} comes out of the Bank after them, and `:""}${k?"they":"They"} can never take a loan again.`,"event");
+    popup("The robbery fails",`<p>${pick(ROB_FAILS)(nm)}</p><p>${nm} rolled ${d}: not a 20.${k?` A stack of ${k} Grunt${k>1?"s":""} comes out of the Bank after them.`:""}</p><p>${nm} can never take a loan again.</p>`,pl)}
+  render();checkWin();
+}
+/* ---------- Jail ---------- */
+function goToJail(pl){
+  const P=G.p[pl],d=[R(2),R(2)],n=d[0]+d[1];tray(pl,"Jail",d.map(v=>({s:2,v})),`${n} rounds`,true);
+  P.jail={from:G.moon.round,until:G.moon.round+n,cpu:P.cpu||false};P.noLoans=true;P.credit=false;
+  if(!P.cpu)G.lastView=pl;P.cpu="easy";
+  log(`<b>${plName(pl)} is caught robbing the Bank</b> (a 1) and goes to Jail for ${n} rounds (2d2). An easy computer plays for them; they cast nothing.`,"event");
+  popup("Jail",`<p>${plName(pl)} rolls a 1. The guards were waiting.</p><p>${plName(pl)} is in Jail for <b>${n}</b> rounds (2d2): an easy computer plays their side, and they can't cast anything.</p><p>After Jail: nothing from the Ether and no Bank business for ten turns, and never a loan again.</p>`,pl);
+  // a person caught in their own prep phase: the computer takes over at once
+  if(G.active===pl)setTimeout(()=>{if(G.waiter&&G.active===pl&&P.jail){const f=G.waiter;G.waiter=null;G.mode=null;G.selHand=null;f()}},500);
+}
+function leaveJail(pl){const P=G.p[pl];if(!P.jail)return;P.cpu=P.jail.cpu;P.jail=null;
+  P.etherBan=tnOf(pl)+10;P.bankBan=tnOf(pl)+10;P.noLoans=true;P.credit=false;
+  log(`<b>${plName(pl)} is out of Jail.</b> No Ether and no Bank for ten turns; no loans ever again.`,"event");
+  popup("Out of Jail",`<p>${plName(pl)} walks out of Jail and takes their side back.</p><p>For the next ten turns: nothing from the Ether and no Bank business. And never a loan again.</p>`,pl)}
+
+/* what Jail, the ban and the robbery's aftermath forbid */
+{const _b=spellBlock;spellBlock=function(sp){const P=G.p[G.active];
+  if(P&&P.jail)return `In Jail: no spells for ${jailLeft(P)} more round${jailLeft(P)===1?"":"s"}.`;
+  if(banOn()&&sp.school===G.mban.school)return `Mercury's ban: no ${G.mban.school} spells until the end of round ${G.mban.until}.`;
+  if(P&&sp.school==="Conjuring"&&etherBanned(G.active))return `Out of Jail: no Ether until your turn ${P.etherBan+1}.`;
+  if(P&&sp.id==="gamble"&&bankBanned(G.active))return `Out of Jail: no Bank until your turn ${P.bankBan+1}.`;
+  return _b(sp)}}
+{const _ll=loanLimit;loanLimit=function(pl){const P=G.p[pl];if(P&&(P.noLoans||P.jail||bankBanned(pl)))return 0;return _ll(pl)}}
+{const _ca=canAfford;canAfford=function(pl,n){const P=G.p[pl];if(P&&(P.noLoans||P.jail||bankBanned(pl)))return mana(pl)>=n;return _ca(pl,n)}}
+{const _mb=mysteryBuy;mysteryBuy=function(pl){const P=G.p[pl];if(P&&(P.jail||etherBanned(pl))){if(!P.cpu)flash("Out of Jail: no Ether yet.");return null}return _mb(pl)}}
+{const _ab=aiBank;aiBank=async function(pl,W,cast1){if(G.p[pl].jail||bankBanned(pl))return;return _ab(pl,W,cast1)}}
+{const _ob=openBank;openBank=function(){_ob();const V=view(),P=G.p[V],box=$("#ov .bank .bacts");if(!box)return;
+  if(P.jail||bankBanned(V)){box.innerHTML=`<p class="bnote">${P.jail?"In Jail: no Bank business.":`Out of Jail: no Bank business until your turn ${P.bankBan+1}.`}</p>`;return}
+  if(P.noLoans){for(const id of ["#bLoan","#bLoanBtn","#bCredit"]){const e=$(id);if(e){e.disabled=true;e.checked=false}}
+    const n=document.createElement("p");n.className="bnote";n.textContent="After robbing the Bank you can never take a loan or spend on credit again.";box.prepend(n)}}}
+/* the computer playing a jailed player stays easy; a robber's computer at the Bank */
+{const _ap=aiPlanets;aiPlanets=async function(pl,W,cast1){await _ap(pl,W,cast1);if(G.over)return;const P=G.p[pl],lv=P.cpu;if(P.jail)return;
+  if(shopOn()&&!SH().pend&&G.moon.round>=SH().next&&Math.random()<(lv==="hard"?.12:.06)){
+    const ks=SHOP_PL.filter(k=>!shopBlock(k)),want=ks.length?pick(ks):null;
+    if(want&&mana(pl)>=(G.prices["shop_"+want]||15)+4)await cast1("shop_"+want)}
+  if(robOk(pl)&&Math.random()<(lv==="easy"?.3:.12))await cast1("robbank");
+}}
+
+/* ---------- on the screen ---------- */
+{const _id=inDrawer;inDrawer=function(s,V){if(s.shop||s.id==="robbank")return true;return _id(s,V)}}
+/* Rob the Bank sits under the Bank, in dark red, while it can be done */
+{const _rs=renderSpells;renderSpells=function(live){_rs(live);const bs=$("#bankslot");if(!bs||!G)return;const V=view();
+  if(G.mercCyc===G.moon.round&&planetUp("mercury")&&bankOpen()&&!survival()){const sp=SP("robbank"),ok=live&&G.active===V&&spellReady(sp);
+    const done=G.p[V].robbed===G.moon.round;
+    bs.insertAdjacentHTML("beforeend",`<button class="spell robbank ${ok?"":"off"}" id="robBank" data-sp="robbank"><span class="sn">Rob the Bank<small class="dc">1d20</small>${done?`<small class="left">tried</small>`:""}</span><em>free</em></button>`);
+    $("#robBank").onclick=async()=>{if(!canAct())return;await cast(SP("robbank"));render()}}}}
+{const _et=econTags;econTags=function(P){const t=_et(P);
+  if(P.jail)t.push(`<span class="debttag jailtag">In Jail · ${jailLeft(P)} round${jailLeft(P)===1?"":"s"}</span>`);
+  else{if(etherBanned(P.i))t.push(`<span class="debttag">No Ether · ${P.etherBan-tnOf(P.i)}</span>`);if(bankBanned(P.i))t.push(`<span class="debttag">No Bank · ${P.bankBan-tnOf(P.i)}</span>`)}
+  if(P.noLoans&&!P.jail)t.push(`<span class="debttag">No loans</span>`);
+  if(venusBlessed(P.i))t.push(`<span class="saletag">Venus's blessing</span>`);
+  return t}}
+{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;
+  const B=$("#board"),V=G.p[view()];if(!B)return;let js=B.querySelector(".jailstrip");
+  if(V&&V.jail){if(!js){js=document.createElement("div");js.className="jailstrip";js.setAttribute("role","status");B.appendChild(js)}
+    const n=jailLeft(V);js.innerHTML=`<b>You are in Jail</b><span>${n} round${n===1?"":"s"} left</span>`}
+  else if(js)js.remove()}}
+/* the sky's box: what's coming */
+{const _c=skyCommon;skyCommon=function(L){_c(L);const S=SH(),r=G.moon.round;
+  if(S.pend)L.push(`${plN(S.pend.by)} bought ${skyWord(S.pend.k)}: it takes the sky next round.`);
+  else if(shopOn()&&r<S.next)L.push(`Planet shop: no planet can be bought until round ${S.next}.`);
+  const nx=cycleNext();
+  if(planetUp("venus"))L.push(cycleNow("venus")?`<b>Venus's cycle</b> this round: ${G.venusCyc&&G.venusCyc.who.length?G.venusCyc.who.map(plN).join(", ")+" blessed":"nobody blessed"}.`:`Venus's cycle every ${CYCLE} rounds: under her Oath, support and base conjurings cost 1 less and every wounded card heals a heart (without it, a 4 on 1d4). Next: round ${nx}.`);
+  if(planetUp("mercury"))L.push(cycleNow("mercury")?"<b>Mercury's cycle</b> this round: the Bank can be robbed.":`Mercury's cycle every ${CYCLE} rounds: a vote bans one school of spells for 1d3 rounds, and the Bank can be robbed. Next: round ${nx}.`);
+  if(banOn())L.push(`<b>Mercury's ban</b>: no ${esc(G.mban.school)} spells until the end of round ${G.mban.until}.`);
+  else if(G.mban)L.push(`Mercury's ban on ${esc(G.mban.school)} starts next round.`)}}
+
+if(window.__EC)Object.assign(window.__EC,{buyPlanet,raisePlanet,venusCycle,mercuryCycle,robBank,goToJail,leaveJail,cycleRound,shopBlock,spellCost:sp=>spellCost(sp),spellBlock:sp=>spellBlock(sp)});
 
 })();
