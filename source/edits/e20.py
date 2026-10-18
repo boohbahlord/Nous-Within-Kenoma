@@ -1,0 +1,4 @@
+E={
+26:"Samson must fly further up and away from the water crashing high. He fires the slug shots from his arm at the tail on the way up and out, where the blood sprays out onto his visor as it strings out into fleshly strands and chunks into the seas, the gauntlet firing rounds innumerously with blunt pounds of lead.",
+38:"Antony’s screams of thunder are lightning made material, shooting down and through the opening mouth of the Leviathan, splitting the split tongue into a complete half of itself, lightning even down the gullet, through the muscles. Blood sprays up and out from the throat, a now-dead Mars look across Samson’s face, faint as a dream far back in the soul. The rain picks up again onto his visor as he falls with the Leviathan. The suit now pulls around his bones with a force of the opposite direction.",
+}
