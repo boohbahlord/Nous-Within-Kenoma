@@ -1278,3 +1278,10 @@ html.th-officedark .btn{color:#fff}
 /* v43: the Random color and Random symbol choices */
 .sw.swrand span{background:conic-gradient(#ee7a3c,#e3b944,#45b89c,#4c92e6,#a77de8,#e4648f,#d7333b,#ee7a3c);display:grid;place-items:center;color:#000;font-weight:700;font-size:15px}
 .so-opt .sorand{display:grid;place-items:center;width:28px;height:28px;font-size:20px;font-weight:400;color:var(--text)}
+/* ================= v43: the Ether stands out for everyone ================= */
+.spell.ether{border-color:#7f97ff;background:linear-gradient(90deg,#24357e,#121a46);color:#eef2ff;box-shadow:0 0 0 1px #00000080,0 0 12px #5a78ff59}
+.spell.ether:hover{border-color:#b9c7ff;box-shadow:0 0 16px #7f97ff8c}
+.spell.ether.off{opacity:.85}
+.spell.ether .ethmark{font-style:normal;color:#b9c7ff;margin-right:7px;text-shadow:0 0 6px #7f97ff}
+html.th-office .spell.ether{background:linear-gradient(90deg,#dfe7ff,#eef2ff);border-color:#4c6fff;color:#1d2a7a;box-shadow:0 0 8px #4c6fff40}
+html.th-office .spell.ether .ethmark{color:#4c6fff;text-shadow:none}

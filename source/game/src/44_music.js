@@ -1,7 +1,7 @@
-/* ---------------- v41: the Dark Fantasy theme's music ----------------
+/* ---------------- v41: the Ether's Crossroads theme's music (it was called Dark Fantasy) ----------------
    An old-cartridge dungeon tune, made in the browser like every other sound here: a soft square-wave melody over a triangle
    bass arpeggio in D minor, slow (76 a minute), with a faint echo, about fifty seconds before it loops. Quiet, so it stays
-   behind the game. It plays only with the Dark Fantasy theme, follows the sound switch, and has its own Music button. */
+   behind the game. It plays only with the Ether's Crossroads theme, follows the sound switch, and has its own Music button. */
 
 const MUS=(()=>{
   // the melody, two phrases of eight bars: [MIDI note or null for a rest, length in eighths]
