@@ -346,7 +346,7 @@ const isVoid=(r,c)=>!!(G.void&&G.void[r]&&G.void[r][c]);
 const hq=()=>!!G.opts.hq&&!survival();
 const centerOut=()=>{const m=(COLS-1)/2;return [...Array(COLS).keys()].sort((a,b)=>Math.abs(a-m)-Math.abs(b-m)||a-b)};
 /* per-player turn state: in phases everyone plays at once, each player keeps their own */
-const TURNKEYS=["spent","spentOther","blessed","ritual","sevSum","prices","sel","selHand","mode","noDraw","libation"];
+const TURNKEYS=["spent","spentOther","blessed","ritual","sevSum","prices","sel","selHand","mode","noDraw","libation","saleD"];
 function setActive(pl){
   if(pl===G.active&&G.p[pl].ctx)return;
   const P=G.p[G.active];if(P){P.ctx={};for(const k of TURNKEYS)P.ctx[k]=G[k]}
@@ -856,7 +856,7 @@ async function newRound(){
 }
 function beginTurn(pl){
   setActive(pl);G.turnNo++;
-  Object.assign(G,{spent:false,spentOther:false,blessed:false,ritual:0,sel:null,selHand:null,mode:null,noDraw:false,sevSum:0,libation:false});
+  Object.assign(G,{spent:false,spentOther:false,blessed:false,ritual:0,sel:null,selHand:null,mode:null,noDraw:false,sevSum:0,libation:false,saleD:null});
   G.p[pl].tn=(G.p[pl].tn||0)+1;   // the player's own turn count, for cooldowns
   G.prices={...(G.roundPrices||{})};
   if(G.inflation&&G.turnNo<=G.inflation.until)G.inflation.add=R(2)-1;
@@ -4056,13 +4056,15 @@ function spend(pl,n){const have=mana(pl);
 function noteBuy(id){const B=G.bank;if(!B)return;const r=G.moon.round;(B.buys[r]=B.buys[r]||{})[id]=(B.buys[r][id]||0)+1}
 
 /* ---------- prices: the Bank's upsells, the angry Banker, Ether sales, the collapse ---------- */
+/* v45: a private Ether sale takes 1d2 − 1 off a conjuring, rolled once a turn for each, so the price you see is the price you pay */
+function saleCut(sp){const D=G.saleD||(G.saleD={});if(D[sp.id]==null)D[sp.id]=R(2)-1;return D[sp.id]}
 function spellCost(sp){
   let c=baseCost(sp);const B=G.bank;if(!B)return c;
   if(c>0){c+=(B.upsell[sp.id]||0)+(B.angry?1:0);if(G.inflation&&G.turnNo<=G.inflation.until)c+=G.inflation.add||0}
   c=jupiterCost(sp,c);c=mercuryCost(sp,c);
   if(sp.school==="Conjuring"&&c>0){
     if(B.mana<0&&!B.dead)c=Math.max(1,c-1);   // the Bank is broke: the Ether goes on sale
-    const P=G.p[G.active];if(P&&P.saleUntil!=null&&tnOf(G.active)<=P.saleUntil)c=Math.max(0,c-1);   // a Barbarian-slayer's private sale
+    const P=G.p[G.active];if(P&&P.saleUntil!=null&&tnOf(G.active)<=P.saleUntil)c=Math.max(0,c-saleCut(sp));   // a Barbarian-slayer's private sale: 1d2 − 1 off
   }
   return Math.max(0,c);
 }
@@ -4330,7 +4332,7 @@ function waveCleared(W){
   if(!ks.length){log("The last Barbarians of the band are gone.");return}
   const top=+ks[0][0],P=G.p[top];if(!P||P.out)return;
   P.saleUntil=tnOf(top)+3;
-  log(`<b>${plName(top)}</b> killed the most Barbarians (${ks[0][1]}): the Ether is on sale for them for three turns (every conjuring 1 less).`,"event");
+  log(`<b>${plName(top)}</b> killed the most Barbarians (${ks[0][1]}): the Ether is on sale for them for three turns (every conjuring 1d2 − 1 less, never below 1 mana).`,"event");
   if((W.aceKilled&&W.stacks>=2)||(W.stacks>=3&&!W.aces)){const d=P.debt||0,o=owedOf(top);P.debt=0;P.debtAt=null;P.loans=[];
     log(`<b>The Banker forgives ${plName(top)}'s debts</b>${d||o?` (${d+o} mana)`:""} for breaking the Barbarians.`,"event");
     popup("Debts forgiven",`<p>${plName(top)} broke a band of Barbarians${W.aceKilled?" and its Ace":""}. The Banker tears up their debts${d||o?`: ${d+o} mana`:""}.</p>`,top)}
@@ -5992,7 +5994,7 @@ function venusCycle(){
   G.venusCyc={round:G.moon.round,who};let healed=0;
   for(const pl of who)for(const {st} of stacksOf(pl))for(const c of st.cards)if(c.maxHp&&c.hp<c.maxHp){c.hp++;healed++}
   log(`<b>Venus's cycle</b>: ${who.length?`${who.map(plName).join(", ")} ${who.length===1?"is":"are"} blessed this round (support and base conjurings 1 less, ${healed} heart${healed===1?"":"s"} healed)`:"Venus blesses no one this round"}.`,"event");
-  popup("Venus's cycle",`<p>Every sixth round Venus is generous to those sworn to her: this round their support and base cards from the Ether (Scout, Miner, Repairman, Battering Ram, Healer, Ace, Wall) cost 1 less, and every wounded card of theirs heals one heart.</p>
+  popup("Venus's cycle",`<p>Every sixth round Venus is generous to those sworn to her: this round their support and base cards from the Ether (Scout, Miner, Repairman, Battering Ram, Healer, Ace, Wall) cost 1 less (never below 1 mana), and every wounded card of theirs heals one heart.</p>
 <p>${who.length?`Blessed: ${who.map(plName).join(", ")}.`:"Nobody is blessed this time."}</p>${rolls.length?`<p class="dim">Without her Oath, a 4 on 1d4: ${rolls.map(([pl,d])=>`${plName(pl)} ${d}`).join(", ")}.</p>`:""}`);
 }
 {const _sc=spellCost;spellCost=function(sp){let c=_sc(sp);if(sp&&c>0&&VENUS_CJ.has(sp.id)&&G&&venusBlessed(G.active))c=Math.max(0,c-1);return c}}
@@ -6254,7 +6256,7 @@ function moonPieces(){const m=G.moon;
     const tip=`${n}${d?` (in ${rnds(d)})`:" (now)"}: ${MOON_PH(i)}`;
     return `<span class="${i===m.i?"on":""}${ev?" ev":""}" data-tip="${esc(tip)}"><svg viewBox="-9 -9 18 18" width="18" height="18"><circle r="7" fill="${m.blood&&i===4?"#3b0608":"#1f1913"}" stroke="#5a4a3a" stroke-width=".6"/><g fill="${m.blood&&i===4?"#d3171e":"#e9e1cc"}">${moonPath(i,7)}</g></svg></span>`}).join("")}
 const pip=(col,ev,filled)=>`<svg viewBox="-9 -9 18 18" width="18" height="18">${ev?`<path d="M0,-7L2,-2L7,0L2,2L0,7L-2,2L-7,0L-2,-2Z" fill="${filled?col:"none"}" stroke="${col}" stroke-width="1"/>`:`<circle r="${filled?4.2:3.6}" fill="${filled?col:"none"}" stroke="${col}" stroke-width="1" opacity="${filled?1:.7}"/>`}</svg>`;
-const CYC_TXT={venus:"Venus's cycle. Under her Oath, support and base cards from the Ether cost 1 less this round and every wounded card of yours heals a heart. Without her Oath, only on a 4 of 1d4.",
+const CYC_TXT={venus:"Venus's cycle. Under her Oath, support and base cards from the Ether cost 1 less this round (never below 1 mana) and every wounded card of yours heals a heart. Without her Oath, only on a 4 of 1d4.",
   mercury:"Mercury's cycle. Everyone votes to ban one school of spells for 1d3 rounds from the next round; a tie is a d20 roll-off, and the Oath of Mercury wins it. Anyone can try to Rob the Bank, once."};
 const CYC_COL={venus:"#ffd9a0",mercury:"#b9c8dc"};
 function roundPieces(k){const r=G.moon.round,since=G.skySince!=null&&G.skySince<=r?G.skySince:r,e=r-since;
@@ -8005,5 +8007,74 @@ function lazyHTML(live){const ok=live&&lazyCan(),on=lazyAuto();
   h.querySelectorAll("[data-h]").forEach(b=>{const orig=b.onclick;b.onclick=e=>{if(!lazyOn()||!lazyCan())return orig&&orig.call(b,e);
     const c=G.p[view()].hand[+b.dataset.h];if(c)lazyPlace(c)}})}}
 if(window.__EC)Object.assign(window.__EC,{lazySpot,lazyPlace,lazyOn});
+
+/* ---------------- v45: "What you must know", the start-of-game toast and the Help title ----------------
+   Top center of the play page: "What you must know · Click me to know". It opens a panel: a short TLDR, a paragraph on what new
+   players miss, and "Tell me more here now" for the deeper version, which also points to the Help index at the bottom.
+   "Never show again" asks first: Yes, No, or Remind me at the start of the next game. The Help title above the fold-downs at
+   the bottom always has a small link back to it. */
+const MK_TLDR=`Your deck is your life and your souls are your mana: you are out when you have nothing left on the field, or no deck, hand and mana at all. Keep your Ace safe on your back line, get Miners working for steady mana, and only fight battles your best card can win.`;
+const MK_BODY=`<p><b>Cards are life and money at once.</b> Every card you draw, place or lose comes out of your deck; every card you sacrifice becomes mana (its soul's worth), but it is one soldier less. You can sacrifice cards from your hand, too: a quick way to pay for a spell.</p>
+<p><b>Mana grows slowly unless you build for it.</b> Miners are the steady income: two can sit in each of your Aces (1d2 − 1 mana every turn), and one on a crystal tile digs up to 12 mana over time. Spells you pay for go to the Bank, which lends mana, sells you cards' worth, and lets you spend on credit, at a price.</p>
+<p><b>Bases hold the line.</b> Aces, Walls and the Tree are bases: they don't walk or attack, they have hearts, and cards inside them are protected. When an Ace falls, everything inside falls with it.</p>
+<p><b>The sky changes the rules.</b> The Moon turns once a round and moves prices up and down (the Full and New Moons most of all). Heavenly Bodies can take its place, each with its own cycle, and now and then a rare eclipse brings a strange effect.</p>
+<p><b>The dead come back.</b> Fallen cards go to the grave. Grave Blessing (free, once a turn) rolls dice, and every 6 raises a card from the grave into your hand.</p>`;
+const MK_MORE=`<h3>Tell me more</h3><ul class="mklist">
+<li><b>How you win:</b> the last player (or side) with anything on the field and a deck, hand or mana left wins. A player whose mana sinks below their lowest point (three times their maximum under zero) is out.</li>
+<li><b>A turn:</b> draw (roll a d4 and draw that many, or skip), prep (place, move one step, sacrifice, cast) and attack (each stack may attack a neighbor once).</li>
+<li><b>Fights:</b> the attacker's best card plus its die against the defender's best card. The loser takes a damage, which removes its lowest card. Kings with Queens, Aces and Walls defend well.</li>
+<li><b>Drawing too much hurts:</b> cards past your hand limit go to the grave, and each one takes 1d6 off this round's Grave Blessing.</li>
+<li><b>The Ether</b> (top of the spells) sells new cards: Scouts, Miners, Repairmen, Archers, Aces and more. Conjured cards go into your deck.</li>
+<li><b>Fog of war:</b> you only see near your own cards. Scouts see two tiles out and uncover hidden Assassins and ambushers.</li>
+<li><b>The Bank:</b> loans give you mana now and are due in 4 turns; credit lets you cast what you can't afford and turns the rest into debt. Hover or hold a word in the Bank for the details.</li></ul>
+<p class="mkpoint">Everything else is in the <b>Help</b> index at the bottom of the page: basics, every card, every spell, the sky and the Bank, always there while you play. Hover (or press and hold) anything on the screen for what it does.</p>`;
+const mkHidden=()=>PREF.mkHide==="never"||PREF.mkHide==="next";
+function mountMustKnow(){const h=document.querySelector(".game header");if(!h||$("#mustknow"))return;
+  h.insertAdjacentHTML("beforeend",`<div id="mustknow"><button type="button" id="mkBtn" aria-haspopup="dialog"><span class="mkt">What you must know</span><small>Click me to know</small></button></div>`);
+  $("#mkBtn").onclick=openMustKnow;paintMustKnow()}
+function paintMustKnow(){const m=$("#mustknow");if(m)m.hidden=mkHidden()}
+function openMustKnow(){
+  ovShow(`<div class="ovbox wide mkbox" role="dialog" aria-labelledby="mkh"><button type="button" class="xclose" id="mkX" aria-label="Close">×</button>
+<p class="mknever"><button type="button" class="link" id="mkNever">Never show again</button></p>
+<h2 id="mkh">What you must know</h2>
+<p class="mktldr"><b>TLDR</b> ${MK_TLDR}</p>
+<div class="mkbody">${MK_BODY}</div>
+<div id="mkMore" hidden>${MK_MORE}</div>
+<p class="acts"><button type="button" class="btn" id="mkMoreBtn">Tell me more here now</button> <button type="button" class="btn ghost" id="mkHelp">Show me the Help index</button> <button type="button" class="btn ghost" id="mkClose">Close</button></p></div>`);
+  $("#mkX").onclick=$("#mkClose").onclick=ovHide;
+  $("#mkMoreBtn").onclick=()=>{const m=$("#mkMore");m.hidden=false;$("#mkMoreBtn").hidden=true;m.scrollIntoView({block:"start",behavior:"smooth"})};
+  $("#mkHelp").onclick=()=>{ovHide();goHelp()};
+  $("#mkNever").onclick=askNever}
+function askNever(){
+  ovShow(`<div class="ovbox mkask" role="dialog" aria-labelledby="mkq"><h2 id="mkq">Never show "What you must know" again?</h2><p class="dim">You can always open it again from the Help title at the bottom of the page.</p>
+<p class="acts"><button type="button" class="btn" id="mkYes">Yes</button> <button type="button" class="btn ghost" id="mkNo">No</button> <button type="button" class="btn ghost" id="mkNext">Remind me at the start of the next game</button></p></div>`);
+  $("#mkYes").onclick=()=>{PREF.mkHide="never";savePrefs();ovHide();paintMustKnow()};
+  $("#mkNext").onclick=()=>{PREF.mkHide="next";savePrefs();ovHide();paintMustKnow()};
+  $("#mkNo").onclick=openMustKnow}
+function goHelp(){const t=$("#helphead")||$("#info");if(t)t.scrollIntoView({block:"start",behavior:"smooth"})}
+/* the Help title above the fold-downs; it names the automation panel when that is there */
+function paintHelpHead(){const info=$("#info");if(!info)return;let h=$("#helphead");
+  if(!h){info.insertAdjacentHTML("beforebegin",`<div id="helphead"><h3 class="label">Help</h3><button type="button" class="link" id="helpMk">What you must know</button></div>`);h=$("#helphead");$("#helpMk").onclick=openMustKnow}
+  h.querySelector("h3").textContent=$("#fapanel")?"Help & Configure Automation":"Help"}
+/* the toast at the start of a game: not a window, it points at the Help and fades on its own */
+let toastT=0;
+function helpToast(){let t=$("#helptoast");if(!t){t=document.createElement("div");t.id="helptoast";t.setAttribute("role","status");document.body.appendChild(t)}
+  t.innerHTML=`<span>Lost? The <b>Help</b> index at the bottom of the page explains every card, spell and rule.</span><button type="button" class="link" id="htGo">Show me</button><button type="button" class="htx" id="htX" aria-label="Dismiss">×</button>`;
+  t.hidden=false;t.classList.remove("out");const close=()=>{t.classList.add("out");setTimeout(()=>{t.hidden=true},400)};
+  $("#htGo").onclick=()=>{close();goHelp()};$("#htX").onclick=close;clearTimeout(toastT);toastT=setTimeout(close,10000)}
+{const _sg=startGame;startGame=function(){const out=_sg.apply(this,arguments);
+  if(PREF.mkHide==="next"){PREF.mkHide=null;savePrefs()}paintMustKnow();
+  if(G&&G.p.some(P=>!P.cpu&&!isNPC(P.i)))toastWhenClear(0);return out}}
+/* the toast waits until no window or question is open (the setup's Ace, the animations question…), for half a minute at most */
+const dialogOpen=()=>[...document.querySelectorAll("#ov,#animask,#faask,#facfg,#menu,#pop")].some(e=>!e.hidden&&e.getClientRects().length>0&&e.innerHTML.trim()!=="");
+function toastWhenClear(n){if(n>30)return;setTimeout(()=>{if(dialogOpen())toastWhenClear(n+1);else helpToast()},n?1000:1500)}
+{const _r=render;render=function(){_r.apply(this,arguments);paintHelpHead()}}
+mountMustKnow();paintHelpHead();
+if(window.__EC)Object.assign(window.__EC,{openMustKnow,helpToast});
+
+/* ---------------- v45: nothing in the Ether is free ----------------
+   Sales and blessings (a Barbarian-slayer's Ether sale, Venus, the Oath of the Moon, Jupiter) can make a conjuring cheaper, but
+   never cheaper than 1 mana, so nobody can sweep the Ether bare for nothing. */
+{const _sc=spellCost;spellCost=function(sp){let c=_sc(sp);if(sp&&sp.school==="Conjuring"&&G&&baseCost(sp)>0)c=Math.max(1,c);return c}}
 
 })();

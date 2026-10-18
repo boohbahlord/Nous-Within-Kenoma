@@ -67,6 +67,11 @@ The earlier to-do list (B1–B9, L1–L10, M1–M3, O1–O3, R1–R4) is in next
     >
     > I think ALL of Ether's Crossroads pages should have this color scheme. The first song you set for dark fantasy is what plays on all the pages within Ether's crossroads on the website. Furthermore, there should be a volume setting with changes in volume by 5% or maybe 1%, and it can go over 100% up to 150%, since we are making it quieter. The songs in game will all randomize. Like i said, the Dark Fantasy theme is the default now, but, we will rename that theme to "Ether's Crossroads"
 
+14. Field Libation glitch (during v44):
+    > a glitch, when i clicked field libation, it would let me do it as much i wanted after i clicked it once despite it being once a turn, and then the X over every card and the ability to "pour" them wouldn't go away
+15. Too many Scouts (during v44):
+    > i also dont know why there are so mnay scouts in the game, it feels like the deck should only have two scouts and yet there are scouts littering the grave yard and i have way too much out on the field. Is this because of the enemy spam buying them? maybe. but if there are four per deck and i am beginner and have extra that might contribute, idk. u can take a look at it and fix it if neeed be.
+
 ## Digest
 Done and live:
 - C1 Site-wide click sound (v38). C2 Scout: 2-tile diamond; Beginner default (v39). C3 Overdraw: no more draw rolls in a turn after
@@ -139,3 +144,10 @@ self-electing list keeper over PeerJS), TH (Office Dark, Earth, Dark Fantasy wit
 Naming: "Give me stupid version" is labelled "Simple mode" (Fully automatic / Mostly automatic / Attacks only / Every option).
 Not tested against the real PeerJS service from here (no outside network in the test machine): the room list and the lobby
 were tested with the tab-to-tab stand-in that uses the same logic.
+
+## Status (v44, 2026-10-18)
+- v44 deployed (PR 8): the v44 sheet's steps 1–5 (see v44_sheet_2026-10-18.md).
+- 14 fixed (PR 9): one Pour spends Field Libation for the turn and clears the X marks; cancelling before a Pour gives it back.
+- 15 fixed (PR 10): two Scouts in every deck (the Beginner had four); the opening Ace brings one (the Beginner's brought two);
+  later Aces bring one only while you have no Scout on the field (was every Ace); the Beginner's free Full Moon Scout only while
+  they hold fewer than two. The computer only conjures a Scout when it has none, so the enemy wasn't the main cause.

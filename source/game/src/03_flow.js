@@ -110,7 +110,7 @@ async function newRound(){
 }
 function beginTurn(pl){
   setActive(pl);G.turnNo++;
-  Object.assign(G,{spent:false,spentOther:false,blessed:false,ritual:0,sel:null,selHand:null,mode:null,noDraw:false,sevSum:0,libation:false});
+  Object.assign(G,{spent:false,spentOther:false,blessed:false,ritual:0,sel:null,selHand:null,mode:null,noDraw:false,sevSum:0,libation:false,saleD:null});
   G.p[pl].tn=(G.p[pl].tn||0)+1;   // the player's own turn count, for cooldowns
   G.prices={...(G.roundPrices||{})};
   if(G.inflation&&G.turnNo<=G.inflation.until)G.inflation.add=R(2)-1;

@@ -98,7 +98,7 @@ function venusCycle(){
   G.venusCyc={round:G.moon.round,who};let healed=0;
   for(const pl of who)for(const {st} of stacksOf(pl))for(const c of st.cards)if(c.maxHp&&c.hp<c.maxHp){c.hp++;healed++}
   log(`<b>Venus's cycle</b>: ${who.length?`${who.map(plName).join(", ")} ${who.length===1?"is":"are"} blessed this round (support and base conjurings 1 less, ${healed} heart${healed===1?"":"s"} healed)`:"Venus blesses no one this round"}.`,"event");
-  popup("Venus's cycle",`<p>Every sixth round Venus is generous to those sworn to her: this round their support and base cards from the Ether (Scout, Miner, Repairman, Battering Ram, Healer, Ace, Wall) cost 1 less, and every wounded card of theirs heals one heart.</p>
+  popup("Venus's cycle",`<p>Every sixth round Venus is generous to those sworn to her: this round their support and base cards from the Ether (Scout, Miner, Repairman, Battering Ram, Healer, Ace, Wall) cost 1 less (never below 1 mana), and every wounded card of theirs heals one heart.</p>
 <p>${who.length?`Blessed: ${who.map(plName).join(", ")}.`:"Nobody is blessed this time."}</p>${rolls.length?`<p class="dim">Without her Oath, a 4 on 1d4: ${rolls.map(([pl,d])=>`${plName(pl)} ${d}`).join(", ")}.</p>`:""}`);
 }
 {const _sc=spellCost;spellCost=function(sp){let c=_sc(sp);if(sp&&c>0&&VENUS_CJ.has(sp.id)&&G&&venusBlessed(G.active))c=Math.max(0,c-1);return c}}
