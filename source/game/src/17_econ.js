@@ -67,10 +67,13 @@ function repay(pl,n){const P=G.p[pl];n=Math.min(n,mana(pl),owedOf(pl));if(n<=0)r
   for(const L of [...P.loans]){const k=Math.min(L.owed,left);L.owed-=k;left-=k;if(L.owed<=0)P.loans.splice(P.loans.indexOf(L),1);if(!left)break}
   log(`${plName(pl)} pays the Bank ${paid} mana${P.loans.length?` (${owedOf(pl)} still owed)`:"; every loan is settled"}.`);return paid}
 /* selling to the Bank: cards from your hand or deck go to the Ether for their conjuring price */
-function sellCards(pl,cards){const P=G.p[pl];let price=0;
-  for(const c of cards){const L=P.hand.includes(c)?P.hand:P.deck;L.splice(L.indexOf(c),1);price+=costOf(c)||1;c.owner=null;if(c.hp!=null)c.hp=c.maxHp;G.ether.push(c)}
-  shuffle(P.deck);const got=giveMana(pl,price);G.bank.mana-=got;
-  log(`${plName(pl)} sells ${cards.length} card${cards.length>1?"s":""} to the Bank for ${got} mana${got<price?` (${price-got} more would not fit in the soul pile)`:""}; the deck is reshuffled.`,"event");return got}
+/* v44: the Bank pays a card's soul worth, less 0 or 1 (rolled at the sale); a standard card worth only 1 can't be sold */
+const sellable=c=>!(cardClass(c)==="Standard"&&soulOf(c)<=1);
+const sellRange=c=>[Math.max(0,soulOf(c)-1),soulOf(c)];
+function sellCards(pl,cards){const P=G.p[pl];let price=0;const rolls=[];cards=cards.filter(sellable);if(!cards.length)return 0;
+  for(const c of cards){const L=P.hand.includes(c)?P.hand:P.deck;L.splice(L.indexOf(c),1);const d=R(2);rolls.push({s:2,v:d});price+=Math.max(0,soulOf(c)-(d-1));c.owner=null;if(c.hp!=null)c.hp=c.maxHp;G.ether.push(c)}
+  shuffle(P.deck);tray(pl,"Sale to the Bank",rolls,`${price} mana`);const got=giveMana(pl,price);G.bank.mana-=got;
+  log(`${plName(pl)} sells ${cards.length} card${cards.length>1?"s":""} to the Bank for ${got} mana (soul worth, less 1 on each 2 of 1d2)${got<price?`; ${price-got} more would not fit in the soul pile`:""}. The deck is reshuffled.`,"event");return got}
 function sellThrall(pl){const P=G.p[pl];const c=(P.thralls||[]).shift();if(!c)return;c.owner=null;G.ether.push(c);const got=giveMana(pl,1);G.bank.mana-=got;
   log(`${plName(pl)} sells a thrall to the Bank (+${got} mana).`)}
 
@@ -180,16 +183,23 @@ function openBank(){
   const notes=[];if(B.dead)notes.push("The Banker is dead: the Bank and the Ether are closed.");if(B.angry)notes.push("The Banker is angry about the Barbarians holding the middle: every price +1.");
   if(B.mana<0&&!B.dead)notes.push("The Bank is in the red: everything in the Ether costs 1 less.");const up=Object.keys(B.upsell);if(up.length)notes.push(`Upsold this round: ${up.map(id=>SP(id)?SP(id).name:id).join(", ")}.`);
   if(G.inflation&&G.turnNo<=G.inflation.until)notes.push(`After the collapse, prices wobble up until turn ${G.inflation.until}.`);
-  ovShow(`<div class="ovbox bank wide"><h2>The Bank</h2><div class="bankhead"><span class="banker">${unitSVG("banker","#15100b",56)}</span><div><b>The Banker</b> holds <b>${B.mana}</b> mana.${B.owes.length?` It owes ${B.owes.map(o=>`${plName(o.to)} ${o.owed}`).join(", ")}.`:""}<br><span class="dim">Spell mana goes to the Bank, and it can only lend what it holds.</span>${notes.length?`<p class="bnote">${notes.join("<br>")}</p>`:""}</div></div>
-<dl class="bstat"><dt>Your mana</dt><dd class="${e<0?"neg":""}"><b>${e}</b> of ${soulCap(V)}</dd>
-<dt>Lowest point</dt><dd><b>${fl}</b><span class="bline ${gap<=soulCap(V)?"warn":""}">If your mana falls below ${fl}, you lose the game. You are ${gap} above it.</span></dd>
-<dt>Mana debt</dt><dd>${debt?`<b>${debt}</b><span class="bline">Every soul you gain pays it first.</span>`:"None"}</dd>
-<dt>Loans</dt><dd>${loans?`<ul>${loans}</ul>`:"None"}</dd></dl>
+  const cap=soulCap(V),rate=Math.round(loanRate(V)*100),pay=Math.min(mana(V),owed);
+  const tip=t=>`data-tip="${esc(t)}" tabindex="0"`;
+  const LOAN_TIP=`A loan puts mana in your pool now, taken from what the Bank holds. It grows ${rate}% every 1d2 of your turns (30% once you are ${cap} or more below zero) and is due in 4 of your turns. Repay it any time with Repay; whatever is left when it comes due becomes mana debt. Up to 12 at a time, 6 below zero, 5 at −${cap}, never more than the Bank holds, and never more than your souls have room for.`;
+  const CREDIT_TIP=`Credit is not a loan: nothing is lent up front. With it on, you can cast a spell you can't afford; what your souls don't cover becomes mana debt at once, down to your lowest point (${fl}). Debt grows ${rate}% every 1d2 of your turns, and every soul you gain pays it first. Fall below ${fl} and you lose the game.`;
+  const nums=n=>Array.from({length:n},(_,i)=>`<option>${i+1}</option>`).join("");
+  ovShow(`<div class="ovbox bank wide"><h2>The Bank</h2><div class="bankhead"><img class="bankpic" src="banker.png" width="88" height="88" alt="The Banker in his top hat behind a dungeon window, with gold behind him">
+<div class="bankinfo"><p class="bwho"><b>The Banker</b> holds <b>${B.mana}</b> mana.${B.owes.length?` He owes ${B.owes.map(o=>`${plName(o.to)} ${o.owed}`).join(", ")}.`:""} <span class="dim">Spell mana goes to him, and he lends only what he holds.</span></p>
+<dl class="bstat"><div ${tip(`Your mana now, out of your maximum of ${cap}. Below zero is mana debt.`)}><dt>Your mana</dt><dd class="${e<0?"neg":""}"><b>${e}</b>/${cap}</dd></div>
+<div ${tip(`If your mana falls below ${fl}, you lose the game. You are ${gap} above it.`)}><dt>Lowest point</dt><dd class="${gap<=cap?"neg":""}"><b>${fl}</b> <small>${gap} above</small></dd></div>
+<div ${tip(debt?`You are ${debt} in debt. Every soul you gain pays it first; it grows ${rate}% every 1d2 of your turns.`:"You have no mana debt.")}><dt>Mana debt</dt><dd class="${debt?"neg":""}">${debt?`<b>${debt}</b>`:"None"}</dd></div>
+<div ${tip(owed?"What you owe the Bank in loans, interest included.":"You have no loans.")}><dt>Loans</dt><dd>${owed?`<b>${owed}</b> <small>owed</small>`:"None"}</dd></div></dl>
+${loans?`<ul class="bloans">${loans}</ul>`:""}${notes.length?`<p class="bnote">${notes.join("<br>")}</p>`:""}</div></div>
 ${live&&!B.dead?`<div class="bacts">
-<p><label class="${lim?"":"off"}">Borrow <select id="bLoan" ${lim?"":"disabled"}>${lim?Array.from({length:lim},(_,i)=>`<option>${i+1}</option>`).join(""):"<option>—</option>"}</select> mana</label> <button class="btn sm" id="bLoanBtn" ${lim?"":"disabled"}>Take the loan</button> <small class="dim">${Math.round(loanRate(V)*100)}% interest every 1d2 turns. Due in 4 turns; what isn't paid by then becomes mana debt.${e<0?" Below zero: six at most (five at −"+soulCap(V)+", at 30%).":""}</small></p>
-<p><label class="${Math.min(mana(V),owed)?"":"off"}">Repay <select id="bPay" ${Math.min(mana(V),owed)?"":"disabled"}>${Math.min(mana(V),owed)?Array.from({length:Math.min(mana(V),owed)},(_,i)=>`<option>${i+1}</option>`).join(""):"<option>—</option>"}</select> mana</label> <button class="btn sm" id="bPayBtn" ${Math.min(mana(V),owed)?"":"disabled"}>Pay</button></p>
-<p><label><input type="checkbox" id="bCredit" ${P.credit?"checked":""}> Spend on credit</label> <small class="dim">Spells you can't afford are paid by the Bank and become mana debt, down to ${floorOf(V)}. Every soul you gain pays the debt first.</small></p>
-<p><button class="btn ghost sm" id="bSell">Sell cards from your hand or deck</button>${P.tribe==="binah"&&(P.thralls||[]).length?` <button class="btn ghost sm" id="bThrall">Sell a thrall (1 mana)</button>`:""}</p></div>`:`<p class="dim">${B.dead?"":"Bank business is done in your own prep phase."}</p>`}
+<p class="brow"><span class="bkey" ${tip(LOAN_TIP)}>Loan <i class="q">?</i></span><label class="${lim?"":"off"}"><select id="bLoan" aria-label="Mana to borrow" ${lim?"":"disabled"}>${lim?nums(lim):"<option>—</option>"}</select> mana</label><button class="btn sm" id="bLoanBtn" ${lim?"":"disabled"}>Take the loan</button><small class="dim">${lim?`${rate}% every 1d2 turns · due in 4`:"The Bank won't lend to you now."}</small></p>
+<p class="brow"><span class="bkey">Repay</span><label class="${pay?"":"off"}"><select id="bPay" aria-label="Mana to repay" ${pay?"":"disabled"}>${pay?nums(pay):"<option>—</option>"}</select> mana</label><button class="btn sm" id="bPayBtn" ${pay?"":"disabled"}>Pay</button><small class="dim">${owed?`You owe ${owed}.`:"No loans to repay."}</small></p>
+<p class="brow"><span class="bkey" ${tip(CREDIT_TIP)}>Credit <i class="q">?</i></span><label><input type="checkbox" id="bCredit" ${P.credit?"checked":""}> Spend on credit</label><small class="dim">Spells you can't afford become mana debt, down to ${fl}.</small></p>
+<p class="brow bsellrow"><button class="btn bsell" id="bSell">Sell cards to the Bank</button>${P.tribe==="binah"&&(P.thralls||[]).length?`<button class="btn sm" id="bThrall">Sell a thrall (1 mana)</button>`:""}<small class="dim">From your hand or deck, for their soul worth or 1 less.</small></p></div>`:`<p class="dim">${B.dead?"":"Bank business is done in your own prep phase."}</p>`}
 <details class="bankhelp"><summary>How the Bank works</summary><dl>${BANK_HELP.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl></details>
 <p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
   $("#mcancel").onclick=ovHide;
@@ -201,10 +211,10 @@ ${live&&!B.dead?`<div class="bacts">
 }
 function openSell(V){const P=G.p[V],pick=new Set();
   const draw=()=>{const list=[...P.hand.map(c=>[c,"hand"]),...P.deck.map(c=>[c,"deck"])];
-    const tot=list.filter(([c])=>pick.has(c.id)).reduce((a,[c])=>a+(costOf(c)||1),0);
-    ovShow(`<div class="ovbox wide"><h2>Sell to the Bank</h2><p class="dim">Each card sells for its conjuring price and goes to the Ether. The deck is reshuffled afterwards. The Bank holds ${G.bank.mana} mana.</p>
-<div class="pickrow sell">${list.map(([c,w])=>`<label class="sellc ${pick.has(c.id)?"on":""}"><input type="checkbox" data-sl="${c.id}" ${pick.has(c.id)?"checked":""}>${face(c,{cls:"sm",noci:true})}<small>${w} · ${costOf(c)||1}</small></label>`).join("")}</div>
-<p><button class="btn" id="sellGo" ${pick.size?"":"disabled"}>Sell ${pick.size} for ${tot} mana</button> <button class="btn ghost" id="mcancel">Back</button></p></div>`);
+    const chosen=list.filter(([c])=>pick.has(c.id)),lo=chosen.reduce((a,[c])=>a+sellRange(c)[0],0),hi=chosen.reduce((a,[c])=>a+sellRange(c)[1],0);
+    ovShow(`<div class="ovbox wide"><h2>Sell to the Bank</h2><p class="dim">A card sells for its soul worth, or 1 less (rolled at the sale), and goes to the Ether; the deck is reshuffled. Standard cards worth only 1 can't be sold. The Bank holds ${G.bank.mana} mana.</p>
+<div class="pickrow sell">${list.map(([c,w])=>{const ok=sellable(c),[a,b]=sellRange(c);return `<label class="sellc ${pick.has(c.id)?"on":""} ${ok?"":"off"}" ${ok?"":'data-tip="A standard card worth only 1 can\'t be sold to the Bank."'}><input type="checkbox" data-sl="${c.id}" ${pick.has(c.id)?"checked":""} ${ok?"":"disabled"}>${face(c,{cls:"sm",noci:true})}<small>${w} · ${ok?(a===b?a:a+"–"+b):"—"}</small></label>`}).join("")}</div>
+<p><button class="btn" id="sellGo" ${pick.size?"":"disabled"}>Sell ${pick.size} for ${lo===hi?lo:lo+"–"+hi} mana</button> <button class="btn ghost" id="mcancel">Back</button></p></div>`);
     $("#ov").querySelectorAll("[data-sl]").forEach(i=>i.onchange=()=>{const id=+i.dataset.sl;i.checked?pick.add(id):pick.delete(id);draw()});
     $("#mcancel").onclick=openBank;
     $("#sellGo").onclick=()=>{const cs=[...P.hand,...P.deck].filter(c=>pick.has(c.id));sellCards(V,cs);render();openBank()}};

@@ -10,7 +10,7 @@ const ETHER_SHOP=[
   ["Base",[["ca","Ace"],["cwall","Wall"]]]];
 const ETHER_IDS=new Set(ETHER_SHOP.flatMap(([,l])=>l.map(x=>x[0])));
 const ETHER_KIND={cs:"soldier",carch:"archer",ccan:"cannon",cj:"jack",cq:"queen",ck:"king",cjk:"joker",cas:"assassin",csc:"scout",cmine:"miner",crep:"repair",cram:"ram",cheal:"healer",ca:"ace",cwall:"wall"};
-const etherLeft=id=>{const k=ETHER_KIND[id];return G.ether.filter(c=>k==="soldier"?/^\d+$/.test(c.rank):c.unit?c.unit===k:kind(c)===k).length};
+const etherLeft=id=>{const k=ETHER_KIND[id];if(k==="miner"||k==="repair")return Infinity;return G.ether.filter(c=>k==="soldier"?/^\d+$/.test(c.rank):c.unit?c.unit===k:kind(c)===k).length};
 SP("maxmana").name="Increase Max Mana";
 
 function spellRow(s,live){
@@ -19,7 +19,7 @@ function spellRow(s,live){
   let extra="";
   if(s.id==="bless"){const aces=stacksOf(G.active).filter(x=>hasK(x.st,"ace")).length,n=Math.min(6,1+aces+G.ritual,blessCap(G.active));extra=`<small class="dc">${n}d6</small>`+(od?`<small class="odpen ${od>6?"big":""}">−${od}d6 max</small>`:"")}
   const moonPrice=(s.id==="clair"||s.id==="naked")&&(newPrices()||fullPrices());
-  if(s.dice)extra+=`<small class="dc">${moonPrice?"moon":s.dice}</small>`;
+  if(s.dice)extra+=`<small class="dc">${moonPrice?(newPrices()?"New Moon price":"Full Moon price"):s.dice}</small>`;
   if(s.id==="bolt"){const b=G.p[G.active].bolts||0;extra+=`<span class="bolts" aria-label="${b} of 3 bolts">${[0,1,2].map(i=>`<i class="${i<b?"f":""}">${unitSVG("bolt",i<b?"#8fd0ff":"#4a5a66",13)}</i>`).join("")}</span>`}
   if(s.id==="slaves"){const n=(G.p[G.active].thralls||[]).length;extra+=`<span class="chips" aria-label="${n} of 10 thralls">${Array.from({length:10},(_,i)=>`<i class="${i<n?"f":""}">${unitSVG("chip",i<n?"#9fe8b4":"#3d4a40",11)}</i>`).join("")}</span>`}
   if(s.once)extra+=`<small class="dc once">${G.p[G.active].once&&G.p[G.active].once[s.id]?"used":"once"}</small>`;
@@ -72,7 +72,7 @@ function fillEther(){
   const rows=ETHER_SHOP.map(([cat,items])=>{
     const its=items.map(([id,nm,sub])=>({id,nm,sub,sp:SP(id),left:etherLeft(id)})).filter(x=>x.sp).sort((a,b)=>spellCost(a.sp)-spellCost(b.sp)||a.nm.localeCompare(b.nm));
     return `<h3>${cat}</h3>${its.map(x=>{const c=spellCost(x.sp),ok=live&&!blk&&x.left>0&&spellReady(x.sp);
-      return `<button class="spell eitem ${ok?"":"off"}" data-buy="${x.id}" data-sp="${x.id}"><span class="sn">${esc(x.nm)}${x.sp.dice?`<small class="dc">${x.sp.dice}</small>`:""}<small class="left">${x.left?x.left+" left":"none left"}</small></span><em>${c?c+" mana":"free"}</em></button>`}).join("")}`}).join("");
+      return `<button class="spell eitem ${ok?"":"off"}" data-buy="${x.id}" data-sp="${x.id}"><span class="sn">${esc(x.nm)}${x.sp.dice?`<small class="dc">${x.sp.dice}</small>`:""}<small class="left">${x.left===Infinity?"unlimited":x.left?x.left+" left":"none left"}</small></span><em>${c?c+" mana":"free"}</em></button>`}).join("")}`}).join("");
   e.innerHTML=`<div class="dhead"><h2>The Ether</h2><button type="button" class="xclose" aria-label="Close the Ether">×</button></div>
 <p class="dnote">${blk?esc(blk):live?"Conjure a card's soul into your deck. Dice prices are rolled each round.":"You can conjure in your own prep phase."}</p>
 <div class="dbody scrollbox">${rows}<p class="dfoot"><button class="link" id="etherSouls">See every soul in the Ether (${G.ether.length})</button></p></div>`;

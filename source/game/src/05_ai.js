@@ -72,6 +72,23 @@ const AI=(()=>{
     const ctr=W.ctr?Math.abs(r-(G.rows-1)/2)+Math.abs(c-(COLS-1)/2):0;   // Field Automation: holding the center
     return W.atk*opp-W.def*risk-W.dist*near+W.ally*allies-(W.ctr||0)*ctr;
   }
+  /* v44 · Field Automation: support cards (Scouts, Healers, Repairmen) serve the stacks they support instead of chasing fights.
+     A Healer keeps beside or inside a hurt or strong stack, a Repairman beside a damaged base, a Scout a step or two from its own
+     stacks and two or three from the enemy, where it sees without being caught. */
+  const SUPPORT=new Set(["scout","healer","repair"]);
+  const isSupport=grp=>grp.length>0&&grp.every(c=>SUPPORT.has(c.unit));
+  function supportScore(pl,S,r,c,W,from){
+    let s=tileScore(pl,S,r,c,{atk:0,def:Math.max(1,W.def||1),dist:0,ally:0},false);   // the risk of standing here
+    const us=new Set(S.cards.map(x=>x.unit)),friends=stacksOf(pl).filter(x=>x.st!==from&&!x.st.cards.every(y=>SUPPORT.has(y.unit)));
+    const hurt=st=>st.cards.some(x=>x.maxHp&&x.hp<x.maxHp&&!isBase(x)),broken=st=>{const b=st.cards.find(isBase);return b&&(b.hp||1)<(b.maxHp||1)};
+    const best=f=>friends.reduce((m,x)=>Math.max(m,f(x,dist(r,c,x.r,x.c))),-9);
+    if(us.has("healer"))s+=best((x,d)=>d<=1?(hurt(x.st)?3:.6+value(x.st)/20):-.25*d*(hurt(x.st)?1:.4));
+    if(us.has("repair"))s+=best((x,d)=>broken(x.st)?(d<=1?4:-.35*d):hasBase(x.st)&&d<=1?1:-.1*d);
+    if(us.has("scout")){s+=best((x,d)=>d>=1&&d<=2?1.2:d===0?.2:-.2*d);
+      const es=enemyStacks(pl);if(es.length){const n=Math.min(...es.map(e=>walk(r,c,e.r,e.c)));s+=n===1?-1.5:n<=3?1.5:-.15*n}
+      else{let d=99;for(const e of enemiesOf(pl))for(const [er,ec] of zoneTiles(e))d=Math.min(d,walk(r,c,er,ec));if(d<99)s-=.12*d}}
+    return s;
+  }
   function stance(pl){
     if(isHorde(pl))return HORDE;
     if(G.turnNo-(G.lastAttack||0)>10)return PUSH;   // nobody has fought for five rounds: break the stalemate
@@ -129,11 +146,16 @@ const AI=(()=>{
       const st=G.board[o.r][o.c];if(!st||st!==o.st||st.owner!==pl||st.moved)continue;
       if(Math.random()<lv.skipMove)continue;
       if(st.cards.every(c=>c.unit==="miner"))continue;   // lone Miners have their own errands
-      let grp=st.cards.filter(c=>!isBase(c)&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter)));   // Miners, Repairmen and shooters stay in their baseif(!grp.length||st.stun)continue;
+      let grp=st.cards.filter(c=>!isBase(c)&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter)));   // Miners, Repairmen and shooters stay in their base
+      if(!grp.length||st.stun)continue;
       if(FAX&&!FAX.ok(grp))continue;   // Field Automation: a stack it doesn't control stays where the player put it
       if(!stackLegal(grp)){ // too many to leave together (a full Ace): send out the strongest group that can stand on its own
         const g2=[];for(const c of [...grp].sort((a,b)=>rate(b)-rate(a)))if(stackLegal([...g2,c]))g2.push(c);grp=g2;if(!grp.length)continue}
       const inAce=hasBase(st);const S={cards:grp,owner:pl,hypo:st.hypo};
+      if(FAX&&isSupport(grp)){const tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets),stay=supportScore(pl,S,o.r,o.c,W,st);let best=null;
+        for(const [r,c] of tg){const sc=supportScore(pl,S,r,c,W,st)*jit(pl);if(!best||sc>best.s)best={r,c,s:sc}}
+        if(best&&best.s>stay+.2){G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step()}
+        continue}
       let stay=inAce?tileScore(pl,S,o.r,o.c,W,false)+(hq()?-1:W===DEF?.6:0):tileScore(pl,S,o.r,o.c,W,true);
       const tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets);
       let best=null;
@@ -328,10 +350,12 @@ const AI=(()=>{
     return null;
   }
   /* the best tile for a card that has to go down now (a deployed Slave) */
-  function bestSpot(pl,card){
-    const W=stance(pl);let best=null;const old=G.active;
-    for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){if(!canPlace(card,r,c))continue;const s=placeScore(pl,card,r,c,W);if(!best||s>best.s)best={r,c,s}}
-    return best?[best.r,best.c]:null;
+  function bestSpot(pl,card,ctx){   // ctx: a person's Field Automation settings (Lazy Hand follows them)
+    const old=FAX;if(ctx)FAX=Object.assign({pl},ctx);
+    try{const W=ctx?ctx.W:stance(pl);let best=null;
+      for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){if(!canPlace(card,r,c))continue;const s=placeScore(pl,card,r,c,W);if(!best||s>best.s)best={r,c,s}}
+      return best?[best.r,best.c]:null}
+    finally{FAX=old;cache.clear()}
   }
   /* Field Automation: the field of a person, with their settings in ctx (built in 42_fieldauto.js) */
   async function field(pl,ph,ctx){FAX=Object.assign({pl},ctx);cache.clear();pcache.clear();

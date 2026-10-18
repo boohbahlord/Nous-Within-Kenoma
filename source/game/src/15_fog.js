@@ -145,8 +145,10 @@ SPELLS.push(
  {id:"bird",dice:"1d2",name:"Bird's Eye",cost:1,school:"Sorcery",text:"For the rest of this round the fog of war lifts for you and your teammates. It does nothing against a Delusion.",
   ok:()=>fogOn()&&!birdOn(G.active),run:async()=>{(G.bird=G.bird||[]).push({by:G.active,round:G.moon.round});log(`<b>Bird's Eye</b>: ${plName(G.active)} sees the whole field this round.`,"event")}}
 );
-const etherHasU=u=>G.ether.some(c=>c.unit===u);
-async function conjureU(u){const i=G.ether.findIndex(c=>c.unit===u);const c=G.ether.splice(i,1)[0];c.owner=G.active;if(c.hp!=null)c.hp=c.maxHp;me().deck.push(c);shuffle(me().deck);log(`A${/^[AEIOU]/.test(UNIT[u].name)?"n":""} ${UNIT[u].name}'s soul materializes from the Ether into ${plName(G.active)}'s deck.`)}
+/* v44: Miners and Repairmen never run out: when the Ether has none left, a new one is made (the Ether's count doesn't include them) */
+const UNLIMITED=new Set(["miner","repair"]);
+const etherHasU=u=>UNLIMITED.has(u)||G.ether.some(c=>c.unit===u);
+async function conjureU(u){const i=G.ether.findIndex(c=>c.unit===u);const c=i>=0?G.ether.splice(i,1)[0]:mkUnit(u,G.active);c.owner=G.active;if(c.hp!=null)c.hp=c.maxHp;me().deck.push(c);shuffle(me().deck);log(`A${/^[AEIOU]/.test(UNIT[u].name)?"n":""} ${UNIT[u].name}'s soul materializes from the Ether into ${plName(G.active)}'s deck.`)}
 /* Quiet Eyes asks 2 mana at the start of each round it lasts */
 function quietRound(){
   for(const q of G.quiet||[]){if(q.until<G.moon.round||q.paidRound===G.moon.round)continue;

@@ -797,7 +797,8 @@ async function pickGrave(pl,n,title){
   if(got<n&&G.grave.length&&G.p[pl].hand.length>=handCap(pl))log(`${plName(pl)}'s hand is full.`);
   return got;
 }
-function strongest(pl){const c=stacksOf(pl).filter(x=>!x.st.hypo);c.sort((a,b)=>stackRate(b.st)-stackRate(a.st)||b.st.cards.length-a.st.cards.length);return c[0]}
+/* v44: the Full Moon never asks for a stack inside an Ace */
+function strongest(pl){const c=stacksOf(pl).filter(x=>!x.st.hypo&&!hasK(x.st,"ace"));c.sort((a,b)=>stackRate(b.st)-stackRate(a.st)||b.st.cards.length-a.st.cards.length);return c[0]}
 async function fullMoonToll(){
   for(const pl of order()){
     if(G.p[pl].tribe==="firm"){log(`${plName(pl)} owes the Full Moon nothing: the Firmament is above its toll.`);continue}
@@ -1330,6 +1331,23 @@ const AI=(()=>{
     const ctr=W.ctr?Math.abs(r-(G.rows-1)/2)+Math.abs(c-(COLS-1)/2):0;   // Field Automation: holding the center
     return W.atk*opp-W.def*risk-W.dist*near+W.ally*allies-(W.ctr||0)*ctr;
   }
+  /* v44 · Field Automation: support cards (Scouts, Healers, Repairmen) serve the stacks they support instead of chasing fights.
+     A Healer keeps beside or inside a hurt or strong stack, a Repairman beside a damaged base, a Scout a step or two from its own
+     stacks and two or three from the enemy, where it sees without being caught. */
+  const SUPPORT=new Set(["scout","healer","repair"]);
+  const isSupport=grp=>grp.length>0&&grp.every(c=>SUPPORT.has(c.unit));
+  function supportScore(pl,S,r,c,W,from){
+    let s=tileScore(pl,S,r,c,{atk:0,def:Math.max(1,W.def||1),dist:0,ally:0},false);   // the risk of standing here
+    const us=new Set(S.cards.map(x=>x.unit)),friends=stacksOf(pl).filter(x=>x.st!==from&&!x.st.cards.every(y=>SUPPORT.has(y.unit)));
+    const hurt=st=>st.cards.some(x=>x.maxHp&&x.hp<x.maxHp&&!isBase(x)),broken=st=>{const b=st.cards.find(isBase);return b&&(b.hp||1)<(b.maxHp||1)};
+    const best=f=>friends.reduce((m,x)=>Math.max(m,f(x,dist(r,c,x.r,x.c))),-9);
+    if(us.has("healer"))s+=best((x,d)=>d<=1?(hurt(x.st)?3:.6+value(x.st)/20):-.25*d*(hurt(x.st)?1:.4));
+    if(us.has("repair"))s+=best((x,d)=>broken(x.st)?(d<=1?4:-.35*d):hasBase(x.st)&&d<=1?1:-.1*d);
+    if(us.has("scout")){s+=best((x,d)=>d>=1&&d<=2?1.2:d===0?.2:-.2*d);
+      const es=enemyStacks(pl);if(es.length){const n=Math.min(...es.map(e=>walk(r,c,e.r,e.c)));s+=n===1?-1.5:n<=3?1.5:-.15*n}
+      else{let d=99;for(const e of enemiesOf(pl))for(const [er,ec] of zoneTiles(e))d=Math.min(d,walk(r,c,er,ec));if(d<99)s-=.12*d}}
+    return s;
+  }
   function stance(pl){
     if(isHorde(pl))return HORDE;
     if(G.turnNo-(G.lastAttack||0)>10)return PUSH;   // nobody has fought for five rounds: break the stalemate
@@ -1387,11 +1405,16 @@ const AI=(()=>{
       const st=G.board[o.r][o.c];if(!st||st!==o.st||st.owner!==pl||st.moved)continue;
       if(Math.random()<lv.skipMove)continue;
       if(st.cards.every(c=>c.unit==="miner"))continue;   // lone Miners have their own errands
-      let grp=st.cards.filter(c=>!isBase(c)&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter)));   // Miners, Repairmen and shooters stay in their baseif(!grp.length||st.stun)continue;
+      let grp=st.cards.filter(c=>!isBase(c)&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter)));   // Miners, Repairmen and shooters stay in their base
+      if(!grp.length||st.stun)continue;
       if(FAX&&!FAX.ok(grp))continue;   // Field Automation: a stack it doesn't control stays where the player put it
       if(!stackLegal(grp)){ // too many to leave together (a full Ace): send out the strongest group that can stand on its own
         const g2=[];for(const c of [...grp].sort((a,b)=>rate(b)-rate(a)))if(stackLegal([...g2,c]))g2.push(c);grp=g2;if(!grp.length)continue}
       const inAce=hasBase(st);const S={cards:grp,owner:pl,hypo:st.hypo};
+      if(FAX&&isSupport(grp)){const tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets),stay=supportScore(pl,S,o.r,o.c,W,st);let best=null;
+        for(const [r,c] of tg){const sc=supportScore(pl,S,r,c,W,st)*jit(pl);if(!best||sc>best.s)best={r,c,s:sc}}
+        if(best&&best.s>stay+.2){G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step()}
+        continue}
       let stay=inAce?tileScore(pl,S,o.r,o.c,W,false)+(hq()?-1:W===DEF?.6:0):tileScore(pl,S,o.r,o.c,W,true);
       const tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets);
       let best=null;
@@ -1586,10 +1609,12 @@ const AI=(()=>{
     return null;
   }
   /* the best tile for a card that has to go down now (a deployed Slave) */
-  function bestSpot(pl,card){
-    const W=stance(pl);let best=null;const old=G.active;
-    for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){if(!canPlace(card,r,c))continue;const s=placeScore(pl,card,r,c,W);if(!best||s>best.s)best={r,c,s}}
-    return best?[best.r,best.c]:null;
+  function bestSpot(pl,card,ctx){   // ctx: a person's Field Automation settings (Lazy Hand follows them)
+    const old=FAX;if(ctx)FAX=Object.assign({pl},ctx);
+    try{const W=ctx?ctx.W:stance(pl);let best=null;
+      for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){if(!canPlace(card,r,c))continue;const s=placeScore(pl,card,r,c,W);if(!best||s>best.s)best={r,c,s}}
+      return best?[best.r,best.c]:null}
+    finally{FAX=old;cache.clear()}
   }
   /* Field Automation: the field of a person, with their settings in ctx (built in 42_fieldauto.js) */
   async function field(pl,ph,ctx){FAX=Object.assign({pl},ctx);cache.clear();pcache.clear();
@@ -2222,7 +2247,7 @@ ${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the 
 <label class="opt"><input type="radio" name="dlines" value="1" ${PREF.lines!==false?"checked":""}><span>On (default)<small>Thin black lines across the page behind everything, and now and then a black bar.</small></span></label>
 <label class="opt"><input type="radio" name="dlines" value="0" ${PREF.lines===false?"checked":""}><span>Off<small>A plain background, on every page of the site.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Brightness</legend><label class="f">Brightness <select id="dbright">${[.7,.8,.9,1,1.1,1.2,1.3].map(v=>`<option value="${v}" ${Math.abs((PREF.bright||1)-v)<.01?"selected":""}>${Math.round(v*100)}%${v===1?" (default)":""}</option>`).join("")}</select></label><p class="dim">For the whole site. Also in the Display bar at the bottom of the game.</p></fieldset>
-<fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({darkfantasy:"The default: an old dungeon in grey and crimson, gold and silver, with music.","":"The burnt amber of the rest of the site.",dull:"The burnt amber, duller and less orange, with a faint yellow tint.",office:"White pages, light grey panels and a blue accent, like an office suite.",officedark:"The Office theme in charcoal, for the night.",earth:"A night druid\u2019s grove: dark soil, moss and lichen gold.",jester:"Black, after chapter 26.",ten:"White on indigo, after chapters 1–4.",satan:"Crimson, after chapter 23."})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, text size, hand position, tile names, page width and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
+<fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({darkfantasy:"The default: an old dungeon in grey and crimson, gold and silver, with music.","":"The burnt amber of the rest of the site.",dull:"The burnt amber, duller and less orange, with a faint yellow tint.",office:"Soft grey pages and panels with a blue accent, like an office suite; easy on the eyes.",officedark:"The Office theme in charcoal, for the night.",earth:"A night druid\u2019s grove: dark soil, moss and lichen gold.",jester:"Black, after chapter 26.",ten:"White on indigo, after chapters 1–4.",satan:"Crimson, after chapter 23."})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, text size, hand position, tile names, page width and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
   const suitSel=`<div id="suitpick" hidden><p class="dim">${mode==="local"?"P1 picks; P2 gets the other two suits.":mode==="cpu"?"You pick; the computer gets the other two suits.":"You pick; the other two suits wait in the Ether."}</p>
 <label class="f">Red suit <select id="osuitR"><option value="H">♥ Hearts</option><option value="D">♦ Diamonds</option></select></label>
 <label class="f">Black suit <select id="osuitB"><option value="S">♠ Spades</option><option value="C">♣ Clubs</option></select></label></div>`;
@@ -2381,7 +2406,7 @@ const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{
   return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:false,full:false,theme:"darkfantasy",lines:true,bright:1},p)})();
 const sfxV=()=>Math.max(0,Math.min(1.5,PREF.sfxVol==null?1:+PREF.sfxVol));   // v43: the sound effects' volume, 0 to 150%
 function savePrefs(){try{localStorage.setItem("ec-prefs2",JSON.stringify(PREF))}catch(e){}}
-const THEMES={darkfantasy:["Ether's Crossroads",["th-darkfantasy"]],"":["Kenoma",[]],dull:["Kenoma (dull)",["th-dull"]],office:["Office",["th-office"]],officedark:["Office Dark",["th-officedark"]],earth:["Earth",["th-earth"]],jester:["Jester",["th-black","th-jester"]],ten:["Ten",["th-indigo","th-blue"]],satan:["Disturbed Satan",["th-crimson"]]};
+const THEMES={darkfantasy:["Ether's Crossroads",["th-darkfantasy"]],"":["Kenoma",[]],dull:["Kenoma (dull)",["th-dull"]],office:["Office",["th-office"]],officedark:["Office Dark",["th-officedark"]],earth:["Druid",["th-earth"]],jester:["Jester",["th-black","th-jester"]],ten:["Ten",["th-indigo","th-blue"]],satan:["Disturbed Satan",["th-crimson"]]};
 function applyMoonTheme(){
   const h=document.documentElement,b=!!(G&&G.moon.blood&&!G.over);
   for(const k in THEMES)for(const c of THEMES[k][1])h.classList.remove(c);
@@ -3665,8 +3690,10 @@ SPELLS.push(
  {id:"bird",dice:"1d2",name:"Bird's Eye",cost:1,school:"Sorcery",text:"For the rest of this round the fog of war lifts for you and your teammates. It does nothing against a Delusion.",
   ok:()=>fogOn()&&!birdOn(G.active),run:async()=>{(G.bird=G.bird||[]).push({by:G.active,round:G.moon.round});log(`<b>Bird's Eye</b>: ${plName(G.active)} sees the whole field this round.`,"event")}}
 );
-const etherHasU=u=>G.ether.some(c=>c.unit===u);
-async function conjureU(u){const i=G.ether.findIndex(c=>c.unit===u);const c=G.ether.splice(i,1)[0];c.owner=G.active;if(c.hp!=null)c.hp=c.maxHp;me().deck.push(c);shuffle(me().deck);log(`A${/^[AEIOU]/.test(UNIT[u].name)?"n":""} ${UNIT[u].name}'s soul materializes from the Ether into ${plName(G.active)}'s deck.`)}
+/* v44: Miners and Repairmen never run out: when the Ether has none left, a new one is made (the Ether's count doesn't include them) */
+const UNLIMITED=new Set(["miner","repair"]);
+const etherHasU=u=>UNLIMITED.has(u)||G.ether.some(c=>c.unit===u);
+async function conjureU(u){const i=G.ether.findIndex(c=>c.unit===u);const c=i>=0?G.ether.splice(i,1)[0]:mkUnit(u,G.active);c.owner=G.active;if(c.hp!=null)c.hp=c.maxHp;me().deck.push(c);shuffle(me().deck);log(`A${/^[AEIOU]/.test(UNIT[u].name)?"n":""} ${UNIT[u].name}'s soul materializes from the Ether into ${plName(G.active)}'s deck.`)}
 /* Quiet Eyes asks 2 mana at the start of each round it lasts */
 function quietRound(){
   for(const q of G.quiet||[]){if(q.until<G.moon.round||q.paidRound===G.moon.round)continue;
@@ -4046,10 +4073,13 @@ function repay(pl,n){const P=G.p[pl];n=Math.min(n,mana(pl),owedOf(pl));if(n<=0)r
   for(const L of [...P.loans]){const k=Math.min(L.owed,left);L.owed-=k;left-=k;if(L.owed<=0)P.loans.splice(P.loans.indexOf(L),1);if(!left)break}
   log(`${plName(pl)} pays the Bank ${paid} mana${P.loans.length?` (${owedOf(pl)} still owed)`:"; every loan is settled"}.`);return paid}
 /* selling to the Bank: cards from your hand or deck go to the Ether for their conjuring price */
-function sellCards(pl,cards){const P=G.p[pl];let price=0;
-  for(const c of cards){const L=P.hand.includes(c)?P.hand:P.deck;L.splice(L.indexOf(c),1);price+=costOf(c)||1;c.owner=null;if(c.hp!=null)c.hp=c.maxHp;G.ether.push(c)}
-  shuffle(P.deck);const got=giveMana(pl,price);G.bank.mana-=got;
-  log(`${plName(pl)} sells ${cards.length} card${cards.length>1?"s":""} to the Bank for ${got} mana${got<price?` (${price-got} more would not fit in the soul pile)`:""}; the deck is reshuffled.`,"event");return got}
+/* v44: the Bank pays a card's soul worth, less 0 or 1 (rolled at the sale); a standard card worth only 1 can't be sold */
+const sellable=c=>!(cardClass(c)==="Standard"&&soulOf(c)<=1);
+const sellRange=c=>[Math.max(0,soulOf(c)-1),soulOf(c)];
+function sellCards(pl,cards){const P=G.p[pl];let price=0;const rolls=[];cards=cards.filter(sellable);if(!cards.length)return 0;
+  for(const c of cards){const L=P.hand.includes(c)?P.hand:P.deck;L.splice(L.indexOf(c),1);const d=R(2);rolls.push({s:2,v:d});price+=Math.max(0,soulOf(c)-(d-1));c.owner=null;if(c.hp!=null)c.hp=c.maxHp;G.ether.push(c)}
+  shuffle(P.deck);tray(pl,"Sale to the Bank",rolls,`${price} mana`);const got=giveMana(pl,price);G.bank.mana-=got;
+  log(`${plName(pl)} sells ${cards.length} card${cards.length>1?"s":""} to the Bank for ${got} mana (soul worth, less 1 on each 2 of 1d2)${got<price?`; ${price-got} more would not fit in the soul pile`:""}. The deck is reshuffled.`,"event");return got}
 function sellThrall(pl){const P=G.p[pl];const c=(P.thralls||[]).shift();if(!c)return;c.owner=null;G.ether.push(c);const got=giveMana(pl,1);G.bank.mana-=got;
   log(`${plName(pl)} sells a thrall to the Bank (+${got} mana).`)}
 
@@ -4159,16 +4189,23 @@ function openBank(){
   const notes=[];if(B.dead)notes.push("The Banker is dead: the Bank and the Ether are closed.");if(B.angry)notes.push("The Banker is angry about the Barbarians holding the middle: every price +1.");
   if(B.mana<0&&!B.dead)notes.push("The Bank is in the red: everything in the Ether costs 1 less.");const up=Object.keys(B.upsell);if(up.length)notes.push(`Upsold this round: ${up.map(id=>SP(id)?SP(id).name:id).join(", ")}.`);
   if(G.inflation&&G.turnNo<=G.inflation.until)notes.push(`After the collapse, prices wobble up until turn ${G.inflation.until}.`);
-  ovShow(`<div class="ovbox bank wide"><h2>The Bank</h2><div class="bankhead"><span class="banker">${unitSVG("banker","#15100b",56)}</span><div><b>The Banker</b> holds <b>${B.mana}</b> mana.${B.owes.length?` It owes ${B.owes.map(o=>`${plName(o.to)} ${o.owed}`).join(", ")}.`:""}<br><span class="dim">Spell mana goes to the Bank, and it can only lend what it holds.</span>${notes.length?`<p class="bnote">${notes.join("<br>")}</p>`:""}</div></div>
-<dl class="bstat"><dt>Your mana</dt><dd class="${e<0?"neg":""}"><b>${e}</b> of ${soulCap(V)}</dd>
-<dt>Lowest point</dt><dd><b>${fl}</b><span class="bline ${gap<=soulCap(V)?"warn":""}">If your mana falls below ${fl}, you lose the game. You are ${gap} above it.</span></dd>
-<dt>Mana debt</dt><dd>${debt?`<b>${debt}</b><span class="bline">Every soul you gain pays it first.</span>`:"None"}</dd>
-<dt>Loans</dt><dd>${loans?`<ul>${loans}</ul>`:"None"}</dd></dl>
+  const cap=soulCap(V),rate=Math.round(loanRate(V)*100),pay=Math.min(mana(V),owed);
+  const tip=t=>`data-tip="${esc(t)}" tabindex="0"`;
+  const LOAN_TIP=`A loan puts mana in your pool now, taken from what the Bank holds. It grows ${rate}% every 1d2 of your turns (30% once you are ${cap} or more below zero) and is due in 4 of your turns. Repay it any time with Repay; whatever is left when it comes due becomes mana debt. Up to 12 at a time, 6 below zero, 5 at −${cap}, never more than the Bank holds, and never more than your souls have room for.`;
+  const CREDIT_TIP=`Credit is not a loan: nothing is lent up front. With it on, you can cast a spell you can't afford; what your souls don't cover becomes mana debt at once, down to your lowest point (${fl}). Debt grows ${rate}% every 1d2 of your turns, and every soul you gain pays it first. Fall below ${fl} and you lose the game.`;
+  const nums=n=>Array.from({length:n},(_,i)=>`<option>${i+1}</option>`).join("");
+  ovShow(`<div class="ovbox bank wide"><h2>The Bank</h2><div class="bankhead"><img class="bankpic" src="banker.png" width="88" height="88" alt="The Banker in his top hat behind a dungeon window, with gold behind him">
+<div class="bankinfo"><p class="bwho"><b>The Banker</b> holds <b>${B.mana}</b> mana.${B.owes.length?` He owes ${B.owes.map(o=>`${plName(o.to)} ${o.owed}`).join(", ")}.`:""} <span class="dim">Spell mana goes to him, and he lends only what he holds.</span></p>
+<dl class="bstat"><div ${tip(`Your mana now, out of your maximum of ${cap}. Below zero is mana debt.`)}><dt>Your mana</dt><dd class="${e<0?"neg":""}"><b>${e}</b>/${cap}</dd></div>
+<div ${tip(`If your mana falls below ${fl}, you lose the game. You are ${gap} above it.`)}><dt>Lowest point</dt><dd class="${gap<=cap?"neg":""}"><b>${fl}</b> <small>${gap} above</small></dd></div>
+<div ${tip(debt?`You are ${debt} in debt. Every soul you gain pays it first; it grows ${rate}% every 1d2 of your turns.`:"You have no mana debt.")}><dt>Mana debt</dt><dd class="${debt?"neg":""}">${debt?`<b>${debt}</b>`:"None"}</dd></div>
+<div ${tip(owed?"What you owe the Bank in loans, interest included.":"You have no loans.")}><dt>Loans</dt><dd>${owed?`<b>${owed}</b> <small>owed</small>`:"None"}</dd></div></dl>
+${loans?`<ul class="bloans">${loans}</ul>`:""}${notes.length?`<p class="bnote">${notes.join("<br>")}</p>`:""}</div></div>
 ${live&&!B.dead?`<div class="bacts">
-<p><label class="${lim?"":"off"}">Borrow <select id="bLoan" ${lim?"":"disabled"}>${lim?Array.from({length:lim},(_,i)=>`<option>${i+1}</option>`).join(""):"<option>—</option>"}</select> mana</label> <button class="btn sm" id="bLoanBtn" ${lim?"":"disabled"}>Take the loan</button> <small class="dim">${Math.round(loanRate(V)*100)}% interest every 1d2 turns. Due in 4 turns; what isn't paid by then becomes mana debt.${e<0?" Below zero: six at most (five at −"+soulCap(V)+", at 30%).":""}</small></p>
-<p><label class="${Math.min(mana(V),owed)?"":"off"}">Repay <select id="bPay" ${Math.min(mana(V),owed)?"":"disabled"}>${Math.min(mana(V),owed)?Array.from({length:Math.min(mana(V),owed)},(_,i)=>`<option>${i+1}</option>`).join(""):"<option>—</option>"}</select> mana</label> <button class="btn sm" id="bPayBtn" ${Math.min(mana(V),owed)?"":"disabled"}>Pay</button></p>
-<p><label><input type="checkbox" id="bCredit" ${P.credit?"checked":""}> Spend on credit</label> <small class="dim">Spells you can't afford are paid by the Bank and become mana debt, down to ${floorOf(V)}. Every soul you gain pays the debt first.</small></p>
-<p><button class="btn ghost sm" id="bSell">Sell cards from your hand or deck</button>${P.tribe==="binah"&&(P.thralls||[]).length?` <button class="btn ghost sm" id="bThrall">Sell a thrall (1 mana)</button>`:""}</p></div>`:`<p class="dim">${B.dead?"":"Bank business is done in your own prep phase."}</p>`}
+<p class="brow"><span class="bkey" ${tip(LOAN_TIP)}>Loan <i class="q">?</i></span><label class="${lim?"":"off"}"><select id="bLoan" aria-label="Mana to borrow" ${lim?"":"disabled"}>${lim?nums(lim):"<option>—</option>"}</select> mana</label><button class="btn sm" id="bLoanBtn" ${lim?"":"disabled"}>Take the loan</button><small class="dim">${lim?`${rate}% every 1d2 turns · due in 4`:"The Bank won't lend to you now."}</small></p>
+<p class="brow"><span class="bkey">Repay</span><label class="${pay?"":"off"}"><select id="bPay" aria-label="Mana to repay" ${pay?"":"disabled"}>${pay?nums(pay):"<option>—</option>"}</select> mana</label><button class="btn sm" id="bPayBtn" ${pay?"":"disabled"}>Pay</button><small class="dim">${owed?`You owe ${owed}.`:"No loans to repay."}</small></p>
+<p class="brow"><span class="bkey" ${tip(CREDIT_TIP)}>Credit <i class="q">?</i></span><label><input type="checkbox" id="bCredit" ${P.credit?"checked":""}> Spend on credit</label><small class="dim">Spells you can't afford become mana debt, down to ${fl}.</small></p>
+<p class="brow bsellrow"><button class="btn bsell" id="bSell">Sell cards to the Bank</button>${P.tribe==="binah"&&(P.thralls||[]).length?`<button class="btn sm" id="bThrall">Sell a thrall (1 mana)</button>`:""}<small class="dim">From your hand or deck, for their soul worth or 1 less.</small></p></div>`:`<p class="dim">${B.dead?"":"Bank business is done in your own prep phase."}</p>`}
 <details class="bankhelp"><summary>How the Bank works</summary><dl>${BANK_HELP.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl></details>
 <p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
   $("#mcancel").onclick=ovHide;
@@ -4180,10 +4217,10 @@ ${live&&!B.dead?`<div class="bacts">
 }
 function openSell(V){const P=G.p[V],pick=new Set();
   const draw=()=>{const list=[...P.hand.map(c=>[c,"hand"]),...P.deck.map(c=>[c,"deck"])];
-    const tot=list.filter(([c])=>pick.has(c.id)).reduce((a,[c])=>a+(costOf(c)||1),0);
-    ovShow(`<div class="ovbox wide"><h2>Sell to the Bank</h2><p class="dim">Each card sells for its conjuring price and goes to the Ether. The deck is reshuffled afterwards. The Bank holds ${G.bank.mana} mana.</p>
-<div class="pickrow sell">${list.map(([c,w])=>`<label class="sellc ${pick.has(c.id)?"on":""}"><input type="checkbox" data-sl="${c.id}" ${pick.has(c.id)?"checked":""}>${face(c,{cls:"sm",noci:true})}<small>${w} · ${costOf(c)||1}</small></label>`).join("")}</div>
-<p><button class="btn" id="sellGo" ${pick.size?"":"disabled"}>Sell ${pick.size} for ${tot} mana</button> <button class="btn ghost" id="mcancel">Back</button></p></div>`);
+    const chosen=list.filter(([c])=>pick.has(c.id)),lo=chosen.reduce((a,[c])=>a+sellRange(c)[0],0),hi=chosen.reduce((a,[c])=>a+sellRange(c)[1],0);
+    ovShow(`<div class="ovbox wide"><h2>Sell to the Bank</h2><p class="dim">A card sells for its soul worth, or 1 less (rolled at the sale), and goes to the Ether; the deck is reshuffled. Standard cards worth only 1 can't be sold. The Bank holds ${G.bank.mana} mana.</p>
+<div class="pickrow sell">${list.map(([c,w])=>{const ok=sellable(c),[a,b]=sellRange(c);return `<label class="sellc ${pick.has(c.id)?"on":""} ${ok?"":"off"}" ${ok?"":'data-tip="A standard card worth only 1 can\'t be sold to the Bank."'}><input type="checkbox" data-sl="${c.id}" ${pick.has(c.id)?"checked":""} ${ok?"":"disabled"}>${face(c,{cls:"sm",noci:true})}<small>${w} · ${ok?(a===b?a:a+"–"+b):"—"}</small></label>`}).join("")}</div>
+<p><button class="btn" id="sellGo" ${pick.size?"":"disabled"}>Sell ${pick.size} for ${lo===hi?lo:lo+"–"+hi} mana</button> <button class="btn ghost" id="mcancel">Back</button></p></div>`);
     $("#ov").querySelectorAll("[data-sl]").forEach(i=>i.onchange=()=>{const id=+i.dataset.sl;i.checked?pick.add(id):pick.delete(id);draw()});
     $("#mcancel").onclick=openBank;
     $("#sellGo").onclick=()=>{const cs=[...P.hand,...P.deck].filter(c=>pick.has(c.id));sellCards(V,cs);render();openBank()}};
@@ -4872,7 +4909,7 @@ const ETHER_SHOP=[
   ["Base",[["ca","Ace"],["cwall","Wall"]]]];
 const ETHER_IDS=new Set(ETHER_SHOP.flatMap(([,l])=>l.map(x=>x[0])));
 const ETHER_KIND={cs:"soldier",carch:"archer",ccan:"cannon",cj:"jack",cq:"queen",ck:"king",cjk:"joker",cas:"assassin",csc:"scout",cmine:"miner",crep:"repair",cram:"ram",cheal:"healer",ca:"ace",cwall:"wall"};
-const etherLeft=id=>{const k=ETHER_KIND[id];return G.ether.filter(c=>k==="soldier"?/^\d+$/.test(c.rank):c.unit?c.unit===k:kind(c)===k).length};
+const etherLeft=id=>{const k=ETHER_KIND[id];if(k==="miner"||k==="repair")return Infinity;return G.ether.filter(c=>k==="soldier"?/^\d+$/.test(c.rank):c.unit?c.unit===k:kind(c)===k).length};
 SP("maxmana").name="Increase Max Mana";
 
 function spellRow(s,live){
@@ -4881,7 +4918,7 @@ function spellRow(s,live){
   let extra="";
   if(s.id==="bless"){const aces=stacksOf(G.active).filter(x=>hasK(x.st,"ace")).length,n=Math.min(6,1+aces+G.ritual,blessCap(G.active));extra=`<small class="dc">${n}d6</small>`+(od?`<small class="odpen ${od>6?"big":""}">−${od}d6 max</small>`:"")}
   const moonPrice=(s.id==="clair"||s.id==="naked")&&(newPrices()||fullPrices());
-  if(s.dice)extra+=`<small class="dc">${moonPrice?"moon":s.dice}</small>`;
+  if(s.dice)extra+=`<small class="dc">${moonPrice?(newPrices()?"New Moon price":"Full Moon price"):s.dice}</small>`;
   if(s.id==="bolt"){const b=G.p[G.active].bolts||0;extra+=`<span class="bolts" aria-label="${b} of 3 bolts">${[0,1,2].map(i=>`<i class="${i<b?"f":""}">${unitSVG("bolt",i<b?"#8fd0ff":"#4a5a66",13)}</i>`).join("")}</span>`}
   if(s.id==="slaves"){const n=(G.p[G.active].thralls||[]).length;extra+=`<span class="chips" aria-label="${n} of 10 thralls">${Array.from({length:10},(_,i)=>`<i class="${i<n?"f":""}">${unitSVG("chip",i<n?"#9fe8b4":"#3d4a40",11)}</i>`).join("")}</span>`}
   if(s.once)extra+=`<small class="dc once">${G.p[G.active].once&&G.p[G.active].once[s.id]?"used":"once"}</small>`;
@@ -4934,7 +4971,7 @@ function fillEther(){
   const rows=ETHER_SHOP.map(([cat,items])=>{
     const its=items.map(([id,nm,sub])=>({id,nm,sub,sp:SP(id),left:etherLeft(id)})).filter(x=>x.sp).sort((a,b)=>spellCost(a.sp)-spellCost(b.sp)||a.nm.localeCompare(b.nm));
     return `<h3>${cat}</h3>${its.map(x=>{const c=spellCost(x.sp),ok=live&&!blk&&x.left>0&&spellReady(x.sp);
-      return `<button class="spell eitem ${ok?"":"off"}" data-buy="${x.id}" data-sp="${x.id}"><span class="sn">${esc(x.nm)}${x.sp.dice?`<small class="dc">${x.sp.dice}</small>`:""}<small class="left">${x.left?x.left+" left":"none left"}</small></span><em>${c?c+" mana":"free"}</em></button>`}).join("")}`}).join("");
+      return `<button class="spell eitem ${ok?"":"off"}" data-buy="${x.id}" data-sp="${x.id}"><span class="sn">${esc(x.nm)}${x.sp.dice?`<small class="dc">${x.sp.dice}</small>`:""}<small class="left">${x.left===Infinity?"unlimited":x.left?x.left+" left":"none left"}</small></span><em>${c?c+" mana":"free"}</em></button>`}).join("")}`}).join("");
   e.innerHTML=`<div class="dhead"><h2>The Ether</h2><button type="button" class="xclose" aria-label="Close the Ether">×</button></div>
 <p class="dnote">${blk?esc(blk):live?"Conjure a card's soul into your deck. Dice prices are rolled each round.":"You can conjure in your own prep phase."}</p>
 <div class="dbody scrollbox">${rows}<p class="dfoot"><button class="link" id="etherSouls">See every soul in the Ether (${G.ether.length})</button></p></div>`;
@@ -5232,11 +5269,11 @@ const SKY_ROWS=[
 function skyExplainHTML(){return `<details class="sub"><summary>Heavenly Bodies explained</summary><div class="skygrid">${SKY_ROWS.map(([k,n,how,what])=>`<div class="skycard"><b>${n}</b><p>${what}</p><small>${how}</small><em class="skyform">${SKY_FORM[k]}</em></div>`).join("")}</div><p class="dim">Every Heavenly Body but the Moon can be eclipsed: 5% at the start of each round. Hover or tap the sky in a game for what it means for you.</p></details>`}
 const BANK_HELP=[
  ["Where mana goes","Every mana spent on a spell goes to the Bank. The Bank can only lend what it holds."],
- ["Loans","Borrow up to what the Bank holds. A loan grows 20% every 1d2 turns and is due in 4 of your turns. Whatever isn't paid then becomes mana debt."],
+ ["Loans","Mana now, from what the Bank holds. A loan grows 20% every 1d2 of your turns and is due in 4 of your turns; repay it with Repay. Whatever isn't paid then becomes mana debt."],
  ["Mana debt","Debt shows as mana below zero. Every soul you gain pays the debt first. Below zero the Bank lends six at most; at minus your maximum, five at most and at 30%."],
- ["Spend on credit","Tick it to cast spells you can't afford. The cost becomes mana debt."],
+ ["Spend on credit","Not a loan: nothing is lent up front. Tick it to cast spells you can't afford; what your souls don't cover becomes mana debt at once, down to your lowest point."],
  ["Your lowest point","You lose the game if your mana falls below three times your maximum under zero (−18 with a maximum of 6)."],
- ["Selling","Sell cards from your hand or deck for their conjuring price. They go to the Ether and your deck is reshuffled. Binah can sell thralls for 1 mana."],
+ ["Selling","Sell cards from your hand or deck for their soul worth, or 1 less (rolled at the sale); a standard card worth only 1 can't be sold. They go to the Ether and your deck is reshuffled. Binah can sell thralls for 1 mana."],
  ["Upselling","A spell bought more than twice in each of two rounds in a row costs 1d2 − 1 more."],
  ["When the Bank is in the red","The Ether goes on sale (1 less), and the Bank borrows from the richest player."],
  ["Debt Collectors","Anyone more than their maximum below zero is hunted by the Bank's Debt Collectors."],
@@ -5998,10 +6035,10 @@ async function cycleRound(){
 const bankBanned=pl=>!!(G.p[pl]&&G.p[pl].bankBan!=null&&tnOf(pl)<=G.p[pl].bankBan);
 const etherBanned=pl=>!!(G.p[pl]&&G.p[pl].etherBan!=null&&tnOf(pl)<=G.p[pl].etherBan);
 const jailLeft=P=>Math.max(1,P.jail.until-Math.max(G.moon.round,P.jail.from+1)+1);   // the round they are caught in is not counted
-const robOk=pl=>!!(G&&G.p[pl]&&G.mercCyc===G.moon.round&&planetUp("mercury")&&bankOpen()&&!isHorde(pl)&&!G.p[pl].jail&&G.p[pl].robbed!==G.moon.round&&!bankBanned(pl));
-SPELLS.push({id:"robbank",name:"Rob the Bank",cost:0,school:"Bank",text:"Free, once, in a round of Mercury's cycle. Roll 1d20. A natural 20: every mana in the Bank is yours (what doesn\u2019t fit in your soul pile waits in a stash and pours in each turn), and +5 maximum. A 1: Jail for 2d2 rounds (an easy computer plays for you, and you cast nothing); after Jail, no Ether and no Bank for ten turns, and no loans ever again. Anything else: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again.",
+const robOk=pl=>!!(G&&G.p[pl]&&G.mercCyc===G.moon.round&&planetUp("mercury")&&bankOpen()&&G.bank&&G.bank.mana>0&&!isHorde(pl)&&!G.p[pl].jail&&G.p[pl].robbed!==G.moon.round&&!bankBanned(pl));   // v44: nothing to rob from an empty Bank
+SPELLS.push({id:"robbank",name:"Rob the Bank",cost:0,school:"Bank",text:"Free, once, in a round of Mercury's cycle. Roll 1d20. A natural 20: +5 maximum mana, and as much of the Bank\u2019s mana as your soul pile can hold. Not while the Bank is empty. A 1: Jail for 2d2 rounds (an easy computer plays for you, and you cast nothing); after Jail, no Ether and no Bank for ten turns, and no loans ever again. Anything else: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again.",
   ok:()=>robOk(G.active),run:async()=>{await robBank(G.active)}});
-SPELL_TEXT.robbank={n:"Mercury's cycle, once, in your prep phase.",e:"Roll 1d20. A natural 20: the Bank is emptied and every mana in it is yours (what doesn\u2019t fit in your soul pile waits in a stash and pours in at the start of each turn), and +5 maximum. 2 to 19: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again. A 1: Jail for 2d2 rounds; an easy computer plays for you and you cast nothing.",l:"After Jail: no Ether and no Bank for ten turns, and no loans ever again."};
+SPELL_TEXT.robbank={n:"Mercury's cycle, once, in your prep phase.",e:"Roll 1d20. A natural 20: +5 maximum mana, and as much of the Bank\u2019s mana as your soul pile can hold. The Bank can\u2019t be robbed while it is empty. 2 to 19: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again. A 1: Jail for 2d2 rounds; an easy computer plays for you and you cast nothing.",l:"After Jail: no Ether and no Bank for ten turns, and no loans ever again."};
 const ROB_FAILS=[
   n=>`The vault door ${n} broke open was painted on the wall. The guards laughed for a while before they drew their swords.`,
   n=>`The Banker was counting coins in the dark the whole time. He wrote down ${n}'s face and rang the bell.`,
@@ -6015,9 +6052,9 @@ function bankGrunts(pl){const B=npcIx("bank");if(B<0)return 0;const t=freeTilesN
 async function robBank(pl){
   const P=G.p[pl],B=G.bank,d=R(20),nm=plName(pl);P.robbed=G.moon.round;
   tray(pl,"Rob the Bank",[{s:20,v:d}],d===20?"the vault is yours":d===1?"caught: Jail":"failed");
-  if(d===20){P.maxAdd=(P.maxAdd||0)+5;const all=Math.max(0,B.mana),got=giveMana(pl,all);B.mana=0;const left=all-got;if(left>0)P.loot=(P.loot||0)+left;
-    log(`<b>${nm} robs the Bank</b> with a natural 20: all ${all} mana and +5 maximum${left>0?` (${left} wait in a stash and pour into the soul pile as it has room, at the start of each turn)`:""}.`,"event");
-    popup("The heist",`<p>${nm} rolls a natural 20 and empties the vault: all <b>${all}</b> mana, and five more maximum mana.${left>0?` <b>${got}</b> go into the soul pile now; the other <b>${left}</b> wait in a stash and pour in at the start of each of ${nm}'s turns, as much as fits.`:""}</p>`,pl)}
+  if(d===20){P.maxAdd=(P.maxAdd||0)+5;const got=giveMana(pl,Math.max(0,B.mana));B.mana-=got;   // v44: as much as the soul pile holds (after the +5), no more than the Bank has
+    log(`<b>${nm} robs the Bank</b> with a natural 20: ${got} mana (as much as the soul pile holds) and +5 maximum.`,"event");
+    popup("The heist",`<p>${nm} rolls a natural 20 and walks out with <b>${got}</b> mana, as much as the soul pile can hold, and five more maximum mana. The Bank keeps ${Math.max(0,B.mana)}.</p>`,pl)}
   else if(d===1)goToJail(pl);
   else{P.noLoans=true;P.credit=false;const k=bankGrunts(pl);
     log(`${nm} tries to rob the Bank and fails (${d}). ${k?`A stack of ${k} Grunt${k>1?"s":""} comes out of the Bank after them, and `:""}${k?"they":"They"} can never take a loan again.`,"event");
@@ -7934,5 +7971,31 @@ function wireAudioSliders(){const a=$("#mSfx"),m=$("#mMus");
   if(m)m.oninput=()=>{const v=+m.value/100;if(!v)PREF.music=false;else{PREF.music=true;PREF.musicVol=v;if(!SND.on)SND.toggle()}savePrefs();paintSndTop();if(typeof musicSync==="function")musicSync()};
   paintSndTop()}
 document.addEventListener("DOMContentLoaded",()=>{const b=$("#sndtop");if(b)b.onclick=()=>{SND.toggle();paintSndTop();if(typeof musicSync==="function")musicSync()};paintSndTop()});
+
+/* ---------------- v44: Lazy Hand ----------------
+   A free helper right under the Bank: click it, then click a card in your hand, and the computer puts that card down for you
+   where it would play it (by your Field Automation settings while Field Automation is on). Its "auto" switch keeps it on, so
+   every card you click goes down by itself; it is off by default, and the switch is kept on this device. */
+const HAND_ICON=`<svg class="usym lazyico" viewBox="-12 -12 24 24" width="18" height="18" aria-hidden="true"><path d="M-4,10C-7,8 -9,4 -9,1V-2C-9,-4 -6,-4 -6,-2V1V-7C-6,-9 -3,-9 -3,-7V-1V-9C-3,-11 0,-11 0,-9V-1V-8C0,-10 3,-10 3,-8V0V-5C3,-7 6,-7 6,-5V3C6,7 4,10 0,10Z" fill="none" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+let lazyArmed=false;
+const lazyAuto=()=>PREF.lazyAuto===true;
+const lazyOn=()=>lazyArmed||lazyAuto();
+const lazyCan=()=>!!G&&!G.over&&canAct()&&G.active===view()&&!G.placing&&(G.phase==="prep"||G.phase==="setup"&&G.setupStep==="more");
+function lazySpot(pl,card){const ctx=typeof faOn==="function"&&faOn(pl)?faCtx(pl):null;return AI.bestSpot(pl,card,ctx)}
+function lazyPlace(card){const pl=G.active,t=lazySpot(pl,card);
+  if(!t){flash(`Lazy Hand finds no place for ${nameOf(card)}.`);return false}
+  G.selHand=card;G.mode=null;place(card,t[0],t[1]);G.selHand=null;if(!lazyAuto())lazyArmed=false;render();return true}
+function lazyHTML(live){const ok=live&&lazyCan(),on=lazyAuto();
+  return `<div class="spellrow lazyrow"><button type="button" class="autotog${on?" on":""}" id="autoLazy" aria-pressed="${on}" data-tip="Keep Lazy Hand on: every card you click in your hand is placed for you.">auto</button><button type="button" class="spell lazy ${ok?"":"off"} ${lazyOn()?"armed":""}" id="lazyBtn" aria-pressed="${lazyOn()}" data-tip="Lazy Hand: click it, then a card in your hand, and the computer places that card for you. With Field Automation on, it follows those settings. Free, as often as you like."><span class="sn">${HAND_ICON}Lazy Hand</span><em>${lazyOn()?"on":"free"}</em></button></div>`}
+{const _rs=renderSpells;renderSpells=function(live){_rs(live);const bs=$("#bankslot");if(!bs||!G||isNPC(view())||G.p[view()].cpu)return;
+  bs.insertAdjacentHTML("beforeend",lazyHTML(live));
+  $("#lazyBtn").onclick=()=>{if(!lazyCan())return;if(lazyAuto()){PREF.lazyAuto=false;savePrefs();lazyArmed=false}else lazyArmed=!lazyArmed;
+    if(lazyArmed)flash("Lazy Hand: click a card in your hand.");render()};
+  $("#autoLazy").onclick=()=>{PREF.lazyAuto=!lazyAuto();lazyArmed=false;savePrefs();render()}}}
+/* while it is on, a click on a card in the hand places it */
+{const _r=render;render=function(){_r.apply(this,arguments);const h=$("#hand");if(!h||!G)return;const on=lazyOn()&&lazyCan();h.classList.toggle("lazy",on);if(!on)return;
+  h.querySelectorAll("[data-h]").forEach(b=>{const orig=b.onclick;b.onclick=e=>{if(!lazyOn()||!lazyCan())return orig&&orig.call(b,e);
+    const c=G.p[view()].hand[+b.dataset.h];if(c)lazyPlace(c)}})}}
+if(window.__EC)Object.assign(window.__EC,{lazySpot,lazyPlace,lazyOn});
 
 })();

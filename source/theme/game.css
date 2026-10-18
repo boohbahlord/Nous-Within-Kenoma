@@ -1142,8 +1142,8 @@ body.phone .cardbtn.on .cf{outline:2px solid var(--amber-hi);outline-offset:1px;
 /* long names break inside their box on a phone instead of running across the screen */
 body.phone .ovbox,body.phone #selbox,body.phone #info,body.phone .pbox,body.phone #log,body.phone #pop{overflow-wrap:anywhere}
 /* ================= v38: the Office theme: white and light grey panels, a blue accent ================= */
-html.th-office .gbar,html.th-office #gbar.open{background:#ffffffeb;border-color:var(--rule);color:var(--text);box-shadow:0 2px 10px #0002}
-html.th-office .tray,html.th-office #histpop,html.th-office #pop .popbox,html.th-office #aimbar{background:#fff;color:var(--text);border-color:var(--rule)}
+html.th-office .gbar,html.th-office #gbar.open{background:#e6e7eaeb;border-color:var(--rule);color:var(--text);box-shadow:0 2px 10px #0002}
+html.th-office .tray,html.th-office #histpop,html.th-office #pop .popbox,html.th-office #aimbar{background:var(--well);color:var(--text);border-color:var(--rule)}
 html.th-office #pop{background:#0003}html.th-office #menu{background:#0004}
 html.th-office .deckbar,html.th-office .manabar{background:#e4e6ea;border-color:#b9bcc2}
 html.th-office .bankbar{background:linear-gradient(90deg,#fff4cf,#fbe9ad);color:#5c4300;border-color:#d6b54a}
@@ -1155,7 +1155,7 @@ html.th-office .myscard.back{background:repeating-linear-gradient(45deg,#e1e4ea 
 html.th-office .stack.facedown{background:#cfd4dc}
 html.th-office .ovbox.bank .plot.mine{background:linear-gradient(#fff6d8,#f5e7b8)}
 html.th-office .cb{background:repeating-linear-gradient(45deg,#e7e9ed 0 3px,#dcdfe4 3px 6px)}
-html.th-office ::-webkit-scrollbar-track{background:#e9eaec}
+html.th-office ::-webkit-scrollbar-track{background:var(--deep)}
 html.th-office .ovbox,html.th-office .pbox,html.th-office .qbox,html.th-office details.sub,html.th-office #log,html.th-office .stabs,html.th-office .sfoot{border-color:var(--rule)}
 html.th-office .ovbox{box-shadow:0 10px 40px #0003}
 html.th-office .stab.on{color:#fff}
@@ -1261,7 +1261,6 @@ html.th-darkfantasy .btn:hover,html.th-darkfantasy .btn:focus-visible{background
 html.th-darkfantasy .btn.ghost{background:#120d12cc;color:var(--amber-hi);border-color:#8a7442}
 html.th-darkfantasy .ovbox,html.th-darkfantasy .pbox,html.th-darkfantasy .cinfo,html.th-darkfantasy .gbar{border-color:#8a7442;box-shadow:0 0 0 1px #00000080,inset 0 0 24px #00000060}
 html.th-darkfantasy .label,html.th-darkfantasy h3{color:#c4c2cc;letter-spacing:.2em}
-html.th-darkfantasy .spell{background:#1a1419d9}
 html.th-darkfantasy #log li{border-bottom-color:#5b283055}
 html.th-earth .btn{color:#0e130d}
 html.th-earth .game h1{color:#cfe08c;text-shadow:0 0 14px #9bbf5e40}
@@ -1307,3 +1306,48 @@ body.phone .faopts .opt>span{padding:7px 9px}
 .fasec .faopts{display:flex;flex-wrap:wrap;gap:4px}
 .fasec .faopts .opt{flex:1 1 auto;width:auto;min-width:0}
 body.phone .fasec .faopts .opt{flex:1 1 140px}
+/* ================= v44 · the Bank: compact, the Banker's portrait, loans and credit explained on hover or hold ================= */
+.ovbox.bank{font-size:13.5px}
+.ovbox.bank h2{font-size:20px;margin:0 0 8px}
+.ovbox.bank .bankhead{gap:12px;align-items:flex-start}
+.ovbox.bank .bankpic{width:88px;height:88px;flex:none;image-rendering:pixelated;border:1px solid #000;box-shadow:0 0 0 1px #c9a23a66,0 2px 8px #000a;border-radius:2px}
+.ovbox.bank .bankinfo{flex:1;min-width:0}
+.ovbox.bank .bwho{margin:0 0 6px;line-height:1.4}
+.ovbox.bank .bstat{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0;padding:0;border:0}
+.ovbox.bank .bstat>div{padding:4px 8px;border:1px solid var(--rule);background:#0000002e;border-radius:3px;cursor:help;min-width:0}
+.ovbox.bank .bstat dt{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ovbox.bank .bstat dd{margin:0;white-space:nowrap}
+.ovbox.bank .bstat dd b{font-size:15px}
+.ovbox.bank .bstat dd small{color:var(--dim);font-size:11px}
+.ovbox.bank .bstat dd.neg b{color:#ff8f86}
+.ovbox.bank .bloans{margin:6px 0 0;padding-left:18px;font-size:12.5px}
+.ovbox.bank .bnote{margin:6px 0 0;font-size:12.5px}
+.ovbox.bank .bacts{margin:10px 0 0;border-top:1px solid var(--rule);padding-top:6px}
+.ovbox.bank .bacts p.brow{display:grid;grid-template-columns:76px auto auto minmax(0,1fr);align-items:center;gap:4px 10px;margin:0;padding:5px 0;border-bottom:1px solid #ffffff10}
+.ovbox.bank .bacts p.brow small{flex:none;font-size:12px;min-width:0}
+.ovbox.bank .bacts p.brow .btn{justify-self:start}
+.ovbox.bank .bkey{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);white-space:nowrap}
+.ovbox.bank .bkey[data-tip]{cursor:help}
+.ovbox.bank .bkey .q{display:inline-grid;place-items:center;width:14px;height:14px;margin-left:3px;border:1px solid currentColor;border-radius:50%;font:normal 10px/1 sans-serif;letter-spacing:0}
+.ovbox.bank .bacts p.bsellrow{grid-template-columns:auto auto minmax(0,1fr);border-bottom:0;padding-top:8px}
+.ovbox.bank .btn.bsell{background:linear-gradient(#5a4614,#3a2d0e);border-color:#e8c24a;color:#ffe6a0;font-weight:600}
+.ovbox.bank .btn.bsell:hover{background:linear-gradient(#6c5418,#46360f)}
+.ovbox.bank details.bankhelp{margin:10px 0 8px;padding:4px 10px}
+.ovbox.bank details.bankhelp dl{font-size:12.5px;gap:4px 14px}
+@media (max-width:640px){
+ .ovbox.bank .bankpic{width:64px;height:64px}
+ .ovbox.bank .bstat{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .ovbox.bank .bankhead{flex-wrap:wrap}
+ .ovbox.bank .bankinfo{flex-basis:calc(100% - 76px)}
+ .ovbox.bank .bacts p.brow{grid-template-columns:62px auto minmax(0,1fr)}
+ .ovbox.bank .bstat>div{padding:3px 8px}
+ .ovbox.bank .bacts p.brow small{grid-column:1/-1}
+ .ovbox.bank .bacts p.bsellrow{grid-template-columns:auto auto}
+}
+/* v44 · Lazy Hand: right under the Bank, a white hand; while it is on, the hand has a dashed white edge */
+#bankslot .lazyrow{margin-top:6px}
+#bankslot .spell.lazy .sn{display:inline-flex;align-items:center;gap:6px}
+#bankslot .spell.lazy .lazyico{flex:none}
+#bankslot .spell.lazy.armed{border-color:#fff;box-shadow:0 0 0 1px #ffffff55,0 0 10px #ffffff33}
+#hand.lazy .cardbtn{outline:1px dashed #ffffffaa;outline-offset:2px}
+html.th-office .lazyico path{stroke:var(--text)}html.th-office #bankslot .spell.lazy.armed{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber)}html.th-office #hand.lazy .cardbtn{outline-color:var(--amber)}
