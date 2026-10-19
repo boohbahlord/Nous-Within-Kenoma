@@ -1500,7 +1500,7 @@ const AI=(()=>{
       const st=G.board[o.r][o.c];if(!st||st!==o.st||st.owner!==pl||st.moved)continue;
       if(Math.random()<lv.skipMove)continue;
       if(st.cards.every(c=>c.unit==="miner"))continue;   // lone Miners have their own errands
-      let grp=st.cards.filter(c=>!isBase(c)&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter)));   // Miners, Repairmen and shooters stay in their base
+      let grp=st.cards.filter(c=>!isBase(c)&&!c.faLock&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter)));   // v65: cards locked in place stay   // Miners, Repairmen and shooters stay in their base
       if(!grp.length||st.stun)continue;
       if(FAX&&!FAX.ok(grp))continue;   // Field Automation: a stack it doesn't control stays where the player put it
       if(!stackLegal(grp)){ // too many to leave together (a full Ace): send out the strongest group that can stand on its own
@@ -4699,17 +4699,19 @@ async function skyAsync(pl){
     if(P.sunNext==null){P.sunNext=tnOf(pl)+R(2)+R(2);return}
     if(tnOf(pl)<P.sunNext)return;
     P.sunNext=tnOf(pl)+R(2)+R(2);
-    const by=planetBy(),opts=[];
-    if(mana(pl)>=1)opts.push({id:"mana",label:"Pay 1 mana",sub:by!=null?`It goes to ${G.p[by].name}.`:"It goes to the Bank."});
-    if(stacksOf(pl).length)opts.push({id:"hurt",label:"One damage to a random stack of yours"});
-    if(P.deck.length>=2)opts.push({id:"deck",label:"Two cards from your deck",sub:"They burn in the Sun (to the grave)."});
-    opts.push({id:"no",label:"Refuse",sub:"Blinded by the Sun for this turn: you can't see even what is beside you."});
+    // v65, the Sun's judgement (the user's): 1d6 mana to the Bank, or 1d2 damage to your stacks, or 1d2 + 1d3 deck cards; or blindness for 1d3 turns
+    const nM=R(6),nH=R(2),nD=R(2)+R(3),nB=R(3),opts=[];
+    if(mana(pl)>=nM)opts.push({id:"mana",label:`Pay ${nM} mana`,sub:"1d6, to the Bank."});
+    if(stacksOf(pl).length)opts.push({id:"hurt",label:`${nH} damage to your stacks`,sub:`1d2: ${nH>1?"each blow to a random stack of yours":"one blow to a random stack of yours"}.`});
+    if(P.deck.length)opts.push({id:"deck",label:`${Math.min(nD,P.deck.length)} cards from your deck`,sub:"1d2 + 1d3: they burn in the Sun (to the grave)."});
+    opts.push({id:"no",label:`Blindness for ${nB} turn${nB>1?"s":""}`,sub:"1d3: you can't see even what is beside you."});
     const ch=opts.length===1?"no":await ask(pl,{kind:"choice",id:"sunjudge",title:`The Second Sun judges ${esc(P.name)}`,options:opts,
-      ai:()=>mana(pl)>=2?"mana":P.deck.length>8?"deck":stacksOf(pl).length>3?"hurt":opts[0].id});
-    if(ch==="mana"){payQuiet(pl,1);if(by!=null)giveMana(by,1);else bankAdd(1);log(`${plName(pl)} worships the Earth before the Second Sun: 1 mana${by!=null?` to ${plName(by)}`:" to the Bank"}.`);sunPayback(pl,1)}
-    else if(ch==="hurt"){const x=pick(stacksOf(pl));log(`${plName(pl)} offers the Second Sun a wound on ${coord(x.r,x.c)}.`);damage(x.r,x.c,1,false);sunPayback(pl,1)}
-    else if(ch==="deck"){let w=0;for(let i=0;i<2;i++){const c=P.deck.pop();w+=soulOf(c);toGrave(c,"burn")}log(`${plName(pl)} burns two deck cards in the Second Sun.`);sunPayback(pl,w)}
-    else{P.sunBlind=tnOf(pl);G._vis=null;log(`<b>The Second Sun</b> blinds ${plName(pl)} for this turn.`,"event");notify(pl,`${esc(P.name)} is blinded by the Sun this turn.`)}
+      ai:()=>mana(pl)>=nM+2?"mana":P.deck.length>8+nD?"deck":stacksOf(pl).length>3&&opts.some(o=>o.id==="hurt")?"hurt":opts.some(o=>o.id==="mana")?"mana":opts[0].id});
+    if(ch==="mana"){payQuiet(pl,nM);bankAdd(nM);log(`${plName(pl)} worships the Earth before the Second Sun: ${nM} mana to the Bank.`);sunPayback(pl,nM)}
+    else if(ch==="hurt"){const hit=[];for(let i=0;i<nH;i++){const L=stacksOf(pl);if(!L.length)break;const x=pick(L);hit.push(coord(x.r,x.c));damage(x.r,x.c,1,false)}
+      log(`${plName(pl)} offers the Second Sun ${nH} wound${nH>1?"s":""} (${hit.join(", ")}).`);sunPayback(pl,nH)}
+    else if(ch==="deck"){let w=0,k=0;for(let i=0;i<nD&&P.deck.length;i++){const c=P.deck.pop();w+=soulOf(c);toGrave(c,"burn");k++}log(`${plName(pl)} burns ${k} deck card${k>1?"s":""} in the Second Sun.`);sunPayback(pl,w)}
+    else{P.sunBlind=tnOf(pl);P.sunBlindTo=tnOf(pl)+nB-1;G._vis=null;log(`<b>The Second Sun</b> blinds ${plName(pl)} for ${nB} turn${nB>1?"s":""}.`,"event");notify(pl,`${esc(P.name)} is blinded by the Sun for ${nB} turn${nB>1?"s":""}.`)}
     render();
   }
   // the Black Sun: the Firmament who raised it pays Yaldabaoth every 1d2 of its turns
@@ -4721,7 +4723,7 @@ async function skyAsync(pl){
       else{let k=0;for(let i=0;i<n&&P.deck.length;i++){const c=P.deck.pop();c.owner=Y;G.p[Y].deck.push(c);k++}shuffle(G.p[Y].deck);log(`The Black Sun: ${plName(pl)} gives ${plName(Y)} ${k} deck card${k===1?"":"s"}.`,"event")}}
   }
 }
-const sunBlind=pl=>!!(G.p[pl]&&G.p[pl].sunBlind!=null&&G.p[pl].sunBlind===tnOf(pl));
+const sunBlind=pl=>{const P=G.p[pl];if(!P||P.sunBlind==null)return false;const t=tnOf(pl);return t>=P.sunBlind&&t<=(P.sunBlindTo!=null?P.sunBlindTo:P.sunBlind)};   // v65: blind for 1d3 turns
 
 /* ---------- the start of a turn: Venus and its Oath ---------- */
 function planetTurn(pl){
@@ -4799,7 +4801,7 @@ SPELLS.push(
  {id:"sun",tribe:"firm",dice:"2d3",name:"Second Sun",cost:4,school:"Astrology",text:"Select your stack with a Joker: the Joker shoots itself (its souls go to your soul pile) and an indigo Second Sun (“King”) takes the moon's place. The fog of war is gone while it burns (Delusions stay). Every 2d2 turns it judges each other player: 1 mana to you, one damage to one of their stacks, or two deck cards; or blindness for that turn. Others can swear the Oath of the Earth. The Leviathan can't lie on it.",
   ok:()=>firmPlace("sun")()&&G.moon.gone!=="blacksun"&&selOwnJoker(),run:async()=>{const s=G.sel,st=selStack();await jokerSuicide(s.r,s.c,st,G.active);setPlanet("sun",G.active);
    log(`<b>The Second Sun</b> rises where the moon was, raised by ${plName(G.active)}.`,"event");
-   popup("The Second Sun",`<p>${plName(G.active)}'s Joker shoots itself and an indigo sun rises in the moon's place. The fog of war burns away.</p><p>Every 2d2 turns the Sun judges each player, who pays 1 mana, a wound to one of their stacks or two deck cards, or is blind for that turn. Anyone can swear the <b>Oath of the Earth</b> (Astrology).</p>`,G.active)}},
+   popup("The Second Sun",`<p>${plName(G.active)}'s Joker shoots itself and an indigo sun rises in the moon's place. The fog of war burns away.</p><p>Every 2d2 turns the Sun judges each player, who pays 1d6 mana to the Bank, 1d2 damage to their stacks or 1d2 + 1d3 deck cards, or is blind for 1d3 turns. Anyone can swear the <b>Oath of the Earth</b> (Astrology).</p>`,G.active)}},
  {id:"sunfall",tribe:"firm",name:"Second Sun's Fall",cost:0,school:"Astrology",text:"Free. Select a stack: the Sun crashes onto it. Two damage there, one damage on a 2 of 1d2 on every tile around it, one on a 10 of 1d10 on the ring beyond, your own troops too. A Black Sun instead destroys that tile and everything on it for good (and on a 6 of 1d6 every tile around it). The sky is empty afterwards.",
   ok:()=>(sunUp()||planetUp("blacksun"))&&!!selStack(),run:async()=>{const {r,c}=G.sel;SND.gun();sunFall(r,c);if(G.sel&&!at(G.sel.r,G.sel.c))G.sel=null}},
  {id:"venus",tribe:"firm",dice:"2d3",name:"Venus",cost:4,school:"Astrology",text:"Venus (“Harmony”) takes the moon's place. Choose: you (or your teammate) get +2 mana a turn and +2 maximum, or (not in Survival) +1 mana a turn while every enemy gets +2 maximum. Anyone can swear the Oath of Venus.",
@@ -4890,7 +4892,7 @@ const PNOTE={
 function planetInfoHTML(k){
   const V=view(),P=G.p[V],L=[],by=planetBy();
   if(k==="sun"){L.push(`The indigo Second Sun burns in the moon's place${by!=null?`, raised by ${esc(G.p[by].name)}`:""}. The fog of war is gone (a Delusion still blinds). The Leviathan can't lie on it.`);
-    L.push(P.tribe==="firm"?"The Sun doesn't judge you.":`Every 2d2 of your turns it judges you: 1 mana${by!=null?" to "+esc(G.p[by].name):" to the Bank"}, one damage to one of your stacks, or two deck cards; or you are blind for that turn.`);
+    L.push(P.tribe==="firm"?"The Sun doesn't judge you.":`Every 2d2 of your turns it judges you: 1d6 mana to the Bank, 1d2 damage to your stacks, or 1d2 + 1d3 deck cards; or you are blind for 1d3 turns.`);
     L.push(`It has cried ${G.sunTears||0} of 3 times; at three it becomes the Black Sun.`);
     L.push(P.oath==="earth"?"You have sworn the Oath of the Earth: no necromancy, and Sorcery dice prices roll twice for you and keep the lower.":"You can swear the Oath of the Earth (Astrology): no necromancy, cheaper Sorcery dice prices.")}
   if(k==="blacksun"){L.push("The Black Sun: the Second Sun cried three times and its flames went out. The fog of war is back.");if(G.blackBy!=null)L.push(`The Firmament that raised it pays ${esc(G.p[G.blackBy].name)} 1d2 mana or 1d2 deck cards every 1d2 of its turns.`);L.push("If it falls, it destroys the tile it lands on for good.")}
@@ -5323,7 +5325,7 @@ const SPELL_TEXT={
  deckcards:{n:"Your Tree of Neither Life Or Death on the field.",e:"Your deck is full again, as it was at the start of the game. The cards still in it go to the grave; your hand stays.",l:"Once a game."},
  // Astrology
  mars:{e:"Mars takes the moon's place. At the start of each turn, every stack of only Grunts and Infantry gets advantage on its next attack on 1–5 of 1d8.",l:"The moon's phases stop and your Miner on the moon is lost; a Leviathan on the moon moves onto Mars. Not while Saturn is up, and never once Mars has been eaten."},
- sun:{n:"Select your stack with a Joker.",e:"The Joker shoots itself (its souls go to your soul pile) and the Second Sun takes the moon's place. While it burns there is no fog of war. Every 2d2 turns it judges each other player: 1 mana to you, one damage to one of their stacks, or two deck cards; or they are blind for that turn.",l:"Delusions still blind. Other players can swear the Oath of the Earth. The Leviathan can't lie on it."},
+ sun:{n:"Select your stack with a Joker.",e:"The Joker shoots itself (its souls go to your soul pile) and the Second Sun takes the moon's place. While it burns there is no fog of war. Every 2d2 turns it judges each other player: 1d6 mana to the Bank, 1d2 damage to their stacks, or 1d2 + 1d3 deck cards; or they are blind for 1d3 turns.",l:"Delusions still blind. Other players can swear the Oath of the Earth. The Leviathan can't lie on it."},
  sunfall:{n:"The Second Sun or the Black Sun in the sky, and a stack selected.",e:"The Sun crashes onto the stack: two damage there, one on a 2 of 1d2 on every tile around it, and one on a 10 of 1d10 on the ring beyond, your own units included.",l:"A Black Sun destroys that tile and everything on it for good, and on a 6 of 1d6 every tile around it. The sky is empty afterwards."},
  venus:{e:"Venus takes the moon's place. Choose: you or a teammate get +2 mana a turn and +2 maximum, or you get +1 mana a turn while every enemy gets +2 maximum.",l:"The second choice isn't offered in Survival. Anyone can swear the Oath of Venus."},
  jupiter:{e:"Jupiter takes the moon's place. Miners in an Ace bring 1d2 a turn, two conjurings go on sale each round, hand cards can be traded at the Auction, and a Jester's Sacrificial Suicide brings 1d2 − 1 more.",l:"You may get a mana back when others buy on sale or trade. Anyone can swear the Oath of Jupiter."},
@@ -5411,7 +5413,7 @@ moonInfoHTML=function(){
 planetInfoHTML=function(k){
   const V=view(),P=G.p[V],L=[],by=planetBy(),oath=(id,txt)=>P.oath===id?`Your Oath: ${txt}`:`You can swear the ${SP("oath_"+id).name} (Astrology).`;
   if(k==="sun"){L.push(by!=null?`Raised by ${plN(by)}.`:"","No fog of war while it burns. Delusions still blind.","The Leviathan can't lie on it.");
-    L.push(P.tribe==="firm"?"It doesn't judge you.":`Every 2d2 of your turns it judges you: 1 mana${by!=null?" to "+plN(by):" to the Bank"}, one damage to one of your stacks, or two deck cards. Refuse and you are blind for that turn.`);
+    L.push(P.tribe==="firm"?"It doesn't judge you.":`Every 2d2 of your turns it judges you: 1d6 mana to the Bank, 1d2 damage to your stacks, or 1d2 + 1d3 deck cards. Refuse and you are blind for 1d3 turns.`);
     L.push(`It has cried ${G.sunTears||0} of 3 times. At three it becomes the Black Sun.`);
     if(P.tribe!=="firm")L.push(oath("sun","fire mana from sacrifices to the Sun and from its judgements; Scorched Earth and Blindness."));
     skyCommon(L);return skyBox("The Second Sun","",L,"sun")}
@@ -5471,7 +5473,7 @@ const SKY_ROWS=[
  ["moon","The Moon","The default sky.","Turns one phase a round. The New Moon gives 1d2 grave cards and makes Clairvoyance and Naked Hand cost 6. The Full Moon takes its toll, shuffles every deck and forbids drawing and necromancy. One Full Moon in twenty is a Blood Moon."],
  ["saturn","Saturn","Yaldabaoth, at seven hunger; or the sky from the start.","Every enemy pays 1 each turn (a hand card, the top deck card or 1 mana), or a Debt Collector rises. Binah never pays."],
  ["mars","Mars","The Firmament; or the sky from the start.","Each turn, stacks of only Grunts, Infantry or Puppets get advantage on their next attack on 1–5 of 1d8."],
- ["sun","The Second Sun","The Firmament, with a Joker that shoots itself; or the sky from the start.","No fog of war. Every 2d2 turns it judges each other player: 1 mana, a wound or two deck cards, or a blind turn. Three cries from Yaldabaoth make it the Black Sun."],
+ ["sun","The Second Sun","The Firmament, with a Joker that shoots itself; or the sky from the start.","No fog of war. Every 2d2 turns it judges each other player: 1d6 mana to the Bank, 1d2 damage to their stacks or 1d2 + 1d3 deck cards, or 1d3 blind turns. Three cries from Yaldabaoth make it the Black Sun."],
  ["venus","Venus","The Firmament; or the sky from the start.","+2 mana a turn and +2 maximum for the caster or a teammate, or +1 a turn while every enemy gets +2 maximum."],
  ["mercury","Mercury","The Firmament; or the sky from the start.","Votes for Peace or Total War, bought Peace, and under its Oath Betrayal, Declare War and Bribe the Banker."],
  ["jupiter","Jupiter","The Firmament; or the sky from the start.","Ace miners bring 1d2, two conjurings on sale each round, trades at the Auction."]];
@@ -10162,5 +10164,108 @@ document.addEventListener("keydown",e=>{const w=$("#cheatq");if(e.key==="Escape"
   ctx.grp=c.grp!=="normal"?c.grp:c.fLink?({wide:"small",deep:"big"}[c.formation]||"normal"):"normal";
   return ctx}}
 if(window.__EC)Object.assign(window.__EC,{faCtxW:(...a)=>faCtx(...a),faRunW:(...a)=>faRun(...a)});
+
+/* ---------------- v65 ----------------
+   - The Menu's sliders sit together in one compact block below the drop-downs: the name, ◀, the slider, ▶, the value. */
+
+/* ---------- the Menu: every slider in one block below the drop-downs, with arrows ---------- */
+function groupMenuSliders(){const m=$("#menu"),box=m&&m.querySelector(".ovbox");if(!box)return;
+  const sl=[...box.querySelectorAll("label.mslide")];if(!sl.length)return;   // a slider inside a fold (Large Map Controls) stays in its fold, with arrows
+  let g=box.querySelector(".mslides");if(!g){g=document.createElement("div");g.className="mslides";const first=box.querySelector(".mgrid");if(first)first.after(g);else box.appendChild(g)}
+  for(const l of sl){const r=l.querySelector("input[type=range]");if(!r)continue;
+    if(!l.querySelector(".mstep")){
+      const name=[...l.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join("").trim();
+      [...l.childNodes].filter(n=>n.nodeType===3).forEach(n=>n.remove());
+      l.insertAdjacentHTML("afterbegin",`<span class="mname">${esc(name)}</span>`);
+      const mk=(d,t,a)=>{const b=document.createElement("button");b.type="button";b.className="mstep";b.textContent=t;b.setAttribute("aria-label",`${name}: ${a}`);
+        b.onclick=e=>{e.preventDefault();if(r.disabled)return;const st=+r.step||1,v=Math.min(+r.max,Math.max(+r.min,+r.value+d*st));if(v===+r.value)return;r.value=v;
+          r.dispatchEvent(new Event("input",{bubbles:true}));r.dispatchEvent(new Event("change",{bubbles:true}))};return b};
+      r.before(mk(-1,"◀","less"));r.after(mk(1,"▶","more"))}
+    l.querySelectorAll(".mstep").forEach(b=>b.disabled=r.disabled);
+    if(!l.closest("details")&&l.parentNode!==g)g.appendChild(l)}}
+{const _om=openMenu;openMenu=function(){_om.apply(this,arguments);groupMenuSliders()}}
+
+/* ---------- cards in the players' colors, further apart: each color has its own card tone (U3). Crimson and Ember used to
+   come out the same muddy red-brown; now Crimson is a deep red and Ember a burnt orange. Light lettering reads on every one. */
+const CARD_TONE={"#ee7a3c":"#8f4a0e","#e3b944":"#6f5a0c","#45b89c":"#14604f","#4c92e6":"#1f4c8c","#a77de8":"#55348f","#e4648f":"#8a2457","#d7333b":"#7e0d16","#8fb33f":"#46661a","#74d7ea":"#16687a"};
+const toneOf=col=>CARD_TONE[String(col||"").toLowerCase()]||null;
+const addTone=h=>h.replace(/style="--pc:([^";]*)/,(m,col)=>{const t=toneOf(col);return t?`style="--pc:${col};--pcb:${t}`:m});
+{const _f=face;face=function(){return addTone(_f.apply(this,arguments))}}
+{const _sd=siegeDecor;siegeDecor=function(){const h=_sd.apply(this,arguments);return h.replace(/(<div class="stack[^"]*v61[^"]*") style="--pc:([^";]*)/,(m,a,col)=>{const t=toneOf(col);return t?`${a} style="--pc:${col};--pcb:${t}`:m})}}
+
+/* ---------- the opening: a clear line above the field says where the Ace goes (U2) ---------- */
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const b=$("#board");if(!b)return;
+  const host=b.closest(".camwrap,.boardwrap")||b;let h=$("#acehint");
+  const want=G.phase==="setup"&&G.setupStep==="ace"&&canAct()&&!G.p[G.active].cpu;
+  if(!want){if(h)h.remove();return}
+  const txt=hq()&&!G.p[G.active].opening.length?"Place your second base Ace: click any glowing tile on your backline.":"Place your Ace to start: click any glowing tile on your backline. It spawns your base, with a Jack inside.";
+  if(!h){h=document.createElement("p");h.id="acehint";h.setAttribute("role","status")}
+  if(h.textContent!==txt)h.textContent=txt;if(h.nextElementSibling!==host)host.before(h)}}
+
+/* ---------- Miners at work can't be captured (N1): a stack with a Miner on a crystal (a mining slot on the field) can't be
+   captured, nor can the cards with it. Miners in the Bank's plots and on the Moon are off the field; in an Ace they sit in a base. */
+const mining=(r,c)=>{const t=G.board[r]&&G.board[r][c];return !!(t&&crystalAt(r,c)&&t.cards.some(x=>x.unit==="miner"))};
+{const _ao=attackOptions;attackOptions=function(r,c){const out=_ao.apply(this,arguments);return Array.isArray(out)?out.filter(o=>!(o.mode==="capture"&&mining(o.r,o.c))):out}}
+if(INFO.miner&&!INFO.miner[2].some(([k])=>k==="At work"))INFO.miner[2].push(["At work","can't be captured while mining on a crystal, and neither can the cards with it"]);
+
+/* ---------- Lock in place (N2), only while Field Automation plays your field: the cards you lock stay where they are (the
+   rest of their stack can still go). From the Selected box, or the free spell Lock in Place (shown only while Field
+   Automation is on). Not on bases, pinned or stunned stacks, or cards already locked. A faint lock shows on the card; click
+   the stack and a window offers to unlock it. ---------- */
+const LOCK_SVG=`<svg viewBox="0 0 16 18" aria-hidden="true"><rect x="2.5" y="8" width="11" height="8.5" rx="1.6" fill="currentColor" fill-opacity=".35" stroke="currentColor" stroke-width="1.4"/><path d="M5,8V5.6a3,3 0 0 1 6,0V8" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`;
+const lockable=(c,st)=>!!c&&!!st&&!isBase(c)&&!st.pin&&!st.stun&&!c.faLock;
+const lockIds=st=>{const s=G.sel,pick=s&&s.pick&&s.pick.size?s.pick:null;return st.cards.filter(x=>(!pick||pick.has(x.id))&&lockable(x,st)).map(x=>x.id)};
+function setFaLock(pl,r,c,ids,on){const st=G.board[r]&&G.board[r][c];if(!st||st.owner!==pl||!Array.isArray(ids))return false;let n=0;
+  for(const x of st.cards)if(ids.includes(x.id)){if(on&&lockable(x,st)){x.faLock=true;n++}else if(!on&&x.faLock){delete x.faLock;n++}}
+  if(n)log(on?`${plName(pl)} locks ${n} card${n>1?"s":""} in place on ${coord(r,c)}: Field Automation won't move ${n>1?"them":"it"}.`:`${plName(pl)} unlocks ${n} card${n>1?"s":""} on ${coord(r,c)}: Field Automation may move ${n>1?"them":"it"} again.`);
+  render();return n>0}
+for(const [name,get,set] of [["setFaLock",()=>setFaLock,f=>setFaLock=f]]){
+  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+/* the free spell, shown only while Field Automation is on */
+SPELLS.push({id:"falock",name:"Lock in Place",cost:0,school:"Enchantment",
+  text:"Field Automation only. Select your stack (and check the cards, or leave all): they stay where they are; Field Automation won't move them. Not on bases, pinned or stunned stacks, or cards already locked.",
+  ok:()=>{const st=selStack();return faOn(G.active)&&!!st&&st.owner===G.active&&lockIds(st).length>0},
+  run:()=>{const st=selStack();if(st)setFaLock(G.active,G.sel.r,G.sel.c,lockIds(st),true)}});
+SPELL_TEXT.falock={n:"Field Automation only. Free.",e:"The cards you select stay where they are: Field Automation won't move them.",l:"Not on bases, pinned or stunned stacks, or cards already locked. Click the stack to unlock."};
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;if(!faOn(view()))document.querySelectorAll('[data-s="falock"]').forEach(b=>b.remove())}}
+/* the Selected box: lock or unlock */
+{const _rs=renderSel;renderSel=function(live){_rs.apply(this,arguments);if(!G||!G.sel)return;const V=view(),st=selStack(),box=$("#selbox");
+  if(!box||!st||st.owner!==V||!faOn(V)||isNPC(V)||showsBack(V,G.sel.r,G.sel.c))return;
+  const ids=lockIds(st),locked=st.cards.filter(x=>x.faLock).map(x=>x.id);if(!ids.length&&!locked.length)return;
+  const {r,c}=G.sel;
+  box.insertAdjacentHTML("beforeend",`<p class="falockrow"><span class="dim">Field Automation:</span>${ids.length?` <button type="button" class="btn sm ghost" id="faLockB"><i class="flockico">${LOCK_SVG}</i> Lock in place${ids.length<st.cards.length?` (${ids.length})`:""}</button>`:""}${locked.length?` <button type="button" class="btn sm ghost" id="faUnlockB">Unlock movement (${locked.length})</button>`:""}</p>`);
+  if($("#faLockB"))$("#faLockB").onclick=()=>setFaLock(V,r,c,ids,true);
+  if($("#faUnlockB"))$("#faUnlockB").onclick=()=>setFaLock(V,r,c,locked,false)}}
+/* the faint lock on the card (for its own player) */
+const showLock=c=>!!(c&&c.faLock&&G&&c.owner!=null&&c.owner===view()&&faOn(c.owner));
+{const _f=face;face=function(c){const h=_f.apply(this,arguments);return showLock(c)?h.replace(/<\/span>$/,`<span class="flock" title="Locked in place">${LOCK_SVG}</span></span>`):h}}
+{const _sd=siegeDecor;siegeDecor=function(inner,st,V,r,c){const h=_sd.apply(this,arguments);if(!st||st.owner!==V||!faOn(st.owner)||!st.cards.some(x=>x.faLock))return h;
+  return h.replace(/(<div class="stack[^>]*>)/,`$1<span class="flock" title="Locked in place: Field Automation won't move ${st.cards.every(x=>x.faLock||isBase(x))?"this stack":"the locked cards"}">${LOCK_SVG}</span>`)}}
+/* click a locked stack of yours: a window offers to unlock it */
+document.addEventListener("click",e=>{if(!G||G.over)return;const t=e.target.closest&&e.target.closest("#board .tile");if(!t)return;
+  const r=+t.dataset.r,c=+t.dataset.c,V=view(),st=G.board[r]&&G.board[r][c];
+  if(!st||st.owner!==V||!faOn(V)||!st.cards.some(x=>x.faLock))return;
+  setTimeout(()=>{let w=$("#lockq");if(!w){w=document.createElement("div");w.id="lockq";w.className="faov";document.body.appendChild(w)}
+    const ids=st.cards.filter(x=>x.faLock).map(x=>x.id);
+    w.innerHTML=`<div class="ovbox lockbox" role="dialog" aria-labelledby="lockqh"><button type="button" class="xclose" id="lockqX" aria-label="Keep it locked">×</button><h2 id="lockqh">Unlock movement?</h2>
+<p>${ids.length>1?`${ids.length} cards here are`:"A card here is"} locked in place: Field Automation won't move ${ids.length>1?"them":"it"}.</p>
+<p class="acts"><button type="button" class="btn" id="lockqY">Yes, unlock</button> <button type="button" class="btn ghost" id="lockqN">Keep it locked</button></p></div>`;w.hidden=false;
+    const close=()=>{w.hidden=true};$("#lockqY").onclick=()=>{close();setFaLock(V,r,c,ids,false)};$("#lockqN").onclick=close;$("#lockqX").onclick=close;w.onclick=ev=>{if(ev.target===w)close()};$("#lockqY").focus()},0)},true);
+if(window.__EC)Object.assign(window.__EC,{setFaLock:(...a)=>setFaLock(...a),attackOptionsW:(...a)=>attackOptions(...a),faceW:(...a)=>face(...a)});
+
+/* ---------- blind: Field Automation and Lazy Hand pause (N3). While a player is blinded (the second Sun, an eclipse and the
+   like) their field isn't played for them and Lazy Hand places nothing; both stay on and carry on once they can see. ---------- */
+const blindPause=pl=>typeof totalBlind==="function"&&totalBlind(pl);
+function notePause(pl,what){const k=what+"|"+G.turnNo;G._blindNote=G._blindNote||{};if(G._blindNote[pl]===k)return;G._blindNote[pl]=k;
+  log(`${what} pauses while ${plName(pl)} is blind; it carries on when they can see again.`,"event")}
+{const _fr=faRun;faRun=async function(pl){if(G&&faOn(pl)&&blindPause(pl)){notePause(pl,"Field Automation");return}return _fr.apply(this,arguments)}}
+{const _lp=lhAutoPlace;lhAutoPlace=async function(pl){if(G&&blindPause(pl)){const c=G.p[pl].lhCfg;if(c&&c.autoPlace)notePause(pl,"Lazy Hand");return}return _lp.apply(this,arguments)}}
+{const _ls=lhAutoSac;lhAutoSac=async function(pl){if(G&&blindPause(pl))return;return _ls.apply(this,arguments)}}
+{const _l=lazyPlace;lazyPlace=function(card){if(G&&blindPause(G.active)){G.selHand=card;G.mode=null;flash("Lazy Hand pauses while you are blind: place this card yourself.");render();return false}return _l.apply(this,arguments)}}
+/* the buttons say so */
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view();if(V==null||!blindPause(V))return;
+  const t=document.querySelector(".fabar .fatog");if(t&&faOn(V)&&!t.dataset.blind){t.dataset.blind="1";t.textContent="Auto field: paused (blind)";t.title="Field Automation pauses while you are blind; it carries on when you can see again."}
+  const l=$("#lazyBtn");if(l&&!l.classList.contains("blindpause")){l.classList.add("blindpause");l.setAttribute("data-tip","Lazy Hand pauses while you are blind.")}}}
+if(window.__EC)Object.assign(window.__EC,{skyAsyncW:(...a)=>skyAsync(...a),totalBlindW:V=>totalBlind(V),faRunW2:(...a)=>faRun(...a),lhAutoPlaceW:(...a)=>lhAutoPlace(...a)});
 
 })();
