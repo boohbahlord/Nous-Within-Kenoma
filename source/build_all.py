@@ -2,7 +2,7 @@
 import json, html, os, re, shutil
 
 OUT = 'site'
-SITE_V = '49'   # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+SITE_V = '50'   # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 os.makedirs(OUT, exist_ok=True)
 shutil.copy('theme/site.js', f'{OUT}/site.js')
 shutil.copy('theme/ec-music.js', f'{OUT}/ec-music.js')
@@ -187,7 +187,7 @@ def fig(f):
     sub = f'<span><a href="{fname(ch)}">Chapter {ch} · {esc(TITLE[ch])}</a></span>' if ch else ('<span>Front page</span>' if f == 'art-01.jpg' else '')
     return (f'<figure id="{anchor(f)}"><a href="{f}"><img src="{f}" alt="{esc(lab)}, artwork by Bryce Staton" loading="lazy"></a>'
             f'<figcaption>{esc(lab)}{sub}</figcaption></figure>')
-sep = '<span class="sep">·</span>'
+sep = '<span class="sep">·</span> '   # the space lets a long row wrap after a dot instead of running out of its box
 art = head('Additional Art · Nous Within Kenoma') + f'''<main class="wide">
 <nav class="crumbs"><a href="index.html">← Nous Within Kenoma</a></nav>
 <header><span class="num">Nous Within Kenoma</span><h1>Additional Art</h1></header>

@@ -83,19 +83,20 @@ a.card>*{position:relative}
 .bar,a.card>i.bar{position:absolute;background:#000;pointer-events:none;z-index:1}
 /* psychonaut-wiki style index tables */
 .ix{border:1px solid var(--rule);background:var(--deep);margin:0 0 22px;position:relative;overflow:hidden}
-.ix>h2{margin:0;padding:8px 14px;font-size:15px;letter-spacing:.2em;text-transform:uppercase;color:var(--amber-hi);background:var(--well);border-bottom:1px solid #000;text-align:center}
+.ix>h2{margin:0;padding:6px 12px;font-size:15px;letter-spacing:.2em;text-transform:uppercase;color:var(--amber-hi);background:var(--well);border-bottom:1px solid #000;text-align:center}
 .ix table{width:100%;border-collapse:collapse;position:relative}
-.ix th,.ix td{padding:9px 14px;border-top:1px solid #000;vertical-align:top;text-align:left;font-weight:200}
+.ix th,.ix td{padding:6px 12px;border-top:1px solid #000;vertical-align:top;text-align:left;font-weight:200}
 .ix tr:first-child th,.ix tr:first-child td{border-top:0}
-.ix th{width:15em;color:var(--dim);font-size:14px;letter-spacing:.04em;background:#00000022;border-right:1px solid #000}
-.ix td{font-size:15px;line-height:1.8}
+.ix th{width:13em;color:var(--dim);font-size:14px;line-height:1.45;letter-spacing:.04em;background:#00000022;border-right:1px solid #000}
+.ix td{font-size:15px;line-height:1.65;overflow-wrap:anywhere}
 .ix td a{border:0;white-space:nowrap}
-.ix td .sep{color:var(--rule);margin:0 .45em}
-@media (max-width:640px){.ix th{width:auto;display:block;border-right:0;padding-bottom:2px}.ix td{display:block;border-top:0;padding-top:2px}}
-.boxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
-.boxes .ix{margin:0}
-.boxes .ix ul{list-style:none;margin:0;padding:8px 14px 12px;position:relative}
-.boxes .ix li{padding:3px 0;border-bottom:1px solid #00000066;font-size:15px}
+.ix td .sep{color:var(--rule);margin:0 .1em 0 .45em}
+@media (max-width:640px){.ix th{width:auto;display:block;border-right:0;padding-bottom:2px}.ix td{display:block;border-top:0;padding-top:2px}.ix td a{display:inline-block;white-space:normal;max-width:100%}}
+/* the character boxes pack into columns (each box only as tall as its list), so no box stands half empty */
+.boxes{columns:250px;column-gap:14px}
+.boxes .ix{margin:0 0 14px;break-inside:avoid;display:inline-block;width:100%;vertical-align:top}
+.boxes .ix ul{list-style:none;margin:0;padding:4px 12px 6px;position:relative}
+.boxes .ix li{padding:2px 0;border-bottom:1px solid #00000066;font-size:15px}
 .boxes .ix li:last-child{border-bottom:0}
 .boxes .ix li a{border:0}
 /* codex entries */
