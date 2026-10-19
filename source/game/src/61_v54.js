@@ -23,11 +23,17 @@ const TGROUP_NAMES={wildcard:"Wildcards",special:"Special",base:"Base",standard:
 /* ---------- Grave automation: the settings ---------- */
 const GR_GROUPS=["special","base","standard","support","wildcard"];
 const GR_DEF={on:false,kinds:[],extra:[],minus:[],rank:true,group:true,gorder:[...GR_GROUPS],korder:[],strong:true,askNone:true};
-const grKeys=()=>{const k=lhKeyList().map(x=>x[0]),r=["JK","A","K","Q","J","10","9","8","7","6","5","4","3","2"];return [...r.filter(x=>k.includes(x)),...k.filter(x=>!r.includes(x))]};   // strongest first
+/* v60: only cards that can lie in the grave (the cards of the deck and the Ether's own; never Substance cards like Samson or
+   the Debt Collector); in the ranking, every Grunt (2 to 6) is one entry and every Infantry (7 to 10) another, the higher number
+   taken first within them */
+const grGraveable=k=>k==="puppet"||!UNIT[k]||!!UNIT[k].ether||k==="slave";
+const grFold=k=>/^\d+$/.test(k)?(+k<=6?"grunt":"infantry"):k;
+const grChipKeys=()=>lhKeyList().filter(([k])=>grGraveable(k));
+const grKeys=()=>{const k=grChipKeys().map(x=>x[0]),r=["JK","A","K","Q","J","infantry","grunt"];return [...r,...k.filter(x=>!/^\d+$/.test(x)&&!r.includes(x))]};   // strongest first
 function grClean(c){c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringify(GR_DEF)),cats=new Set(RD_KINDS.map(x=>x[0])),keys=grKeys();
   for(const k of ["on","rank","group","strong","askNone"])if(typeof c[k]==="boolean")o[k]=c[k];
   if(Array.isArray(c.kinds))o.kinds=c.kinds.filter(k=>cats.has(k));
-  for(const k of ["extra","minus"])if(Array.isArray(c[k]))o[k]=c[k].filter(x=>keys.includes(x));o.minus=o.minus.filter(x=>!o.extra.includes(x));
+  const chips=grChipKeys().map(x=>x[0]);for(const k of ["extra","minus"])if(Array.isArray(c[k]))o[k]=c[k].filter(x=>chips.includes(x));o.minus=o.minus.filter(x=>!o.extra.includes(x));
   if(Array.isArray(c.gorder))o.gorder=[...c.gorder.filter(k=>GR_GROUPS.includes(k)),...GR_GROUPS.filter(k=>!c.gorder.includes(k))];
   o.korder=[...(Array.isArray(c.korder)?c.korder.filter(k=>keys.includes(k)):[]),...keys.filter(k=>!(c.korder||[]).includes(k))];
   return o}
@@ -42,9 +48,9 @@ function grSave(c){PREF.gr=grClean(c);savePrefs();autoSync();paintFA();if(G)rend
 
 /* ---------- Grave automation: the choice ---------- */
 function grWants(c,cfg){const k=cardKey(c);if(cfg.minus.includes(k))return false;if(cfg.extra.includes(k))return true;return !cfg.kinds.length&&!cfg.extra.length||cfg.kinds.includes(cardCat(c))}
-function grRank(c,cfg){return !cfg.rank?0:cfg.group?cfg.gorder.indexOf(cardCat(c)):cfg.korder.indexOf(cardKey(c))}
-function grPick(cards,cfg){let best=-1,bv=null;cards.forEach((c,i)=>{if(!grWants(c,cfg))return;const v=[grRank(c,cfg),cfg.strong?-(soulOf(c)*10+(costOf(c)||0)):0];
-  if(!bv||v[0]<bv[0]||v[0]===bv[0]&&v[1]<bv[1]){bv=v;best=i}});return best}
+function grRank(c,cfg){return !cfg.rank?0:cfg.group?cfg.gorder.indexOf(cardCat(c)):cfg.korder.indexOf(grFold(cardKey(c)))}
+function grPick(cards,cfg){let best=-1,bv=null;cards.forEach((c,i)=>{if(!grWants(c,cfg))return;const v=[grRank(c,cfg),cfg.strong?-(soulOf(c)*10+(costOf(c)||0)):0,c.unit?0:-(num(c)||0)];   // then the higher number
+  if(!bv||v[0]<bv[0]||v[0]===bv[0]&&(v[1]<bv[1]||v[1]===bv[1]&&v[2]<bv[2])){bv=v;best=i}});return best}
 {const _ask=ask;ask=async function(pl,spec){const P=G&&G.p[pl],cfg=P&&!P.cpu&&P.grCfg;
   if(spec&&spec.id==="grave"&&cfg&&cfg.on&&Array.isArray(spec.cards)){const i=grPick(spec.cards,cfg);
     if(i>=0){await sleep(250);return i}
@@ -58,9 +64,9 @@ AUTO_TABS.push(["grave","Grave"]);
   return `<p class="fafull automaster"><button type="button" class="btn sm ${on?"":"ghost"}" data-amaster="grave" aria-pressed="${on}">Grave automation: ${on?"On":"Off"}</button><span class="dim">Picks the cards raised from the grave, as set below.</span></p>`}}
 {const _ab=autoBodyHTML;autoBodyHTML=function(pfx,under){if(autoTab!=="grave")return _ab.apply(this,arguments);return autoMasterHTML()+grPanelHTML(grMine(),pfx)}}
 function grPanelHTML(c,pfx){const K=cfgKit("data-gr","data-gract","gr"+pfx),{row,sec}=K,off=!c.on;
-  const names=Object.fromEntries([...RD_KINDS.map(([k,t])=>[k,t]),...lhKeyList()]);
+  const names=Object.fromEntries([...RD_KINDS.map(([k,t])=>[k,t]),...lhKeyList(),["grunt","Grunts (2 to 6)"],["infantry","Infantry (7 to 10)"]]);
   let h=`<p class="dim fafull">Grave Blessing, the New Moon and every other raising from the grave: it picks the cards for you, best first, until the hand is full or the raising is done.</p>`;
-  h+=sec("Which cards",K.chips(RD_KINDS,c.kinds,"data-grkind",off)+`<p class="dim">None ticked: any card.</p><details class="faextra"><summary>Yes, and… (single kinds: + always taken, − never taken)</summary>${K.pmChips(lhKeyList(),c.extra,c.minus,"data-grpm",off)}</details>`,"fafull");
+  h+=sec("Which cards",K.chips(RD_KINDS,c.kinds,"data-grkind",off)+`<p class="dim">None ticked: any card.</p><details class="faextra"><summary>Yes, and… (single kinds: + always taken, − never taken)</summary>${K.pmChips(grChipKeys(),c.extra,c.minus,"data-grpm",off)}</details>`,"fafull");
   /* v59: the ranking folds like the Field's: ▸ closed is off (only "the strongest first" decides), ▾ open is on */
   h+=sec("In what order",`<details class="faextra fadet" data-grdet="rank" ${c.rank?"open":""}><summary>Rank the kinds of card <small class="dim">(${c.rank?"on":"off: the strongest first decides"})</small></summary>`+
     row("group",c.group,"Rank by kinds of card","On: Special, Base, Standard and so on. Off: every single kind, like the King.",off)+

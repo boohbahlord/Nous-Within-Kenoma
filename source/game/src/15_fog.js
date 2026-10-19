@@ -5,6 +5,7 @@
    stay hidden unless one of your cards stands right next to them; your Scouts also uncover Assassins, ambushers and
    face-down cards within a round two tiles, and enemy Scouts within three. Bird's Eye lifts the fog for your side for a
    round. Quiet Eyes, cast by an enemy, hides everything not right beside you unless you have a Scout on the field.
+   (v60: Quiet Eyes is now one turn of near-blindness for each enemy, Scouts or not: see 65_v60.js.)
    A Delusion overrides all of this with its own rule, and Scouts can't help against it. */
 const fogOn=()=>G.opts.fog!==false&&G.moon.gone!=="sun";   // the Second Sun burns the fog away
 const sideOf=V=>[V,...alliesOf(V)];

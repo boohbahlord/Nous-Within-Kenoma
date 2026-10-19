@@ -29,7 +29,7 @@ function setStatus(k){if(NET.status===k)return;NET.status=k;lobbySend()}
 {const _lr=lobbyRoster;lobbyRoster=function(){_lr();const e=$("#onRoster");
   if(e&&(NET.role==="lobby-host"||NET.role==="host")){const rows=guestIds().map(id=>{const g=NET.guests[id],p=g.pick;const L=p?pickLook(p):null;
       return `<li>${L?solidSVG(L.solid,L.color,16):""} <b>${esc(g.name)}</b>${p?` <span class="dim">· ${esc(TRIBES[p.tribe].name)}</span>`:` <span class="dim">· choosing…</span>`}</li>`}).join("");
-    e.innerHTML=`<b>In the room</b><ul class="lroster"><li><b>${esc(NET.name)}</b> <span class="dim">· you, the host</span></li>${rows}</ul>${guestIds().length?"":'<span class="dim">Share the code and wait for the others to join.</span>'}`}
+    e.innerHTML=`<b>In the room</b><ul class="lroster"><li><b>${esc(NET.name)}</b> <b class="youtag">You</b> <span class="dim">· the host</span></li>${rows}</ul>${guestIds().length?"":'<span class="dim">Share the code and wait for the others to join.</span>'}`}
   lobbySend()}}
 /* a seat given to a joined player takes their name, Substance, color and symbol */
 {const _sf=seatForm;seatForm=function(i,S,mode,L,taken){
@@ -63,7 +63,7 @@ function paintGuestLobby(){const L=NET.lobby,m=$("#onMsg"),r=$("#gRoster");if(!m
   if(!L){m.textContent=NET.hostName?`Connected to ${NET.hostName}'s room.`:"Connecting…";r.innerHTML="";return}
   m.textContent=LOBBY_STATUS[L.status]||LOBBY_STATUS.room;
   r.innerHTML=`<ul class="lroster">${L.roster.map(x=>{const p=x.id===L.you?netPickOf():x.pick;const look=p?pickLook(p):null;
-    return `<li>${look?solidSVG(look.solid,look.color,18):""} <b>${esc(x.id===L.you?netPickOf().name:x.name)}</b>${x.host?' <span class="dim">· the host</span>':""}${x.id===L.you?' <span class="dim">· you</span>':""}${p?` <span class="dim">· ${esc(TRIBES[p.tribe].name)}</span>`:x.host?"":' <span class="dim">· choosing…</span>'}${x.seat>=0?` <span class="seatag">P${x.seat+1}</span>`:x.host?"":' <span class="dim">· no seat yet</span>'}</li>`}).join("")}</ul>
+    return `<li>${look?solidSVG(look.solid,look.color,18):""} <b>${esc(x.id===L.you?netPickOf().name:x.name)}</b>${x.host?' <span class="dim">· the host</span>':""}${x.id===L.you?' <b class="youtag">You</b>':""}${p?` <span class="dim">· ${esc(TRIBES[p.tribe].name)}</span>`:x.host?"":' <span class="dim">· choosing…</span>'}${x.seat>=0?` <span class="seatag">P${x.seat+1}</span>`:x.host?"":' <span class="dim">· no seat yet</span>'}</li>`}).join("")}</ul>
 <p class="dim">The host gives each player a seat. Your choices in "Your player" fill your seat; your Display settings are your own.</p>`}
 /* Substances other seats hold (the Beginner can be shared) */
 const takenByOthers=()=>{const L=NET.lobby;if(!L)return new Set();const me="net:"+L.you,s=new Set();

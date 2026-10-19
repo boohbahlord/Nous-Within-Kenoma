@@ -1666,3 +1666,28 @@ html.th-office #foe.minis .pbox.sub{background:color-mix(in srgb,var(--pc) 10%,#
 #board.large .stack .odds,#board.large .stack .hypo,#board.large .stack .souls,#board.large .stack .used{font-size:min(calc(11px * var(--ci,1)),13cqw)}
 @container (max-width:54px){#board.large .stack>:not(.lead){display:none!important}#board.large .stack .lead{margin:auto}}
 #critfx{scale:var(--fxs,1)}
+/* v59: the Debt Collector's and the Banker's $ in the red of the game's title lettering */
+.mk.dollar{color:#d33a46!important}
+/* v60: rankings of kinds of card are dragged into place */
+.dragrow{cursor:grab;user-select:none}.dragrow .grip{color:var(--dim);font-size:11px;letter-spacing:-2px;margin-right:4px;touch-action:none;cursor:grab;opacity:.7}
+.dragon .dragrow{transition:transform .1s}.dragrow.dragging{opacity:.55;outline:1px dashed var(--amber);cursor:grabbing}
+.dragon{cursor:grabbing}
+/* v60: each spell faintly in its school's color (the color of its animations) */
+.spell.schooled{background:color-mix(in srgb,var(--sc) 17%,var(--well));border-color:color-mix(in srgb,var(--sc) 62%,var(--rule))}
+.spell.schooled:not(.off):hover{background:color-mix(in srgb,var(--sc) 28%,var(--well))}
+/* v60: in the Configure Automation summary, the statuses are smaller than the title, so the two read apart */
+summary .fasum{font-size:.72em;letter-spacing:.05em;vertical-align:1px}
+/* v60: the dice box folds, below the Grave / Ether row */
+.dicefold{margin:2px 0 8px}.dicefold>summary{cursor:pointer;color:var(--amber);font-size:12.5px;letter-spacing:.08em;margin-bottom:4px}
+.dicefold #mytray{margin:0}
+/* v60: the player setup: each seat's Substance, color and symbol fold closed (a summary shows the choice), "You" is a tag in
+   your color, and the seats sit closer */
+.ovbox.setup #seats{grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:0 12px}
+.youtag{background:var(--pc,var(--amber));color:#120c08;font-weight:600;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;padding:2px 9px;border-radius:3px;box-shadow:0 0 10px color-mix(in srgb,var(--pc) 55%,transparent)}
+.seat.isyou{border-color:color-mix(in srgb,var(--pc) 70%,var(--rule));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--pc) 35%,transparent)}
+.seat .lsum{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}
+.seat .lsw{display:inline-block;width:11px;height:11px;border-radius:50%;border:1px solid #0008;vertical-align:-1px}.seat .lsw.rnd{background:var(--well);font:600 8px/9px var(--mono);text-align:center;color:var(--dim);font-style:normal}
+.seat .lso{line-height:0;display:inline-flex}
+.ovbox.setup .seat details.look summary{margin:4px 0}
+.ovbox.setup .seat .opts.subs .opt{min-height:32px;padding:4px 26px 4px 8px;font-size:13px}
+.ovbox.setup .seat .opts.subs{gap:4px;grid-template-columns:repeat(auto-fill,minmax(min(100%,132px),1fr))}
