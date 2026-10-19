@@ -1098,8 +1098,8 @@ async function pickFoe(id,title){const es=enemiesOf(G.active).filter(pl=>!isHord
 const selOwnJoker=()=>selOwn()&&hasK(selStack(),"joker");
 const SCHOOLS=["Conjuring","Necromancy","Enchantment","Curse","Sorcery","Illusion"];   // v43: Conjuring (and the Ether) first
 const SPELLS=[
- {id:"ritual",name:"Ritual Dice",cost:1,school:"Necromancy",text:"+2d6 to this turn's Grave Blessing.",ok:()=>!G.blessed&&G.ritual===0&&blessCap(G.active)>0,run:async()=>{G.ritual=2;log("Ritual Dice: two more dice for the Grave Blessing.")}},
- {id:"bless",name:"Grave Blessing",cost:0,school:"Necromancy",text:"Free, once a turn, before any other mana is spent. Roll 1d6, +1d6 per Ace you have on the field, +2d6 from Ritual Dice, 6 dice at most. Each natural 6 raises a card from the grave. Every card you overdrew to the grave takes 1d6 off the maximum.",ok:()=>!G.blessed&&!G.spentOther&&G.grave.length>0&&blessCap(G.active)>0,run:blessing},
+ {id:"ritual",name:"Ritual Dice",cost:1,school:"Necromancy",text:"+3d6 to this turn's Grave Blessing for each one bought.",ok:()=>{const b=SP("bless");return !!b&&b.ok()&&!spellBlock(b)},run:async()=>{G.ritual=(G.ritual||0)+1;log(`Ritual Dice: three more dice for the Grave Blessing (${3*G.ritual} from Ritual Dice this turn).`)}},
+ {id:"bless",name:"Grave Blessing",cost:0,school:"Necromancy",text:"Free, once a turn, before any other mana is spent. Roll 1d6, +1d6 per Ace you have on the field (6 dice at most), +3d6 for each Ritual Dice bought this turn. Each natural 6 raises a card from the grave. Every card you overdrew to the grave takes 1d6 off the first six.",ok:()=>!G.blessed&&!G.spentOther&&G.grave.length>0&&blessCap(G.active)>0,run:blessing},
  {id:"suicide",name:"Sacrificial Suicide",cost:0,school:"Necromancy",text:"Select your stack with a Joker. The Joker dies and the souls it captured go to your soul pile (6 mana at most; the surplus goes to the grave). Under a Blood Moon, the Joker and all its souls go to the Outer Darkness instead.",ok:()=>!G.spent&&selOwnJoker(),run:suicideSpell},
  {id:"sever",name:"Flesh Severance",cost:0,school:"Necromancy",text:"Arm for this turn: an enemy killed next to your Joker is exiled to the Ether for its conjuring cost instead of being captured.",ok:()=>true,run:async()=>{me().sevArmed=!me().sevArmed;log(`Flesh Severance ${me().sevArmed?"armed":"disarmed"}.`)}},
  {id:"resur",dice:"1d2+1",name:"Resurrection",cost:6,school:"Necromancy",text:"Choose one card from the grave and bring it back into your hand.",ok:()=>G.grave.length>0&&me().hand.length<handCap(G.active),run:async()=>{await pickGrave(G.active,1,"Resurrection")}},
@@ -1176,8 +1176,8 @@ async function conjure(k){
 }
 async function blessing(){
   const pl=G.active,aces=stacksOf(pl).filter(x=>hasK(x.st,"ace")).length;
-  const want=Math.min(6,1+aces+G.ritual),cap=blessCap(pl),n=Math.min(want,cap);
-  const why=`1${aces?` + ${aces} for Ace${aces>1?"s":""} on the field`:""}${G.ritual?` + ${G.ritual} from Ritual Dice`:""}${1+aces+G.ritual>6?", 6 at most":""}${cap<want?`, cut to ${cap} by overdrawing`:""}`;
+  const want=Math.min(6,1+aces),cap=blessCap(pl),rit=3*(G.ritual||0),n=Math.min(want,cap)+rit;   // v47: Ritual Dice adds 3d6 a purchase, past the six-dice cap and the overdraw cut
+  const why=`1${aces?` + ${aces} for Ace${aces>1?"s":""} on the field`:""}${1+aces>6?", 6 at most":""}${cap<want?`, cut to ${cap} by overdrawing`:""}${rit?`, + ${rit} from Ritual Dice`:""}`;
   const d=rollN(n,6),six=d.filter(x=>x.v===6).length;G.blessed=true;
   tray(pl,"Grave Blessing",d,`${six} six${six===1?"":"es"}`);
   log(`Grave Blessing: ${n}d6 (${why}) → ${d.map(x=>x.v).join(", ")}. ${six?six+" card"+(six>1?"s":"")+" may rise.":"Nothing rises."}`);
@@ -1411,6 +1411,11 @@ const AI=(()=>{
       if(!stackLegal(grp)){ // too many to leave together (a full Ace): send out the strongest group that can stand on its own
         const g2=[];for(const c of [...grp].sort((a,b)=>rate(b)-rate(a)))if(stackLegal([...g2,c]))g2.push(c);grp=g2;if(!grp.length)continue}
       const inAce=hasBase(st);const S={cards:grp,owner:pl,hypo:st.hypo};
+      if(FAX&&FAX.flee&&!inAce&&(st.peak||0)>=2&&grp.length<=Math.floor(st.peak/2)){   // v47: Flee when low: pull back, toward friends
+        const W2={atk:0,def:2.2,dist:-.5,ally:.6},tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets),stay=tileScore(pl,S,o.r,o.c,W2,false);let best=null;
+        for(const [r,c] of tg){if(G.board[r][c])continue;const sc=tileScore(pl,S,r,c,W2,false)*jit(pl);if(!best||sc>best.s)best={r,c,s:sc}}
+        if(best&&best.s>stay+.15){G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step()}
+        continue}
       if(FAX&&isSupport(grp)){const tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets),stay=supportScore(pl,S,o.r,o.c,W,st);let best=null;
         for(const [r,c] of tg){const sc=supportScore(pl,S,r,c,W,st)*jit(pl);if(!best||sc>best.s)best={r,c,s:sc}}
         if(best&&best.s>stay+.2){G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step()}
@@ -1618,6 +1623,7 @@ const AI=(()=>{
   }
   /* Field Automation: the field of a person, with their settings in ctx (built in 42_fieldauto.js) */
   async function field(pl,ph,ctx){FAX=Object.assign({pl},ctx);cache.clear();pcache.clear();
+    for(const {st} of stacksOf(pl))st.peak=Math.max(st.peak||0,st.cards.filter(c=>!isBase(c)).length);   // how big each stack has been, for Flee when low
     try{
       if(ph==="prep"){if(ctx.moves)await moves(pl,ctx.W);
         if(ctx.ambushP>0)for(const {st,r,c} of stacksOf(pl)){if(!canAmbush(st)||st.ambush||st.moved||st.attacked||!ctx.ok(st.cards.filter(x=>!isBase(x))))continue;
@@ -3532,6 +3538,7 @@ ${sel("mCtl","Turn buttons",[["bottom","Under the field"],["top","At the top"]],
 ${sel("mCoord","Tile names",[["0","Off"],["1","On"]],PREF.coords?"1":"0")}
 ${sel("mFull","Page width",[["0","Standard"],["1","Full width"]],PREF.full?"1":"0")}
 ${sel("mLines","Background lines",[["1","On"],["0","Off"]],PREF.lines===false?"0":"1")}
+${sel("mSpellBL","Spell names",[["1","Old English (default)"],["0","Plain"]],PREF.spellBL===false?"0":"1")}
 ${sel("mAnimC","Card animations",[["1","On"],["0","Off"]],PREF.fxCards===false?"0":"1")}
 ${sel("mAnimM","Magic animations",[["1","On"],["0","Off"]],PREF.fxMagic===false?"0":"1")}
 ${sel("mSpeed","Computer speed",[["slow","Slow"],["normal","Normal"],["fast","Fast"]],G.opts.cpuSpeed||"normal")}
@@ -3545,7 +3552,7 @@ ${+G.opts.timer?`<p><button class="btn ghost" id="mTimer">Turn the phase timer o
   const upd=()=>{savePrefs();applyPrefs();render()};
   $("#mTheme").onchange=e=>{PREF.theme=e.target.value;upd()};$("#mHand").onchange=e=>{PREF.hand=e.target.value;upd()};
   $("#mSel").onchange=e=>{PREF.sel=e.target.value;upd()};$("#mCtl").onchange=e=>{PREF.ctl=e.target.value;upd()};
-  $("#mCoord").onchange=e=>{PREF.coords=e.target.value==="1";upd()};$("#mLines").onchange=e=>{PREF.lines=e.target.value==="1";upd()};$("#mAnimC").onchange=e=>{PREF.fxCards=e.target.value==="1";upd()};$("#mAnimM").onchange=e=>{PREF.fxMagic=e.target.value==="1";upd()};$("#mFull").onchange=e=>{PREF.full=e.target.value==="1";upd()};
+  $("#mCoord").onchange=e=>{PREF.coords=e.target.value==="1";upd()};$("#mLines").onchange=e=>{PREF.lines=e.target.value==="1";upd()};if($("#mSpellBL"))$("#mSpellBL").onchange=e=>{PREF.spellBL=e.target.value==="1";upd()};$("#mAnimC").onchange=e=>{PREF.fxCards=e.target.value==="1";upd()};$("#mAnimM").onchange=e=>{PREF.fxMagic=e.target.value==="1";upd()};$("#mFull").onchange=e=>{PREF.full=e.target.value==="1";upd()};
   $("#mSpeed").onchange=e=>{G.opts.cpuSpeed=e.target.value};wireAudioSliders();
   m.querySelectorAll("[data-mz]").forEach(b=>b.onclick=()=>{const k=b.dataset.mz,lim=k==="ui"?[.8,1.4]:k==="bright"?[.7,1.3]:[.8,1.8];PREF[k]=Math.round(Math.min(lim[1],Math.max(lim[0],PREF[k]+ +b.dataset.d*.1))*10)/10;$("#mz"+k).textContent=Math.round(PREF[k]*100)+"%";upd()});
   if($("#mTimer"))$("#mTimer").onclick=()=>{G.opts.timer=0;stopTimer();log("The phase timer is switched off for the rest of the game.","event");$("#mTimer").remove()};
@@ -4500,7 +4507,7 @@ async function aiSky(pl,W,cast1){
    G.moon.gone names what hangs in the moon's place: "mars", "sun", "blacksun", "venus", "jupiter", "saturn", "eaten",
    "fallen" (the Sun came down), "off". Planets the Firmament set up remember who did it in G.planetBy. */
 
-SCHOOLS.push("Astrology");
+SCHOOLS.splice(1,0,"Astrology");   // v47: Conjuring, then Astrology, then Necromancy
 const sky=()=>G.moon.gone||"moon";
 const PLANETS={
   mars:{name:"Mars",word:"Strife",hunger:3},
@@ -4961,7 +4968,7 @@ function spellRow(s,live){
   const P=me(),od=G.p[G.active].od,ok=live&&spellReady(s),cost=spellCost(s);
   let moon="";if(s.id==="clair"||s.id==="naked"){if(newPrices())moon="moon-dark";else if(fullPrices())moon="moon-bright"}
   let extra="";
-  if(s.id==="bless"){const aces=stacksOf(G.active).filter(x=>hasK(x.st,"ace")).length,n=Math.min(6,1+aces+G.ritual,blessCap(G.active));extra=`<small class="dc">${n}d6</small>`+(od?`<small class="odpen ${od>6?"big":""}">−${od}d6 max</small>`:"")}
+  if(s.id==="bless"){const aces=stacksOf(G.active).filter(x=>hasK(x.st,"ace")).length,n=Math.min(6,1+aces,blessCap(G.active))+3*(G.ritual||0);extra=`<small class="dc">${n}d6</small>`+(od?`<small class="odpen ${od>6?"big":""}">−${od}d6 max</small>`:"")}
   const moonPrice=(s.id==="clair"||s.id==="naked")&&(newPrices()||fullPrices());
   if(s.dice)extra+=`<small class="dc">${moonPrice?(newPrices()?"New Moon price":"Full Moon price"):s.dice}</small>`;
   if(s.id==="bolt"){const b=G.p[G.active].bolts||0;extra+=`<span class="bolts" aria-label="${b} of 3 bolts">${[0,1,2].map(i=>`<i class="${i<b?"f":""}">${unitSVG("bolt",i<b?"#8fd0ff":"#4a5a66",13)}</i>`).join("")}</span>`}
@@ -4988,8 +4995,9 @@ function renderSpells(live){
       pinned=`<button class="spell ether ${live&&!blk?"":"off"}" id="openEther" data-tip="${esc(blk||"Open the Ether: every card you can conjure into your deck, by type, cheapest first.")}"><span class="sn"><i class="ethmark" aria-hidden="true">✦</i>Ether<small class="dc">${G.ether.length} souls</small></span><em>shop ›</em></button>`+(mx?spellRow(mx,live):"")}
     if(sc==="Astrology")pinned=astroPins(live,V);
     if(sc==="Necromancy")pinned=moonOathRow(view());
-    list.sort(byPrice);
-    return `<details class="school" data-sc="${sc}" ${(PREF.shut||[]).includes(sc)?"":"open"}><summary>${sc}</summary>${pinned}${list.map(s=>spellRow(s,live)).join("")}</details>`}).join("");
+    list.sort(byPrice);if(sc==="Necromancy"){const top=["bless","ritual"];list.sort((a,b)=>(top.includes(a.id)?top.indexOf(a.id):9)-(top.includes(b.id)?top.indexOf(b.id):9))}   // v47: Grave Blessing, then Ritual Dice
+    const rows=list.map(s=>spellRow(s,live)),core=sc==="Necromancy"?list.filter(s=>s.id==="bless"||s.id==="ritual").length:0;
+    return `<details class="school" data-sc="${sc}" ${(PREF.shut||[]).includes(sc)?"":"open"}><summary>${sc}</summary>${core?`<div class="necrocore">${rows.slice(0,core).join("")}</div>`:""}${pinned}${rows.slice(core).join("")}</details>`}).join("");
   box.scrollTop=keep;
   box.querySelectorAll("details.school").forEach(d=>d.ontoggle=()=>{const sc=d.dataset.sc,S=new Set(PREF.shut||[]);d.open?S.delete(sc):S.add(sc);PREF.shut=[...S];savePrefs()});
   box.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{if(!canAct())return;cast(SP(b.dataset.s))});
@@ -5096,8 +5104,8 @@ addEventListener("resize",fitSide);
 
 const SPELL_TEXT={
  // Necromancy
- ritual:{e:"Adds 2d6 to this turn's Grave Blessing.",l:"Cast it before the Grave Blessing. Once a turn."},
- bless:{e:"Roll 1d6, plus 1d6 for each of your Aces on the field and 2d6 from Ritual Dice. For every 6, raise a card of your choice from the grave into your hand.",l:"Once a turn, before any other mana is spent. Six dice at most. Every card you overdrew into the grave takes one die away."},
+ ritual:{e:"Adds 3d6 to this turn's Grave Blessing for every one you buy.",l:"Cast it before the Grave Blessing, as often as you like. Not when Grave Blessing can't be cast."},
+ bless:{e:"Roll 1d6, plus 1d6 for each of your Aces on the field (six at most), plus 3d6 for every Ritual Dice bought this turn. For every 6, raise a card of your choice from the grave into your hand.",l:"Once a turn, before any other mana is spent. Every card you overdrew into the grave takes one of the first six dice away; Ritual Dice aren't cut."},
  suicide:{n:"Select your stack with a Joker.",e:"The Joker shoots itself. The souls it captured go to your soul pile, up to 6 mana; the rest go to the grave.",l:"Only before you spend mana this turn. Under a Blood Moon the Joker and its souls fall into the Outer Darkness instead."},
  sever:{e:"For this turn, an enemy killed beside your Joker is sent to the Ether instead of being captured. You pay half its conjuring price.",l:"Cast again to disarm it."},
  resur:{e:"Choose a card in the grave and take it into your hand.",l:"Needs room in your hand."},
@@ -6364,7 +6372,7 @@ function coolOf(sp){
   if(sp.once)return out(P.once&&P.once[sp.id]?0:1,"Once a game");
   switch(sp.id){
     case "bless":return out(G.blessed?0:1,"Once a turn");
-    case "ritual":return out(G.blessed||G.ritual>0?0:1,"Once a turn, before Grave Blessing");
+    case "ritual":return out(G.blessed?0:1,"Before Grave Blessing, as often as you like");
     case "libation":return out(G.libation?0:1,"Once a turn");
     case "hunger":return out(1-(P.hungerUses||0)/2,"Twice a turn");
     case "moonjoker":return oathNow(pl,"moon")?out(1-(P.moonJokers||0)/2,"Twice between Full Moons"):null;
@@ -7697,16 +7705,24 @@ if(window.__EC)Object.assign(window.__EC,{guestLobby,lobbySend});
    single kinds of card), Hierarchical control (the order in which these principles win when they pull apart; two can be made
    equal, and then the state of the field decides between them), and the same controls under the field instead of a window. */
 
-const FA_PRINC=[["stance","Stance"],["rush","Rush"],["lives","Lives"],["battles","Picking battles"],["formation","Formation"],["bases","Target bases"],["ambush","Ambush"]];
+const FA_PRINC=[["noatk","Don't attack"],["stance","Stance"],["rush","Rush"],["lives","Lives"],["battles","Picking battles"],["formation","Formation"],["bases","Target bases"],["ambush","Ambush"]];
 const FA_CATS=[["soldiers","Soldiers","Grunts, Infantry, Puppets"],["specials","Specials","Jacks, Queens, Kings, Jokers, Assassins"],["support","Support","Scouts, Healers, Repairmen, Rams, Miners"],
   ["ranged","Ranged","Archers and Cannons"],["wildcards","Wildcards","the Substances' own cards"]];
 const FA_KINDS=["grunt","infantry","puppet","jack","queen","king","joker","assassin","scout","healer","repair","ram","miner","archer","cannon",
   "samson","antony","satan","bullgoat","goatbull","slavemaster","slave","leviathan","trafficker","debt"];
 const FA_DEF={mode:"full",stance:"auto",rush:0,formation:"auto",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,
-  ctl:{soldiers:true,specials:true,support:true,miners:true,ranged:true,wildcards:true},extra:[],hier:false,order:FA_PRINC.map(p=>p[0]),eq:[],under:false};
+  ctl:{soldiers:true,specials:true,support:true,miners:true,ranged:true,wildcards:true},extra:[],hier:false,order:FA_PRINC.map(p=>p[0]),eq:[],under:false,
+  noAttack:false,flee:false,tprio:false,torder:null,teq:[],tIgnoreGI:false,tSameGI:false};
+/* v47: the kinds of card the field can rank as targets, strongest first by default (suit doesn't matter) */
+const FA_TK=[["wildcards","Wildcards"],["joker","Jokers"],["king","Kings"],["ace","Aces"],["queen","Queens"],["jack","Jacks"],["wall","Walls"],["tree","The Tree"],["assassin","Assassins"],
+  ["cannon","Cannons"],["infantry","Infantry"],["archer","Archers"],["grunt","Grunts"],["puppet","Puppets"],["healer","Healers"],["repair","Repairmen"],["ram","Rams"],["miner","Miners"],["claimer","Claimers"],["scout","Scouts"]];
+const FA_TKEYS=FA_TK.map(x=>x[0]);
 const faClean=c=>{c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringify(FA_DEF));
   for(const k of ["mode","stance","formation","lives","battles"])if(typeof c[k]==="string")o[k]=c[k];
-  o.rush=Math.max(0,Math.min(9,Math.round(+c.rush||0)));for(const k of ["ambush","bases","walls","hier","under"])if(typeof c[k]==="boolean")o[k]=c[k];
+  o.rush=Math.max(0,Math.min(9,Math.round(+c.rush||0)));for(const k of ["ambush","bases","walls","hier","under","noAttack","flee","tprio","tIgnoreGI","tSameGI"])if(typeof c[k]==="boolean")o[k]=c[k];
+  o.torder=Array.isArray(c.torder)?[...c.torder.filter(k=>FA_TKEYS.includes(k)),...FA_TKEYS.filter(k=>!c.torder.includes(k))]:[...FA_TKEYS];
+  if(Array.isArray(c.teq))o.teq=c.teq.filter(p=>Array.isArray(p)&&p.length===2&&p.every(k=>FA_TKEYS.includes(k)));
+  if(Array.isArray(c.order)&&!c.order.includes("noatk"))c={...c,order:["noatk",...c.order]};   // older settings: Don't attack goes on top
   if(c.ctl)for(const k in o.ctl)if(typeof c.ctl[k]==="boolean")o.ctl[k]=c.ctl[k];
   if(Array.isArray(c.extra))o.extra=c.extra.filter(k=>FA_KINDS.includes(k));
   if(Array.isArray(c.order)&&c.order.length===FA_PRINC.length&&FA_PRINC.every(([k])=>c.order.includes(k)))o.order=[...c.order];
@@ -7719,7 +7735,7 @@ const faOn=pl=>faAllowed()&&!!(faState(pl)&&faState(pl).on)&&!G.p[pl].cpu&&!isNP
 /* the simple modes narrow everything to a few choices */
 function faEff(c){c=faClean(c);const d=JSON.parse(JSON.stringify(FA_DEF));
   if(c.mode==="full")return Object.assign(d,{mode:"full",under:c.under});
-  if(c.mode==="mostly")return Object.assign(d,{mode:"mostly",stance:c.stance,ambush:c.ambush,under:c.under});
+  if(c.mode==="mostly")return Object.assign(d,{mode:"mostly",stance:c.stance,ambush:c.ambush,under:c.under,noAttack:c.noAttack});
   if(c.mode==="attacks")return Object.assign(d,{mode:"attacks",ambush:false,under:c.under});
   return c}
 
@@ -7730,7 +7746,7 @@ function faCat(c){const u=c.unit;if(u==="miner")return "miners";if(u&&UNIT[u]&&U
 function faControls(c,cfg){if(cfg.extra.includes(faKind(c)))return true;const k=faCat(c);return k==="miners"?cfg.ctl.support||cfg.ctl.miners:!!cfg.ctl[k]}
 
 /* ---------- the hierarchy: higher principles pull harder; equals share a rank, and the field decides between them ---------- */
-const FA_AGGR={stance:c=>({offensive:1,defensive:-1}[c.stance]||0),rush:c=>c.rush?1:0,lives:c=>({throw:1,preserve:-1}[c.lives]||0),
+const FA_AGGR={noatk:c=>c.noAttack?-1:0,stance:c=>({offensive:1,defensive:-1}[c.stance]||0),rush:c=>c.rush?1:0,lives:c=>({throw:1,preserve:-1}[c.lives]||0),
   battles:c=>({reckless:1,careful:-1}[c.battles]||0),formation:()=>0,bases:c=>c.bases?1:0,ambush:c=>c.ambush?-1:0};
 function faScales(c,pl){const sc={};for(const [k] of FA_PRINC)sc[k]=1;if(!c.hier)return sc;
   const pairOf=k=>c.eq.find(p=>p.includes(k));let rank=0;const seen=new Set();
@@ -7746,6 +7762,17 @@ const faRushing=pl=>{const s=faState(pl);return !!(s&&s.cfg&&s.cfg.rush>0&&s.rus
 function faWallBlocks(pl,wr,wc){const bases=AI.enemyStacks(pl).filter(e=>hasBase(e.st)&&!hasK(e.st,"wall"));const mine=stacksOf(pl);
   const d=(a,b,c,e)=>Math.abs(a-c)+Math.abs(b-e);
   return bases.some(b=>d(wr,wc,b.r,b.c)<=2&&mine.some(m=>d(m.r,m.c,wr,wc)+d(wr,wc,b.r,b.c)<=d(m.r,m.c,b.r,b.c)+1))}
+/* the rank of each principle (equals share one) */
+function faRanks(c){const r={};let n=0;const seen=new Set();for(const k of c.order){if(seen.has(k))continue;const p=c.eq.find(q=>q.includes(k));for(const g of p||[k]){seen.add(g);r[g]=n}n++}return r}
+/* target priority: a stack is worth more the higher its best kind ranks; Grunts and Infantry can be flattened or merged */
+const faTKind=(c,cfg)=>{if(c.puppet)return "puppet";const u=c.unit;if(u)return FA_TKEYS.includes(u)?u:"wildcards";const k=kind(c);return cfg.tSameGI&&k==="infantry"?"grunt":FA_TKEYS.includes(k)?k:"grunt"};
+function faTargetFactor(cfg){if(!cfg.tprio)return ()=>1;
+  const ord=cfg.tSameGI?cfg.torder.filter(k=>k!=="infantry"):cfg.torder,r={};let n=0;const seen=new Set();
+  for(const k of ord){if(seen.has(k))continue;const p=cfg.teq.find(q=>q.includes(k));for(const g of p||[k]){seen.add(g);r[g]=n}n++}
+  if(cfg.tSameGI)r.infantry=r.grunt;const N=Math.max(1,n-1);
+  return E=>{const ks=E.cards.map(x=>faTKind(x,cfg));const best=Math.min(...ks.map(k=>r[k]??n));let m=1.6-1.2*best/N;
+    if(cfg.tIgnoreGI&&ks.every(k=>k==="grunt"||k==="infantry")){const v=AI.value(E),avg=E.cards.length*(1+.8+6/7);if(v>0)m*=avg/v}
+    return Math.max(.2,m)}}
 function faCtx(pl){
   const s=faState(pl),c=faEff(s&&s.cfg),sc=faScales(c,pl);
   let W={...AI.stance(pl)};
@@ -7755,9 +7782,12 @@ function faCtx(pl){
   const lv={preserve:1,balanced:0,throw:-1}[c.lives]||0;W.def=(W.def||0)*(1+.4*lv*sc.lives);
   const thrAdj=(lv>0?.12:lv<0?-.15:0)*sc.lives+({careful:.08,reckless:-.1}[c.battles]||0)*sc.battles;
   const ok=grp=>grp.length>0&&grp.every(x=>faControls(x,c));
-  return {level:faLevel(),W,thrAdj,lossMul:1+.5*lv*sc.lives,moves:c.mode!=="attacks",ambushP:c.ambush?.7*sc.ambush:0,ok,
-    okAtk:(st,o)=>o.card?faControls(o.card,c):ok(st.cards.filter(x=>!isBase(x))),
-    gainMul:E=>{let m=1;if(c.bases&&hasBase(E)&&!hasK(E,"wall"))m*=1+sc.bases;
+  // Don't attack: on top it stops every attack; Rush or Target bases ranked above it still get their way
+  const rk=faRanks(c),above=k=>c.hier&&rk[k]<rk.noatk,rushes=faRushing(pl)&&above("rush"),basesOnly=c.noAttack&&!rushes&&c.bases&&above("bases"),noAtk=c.noAttack&&!rushes&&!basesOnly;
+  const tf=faTargetFactor(c);
+  return {level:faLevel(),W,thrAdj,lossMul:1+.5*lv*sc.lives,moves:c.mode!=="attacks",ambushP:c.ambush?.7*sc.ambush:0,ok,flee:c.formation==="deep"&&c.flee,
+    okAtk:(st,o)=>{if(noAtk)return false;const E=G.board[o.r]&&G.board[o.r][o.c];if(basesOnly&&!(E&&hasBase(E)))return false;return o.card?faControls(o.card,c):ok(st.cards.filter(x=>!isBase(x)))},
+    gainMul:E=>{let m=tf(E);if(c.bases&&hasBase(E)&&!hasK(E,"wall"))m*=1+sc.bases;
       if(c.walls&&hasK(E,"wall")){const at=AI.enemyStacks(pl).find(e=>e.st===E);if(at&&!faWallBlocks(pl,at.r,at.c))m*=1-.7*sc.bases}return m}}}
 
 /* ---------- when it plays: the end of your prep phase (after you place and cast), the start of your attack phase ---------- */
@@ -7796,57 +7826,75 @@ function faToggle(){const V=view(),s=faState(V);if(s&&s.on){setFieldAuto(V,false
 /* ---------- the settings, drawn the same in the window and under the field ---------- */
 const faVal=(k,c)=>({stance:{auto:"Automatic",offensive:"Offensive",defensive:"Defensive",center:"Center"}[c.stance],rush:c.rush?`${c.rush} round${c.rush>1?"s":""}`:"Off",
   lives:{preserve:"Preserve",balanced:"Balanced",throw:"Throw them in"}[c.lives],battles:{careful:"Careful",normal:"Normal",reckless:"Reckless"}[c.battles],
-  formation:{auto:"Automatic",wide:"Wide",deep:"Deep"}[c.formation],bases:c.bases?"On":"Off",ambush:c.ambush?"On":"Off"})[k];
-function faPanelHTML(c,pl,pfx){
+  formation:{auto:"Automatic",wide:"Wide",deep:"Tall"}[c.formation],bases:c.bases?"On":"Off",ambush:c.ambush?"On":"Off",noatk:c.noAttack?"On":"Off"})[k];
+/* v47: one kit draws every automation panel the same way: the words on the left, the switch or the arrows on the right */
+function cfgKit(attr,act,pfx){
   const ph=isPhone(),tip=t=>t&&!ph?` data-tip="${esc(t)}"`:"",sm=t=>t&&ph?`<small>${t}</small>`:"";   // a phone shows the line, a computer shows it on hover
-  const radio=(key,opts)=>`<div class="opts faopts">${opts.map(([v,t,s])=>`<label class="opt"${tip(s)}><input type="radio" name="fa${pfx}-${key}" data-fa="${key}" value="${v}" ${c[key]===v?"checked":""}><span>${t}${sm(s)}</span></label>`).join("")}</div>`;
-  const box=(path,on,t,s,dis)=>`<label class="chk"${tip(s)}><input type="checkbox" data-fa="${path}" ${on?"checked":""} ${dis?"disabled":""}> <span><b>${t}</b>${sm(s)}</span></label>`;
-  const sec=(t,body,cls="",hint)=>`<section class="fasec ${cls}"><h4${tip(hint)}>${t}</h4>${body}${hint&&ph?`<p class="dim">${hint}</p>`:""}</section>`;
+  return {tip,sm,
+    row:(path,on,t,s,dis)=>`<label class="farow${dis?" off":""}"${tip(s)}><span class="fal"><b>${t}</b>${sm(s)}</span><input type="checkbox" ${attr}="${path}" ${on?"checked":""} ${dis?"disabled":""}></label>`,
+    spin:(t,s,val,key,unit,dis)=>`<div class="farow${dis?" off":""}"${tip(s)}><span class="fal"><b>${t}</b>${sm(s)}</span><span class="faspin"><button type="button" class="btn ghost sm" ${act}="${key}-" aria-label="Less" ${dis?"disabled":""}>▼</button><b>${val}</b><button type="button" class="btn ghost sm" ${act}="${key}+" aria-label="More" ${dis?"disabled":""}>▲</button>${unit?`<small>${unit}</small>`:""}</span></div>`,
+    radio:(key,cur,opts,dis)=>`<div class="opts faopts${dis?" off":""}">${opts.map(([v,t,s])=>`<label class="opt"${tip(s)}><input type="radio" name="${pfx}-${key}" ${attr}="${key}" value="${v}" ${cur===v?"checked":""} ${dis?"disabled":""}><span>${t}${sm(s)}</span></label>`).join("")}</div>`,
+    chips:(list,on,dataAttr,dis)=>`<div class="opts fakinds${dis?" off":""}">${list.map(([k,t])=>`<label class="opt"><input type="checkbox" ${dataAttr}="${k}" ${on.includes(k)?"checked":""} ${dis?"disabled":""}><span>${esc(t)}</span></label>`).join("")}</div>`,
+    sec:(t,body,cls="",hint,note)=>`<section class="fasec ${cls}"><h4${tip(hint)}>${t}</h4>${body}${hint&&ph?`<p class="dim">${hint}</p>`:""}${note?`<p class="fanote2">${note}</p>`:""}</section>`}}
+const FA_CAUTION="Careful: ranking is a powerful setting. A bad order can lose you cards, or the game.";
+function faPanelHTML(c,pl,pfx){
+  const K=cfgKit("data-fa","data-faact","fa"+pfx),{row,spin,radio,sec,tip}=K;
   const s=pl!=null?faState(pl):null,left=s&&s.rushUntil!=null&&c.rush?Math.max(0,s.rushUntil-G.moon.round+1):null;
   const custom=c.mode==="custom",some=c.mode==="mostly"||custom;
-  let h=sec("Where",box("under",c.under,"Show these controls under the field","A wide fold-down above Basics explained. On when you turn the automation on; uncheck it to remove it."),"fafull fawhere");
-  h+=sec("Simple mode",radio("mode",[["full","Fully automatic","It decides everything, offense, defense or the center (the default)"],["mostly","Mostly automatic","You choose the stance and ambushes"],
+  let h=sec("Simple mode",radio("mode",c.mode,[["full","Fully automatic","It decides everything, offense, defense or the center (the default)"],["mostly","Mostly automatic","You choose the stance, ambushes and whether it attacks"],
     ["attacks","Attacks only","It only attacks; you move every card"],["custom","Every option","Choose each setting yourself"]]),"fafull famodes");
-  h+=sec("Attack",box("",true,"Always on","Your field attacks enemies in sight when the odds say so.",true),"falock");
-  if(some){h+=sec("Stance",radio("stance",[["auto","Automatic","Changes with the field"],["offensive","Offensive",""],["defensive","Defensive",""],["center","Control the center",""]]));
-    h+=sec("Ambush",box("ambush",c.ambush,"Set ambushes","Assassins and face-down stacks with nothing in reach wait in ambush."))}
+  h+=sec("Attack",some?row("noAttack",c.noAttack,"Don't attack","Your field moves but never attacks. On top of the ranking unless you move it."):row("",true,"Attacks when the odds say so","Your field attacks enemies in sight when the odds say so.",true),some?"":"falock");
+  if(some){h+=sec("Stance",radio("stance",c.stance,[["auto","Automatic","Changes with the field"],["offensive","Offensive",""],["defensive","Defensive",""],["center","Control the center",""]]));
+    h+=sec("Ambush",row("ambush",c.ambush,"Set ambushes","Assassins and face-down stacks with nothing in reach wait in ambush."))}
   if(custom){
-    h+=sec("Rush the enemy",`<div class="farush">${box("rushon",c.rush>0,"Rush","Everything it controls goes for the enemy, whatever the stance.")}<span class="faspin"><button type="button" class="btn ghost sm" data-faact="rush-" aria-label="One round less">▼</button><b>${Math.max(1,c.rush)}</b><button type="button" class="btn ghost sm" data-faact="rush+" aria-label="One round more">▲</button> round${Math.max(1,c.rush)>1?"s":""}${left!=null?` <small class="dim">(${left?left+" left":"over"})</small>`:""}</span></div>`);
-    h+=sec("Formation",radio("formation",[["auto","Automatic",""],["wide","Wide","Spread out, surround, take the advantage"],["deep","Deep","Columns: stack strength, even with fewer to stack with"]]));
-    h+=sec("Lives",radio("lives",[["preserve","Preserve","Keep cards alive first"],["balanced","Balanced","The default"],["throw","Throw them in","Trade cards freely to hurt the enemy"]]));
-    h+=sec("Picking battles",radio("battles",[["careful","Careful","Fights only with good odds"],["normal","Normal",""],["reckless","Reckless","Takes long shots"]]),"","Lives ranks above this unless you change the order in Hierarchical control.");
-    h+=sec("Bases",box("bases",c.bases,"Target bases","Enemy Aces and the Tree are worth more to it.")+box("walls",c.walls,"Don't count non-obstructive walls","A Wall only matters when it stands between your field and a base."));
-    h+=sec("Which cards it controls",`<div class="facats">${FA_CATS.map(([k,t,s2])=>box("ctl."+k,c.ctl[k],t,s2)).join("")}${!c.ctl.support?box("ctl.miners",c.ctl.miners,"Miners","Even with Support off"):""}</div>
-<details class="faextra" ${c.extra.length?"open":""}><summary>Yes, and… (add single kinds of card)</summary><div class="opts fakinds">${FA_KINDS.map(k=>`<label class="opt"><input type="checkbox" data-faextra="${k}" ${c.extra.includes(k)?"checked":""}><span>${esc(shortInfo(k))}</span></label>`).join("")}</div><p class="dim">These are added to the groups above, never taken away.</p></details>`,"fafull");
-    h+=sec("Hierarchical control",box("hier",c.hier,"Rank the principles","When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.")+(c.hier?faHierHTML(c):""),"fafull");
+    h+=sec("Rush the enemy",row("rushon",c.rush>0,"Rush","Everything it controls goes for the enemy, whatever the stance.")+spin("For how long",left!=null?`${left?left+" left":"over"}`:"",Math.max(1,c.rush),"rush",`round${Math.max(1,c.rush)>1?"s":""}`,!c.rush));
+    h+=sec("Formation",radio("formation",c.formation,[["auto","Automatic",""],["wide","Wide","Spread out, surround, take the advantage"],["deep","Tall","Columns: stack strength, even with fewer to stack with"]]));
+    h+=sec("Lives",radio("lives",c.lives,[["preserve","Preserve","Keep cards alive first"],["balanced","Balanced","The default"],["throw","Throw them in","Trade cards freely to hurt the enemy"]])+(c.formation==="deep"?row("flee",c.flee,"Flee when low","A stack that has lost half its cards pulls back from the enemy."):""),"","",
+      "Lives is about your cards: how many it is willing to lose.");
+    h+=sec("Picking battles",radio("battles",c.battles,[["careful","Careful","Fights only with good odds"],["normal","Normal",""],["reckless","Reckless","Takes long shots"]]),"","Lives ranks above this unless you change the order in Hierarchical control.",
+      "Picking battles is about the odds: how sure a win must be before it attacks.");
+    h+=sec("Bases",row("bases",c.bases,"Target bases","Enemy Aces and the Tree are worth more to it.")+row("walls",c.walls,"Ignore Walls that aren't in the way","A Wall only matters when it stands between your field and a base."));
+    h+=sec("Which cards it controls",`<div class="facats">${FA_CATS.map(([k,t,s2])=>row("ctl."+k,c.ctl[k],t,s2)).join("")}${!c.ctl.support?row("ctl.miners",c.ctl.miners,"Miners","Even with Support off"):""}</div>
+<details class="faextra" ${c.extra.length?"open":""}><summary>Yes, and… (add single kinds of card)</summary>${K.chips(FA_KINDS.map(k=>[k,shortInfo(k)]),c.extra,"data-faextra")}<p class="dim">These are added to the groups above, never taken away.</p></details>`,"fafull");
+    h+=sec("Target priority",row("tprio",c.tprio,"Rank the kinds of card to target","Off: it weighs every target by the odds alone. On: the kinds on the left are hunted first.")+(c.tprio?
+      row("tIgnoreGI",c.tIgnoreGI,"Ignore how strong a Grunt or Infantry is","A 2 and a 6 Grunt count the same when it picks a target.")+row("tSameGI",c.tSameGI,"Treat Grunts and Infantry alike","One kind instead of two in the ranking.")+
+      hierHTML((c.tSameGI?c.torder.filter(k=>k!=="infantry"):c.torder),c.teq,faHierHTML.tpending,k=>FA_TK.find(x=>x[0]===k)[1],()=>"","t"):""),"fafull","",c.tprio?FA_CAUTION:"");
+    h+=sec("Hierarchical control",row("hier",c.hier,"Rank the principles","When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.")+(c.hier?hierHTML(c.order,c.eq,faHierHTML.pending,k=>FA_PRINC.find(x=>x[0]===k)[1],k=>faVal(k,c),""):""),"fafull","",c.hier?FA_CAUTION:"");
   }
   h+=`<p class="dim fanote fafull">Some options aren't the best choice for every situation on your field.</p>`;
   return h}
-function faHierHTML(c){const pend=faHierHTML.pending,pairOf=k=>c.eq.find(p=>p.includes(k));
-  return `<div class="fahier">${c.order.map((k,i)=>{const p=pairOf(k);return `<div class="facol${p?" eqpair":pend===k?" eqwait":""}"><span class="farank">${i+1}</span><b>${FA_PRINC.find(x=>x[0]===k)[1]}</b><small>${faVal(k,c)}</small>
-<span class="facolbtns"><button type="button" class="btn ghost sm" data-faact="up:${k}" aria-label="Higher priority" ${i?"":"disabled"}>▲</button><button type="button" class="btn ghost sm" data-faact="eq:${k}" aria-label="Equal" aria-pressed="${!!p||pend===k}">=</button><button type="button" class="btn ghost sm" data-faact="down:${k}" aria-label="Lower priority" ${i<c.order.length-1?"":"disabled"}>▼</button></span></div>`}).join("")}</div>`}
+/* a ranking: columns with ▲ = ▼; two pressed = become equals */
+function hierHTML(order,eq,pend,label,sub,pre){const pairOf=k=>eq.find(p=>p.includes(k));
+  return `<div class="fahier">${order.map((k,i)=>{const p=pairOf(k);return `<div class="facol${p?" eqpair":pend===k?" eqwait":""}"><span class="farank">${i+1}</span><b>${label(k)}</b><small>${sub(k)}</small>
+<span class="facolbtns"><button type="button" class="btn ghost sm" data-faact="${pre}up:${k}" aria-label="Higher priority" ${i?"":"disabled"}>▲</button><button type="button" class="btn ghost sm" data-faact="${pre}eq:${k}" aria-label="Equal" aria-pressed="${!!p||pend===k}">=</button><button type="button" class="btn ghost sm" data-faact="${pre}down:${k}" aria-label="Lower priority" ${i<order.length-1?"":"disabled"}>▼</button></span></div>`}).join("")}</div>`}
+const faHierHTML={pending:null,tpending:null};
+/* moving in a ranking: blocks of equals move together */
+function hierMove(order,eq,pkey,a,k){
+  const blocks=[];const seen=new Set();for(const x of order){if(seen.has(x))continue;const p=eq.find(q=>q.includes(x));const g=p?order.filter(y=>p.includes(y)):[x];g.forEach(y=>seen.add(y));blocks.push(g)}
+  const bi=blocks.findIndex(g=>g.includes(k));
+  if(a==="up"&&bi>0)[blocks[bi-1],blocks[bi]]=[blocks[bi],blocks[bi-1]];
+  if(a==="down"&&bi<blocks.length-1)[blocks[bi+1],blocks[bi]]=[blocks[bi],blocks[bi+1]];
+  if(a==="eq"){const p=eq.find(q=>q.includes(k)),pend=faHierHTML[pkey];
+    if(p){eq=eq.filter(q=>q!==p);faHierHTML[pkey]=null}
+    else if(pend&&pend!==k&&!eq.some(q=>q.includes(pend))){faHierHTML[pkey]=null;eq=[...eq,[pend,k]];
+      const fl=blocks.flat().filter(x=>x!==k);fl.splice(fl.indexOf(pend)+1,0,k);return {order:fl,eq}}   // the second joins the first, side by side
+    else faHierHTML[pkey]=pend===k?null:k}
+  return {order:blocks.flat(),eq}}
 /* every change goes through here */
 function faWire(root){
-  const c=faMine();
   root.querySelectorAll("[data-fa]").forEach(i=>{const path=i.dataset.fa;if(!path)return;i.onchange=()=>{const c2=faMine();
     if(path==="rushon")c2.rush=i.checked?Math.max(1,c2.rush||1):0;
     else if(path.startsWith("ctl."))c2.ctl[path.slice(4)]=i.checked;
     else if(i.type==="checkbox")c2[path]=i.checked;else c2[path]=i.value;
     faSave(c2)}});
   root.querySelectorAll("[data-faextra]").forEach(i=>i.onchange=()=>{const c2=faMine(),k=i.dataset.faextra;c2.extra=c2.extra.filter(x=>x!==k);if(i.checked)c2.extra.push(k);faSave(c2)});
-  root.querySelectorAll("[data-faact]").forEach(b=>b.onclick=()=>{const c2=faMine(),[a,k]=b.dataset.faact.split(":");
-    if(a==="rush+"||a==="rush-"){c2.rush=Math.max(1,Math.min(9,(c2.rush||1)+(a==="rush+"?1:-1)));faSave(c2);return}
-    const blocks=[];const seen=new Set();for(const x of c2.order){if(seen.has(x))continue;const p=c2.eq.find(q=>q.includes(x));const g=p?c2.order.filter(y=>p.includes(y)):[x];g.forEach(y=>seen.add(y));blocks.push(g)}
-    const bi=blocks.findIndex(g=>g.includes(k));
-    if(a==="up"&&bi>0)[blocks[bi-1],blocks[bi]]=[blocks[bi],blocks[bi-1]];
-    if(a==="down"&&bi<blocks.length-1)[blocks[bi+1],blocks[bi]]=[blocks[bi],blocks[bi+1]];
-    if(a==="eq"){const p=c2.eq.find(q=>q.includes(k));
-      if(p){c2.eq=c2.eq.filter(q=>q!==p);faHierHTML.pending=null}
-      else if(faHierHTML.pending&&faHierHTML.pending!==k&&!c2.eq.some(q=>q.includes(faHierHTML.pending))){const a2=faHierHTML.pending;faHierHTML.pending=null;c2.eq.push([a2,k]);
-        // the second joins the first, side by side
-        const fl=blocks.flat().filter(x=>x!==k);fl.splice(fl.indexOf(a2)+1,0,k);c2.order=fl;faSave(c2);return}
-      else faHierHTML.pending=faHierHTML.pending===k?null:k}
-    c2.order=blocks.flat();faSave(c2)})}
+  root.querySelectorAll("[data-faact]").forEach(b=>b.onclick=()=>{const c2=faMine(),v=b.dataset.faact;
+    if(v==="rush+"||v==="rush-"){c2.rush=Math.max(1,Math.min(9,(c2.rush||1)+(v==="rush+"?1:-1)));faSave(c2);return}
+    const t=v.startsWith("t"),[a,k]=(t?v.slice(1):v).split(":");
+    if(t){const ord=c2.tSameGI?c2.torder.filter(x=>x!=="infantry"):c2.torder,r=hierMove(ord,c2.teq,"tpending",a,k);
+      c2.torder=c2.tSameGI?[...r.order,"infantry"]:r.order;c2.teq=r.eq}
+    else{const r=hierMove(c2.order,c2.eq,"pending",a,k);c2.order=r.order;c2.eq=r.eq}
+    faSave(c2)})}
 function faWindow(){let box=$("#facfg");if(!box){box=document.createElement("div");box.id="facfg";box.className="faov";document.body.appendChild(box)}
   box.hidden=false;paintFA()}
 /* paint the window and the fold-down, wherever they are */
@@ -8044,16 +8092,18 @@ function lazyPlace(card){const pl=G.active,t=lazySpot(pl,card);
   if(!t){flash(`Lazy Hand finds no place for ${nameOf(card)}.`);return false}
   G.selHand=card;G.mode=null;place(card,t[0],t[1]);G.selHand=null;if(!lazyAuto())lazyArmed=false;render();return true}
 function lazyHTML(live){const ok=live&&lazyCan(),on=lazyAuto();
-  return `<div class="spellrow lazyrow"><button type="button" class="autotog${on?" on":""}" id="autoLazy" aria-pressed="${on}" data-tip="Keep Lazy Hand on: every card you click in your hand is placed for you.">auto</button><button type="button" class="spell lazy ${ok?"":"off"} ${lazyOn()?"armed":""}" id="lazyBtn" aria-pressed="${lazyOn()}" data-tip="Lazy Hand: click it, then a card in your hand, and the computer places that card for you. With Field Automation on, it follows those settings. Free, as often as you like."><span class="sn">${HAND_ICON}Lazy Hand</span><em>${lazyOn()?"on":"free"}</em></button></div>`}
+  return `<div class="spellrow lazyrow"><button type="button" class="autotog cfgtog${lhMine().autoPlace||lhMine().sac?" on":""}" id="lhCfg" aria-label="Lazy Hand automation" data-tip="Lazy Hand automation: what it never places, and sacrifices from your hand.">⚙</button><button type="button" class="autotog${on?" on":""}" id="autoLazy" aria-pressed="${on}" data-tip="Keep Lazy Hand on: every card you click in your hand is placed for you.">auto</button><button type="button" class="spell lazy ${ok?"":"off"} ${lazyOn()?"armed":""}" id="lazyBtn" aria-pressed="${lazyOn()}" data-tip="Lazy Hand: click it, then a card in your hand, and the computer places that card for you. With Field Automation on, it follows those settings. Free, as often as you like."><span class="sn">${HAND_ICON}Lazy Hand</span><em>${lazyOn()?"on":"free"}</em></button></div>`}
 {const _rs=renderSpells;renderSpells=function(live){_rs(live);const bs=$("#bankslot");if(!bs||!G||isNPC(view())||G.p[view()].cpu)return;
   bs.insertAdjacentHTML("beforeend",lazyHTML(live));
   $("#lazyBtn").onclick=()=>{if(!lazyCan())return;if(lazyAuto()){PREF.lazyAuto=false;savePrefs();lazyArmed=false}else lazyArmed=!lazyArmed;
     if(lazyArmed)flash("Lazy Hand: click a card in your hand.");render()};
-  $("#autoLazy").onclick=()=>{PREF.lazyAuto=!lazyAuto();lazyArmed=false;savePrefs();render()}}}
+  $("#autoLazy").onclick=()=>{PREF.lazyAuto=!lazyAuto();lazyArmed=false;savePrefs();render()};
+  $("#lhCfg").onclick=e=>{e.stopPropagation();faWindow("lazy")}}}
 /* while it is on, a click on a card in the hand places it */
 {const _r=render;render=function(){_r.apply(this,arguments);const h=$("#hand");if(!h||!G)return;const on=lazyOn()&&lazyCan();h.classList.toggle("lazy",on);if(!on)return;
   h.querySelectorAll("[data-h]").forEach(b=>{const orig=b.onclick;b.onclick=e=>{if(!lazyOn()||!lazyCan())return orig&&orig.call(b,e);
-    const c=G.p[view()].hand[+b.dataset.h];if(c)lazyPlace(c)}})}}
+    const c=G.p[view()].hand[+b.dataset.h];if(c&&lhExcluded(c,lhMine()))return orig&&orig.call(b,e);   // v47: kinds Lazy Hand leaves to you
+    if(c)lazyPlace(c)}})}}
 if(window.__EC)Object.assign(window.__EC,{lazySpot,lazyPlace,lazyOn});
 
 /* ---------------- v45: "What you must know", the start-of-game toast and the Help title ----------------
@@ -8228,5 +8278,168 @@ const resurPrice=c=>resurD()+soulOf(c);
 /* the spell list shows the price this round */
 {const _rs=renderSpells;renderSpells=function(live){_rs(live);const b=document.querySelector('#spells [data-s="resur"] em');if(b&&G)b.textContent=`${resurD()} + worth`}}
 if(window.__EC)Object.assign(window.__EC,{loanLimit:pl=>loanLimit(pl),loanWhy,debtWatch,sendCollectors});
+
+/* ---------------- v47: spell names in blackletter (the default); the Display bar and the Menu can turn it off ---------------- */
+{const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);document.body.classList.toggle("spbl",PREF.spellBL!==false);const b=$("#pSpellBL");if(b){b.textContent="Spell font: "+(PREF.spellBL!==false?"Old English":"Plain");b.setAttribute("aria-pressed",PREF.spellBL!==false)}}}
+{const _mb=mountBar;mountBar=function(){_mb.apply(this,arguments);const r=$("#pReset");if(!r||$("#pSpellBL"))return;
+  const b=document.createElement("button");b.type="button";b.id="pSpellBL";b.className="gtog";b.onclick=()=>{PREF.spellBL=PREF.spellBL===false;savePrefs();applyPrefs()};
+  r.parentNode.insertBefore(b,r);applyPrefs()}}
+
+/* ---------------- v47: Configure Automation ----------------
+   One window (and one fold-down under the field) for everything the computer can do for a person, in three tabs drawn the same
+   way: the Field (Field Automation), Ritual Dice and Lazy Hand. The settings live on this device (localStorage "ec-prefs2":
+   fa, rd, lh); during a game they travel to the player's seat, so they also work for a joined player.
+   Ritual Dice: bought at the start of your prep phase, before Grave Blessing (whose auto switch it turns on), as often and as many
+   as you set, only when the grave holds the kinds you ticked, only with mana to spare, never while you owe too much, on credit only
+   if you allow it and down to the floor you set; it can buy extra to make up for an overdraw, or skip turns you overdrew.
+   Lazy Hand: kinds it never places for you (you place them yourself), an option to place your hand by itself, and sacrifices from
+   the hand of the kinds you tick, stopping at a full soul pile, or a set way into the surplus, or only while you are below zero. */
+
+/* ---------- Ritual Dice settings ---------- */
+const RD_KINDS=[["standard","Standard"],["special","Special"],["support","Support"],["wildcard","Wildcard"],["base","Base"]];
+const RD_DEF={on:false,preset:"even",every:1,perTurn:1,kinds:[],minMana:3,counterOD:true,noOD:false,stopDebt:4,credit:false,creditStop:-3};
+const RD_PRESETS=[
+  ["miser","The Miser's Vigil","Rarely: only with plenty to spare and something worth raising, never in debt.",{every:3,perTurn:1,kinds:["special","base"],minMana:6,counterOD:false,noOD:true,stopDebt:1,credit:false,creditStop:0}],
+  ["accountant","The Pale Accountant","Modest: one every other turn, never into debt.",{every:2,perTurn:1,kinds:[],minMana:4,counterOD:false,noOD:true,stopDebt:2,credit:false,creditStop:0}],
+  ["even","The Even Scales","Balanced: one a turn while there is mana to spare (the default).",{every:1,perTurn:1,kinds:[],minMana:3,counterOD:true,noOD:false,stopDebt:4,credit:false,creditStop:-3}],
+  ["relic","The Relic Hunter","Spends big, but only when the grave holds treasure.",{every:1,perTurn:2,kinds:["special","wildcard","base"],minMana:2,counterOD:true,noOD:false,stopDebt:0,credit:false,creditStop:-3}],
+  ["hunger","The Gravedigger's Hunger","Two a turn, on credit when it must.",{every:1,perTurn:2,kinds:[],minMana:1,counterOD:true,noOD:false,stopDebt:0,credit:true,creditStop:-3}],
+  ["mad","The Mad Necromancer","Everything into the grave, down to the brink.",{every:1,perTurn:3,kinds:[],minMana:0,counterOD:true,noOD:false,stopDebt:0,credit:true,creditStop:-6}]];
+const clampN=(v,a,b,d)=>{v=Math.round(+v);return Number.isFinite(v)?Math.max(a,Math.min(b,v)):d};
+function rdClean(c){c=c&&typeof c==="object"?c:{};const o={...RD_DEF};
+  for(const k of ["on","counterOD","noOD","credit"])if(typeof c[k]==="boolean")o[k]=c[k];
+  if(typeof c.preset==="string")o.preset=c.preset;
+  o.every=clampN(c.every??o.every,1,9,1);o.perTurn=clampN(c.perTurn??o.perTurn,1,6,1);o.minMana=clampN(c.minMana??o.minMana,0,30,3);
+  o.stopDebt=clampN(c.stopDebt??o.stopDebt,0,30,4);o.creditStop=clampN(c.creditStop??o.creditStop,-6,0,-3);
+  o.kinds=Array.isArray(c.kinds)?c.kinds.filter(k=>RD_KINDS.some(x=>x[0]===k)):[];return o}
+const rdMine=()=>rdClean(PREF.rd);
+
+/* ---------- Lazy Hand settings ---------- */
+const LH_DEF={exclude:[],xextra:[],autoPlace:false,sac:false,skinds:[],sextra:[],notFull:true,surplus:0,maxSurplus:false,negOnly:false};
+const LH_RANKS=["2","3","4","5","6","7","8","9","10","J","Q","K","A","JK"];
+const LH_UNITS=["puppet","scout","healer","repair","ram","miner","claimer","archer","cannon","assassin","wall","samson","antony","bullgoat","goatbull","slavemaster","slave","leviathan","trafficker","debt"];
+let lhKeysMemo=null;
+function lhKeyList(){if(lhKeysMemo)return lhKeysMemo;
+  lhKeysMemo=[...LH_RANKS.map(r=>{const k=kind(protoCard(r));return [r,r==="JK"?"Joker":/^\d+$/.test(r)?`${r} ${shortInfo(k)}`:shortInfo(k)]}),...LH_UNITS.filter(u=>INFO[u]).map(u=>[u,shortInfo(u)])];return lhKeysMemo}
+function lhClean(c){c=c&&typeof c==="object"?c:{};const o={...LH_DEF},keys=new Set([...LH_RANKS,...LH_UNITS]),cats=new Set(RD_KINDS.map(x=>x[0]));
+  for(const k of ["autoPlace","sac","notFull","maxSurplus","negOnly"])if(typeof c[k]==="boolean")o[k]=c[k];
+  for(const k of ["exclude","skinds"])o[k]=Array.isArray(c[k])?c[k].filter(x=>cats.has(x)):[];
+  for(const k of ["xextra","sextra"])o[k]=Array.isArray(c[k])?c[k].filter(x=>keys.has(x)):[];
+  o.surplus=clampN(c.surplus??0,0,30,0);return o}
+const lhMine=()=>lhClean(PREF.lh);
+const cardCat=c=>{const k=cardClass(c).toLowerCase();return k==="barbarian"?"standard":k};
+const cardKey=c=>c.puppet?"puppet":c.unit?c.unit:c.rank;
+const lhExcluded=(c,cfg)=>!!cfg&&(cfg.exclude.includes(cardCat(c))||cfg.xextra.includes(cardKey(c)));
+
+/* ---------- the settings travel to the player's seat ---------- */
+function setAutoCfg(pl,key,cfg){if(!G||!G.p[pl]||!["rdCfg","lhCfg"].includes(key))return;G.p[pl][key]=key==="rdCfg"?rdClean(cfg):lhClean(cfg)}
+{NETFN.setAutoCfg={get:()=>setAutoCfg,set:f=>setAutoCfg=f,any:true};const orig=setAutoCfg;
+  setAutoCfg=function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:"setAutoCfg",args:netClean(a),ui:uiSnap(),rid})}}
+const autoSent={};
+function autoSync(){if(!G||G.over)return;const V=view(),P=G.p[V];if(!P||P.cpu||isNPC(V))return;
+  for(const [key,cfg] of [["rdCfg",rdMine()],["lhCfg",lhMine()]]){const j=JSON.stringify(cfg),k=V+key;if(autoSent[k]===j&&JSON.stringify(P[key])===j)continue;if(autoSent[k]===j&&NET.role==="guest")continue;autoSent[k]=j;setAutoCfg(V,key,cfg)}}
+{const _r=render;render=function(){_r.apply(this,arguments);autoSync()}}
+
+/* ---------- the window and the fold-down: three tabs ---------- */
+let autoTab=["field","ritual","lazy"].includes(PREF.autoTab)?PREF.autoTab:"field";
+function autoStatus(k){const V=G?view():null;if(k==="field")return V!=null&&G.p[V]&&faOn(V)?"On":"Off";if(k==="ritual")return rdMine().on?"On":"Off";const l=lhMine();return PREF.lazyAuto||l.autoPlace||l.sac?"On":"Off"}
+const AUTO_TABS=[["field","Field"],["ritual","Ritual Dice"],["lazy","Lazy Hand"]];
+function autoTabsHTML(){return `<div class="atabs fafull" role="tablist">${AUTO_TABS.map(([k,t])=>`<button type="button" class="stab${autoTab===k?" on":""}" data-atab="${k}" role="tab" aria-selected="${autoTab===k}">${t} <small>${autoStatus(k)}</small></button>`).join("")}</div>`}
+function autoBodyHTML(pfx,under){const V=G?view():null;
+  if(autoTab==="ritual")return rdPanelHTML(rdMine(),pfx);
+  if(autoTab==="lazy")return lhPanelHTML(lhMine(),pfx);
+  if(!faAllowed())return `<p class="dim fafull">Field Automation is off for this game (the Rules tab before a game).</p>`;
+  const on=V!=null&&faOn(V);return `${under?`<p class="fafull"><button type="button" class="btn ${on?"":"ghost"} sm" id="faTogU" aria-pressed="${on}">${on?"Turn field automation off":"Turn field automation on"}</button></p>`:""}${faPanelHTML(faMine(),V,pfx)}`}
+const whereHTML=pfx=>{const K=cfgKit("data-fa","data-faact","fa"+pfx);return K.sec("Where",K.row("under",faMine().under,"Show these controls under the field","A wide fold-down above Basics explained, with all three tabs."),"fafull fawhere")};
+function wireAuto(root){
+  root.querySelectorAll("[data-atab]").forEach(b=>b.onclick=()=>{autoTab=b.dataset.atab;PREF.autoTab=autoTab;savePrefs();paintFA()});
+  faWire(root);rdWire(root);lhWire(root);const t=root.querySelector("#faTogU");if(t)t.onclick=faToggle}
+faWindow=function(tab){if(typeof tab==="string")autoTab=tab;let box=$("#facfg");if(!box){box=document.createElement("div");box.id="facfg";box.className="faov";document.body.appendChild(box)}
+  box.hidden=false;paintFA()};
+paintFA=function(){const V=G?view():null,c=faMine();
+  const w=$("#facfg");if(w&&!w.hidden){const sc=w.querySelector(".fabody")?w.querySelector(".fabody").scrollTop:0;
+    w.innerHTML=`<div class="ovbox wide faconf" role="dialog" aria-labelledby="facq"><button type="button" class="xclose" id="facX" aria-label="Close">×</button><h2 id="facq">Configure Automation</h2>${whereHTML("w")}${autoTabsHTML()}<div class="fabody">${autoBodyHTML("w",false)}</div><p class="acts"><button type="button" class="btn" id="facOk">Done</button></p></div>`;
+    w.querySelector(".fabody").scrollTop=sc;wireAuto(w);$("#facX").onclick=$("#facOk").onclick=()=>{w.hidden=true}}
+  const info=$("#info");if(!info)return;let d=$("#fapanel");
+  const want=!!(G&&!G.over&&c.under&&G.p[V]&&!G.p[V].cpu&&!isNPC(V));
+  if(!want){if(d)d.remove();return}
+  if(!d){d=document.createElement("details");d.id="fapanel";d.className="cinfo fapanel";if(PREF.faOpen)d.open=true;d.addEventListener("toggle",()=>{PREF.faOpen=d.open;savePrefs()});info.prepend(d)}
+  d.innerHTML=`<summary>Configure Automation <span class="dim">· Field ${autoStatus("field")} · Ritual Dice ${autoStatus("ritual")} · Lazy Hand ${autoStatus("lazy")}</span></summary><div class="fawide">${autoTabsHTML()}${autoBodyHTML("u",true)}</div>`;
+  wireAuto(d)};
+
+/* ---------- the Ritual Dice tab ---------- */
+function rdPanelHTML(c,pfx){const K=cfgKit("data-rd","data-rdact","rd"+pfx),{row,spin,sec}=K,off=!c.on;
+  let h=sec("Ritual Dice",row("on",c.on,"Buy Ritual Dice for me","At the start of your prep phase, before Grave Blessing. Turning this on turns Grave Blessing's auto on too.")+
+    `<p class="dim">Each Ritual Dice costs 1 mana and adds 3d6 to this turn's Grave Blessing. It is never bought when Grave Blessing can't be cast.</p>`,"fafull");
+  h+=sec("Playstyle",`<div class="opts faopts${off?" off":""}">${RD_PRESETS.map(([k,t,d])=>`<label class="opt"${K.tip(d)}><input type="radio" name="rd${pfx}-preset" data-rdpreset="${k}" ${c.preset===k?"checked":""} ${off?"disabled":""}><span>${t}${K.sm(d)}</span></label>`).join("")}<label class="opt"><input type="radio" name="rd${pfx}-preset" disabled ${c.preset==="custom"?"checked":""}><span>Custom</span></label></div>`,
+    "fafull","Sets everything below at once. Change any of it and it becomes Custom.");
+  h+=sec("How often",spin("Every","1: every turn",c.every,"every",c.every>1?"turns":"turn",off)+spin("How many each time","Each one is 1 mana and 3d6.",c.perTurn,"perTurn","",off));
+  h+=sec("Only when the grave holds",K.chips(RD_KINDS,c.kinds,"data-rdkind",off)+`<p class="dim">None ticked: whatever the grave holds.</p>`);
+  h+=sec("Mana",spin("Only while I have at least","It buys only with this much mana to spare.",c.minMana,"minMana","mana",off)+
+    spin("Stop while I owe","Mana debt plus loans. 0: owing never stops it.",c.stopDebt?c.stopDebt:"0",`stopDebt`,c.stopDebt?"or more":"(never stops)",off));
+  h+=sec("Overdraw",row("noOD",c.noOD,"Don't buy on a turn I overdrew","An overdraw cuts Grave Blessing's dice; this waits it out.",off)+row("counterOD",c.counterOD,"Buy extra to make up for overdraw","Enough more Ritual Dice to cover the dice an overdraw takes away.",off||c.noOD));
+  h+=sec("Credit",row("credit",c.credit,"Buy on credit","When your mana runs short, the Bank's credit pays.",off)+spin("Stop buying on credit at","Your mana won't go below this to buy one.",c.creditStop,"creditStop","mana",off||!c.credit));
+  return h}
+function rdSave(c){c=rdClean(c);PREF.rd=c;if(c.on&&G){const V=view();if(G.p[V]&&!G.p[V].autoBless){setAutoBless(V,true)}PREF.autoBless=true}savePrefs();autoSync();paintFA();if(G)render()}
+function rdWire(root){
+  root.querySelectorAll("[data-rd]").forEach(i=>{const k=i.dataset.rd;if(!k)return;i.onchange=()=>{const c=rdMine();c[k]=i.checked;if(k!=="on")c.preset="custom";rdSave(c)}});
+  root.querySelectorAll("[data-rdkind]").forEach(i=>i.onchange=()=>{const c=rdMine(),k=i.dataset.rdkind;c.kinds=c.kinds.filter(x=>x!==k);if(i.checked)c.kinds.push(k);c.preset="custom";rdSave(c)});
+  root.querySelectorAll("[data-rdpreset]").forEach(i=>i.onchange=()=>{const p=RD_PRESETS.find(x=>x[0]===i.dataset.rdpreset);if(!p)return;rdSave({...rdMine(),...p[3],preset:p[0]})});
+  root.querySelectorAll("[data-rdact]").forEach(b=>b.onclick=()=>{const c=rdMine(),v=b.dataset.rdact,k=v.slice(0,-1),d=v.endsWith("+")?1:-1;c[k]=(c[k]||0)+d;c.preset="custom";rdSave(c)})}
+
+/* ---------- the Lazy Hand tab ---------- */
+function lhPanelHTML(c,pfx){const K=cfgKit("data-lh","data-lhact","lh"+pfx),{row,spin,sec}=K,so=!c.sac;
+  let h=`<p class="fawarn fafull">We advise against letting Lazy Hand play for you: it doesn't know your plans. If you use it, check what it does now and then.</p>`;
+  h+=sec("Lazy Hand",row("keep",PREF.lazyAuto===true,"Keep Lazy Hand on","Every card you click in your hand is placed for you (the spell's auto switch).")+
+    row("autoPlace",c.autoPlace,"Place my cards by itself","At the start of your prep phase it places every card it may, where the computer would play it."),"fafull");
+  h+=sec("Never place for me",K.chips(RD_KINDS,c.exclude,"data-lhex")+`<details class="faextra" ${c.xextra.length?"open":""}><summary>Yes, and… (single kinds it never places)</summary>${K.chips(lhKeyList(),c.xextra,"data-lhxx")}</details><p class="dim">You place these yourself, even with Lazy Hand on.</p>`,"fafull");
+  h+=sec("Sacrifice from my hand",row("sac",c.sac,"Sacrifice cards by itself","At the start of your prep phase, before anything is spent: the kinds you tick here.")+K.chips(RD_KINDS,c.skinds,"data-lhsk",so)+
+    `<details class="faextra" ${c.sextra.length?"open":""}><summary>Yes, and… (single kinds it sacrifices, like the 2 Grunt)</summary>${K.chips(lhKeyList(),c.sextra,"data-lhsx",so)}</details>`+
+    row("negOnly",c.negOnly,"Only while my mana is below zero","It sacrifices until you are back at zero; the limits below don't apply.",so)+
+    row("notFull",c.notFull,"Not when my mana is full","It stops at your maximum, so nothing goes into the surplus.",so||c.negOnly)+
+    (!c.notFull?row("maxSurplus",c.maxSurplus,"Up to the most surplus","As far as the soul pile allows.",so||c.negOnly)+spin("Up to this far into the surplus","",c.surplus,"surplus","mana",so||c.negOnly||c.maxSurplus):""),"fafull");
+  return h}
+function lhSave(c){PREF.lh=lhClean(c);savePrefs();autoSync();paintFA();if(G)render()}
+function lhWire(root){
+  root.querySelectorAll("[data-lh]").forEach(i=>{const k=i.dataset.lh;if(!k)return;i.onchange=()=>{if(k==="keep"){PREF.lazyAuto=i.checked;savePrefs();paintFA();if(G)render();return}const c=lhMine();c[k]=i.checked;lhSave(c)}});
+  for(const [attr,key] of [["data-lhex","exclude"],["data-lhxx","xextra"],["data-lhsk","skinds"],["data-lhsx","sextra"]])
+    root.querySelectorAll(`[${attr}]`).forEach(i=>i.onchange=()=>{const c=lhMine(),k=i.getAttribute(attr);c[key]=c[key].filter(x=>x!==k);if(i.checked)c[key].push(k);lhSave(c)});
+  root.querySelectorAll("[data-lhact]").forEach(b=>b.onclick=()=>{const c=lhMine(),v=b.dataset.lhact,k=v.slice(0,-1);c[k]=(c[k]||0)+(v.endsWith("+")?1:-1);lhSave(c)})}
+
+/* ---------- what they do: at the start of a person's prep phase, sacrifices, Ritual Dice, Grave Blessing, then placing ---------- */
+async function lhAutoSac(pl){const P=G.p[pl],c=P.lhCfg;if(!c||!c.sac||G.over)return;let n=0;
+  for(const card of [...P.hand]){if(!sacrificeAllowed()||!canSacCard(card))continue;
+    if(!(c.skinds.includes(cardCat(card))||c.sextra.includes(cardKey(card))))continue;
+    const hi=handSacRange(card)[1],m=mana(pl);
+    if(c.negOnly){if(effMana(pl)>=0)break}
+    else{const lim=c.notFull?soulCap(pl):c.maxSurplus?surCap(pl):Math.min(surCap(pl),soulCap(pl)+c.surplus);if(m+hi>lim)continue}
+    if(sacrifice(card,"hand"))n++}
+  if(n){log(`Lazy Hand sacrifices ${n} card${n>1?"s":""} from ${plName(pl)}'s hand.`);render();await sleep(250)}}
+async function autoRitual(pl){const P=G.p[pl],c=P.rdCfg,sp=SP("ritual");if(!c||!c.on||!sp||G.over)return;
+  const tn=tnOf(pl);if(c.every>1&&P.rdLast!=null&&tn-P.rdLast<c.every)return;
+  if(c.kinds.length&&!G.grave.some(x=>c.kinds.includes(cardCat(x))))return;
+  const od=P.od||0;if(c.noOD&&od>0)return;
+  const aces=stacksOf(pl).filter(x=>hasK(x.st,"ace")).length,base=Math.min(6,1+aces),lost=Math.max(0,base-Math.min(base,blessCap(pl)));
+  let n=c.perTurn+(c.counterOD&&lost>0?Math.ceil(lost/3):0),bought=0;
+  for(let i=0;i<n;i++){if(G.over||!spellReady(sp))break;const cost=spellCost(sp);
+    if(c.stopDebt>0&&debtOf(pl)+owedOf(pl)>=c.stopDebt)break;
+    if(mana(pl)>=cost&&mana(pl)>=c.minMana){await cast(sp);bought++;continue}
+    if(!c.credit||!bankOpen()||effMana(pl)-cost<c.creditStop)break;
+    const was=P.credit;P.credit=true;try{await cast(sp)}finally{P.credit=was}bought++}
+  if(bought){P.rdLast=tn;render()}}
+async function lhAutoPlace(pl){const P=G.p[pl],c=P.lhCfg;if(!c||!c.autoPlace||G.over||G.phase!=="prep")return;let n=0;
+  for(const card of [...P.hand]){if(lhExcluded(card,c)||!P.hand.includes(card))continue;const t=lazySpot(pl,card);if(!t||!canPlace(card,t[0],t[1]))continue;
+    G.selHand=card;place(card,t[0],t[1]);G.selHand=null;n++;render();await sleep(220)}
+  if(n)log(`Lazy Hand places ${n} card${n>1?"s":""} for ${plName(pl)}.`)}
+{const _ab=autoBlessing;autoBlessing=async function(pl){const P=G.p[pl],me_=P&&!P.cpu&&!isNPC(pl);
+  if(me_){await lhAutoSac(pl);await autoRitual(pl)}
+  await _ab.apply(this,arguments);
+  if(me_&&!G.over)await lhAutoPlace(pl)}}
+
+/* ---------- the Ritual Dice row gets its settings button ---------- */
+{const _sr=spellRow;spellRow=function(s,live){const h=_sr(s,live);if(!s||s.id!=="ritual"||!G)return h;const on=rdMine().on;
+  return `<div class="spellrow"><button type="button" class="autotog cfgtog${on?" on":""}" id="rdCfg" aria-label="Ritual Dice automation" data-tip="Ritual Dice automation (${on?"on":"off"}): buy it for you, when and how much.">⚙</button>${h}</div>`}}
+{const _rs=renderSpells;renderSpells=function(live){_rs(live);const b=$("#rdCfg");if(b)b.onclick=e=>{e.stopPropagation();faWindow("ritual")}}}
+if(window.__EC)Object.assign(window.__EC,{rdMine,lhMine,autoRitual,lhAutoSac,lhAutoPlace,faWindow:t=>faWindow(t)});
 
 })();

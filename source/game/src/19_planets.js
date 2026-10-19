@@ -2,7 +2,7 @@
    G.moon.gone names what hangs in the moon's place: "mars", "sun", "blacksun", "venus", "jupiter", "saturn", "eaten",
    "fallen" (the Sun came down), "off". Planets the Firmament set up remember who did it in G.planetBy. */
 
-SCHOOLS.push("Astrology");
+SCHOOLS.splice(1,0,"Astrology");   // v47: Conjuring, then Astrology, then Necromancy
 const sky=()=>G.moon.gone||"moon";
 const PLANETS={
   mars:{name:"Mars",word:"Strife",hunger:3},

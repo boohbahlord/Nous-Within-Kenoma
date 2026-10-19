@@ -10,16 +10,24 @@
    single kinds of card), Hierarchical control (the order in which these principles win when they pull apart; two can be made
    equal, and then the state of the field decides between them), and the same controls under the field instead of a window. */
 
-const FA_PRINC=[["stance","Stance"],["rush","Rush"],["lives","Lives"],["battles","Picking battles"],["formation","Formation"],["bases","Target bases"],["ambush","Ambush"]];
+const FA_PRINC=[["noatk","Don't attack"],["stance","Stance"],["rush","Rush"],["lives","Lives"],["battles","Picking battles"],["formation","Formation"],["bases","Target bases"],["ambush","Ambush"]];
 const FA_CATS=[["soldiers","Soldiers","Grunts, Infantry, Puppets"],["specials","Specials","Jacks, Queens, Kings, Jokers, Assassins"],["support","Support","Scouts, Healers, Repairmen, Rams, Miners"],
   ["ranged","Ranged","Archers and Cannons"],["wildcards","Wildcards","the Substances' own cards"]];
 const FA_KINDS=["grunt","infantry","puppet","jack","queen","king","joker","assassin","scout","healer","repair","ram","miner","archer","cannon",
   "samson","antony","satan","bullgoat","goatbull","slavemaster","slave","leviathan","trafficker","debt"];
 const FA_DEF={mode:"full",stance:"auto",rush:0,formation:"auto",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,
-  ctl:{soldiers:true,specials:true,support:true,miners:true,ranged:true,wildcards:true},extra:[],hier:false,order:FA_PRINC.map(p=>p[0]),eq:[],under:false};
+  ctl:{soldiers:true,specials:true,support:true,miners:true,ranged:true,wildcards:true},extra:[],hier:false,order:FA_PRINC.map(p=>p[0]),eq:[],under:false,
+  noAttack:false,flee:false,tprio:false,torder:null,teq:[],tIgnoreGI:false,tSameGI:false};
+/* v47: the kinds of card the field can rank as targets, strongest first by default (suit doesn't matter) */
+const FA_TK=[["wildcards","Wildcards"],["joker","Jokers"],["king","Kings"],["ace","Aces"],["queen","Queens"],["jack","Jacks"],["wall","Walls"],["tree","The Tree"],["assassin","Assassins"],
+  ["cannon","Cannons"],["infantry","Infantry"],["archer","Archers"],["grunt","Grunts"],["puppet","Puppets"],["healer","Healers"],["repair","Repairmen"],["ram","Rams"],["miner","Miners"],["claimer","Claimers"],["scout","Scouts"]];
+const FA_TKEYS=FA_TK.map(x=>x[0]);
 const faClean=c=>{c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringify(FA_DEF));
   for(const k of ["mode","stance","formation","lives","battles"])if(typeof c[k]==="string")o[k]=c[k];
-  o.rush=Math.max(0,Math.min(9,Math.round(+c.rush||0)));for(const k of ["ambush","bases","walls","hier","under"])if(typeof c[k]==="boolean")o[k]=c[k];
+  o.rush=Math.max(0,Math.min(9,Math.round(+c.rush||0)));for(const k of ["ambush","bases","walls","hier","under","noAttack","flee","tprio","tIgnoreGI","tSameGI"])if(typeof c[k]==="boolean")o[k]=c[k];
+  o.torder=Array.isArray(c.torder)?[...c.torder.filter(k=>FA_TKEYS.includes(k)),...FA_TKEYS.filter(k=>!c.torder.includes(k))]:[...FA_TKEYS];
+  if(Array.isArray(c.teq))o.teq=c.teq.filter(p=>Array.isArray(p)&&p.length===2&&p.every(k=>FA_TKEYS.includes(k)));
+  if(Array.isArray(c.order)&&!c.order.includes("noatk"))c={...c,order:["noatk",...c.order]};   // older settings: Don't attack goes on top
   if(c.ctl)for(const k in o.ctl)if(typeof c.ctl[k]==="boolean")o.ctl[k]=c.ctl[k];
   if(Array.isArray(c.extra))o.extra=c.extra.filter(k=>FA_KINDS.includes(k));
   if(Array.isArray(c.order)&&c.order.length===FA_PRINC.length&&FA_PRINC.every(([k])=>c.order.includes(k)))o.order=[...c.order];
@@ -32,7 +40,7 @@ const faOn=pl=>faAllowed()&&!!(faState(pl)&&faState(pl).on)&&!G.p[pl].cpu&&!isNP
 /* the simple modes narrow everything to a few choices */
 function faEff(c){c=faClean(c);const d=JSON.parse(JSON.stringify(FA_DEF));
   if(c.mode==="full")return Object.assign(d,{mode:"full",under:c.under});
-  if(c.mode==="mostly")return Object.assign(d,{mode:"mostly",stance:c.stance,ambush:c.ambush,under:c.under});
+  if(c.mode==="mostly")return Object.assign(d,{mode:"mostly",stance:c.stance,ambush:c.ambush,under:c.under,noAttack:c.noAttack});
   if(c.mode==="attacks")return Object.assign(d,{mode:"attacks",ambush:false,under:c.under});
   return c}
 
@@ -43,7 +51,7 @@ function faCat(c){const u=c.unit;if(u==="miner")return "miners";if(u&&UNIT[u]&&U
 function faControls(c,cfg){if(cfg.extra.includes(faKind(c)))return true;const k=faCat(c);return k==="miners"?cfg.ctl.support||cfg.ctl.miners:!!cfg.ctl[k]}
 
 /* ---------- the hierarchy: higher principles pull harder; equals share a rank, and the field decides between them ---------- */
-const FA_AGGR={stance:c=>({offensive:1,defensive:-1}[c.stance]||0),rush:c=>c.rush?1:0,lives:c=>({throw:1,preserve:-1}[c.lives]||0),
+const FA_AGGR={noatk:c=>c.noAttack?-1:0,stance:c=>({offensive:1,defensive:-1}[c.stance]||0),rush:c=>c.rush?1:0,lives:c=>({throw:1,preserve:-1}[c.lives]||0),
   battles:c=>({reckless:1,careful:-1}[c.battles]||0),formation:()=>0,bases:c=>c.bases?1:0,ambush:c=>c.ambush?-1:0};
 function faScales(c,pl){const sc={};for(const [k] of FA_PRINC)sc[k]=1;if(!c.hier)return sc;
   const pairOf=k=>c.eq.find(p=>p.includes(k));let rank=0;const seen=new Set();
@@ -59,6 +67,17 @@ const faRushing=pl=>{const s=faState(pl);return !!(s&&s.cfg&&s.cfg.rush>0&&s.rus
 function faWallBlocks(pl,wr,wc){const bases=AI.enemyStacks(pl).filter(e=>hasBase(e.st)&&!hasK(e.st,"wall"));const mine=stacksOf(pl);
   const d=(a,b,c,e)=>Math.abs(a-c)+Math.abs(b-e);
   return bases.some(b=>d(wr,wc,b.r,b.c)<=2&&mine.some(m=>d(m.r,m.c,wr,wc)+d(wr,wc,b.r,b.c)<=d(m.r,m.c,b.r,b.c)+1))}
+/* the rank of each principle (equals share one) */
+function faRanks(c){const r={};let n=0;const seen=new Set();for(const k of c.order){if(seen.has(k))continue;const p=c.eq.find(q=>q.includes(k));for(const g of p||[k]){seen.add(g);r[g]=n}n++}return r}
+/* target priority: a stack is worth more the higher its best kind ranks; Grunts and Infantry can be flattened or merged */
+const faTKind=(c,cfg)=>{if(c.puppet)return "puppet";const u=c.unit;if(u)return FA_TKEYS.includes(u)?u:"wildcards";const k=kind(c);return cfg.tSameGI&&k==="infantry"?"grunt":FA_TKEYS.includes(k)?k:"grunt"};
+function faTargetFactor(cfg){if(!cfg.tprio)return ()=>1;
+  const ord=cfg.tSameGI?cfg.torder.filter(k=>k!=="infantry"):cfg.torder,r={};let n=0;const seen=new Set();
+  for(const k of ord){if(seen.has(k))continue;const p=cfg.teq.find(q=>q.includes(k));for(const g of p||[k]){seen.add(g);r[g]=n}n++}
+  if(cfg.tSameGI)r.infantry=r.grunt;const N=Math.max(1,n-1);
+  return E=>{const ks=E.cards.map(x=>faTKind(x,cfg));const best=Math.min(...ks.map(k=>r[k]??n));let m=1.6-1.2*best/N;
+    if(cfg.tIgnoreGI&&ks.every(k=>k==="grunt"||k==="infantry")){const v=AI.value(E),avg=E.cards.length*(1+.8+6/7);if(v>0)m*=avg/v}
+    return Math.max(.2,m)}}
 function faCtx(pl){
   const s=faState(pl),c=faEff(s&&s.cfg),sc=faScales(c,pl);
   let W={...AI.stance(pl)};
@@ -68,9 +87,12 @@ function faCtx(pl){
   const lv={preserve:1,balanced:0,throw:-1}[c.lives]||0;W.def=(W.def||0)*(1+.4*lv*sc.lives);
   const thrAdj=(lv>0?.12:lv<0?-.15:0)*sc.lives+({careful:.08,reckless:-.1}[c.battles]||0)*sc.battles;
   const ok=grp=>grp.length>0&&grp.every(x=>faControls(x,c));
-  return {level:faLevel(),W,thrAdj,lossMul:1+.5*lv*sc.lives,moves:c.mode!=="attacks",ambushP:c.ambush?.7*sc.ambush:0,ok,
-    okAtk:(st,o)=>o.card?faControls(o.card,c):ok(st.cards.filter(x=>!isBase(x))),
-    gainMul:E=>{let m=1;if(c.bases&&hasBase(E)&&!hasK(E,"wall"))m*=1+sc.bases;
+  // Don't attack: on top it stops every attack; Rush or Target bases ranked above it still get their way
+  const rk=faRanks(c),above=k=>c.hier&&rk[k]<rk.noatk,rushes=faRushing(pl)&&above("rush"),basesOnly=c.noAttack&&!rushes&&c.bases&&above("bases"),noAtk=c.noAttack&&!rushes&&!basesOnly;
+  const tf=faTargetFactor(c);
+  return {level:faLevel(),W,thrAdj,lossMul:1+.5*lv*sc.lives,moves:c.mode!=="attacks",ambushP:c.ambush?.7*sc.ambush:0,ok,flee:c.formation==="deep"&&c.flee,
+    okAtk:(st,o)=>{if(noAtk)return false;const E=G.board[o.r]&&G.board[o.r][o.c];if(basesOnly&&!(E&&hasBase(E)))return false;return o.card?faControls(o.card,c):ok(st.cards.filter(x=>!isBase(x)))},
+    gainMul:E=>{let m=tf(E);if(c.bases&&hasBase(E)&&!hasK(E,"wall"))m*=1+sc.bases;
       if(c.walls&&hasK(E,"wall")){const at=AI.enemyStacks(pl).find(e=>e.st===E);if(at&&!faWallBlocks(pl,at.r,at.c))m*=1-.7*sc.bases}return m}}}
 
 /* ---------- when it plays: the end of your prep phase (after you place and cast), the start of your attack phase ---------- */
@@ -109,57 +131,75 @@ function faToggle(){const V=view(),s=faState(V);if(s&&s.on){setFieldAuto(V,false
 /* ---------- the settings, drawn the same in the window and under the field ---------- */
 const faVal=(k,c)=>({stance:{auto:"Automatic",offensive:"Offensive",defensive:"Defensive",center:"Center"}[c.stance],rush:c.rush?`${c.rush} round${c.rush>1?"s":""}`:"Off",
   lives:{preserve:"Preserve",balanced:"Balanced",throw:"Throw them in"}[c.lives],battles:{careful:"Careful",normal:"Normal",reckless:"Reckless"}[c.battles],
-  formation:{auto:"Automatic",wide:"Wide",deep:"Deep"}[c.formation],bases:c.bases?"On":"Off",ambush:c.ambush?"On":"Off"})[k];
-function faPanelHTML(c,pl,pfx){
+  formation:{auto:"Automatic",wide:"Wide",deep:"Tall"}[c.formation],bases:c.bases?"On":"Off",ambush:c.ambush?"On":"Off",noatk:c.noAttack?"On":"Off"})[k];
+/* v47: one kit draws every automation panel the same way: the words on the left, the switch or the arrows on the right */
+function cfgKit(attr,act,pfx){
   const ph=isPhone(),tip=t=>t&&!ph?` data-tip="${esc(t)}"`:"",sm=t=>t&&ph?`<small>${t}</small>`:"";   // a phone shows the line, a computer shows it on hover
-  const radio=(key,opts)=>`<div class="opts faopts">${opts.map(([v,t,s])=>`<label class="opt"${tip(s)}><input type="radio" name="fa${pfx}-${key}" data-fa="${key}" value="${v}" ${c[key]===v?"checked":""}><span>${t}${sm(s)}</span></label>`).join("")}</div>`;
-  const box=(path,on,t,s,dis)=>`<label class="chk"${tip(s)}><input type="checkbox" data-fa="${path}" ${on?"checked":""} ${dis?"disabled":""}> <span><b>${t}</b>${sm(s)}</span></label>`;
-  const sec=(t,body,cls="",hint)=>`<section class="fasec ${cls}"><h4${tip(hint)}>${t}</h4>${body}${hint&&ph?`<p class="dim">${hint}</p>`:""}</section>`;
+  return {tip,sm,
+    row:(path,on,t,s,dis)=>`<label class="farow${dis?" off":""}"${tip(s)}><span class="fal"><b>${t}</b>${sm(s)}</span><input type="checkbox" ${attr}="${path}" ${on?"checked":""} ${dis?"disabled":""}></label>`,
+    spin:(t,s,val,key,unit,dis)=>`<div class="farow${dis?" off":""}"${tip(s)}><span class="fal"><b>${t}</b>${sm(s)}</span><span class="faspin"><button type="button" class="btn ghost sm" ${act}="${key}-" aria-label="Less" ${dis?"disabled":""}>▼</button><b>${val}</b><button type="button" class="btn ghost sm" ${act}="${key}+" aria-label="More" ${dis?"disabled":""}>▲</button>${unit?`<small>${unit}</small>`:""}</span></div>`,
+    radio:(key,cur,opts,dis)=>`<div class="opts faopts${dis?" off":""}">${opts.map(([v,t,s])=>`<label class="opt"${tip(s)}><input type="radio" name="${pfx}-${key}" ${attr}="${key}" value="${v}" ${cur===v?"checked":""} ${dis?"disabled":""}><span>${t}${sm(s)}</span></label>`).join("")}</div>`,
+    chips:(list,on,dataAttr,dis)=>`<div class="opts fakinds${dis?" off":""}">${list.map(([k,t])=>`<label class="opt"><input type="checkbox" ${dataAttr}="${k}" ${on.includes(k)?"checked":""} ${dis?"disabled":""}><span>${esc(t)}</span></label>`).join("")}</div>`,
+    sec:(t,body,cls="",hint,note)=>`<section class="fasec ${cls}"><h4${tip(hint)}>${t}</h4>${body}${hint&&ph?`<p class="dim">${hint}</p>`:""}${note?`<p class="fanote2">${note}</p>`:""}</section>`}}
+const FA_CAUTION="Careful: ranking is a powerful setting. A bad order can lose you cards, or the game.";
+function faPanelHTML(c,pl,pfx){
+  const K=cfgKit("data-fa","data-faact","fa"+pfx),{row,spin,radio,sec,tip}=K;
   const s=pl!=null?faState(pl):null,left=s&&s.rushUntil!=null&&c.rush?Math.max(0,s.rushUntil-G.moon.round+1):null;
   const custom=c.mode==="custom",some=c.mode==="mostly"||custom;
-  let h=sec("Where",box("under",c.under,"Show these controls under the field","A wide fold-down above Basics explained. On when you turn the automation on; uncheck it to remove it."),"fafull fawhere");
-  h+=sec("Simple mode",radio("mode",[["full","Fully automatic","It decides everything, offense, defense or the center (the default)"],["mostly","Mostly automatic","You choose the stance and ambushes"],
+  let h=sec("Simple mode",radio("mode",c.mode,[["full","Fully automatic","It decides everything, offense, defense or the center (the default)"],["mostly","Mostly automatic","You choose the stance, ambushes and whether it attacks"],
     ["attacks","Attacks only","It only attacks; you move every card"],["custom","Every option","Choose each setting yourself"]]),"fafull famodes");
-  h+=sec("Attack",box("",true,"Always on","Your field attacks enemies in sight when the odds say so.",true),"falock");
-  if(some){h+=sec("Stance",radio("stance",[["auto","Automatic","Changes with the field"],["offensive","Offensive",""],["defensive","Defensive",""],["center","Control the center",""]]));
-    h+=sec("Ambush",box("ambush",c.ambush,"Set ambushes","Assassins and face-down stacks with nothing in reach wait in ambush."))}
+  h+=sec("Attack",some?row("noAttack",c.noAttack,"Don't attack","Your field moves but never attacks. On top of the ranking unless you move it."):row("",true,"Attacks when the odds say so","Your field attacks enemies in sight when the odds say so.",true),some?"":"falock");
+  if(some){h+=sec("Stance",radio("stance",c.stance,[["auto","Automatic","Changes with the field"],["offensive","Offensive",""],["defensive","Defensive",""],["center","Control the center",""]]));
+    h+=sec("Ambush",row("ambush",c.ambush,"Set ambushes","Assassins and face-down stacks with nothing in reach wait in ambush."))}
   if(custom){
-    h+=sec("Rush the enemy",`<div class="farush">${box("rushon",c.rush>0,"Rush","Everything it controls goes for the enemy, whatever the stance.")}<span class="faspin"><button type="button" class="btn ghost sm" data-faact="rush-" aria-label="One round less">▼</button><b>${Math.max(1,c.rush)}</b><button type="button" class="btn ghost sm" data-faact="rush+" aria-label="One round more">▲</button> round${Math.max(1,c.rush)>1?"s":""}${left!=null?` <small class="dim">(${left?left+" left":"over"})</small>`:""}</span></div>`);
-    h+=sec("Formation",radio("formation",[["auto","Automatic",""],["wide","Wide","Spread out, surround, take the advantage"],["deep","Deep","Columns: stack strength, even with fewer to stack with"]]));
-    h+=sec("Lives",radio("lives",[["preserve","Preserve","Keep cards alive first"],["balanced","Balanced","The default"],["throw","Throw them in","Trade cards freely to hurt the enemy"]]));
-    h+=sec("Picking battles",radio("battles",[["careful","Careful","Fights only with good odds"],["normal","Normal",""],["reckless","Reckless","Takes long shots"]]),"","Lives ranks above this unless you change the order in Hierarchical control.");
-    h+=sec("Bases",box("bases",c.bases,"Target bases","Enemy Aces and the Tree are worth more to it.")+box("walls",c.walls,"Don't count non-obstructive walls","A Wall only matters when it stands between your field and a base."));
-    h+=sec("Which cards it controls",`<div class="facats">${FA_CATS.map(([k,t,s2])=>box("ctl."+k,c.ctl[k],t,s2)).join("")}${!c.ctl.support?box("ctl.miners",c.ctl.miners,"Miners","Even with Support off"):""}</div>
-<details class="faextra" ${c.extra.length?"open":""}><summary>Yes, and… (add single kinds of card)</summary><div class="opts fakinds">${FA_KINDS.map(k=>`<label class="opt"><input type="checkbox" data-faextra="${k}" ${c.extra.includes(k)?"checked":""}><span>${esc(shortInfo(k))}</span></label>`).join("")}</div><p class="dim">These are added to the groups above, never taken away.</p></details>`,"fafull");
-    h+=sec("Hierarchical control",box("hier",c.hier,"Rank the principles","When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.")+(c.hier?faHierHTML(c):""),"fafull");
+    h+=sec("Rush the enemy",row("rushon",c.rush>0,"Rush","Everything it controls goes for the enemy, whatever the stance.")+spin("For how long",left!=null?`${left?left+" left":"over"}`:"",Math.max(1,c.rush),"rush",`round${Math.max(1,c.rush)>1?"s":""}`,!c.rush));
+    h+=sec("Formation",radio("formation",c.formation,[["auto","Automatic",""],["wide","Wide","Spread out, surround, take the advantage"],["deep","Tall","Columns: stack strength, even with fewer to stack with"]]));
+    h+=sec("Lives",radio("lives",c.lives,[["preserve","Preserve","Keep cards alive first"],["balanced","Balanced","The default"],["throw","Throw them in","Trade cards freely to hurt the enemy"]])+(c.formation==="deep"?row("flee",c.flee,"Flee when low","A stack that has lost half its cards pulls back from the enemy."):""),"","",
+      "Lives is about your cards: how many it is willing to lose.");
+    h+=sec("Picking battles",radio("battles",c.battles,[["careful","Careful","Fights only with good odds"],["normal","Normal",""],["reckless","Reckless","Takes long shots"]]),"","Lives ranks above this unless you change the order in Hierarchical control.",
+      "Picking battles is about the odds: how sure a win must be before it attacks.");
+    h+=sec("Bases",row("bases",c.bases,"Target bases","Enemy Aces and the Tree are worth more to it.")+row("walls",c.walls,"Ignore Walls that aren't in the way","A Wall only matters when it stands between your field and a base."));
+    h+=sec("Which cards it controls",`<div class="facats">${FA_CATS.map(([k,t,s2])=>row("ctl."+k,c.ctl[k],t,s2)).join("")}${!c.ctl.support?row("ctl.miners",c.ctl.miners,"Miners","Even with Support off"):""}</div>
+<details class="faextra" ${c.extra.length?"open":""}><summary>Yes, and… (add single kinds of card)</summary>${K.chips(FA_KINDS.map(k=>[k,shortInfo(k)]),c.extra,"data-faextra")}<p class="dim">These are added to the groups above, never taken away.</p></details>`,"fafull");
+    h+=sec("Target priority",row("tprio",c.tprio,"Rank the kinds of card to target","Off: it weighs every target by the odds alone. On: the kinds on the left are hunted first.")+(c.tprio?
+      row("tIgnoreGI",c.tIgnoreGI,"Ignore how strong a Grunt or Infantry is","A 2 and a 6 Grunt count the same when it picks a target.")+row("tSameGI",c.tSameGI,"Treat Grunts and Infantry alike","One kind instead of two in the ranking.")+
+      hierHTML((c.tSameGI?c.torder.filter(k=>k!=="infantry"):c.torder),c.teq,faHierHTML.tpending,k=>FA_TK.find(x=>x[0]===k)[1],()=>"","t"):""),"fafull","",c.tprio?FA_CAUTION:"");
+    h+=sec("Hierarchical control",row("hier",c.hier,"Rank the principles","When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.")+(c.hier?hierHTML(c.order,c.eq,faHierHTML.pending,k=>FA_PRINC.find(x=>x[0]===k)[1],k=>faVal(k,c),""):""),"fafull","",c.hier?FA_CAUTION:"");
   }
   h+=`<p class="dim fanote fafull">Some options aren't the best choice for every situation on your field.</p>`;
   return h}
-function faHierHTML(c){const pend=faHierHTML.pending,pairOf=k=>c.eq.find(p=>p.includes(k));
-  return `<div class="fahier">${c.order.map((k,i)=>{const p=pairOf(k);return `<div class="facol${p?" eqpair":pend===k?" eqwait":""}"><span class="farank">${i+1}</span><b>${FA_PRINC.find(x=>x[0]===k)[1]}</b><small>${faVal(k,c)}</small>
-<span class="facolbtns"><button type="button" class="btn ghost sm" data-faact="up:${k}" aria-label="Higher priority" ${i?"":"disabled"}>▲</button><button type="button" class="btn ghost sm" data-faact="eq:${k}" aria-label="Equal" aria-pressed="${!!p||pend===k}">=</button><button type="button" class="btn ghost sm" data-faact="down:${k}" aria-label="Lower priority" ${i<c.order.length-1?"":"disabled"}>▼</button></span></div>`}).join("")}</div>`}
+/* a ranking: columns with ▲ = ▼; two pressed = become equals */
+function hierHTML(order,eq,pend,label,sub,pre){const pairOf=k=>eq.find(p=>p.includes(k));
+  return `<div class="fahier">${order.map((k,i)=>{const p=pairOf(k);return `<div class="facol${p?" eqpair":pend===k?" eqwait":""}"><span class="farank">${i+1}</span><b>${label(k)}</b><small>${sub(k)}</small>
+<span class="facolbtns"><button type="button" class="btn ghost sm" data-faact="${pre}up:${k}" aria-label="Higher priority" ${i?"":"disabled"}>▲</button><button type="button" class="btn ghost sm" data-faact="${pre}eq:${k}" aria-label="Equal" aria-pressed="${!!p||pend===k}">=</button><button type="button" class="btn ghost sm" data-faact="${pre}down:${k}" aria-label="Lower priority" ${i<order.length-1?"":"disabled"}>▼</button></span></div>`}).join("")}</div>`}
+const faHierHTML={pending:null,tpending:null};
+/* moving in a ranking: blocks of equals move together */
+function hierMove(order,eq,pkey,a,k){
+  const blocks=[];const seen=new Set();for(const x of order){if(seen.has(x))continue;const p=eq.find(q=>q.includes(x));const g=p?order.filter(y=>p.includes(y)):[x];g.forEach(y=>seen.add(y));blocks.push(g)}
+  const bi=blocks.findIndex(g=>g.includes(k));
+  if(a==="up"&&bi>0)[blocks[bi-1],blocks[bi]]=[blocks[bi],blocks[bi-1]];
+  if(a==="down"&&bi<blocks.length-1)[blocks[bi+1],blocks[bi]]=[blocks[bi],blocks[bi+1]];
+  if(a==="eq"){const p=eq.find(q=>q.includes(k)),pend=faHierHTML[pkey];
+    if(p){eq=eq.filter(q=>q!==p);faHierHTML[pkey]=null}
+    else if(pend&&pend!==k&&!eq.some(q=>q.includes(pend))){faHierHTML[pkey]=null;eq=[...eq,[pend,k]];
+      const fl=blocks.flat().filter(x=>x!==k);fl.splice(fl.indexOf(pend)+1,0,k);return {order:fl,eq}}   // the second joins the first, side by side
+    else faHierHTML[pkey]=pend===k?null:k}
+  return {order:blocks.flat(),eq}}
 /* every change goes through here */
 function faWire(root){
-  const c=faMine();
   root.querySelectorAll("[data-fa]").forEach(i=>{const path=i.dataset.fa;if(!path)return;i.onchange=()=>{const c2=faMine();
     if(path==="rushon")c2.rush=i.checked?Math.max(1,c2.rush||1):0;
     else if(path.startsWith("ctl."))c2.ctl[path.slice(4)]=i.checked;
     else if(i.type==="checkbox")c2[path]=i.checked;else c2[path]=i.value;
     faSave(c2)}});
   root.querySelectorAll("[data-faextra]").forEach(i=>i.onchange=()=>{const c2=faMine(),k=i.dataset.faextra;c2.extra=c2.extra.filter(x=>x!==k);if(i.checked)c2.extra.push(k);faSave(c2)});
-  root.querySelectorAll("[data-faact]").forEach(b=>b.onclick=()=>{const c2=faMine(),[a,k]=b.dataset.faact.split(":");
-    if(a==="rush+"||a==="rush-"){c2.rush=Math.max(1,Math.min(9,(c2.rush||1)+(a==="rush+"?1:-1)));faSave(c2);return}
-    const blocks=[];const seen=new Set();for(const x of c2.order){if(seen.has(x))continue;const p=c2.eq.find(q=>q.includes(x));const g=p?c2.order.filter(y=>p.includes(y)):[x];g.forEach(y=>seen.add(y));blocks.push(g)}
-    const bi=blocks.findIndex(g=>g.includes(k));
-    if(a==="up"&&bi>0)[blocks[bi-1],blocks[bi]]=[blocks[bi],blocks[bi-1]];
-    if(a==="down"&&bi<blocks.length-1)[blocks[bi+1],blocks[bi]]=[blocks[bi],blocks[bi+1]];
-    if(a==="eq"){const p=c2.eq.find(q=>q.includes(k));
-      if(p){c2.eq=c2.eq.filter(q=>q!==p);faHierHTML.pending=null}
-      else if(faHierHTML.pending&&faHierHTML.pending!==k&&!c2.eq.some(q=>q.includes(faHierHTML.pending))){const a2=faHierHTML.pending;faHierHTML.pending=null;c2.eq.push([a2,k]);
-        // the second joins the first, side by side
-        const fl=blocks.flat().filter(x=>x!==k);fl.splice(fl.indexOf(a2)+1,0,k);c2.order=fl;faSave(c2);return}
-      else faHierHTML.pending=faHierHTML.pending===k?null:k}
-    c2.order=blocks.flat();faSave(c2)})}
+  root.querySelectorAll("[data-faact]").forEach(b=>b.onclick=()=>{const c2=faMine(),v=b.dataset.faact;
+    if(v==="rush+"||v==="rush-"){c2.rush=Math.max(1,Math.min(9,(c2.rush||1)+(v==="rush+"?1:-1)));faSave(c2);return}
+    const t=v.startsWith("t"),[a,k]=(t?v.slice(1):v).split(":");
+    if(t){const ord=c2.tSameGI?c2.torder.filter(x=>x!=="infantry"):c2.torder,r=hierMove(ord,c2.teq,"tpending",a,k);
+      c2.torder=c2.tSameGI?[...r.order,"infantry"]:r.order;c2.teq=r.eq}
+    else{const r=hierMove(c2.order,c2.eq,"pending",a,k);c2.order=r.order;c2.eq=r.eq}
+    faSave(c2)})}
 function faWindow(){let box=$("#facfg");if(!box){box=document.createElement("div");box.id="facfg";box.className="faov";document.body.appendChild(box)}
   box.hidden=false;paintFA()}
 /* paint the window and the fold-down, wherever they are */
