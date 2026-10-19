@@ -1613,3 +1613,12 @@ html.th-office #foe.minis .pbox.sub{background:color-mix(in srgb,var(--pc) 10%,#
 .krank li b{flex:1;font-weight:400;font-size:12.5px}
 .krank .farank{color:var(--dim);font-size:11px;min-width:1.4em}
 .krank .facolbtns{display:flex;gap:2px}.krank .facolbtns .btn{padding:0 5px;min-width:0}
+/* ================= v56 · large maps: the field scrolls in a frame; zoom sizes the tiles ================= */
+.camwrap.on{overflow:auto;max-height:min(78vh,920px);border:1px solid var(--rule);background:#00000040;position:relative;overscroll-behavior:contain;cursor:grab;margin:8px 0 10px}
+.camwrap.on.dragging{cursor:grabbing}
+.camwrap.on #board.large{width:calc(var(--cols) * var(--tw,64px) + (var(--cols) - 1) * 4px);max-width:none!important;margin:10px}
+#board.large .tile{min-height:0!important}
+#board.large .stack{inset:3px 5%}
+#board.large .row{padding-top:0}
+#board.large .rl{display:none}
+#mCam.faded{opacity:.5}
