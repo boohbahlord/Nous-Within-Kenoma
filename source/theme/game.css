@@ -1622,3 +1622,21 @@ html.th-office #foe.minis .pbox.sub{background:color-mix(in srgb,var(--pc) 10%,#
 #board.large .row{padding-top:0}
 #board.large .rl{display:none}
 #mCam.faded{opacity:.5}
+/* ================= v57 · King of the Hill ================= */
+#board .tile.hilltile::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at 50% 50%,#ffffff40,#ffffff14 70%);box-shadow:inset 0 0 14px #ffffffaa;animation:hillglow 3.2s ease-in-out infinite}
+#board .tile.hilltile.held::after{background:linear-gradient(color-mix(in srgb,var(--hc) 38%,transparent),color-mix(in srgb,var(--hc) 38%,transparent));box-shadow:inset 0 0 0 2px var(--ho),inset 0 0 14px var(--hc)}
+@keyframes hillglow{0%,100%{opacity:.75}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){#board .tile.hilltile::after{animation:none}}
+#kothbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:6px 0 2px;padding:5px 8px;border:1px solid var(--rule);background:#00000055;font-size:12px}
+#kothbar .kt{font-family:"Grenze Gotisch","Old English Text MT",serif;font-weight:500;font-size:16px;color:var(--amber-hi)}
+#kothbar small{color:var(--dim)}
+#kothbar .ks{display:grid;grid-template-columns:auto 60px auto;align-items:center;gap:5px;padding:1px 6px;border-left:3px solid var(--tc)}
+#kothbar .ks.on{background:color-mix(in srgb,var(--tc) 18%,transparent)}
+#kothbar .ks em{font-style:normal}
+#kothbar .ks i{display:block;height:4px;background:var(--tc);min-width:1px}
+#kothbar .ks b{font-weight:500}
+#kothbar .tug{position:relative;flex:1;min-width:140px;height:8px;background:linear-gradient(90deg,#d7333b55,#ffffff22 50%,#4c92e655);border:1px solid var(--rule)}
+#kothbar .tug u{position:absolute;left:50%;top:-3px;bottom:-3px;border-left:1px solid #fff8}
+#kothbar .tug i{position:absolute;top:-4px;width:6px;height:14px;margin-left:-3px;background:#fff;box-shadow:0 0 6px #fff}
+#kothbar .tugname{color:var(--tc)}
+#sizeset.faded{opacity:.5;pointer-events:none}

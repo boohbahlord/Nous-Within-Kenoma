@@ -5,13 +5,15 @@ const MAPS={
   forest:{name:"Forest",         sub:"A clearing in deep woods, with a palisade keep and a camp of tents."},
   dungeon:{name:"Dungeon",       sub:"Flagstones, pillars and torchlight, with no castle and no barracks."},
   river: {name:"River",          sub:"A wide brown river like the Ogun near Lagos, crossed by one bridge. Always 7 wide with the midline, and 1v1 only."},
-  none:  {name:"No map",         sub:"Plain tiles."}
+  none:  {name:"No map",         sub:"Plain tiles."},
+  hill:  {name:"The Hill",       sub:"King of the Hill only: a 25 by 25 night field, forests and mountains around a glowing Hill."}
 };
 /* layouts: duel (two sides), ffa (3 or 4 players, one to each edge), team-side / team-across (2v2 on the edges),
    team-same (2v2, teammates side by side on one side), coop (Survival with several players on one side) */
 const SIDES={bottom:{rot:0,fwd:[-1,0]},left:{rot:1,fwd:[0,1]},top:{rot:2,fwd:[1,0]},right:{rot:3,fwd:[0,-1]}};
 function edgeTiles(side,rows,cols){const o=[];if(side==="bottom")for(let c=0;c<cols;c++)o.push([rows-1,c]);if(side==="top")for(let c=0;c<cols;c++)o.push([0,c]);if(side==="left")for(let r=0;r<rows;r++)o.push([r,0]);if(side==="right")for(let r=0;r<rows;r++)o.push([r,cols-1]);return o}
 function mapPlan(o){
+  if(o.layout==="koth")return kothPlan(o);   // v57: King of the Hill has its own 25 by 25 field
   const n=o.players.length,L=o.layout||"duel";
   let theme=o.map||"random";
   if(theme==="random")theme=pick(["keep","sahel","forest","dungeon"]);   // the special maps (River, no map) are only played when chosen
@@ -73,6 +75,7 @@ const PAL={
   sahel: {ground:"#4c2d1b",patch:["#573421","#3f2516","#62402a"],tuft:"#8a7746",stone:"#8f5a33",stone2:"#6a4026",wood:"#7a5530",wood2:"#55391e",tent:"#937a45",dirt:"#52331e",grave:"#9a856c"},
   forest:{ground:"#1d3020",patch:["#233a26","#172719","#2a452c"],tuft:"#46683e",stone:"#57604f",stone2:"#3f463a",wood:"#5e4228",wood2:"#3e2b19",tent:"#66603f",dirt:"#2f2619",grave:"#7c8276"},
   dungeon:{ground:"#232229",patch:["#2a2931","#1b1a20","#323039"],tuft:"#3b3a42",stone:"#4f4e58",stone2:"#3b3a43",wood:"#4a3622",wood2:"#2f2216",tent:"#4a443c",dirt:"#28252a",grave:"#77757f"},
+  hill:  {ground:"#1f2c1c",patch:["#26341f","#1a2617","#2c3b24"],tuft:"#55703c",stone:"#6a6962",stone2:"#4f4e48",wood:"#5e4328",wood2:"#3e2c1a",tent:"#7a6646",dirt:"#3a2e20",grave:"#8a897f"},
   river: {ground:"#4a2819",patch:["#55301e","#3d2114",""+"#5e3a24"],tuft:"#55783a",stone:"#6e4a30",stone2:"#503420",wood:"#6e4c2a",wood2:"#4a3018",tent:"#6e5c3a",dirt:"#4a2a1a",grave:"#86745e",water:"#3b3622",water2:"#6a6040"}
 };
 const f1=n=>n.toFixed(1);

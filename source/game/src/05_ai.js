@@ -75,8 +75,9 @@ const AI=(()=>{
     if(near===99){   // nothing in sight (fog of war): head for the enemy's ground
       let d=99;for(const e of enemiesOf(pl))for(const [er,ec] of zoneTiles(e))d=Math.min(d,walk(r,c,er,ec));near=d===99?0:d*.8}
     // the Horde and offense push toward the enemy's back line too
-    const ctr=W.ctr?Math.abs(r-(G.rows-1)/2)+Math.abs(c-(COLS-1)/2):0;   // Field Automation: holding the center
-    return W.atk*opp-W.def*risk-W.dist*near+W.ally*allies-(W.ctr||0)*ctr;
+    const kc=G.opts.layout==="koth"&&!isHorde(pl)?.55:0;   // v57: King of the Hill: everyone wants the Hill in the middle
+    const ctr=W.ctr||kc?Math.abs(r-(G.rows-1)/2)+Math.abs(c-(COLS-1)/2):0;   // Field Automation: holding the center
+    return W.atk*opp-W.def*risk-W.dist*near+W.ally*allies-(W.ctr||kc)*ctr;
   }
   /* v44 · Field Automation: support cards (Scouts, Healers, Repairmen) serve the stacks they support instead of chasing fights.
      A Healer keeps beside or inside a hurt or strong stack, a Repairman beside a damaged base, a Scout a step or two from its own
