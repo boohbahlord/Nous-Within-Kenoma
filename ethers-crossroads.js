@@ -2283,6 +2283,9 @@ ${chk("obarb","Demons (default)","Every 4 + 1d12 turns a crimson band of Grunts,
 <p class="dim">An empty pit in the center of the field, never on the River map and never in anyone's lines; it only grows where there is room.</p>
 ${chk("olock","Optional Ace rule","Cards inside an Ace must match its color.",false)}
 </fieldset>
+<fieldset class="pf"><legend>Cheats</legend>
+${chk("ocheat","Cheat mode","Off by default. Free magic, infinite mana, every spell, blocks, rare events and spawns on demand, and no victory or loss, from a Cheat button beside Configure. Every player sees that it is on.",false)}
+</fieldset>
 <fieldset class="pf"><legend>Mana</legend>
 <label class="f">Starting mana <select id="omana"><option value="3d2" selected>3d2 (default)</option><option value="1d6">1d6</option><option value="none">None</option>${[1,2,3,4,5,6].map(n=>`<option value="${n}">${n}</option>`).join("")}</select></label>
 ${chk("obank","The Bank opens with mana","The Bank starts with (2 × players)d2 mana to lend. Off by default: it fills up from the mana spent on spells.",false)}
@@ -2450,7 +2453,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     }
     if(mode==="survival")players.push({name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>!players.some(p=>p.solid===s)))||"dodeca",cpu:"horde"});
     PREF.hand=val("dhand")||PREF.hand;PREF.sel=val("dsel")||PREF.sel;PREF.ctl=val("dctl")||PREF.ctl;PREF.theme=val("dtheme")??PREF.theme;PREF.coords=val("dcoord")==="1";PREF.full=val("dfull")==="1";PREF.lines=val("dlines")!=="0";if($("#danimc")){PREF.fxCards=$("#danimc").checked;PREF.fxMagic=$("#danimm").checked}PREF.bright=+($("#dbright")||{}).value||1;savePrefs();applyPrefs();
-    startGame({mode,players,mid:mode==="survival"||(val("orowsd")?+val("orowsd")>4:true),aceLock:$("#olock").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off","saturn"].includes(val("omoonon")||"on"),
+    startGame({mode,players,mid:mode==="survival"||(val("orowsd")?+val("orowsd")>4:true),aceLock:$("#olock").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,cheat:!!($("#ocheat")&&$("#ocheat").checked),hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off","saturn"].includes(val("omoonon")||"on"),
       map:L==="koth"?"hill":val("omap"),big:L==="koth"?"":val("obig")||"",koth:L==="koth"?{team:$("#okteam").checked,tug:$("#okteam").checked&&$("#oktug").checked,double:$("#okdouble").checked,contest:$("#okcontest").checked,target:+val("oktarget")||50,near:val("oknear")==="near"}:null,cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:L==="duel"&&val("orowsd")?+val("orowsd"):undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
       decks:+val("odecks"),specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:+val("odecks")===1&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
       startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",atkSpells:$("#oatk").checked,pshop:$("#opshop")?$("#opshop").checked:true,
@@ -8049,7 +8052,7 @@ const ROOM_DIR="ec-rooms-v1",ROOM_TTL=60000,ROOM_BEAT=20000;
 const roomTZ=()=>{try{const z=Intl.DateTimeFormat().resolvedOptions().timeZone||"",o=-new Date().getTimezoneOffset(),h=Math.trunc(o/60),m=Math.abs(o%60);
   const off=`UTC${o>=0?"+":"−"}${Math.abs(h)}${m?":"+String(m).padStart(2,"0"):""}`,city=z.split("/").pop().replace(/_/g," ");return !city||/^(UTC|GMT|Etc)/.test(z)?(o?off:"UTC"):`${city} (${off})`}catch(e){return ""}};
 const cleanRoom=r=>({code:String(r&&r.code||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,12),title:String(r&&r.title||"").slice(0,40),desc:String(r&&r.desc||"").slice(0,200),
-  players:Math.max(1,Math.min(8,+(r&&r.players)||1)),cap:Math.max(2,Math.min(8,+(r&&r.cap)||4)),tz:String(r&&r.tz||"").slice(0,40),playing:!!(r&&r.playing),local:!!(r&&r.local)});
+  players:Math.max(1,Math.min(8,+(r&&r.players)||1)),cap:Math.max(2,Math.min(8,+(r&&r.cap)||4)),tz:String(r&&r.tz||"").slice(0,40),playing:!!(r&&r.playing),local:!!(r&&r.local),cheat:!!(r&&r.cheat)});
 
 /* ---------- a stand-in for the connection service between tabs of one browser (for LOCAL rooms and for trying it alone) ---------- */
 class TabPeer{
@@ -8087,7 +8090,7 @@ function dirKeep(peer){DIR.peer=peer;DIR.keeper=true;
     else if(d.t==="unreg"&&d.code)delete DIR.rooms[String(d.code).toUpperCase()];
     else if(d.t==="list")send1(c,{t:"rooms",rooms:dirList()})})})}
 function dirList(){const now=Date.now();for(const [k,r] of Object.entries(DIR.rooms))if(now-r.at>ROOM_TTL)delete DIR.rooms[k];return Object.values(DIR.rooms).map(r=>{const o={...r};delete o.at;return o})}
-function myRoom(){const R=NET.room||{};return cleanRoom({code:NET.code,title:R.title||`${NET.name}'s room`,desc:R.desc,players:1+guestIds().length,cap:R.cap,tz:roomTZ(),playing:!!(G&&G.opts.online&&!G.over),local:roomsLocal()})}
+function myRoom(){const R=NET.room||{};return cleanRoom({code:NET.code,title:R.title||`${NET.name}'s room`,desc:R.desc,players:1+guestIds().length,cap:R.cap,tz:roomTZ(),playing:!!(G&&G.opts.online&&!G.over),local:roomsLocal(),cheat:G&&G.opts.online&&!G.over?!!G.opts.cheat:!!($("#ocheat")&&$("#ocheat").checked)})}
 async function dirBeat(){if(DIR.busy)return;DIR.busy=true;
   try{const open=(NET.role==="lobby-host"||NET.role==="host")&&NET.room&&NET.room.open;
     if(!open){if(DIR.conn)try{send1(DIR.conn,{t:"unreg",code:NET.code});DIR.conn.close()}catch(e){}DIR.conn=null;
@@ -8139,7 +8142,7 @@ async function paintRooms(){const box=$("#rmList");if(!box)return;box.innerHTML=
   if(!$("#rmList"))return;
   if(!rooms.length){box.innerHTML='<p class="dim">No open rooms right now. Open one yourself, or join a friend with their code.</p>';return}
   rooms.sort((a,b)=>a.playing-b.playing||b.players-a.players);
-  box.innerHTML=`<ul class="rmlist">${rooms.map((r,i)=>`<li><div class="rmtop"><b>${esc(r.title||"A room")}</b><span class="rmn">${r.players}/${r.cap} players</span>${r.playing?'<span class="rmtag">playing</span>':""}</div>
+  box.innerHTML=`<ul class="rmlist">${rooms.map((r,i)=>`<li><div class="rmtop"><b>${esc(r.title||"A room")}</b><span class="rmn">${r.players}/${r.cap} players</span>${r.playing?'<span class="rmtag">playing</span>':""}${r.cheat?'<span class="rmtag cheattag" title="The host has cheat mode on.">cheat mode on</span>':""}</div>
 <div class="rmsub dim">${esc(r.tz||"")}</div>${r.desc?`<details class="rmd"><summary>About this room</summary><p>${esc(r.desc)}</p></details>`:""}
 <p><button type="button" class="btn sm" data-rmjoin="${i}" ${r.players>=r.cap?"disabled":""}>${r.players>=r.cap?"Full":r.playing?"Join and watch":"Join"}</button></p></li>`).join("")}</ul>`;
   box.querySelectorAll("[data-rmjoin]").forEach(b=>b.onclick=()=>{const r=rooms[+b.dataset.rmjoin];$("#onCode").value=r.code;$("#onJoin").click()})}
@@ -9966,5 +9969,124 @@ const mapStep=()=>{const v=PREF.mapStep;return v==null?3:Math.max(0,Math.min(3,v
 /* ---------- music: The Crossroads plays while a game is set up; the game's songs once it starts ---------- */
 {const _sg=startGame;startGame=function(){const out=_sg.apply(this,arguments);try{window.ECMusic&&ECMusic.setLobby&&ECMusic.setLobby(false)}catch(e){}return out}}
 {const _ss=showStart;showStart=function(){const out=_ss.apply(this,arguments);try{window.ECMusic&&ECMusic.setLobby&&ECMusic.setLobby(true)}catch(e){}return out}}
+
+/* ---------------- v63: cheat mode (the user's design) ----------------
+   - Off by default; a switch in the setup's Rules tab asks "Are you sure?" first ("Yes, I understand"); it works in any mode.
+     Online rooms show that the host has it on, and every player sees "Cheat mode" on the screen.
+   - A Cheat button beside the Configure button, and a Cheats fold below Configure Automation (its own switch hides it; it is
+     shown at first only to players who hold the cheat menu). Both hold the same menu:
+     free magic (me / everyone), the cheat menu for everyone, infinite mana (me / everyone / the Banker), an Ether that never
+     empties, every spell in a Cheat List (me / everyone), blocking schools and single spells (they take effect at the next
+     round), rare events on demand, Demons and Collectors on demand, and no victory or loss (a player who runs out starts
+     again with their deck). */
+
+const cheatOn=()=>!!(G&&G.opts&&G.opts.cheat);
+const CH=()=>G.cheat||(G.cheat={all:false,free:[],freeAll:false,inf:[],infAll:false,infBank:false,etherInf:false,list:[],listAll:false,
+  block:{schools:[],spells:[]},blockNext:null,noWin:false});
+const localSeat=pl=>!!(G&&G.p[pl]&&!G.p[pl].net&&!G.p[pl].cpu&&!isNPC(pl));   // the seats of the device that turned it on
+const cheatHas=pl=>cheatOn()&&pl!=null&&G.p[pl]&&!G.p[pl].cpu&&(CH().all||localSeat(pl));
+const cheatFree=pl=>cheatOn()&&(CH().freeAll||CH().free.includes(pl));
+const cheatInf=pl=>cheatOn()&&(CH().infAll||CH().inf.includes(pl))&&!isNPC(pl);
+const cheatList=pl=>cheatOn()&&(CH().listAll||CH().list.includes(pl));
+
+/* ---------- the changes, made by the host (a guest's change is sent to the host) ---------- */
+function setCheat(pl,key,val){if(!cheatHas(pl))return false;const C=CH();
+  const tog=(arr,on)=>{const s=new Set(C[arr]);on?s.add(pl):s.delete(pl);C[arr]=[...s]};
+  if(key==="free")tog("free",val);else if(key==="inf")tog("inf",val);else if(key==="list")tog("list",val);
+  else if(["freeAll","infAll","infBank","etherInf","listAll","all","noWin"].includes(key))C[key]=!!val;
+  else if(key==="blockSchool"||key==="blockSpell"){const N=C.blockNext||(C.blockNext={schools:[...C.block.schools],spells:[...C.block.spells]}),arr=key==="blockSchool"?N.schools:N.spells,s=new Set(arr);
+    val.on?s.add(val.k):s.delete(val.k);N[key==="blockSchool"?"schools":"spells"]=[...s]}
+  else return false;
+  log(`<b>Cheat mode</b>: ${plName(pl)} changes a cheat (${esc(cheatLabel(key,val))}).`,"event");render();return true}
+const cheatLabel=(k,v)=>({free:"free magic for them",freeAll:"free magic for everyone",inf:"infinite mana for them",infAll:"infinite mana for everyone",infBank:"infinite mana for the Banker",
+  etherInf:"an Ether that never empties",list:"every spell for them",listAll:"every spell for everyone",all:"the cheat menu for everyone",noWin:"no victory or loss",
+  blockSchool:`${v&&v.on?"block":"unblock"} ${v&&v.k} from the next round`,blockSpell:`${v&&v.on?"block":"unblock"} ${v&&SP(v.k)?SP(v.k).name:""} from the next round`})[k]+(typeof v==="boolean"?(v?": on":": off"):"");
+async function cheatEvent(pl,k){if(!cheatHas(pl))return false;
+  if(k==="blood"){G.moon.blood=true;applyMoonTheme();log("<b>Cheat mode</b>: a <b>Blood Moon</b> rises. Every card killed this round falls into the Outer Darkness.","event")}
+  else if(k==="meteor")meteor();
+  else if(PLANETS[k]&&typeof eclipse==="function"){if(G.eclipse)endEclipse();await eclipse(k)}
+  else if(k==="demons"){if(npcIx("barb")<0){flash("The Demons are off in this game (the Rules tab turns them on).");return false}spawnBarbarians(false)}
+  else if(k==="collectors"){if(!sendCollectors(1)){flash("The Bank has no debtor to send Collectors after.");return false}}
+  else return false;
+  render();return true}
+for(const [name,get,set] of [["setCheat",()=>setCheat,f=>setCheat=f],["cheatEvent",()=>cheatEvent,f=>cheatEvent=f]]){
+  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+
+/* ---------- what the cheats do ---------- */
+{const _sc=spellCost;spellCost=function(sp){if(G&&cheatFree(G.active))return 0;return _sc.apply(this,arguments)}}
+{const _ca=canAfford;canAfford=function(pl,n){if(cheatInf(pl))return true;return _ca.apply(this,arguments)}}
+{const _sp=spend;spend=function(pl,n){if(cheatInf(pl))return;return _sp.apply(this,arguments)}}
+{const _cr=cycleRound;cycleRound=function(){if(G&&cheatOn()){const C=CH();if(C.blockNext){C.block=C.blockNext;C.blockNext=null;log("<b>Cheat mode</b>: the spell blocks change with the new round.","event")}
+  if(C.infBank&&G.bank&&!G.bank.dead)G.bank.mana=Math.max(G.bank.mana,999)}return _cr.apply(this,arguments)}}
+{const _sb=spellBlock;spellBlock=function(sp){if(sp&&cheatOn()){const B=CH().block;if(B.schools.includes(sp.school)||B.spells.includes(sp.id))return "Blocked in cheat mode."}return _sb.apply(this,arguments)}}
+/* the Ether that never empties: whatever is conjured out of it comes back as a new card of the same kind */
+for(const [name,get,set] of [["conjure",()=>conjure,f=>conjure=f],["conjureU",()=>conjureU,f=>conjureU=f]]){const orig=get();
+  set(async function(){const before=new Set(G.ether.map(c=>c.id)),out=await orig.apply(this,arguments);
+    if(cheatOn()&&CH().etherInf){const now=new Set(G.ether.map(c=>c.id));for(const id of before)if(!now.has(id)){const c=[...G.p.flatMap(P=>[...P.deck,...P.hand])].find(x=>x.id===id);
+      if(c)G.ether.push(c.unit?mkUnit(c.unit,null):mk(c.rank,c.suit,c.color))}}
+    return out})}
+/* every spell in a Cheat List: the spells of other Substances, castable */
+{const _sr=spellReady;spellReady=function(sp){if(sp&&sp.tribe&&G&&cheatList(G.active)&&G.p[G.active].tribe!==sp.tribe)return phaseOk(sp)&&!spellBlock(sp)&&sp.ok()&&canAfford(G.active,spellCost(sp));return _sr.apply(this,arguments)}}
+{const _c=cast;cast=async function(sp){const P=G&&G.p[G.active];if(sp&&sp.tribe&&P&&cheatList(G.active)&&P.tribe!==sp.tribe){const t=P.tribe;P.tribe=sp.tribe;try{return await _c.apply(this,arguments)}finally{P.tribe=t}}return _c.apply(this,arguments)}}
+{const _rs=renderSpells;renderSpells=function(live){_rs.apply(this,arguments);if(!G||!cheatOn())return;const V=view(),P=G.p[V],box=$("#spells");if(!box||!P||!cheatList(V))return;
+  const list=SPELLS.filter(s=>s.tribe&&s.tribe!==P.tribe&&!ETHER_IDS.has(s.id)).sort((a,b)=>a.school.localeCompare(b.school)||a.name.localeCompare(b.name));if(!list.length)return;
+  box.insertAdjacentHTML("beforeend",`<details class="school cheatlist" data-sc="Cheat List" open><summary>Cheat List</summary>${list.map(s=>spellRow(s,live)).join("")}</details>`);
+  box.querySelectorAll(".cheatlist [data-s]").forEach(b=>b.onclick=()=>{if(!canAct())return;cast(SP(b.dataset.s))})}}
+/* no victory or loss: a player who would be out starts again with the deck they began with */
+{const _ng=newGame;newGame=function(){const out=_ng.apply(this,arguments);if(G&&cheatOn())G.cheatDecks=G.p.map(P=>[...P.deck,...P.hand].map(c=>({rank:c.rank,suit:c.suit,color:c.color,unit:c.unit})));return out}}
+{const _el=eliminate;eliminate=function(pl,why){if(!G||!cheatOn()||!CH().noWin||isNPC(pl)||isHorde(pl)||!G.cheatDecks||!G.cheatDecks[pl])return _el.apply(this,arguments);
+  const P=G.p[pl];P.deck=shuffle(G.cheatDecks[pl].map(d=>d.unit?mkUnit(d.unit,pl):Object.assign(mk(d.rank,d.suit,d.color),{owner:pl})));P.hand=[];
+  const ai=P.deck.findIndex(c=>kind(c)==="ace"),back=(seat(pl).back||[]).filter(([r,c])=>!isVoid(r,c)&&!G.board[r][c]);
+  if(ai>=0&&back.length){const a=P.deck.splice(ai,1)[0];a.owner=pl;const [r,c]=back[0];G.board[r][c]={owner:pl,cards:[a],moved:true,attacked:false}}
+  draw(pl,5,"cheat");log(`<b>Cheat mode</b>: ${plName(pl)} would be out (${why}), but starts again with their deck.`,"event");
+  if(!P.cpu)popup("Cheat mode: you start again",`<p>${esc(why)}. With victory and loss off, you are not out: you start again with the deck you began with${back.length?", an Ace on your back line":""} and five cards in hand.</p>`,pl);render()}}
+
+/* ---------- the menu: the Cheat button, its window, and the Cheats fold ---------- */
+const CHEAT_EVENTS=()=>[["blood","A Blood Moon"],["meteor","A meteor"],...Object.keys(PLANETS).map(k=>[k,`The eclipse of ${PLANETS[k].name.replace(/^The /,"the ")}`])];
+function cheatHTML(V){const C=CH(),me=k=>C[k].includes(V),row=(key,on,label,val)=>`<label class="farow"><span class="fal"><b>${label}</b></span><input type="checkbox" data-cheat="${key}" ${on?"checked":""}></label>`;
+  const N=C.blockNext||C.block,schools=[...new Set(SPELLS.map(s=>s.school))];
+  return `<p class="cheatnote">⚠ Changes to spells (blocks) take effect at the next round.</p>
+<div class="cheatgrid">
+<section><h4>Magic and mana</h4>${row("free",me("free"),"Free magic: me")}${row("freeAll",C.freeAll,"Free magic: everyone")}${row("inf",me("inf"),"Infinite mana: me")}${row("infAll",C.infAll,"Infinite mana: everyone")}${row("infBank",C.infBank,"Infinite mana: the Banker")}${row("etherInf",C.etherInf,"The Ether never empties")}</section>
+<section><h4>Spells and players</h4>${row("list",me("list"),"Every spell (Cheat List): me")}${row("listAll",C.listAll,"Every spell: everyone")}${row("all",C.all,"The cheat menu for everyone")}${row("noWin",C.noWin,"No victory or loss")}</section>
+<section><h4>Rare events</h4><div class="cheatbtns">${CHEAT_EVENTS().map(([k,t])=>`<button type="button" class="btn ghost sm" data-chev="${k}">${esc(t)}</button>`).join("")}</div>
+<h4>Spawn</h4><div class="cheatbtns"><button type="button" class="btn ghost sm" data-chev="demons">A band of Demons</button><button type="button" class="btn ghost sm" data-chev="collectors">The Bank's Collectors</button></div></section>
+<section class="cheatblock"><h4>Block schools and spells <small class="dim">(pick a school to see its spells)</small></h4>${schools.map(sc=>`<details><summary><label class="cbs" onclick="event.stopPropagation()"><input type="checkbox" data-cbs="${esc(sc)}" ${N.schools.includes(sc)?"checked":""}> Block</label> ${esc(sc)}</summary><div class="cheatspells">${SPELLS.filter(s=>s.school===sc).sort((a,b)=>a.name.localeCompare(b.name)).map(s=>`<label class="cbsp"><input type="checkbox" data-cbsp="${s.id}" ${N.spells.includes(s.id)?"checked":""}> ${esc(s.name)}</label>`).join("")}</div></details>`).join("")}</section>
+</div>`}
+function wireCheat(root,V){
+  root.querySelectorAll("[data-cheat]").forEach(i=>i.onchange=()=>setCheat(V,i.dataset.cheat,i.checked));
+  root.querySelectorAll("[data-chev]").forEach(b=>b.onclick=()=>cheatEvent(V,b.dataset.chev));
+  root.querySelectorAll("[data-cbs]").forEach(i=>i.onchange=()=>setCheat(V,"blockSchool",{k:i.dataset.cbs,on:i.checked}));
+  root.querySelectorAll("[data-cbsp]").forEach(i=>i.onchange=()=>setCheat(V,"blockSpell",{k:i.dataset.cbsp,on:i.checked}))}
+function cheatWindow(){const V=view();if(!cheatHas(V))return;let w=$("#cheatw");if(!w){w=document.createElement("div");w.id="cheatw";w.className="faov";document.body.appendChild(w)}
+  w.innerHTML=`<div class="ovbox wide cheatbox" role="dialog" aria-labelledby="cheatq"><button type="button" class="xclose" id="cheatX" aria-label="Close">×</button><h2 id="cheatq">Cheat mode</h2>${cheatHTML(V)}<p class="acts"><button type="button" class="btn" id="cheatOk">Done</button></p></div>`;
+  w.hidden=false;wireCheat(w,V);const close=()=>{w.hidden=true};$("#cheatX").onclick=close;$("#cheatOk").onclick=close}
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const on=cheatOn(),V=view(),has=on&&cheatHas(V);
+  // the sign every player sees
+  let b=$("#cheatbadge");if(on&&!b){b=document.createElement("div");b.id="cheatbadge";b.textContent="Cheat mode";b.title="Cheat mode is on in this game.";document.body.appendChild(b)}if(b)b.hidden=!on;
+  // the Cheat button beside Configure
+  const bar=document.querySelector(".fabar");if(bar){let cb=bar.querySelector(".cheatb");if(has&&!cb){bar.insertAdjacentHTML("beforeend",`<button type="button" class="btn ghost sm cheatb" aria-label="Cheat mode">Cheat</button>`);cb=bar.querySelector(".cheatb");cb.onclick=cheatWindow}if(cb&&!has)cb.remove()}
+  // the Cheats fold below Configure Automation
+  let d=$("#cheatpanel");const want=has&&PREF.cheatPanel!==false;
+  if(!want){if(d)d.remove()}else{const info=$("#info");if(info){if(!d){d=document.createElement("details");d.id="cheatpanel";d.className="cinfo cheatpanel";d.open=!!PREF.cheatOpen;d.addEventListener("toggle",()=>{PREF.cheatOpen=d.open;savePrefs()})}
+    const fa=$("#fapanel");if(fa){if(d.previousElementSibling!==fa)fa.after(d)}else if(d.parentNode!==info||info.firstElementChild!==d)info.prepend(d);
+    const key=JSON.stringify(CH())+V;if(d.dataset.k!==key){d.dataset.k=key;d.innerHTML=`<summary>Cheats <span class="dim fasum">· cheat mode is on</span></summary><p class="fafull automaster"><button type="button" class="btn sm ghost" id="cheatHide">Hide this fold</button><span class="dim">The Cheat button beside Configure still opens the menu; Display in the Menu brings this fold back.</span></p>${cheatHTML(V)}`;
+      wireCheat(d,V);$("#cheatHide").onclick=()=>{PREF.cheatPanel=false;savePrefs();render()}}}}}}
+/* the Menu can bring the fold back */
+{const _om=openMenu;openMenu=function(){_om.apply(this,arguments);if(!cheatOn())return;const m=$("#menu"),a=m&&m.querySelector("#mCardSym");if(!a||m.querySelector("#mCheatPanel"))return;
+  a.closest("label").insertAdjacentHTML("afterend",`<label class="f">Cheats fold <select id="mCheatPanel"><option value="1" ${PREF.cheatPanel!==false?"selected":""}>Shown</option><option value="0" ${PREF.cheatPanel===false?"selected":""}>Hidden</option></select></label>`);
+  $("#mCheatPanel").onchange=e=>{PREF.cheatPanel=e.target.value==="1";savePrefs();render()}}}
+
+if(window.__EC)Object.assign(window.__EC,{castW:(...a)=>cast(...a),eliminateW:(...a)=>eliminate(...a),cycleRoundW:(...a)=>cycleRound(...a),spellCostW:(...a)=>spellCost(...a),canAffordW:(...a)=>canAfford(...a),spellReadyW:(...a)=>spellReady(...a),spellBlockW:(...a)=>spellBlock(...a),cheatHas,setCheat:(...a)=>setCheat(...a),cheatEvent:(...a)=>cheatEvent(...a),cheatWindow,CH});
+
+/* ---------- the setup switch asks first; turning it off doesn't ---------- */
+document.addEventListener("change",e=>{const i=e.target;if(!i||i.id!=="ocheat"||!i.checked)return;i.checked=false;
+  let w=$("#cheatq");if(!w){w=document.createElement("div");w.id="cheatq";w.className="faov";document.body.appendChild(w)}
+  w.innerHTML=`<div class="ovbox cheatbox" role="alertdialog" aria-labelledby="cheatqh"><button type="button" class="xclose" id="cheatqX" aria-label="No, keep it off">×</button><h2 id="cheatqh">Are you sure?</h2>
+<p>Cheat mode lets you change the rules while you play: free magic, infinite mana, every spell, blocks, rare events and spawns, and no victory or loss. Every player sees that it is on, and an online room shows it in the list.</p>
+<p class="acts"><button type="button" class="btn" id="cheatqY">Yes, I understand</button></p></div>`;w.hidden=false;
+  const close=on=>{w.hidden=true;i.checked=on;if(on)i.dispatchEvent(new Event("input",{bubbles:true}))};
+  $("#cheatqY").onclick=()=>close(true);$("#cheatqX").onclick=()=>close(false);w.onclick=ev=>{if(ev.target===w)close(false)};$("#cheatqY").focus()});
+document.addEventListener("keydown",e=>{const w=$("#cheatq");if(e.key==="Escape"&&w&&!w.hidden){w.hidden=true}});
 
 })();
