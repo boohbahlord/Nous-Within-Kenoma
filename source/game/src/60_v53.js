@@ -30,7 +30,7 @@ function dropBountyCards(pl,ids){const P=G.p[pl];if(!P)return [];const out=bount
 {const _sd=siegeDecor;siegeDecor=function(inner,st,V,r,c){let h=_sd.apply(this,arguments);if(!st)return h;
   const P=G.p[st.owner];let cls="";
   if(P&&P.npc==="barb"||st.cards.some(x=>x.barb))cls+=" demon";
-  if(P&&P.npc==="bank"&&st.cards.every(x=>x.unit==="debt"))cls+=" bankcoll";
+  if(P&&P.npc==="bank"&&st.cards.every(x=>x.unit==="debt"||x.unit==="carriage"))cls+=" bankcoll";
   if(st.bounty!=null)cls+=" bountycoll";
   return cls?h.replace('class="stack ',`class="stack${cls} `):h}}
 

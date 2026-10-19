@@ -154,7 +154,7 @@ function render(){
       const z=G.zone[r][c];if(!duel&&z>=0)cls.push("zone");
       let inner="";
       if(st){
-        const lead=st.cards.find(isBase)||st.cards.find(x=>x.unit&&UNIT[x.unit].hp)||[...st.cards].sort((a,b)=>nat(b)-nat(a)||kind(b).localeCompare(kind(a)))[0];
+        const lead=st.cards.find(isBase)||st.cards.find(x=>x.unit&&UNIT[x.unit].hp&&!(x.unit==="carriage"&&st.cards.length>1))||[...st.cards.filter(x=>x.unit!=="carriage")].sort((a,b)=>nat(b)-nat(a)||kind(b).localeCompare(kind(a)))[0]||[...st.cards].sort((a,b)=>nat(b)-nat(a)||kind(b).localeCompare(kind(a)))[0];
         const P=G.p[st.owner],mine=st.owner===V;
         const cap=st.cards.reduce((a,x)=>a+capMana(x),0);
         const odd=lead.unit||lead.puppet,ic=odd?inkSVG(lead.puppet?"puppet":lead.unit,inkOf(lead),28):"";
