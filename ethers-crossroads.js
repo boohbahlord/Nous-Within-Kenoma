@@ -107,7 +107,7 @@ const TRIBES={
  yald:{name:"Yaldabaoth",sub:"Always the symbol of Saturn. Night's Judgement eats the moon, God Hunger eats cards, and seven eaten bring Saturn and its Debt Collectors.",solid:"saturn"}
 };
 const PLAYABLE=Object.keys(TRIBES).filter(k=>k!=="random"&&!TRIBES[k].soon);
-const COLORS=[["Ember","#ee7a3c"],["Gold","#e3b944"],["Verdigris","#45b89c"],["Azure","#4c92e6"],["Violet","#a77de8"],["Rose","#e4648f"],["Crimson","#d7333b"],["Moss","#8fb33f"],["Ash","#a9a7b8"]];   // Bone belongs to the Angel Machine
+const COLORS=[["Ember","#ee7a3c"],["Gold","#e3b944"],["Verdigris","#45b89c"],["Azure","#4c92e6"],["Violet","#a77de8"],["Rose","#e4648f"],["Crimson","#d7333b"],["Moss","#8fb33f"],["Frost","#74d7ea"]];   // Bone belongs to the Angel Machine
 const SOLIDS={tetra:"Tetrahedron",cube:"Cube",octa:"Octahedron",dodeca:"Dodecahedron",icosa:"Icosahedron"};
 const HORDE_COLOR="#97a487";
 
@@ -1733,8 +1733,8 @@ function solidPath(s){
   if(s==="dodeca"){const o=poly(10,9.5,-90),i=poly(5,4.4,-90);return ring(o)+ring(i)+i.map((v,k)=>seg(v,o[2*k])).join("")}
   if(s==="mask"){   // Antony's white mask: the dark smile gap and the cracked corners
     return "M0,-10C6,-10 8.5,-6 8.5,-1C8.5,5 5,9.5 0,9.5C-5,9.5 -8.5,5 -8.5,-1C-8.5,-6 -6,-10 0,-10Z"+"M-5.5,-2.5L-2,-3.2 M2,-3.2L5.5,-2.5"+"M-5,3.2C-2.5,6 2.5,6 5,3.2C2.5,4.6 -2.5,4.6 -5,3.2Z"+"M-8.5,-3L-6,-5.5L-6.8,-8 M8.5,-3L6.4,-4.4L7.4,-7.4 M-7.5,5L-5.6,6.6 M7.6,4.8L5.4,6.8"}
-  if(s==="claw"){   // the demon's clawed hand
-    return "M-6,10C-7,5 -7.5,1 -6.5,-2L-9,-9 M-6.5,-2C-5,-4 -3.5,-5 -2,-5.5L-3,-11 M-2,-5.5C0,-5.8 1.6,-5.4 2.8,-4.6L3.6,-10.5 M2.8,-4.6C4.5,-3.5 5.6,-2 6,0L9.5,-5 M6,0C6.8,3 6.2,7 5,10 M-3,10C-2.2,6 -1,3.6 0.5,2.6"}
+  if(s==="claw"){   // v60: the demon's claws: three hooked talons rising from a fist
+    return "M-5.4,3.6C-8.8,0.4 -10.4,-4 -9.6,-9.6C-8.2,-5.6 -5.6,-2.2 -2,0.6 M-1.6,0.4C-2.6,-4 -1.6,-7.8 1.4,-10.8C0.4,-7.2 0.8,-3.4 2.2,0.8 M2.6,1.2C5.2,-2.2 7.6,-4.8 10.4,-6.4C9.2,-3.2 7.8,0.2 5.8,3.8 M-6.2,4C-4.6,10 4.4,10 6.2,4 M-3.6,6.4C-1.4,7.4 1.6,7.4 3.6,6.4"}
   if(s==="scroll"){   // Lucifer's ink and scroll
     return "M-8,-8H5C7,-8 8,-7 8,-5V7C8,9 7,10 5,10H-6 M-8,-8C-10,-8 -10,-4 -8,-4H-5V8C-5,10 -8,10 -8,8 M-2,-3H3 M-2,0H5 M-2,3H3 M3,-1L10,-10 M3,-1L2.4,1.6L5,0.6Z"}
   if(s==="saturn"){   // Saturn and its ring
@@ -2185,7 +2185,7 @@ function infoHTML(){
 <details class="cinfo"><summary>Spells explained</summary><div class="spellinfo">${spells}<p class="dim">New Moon: Clairvoyance and Naked Hand cost 6. Full Moon: Clairvoyance costs 2, Naked Hand is free, and no necromancy is cast. Blood Moon: Full Moon prices with no Full Moon drawbacks; necromancy is allowed. The moon turns one phase per round, once every player has had a turn.</p></div></details>
 <details class="cinfo"><summary>Further explanations</summary>
 <details class="sub"><summary>Substances explained</summary><dl class="spellinfo">${subs}</dl><p class="dim">Only the Beginner can be played by more than one player in a game. The full rules for each are on the All Rules page.</p></details>
-<details class="sub"><summary>Fog of war and stealth explained</summary><dl class="spellinfo"><dt>Fog of war</dt><dd>On by default (Rules tab). Each of your cards sees only the eight tiles around it, straight and diagonal; a Scout sees two tiles out in a diamond (two straight, one diagonal). Shaded tiles are out of sight: enemy cards there stay hidden, and the log only says that something moved out of sight.</dd><dt>Shooting into the fog</dt><dd>Archers, Cannons, Rifles and the Slugshot Cannon can fire at a fogged tile in reach. If nothing is there the shot is lost; if something is, it is a normal attack, but all you learn is whether it hit: you hear the blow land.</dd><dt>Scouts</dt><dd>Never attack or defend. Everything in a Scout's diamond of sight is uncovered: Assassins, ambushers, face-down cards and enemy Scouts. Every Ace you put down brings one from the Ether.</dd><dt>Assassins</dt><dd>Hidden from enemies unless one of their cards stands right beside it (straight, not diagonal) or a Scout is near. Two hearts; 10 + 1d12 to attack, 8 to defend. Only another Assassin stacks with one.</dd><dt>Face down</dt><dd>Tick "Place it face down" before putting a card down. Enemies see only its back. Double disadvantage to attack, advantage to defend; it turns face up once it attacks or is attacked.</dd><dt>Ambush</dt><dd>Select an Assassin or face-down stack in your prep phase and press "Set an ambush": it turns sideways, hides like an Assassin, and strikes with advantage, out of turn, at the first enemy that steps beside it (diagonals too for a Jack's reach). Moving it ends the ambush.</dd><dt>Quiet Eyes and Bird's Eye</dt><dd>Quiet Eyes (Illusion) blinds enemies without a Scout to all but what is right beside them, 2 mana a round for 1d2 + 1 rounds. Bird's Eye (Sorcery) lifts the fog for your side for a round, but not a Delusion.</dd></dl></details>
+<details class="sub"><summary>Fog of war and stealth explained</summary><dl class="spellinfo"><dt>Fog of war</dt><dd>On by default (Rules tab). Each of your cards sees only the eight tiles around it, straight and diagonal; a Scout sees two tiles out in a diamond (two straight, one diagonal). Shaded tiles are out of sight: enemy cards there stay hidden, and the log only says that something moved out of sight.</dd><dt>Shooting into the fog</dt><dd>Archers, Cannons, Rifles and the Slugshot Cannon can fire at a fogged tile in reach. If nothing is there the shot is lost; if something is, it is a normal attack, but all you learn is whether it hit: you hear the blow land.</dd><dt>Scouts</dt><dd>Never attack or defend. Everything in a Scout's diamond of sight is uncovered: Assassins, ambushers, face-down cards and enemy Scouts. Every Ace you put down brings one from the Ether.</dd><dt>Assassins</dt><dd>Hidden from enemies unless one of their cards stands right beside it (straight, not diagonal) or a Scout is near. Two hearts; 10 + 1d12 to attack, 8 to defend. Only another Assassin stacks with one.</dd><dt>Face down</dt><dd>Tick "Place it face down" before putting a card down. Enemies see only its back. Double disadvantage to attack, advantage to defend; it turns face up once it attacks or is attacked.</dd><dt>Ambush</dt><dd>Select an Assassin or face-down stack in your prep phase and press "Set an ambush": it turns sideways, hides like an Assassin, and strikes with advantage, out of turn, at the first enemy that steps beside it (diagonals too for a Jack's reach). Moving it ends the ambush.</dd><dt>Quiet Eyes and Bird's Eye</dt><dd>Quiet Eyes (Illusion, 2 mana): on each enemy's next turn, and only that turn, they see only the tiles their own cards stand on; Scouts don't see through it. Bird's Eye (Sorcery) lifts the fog for your side for a round, but not a Delusion.</dd></dl></details>
 <details class="sub"><summary>Siege, support and mining explained</summary><dl class="spellinfo"><dt>Bought from the Ether</dt><dd>Archers, Cannons, Healers, Walls, Repairmen, Battering Rams and Miners all wait in the Ether, a set for every deck, and come into your deck with their Conjure spells. The Beginner starts with two Archers, a Wall, two Repairmen and a Battering Ram in the deck, and a Miner in the first Ace.</dd><dt>Shooting</dt><dd>Archers and Cannons fire from wherever they stand, inside an Ace, the Tree or a Wall too, where the rest can't fight. Select the stack in the attack phase and click a highlighted target; a miss costs the shooter nothing. Only one shot a turn leaves a base.</dd><dt>Support cards</dt><dd>Healers, Repairmen, Battering Rams and Miners never fight. In a stack they die last (Miners first). Standing alone they can't defend: an enemy beside them chooses Capture or Destroy instead of an attack. A captured card rides in the stack's capture slot (one per stack) until you set it to work beside the stack; then it is yours.</dd><dt>Heal and Repair</dt><dd>Select the stack in your prep phase and press Heal a heart or Repair. The status line under the cards shows every cooldown.</dd><dt>Crystals</dt><dd>A crystal rises in the middle of the field every 1d6 + 4 turns. A Miner on it digs 1 + 1d3 mana on a 2 of 1d2 each turn, until the crystal's 12 mana are gone.</dd><dt>Field Libation</dt><dd>Necromancy, free, not under the Full Moon: pour out cards from your field; each one is worth its mana on a 2 of 1d2, and goes to the grave for nothing on a 1.</dd></dl></details>
 ${bankExplainHTML()}
 ${skyExplainHTML()}
@@ -2216,12 +2216,15 @@ const LAYDEF={2:"duel",3:"ffa",4:"ffa",5:"koth",6:"koth",7:"koth",8:"koth"};
 function seatForm(i,S,mode,L,taken){taken=taken||new Set();
   const n=i+1,tm=L.startsWith("team")||L==="koth"&&SEAT_KOTH_TEAM,team=tm?`<span class="sidetag s${S.team}">${S.team?"Side B":"Side A"}</span>`:"";
   let type;
-  if(mode==="survival"||mode==="cpu"&&i===0)type=`<span class="dim">${mode==="cpu"?"You":"Human"}</span>`;
+  const you=mode==="cpu"&&i===0;   // v60: "You" is a tag in your own color beside your seat's name
+  if(you)type="";else if(mode==="survival")type=`<span class="dim">Human</span>`;
   else type=`<label class="f">Plays as <select data-seat="${i}" data-k="type">${(mode==="cpu"?[]:[["human","Human"]]).concat([["easy","Computer · Easy"],["medium","Computer · Medium"],["hard","Computer · Hard"]]).map(([v,t])=>`<option value="${v}" ${S.type===v?"selected":""}>${t}</option>`).join("")}</select></label>`;
   const pcol=TRIBES[S.tribe]&&TRIBES[S.tribe].color||(S.color==="random"?"#c9a274":S.color);
-  return `<fieldset class="pf seat" style="--pc:${pcol}"><legend>P${i+1} ${team}</legend>
+  const T0=TRIBES[S.tribe]||{},scol=T0.color||S.color,ssol=T0.solid||S.solid,
+    lsum=`<span class="dim lsum">· ${esc(T0.name||"Random")} ${scol&&scol!=="random"?`<i class="lsw" style="background:${scol}"></i>`:`<i class="lsw rnd">?</i>`}${ssol&&ssol!=="random"&&SOLIDS[ssol]?`<i class="lso">${solidSVG(ssol,scol&&scol!=="random"?scol:"#f3d6a6",14)}</i>`:""}</span>`;
+  return `<fieldset class="pf seat${you?" isyou":""}" style="--pc:${pcol}"><legend>P${i+1}${you?' <b class="youtag">You</b>':""} ${team}</legend>
 <div class="srow"><label class="f">Name <input data-seat="${i}" data-k="name" value="${esc(S.name)}" maxlength="20"></label>${type}</div>
-<details class="look" ${S.type==="human"||tm||S.open||!isPhone()?"open":""}><summary>${tm?"Team, Substance, color and symbol":"Substance, color and symbol"}${S.type!=="human"?` <span class="dim">· ${esc((TRIBES[S.tribe]||{}).name||"Random")}, ${S.color==="random"?"random color":"color"}, ${S.solid==="random"?"random symbol":"symbol"}</span>`:""}</summary>
+<details class="look" ${S.open?"open":""}><summary>${tm?"Team, Substance, color and symbol":"Substance, color and symbol"} ${lsum}</summary>
 ${tm?`<div class="f"><span>Team</span><div class="opts">${[0,1].map(t=>`<label class="opt"><input type="radio" name="tm${n}" data-seat="${i}" data-k="team" value="${t}" ${S.team===t?"checked":""}><span>${t?"Side B":"Side A"}<small>${t?"Plays against Side A.":"Plays against Side B."} ${L==="koth"?"Each side needs at least one player.":"Each side needs two players."}</small></span></label>`).join("")}</div></div>`:""}
 <div class="f"><span>Substance</span><div class="opts subs">${Object.entries(TRIBES).map(([k,t])=>{const off=t.soon||taken.has(k)&&k!==S.tribe;return `<label class="opt${off?" off":""}"><input type="radio" name="tr${n}" data-seat="${i}" data-k="tribe" value="${k}" ${k===S.tribe?"checked":""} ${off?"disabled":""}><span>${t.solid?`<i class="subsym">${solidSVG(t.solid,t.color||"#f3d6a6",18)}</i>`:""}${t.name}<small>${taken.has(k)&&k!==S.tribe?"Another player has it: only the Beginner can be played by more than one player.":t.sub}</small></span></label>`}).join("")}</div></div>
 ${(()=>{const T=TRIBES[S.tribe]||{};
@@ -2369,12 +2372,13 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     $("#laynote").textContent=mode==="survival"?(n===1?"One survivor on the usual field.":`${n} survivors share the bottom of the field, and the Horde spawns once for each of you. You take your turns one after another on this device, and the Horde moves first each round.`):"";
     const blk=skyBlocked(val("omoonon"));
     $("#seats").innerHTML=seatsS.slice(0,n).map((S,i)=>seatForm(i,S,mode,L,new Set([...blk,...seatsS.slice(0,n).filter((Q,j)=>j!==i&&Q.tribe!=="random"&&Q.tribe!=="beginner").map(Q=>Q.tribe)]))).join("");
+    $("#seats").querySelectorAll("details.look").forEach((d,i)=>d.addEventListener("toggle",()=>{seatsS[i].open=d.open}));   // v60: each seat's fold stays as it was left
     $("#seats").querySelectorAll("[data-seat]").forEach(el=>el.addEventListener(el.tagName==="INPUT"&&el.type==="text"?"input":"change",()=>{
       const S=seatsS[+el.dataset.seat],k=el.dataset.k;S[k]=el.value;if(k==="name")S.named=true;
       if(k==="color")el.closest(".seat").style.setProperty("--pc",el.value);
       if(k==="tribe"||k==="color"||k==="solid")S.lookSet=true;
       if(k==="type"){if(!S.lookSet){const i2=+el.dataset.seat,cpu=el.value!=="human";S.tribe=cpu?"random":"beginner";S.color=cpu?"random":COLORS[SEATCOL[i2]][1];S.solid=cpu?"random":SEATSOL[i2];drawSeats();return}
-        el.closest(".seat").querySelector(".look").open=el.value==="human"||!isPhone();turnUp()}
+        turnUp()}
       if(k==="team"){S.team=+el.value;drawSeats()}
       if(k==="tribe"){S.open=true;drawSeats()}
     }));
@@ -2982,7 +2986,7 @@ async function aiSubstance(pl,W){
 const UNIT_ICON={
  samson:`<path d="M-6,-8h12v6h-12z M-4,-6h3v2h-3z M1,-6h3v2h-3z M-8,-1h16v8h-16z M-8,7v3 M8,7v3 M-3,-2v-1 M3,-2v-1 M-11,0v5 M11,0v5"/>`,
  antony:`<path d="M0,9C-6,4 -9,0 -9,-3C-9,-7 -5,-8 -2.5,-6C-1,-5 0,-3.5 0,-3.5C0,-3.5 1,-5 2.5,-6C5,-8 9,-7 9,-3C9,0 6,4 0,9Z M-2.5,-6L-3,-10 M2.5,-6L3.5,-10 M0,-3.5V2 M-4,0L0,2L4,-1"/>`,
- satan:`<path d="M-7,9C-8,3 -7,-2 -5,-5L-7,-10 M-5,-5C-3,-7 -1,-8 1,-8L0,-12 M1,-8C3,-8 5,-7 6,-5L9,-9 M6,-5C8,-2 8,4 6,9 M-4,9C-3,4 -2,1 0,0C2,1 3,4 4,9"/>`,
+ satan:`<path d="M-5.4,3.6C-8.8,0.4 -10.4,-4 -9.6,-9.6C-8.2,-5.6 -5.6,-2.2 -2,0.6 M-1.6,0.4C-2.6,-4 -1.6,-7.8 1.4,-10.8C0.4,-7.2 0.8,-3.4 2.2,0.8 M2.6,1.2C5.2,-2.2 7.6,-4.8 10.4,-6.4C9.2,-3.2 7.8,0.2 5.8,3.8 M-6.2,4C-4.6,10 4.4,10 6.2,4 M-3.6,6.4C-1.4,7.4 1.6,7.4 3.6,6.4"/>`,   // v60: the same claws as his symbol
  tree:`<path d="M0,10V-2 M0,2L-6,-3 M0,0L5,-5 M-6,-3L-8,-7 M-6,-3L-3,-8 M5,-5L3,-9 M5,-5L8,-8 M0,-2L0,-10 M-5,10H5"/>`,
  bullgoat:`<path d="M-4,-4C-8,-6 -10,-9 -9,-11C-7,-8 -5,-7 -3,-6 M4,-4C8,-6 10,-9 9,-11C7,-8 5,-7 3,-6 M-4,-5H4L5,2L2,8H-2L-5,2Z M-2,0h0.1 M2,0h0.1 M-1,8L0,11L1,8"/>`,
  slavemaster:`<path d="M0,-8C-5,-8 -8,-5 -8,-1C-8,3 -6,5 -4,6V9H4V6C6,5 8,3 8,-1C8,-5 5,-8 0,-8Z M0,-8V6 M-8,-1H-3 M3,-1H8 M-6,-5L-3,-3 M6,-5L3,-3 M-5,4L-2,2 M5,4L2,2"/>`,
@@ -3641,6 +3645,7 @@ UNIT_ICON.goatbull=`<path d="M-9,-8C-11,-4 -9,-1 -6,-2 M9,-8C11,-4 9,-1 6,-2 M-6
    stay hidden unless one of your cards stands right next to them; your Scouts also uncover Assassins, ambushers and
    face-down cards within a round two tiles, and enemy Scouts within three. Bird's Eye lifts the fog for your side for a
    round. Quiet Eyes, cast by an enemy, hides everything not right beside you unless you have a Scout on the field.
+   (v60: Quiet Eyes is now one turn of near-blindness for each enemy, Scouts or not: see 65_v60.js.)
    A Delusion overrides all of this with its own rule, and Scouts can't help against it. */
 const fogOn=()=>G.opts.fog!==false&&G.moon.gone!=="sun";   // the Second Sun burns the fog away
 const sideOf=V=>[V,...alliesOf(V)];
@@ -5529,7 +5534,7 @@ const UNIT_MARK={wall:"B",tree:"0",assassin:"S",archer:"11",cannon:"12",slavemas
 function markHTML(c){
   if(c.puppet)return `<b class="rk mk">?</b>`;
   const m=UNIT_MARK[c.unit];if(m==null)return `<b class="rk mk">${esc((UNIT[c.unit].short||UNIT[c.unit].name).slice(0,1))}</b>`;
-  if(typeof m==="string")return `<b class="rk mk${m.length>1?" two":""}">${m}</b>`;
+  if(typeof m==="string")return `<b class="rk mk${m.length>1?" two":""}${m==="$"?" dollar":""}">${m}</b>`;   // v59: the $ in the red of the game's title lettering
   if(m.sup)return `<b class="mk sup">Support</b>`;
   return `<b class="rk mk svgmk">${MK_SVG[m.svg]}</b>`;
 }
@@ -7697,7 +7702,7 @@ function setStatus(k){if(NET.status===k)return;NET.status=k;lobbySend()}
 {const _lr=lobbyRoster;lobbyRoster=function(){_lr();const e=$("#onRoster");
   if(e&&(NET.role==="lobby-host"||NET.role==="host")){const rows=guestIds().map(id=>{const g=NET.guests[id],p=g.pick;const L=p?pickLook(p):null;
       return `<li>${L?solidSVG(L.solid,L.color,16):""} <b>${esc(g.name)}</b>${p?` <span class="dim">· ${esc(TRIBES[p.tribe].name)}</span>`:` <span class="dim">· choosing…</span>`}</li>`}).join("");
-    e.innerHTML=`<b>In the room</b><ul class="lroster"><li><b>${esc(NET.name)}</b> <span class="dim">· you, the host</span></li>${rows}</ul>${guestIds().length?"":'<span class="dim">Share the code and wait for the others to join.</span>'}`}
+    e.innerHTML=`<b>In the room</b><ul class="lroster"><li><b>${esc(NET.name)}</b> <b class="youtag">You</b> <span class="dim">· the host</span></li>${rows}</ul>${guestIds().length?"":'<span class="dim">Share the code and wait for the others to join.</span>'}`}
   lobbySend()}}
 /* a seat given to a joined player takes their name, Substance, color and symbol */
 {const _sf=seatForm;seatForm=function(i,S,mode,L,taken){
@@ -7731,7 +7736,7 @@ function paintGuestLobby(){const L=NET.lobby,m=$("#onMsg"),r=$("#gRoster");if(!m
   if(!L){m.textContent=NET.hostName?`Connected to ${NET.hostName}'s room.`:"Connecting…";r.innerHTML="";return}
   m.textContent=LOBBY_STATUS[L.status]||LOBBY_STATUS.room;
   r.innerHTML=`<ul class="lroster">${L.roster.map(x=>{const p=x.id===L.you?netPickOf():x.pick;const look=p?pickLook(p):null;
-    return `<li>${look?solidSVG(look.solid,look.color,18):""} <b>${esc(x.id===L.you?netPickOf().name:x.name)}</b>${x.host?' <span class="dim">· the host</span>':""}${x.id===L.you?' <span class="dim">· you</span>':""}${p?` <span class="dim">· ${esc(TRIBES[p.tribe].name)}</span>`:x.host?"":' <span class="dim">· choosing…</span>'}${x.seat>=0?` <span class="seatag">P${x.seat+1}</span>`:x.host?"":' <span class="dim">· no seat yet</span>'}</li>`}).join("")}</ul>
+    return `<li>${look?solidSVG(look.solid,look.color,18):""} <b>${esc(x.id===L.you?netPickOf().name:x.name)}</b>${x.host?' <span class="dim">· the host</span>':""}${x.id===L.you?' <b class="youtag">You</b>':""}${p?` <span class="dim">· ${esc(TRIBES[p.tribe].name)}</span>`:x.host?"":' <span class="dim">· choosing…</span>'}${x.seat>=0?` <span class="seatag">P${x.seat+1}</span>`:x.host?"":' <span class="dim">· no seat yet</span>'}</li>`}).join("")}</ul>
 <p class="dim">The host gives each player a seat. Your choices in "Your player" fill your seat; your Display settings are your own.</p>`}
 /* Substances other seats hold (the Beginner can be shared) */
 const takenByOthers=()=>{const L=NET.lobby;if(!L)return new Set();const me="net:"+L.you,s=new Set();
@@ -8408,12 +8413,12 @@ if(window.__EC)Object.assign(window.__EC,{loanLimit:pl=>loanLimit(pl),loanWhy,de
 const RD_KINDS=[["standard","Standard"],["special","Special"],["support","Support"],["wildcard","Wildcard"],["base","Base"]];
 const RD_DEF={on:false,preset:"even",every:1,perTurn:1,kinds:[],minMana:3,counterOD:true,noOD:false,stopDebt:4,credit:false,creditStop:-3};
 const RD_PRESETS=[
-  ["miser","The Miser's Vigil","Rarely: only with plenty to spare and something worth raising, never in debt.",{every:3,perTurn:1,kinds:["special","base"],minMana:6,counterOD:false,noOD:true,stopDebt:1,credit:false,creditStop:0}],
-  ["accountant","The Pale Accountant","Modest: one every other turn, never into debt.",{every:2,perTurn:1,kinds:[],minMana:4,counterOD:false,noOD:true,stopDebt:2,credit:false,creditStop:0}],
-  ["even","The Even Scales","Balanced: one a turn while there is mana to spare (the default).",{every:1,perTurn:1,kinds:[],minMana:3,counterOD:true,noOD:false,stopDebt:4,credit:false,creditStop:-3}],
-  ["relic","The Relic Hunter","Spends big, but only when the grave holds treasure.",{every:1,perTurn:2,kinds:["special","wildcard","base"],minMana:2,counterOD:true,noOD:false,stopDebt:0,credit:false,creditStop:-3}],
-  ["hunger","The Gravedigger's Hunger","Two a turn, on credit when it must.",{every:1,perTurn:2,kinds:[],minMana:1,counterOD:true,noOD:false,stopDebt:0,credit:true,creditStop:-3}],
-  ["mad","The Mad Necromancer","Everything into the grave, down to the brink.",{every:1,perTurn:3,kinds:[],minMana:0,counterOD:true,noOD:false,stopDebt:0,credit:true,creditStop:-6}]];
+  ["miser","Rarely","Rarely: only with plenty to spare and something worth raising, never in debt.",{every:3,perTurn:1,kinds:["special","base"],minMana:6,counterOD:false,noOD:true,stopDebt:1,credit:false,creditStop:0}],
+  ["accountant","Every other turn","Modest: one every other turn, never into debt.",{every:2,perTurn:1,kinds:[],minMana:4,counterOD:false,noOD:true,stopDebt:2,credit:false,creditStop:0}],
+  ["even","Once a turn","Balanced: one a turn while there is mana to spare (the default).",{every:1,perTurn:1,kinds:[],minMana:3,counterOD:true,noOD:false,stopDebt:4,credit:false,creditStop:-3}],
+  ["relic","Best cards, twice a turn","Spends big, but only when the grave holds treasure.",{every:1,perTurn:2,kinds:["special","wildcard","base"],minMana:2,counterOD:true,noOD:false,stopDebt:0,credit:false,creditStop:-3}],
+  ["hunger","Twice a turn, on credit","Two a turn, on credit when it must.",{every:1,perTurn:2,kinds:[],minMana:1,counterOD:true,noOD:false,stopDebt:0,credit:true,creditStop:-3}],
+  ["mad","As much as it can","Everything into the grave, down to the brink.",{every:1,perTurn:3,kinds:[],minMana:0,counterOD:true,noOD:false,stopDebt:0,credit:true,creditStop:-6}]];
 const clampN=(v,a,b,d)=>{v=Math.round(+v);return Number.isFinite(v)?Math.max(a,Math.min(b,v)):d};
 function rdClean(c){c=c&&typeof c==="object"?c:{};const o={...RD_DEF};
   for(const k of ["on","counterOD","noOD","credit"])if(typeof c[k]==="boolean")o[k]=c[k];
@@ -8475,7 +8480,7 @@ paintFA=function(){const V=G?view():null,c=faMine();
   const want=!!(G&&!G.over&&c.under&&G.p[V]&&!G.p[V].cpu&&!isNPC(V));
   if(!want){if(d)d.remove();return}
   if(!d){d=document.createElement("details");d.id="fapanel";d.className="cinfo fapanel";if(PREF.faOpen)d.open=true;d.addEventListener("toggle",()=>{PREF.faOpen=d.open;savePrefs()});info.prepend(d)}
-  d.innerHTML=`<summary>Configure Automation <span class="dim">· Field ${autoStatus("field")} · Ritual Dice ${autoStatus("ritual")} · Lazy Hand ${autoStatus("lazy")} · Grave ${autoStatus("grave")}</span></summary><div class="fawide">${autoTabsHTML()}${autoBodyHTML("u",true)}</div>`;
+  d.innerHTML=`<summary>Configure Automation <span class="dim fasum">· Field ${autoStatus("field")} · Ritual Dice ${autoStatus("ritual")} · Lazy Hand ${autoStatus("lazy")} · Grave ${autoStatus("grave")}</span></summary><div class="fawide">${autoTabsHTML()}${autoBodyHTML("u",true)}</div>`;
   wireAuto(d)};
 
 /* ---------- the Ritual Dice tab ---------- */
@@ -8752,6 +8757,8 @@ const FX_PARTS=[["moves","Cards moving"],["strikes","Strikes and hits"],["deaths
 const FX_PART={slide:"moves",strike:"strikes",hit:"strikes",blunt:"strikes",boom:"strikes",burst:"strikes",smoke:"deaths",skull:"deaths",pour:"mana",fill:"mana",dollar:"mana",pop:"mana",
   shuffle:"shuffles",wisp:"shuffles",sigil:"spells",symbol:"spells",area:"spells",spell:"spells",meteor:"weather",lightning:"weather",wind:"weather",rain:"weather",flames:"fire",fogroll:"fog"};
 const fxPartOn=k=>!(PREF.fxOff||[]).includes(k);
+/* v59: the fog's drifting is off by default (once, for everyone; it can be switched back on in the Menu) */
+if(!PREF.fogMig){PREF.fxOff=[...new Set([...(PREF.fxOff||[]),"fog"])];PREF.fogMig=1;savePrefs()}
 for(const [m,k] of Object.entries(FX_PART)){const f=FX[m];if(typeof f!=="function")continue;FX[m]=function(){if(!fxPartOn(k))return m==="spell"?true:undefined;return f.apply(this,arguments)}}
 {const _cf=castFX;castFX=function(){if(!fxPartOn("spells"))return;return _cf.apply(this,arguments)}}
 {const _cb=critBanner;critBanner=function(){if(!fxPartOn("banners"))return;return _cb.apply(this,arguments)}}
@@ -9347,11 +9354,17 @@ const TGROUP_NAMES={wildcard:"Wildcards",special:"Special",base:"Base",standard:
 /* ---------- Grave automation: the settings ---------- */
 const GR_GROUPS=["special","base","standard","support","wildcard"];
 const GR_DEF={on:false,kinds:[],extra:[],minus:[],rank:true,group:true,gorder:[...GR_GROUPS],korder:[],strong:true,askNone:true};
-const grKeys=()=>{const k=lhKeyList().map(x=>x[0]),r=["JK","A","K","Q","J","10","9","8","7","6","5","4","3","2"];return [...r.filter(x=>k.includes(x)),...k.filter(x=>!r.includes(x))]};   // strongest first
+/* v60: only cards that can lie in the grave (the cards of the deck and the Ether's own; never Substance cards like Samson or
+   the Debt Collector); in the ranking, every Grunt (2 to 6) is one entry and every Infantry (7 to 10) another, the higher number
+   taken first within them */
+const grGraveable=k=>k==="puppet"||!UNIT[k]||!!UNIT[k].ether||k==="slave";
+const grFold=k=>/^\d+$/.test(k)?(+k<=6?"grunt":"infantry"):k;
+const grChipKeys=()=>lhKeyList().filter(([k])=>grGraveable(k));
+const grKeys=()=>{const k=grChipKeys().map(x=>x[0]),r=["JK","A","K","Q","J","infantry","grunt"];return [...r,...k.filter(x=>!/^\d+$/.test(x)&&!r.includes(x))]};   // strongest first
 function grClean(c){c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringify(GR_DEF)),cats=new Set(RD_KINDS.map(x=>x[0])),keys=grKeys();
   for(const k of ["on","rank","group","strong","askNone"])if(typeof c[k]==="boolean")o[k]=c[k];
   if(Array.isArray(c.kinds))o.kinds=c.kinds.filter(k=>cats.has(k));
-  for(const k of ["extra","minus"])if(Array.isArray(c[k]))o[k]=c[k].filter(x=>keys.includes(x));o.minus=o.minus.filter(x=>!o.extra.includes(x));
+  const chips=grChipKeys().map(x=>x[0]);for(const k of ["extra","minus"])if(Array.isArray(c[k]))o[k]=c[k].filter(x=>chips.includes(x));o.minus=o.minus.filter(x=>!o.extra.includes(x));
   if(Array.isArray(c.gorder))o.gorder=[...c.gorder.filter(k=>GR_GROUPS.includes(k)),...GR_GROUPS.filter(k=>!c.gorder.includes(k))];
   o.korder=[...(Array.isArray(c.korder)?c.korder.filter(k=>keys.includes(k)):[]),...keys.filter(k=>!(c.korder||[]).includes(k))];
   return o}
@@ -9366,9 +9379,9 @@ function grSave(c){PREF.gr=grClean(c);savePrefs();autoSync();paintFA();if(G)rend
 
 /* ---------- Grave automation: the choice ---------- */
 function grWants(c,cfg){const k=cardKey(c);if(cfg.minus.includes(k))return false;if(cfg.extra.includes(k))return true;return !cfg.kinds.length&&!cfg.extra.length||cfg.kinds.includes(cardCat(c))}
-function grRank(c,cfg){return !cfg.rank?0:cfg.group?cfg.gorder.indexOf(cardCat(c)):cfg.korder.indexOf(cardKey(c))}
-function grPick(cards,cfg){let best=-1,bv=null;cards.forEach((c,i)=>{if(!grWants(c,cfg))return;const v=[grRank(c,cfg),cfg.strong?-(soulOf(c)*10+(costOf(c)||0)):0];
-  if(!bv||v[0]<bv[0]||v[0]===bv[0]&&v[1]<bv[1]){bv=v;best=i}});return best}
+function grRank(c,cfg){return !cfg.rank?0:cfg.group?cfg.gorder.indexOf(cardCat(c)):cfg.korder.indexOf(grFold(cardKey(c)))}
+function grPick(cards,cfg){let best=-1,bv=null;cards.forEach((c,i)=>{if(!grWants(c,cfg))return;const v=[grRank(c,cfg),cfg.strong?-(soulOf(c)*10+(costOf(c)||0)):0,c.unit?0:-(num(c)||0)];   // then the higher number
+  if(!bv||v[0]<bv[0]||v[0]===bv[0]&&(v[1]<bv[1]||v[1]===bv[1]&&v[2]<bv[2])){bv=v;best=i}});return best}
 {const _ask=ask;ask=async function(pl,spec){const P=G&&G.p[pl],cfg=P&&!P.cpu&&P.grCfg;
   if(spec&&spec.id==="grave"&&cfg&&cfg.on&&Array.isArray(spec.cards)){const i=grPick(spec.cards,cfg);
     if(i>=0){await sleep(250);return i}
@@ -9382,9 +9395,9 @@ AUTO_TABS.push(["grave","Grave"]);
   return `<p class="fafull automaster"><button type="button" class="btn sm ${on?"":"ghost"}" data-amaster="grave" aria-pressed="${on}">Grave automation: ${on?"On":"Off"}</button><span class="dim">Picks the cards raised from the grave, as set below.</span></p>`}}
 {const _ab=autoBodyHTML;autoBodyHTML=function(pfx,under){if(autoTab!=="grave")return _ab.apply(this,arguments);return autoMasterHTML()+grPanelHTML(grMine(),pfx)}}
 function grPanelHTML(c,pfx){const K=cfgKit("data-gr","data-gract","gr"+pfx),{row,sec}=K,off=!c.on;
-  const names=Object.fromEntries([...RD_KINDS.map(([k,t])=>[k,t]),...lhKeyList()]);
+  const names=Object.fromEntries([...RD_KINDS.map(([k,t])=>[k,t]),...lhKeyList(),["grunt","Grunts (2 to 6)"],["infantry","Infantry (7 to 10)"]]);
   let h=`<p class="dim fafull">Grave Blessing, the New Moon and every other raising from the grave: it picks the cards for you, best first, until the hand is full or the raising is done.</p>`;
-  h+=sec("Which cards",K.chips(RD_KINDS,c.kinds,"data-grkind",off)+`<p class="dim">None ticked: any card.</p><details class="faextra"><summary>Yes, and… (single kinds: + always taken, − never taken)</summary>${K.pmChips(lhKeyList(),c.extra,c.minus,"data-grpm",off)}</details>`,"fafull");
+  h+=sec("Which cards",K.chips(RD_KINDS,c.kinds,"data-grkind",off)+`<p class="dim">None ticked: any card.</p><details class="faextra"><summary>Yes, and… (single kinds: + always taken, − never taken)</summary>${K.pmChips(grChipKeys(),c.extra,c.minus,"data-grpm",off)}</details>`,"fafull");
   /* v59: the ranking folds like the Field's: ▸ closed is off (only "the strongest first" decides), ▾ open is on */
   h+=sec("In what order",`<details class="faextra fadet" data-grdet="rank" ${c.rank?"open":""}><summary>Rank the kinds of card <small class="dim">(${c.rank?"on":"off: the strongest first decides"})</small></summary>`+
     row("group",c.group,"Rank by kinds of card","On: Special, Base, Standard and so on. Off: every single kind, like the King.",off)+
@@ -9722,5 +9735,82 @@ function kothCarriages(){const B=npcIx("bank");if(B<0)return;for(const {st} of s
   return P.done()}}
 
 if(window.__EC)Object.assign(window.__EC,{kothFillEther,kothMercs,kothBank,stackLegal:(...a)=>stackLegal(...a),damage:(...a)=>damage(...a),moveTargets:(...a)=>moveTargets(...a)});
+
+/* ---------------- v60: details ----------------
+   - Rankings of kinds of card are dragged into place (a mouse drags the whole row; a finger drags the ⋮⋮ grip, so a swipe
+     still scrolls the page). ▲ and ▼ stay for the keyboard. The ranking of principles keeps its buttons only.
+   - (the rest of v60 is noted where it is made) */
+
+/* ---------- drag a row into place ---------- */
+function dragRank(list,itemSel,keyOf,done){
+  list.querySelectorAll(itemSel).forEach(it=>{if(it._drag)return;it._drag=true;it.classList.add("dragrow");
+    if(!it.querySelector(".grip"))it.insertAdjacentHTML("afterbegin",`<span class="grip" aria-hidden="true">⋮⋮</span>`);
+    it.addEventListener("pointerdown",e=>{if(e.button!==0||e.target.closest("button,input,label,a"))return;
+      if(e.pointerType!=="mouse"&&!e.target.closest(".grip"))return;e.preventDefault();
+      const x0=e.clientX,y0=e.clientY;let moving=false;
+      const mv=ev=>{if(!moving){if(Math.hypot(ev.clientX-x0,ev.clientY-y0)<6)return;moving=true;it.classList.add("dragging");list.classList.add("dragon")}
+        const el=document.elementFromPoint(ev.clientX,ev.clientY),over=el&&el.closest(itemSel);
+        if(!over||over===it||over.parentNode!==it.parentNode)return;
+        const kids=[...it.parentNode.children];kids.indexOf(it)<kids.indexOf(over)?over.after(it):over.before(it)};
+      const up=()=>{removeEventListener("pointermove",mv);removeEventListener("pointerup",up);removeEventListener("pointercancel",up);
+        if(!moving)return;it.classList.remove("dragging");list.classList.remove("dragon");
+        done([...list.querySelectorAll(itemSel)].map(keyOf))};
+      addEventListener("pointermove",mv);addEventListener("pointerup",up);addEventListener("pointercancel",up)})})}
+/* which ranking a list is, and where its new order goes */
+function wireRankDrags(root){if(!root)return;
+  root.querySelectorAll(".krank").forEach(ol=>{const b=ol.querySelector("button");if(!b)return;
+    const attr=[...b.attributes].map(a=>a.name).find(n=>n==="data-grg"||n==="data-grk"||n==="data-tgact");if(!attr)return;
+    dragRank(ol,"li",li=>li.querySelector("button").getAttribute(attr).split(":")[1],order=>{
+      if(attr==="data-tgact"){const c=faMine();c.tgorder=order;faSave(c)}
+      else{const c=grMine();if(attr==="data-grg")c.gorder=order;else c.korder=order;grSave(c)}})});
+  root.querySelectorAll('[data-fadet="tprio"] .fahier').forEach(h=>dragRank(h,".facol",col=>col.querySelector('[data-faact^="tup:"]').dataset.faact.slice(4),order=>{
+    const c=faMine();let o=order;for(const [a,b] of c.teq){o=o.filter(x=>x!==b);o.splice(o.indexOf(a)+1,0,b)}   // equals stay side by side
+    c.torder=c.tSameGI?[...o.filter(x=>x!=="infantry"),"infantry"]:o;faSave(c)}))}
+{const _p=paintFA;paintFA=function(){_p.apply(this,arguments);wireRankDrags($("#facfg"));wireRankDrags($("#fapanel"))}}
+
+/* ---------- the spell list in the colors of the schools' animations, faintly (T5) ---------- */
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;
+  document.querySelectorAll("#spells .spell, .spells .spell").forEach(b=>{const id=b.dataset.s||b.dataset.sp,sp=id&&SP(id);
+    if(b.id==="openEther")return;   // the Ether keeps its own bright blue, so everyone finds it
+    const sc=sp?sp.school:b.closest("[data-school]")?.dataset.school;const col=sc&&SCHOOL_COL[sc];
+    if(col&&b.style.getPropertyValue("--sc")!==col){b.style.setProperty("--sc",col);b.classList.add("schooled")}})}}
+
+/* ---------- Quiet Eyes, v60 (the user's rule): for each enemy's next turn, and only that turn, the enemy sees only the tiles
+   its own side stands on; everything else is fog. Scouts don't see through it. 2 mana, once; no upkeep. ---------- */
+const quietNow=V=>V!=null&&!!G&&G.active===V&&(G.quiet||[]).some(q=>q.v2&&(q.now||[]).includes(V));
+{const sp=SP("quiet");if(sp){delete sp.dice;
+  sp.text="For the next turn of each enemy, and only that turn, they see only the tiles their own cards stand on: every other tile is fog. Scouts don't see through it.";
+  sp.ok=()=>!(G.quiet||[]).some(q=>q.v2&&q.by===G.active&&(q.pending.length||q.now.length));
+  sp.run=async()=>{const by=G.active,foes=G.p.filter(P=>!P.out&&P.i!==by&&isEnemy(by,P.i)&&!isNPC(P.i)).map(P=>P.i);
+    (G.quiet=G.quiet||[]).push({v2:true,by,pending:foes,now:[]});
+    log(`<b>Quiet Eyes</b>: ${plName(by)} hushes the field. On their next turn, ${foes.map(plName).join(", ")||"the enemy"} will see only where their own cards stand.`,"event");
+    notify(by,"Quiet Eyes: on each enemy's next turn, they see only the tiles their own cards stand on.")}}
+  SPELL_TEXT.quiet={e:"For the next turn of each enemy, and only that turn, they see only the tiles their own cards stand on. Every other tile is fog.",l:"Scouts don't see through it. Once at a time."}}
+{const _bt=beginTurn;beginTurn=function(pl){const out=_bt.apply(this,arguments);
+  for(const q of G.quiet||[])if(q.v2&&q.pending.includes(pl)){q.pending=q.pending.filter(x=>x!==pl);q.now.push(pl);G._vis=null;
+    log(`<b>Quiet Eyes</b>: this turn ${plName(pl)} sees only the tiles their own cards stand on.`,"event")}
+  return out}}
+{const _et=endTurn;endTurn=function(pl){for(const q of G.quiet||[])if(q.v2){q.now=q.now.filter(x=>x!==pl);q.pending=q.pending.filter(x=>G.p[x]&&!G.p[x].out)}
+  G.quiet=(G.quiet||[]).filter(q=>!q.v2||q.pending.length||q.now.length);G._vis=null;return _et.apply(this,arguments)}}
+{const _qr=quietRound;quietRound=function(){const all=G.quiet||[];G.quiet=all.filter(q=>!q.v2);try{return _qr.apply(this,arguments)}finally{G.quiet=[...G.quiet,...all.filter(q=>q.v2)]}}}   // no upkeep any more
+{const _s=seesTile;seesTile=function(V,r,c){if(quietNow(V)){const st=G.board[r][c];return !st||!isEnemy(st.owner,V)}return _s.apply(this,arguments)}}
+{const _f=fogTile;fogTile=function(V,r,c){if(quietNow(V)&&!totalBlind(V))return !visionMap(V).own.some(x=>x.r===r&&x.c===c);return _f.apply(this,arguments)}}
+if(window.__EC)Object.assign(window.__EC,{seesTile:(...a)=>seesTile(...a),fogTile:(...a)=>fogTile(...a),quietNow:V=>quietNow(V)});
+
+/* ---------- Grave automation (v60): Resurrection is a raising from the grave too, so it picks there (only cards you can
+   afford); and when nothing matches the settings and it has to ask, the window says why ---------- */
+{const _ask=ask;ask=async function(pl,spec){const P=G&&G.p[pl],cfg=P&&!P.cpu&&P.grCfg;
+  if(spec&&cfg&&cfg.on&&Array.isArray(spec.cards)&&(spec.id==="grave"||spec.id==="resur")){
+    if(spec.id==="resur"){const can=spec.cards.filter((c,i)=>!(spec.offs&&spec.offs[i])),i=grPick(can,cfg);
+      if(i>=0){await sleep(250);return spec.cards.indexOf(can[i])}}
+    else if(grPick(spec.cards,cfg)<0&&cfg.askNone)spec={...spec,sub:`Grave automation: nothing in the grave matches your settings, so you pick.${spec.sub?" "+spec.sub:""}`}}
+  return _ask.call(this,pl,spec)}}
+
+/* ---------- the dice box (T7): a fold of its own, just below the row of Grave, Ether, Outer Darkness and the rest;
+   open by default, remembered on this device ---------- */
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const sh=$("#shared"),t=$("#mytray");if(!sh||!t)return;
+  let d=$("#dicefold");if(!d){d=document.createElement("details");d.id="dicefold";d.className="dicefold";d.open=PREF.diceOpen!==false;d.innerHTML="<summary>Dice rolls</summary>";
+    d.addEventListener("toggle",()=>{if(PREF.diceOpen===d.open)return;PREF.diceOpen=d.open;savePrefs()})}
+  if(d.previousElementSibling!==sh)sh.after(d);if(t.parentNode!==d)d.appendChild(t);d.hidden=!t.innerHTML.trim()}}
 
 })();

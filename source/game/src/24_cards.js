@@ -29,7 +29,7 @@ const UNIT_MARK={wall:"B",tree:"0",assassin:"S",archer:"11",cannon:"12",slavemas
 function markHTML(c){
   if(c.puppet)return `<b class="rk mk">?</b>`;
   const m=UNIT_MARK[c.unit];if(m==null)return `<b class="rk mk">${esc((UNIT[c.unit].short||UNIT[c.unit].name).slice(0,1))}</b>`;
-  if(typeof m==="string")return `<b class="rk mk${m.length>1?" two":""}">${m}</b>`;
+  if(typeof m==="string")return `<b class="rk mk${m.length>1?" two":""}${m==="$"?" dollar":""}">${m}</b>`;   // v59: the $ in the red of the game's title lettering
   if(m.sup)return `<b class="mk sup">Support</b>`;
   return `<b class="rk mk svgmk">${MK_SVG[m.svg]}</b>`;
 }

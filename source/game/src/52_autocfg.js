@@ -12,12 +12,12 @@
 const RD_KINDS=[["standard","Standard"],["special","Special"],["support","Support"],["wildcard","Wildcard"],["base","Base"]];
 const RD_DEF={on:false,preset:"even",every:1,perTurn:1,kinds:[],minMana:3,counterOD:true,noOD:false,stopDebt:4,credit:false,creditStop:-3};
 const RD_PRESETS=[
-  ["miser","The Miser's Vigil","Rarely: only with plenty to spare and something worth raising, never in debt.",{every:3,perTurn:1,kinds:["special","base"],minMana:6,counterOD:false,noOD:true,stopDebt:1,credit:false,creditStop:0}],
-  ["accountant","The Pale Accountant","Modest: one every other turn, never into debt.",{every:2,perTurn:1,kinds:[],minMana:4,counterOD:false,noOD:true,stopDebt:2,credit:false,creditStop:0}],
-  ["even","The Even Scales","Balanced: one a turn while there is mana to spare (the default).",{every:1,perTurn:1,kinds:[],minMana:3,counterOD:true,noOD:false,stopDebt:4,credit:false,creditStop:-3}],
-  ["relic","The Relic Hunter","Spends big, but only when the grave holds treasure.",{every:1,perTurn:2,kinds:["special","wildcard","base"],minMana:2,counterOD:true,noOD:false,stopDebt:0,credit:false,creditStop:-3}],
-  ["hunger","The Gravedigger's Hunger","Two a turn, on credit when it must.",{every:1,perTurn:2,kinds:[],minMana:1,counterOD:true,noOD:false,stopDebt:0,credit:true,creditStop:-3}],
-  ["mad","The Mad Necromancer","Everything into the grave, down to the brink.",{every:1,perTurn:3,kinds:[],minMana:0,counterOD:true,noOD:false,stopDebt:0,credit:true,creditStop:-6}]];
+  ["miser","Rarely","Rarely: only with plenty to spare and something worth raising, never in debt.",{every:3,perTurn:1,kinds:["special","base"],minMana:6,counterOD:false,noOD:true,stopDebt:1,credit:false,creditStop:0}],
+  ["accountant","Every other turn","Modest: one every other turn, never into debt.",{every:2,perTurn:1,kinds:[],minMana:4,counterOD:false,noOD:true,stopDebt:2,credit:false,creditStop:0}],
+  ["even","Once a turn","Balanced: one a turn while there is mana to spare (the default).",{every:1,perTurn:1,kinds:[],minMana:3,counterOD:true,noOD:false,stopDebt:4,credit:false,creditStop:-3}],
+  ["relic","Best cards, twice a turn","Spends big, but only when the grave holds treasure.",{every:1,perTurn:2,kinds:["special","wildcard","base"],minMana:2,counterOD:true,noOD:false,stopDebt:0,credit:false,creditStop:-3}],
+  ["hunger","Twice a turn, on credit","Two a turn, on credit when it must.",{every:1,perTurn:2,kinds:[],minMana:1,counterOD:true,noOD:false,stopDebt:0,credit:true,creditStop:-3}],
+  ["mad","As much as it can","Everything into the grave, down to the brink.",{every:1,perTurn:3,kinds:[],minMana:0,counterOD:true,noOD:false,stopDebt:0,credit:true,creditStop:-6}]];
 const clampN=(v,a,b,d)=>{v=Math.round(+v);return Number.isFinite(v)?Math.max(a,Math.min(b,v)):d};
 function rdClean(c){c=c&&typeof c==="object"?c:{};const o={...RD_DEF};
   for(const k of ["on","counterOD","noOD","credit"])if(typeof c[k]==="boolean")o[k]=c[k];
@@ -79,7 +79,7 @@ paintFA=function(){const V=G?view():null,c=faMine();
   const want=!!(G&&!G.over&&c.under&&G.p[V]&&!G.p[V].cpu&&!isNPC(V));
   if(!want){if(d)d.remove();return}
   if(!d){d=document.createElement("details");d.id="fapanel";d.className="cinfo fapanel";if(PREF.faOpen)d.open=true;d.addEventListener("toggle",()=>{PREF.faOpen=d.open;savePrefs()});info.prepend(d)}
-  d.innerHTML=`<summary>Configure Automation <span class="dim">· Field ${autoStatus("field")} · Ritual Dice ${autoStatus("ritual")} · Lazy Hand ${autoStatus("lazy")} · Grave ${autoStatus("grave")}</span></summary><div class="fawide">${autoTabsHTML()}${autoBodyHTML("u",true)}</div>`;
+  d.innerHTML=`<summary>Configure Automation <span class="dim fasum">· Field ${autoStatus("field")} · Ritual Dice ${autoStatus("ritual")} · Lazy Hand ${autoStatus("lazy")} · Grave ${autoStatus("grave")}</span></summary><div class="fawide">${autoTabsHTML()}${autoBodyHTML("u",true)}</div>`;
   wireAuto(d)};
 
 /* ---------- the Ritual Dice tab ---------- */
