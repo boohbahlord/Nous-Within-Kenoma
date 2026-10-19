@@ -7,8 +7,8 @@ async function pickFoe(id,title){const es=enemiesOf(G.active).filter(pl=>!isHord
 const selOwnJoker=()=>selOwn()&&hasK(selStack(),"joker");
 const SCHOOLS=["Conjuring","Necromancy","Enchantment","Curse","Sorcery","Illusion"];   // v43: Conjuring (and the Ether) first
 const SPELLS=[
- {id:"ritual",name:"Ritual Dice",cost:1,school:"Necromancy",text:"+2d6 to this turn's Grave Blessing.",ok:()=>!G.blessed&&G.ritual===0&&blessCap(G.active)>0,run:async()=>{G.ritual=2;log("Ritual Dice: two more dice for the Grave Blessing.")}},
- {id:"bless",name:"Grave Blessing",cost:0,school:"Necromancy",text:"Free, once a turn, before any other mana is spent. Roll 1d6, +1d6 per Ace you have on the field, +2d6 from Ritual Dice, 6 dice at most. Each natural 6 raises a card from the grave. Every card you overdrew to the grave takes 1d6 off the maximum.",ok:()=>!G.blessed&&!G.spentOther&&G.grave.length>0&&blessCap(G.active)>0,run:blessing},
+ {id:"ritual",name:"Ritual Dice",cost:1,school:"Necromancy",text:"+3d6 to this turn's Grave Blessing for each one bought.",ok:()=>{const b=SP("bless");return !!b&&b.ok()&&!spellBlock(b)},run:async()=>{G.ritual=(G.ritual||0)+1;log(`Ritual Dice: three more dice for the Grave Blessing (${3*G.ritual} from Ritual Dice this turn).`)}},
+ {id:"bless",name:"Grave Blessing",cost:0,school:"Necromancy",text:"Free, once a turn, before any other mana is spent. Roll 1d6, +1d6 per Ace you have on the field (6 dice at most), +3d6 for each Ritual Dice bought this turn. Each natural 6 raises a card from the grave. Every card you overdrew to the grave takes 1d6 off the first six.",ok:()=>!G.blessed&&!G.spentOther&&G.grave.length>0&&blessCap(G.active)>0,run:blessing},
  {id:"suicide",name:"Sacrificial Suicide",cost:0,school:"Necromancy",text:"Select your stack with a Joker. The Joker dies and the souls it captured go to your soul pile (6 mana at most; the surplus goes to the grave). Under a Blood Moon, the Joker and all its souls go to the Outer Darkness instead.",ok:()=>!G.spent&&selOwnJoker(),run:suicideSpell},
  {id:"sever",name:"Flesh Severance",cost:0,school:"Necromancy",text:"Arm for this turn: an enemy killed next to your Joker is exiled to the Ether for its conjuring cost instead of being captured.",ok:()=>true,run:async()=>{me().sevArmed=!me().sevArmed;log(`Flesh Severance ${me().sevArmed?"armed":"disarmed"}.`)}},
  {id:"resur",dice:"1d2+1",name:"Resurrection",cost:6,school:"Necromancy",text:"Choose one card from the grave and bring it back into your hand.",ok:()=>G.grave.length>0&&me().hand.length<handCap(G.active),run:async()=>{await pickGrave(G.active,1,"Resurrection")}},
@@ -85,8 +85,8 @@ async function conjure(k){
 }
 async function blessing(){
   const pl=G.active,aces=stacksOf(pl).filter(x=>hasK(x.st,"ace")).length;
-  const want=Math.min(6,1+aces+G.ritual),cap=blessCap(pl),n=Math.min(want,cap);
-  const why=`1${aces?` + ${aces} for Ace${aces>1?"s":""} on the field`:""}${G.ritual?` + ${G.ritual} from Ritual Dice`:""}${1+aces+G.ritual>6?", 6 at most":""}${cap<want?`, cut to ${cap} by overdrawing`:""}`;
+  const want=Math.min(6,1+aces),cap=blessCap(pl),rit=3*(G.ritual||0),n=Math.min(want,cap)+rit;   // v47: Ritual Dice adds 3d6 a purchase, past the six-dice cap and the overdraw cut
+  const why=`1${aces?` + ${aces} for Ace${aces>1?"s":""} on the field`:""}${1+aces>6?", 6 at most":""}${cap<want?`, cut to ${cap} by overdrawing`:""}${rit?`, + ${rit} from Ritual Dice`:""}`;
   const d=rollN(n,6),six=d.filter(x=>x.v===6).length;G.blessed=true;
   tray(pl,"Grave Blessing",d,`${six} six${six===1?"":"es"}`);
   log(`Grave Blessing: ${n}d6 (${why}) → ${d.map(x=>x.v).join(", ")}. ${six?six+" card"+(six>1?"s":"")+" may rise.":"Nothing rises."}`);

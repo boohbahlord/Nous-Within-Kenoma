@@ -93,7 +93,7 @@ function coolOf(sp){
   if(sp.once)return out(P.once&&P.once[sp.id]?0:1,"Once a game");
   switch(sp.id){
     case "bless":return out(G.blessed?0:1,"Once a turn");
-    case "ritual":return out(G.blessed||G.ritual>0?0:1,"Once a turn, before Grave Blessing");
+    case "ritual":return out(G.blessed?0:1,"Before Grave Blessing, as often as you like");
     case "libation":return out(G.libation?0:1,"Once a turn");
     case "hunger":return out(1-(P.hungerUses||0)/2,"Twice a turn");
     case "moonjoker":return oathNow(pl,"moon")?out(1-(P.moonJokers||0)/2,"Twice between Full Moons"):null;

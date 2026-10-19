@@ -5,8 +5,8 @@
 
 const SPELL_TEXT={
  // Necromancy
- ritual:{e:"Adds 2d6 to this turn's Grave Blessing.",l:"Cast it before the Grave Blessing. Once a turn."},
- bless:{e:"Roll 1d6, plus 1d6 for each of your Aces on the field and 2d6 from Ritual Dice. For every 6, raise a card of your choice from the grave into your hand.",l:"Once a turn, before any other mana is spent. Six dice at most. Every card you overdrew into the grave takes one die away."},
+ ritual:{e:"Adds 3d6 to this turn's Grave Blessing for every one you buy.",l:"Cast it before the Grave Blessing, as often as you like. Not when Grave Blessing can't be cast."},
+ bless:{e:"Roll 1d6, plus 1d6 for each of your Aces on the field (six at most), plus 3d6 for every Ritual Dice bought this turn. For every 6, raise a card of your choice from the grave into your hand.",l:"Once a turn, before any other mana is spent. Every card you overdrew into the grave takes one of the first six dice away; Ritual Dice aren't cut."},
  suicide:{n:"Select your stack with a Joker.",e:"The Joker shoots itself. The souls it captured go to your soul pile, up to 6 mana; the rest go to the grave.",l:"Only before you spend mana this turn. Under a Blood Moon the Joker and its souls fall into the Outer Darkness instead."},
  sever:{e:"For this turn, an enemy killed beside your Joker is sent to the Ether instead of being captured. You pay half its conjuring price.",l:"Cast again to disarm it."},
  resur:{e:"Choose a card in the grave and take it into your hand.",l:"Needs room in your hand."},

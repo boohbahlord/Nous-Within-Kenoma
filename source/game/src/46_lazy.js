@@ -12,14 +12,16 @@ function lazyPlace(card){const pl=G.active,t=lazySpot(pl,card);
   if(!t){flash(`Lazy Hand finds no place for ${nameOf(card)}.`);return false}
   G.selHand=card;G.mode=null;place(card,t[0],t[1]);G.selHand=null;if(!lazyAuto())lazyArmed=false;render();return true}
 function lazyHTML(live){const ok=live&&lazyCan(),on=lazyAuto();
-  return `<div class="spellrow lazyrow"><button type="button" class="autotog${on?" on":""}" id="autoLazy" aria-pressed="${on}" data-tip="Keep Lazy Hand on: every card you click in your hand is placed for you.">auto</button><button type="button" class="spell lazy ${ok?"":"off"} ${lazyOn()?"armed":""}" id="lazyBtn" aria-pressed="${lazyOn()}" data-tip="Lazy Hand: click it, then a card in your hand, and the computer places that card for you. With Field Automation on, it follows those settings. Free, as often as you like."><span class="sn">${HAND_ICON}Lazy Hand</span><em>${lazyOn()?"on":"free"}</em></button></div>`}
+  return `<div class="spellrow lazyrow"><button type="button" class="autotog cfgtog${lhMine().autoPlace||lhMine().sac?" on":""}" id="lhCfg" aria-label="Lazy Hand automation" data-tip="Lazy Hand automation: what it never places, and sacrifices from your hand.">⚙</button><button type="button" class="autotog${on?" on":""}" id="autoLazy" aria-pressed="${on}" data-tip="Keep Lazy Hand on: every card you click in your hand is placed for you.">auto</button><button type="button" class="spell lazy ${ok?"":"off"} ${lazyOn()?"armed":""}" id="lazyBtn" aria-pressed="${lazyOn()}" data-tip="Lazy Hand: click it, then a card in your hand, and the computer places that card for you. With Field Automation on, it follows those settings. Free, as often as you like."><span class="sn">${HAND_ICON}Lazy Hand</span><em>${lazyOn()?"on":"free"}</em></button></div>`}
 {const _rs=renderSpells;renderSpells=function(live){_rs(live);const bs=$("#bankslot");if(!bs||!G||isNPC(view())||G.p[view()].cpu)return;
   bs.insertAdjacentHTML("beforeend",lazyHTML(live));
   $("#lazyBtn").onclick=()=>{if(!lazyCan())return;if(lazyAuto()){PREF.lazyAuto=false;savePrefs();lazyArmed=false}else lazyArmed=!lazyArmed;
     if(lazyArmed)flash("Lazy Hand: click a card in your hand.");render()};
-  $("#autoLazy").onclick=()=>{PREF.lazyAuto=!lazyAuto();lazyArmed=false;savePrefs();render()}}}
+  $("#autoLazy").onclick=()=>{PREF.lazyAuto=!lazyAuto();lazyArmed=false;savePrefs();render()};
+  $("#lhCfg").onclick=e=>{e.stopPropagation();faWindow("lazy")}}}
 /* while it is on, a click on a card in the hand places it */
 {const _r=render;render=function(){_r.apply(this,arguments);const h=$("#hand");if(!h||!G)return;const on=lazyOn()&&lazyCan();h.classList.toggle("lazy",on);if(!on)return;
   h.querySelectorAll("[data-h]").forEach(b=>{const orig=b.onclick;b.onclick=e=>{if(!lazyOn()||!lazyCan())return orig&&orig.call(b,e);
-    const c=G.p[view()].hand[+b.dataset.h];if(c)lazyPlace(c)}})}}
+    const c=G.p[view()].hand[+b.dataset.h];if(c&&lhExcluded(c,lhMine()))return orig&&orig.call(b,e);   // v47: kinds Lazy Hand leaves to you
+    if(c)lazyPlace(c)}})}}
 if(window.__EC)Object.assign(window.__EC,{lazySpot,lazyPlace,lazyOn});
