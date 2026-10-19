@@ -68,21 +68,22 @@ function mountInfo(){
 
 /* ---------------- start screen ---------------- */
 const MODES=[
- ["local","Local","2 to 4 players on one device, taking turns. The board turns to whoever is playing, and the screen goes dark while you pass it. Any seat can be a computer."],
- ["cpu","Versus Computer","You against 1 to 3 computers at Easy, Medium or Hard: 1v1, free-for-all, or two against two with a computer at your side."],
+ ["local","Local","2 to 4 players (up to 8 in King of the Hill) on one device, taking turns. The board turns to whoever is playing, and the screen goes dark while you pass it. Any seat can be a computer."],
+ ["cpu","Versus Computer","You against 1 to 3 computers at Easy, Medium or Hard: 1v1, free-for-all, or two against two with a computer at your side; up to 7 in King of the Hill."],
  ["survival","Survival","1 to 4 players hold the line against a Horde that grows every round. Count the rounds you last."]];
 let startMode=null;
-const ORD=["One","Two","Three","Four"],SEATCOL=[0,3,2,5],SEATSOL=["tetra","icosa","cube","octa"];
+const ORD=["One","Two","Three","Four"],SEATCOL=[0,3,2,5,4,7,1,8],SEATSOL=["tetra","icosa","cube","octa","dodeca","tetra","icosa","cube"];   // v57: eight seats for King of the Hill
 const LAYOUTS={
  duel:["1v1","Two players, one army at each end of the field. Needs exactly 2 players."],
  ffa:["Free-for-all","Everyone for themselves, one player to each edge of the field. Needs 3 or 4 players."],
  "team-side":["2v2, side by side","Teammates hold two neighboring edges. Needs 4 players."],
  "team-across":["2v2, across","Teammates face each other from opposite edges, with the enemy on both flanks. Needs 4 players."],
- "team-same":["2v2, same side","Laid out like 1v1: each team shares one end of the field, half its columns each. Needs 4 players."]};
-const LAYNEED={duel:[2],ffa:[3,4],"team-side":[4],"team-across":[4],"team-same":[4]};
-const LAYDEF={2:"duel",3:"ffa",4:"ffa"};
+ "team-same":["2v2, same side","Laid out like 1v1: each team shares one end of the field, half its columns each. Needs 4 players."],
+ koth:["King of the Hill","A 25 by 25 night field around a glowing Hill: hold it to score. 2 to 8 players, in teams by default."]};
+const LAYNEED={duel:[2],ffa:[3,4],"team-side":[4],"team-across":[4],"team-same":[4],koth:[2,3,4,5,6,7,8]};
+const LAYDEF={2:"duel",3:"ffa",4:"ffa",5:"koth",6:"koth",7:"koth",8:"koth"};
 function seatForm(i,S,mode,L,taken){taken=taken||new Set();
-  const n=i+1,tm=L.startsWith("team"),team=tm?`<span class="sidetag s${S.team}">${S.team?"Side B":"Side A"}</span>`:"";
+  const n=i+1,tm=L.startsWith("team")||L==="koth"&&SEAT_KOTH_TEAM,team=tm?`<span class="sidetag s${S.team}">${S.team?"Side B":"Side A"}</span>`:"";
   let type;
   if(mode==="survival"||mode==="cpu"&&i===0)type=`<span class="dim">${mode==="cpu"?"You":"Human"}</span>`;
   else type=`<label class="f">Plays as <select data-seat="${i}" data-k="type">${(mode==="cpu"?[]:[["human","Human"]]).concat([["easy","Computer · Easy"],["medium","Computer · Medium"],["hard","Computer · Hard"]]).map(([v,t])=>`<option value="${v}" ${S.type===v?"selected":""}>${t}</option>`).join("")}</select></label>`;
@@ -90,7 +91,7 @@ function seatForm(i,S,mode,L,taken){taken=taken||new Set();
   return `<fieldset class="pf seat" style="--pc:${pcol}"><legend>P${i+1} ${team}</legend>
 <div class="srow"><label class="f">Name <input data-seat="${i}" data-k="name" value="${esc(S.name)}" maxlength="20"></label>${type}</div>
 <details class="look" ${S.type==="human"||tm||S.open||!isPhone()?"open":""}><summary>${tm?"Team, Substance, color and symbol":"Substance, color and symbol"}${S.type!=="human"?` <span class="dim">· ${esc((TRIBES[S.tribe]||{}).name||"Random")}, ${S.color==="random"?"random color":"color"}, ${S.solid==="random"?"random symbol":"symbol"}</span>`:""}</summary>
-${tm?`<div class="f"><span>Team</span><div class="opts">${[0,1].map(t=>`<label class="opt"><input type="radio" name="tm${n}" data-seat="${i}" data-k="team" value="${t}" ${S.team===t?"checked":""}><span>${t?"Side B":"Side A"}<small>${t?"Plays against Side A.":"Plays against Side B."} Each side needs two players.</small></span></label>`).join("")}</div></div>`:""}
+${tm?`<div class="f"><span>Team</span><div class="opts">${[0,1].map(t=>`<label class="opt"><input type="radio" name="tm${n}" data-seat="${i}" data-k="team" value="${t}" ${S.team===t?"checked":""}><span>${t?"Side B":"Side A"}<small>${t?"Plays against Side A.":"Plays against Side B."} ${L==="koth"?"Each side needs at least one player.":"Each side needs two players."}</small></span></label>`).join("")}</div></div>`:""}
 <div class="f"><span>Substance</span><div class="opts subs">${Object.entries(TRIBES).map(([k,t])=>{const off=t.soon||taken.has(k)&&k!==S.tribe;return `<label class="opt${off?" off":""}"><input type="radio" name="tr${n}" data-seat="${i}" data-k="tribe" value="${k}" ${k===S.tribe?"checked":""} ${off?"disabled":""}><span>${t.solid?`<i class="subsym">${solidSVG(t.solid,t.color||"#f3d6a6",18)}</i>`:""}${t.name}<small>${taken.has(k)&&k!==S.tribe?"Another player has it: only the Beginner can be played by more than one player.":t.sub}</small></span></label>`}).join("")}</div></div>
 ${(()=>{const T=TRIBES[S.tribe]||{};
   if(T.color)return `<p class="dim fixednote">${esc(T.name)} always plays in its own color and symbol: ${solidSVG(T.solid,T.color,20)}</p>`;
@@ -112,14 +113,22 @@ function showStart(){
     document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{startMode=b.dataset.m;showStart()});return;
   }
   const mode=startMode,M=MODES.find(m=>m[0]===mode);
-  const seatsS=[0,1,2,3].map(i=>({name:mode==="survival"&&i===0?"Survivor":`P${i+1}`,type:mode==="survival"||i===0?"human":mode==="cpu"?"medium":"human",
+  const seatsS=[0,1,2,3,4,5,6,7].map(i=>({name:mode==="survival"&&i===0?"Survivor":`P${i+1}`,type:mode==="survival"||i===0?"human":mode==="cpu"?"medium":"human",
     tribe:mode==="cpu"&&i>0?"random":"beginner",color:mode==="cpu"&&i>0?"random":COLORS[SEATCOL[i]][1],solid:mode==="cpu"&&i>0?"random":SEATSOL[i],team:i%2,named:false}));
   let curLayout=null;
-  const counts=mode==="survival"?[1,2,3,4]:[2,3,4];
+  const counts=mode==="survival"?[1,2,3,4]:mode==="online"?[2,3,4]:[2,3,4,5,6,7,8];
   const forms=`<fieldset class="pf"><legend>Table</legend>
 <label class="f">${mode==="survival"?"Players against the Horde":"Players"} <select id="pcount">${counts.map(c=>`<option value="${c}" ${c===counts[0]?"selected":""}>${c}</option>`).join("")}</select></label>
 <div class="f" id="layoutf" ${mode==="survival"?"hidden":""}><span>Layout</span><div class="opts">${Object.entries(LAYOUTS).map(([k,[t,d]],i)=>`<label class="opt" data-lay="${k}"><input type="radio" name="olayout" value="${k}" ${i===0?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
-<p class="dim" id="laynote"></p></fieldset><div id="seats"></div>`;
+<p class="dim" id="laynote"></p>
+<div id="kothopts" hidden><div class="f"><span>King of the Hill</span><div class="opts">
+${chk("okteam","Team mode","Players form two sides, Side A and Side B (not necessarily even). Off: everyone for themselves.",true)}
+${chk("oktug","Tug of war","Team mode only. One shared bar from −25 to +25: holding the Hill pulls it your side's way; when both sides hold it, it stops. Pull it all the way to win.",false)}
+${chk("okdouble","Double points","Every point counts twice.",false)}
+${chk("okcontest","Contest","When more than one side holds the Hill, nobody scores.",false)}</div></div>
+<div class="f"><span>Points to win</span><div class="opts">${[["30","30"],["50","50 (default)"],["100","Marathon: 100","Holding the Hill can raise mercenaries for your side."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="oktarget" value="${v}" ${v==="50"?"checked":""}><span>${t}${d?`<small>${d}</small>`:""}</span></label>`).join("")}</div></div>
+<div class="f"><span>Spawns</span><div class="opts"><label class="opt"><input type="radio" name="oknear" value="" checked><span>Apart (default)<small>Far enough from enemies, but not as far as possible.</small></span></label><label class="opt"><input type="radio" name="oknear" value="near"><span>Next to enemies<small>Everyone spawns closer to enemies than to teammates.</small></span></label></div></div>
+<p class="dim">Other ways to win still count. The Hill is never in the fog; sight is a circle of 2 (Scouts: 4, and they move 3 in any direction); meteors fall more often.</p></div></fieldset><div id="seats"></div>`;
   const diff="";
   const rules=`<fieldset class="pf"><legend>Turns</legend>
 <label class="f">Turn order <select id="oturns"><option value="classic">Classic</option><option value="prep">Draw and prep together</option><option value="all">Every phase together</option></select></label>
@@ -225,6 +234,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     if(mode!=="survival"){
       document.querySelectorAll("#layoutf [data-lay]").forEach(o=>{const ok=LAYNEED[o.dataset.lay].includes(n);o.classList.toggle("off",!ok);const inp=o.querySelector("input");inp.disabled=!ok;inp.checked=o.dataset.lay===L})}
     const key=L+(L==="coop"?n:"");if(key!==curLayout){curLayout=key;sizeUp()}
+    if($("#kothopts")){$("#kothopts").hidden=L!=="koth";SEAT_KOTH_TEAM=$("#okteam").checked;$("#oktug").disabled=!SEAT_KOTH_TEAM;kothMapUp(L)}
     $("#laynote").textContent=mode==="survival"?(n===1?"One survivor on the usual field.":`${n} survivors share the bottom of the field, and the Horde spawns once for each of you. You take your turns one after another on this device, and the Horde moves first each round.`):"";
     const blk=skyBlocked(val("omoonon"));
     $("#seats").innerHTML=seatsS.slice(0,n).map((S,i)=>seatForm(i,S,mode,L,new Set([...blk,...seatsS.slice(0,n).filter((Q,j)=>j!==i&&Q.tribe!=="random"&&Q.tribe!=="beginner").map(Q=>Q.tribe)]))).join("");
@@ -296,6 +306,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     const blk=skyBlocked(val("omoonon")),bad=players.find(p=>blk.includes(p.tribe));if(bad){flash(`${TRIBES[bad.tribe].name} can't be played with that Heavenly Body in the sky.`);return}
     for(const t of Object.keys(TRIBES))if(t!=="random"&&t!=="beginner"&&players.filter(p=>p.tribe===t).length>1){flash(`Only one player can be ${TRIBES[t].name}. The Beginner is the only Substance more than one player can share.`);return}
     {const picked=players.filter(p=>!TRIBES[p.tribe].color&&p.color!=="random");if(new Set(picked.map(p=>p.color)).size<picked.length){flash("Every player needs a different color.");return}}   // Random finds a free color at the start
+    if(L==="koth"&&$("#okteam").checked){players.forEach((p,i)=>p.team=seatsS[i].team?1:0);if(!players.some(p=>p.team===0)||!players.some(p=>p.team===1)){flash("Each side needs at least one player.");return}}
     if(L.startsWith("team")){ // seats alternate sides: A, B, A, B
       const A=players.filter((p,i)=>!seatsS[i].team),B=players.filter((p,i)=>seatsS[i].team);
       if(A.length!==2){flash("Each side needs two players.");return}
@@ -304,7 +315,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     if(mode==="survival")players.push({name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>!players.some(p=>p.solid===s)))||"dodeca",cpu:"horde"});
     PREF.hand=val("dhand")||PREF.hand;PREF.sel=val("dsel")||PREF.sel;PREF.ctl=val("dctl")||PREF.ctl;PREF.theme=val("dtheme")??PREF.theme;PREF.coords=val("dcoord")==="1";PREF.full=val("dfull")==="1";PREF.lines=val("dlines")!=="0";if($("#danimc")){PREF.fxCards=$("#danimc").checked;PREF.fxMagic=$("#danimm").checked}PREF.bright=+($("#dbright")||{}).value||1;savePrefs();applyPrefs();
     startGame({mode,players,mid:mode==="survival"||!!($("#omid")&&$("#omid").checked),aceLock:$("#olock").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off","saturn"].includes(val("omoonon")||"on"),
-      map:val("omap"),big:val("obig")||"",cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
+      map:L==="koth"?"hill":val("omap"),big:L==="koth"?"":val("obig")||"",koth:L==="koth"?{team:$("#okteam").checked,tug:$("#okteam").checked&&$("#oktug").checked,double:$("#okdouble").checked,contest:$("#okcontest").checked,target:+val("oktarget")||50,near:val("oknear")==="near"}:null,cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
       decks:+val("odecks"),specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:+val("odecks")===1&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
       startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",atkSpells:$("#oatk").checked,pshop:$("#opshop")?$("#opshop").checked:true,
       layout:L,turns:$("#oturns").value,timer:+$("#otimer").value,cpuSpeed:$("#ospeed").value,elimDark:val("oelim")==="dark",ffaDeck:val("offa"),shareDeck:$("#oshare").checked});

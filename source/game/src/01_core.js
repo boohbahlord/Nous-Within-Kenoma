@@ -40,7 +40,7 @@ const TRIBES={
  yald:{name:"Yaldabaoth",sub:"Always the symbol of Saturn. Night's Judgement eats the moon, God Hunger eats cards, and seven eaten bring Saturn and its Debt Collectors.",solid:"saturn"}
 };
 const PLAYABLE=Object.keys(TRIBES).filter(k=>k!=="random"&&!TRIBES[k].soon);
-const COLORS=[["Ember","#ee7a3c"],["Gold","#e3b944"],["Verdigris","#45b89c"],["Azure","#4c92e6"],["Violet","#a77de8"],["Rose","#e4648f"],["Crimson","#d7333b"]];   // Bone belongs to the Angel Machine
+const COLORS=[["Ember","#ee7a3c"],["Gold","#e3b944"],["Verdigris","#45b89c"],["Azure","#4c92e6"],["Violet","#a77de8"],["Rose","#e4648f"],["Crimson","#d7333b"],["Moss","#8fb33f"],["Ash","#a9a7b8"]];   // Bone belongs to the Angel Machine
 const SOLIDS={tetra:"Tetrahedron",cube:"Cube",octa:"Octahedron",dodeca:"Dodecahedron",icosa:"Icosahedron"};
 const HORDE_COLOR="#97a487";
 
@@ -289,7 +289,7 @@ function setActive(pl){
 }
 /* every action a player takes goes through here: it is recorded, so a later online version can send it to the table */
 /* tile names, like chess squares: columns A, B, C… from the left of the field, rows 1, 2, 3… from the bottom */
-const coord=(r,c)=>"ABCDEFGHIJ"[c]+(G.rows-r);
+const coord=(r,c)=>String.fromCharCode(65+c)+(G.rows-r);   // v57: up to Y on the 25 by 25 field
 /* each player's history of rolls and spells, for the dice box */
 function hist(pl,e){const P=G.p[pl];if(!P)return;e.t=Date.now();e.round=G.moon.round;(P.hist=P.hist||[]).unshift(e);if(P.hist.length>80)P.hist.length=80;if(e.kind==="spell")P.lastSpell=e}
 function journal(type,args){G.journal.push({t:G.turnNo,pl:G.active,type,args});if(G.journal.length>2000)G.journal.shift()}
