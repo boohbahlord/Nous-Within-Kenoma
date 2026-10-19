@@ -71,16 +71,6 @@
       onBar:x=>{const {t,bar,E8,C}=x,B=E8*6;GL=null;on(send(.4,0,BUS.bass));voice("viol",hz(C.b-12),t,B*1.02,.08,.6);voice("viol",hz(C.b-12+C.fifth),t+.08,B,.05,.6);
         if([3,7,10,13].includes(bar)){const m=C.r+12+C.third;on(send(.6,.2,BUS.bass));voice("viol",hz(m),t+B*.15,B*.8,.022,.5);
           GL={r:Math.pow(2,1/12),d:B*.7};voice("viol",hz(m),t+B*.15,B*.8,.022,.5);GL=null}}},
-    /* v59: a voice behind a closed mouth, wobbling; more bass; little drums carry it; the phrases answer each other loud and soft */
-    {name:"Tomb of Saturn",bpm:52,trim:.55,bar:8,drum:"",lead:"muffle",leadV:.2,rel:.5,leg:1.05,bass:"softsub",bassV:1.25,lp:2600,echo:.4,fb:.4,dly:.6,
-      dyn:1,contrast:.55,rv:.45,ds:.2,rev:[6,.6],swell:.2,
-      chords:chords("Gm Eb Cm D Gm Eb Bb D Gm Eb Cm D Gm Eb Bb D"),
-      mel:mel(`D5:4 Bb4:4 G4:6 r:2 Eb5:4 D5:2 C5:2 F#4:4 A4:4 G5:4 F5:2 D5:2 Eb5:6 r:2 D5:2 C5:2 Bb4:4 A4:4 F#4:4
-        Bb4:4 G4:4 Eb4:6 r:2 G4:4 F4:2 Eb4:2 D4:4 F#4:4 D5:4 C5:2 Bb4:2 G4:6 r:2 F4:2 D4:2 Bb3:4 D4:8`),
-      step:x=>{const {t,i,bar,E8}=x;on(BUS.perc);
-        if(i===0)thump(t,.16,72,.16,.018);if(i===5&&bar%2)thump(t,.09,96,.12,.015);if(i===3&&rnd()<.4)thump(t,.06,110,.1,.012);
-        shaker(t,.012+.014*Math.sin(Math.PI*i/8));if(rnd()<.5)shaker(t+E8*.5,.006);
-        if(i===0&&bar%4===0){on(send(.8,.3,BUS.perc));voice("fmsoft",hz(91),t,.4,.025,1.6)}}},   // a finger cymbal, far off
     /* v59: rewritten in F Lydian: clusters of notes, then a breath; in the quiet, notes fall away (the only air in it);
        crisp and muted, warped a little, with a needle crackling */
     {name:"Lantern in the Fog",bpm:60,trim:1.3,bar:8,lead:"crisp",leadV:.26,rel:.25,bass:"chordpad",drum:"",lp:2000,echo:.2,
@@ -178,7 +168,7 @@
   function crushCurve(){if(CACHE.cc)return CACHE.cc;const n=1024,c=new Float32Array(n);for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.round(x*7)/7}return CACHE.cc=c}   // a few steps: grain
   /* instruments: the cartridge's waves, a music box, a church organ, glass, a metallic FM bell, a harpsichord pluck, a
      tremolo mandolin, an accordion, a filtered brass, a formant choir, a distorted lead; v59: a wisp, a soft music box, bowed
-     strings, a sad slide, a voice behind a closed mouth, a muted crisp key, a falling breath, a swelling tremolo, a soft bell */
+     strings, a sad slide, a muted crisp key, a falling breath, a swelling tremolo, a soft bell */
   function voice(type,f,t,dur,peak,rel,vib_){const D=DST;
     if(type==="musicbox"){const g=gn();g.connect(D);env(g,t,.004,peak,.02,.55);osc("sine",f,t,t+2.6,g);
       const g2=gn();g2.connect(D);env(g2,t,.003,peak*.35,.01,.18);osc("sine",f*4.01,t,t+1,g2);
@@ -212,7 +202,6 @@
       vib([o1,o2,o3],t,stop,4.4,.0045,.3);
       const nb=noiseSrc(t,dur+.4),bp=biq("bandpass",f*2,7),ng=gn(0);ng.gain.setValueAtTime(0,t);ng.gain.linearRampToValueAtTime(peak*1.6,t+a*.6);ng.gain.setTargetAtTime(0,t+a,.18);nb.connect(bp).connect(ng).connect(D);   // breath
       return true}
-    if(type==="softsine"){const R=rel||.4,a=vib_||.1,g=gn();g.connect(D);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+a);g.gain.setTargetAtTime(0,t+dur,R);osc("sine",f,t,t+dur+R*6,g);return true}   // vib_ here is the attack time
     if(type==="softtri"){const R=rel||.3,g=gn();g.connect(D);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+.03);g.gain.setTargetAtTime(peak*.55,t+.04,.25);g.gain.setTargetAtTime(0,t+dur,R);osc("triangle",f,t,t+dur+R*5,g);return true}
     if(type==="softbox"){const R=rel||.9,end=t+Math.max(dur,.4),g=gn();g.connect(D);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+.018);g.gain.setTargetAtTime(peak*.4,t+.03,.35);g.gain.setTargetAtTime(0,end,R);
       osc("sine",f,t,end+R*5,g);const g2=gn();g2.connect(D);env(g2,t,.012,peak*.16,.02,.22);osc("sine",f*2,t,t+1.5,g2);
@@ -225,14 +214,6 @@
       vib([o1,o2],t,stop,L?4.9:5.6,L?.0075:.005,L?.25:.18);
       const nb=noiseSrc(t,dur+.3),hp=biq(L?"bandpass":"highpass",L?Math.min(8000,f*3):3200,L?3:.7),ng=gn(0);ng.gain.setValueAtTime(0,t);ng.gain.linearRampToValueAtTime(peak*(L?.25:.35),t+a);ng.gain.setTargetAtTime(0,t+dur*.5,.15);nb.connect(hp).connect(ng).connect(D);   // the bow's rosin
       return true}
-    if(type==="muffle"){const R=rel||.5,stop=t+dur+R*5,g=gn(),f1=biq("bandpass",420,2.2),f2=biq("bandpass",1000,3.5),k2=gn(.5),lp=biq("lowpass",1100,.5),mix=gn(2.4);
-      f1.connect(mix);f2.connect(k2).connect(mix);mix.connect(lp).connect(g);g.connect(D);
-      const o=Math.min(dur*.45,.5);   // the mouth tries to open, and closes again
-      f1.frequency.setValueAtTime(330,t);f1.frequency.linearRampToValueAtTime(560,t+o);f1.frequency.setTargetAtTime(360,t+o,dur*.4);
-      f2.frequency.setValueAtTime(800,t);f2.frequency.linearRampToValueAtTime(1150,t+o);f2.frequency.setTargetAtTime(850,t+o,dur*.4);
-      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+.14);g.gain.setTargetAtTime(peak*.7,t+.2,Math.max(.1,dur*.5));g.gain.setTargetAtTime(0,t+dur,R);
-      const os=[[1,1],[2,.55],[3,.3],[4,.18]].map(([h,a])=>{const k=gn(a);k.connect(f1);k.connect(f2);return osc(h===1?"triangle":"sine",f*h,t,stop,k)});
-      vib(os,t,stop,3.2+rnd()*1.6,.007,.08);return true}   // wobbly
     if(type==="crisp"){const R=rel||.25,stop=t+dur+R*5+.1,g=gn(),ws=ac.createWaveShaper(),lp=biq("lowpass",2600,1.2);ws.curve=crushCurve();ws.connect(lp).connect(g);g.connect(D);
       g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+.008);g.gain.setTargetAtTime(peak*.45,t+.02,.12);g.gain.setTargetAtTime(0,t+dur,R);
       const p=gn(.9);p.connect(ws);osc("triangle",f,t,stop,p);const k=gn(.3);k.connect(ws);osc("pulse",f*1.002,t,stop,k);
@@ -270,7 +251,6 @@
   function thump(t,v,f,dec,a){const o=ac.createOscillator(),g=gn(0);o.frequency.setValueAtTime(f*(a?1.3:1.7),t);o.frequency.exponentialRampToValueAtTime(f,t+.07);
     g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+(a||.006));g.gain.setTargetAtTime(0,t+.02,dec||.09);o.connect(g);g.connect(DST);o.start(t);o.stop(t+.8)}
   function wood(t,v){const s=noiseSrc(t,.06),b=biq("bandpass",1500+Math.random()*700,6),g=gn(0);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v*3,t+.002);g.gain.setTargetAtTime(0,t+.004,.012);s.connect(b).connect(g).connect(DST)}
-  function shaker(t,v){const s=noiseSrc(t,.12),b=biq("highpass",5200,.7),g=gn(0);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.012);g.gain.setTargetAtTime(0,t+.02,.03);s.connect(b).connect(g).connect(DST)}
   function brush(t,v){const s=noiseSrc(t,.4),b=biq("bandpass",4200,.5),g=gn(0);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.025);g.gain.setTargetAtTime(0,t+.04,.07);s.connect(b).connect(g).connect(DST)}
   // static that grows as it tears, then stops dead or fades
   function rip(t,len,peak,slow){t=Math.max(t,ac.currentTime);const s=noiseSrc(t,len+2),b=biq("bandpass",500,2.5),ws=ac.createWaveShaper(),g=gn(0);ws.curve=distCurve();
@@ -355,7 +335,6 @@
         else if(T.bass==="drone"&&i===0){note("triangle",hz(root-12),next,E8*T.bar,.42,.4);note("sine",hz(root-5),next,E8*T.bar,.18,.4)}
         else if(T.bass==="pad"&&i===0){const d=E8*T.bar;note("triangle",hz(root-12),next,d,.36,.5);for(const v of [0,third,fifth])pad(hz(root+v),next,d,.07)}
         else if(T.bass==="chordpad"&&i===0){const d=E8*T.bar;note("sine",hz(root-12),next,d,.26,.6);for(const v of C.iv)pad(hz(C.r+v),next,d*1.1,.045)}
-        else if(T.bass==="softsub"){if(i===0)voice("softsine",hz(root-24),next,E8*T.bar,.3,.5,.3);if(i===0||i===4)voice("softsine",hz(root-12),next,E8*3.4,.17,.3,.04);if(i===6)voice("softsine",hz(root-12),next,E8*.9,.24,.2,.03)}
         else if(T.bass==="sub"){if(i===0||i===4)note("sine",hz(root-24),next,E8*3.6,.6,.25);if(i===6)note("sine",hz(root-12),next,E8*.9,.3)}
         else if(T.bass==="choirpad"&&i===0){const d=E8*T.bar;note("sine",hz(root-12),next,d,.32,.5);for(const v of C.iv)voice("choir",hz(root+v),next,d,.035,.5,false)}}
       if(MUTE!=="lead")while(ei<EV.length&&EV[ei].s<step+1-1e-6){const e=EV[ei++];playLead(e,next+(e.s-step)*E8+(T.hum?(rnd()*2-1)*T.hum:0),E8,x)}
