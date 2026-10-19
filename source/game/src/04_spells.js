@@ -85,7 +85,7 @@ async function conjure(k){
 }
 async function blessing(){
   const pl=G.active,aces=stacksOf(pl).filter(x=>hasK(x.st,"ace")).length;
-  const want=Math.min(6,1+aces),cap=blessCap(pl),rit=3*(G.ritual||0),n=Math.min(want,cap)+rit;   // v47: Ritual Dice adds 3d6 a purchase, past the six-dice cap and the overdraw cut
+  const want=Math.min(6,1+aces),cap=blessCap(pl),rit=3*(G.ritual||0),n=Math.min(want,cap)+rit+(oathNow(pl,"moon")?1:0);   // v50: the Oath of the Moon rolls one more   // v47: Ritual Dice adds 3d6 a purchase, past the six-dice cap and the overdraw cut
   const why=`1${aces?` + ${aces} for Ace${aces>1?"s":""} on the field`:""}${1+aces>6?", 6 at most":""}${cap<want?`, cut to ${cap} by overdrawing`:""}${rit?`, + ${rit} from Ritual Dice`:""}`;
   const d=rollN(n,6),six=d.filter(x=>x.v===6).length;G.blessed=true;
   tray(pl,"Grave Blessing",d,`${six} six${six===1?"":"es"}`);

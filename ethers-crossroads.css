@@ -1511,3 +1511,11 @@ html.still-blood.bloodglitch .game #board,html.still-blood.bloodglitch .game h1,
 #turnctr small{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
 #turnctr[hidden]{display:none}
 @media (max-width:640px){#turnctr b{font-size:20px}#turnctr span{font-size:15px}}
+/* v50: the Bank's bounties */
+.ovbox.bank .bntyl{padding-left:0;list-style:none}
+.ovbox.bank .bntyl li{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:4px 6px;border-bottom:1px solid rgba(127,127,127,.25)}
+.ovbox.bank .bntyl li.mine{border-left:3px solid #c9a24a}
+.ovbox.bank .bwhy{margin:4px 0;font-size:.9em;opacity:.85}
+.ovbox.bank .btabs{flex-wrap:wrap}
+.ovbox.bank .btabs .stab{white-space:nowrap;flex:0 0 auto}
+@media (max-width:600px){.ovbox.bank .btabs .stab{padding:5px 8px;font-size:11.5px}}

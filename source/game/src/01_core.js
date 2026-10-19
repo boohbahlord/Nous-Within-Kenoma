@@ -9,7 +9,7 @@ const SUITNAME={S:"Spades",H:"Hearts",D:"Diamonds",C:"Clubs"};
 let COLS=5;const SOUL_CAP=6, HAND_CAP=6;   // COLS is set by the map for each game; SOUL_CAP is also what a Joker can hold
 /* a Substance can raise a player's own limits. Mana can go up to three times the maximum for a round (the surplus);
    anything over the maximum fades at the start of the next round */
-const surCap=pl=>G&&G.satStrict&&!oathNow(pl,"saturn")?soulCap(pl):Math.min(54,soulCap(pl)*3);   // a strict Saturn (its eclipse) allows no surplus
+const surCap=pl=>G&&G.satStrict&&!oathNow(pl,"saturn")&&!(G.satStrictSafe||[]).includes(pl)?soulCap(pl):Math.min(54,soulCap(pl)*3);   // a strict Saturn (its eclipse) allows no surplus
 const handCap=pl=>G&&G.p[pl]?({jester:7,beginner:8}[G.p[pl].tribe]||HAND_CAP):HAND_CAP;
 function soulCap(pl){
   if(!G||!G.p[pl])return SOUL_CAP;const P=G.p[pl];

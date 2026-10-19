@@ -21,7 +21,7 @@ function addNPCs(){
 const debtOf=pl=>G.p[pl]?G.p[pl].debt||0:0;
 const effMana=pl=>mana(pl)-debtOf(pl);
 const DEBT_FLOOR=-8,BANK_FLOOR=-8,DEEP_DEBT=-1;   // v49: three turns at −1 or lower and the Debt Collectors come   // v46: nobody goes below −8, the Bank included; Debt Collectors watch −6
-const floorOf=pl=>DEBT_FLOOR;
+const floorOf=pl=>G&&G.p[pl]&&G.p[pl].oath==="jupiter"?-12:DEBT_FLOOR;   // v50: the Oath of Jupiter lets you sink to −12
 const bankOpen=()=>!!G.bank&&!G.bank.dead;
 function bankAdd(n){if(G.bank)G.bank.mana+=n}
 function payQuiet(pl,n){const P=G.p[pl];P.souls.sort((a,b)=>soulOf(a)-soulOf(b));let paid=0;
@@ -166,7 +166,7 @@ SPELLS.push(
  {id:"gamble",name:"Gambling",cost:1,school:"Sorcery",text:"Roll 1d10. A natural 10 turns your mana into 7d2 mana, paid by the Bank. A 1 costs you one maximum mana, puts you 7d2 into mana debt and takes a card from your deck into the Ether. Anything else: the mana is gone.",
   ok:()=>bankOpen(),run:async()=>{const pl=G.active,P=me(),d=R(10);
    if(d===10){const w=rollN(7,2),n=Math.min(sum(w),Math.max(0,G.bank.mana-BANK_FLOOR)),got=giveMana(pl,n);G.bank.mana-=got;tray(pl,"Gambling",[{s:10,v:d},...w],`+${got}`);log(`<b>Gambling</b>: ${plName(pl)} rolls a natural 10 and wins ${n} mana (${got} fit).`,"event")}
-   else if(d===1){const w=rollN(7,2),n=Math.max(0,Math.min(sum(w),effMana(pl)-DEBT_FLOOR));P.maxAdd=(P.maxAdd||0)-1;const c=P.deck.pop();if(c){c.owner=null;G.ether.push(c)}tray(pl,"Gambling",[{s:10,v:d},...w],`−${n}`);
+   else if(d===1){const w=rollN(7,2),n=Math.max(0,Math.min(sum(w),effMana(pl)-floorOf(pl)));P.maxAdd=(P.maxAdd||0)-1;const c=P.deck.pop();if(c){c.owner=null;G.ether.push(c)}tray(pl,"Gambling",[{s:10,v:d},...w],`−${n}`);
      log(`<b>Gambling</b>: ${plName(pl)} rolls a 1. One maximum mana is lost, ${n} mana of debt (7d2) is owed${c?", and a card leaves the deck for the Ether":""}.`,"event");addDebt(pl,n)}
    else{tray(pl,"Gambling",[{s:10,v:d}],"nothing");log(`Gambling: ${plName(pl)} rolls ${d}. Nothing.`)}}},
  {id:"maxmana",name:"Increase Max Mana",cost:4,school:"Conjuring",text:"Your maximum mana goes up by one for the rest of the game, eighteen at most.",ok:()=>soulCap(G.active)<18,run:async()=>{const P=me();P.maxAdd=(P.maxAdd||0)+1;log(`${plName(G.active)} buys one more maximum mana (${soulCap(G.active)}).`)}}

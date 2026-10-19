@@ -7,23 +7,21 @@
 
 /* ---------- which sky each Oath needs ---------- */
 OATH_SKY.sun="sun";OATH_SKY.moon="moon";OATH_SKY.saturn="saturn";
-OATHS.splice(0,OATHS.length,["earth","Any sky"],["sun","The Second Sun in the sky"],["moon","The Moon in the sky"],["saturn","Saturn in the sky"],["venus","Venus in the sky"],["jupiter","Jupiter in the sky"],["mercury","Mercury in the sky"]);
+OATHS.splice(0,OATHS.length,["earth","No necromancy"],["sun","Not the Firmament"],["moon","A Joker each Full Moon"],["saturn","Pays Saturn"],["venus","No attacks"],["jupiter","Cheaper conjuring"],["mercury","Betrayal and bounties"]);
 Object.assign(OATH_ONLY,{scorch:"sun",sunblind:"sun",moonjoker:"moon"});
 const oathNow=(pl,k)=>oathOf(pl)===k;
-/* changing the sky ends every Oath to the old sky (the Earth stays); a Saturn-sworn player who missed a toll can't be released */
-{const _sp=setPlanet;setPlanet=function(k,by){const keep=G.p.map(P=>P.oath);_sp(k,by);
-  G.p.forEach((P,i)=>{if(keep[i]==="earth")P.oath="earth";if(keep[i]==="saturn"&&P.satLocked)P.oath="saturn"})}}
+/* v50: an Oath no longer ends when the sky changes; only eating its Heavenly Body ends it */
 
 /* ---------- the Oath spells ---------- */
 const OATH_TXT={
-  sun:{n:"The Second Sun in the sky.",e:"The Sun's blessing: you gain fire mana (3 at most, 6 for a round) by sacrificing cards to the Sun, and from every judgement it takes from you. Fire mana pays for Scorched Earth and Blindness.",l:"Cast again to break the Oath. The Sun still judges you."},
-  moon:{n:"The Moon in the sky.",e:"Every New Moon, 2d2 − 1 more cards from the grave. Every Full Moon, +2 mana and +2 maximum. Jokers conjure for one less, and twice between Full Moons you can conjure a Moon Joker from nowhere. A Joker that shoots itself at the New Moon goes back into your deck, and under a Blood Moon your dead don't fall into the Outer Darkness.",l:"A Joker of yours must shoot itself before each Full Moon. If none does, you get no grave cards at the next New Moon and lose one maximum mana."},
-  saturn:{n:"Saturn in the sky, and a toll to pay.",e:"Pay Saturn's toll and Saturn sends Puppets to fight for you: one stack of 1d4 after the first toll, two after the third and the sixth, three after the ninth. The computer moves them.",l:"Miss one toll and you betray Saturn: no Puppets for the next three tolls, Saturn's own Puppets come for you three turns after every missed toll, and you can no longer break the Oath."}
+  sun:{n:"Any sky. Not for the Firmament.",e:"The Sun's blessing: you gain fire mana (3 at most, 6 for a round) by sacrificing cards to the Sun, and from every judgement it takes from you. Fire mana pays for Scorched Earth and Blindness.",l:"Cast again to break the Oath. The Sun still judges you."},
+  moon:{n:"Any sky. With no Moon up, its Full Moon still comes every 8 rounds.",e:"Every New Moon, 2d2 − 1 more cards from the grave. Every Full Moon, +2 mana and +2 maximum. Grave Blessing rolls one more die. Jokers conjure for one less, and twice between Full Moons you can conjure a Moon Joker from nowhere. A Joker that shoots itself at the New Moon goes back into your deck, and under a Blood Moon your dead don't fall into the Outer Darkness.",l:"A Joker of yours must shoot itself before each Full Moon. If none does, you get no grave cards at the next New Moon and lose one maximum mana."},
+  saturn:{n:"Any sky. Not for the Firmament or Binah.",e:"Each Bank report in good standing: +10% of your mana (at least 1) and +1 maximum for good. While Saturn is up, pay its toll and Saturn sends Puppets to fight for you: one stack of 1d4 after the first toll, two after the third and the sixth, three after the ninth. The computer moves them.",l:"Breaking it costs all your mana, 5 random deck cards, 2 random hand cards and 2 maximum. Miss one toll and you betray Saturn: no Puppets for the next three tolls, Saturn's own Puppets come for you three turns after every missed toll, and you can no longer break the Oath."}
 };
 SPELLS.push(
- {id:"oath_sun",name:"Oath of the Sun",cost:0,school:"Astrology",text:"",ok:()=>sunUp()&&me().tribe!=="firm",run:async()=>{toggleOath("sun")}},
- {id:"oath_moon",name:"Oath of the Moon",cost:0,school:"Astrology",text:"",ok:()=>!G.moon.gone,run:async()=>{toggleOath("moon");const P=me();if(P.oath==="moon")P.moonDone=false}},
- {id:"oath_saturn",name:"Oath of Saturn",cost:0,school:"Astrology",text:"",ok:()=>planetUp("saturn")&&paysSaturn(G.active),run:async()=>{toggleOath("saturn")}},
+ {id:"oath_sun",name:"Oath of the Second Sun",cost:0,school:"Astrology",text:"",ok:()=>oathFree("sun")&&me().tribe!=="firm",run:async()=>{toggleOath("sun")}},
+ {id:"oath_moon",name:"Oath of the Moon",cost:0,school:"Astrology",text:"",ok:()=>oathFree("moon"),run:async()=>{toggleOath("moon");const P=me();if(P.oath==="moon")P.moonDone=false}},
+ {id:"oath_saturn",name:"Oath of Saturn",cost:0,school:"Astrology",text:"",ok:()=>oathFree("saturn")&&(planetUp("saturn")?paysSaturn(G.active):!["firm","binah"].includes(me().tribe)),run:async()=>{toggleOath("saturn")}},
  {id:"scorch",name:"Scorched Earth",cost:0,school:"Astrology",fire:true,dice:"1d2+2 fire",text:"",
   ok:()=>oathNow(G.active,"sun")&&fireOf(G.active)>=fireCost(SP("scorch")),run:async()=>{await scorchedEarth(G.active)}},
  {id:"sunblind",name:"Blindness",cost:0,school:"Astrology",fire:true,dice:"2+1d2 fire",text:"",
@@ -35,8 +33,8 @@ SPELLS.push(
 PRICE.scorch=()=>R(2)+2;PRICE.sunblind=()=>2+R(2);
 Object.assign(SPELL_TEXT,{
  oath_sun:OATH_TXT.sun,oath_moon:OATH_TXT.moon,oath_saturn:OATH_TXT.saturn,
- scorch:{n:"The Oath of the Sun. Choose any tile.",e:"The ground burns in a circle two tiles around it, the middle included, for 1d3 turns. Each turn a stack standing in the fire takes one damage on a 4 of 1d4, your own included.",l:"Paid with fire mana. It never takes the last heart of an Ace or the Tree."},
- sunblind:{n:"The Oath of the Sun. Choose an enemy player.",e:"From the start of the next round to its end they are blind: they see nothing on the field, not even their own cards.",l:"Paid with fire mana. They are told what happened."},
+ scorch:{n:"The Oath of the Second Sun. Choose any tile.",e:"The ground burns in a circle two tiles around it, the middle included, for 1d3 turns. Each turn a stack standing in the fire takes one damage on a 4 of 1d4, your own included.",l:"Paid with fire mana. It never takes the last heart of an Ace or the Tree."},
+ sunblind:{n:"The Oath of the Second Sun. Choose an enemy player.",e:"From the start of the next round to its end they are blind: they see nothing on the field, not even their own cards.",l:"Paid with fire mana. They are told what happened."},
  moonjoker:{n:"The Oath of the Moon.",e:"A new Joker, made from nothing (not from the Ether), comes into your deck.",l:"Twice between Full Moons."}});
 for(const id of ["oath_sun","oath_moon","oath_saturn","scorch","sunblind","moonjoker"]){const s=SP(id),t=SPELL_TEXT[id];s.text=[t.n,t.e,t.l].filter(Boolean).join(" ")}
 
@@ -51,7 +49,7 @@ function giveFire(pl,n){const P=G.p[pl];const before=P.fire||0;P.fire=Math.min(F
 function payFire(pl,sp){const n=fireCost(sp);G.p[pl].fire=Math.max(0,fireOf(pl)-n);return n}
 /* sacrificing to the Sun: the card's worth in fire mana, the card burns to the grave */
 function sacrificeToSun(card,from){
-  const pl=G.active,P=me();if(!oathNow(pl,"sun")||!sunUp())return false;
+  const pl=G.active,P=me();if(!oathNow(pl,"sun"))return false;   // v50: the Second Sun need not be in the sky
   if(fireOf(pl)>=FIRE_SUR){flash(`You hold ${FIRE_SUR} fire mana, the most there can be.`);return false}
   if(from==="hand")P.hand.splice(P.hand.indexOf(card),1);
   else{const st=G.board[from.r][from.c];st.cards.splice(st.cards.indexOf(card),1);
@@ -108,7 +106,8 @@ const totalBlind=V=>!!(G&&V!=null&&G.p[V]&&(G.p[V].blindRound===G.moon.round||su
 
 
 /* ---------- the Oath of the Moon ---------- */
-const fullIn=()=>G.moon.gone?null:(4-G.moon.i+8)%8;   // rounds until the next Full Moon (0: this round)
+const fullIn=()=>G.moon.gone?(8-G.moon.round%8)%8:(4-G.moon.i+8)%8;   // rounds until the next Full Moon (0: this round); with no Moon up, every 8th round
+const moonFullNow=()=>G.moon.gone?G.moon.round>0&&G.moon.round%8===0:G.moon.i===4;
 const MOON_WORDS=["A Joker must commit itself.","Before the Full Moon, a Joker dies by its own hand.","The Moon asks for a Joker.","A Joker must give itself to the Moon.","The Moon waits for a Joker's death."];
 function moonOathRow(V){
   const P=G.p[V];if(!P||!oathNow(V,"moon"))return "";
@@ -126,7 +125,7 @@ function moonWhisper(){
   let w=$("#whisper");if(!w){w=document.createElement("div");w.id="whisper";w.setAttribute("aria-hidden","true");document.body.appendChild(w)}
   w.textContent=pick(MOON_WORDS);w.style.left=(8+Math.random()*55)+"vw";w.style.top=(18+Math.random()*55)+"vh";w.className="on";
   setTimeout(()=>{w.className=""},4200)}
-{const _sk=skyCapMod;skyCapMod=function(P){let m=_sk(P);if(P&&G&&!G.moon.gone&&G.moon.i===4&&P.oath==="moon")m+=2;return m}}
+{const _sk=skyCapMod;skyCapMod=function(P){let m=_sk(P);if(P&&G&&moonFullNow()&&P.oath==="moon")m+=2;return m}}
 {const _nm=newMoonGift;newMoonGift=async function(){
   if(G.noGraveNext&&!G.moon.blood)return _nm();
   // a player who broke the Moon's demand gets nothing from this New Moon
@@ -206,7 +205,7 @@ async function saturnNPC(){
   const S=npcIx("saturn");if(S<0)return;
   for(const {st,r,c} of stacksOf(S)){if(G.over||G.board[r][c]!==st)continue;st.attacked=false;st.moved=false;
     const who=st.hunt;
-    const ok=E=>E&&!isNPC(E.owner)&&(who!=null?E.owner===who:!oathNow(E.owner,"saturn"));
+    const ok=E=>E&&!isNPC(E.owner)&&(who!=null?E.owner===who:!satSafe(E.owner));
     let o=attackOptions(r,c).find(o=>o.mode!=="capture"&&o.mode!=="destroy"&&ok(G.board[o.r][o.c]));
     if(!o&&who!=null){if(!G.p[who]||G.p[who].out){G.board[r][c]=null;continue}
       const tl=stacksOf(who);if(!tl.length)continue;const dist=(a,b)=>Math.min(...tl.map(x=>Math.abs(x.r-a)+Math.abs(x.c-b)));let best=null;
@@ -221,25 +220,26 @@ async function saturnNPC(){
 
 /* ---------- Saturn's eclipse: one outcome, rolled on d100 ---------- */
 const SAT_ECL=[[5,"collapse"],[25,"collectors"],[20,"grunts"],[25,"meteor"],[10,"tithe"],[5,"banker"],[10,"strict"]];
-const satSafe=pl=>oathNow(pl,"saturn");
+const satSafe=pl=>oathNow(pl,"saturn")||good4(pl);
+const good4=pl=>{const s=G.p[pl]&&G.p[pl].standing||[];return s.length>=4&&s.slice(0,4).every(Boolean)};   // v50: four Reports in good standing: Saturn's eclipse passes you by
 async function saturnEclipse(){
   let x=R(100),k="meteor";for(const [p,id] of SAT_ECL){if(x<=p){k=id;break}x-=p}
   G.eclipse={k:"saturn",round:G.moon.round,what:k};applyMoonTheme();
   log(`<b>An eclipse of Saturn.</b>`,"event");
   const B=G.bank,pls=realPlayers();let html="";
-  if(k==="collapse"){html="<p>The rings darken and the markets fall: <b>the Bank collapses</b>.</p><p class='dim'>Those under the Oath of Saturn are spared unless they are 6 or more in mana debt.</p>";if(B&&!B.dead)collapse();else html+="<p class='dim'>(There is no Bank left to fall.)</p>"}
+  if(k==="collapse"){html="<p>The rings darken and the markets fall: <b>the Bank collapses</b>.</p><p class='dim'>Those under the Oath of Saturn are spared unless they are 6 or more in mana debt, and so is anyone in good standing for the last four Reports.</p>";if(B&&!B.dead)collapse();else html+="<p class='dim'>(There is no Bank left to fall.)</p>"}
   if(k==="collectors"){const T=pls.filter(i=>effMana(i)<-3&&!satSafe(i));const bk=npcIx("bank");let n=0;
     for(const pl of T){if(bk<0)break;const t=freeTilesNear(pl,true)[0];if(!t)continue;G.board[t[0]][t[1]]={owner:bk,cards:[mkUnit("debt",bk)],moved:true,attacked:true,hunt:pl};n++}
     html=`<p>Saturn's shadow falls on the debtors: <b>Debt Collectors</b> rise after everyone more than 3 mana in debt${T.length?`: ${T.map(plName).join(", ")}`:" (no one is)"}.</p>`}
   if(k==="grunts"){const S=npcIx("saturn");let n=0;if(S>=0){const mid=[(G.rows-1)/2,(COLS-1)/2],zones=new Set(G.p.flatMap((P,i)=>isNPC(i)?[]:seat(i).zone.map(t=>t.join())));
     const tiles=[];for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(!G.board[r][c]&&!isVoid(r,c)&&!zones.has(r+","+c))tiles.push([r,c]);tiles.sort((a,b)=>Math.hypot(a[0]-mid[0],a[1]-mid[1])-Math.hypot(b[0]-mid[0],b[1]-mid[1]));
     for(let i=0;i<3&&tiles.length;i++){const [r,c]=tiles.shift();const cards=Array.from({length:R(4)},()=>mk(String(1+R(5)),pick(["S","H","D","C"])));cards.forEach(q=>q.owner=S);G.board[r][c]={owner:S,cards,moved:true,attacked:true,wild:true};n++}}
-    html=`<p>Saturn spits out <b>${n} stack${n===1?"":"s"} of Grunts</b>. They fight anyone beside them, except those under its Oath.</p>`}
+    html=`<p>Saturn spits out <b>${n} stack${n===1?"":"s"} of Grunts</b>. They fight anyone beside them, except those under its Oath and those in good standing with the Bank for four Reports.</p>`}
   if(k==="meteor"){html="<p>Something falls from Saturn's ring: <b>a meteor</b>.</p>";meteor()}
   if(k==="tithe"){const hit=pls.filter(i=>!satSafe(i));for(const pl of hit){const P=G.p[pl];P.maxAdd=(P.maxAdd||0)-3;for(let i=0;i<3&&P.deck.length;i++)toGrave(P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0],"burn");payQuiet(pl,Math.min(3,mana(pl)))}
     html=`<p>Saturn takes its tithe: <b>three maximum mana, three deck cards and three mana</b> from ${hit.length?hit.map(plName).join(", "):"no one"}.</p>`}
   if(k==="banker"){if(B&&!B.dead){B.dead=true;html="<p>The Banker looks up at the dark ring, clutches his chest and falls over the ledger. <b>The Bank is closed</b> and the Ether shuts its doors.</p>"}else html="<p>Saturn's shadow passes over an empty Bank.</p>"}
-  if(k==="strict"){G.satStrict=true;html="<p>Saturn binds the economy: <b>no surplus mana for the rest of the game</b>, and Debt Collectors come more often for debts to the Bank or to Saturn.</p><p class='dim'>Those under the Oath of Saturn are spared.</p>"}
+  if(k==="strict"){G.satStrict=true;G.satStrictSafe=realPlayers().filter(good4);html="<p>Saturn binds the economy: <b>no surplus mana for the rest of the game</b>, and Debt Collectors come more often for debts to the Bank or to Saturn.</p><p class='dim'>Those under the Oath of Saturn, and those in good standing for the last four Reports, are spared.</p>"}
   popup("Saturn eclipsed",html);render();checkWin();
 }
 {const _ec=eclipse;eclipse=async function(k){if(k==="saturn")return saturnEclipse();return _ec(k)}}
@@ -262,7 +262,7 @@ async function saturnEclipse(){
 
 /* ---------- the strict economy and the collapse ---------- */
 {const _cl=collapse;collapse=function(){
-  const keep=realPlayers().filter(i=>oathNow(i,"saturn")&&effMana(i)>-6).map(i=>{const P=G.p[i];return {i,souls:[...P.souls],debt:P.debt,loans:[...(P.loans||[])],maxAdd:P.maxAdd,deck:[...P.deck],board:stacksOf(i).map(x=>({r:x.r,c:x.c,st:x.st,cards:[...x.st.cards]}))}});
+  const keep=realPlayers().filter(i=>oathNow(i,"saturn")&&effMana(i)>-6||good4(i)).map(i=>{const P=G.p[i];return {i,souls:[...P.souls],debt:P.debt,loans:[...(P.loans||[])],maxAdd:P.maxAdd,deck:[...P.deck],board:stacksOf(i).map(x=>({r:x.r,c:x.c,st:x.st,cards:[...x.st.cards]}))}});
   _cl();
   for(const k of keep){const P=G.p[k.i];P.souls=k.souls;P.debt=k.debt;P.loans=k.loans;P.maxAdd=k.maxAdd;P.deck=k.deck;
     for(const b of k.board){b.st.cards=b.cards;G.board[b.r][b.c]=b.st}
@@ -279,7 +279,7 @@ async function oathRound(){
   // fire mana: the surplus over 3 fades with the round
   for(const P of G.p)if((P.fire||0)>FIRE_MAX){P.fire=FIRE_MAX}
   // the Full Moon checks the Moon's demand
-  if(!G.moon.gone&&G.moon.i===4){
+  if(moonFullNow()){
     for(const pl of realPlayers()){const P=G.p[pl];if(!oathNow(pl,"moon"))continue;
       const got=giveMana(pl,2);log(`The Full Moon keeps its Oath: ${plName(pl)} gets ${got} mana and two more maximum this round.`);
       if(!P.moonDone){P.maxAdd=(P.maxAdd||0)-1;P.moonNoGrave=true;log(`${plName(pl)} broke the Moon's demand: no Joker gave itself. One maximum mana is lost, and the next New Moon gives nothing.`,"event");
@@ -297,15 +297,24 @@ async function oathRound(){
 /* ---------- the computer and the Oaths ---------- */
 {const _ap=aiPlanets;aiPlanets=async function(pl,W,cast1){await _ap(pl,W,cast1);if(G.over)return;const P=G.p[pl],lv=P.cpu;
   if(sunUp()&&P.oath!=="sun"&&P.tribe!=="firm"&&P.oath!=="earth"&&Math.random()<(lv==="hard"?.5:.25))await cast1("oath_sun");
-  if(!G.moon.gone&&P.oath!=="moon"&&!P.oath&&[...P.hand,...P.deck].some(c=>kind(c)==="joker")&&Math.random()<(lv==="hard"?.35:.15))await cast1("oath_moon");
+  if(P.oath!=="moon"&&!P.oath&&oathFree("moon")&&[...P.hand,...P.deck].some(c=>kind(c)==="joker")&&Math.random()<(lv==="hard"?.35:.15))await cast1("oath_moon");
   if(planetUp("saturn")&&P.oath!=="saturn"&&!P.oath&&paysSaturn(pl)&&P.deck.length>10&&Math.random()<.35)await cast1("oath_saturn");
   if(oathNow(pl,"sun")){if(fireOf(pl)>=fireCost(SP("sunblind"))&&Math.random()<.35)await cast1("sunblind");if(fireOf(pl)>=fireCost(SP("scorch"))&&Math.random()<.5)await cast1("scorch")}
-  if(oathNow(pl,"moon")){if(!P.moonDone){const j=stacksOf(pl).find(x=>hasK(x.st,"joker"));if(j&&fullIn()<=2)await cast1("suicide",j.r,j.c)}
-    if((P.moonJokers||0)<2&&mana(pl)>=3&&Math.random()<.4)await cast1("moonjoker")}
+  if(oathNow(pl,"moon"))await aiMoonOath(pl,cast1);
 }}
 
+/* v50: the computer keeps the Moon's demand: a Joker goes onto the field in time, and shoots itself before the Full Moon */
+async function aiMoonOath(pl,cast1){const P=G.p[pl],n=fullIn();
+  if(!P.moonDone&&n<=3){
+    let j=stacksOf(pl).find(x=>hasK(x.st,"joker"));
+    if(!j){const c=P.hand.find(x=>kind(x)==="joker");
+      if(c){let spot=null;for(const x of stacksOf(pl))if(canPlace(c,x.r,x.c)){spot=x;break}
+        if(spot){place(c,spot.r,spot.c);render();await sleep(300);j=stacksOf(pl).find(x=>hasK(x.st,"joker"))}}}
+    if(j&&(n<=1||P.cpu==="hard"&&n<=2||Math.random()<.5))await cast1("suicide",j.r,j.c);
+    else if(!j&&!P.hand.some(x=>kind(x)==="joker")&&(P.moonJokers||0)<2&&mana(pl)>=1)await cast1("moonjoker")}
+  if((P.moonJokers||0)<2&&mana(pl)>=3&&Math.random()<.4)await cast1("moonjoker")}
 /* ---------- on the screen: the Sun's sacrifice, fire mana, the blind veil, aiming at a tile ---------- */
-const sunSacOk=V=>V===G.active&&oathNow(V,"sun")&&sunUp();
+const sunSacOk=V=>V===G.active&&oathNow(V,"sun");
 {const _et=econTags;econTags=function(P){const t=_et(P);
   if(oathNow(P.i,"sun"))t.push(`<span class="firetag" title="Fire mana: 3 at most, 6 for a round">Fire ${fireOf(P.i)}/${FIRE_MAX}</span>`);
   if(totalBlind(P.i)&&!sunBlind(P.i))t.push(`<span class="debttag">Blind</span>`);

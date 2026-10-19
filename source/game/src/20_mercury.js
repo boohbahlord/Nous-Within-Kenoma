@@ -152,8 +152,8 @@ SPELLS.push(
   ok:()=>planetUp("mercury")&&!peaceOn(),run:async()=>{startPeace(2,`bought by ${esc(me().name)}`)}},
  {id:"war",name:"Total War",cost:0,school:"Astrology",text:"Free, under Mercury; everyone must agree. For 3 + 1d2 − 1 rounds every card killed falls into the Outer Darkness and gives its killer a mana, curses cost 1d2 − 1 less, and teammates may strike each other: each damage to a teammate pays its soul's worth + 1d2 − 1.",
   ok:()=>planetUp("mercury")&&!warOn()&&!peaceOn()&&!G.voted,run:async()=>{G.voted=true;const v=await vote("Total War","Agree to Total War for 3 or 4 rounds?");if(!v.no.length)startWar(2+R(2),"agreed by everyone");else log("No war: not everyone agrees.")}},
- {id:"oath_mercury",name:"Oath of Mercury",cost:0,school:"Astrology",text:"Free, while Mercury is up. Unlocks Betrayal, Declare War and Bribe the Banker. Cast again to break the Oath.",
-  ok:()=>planetUp("mercury"),run:async()=>{toggleOath("mercury")}},
+ {id:"oath_mercury",name:"Oath of Mercury",cost:0,school:"Astrology",text:"Free. Unlocks Betrayal, Declare War and Bribe the Banker. Cast again to break the Oath.",
+  ok:()=>oathFree("mercury"),run:async()=>{toggleOath("mercury")}},
  {id:"betray",dice:"1d2+2d3",name:"Betrayal",cost:6,school:"Astrology",text:"Oath of Mercury, in a team game. You leave your team for good. For two rounds every card killed falls into the Outer Darkness, and every damage between you and your former teammates pays its dealer the soul's worth + 1d2 − 1.",
   ok:()=>oathOf(G.active)==="mercury"&&alliesOf(G.active).filter(i=>!isHorde(i)).length>0,run:async()=>{const pl=G.active,mates=alliesOf(pl).filter(i=>!isHorde(i));
    const sure=await ask(pl,{kind:"yesno",id:"betray",title:"Betrayal",text:`Betray ${mates.map(i=>esc(G.p[i].name)).join(" and ")}? It can't be undone.`,yes:"Betray",no:"Stay loyal",ai:()=>true});
