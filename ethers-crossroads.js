@@ -2346,8 +2346,8 @@ ${["river","none"].filter(k=>!(mode==="survival"&&k==="river")).map(k=>`<label c
 <div class="f" id="bridgeopt" hidden><span>Bridge</span><div class="opts"><label class="opt"><input type="radio" name="obridge" value="left" checked><span>Left<small>Two tiles wide, on the left of the river.</small></span></label><label class="opt"><input type="radio" name="obridge" value="right"><span>Right<small>Two tiles wide, on the right.</small></span></label></div></div>
 </fieldset>
 <fieldset class="pf" id="sizeset"><legend>Size</legend>
-<div id="sizeduel"><p class="dim">On a phone, 5 wide is the largest size that stays easy to read.</p><div class="f"><span>Width</span><div class="opts">${[5,6,7].map(w=>`<label class="opt"><input type="radio" name="ocols" value="${w}" ${w===5?"checked":""}><span>${w} wide${w===5?" (default)":""}</span></label>`).join("")}</div></div>
-${mode==="survival"?'<p class="dim">Survival always uses the midline: the field is 5 tall.</p>':chk("omid","Use the midline","An empty line between the two armies: 5 tall with it, 4 without.",true)}
+<div id="sizeduel"><p class="dim">On a phone, 5 wide is the largest size that stays easy to read.</p><div class="f"><span>Width</span><div class="opts">${[5,6,7].map(w=>`<label class="opt"><input type="radio" name="ocols" value="${w}" ${w===6?"checked":""}><span>${w} wide${w===6?" (default)":""}</span></label>`).join("")}</div></div>
+${mode==="survival"?'<p class="dim">Survival always uses the midline: the field is 5 tall.</p>':`<div class="f"><span>Height</span><div class="opts">${[[4,"4 tall","No midline"],[5,"5 tall","One midline"],[6,"6 tall (default)","Two midlines"]].map(([h,t,d])=>`<label class="opt"><input type="radio" name="orowsd" value="${h}" ${h===6?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>`}
 </div>${chk("ocorners","Cut off the corners","The four corner tiles are removed from play. On by default for free-for-all and the 2v2 layouts on the edges.",false)}
 <div id="sizeother" class="sizesel" hidden></div>
 ${mode==="survival"?"":`<div class="f" id="bigset"><span>Large maps</span><div class="opts">${[["","Standard (default)","The sizes above."],["long","10 long, 6 wide","1v1, or 2v2 with each team on one short end."],["sq","10 by 10","Any layout."],["plus","10 by 10 plus","A cross with arms 4 wide; everyone spawns at the end of an arm."],["round","Plus with a round middle","The cross with a round open middle; the hole option can open its center."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="obig" value="${v}" ${v?"":"checked"}><span>${t}<small>${d}</small></span></label>`).join("")}</div><p class="dim">Large maps scroll inside a frame: the mouse wheel zooms, dragging an empty spot or WASD and the arrow keys move it, and Q and E (or C and V) zoom. The Menu has Large Map Controls.</p></div>`}
@@ -2450,8 +2450,8 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     }
     if(mode==="survival")players.push({name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>!players.some(p=>p.solid===s)))||"dodeca",cpu:"horde"});
     PREF.hand=val("dhand")||PREF.hand;PREF.sel=val("dsel")||PREF.sel;PREF.ctl=val("dctl")||PREF.ctl;PREF.theme=val("dtheme")??PREF.theme;PREF.coords=val("dcoord")==="1";PREF.full=val("dfull")==="1";PREF.lines=val("dlines")!=="0";if($("#danimc")){PREF.fxCards=$("#danimc").checked;PREF.fxMagic=$("#danimm").checked}PREF.bright=+($("#dbright")||{}).value||1;savePrefs();applyPrefs();
-    startGame({mode,players,mid:mode==="survival"||!!($("#omid")&&$("#omid").checked),aceLock:$("#olock").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off","saturn"].includes(val("omoonon")||"on"),
-      map:L==="koth"?"hill":val("omap"),big:L==="koth"?"":val("obig")||"",koth:L==="koth"?{team:$("#okteam").checked,tug:$("#okteam").checked&&$("#oktug").checked,double:$("#okdouble").checked,contest:$("#okcontest").checked,target:+val("oktarget")||50,near:val("oknear")==="near"}:null,cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
+    startGame({mode,players,mid:mode==="survival"||(val("orowsd")?+val("orowsd")>4:true),aceLock:$("#olock").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off","saturn"].includes(val("omoonon")||"on"),
+      map:L==="koth"?"hill":val("omap"),big:L==="koth"?"":val("obig")||"",koth:L==="koth"?{team:$("#okteam").checked,tug:$("#okteam").checked&&$("#oktug").checked,double:$("#okdouble").checked,contest:$("#okcontest").checked,target:+val("oktarget")||50,near:val("oknear")==="near"}:null,cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:L==="duel"&&val("orowsd")?+val("orowsd"):undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
       decks:+val("odecks"),specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:+val("odecks")===1&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
       startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",atkSpells:$("#oatk").checked,pshop:$("#opshop")?$("#opshop").checked:true,
       layout:L,turns:$("#oturns").value,timer:+$("#otimer").value,cpuSpeed:$("#ospeed").value,elimDark:val("oelim")==="dark",ffaDeck:val("offa"),shareDeck:$("#oshare").checked});
@@ -2605,7 +2605,7 @@ function mapPlan(o){
   if(L==="ffa"||L==="team-side"||L==="team-across"){cols=rows=clamp(o.size,5,9,7);corners=o.corners!==false;mid=true}
   else if(L==="team-same"){cols=clamp(o.cols,6,8,6);rows=clamp(o.rows,4,6,6);mid=rows>4}
   else if(L==="coop"){const h=n-1;cols=clamp(o.cols,Math.max(5,h*2),9,h===2?6:h===3?9:8);rows=clamp(o.rows,5,6,h===2?5:6);mid=true;corners=false}
-  else rows=mid?5:4;
+  else{rows=o.mode==="survival"||theme==="river"?5:clamp(o.rows,4,6,mid?5:4);mid=o.mode==="survival"||rows>4}   // v62: 1v1 can be 6 tall (two midlines); the default is 6 by 6
   /* v56: the large maps: 10 long by 6 wide (1v1, and 2v2 on one end), 10 by 10, a 10 by 10 plus (arms 4 wide), and the plus
      with a round middle. All of them use the large-map camera. */
   const big=["long","sq","plus","round"].includes(o.big)&&o.mode!=="survival"&&L!=="coop"?o.big:null;
@@ -9943,5 +9943,28 @@ if(window.__EC)Object.assign(window.__EC,{mineSlots,mineStats,moonPlant:(...a)=>
   const us=[...new Set(cards.filter(c=>c.unit&&WILD_USE[c.unit]).map(c=>c.unit))];if(!us.length)return;
   box.insertAdjacentHTML("afterbegin",us.map(u=>`<p class="wilduse"><b>${esc((UNIT[u].short||UNIT[u].name))}</b> ${esc(WILD_USE[u])}</p>`).join(""))}}
 {const _f=face;face=function(c,o){const h=_f.apply(this,arguments);if(!c||!c.unit||!WILD_USE[c.unit])return h;return h.replace(/title="([^"]*)"/,(m,t)=>`title="${t}: ${esc(WILD_USE[c.unit])}"`)}}
+
+/* ---------- N1: a Wall can also go up on any empty tile within a circle of two around one of your Repairmen; while a Wall is
+   picked in the hand, the Repairmen's tiles glow blue ---------- */
+const nearRepair=(pl,r,c)=>stacksOf(pl).some(({st,r:a,c:b})=>st.cards.some(x=>x.unit==="repair")&&(a-r)**2+(b-c)**2<=5);   // a round circle of two
+{const _cp=canPlace;canPlace=function(card,r,c){if(_cp.apply(this,arguments))return true;
+  if(!G||!card||kind(card)!=="wall"||G.phase==="setup"||isVoid(r,c)||G.board[r][c])return false;return nearRepair(G.active,r,c)}}
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.selHand||kind(G.selHand)!=="wall")return;
+  for(const {st,r,c} of stacksOf(G.active))if(st.cards.some(x=>x.unit==="repair")){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(t)t.classList.add("repsrc")}}}
+if(INFO.wall)INFO.wall[2]=INFO.wall[2].map(([k,v])=>k==="Moves"?[k,"never; it goes up on any empty tile of your spawn lines, or on any empty tile within two of one of your Repairmen"]:[k,v]);
+if(INFO.repair&&!INFO.repair[2].some(r=>r[0]==="Builds"))INFO.repair[2].splice(1,0,["Builds","a Wall from your hand can go up on any empty tile within two of him"]);
+
+/* ---------- N8: the map's art in a few steps (Full, two thirds, one third, Off); with the map off, the tiles nobody can play
+   glow very faintly (no animation) so the field's shape still shows ---------- */
+const MAP_STEPS=[["Off",0],["⅓",.33],["⅔",.66],["Full",1]];
+const mapStep=()=>{const v=PREF.mapStep;return v==null?3:Math.max(0,Math.min(3,v|0))};
+{const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);const s=mapStep();document.documentElement.style.setProperty("--mapop",MAP_STEPS[s][1]);document.documentElement.classList.toggle("nomap",s===0)}}
+{const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu"),a=m&&m.querySelector("#mPxMap");if(!a||m.querySelector("#mMapOp"))return;
+  a.closest("label").insertAdjacentHTML("afterend",`<label class="f mslide">Map <input type="range" id="mMapOp" min="0" max="3" step="1" value="${mapStep()}"><b id="mMapOpV">${MAP_STEPS[mapStep()][0]}</b></label>`);
+  $("#mMapOp").oninput=e=>{PREF.mapStep=+e.target.value;$("#mMapOpV").textContent=MAP_STEPS[PREF.mapStep][0];savePrefs();applyPrefs()}}}
+
+/* ---------- music: The Crossroads plays while a game is set up; the game's songs once it starts ---------- */
+{const _sg=startGame;startGame=function(){const out=_sg.apply(this,arguments);try{window.ECMusic&&ECMusic.setLobby&&ECMusic.setLobby(false)}catch(e){}return out}}
+{const _ss=showStart;showStart=function(){const out=_ss.apply(this,arguments);try{window.ECMusic&&ECMusic.setLobby&&ECMusic.setLobby(true)}catch(e){}return out}}
 
 })();

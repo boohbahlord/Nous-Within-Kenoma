@@ -24,7 +24,7 @@ function mapPlan(o){
   if(L==="ffa"||L==="team-side"||L==="team-across"){cols=rows=clamp(o.size,5,9,7);corners=o.corners!==false;mid=true}
   else if(L==="team-same"){cols=clamp(o.cols,6,8,6);rows=clamp(o.rows,4,6,6);mid=rows>4}
   else if(L==="coop"){const h=n-1;cols=clamp(o.cols,Math.max(5,h*2),9,h===2?6:h===3?9:8);rows=clamp(o.rows,5,6,h===2?5:6);mid=true;corners=false}
-  else rows=mid?5:4;
+  else{rows=o.mode==="survival"||theme==="river"?5:clamp(o.rows,4,6,mid?5:4);mid=o.mode==="survival"||rows>4}   // v62: 1v1 can be 6 tall (two midlines); the default is 6 by 6
   /* v56: the large maps: 10 long by 6 wide (1v1, and 2v2 on one end), 10 by 10, a 10 by 10 plus (arms 4 wide), and the plus
      with a round middle. All of them use the large-map camera. */
   const big=["long","sq","plus","round"].includes(o.big)&&o.mode!=="survival"&&L!=="coop"?o.big:null;

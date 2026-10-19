@@ -1756,3 +1756,9 @@ html:not(.cardsym) .v61 .so{display:none}
 /* v62: what a wildcard is for, at the top of the Selected box */
 #selbox .wilduse{margin:0 0 6px;padding:5px 8px;border-left:2px solid var(--amber);background:color-mix(in srgb,var(--amber) 8%,transparent);font-size:12.5px;line-height:1.4}
 #selbox .wilduse b{color:var(--amber-hi);font-weight:400;margin-right:4px}
+/* v62: while a Wall is picked, your Repairmen's tiles glow blue (a Wall can go up within two of them) */
+#board .tile.repsrc{box-shadow:inset 0 0 0 2px #4ea0ff,0 0 12px #4ea0ffaa;z-index:1}
+/* v62: the map's art fades in steps; Off hides it, and the tiles nobody can play glow very faintly */
+#board .tile>.tart{opacity:var(--mapop,1)}
+html.nomap #board .tile>.tart{display:none}
+html.nomap #board .tile.void,html.nomap #board .tile.water{visibility:visible!important;background:rgba(232,226,214,.05)!important;box-shadow:inset 0 0 10px rgba(240,234,222,.08)!important}

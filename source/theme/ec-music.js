@@ -284,7 +284,7 @@
     const bag=names.map(n=>({n,k:Math.pow(Math.random(),1/Math.log(2+age(n)))})).sort((a,b)=>b.k-a.k).map(x=>x.n);   // weighted shuffle: older songs lean to the front
     if(lastName&&bag[0]===lastName&&bag.length>1)bag.push(bag.shift());return bag}
   let firstDone=false;
-  function pick(mode){if(mode!=="random")return 0;const h=hist();let n;h.played=(h.played||[]).filter(x=>names.includes(x));
+  function pick(mode){if(mode==="lobby")return Math.max(0,names.indexOf("The Crossroads"));if(mode!=="random")return 0;const h=hist();let n;h.played=(h.played||[]).filter(x=>names.includes(x));
     if(!firstDone&&names.includes(GAME_FIRST)){n=GAME_FIRST;h.bag=h.bag.filter(x=>x!==n);if(!h.played.includes(n))h.played.push(n)}
     else{if(!h.bag.length){h.bag=newBag(h,last>=0?names[last]:null).filter(x=>!h.played.includes(x));if(!h.bag.length){h.played=[];h.bag=newBag(h,last>=0?names[last]:null)}}
       n=h.bag.shift();h.played.push(n);if(!h.bag.length)h.played=[]}   // a cycle ends when its last song starts
@@ -349,9 +349,15 @@
         if(has("static")&&i===0&&(bar*7)%3===1)hit(next,"static");   // a radio that won't quite tune
         if(T.step)T.step(x);if(i===0&&T.onBar)T.onBar(x);GL=null}
       next+=E8;step++;
-      if(step>=total){if(RENDER)return;next+=E8*2;load(pick(MODE))}}   // the song ends: the next one (or the same, outside the game)
+      if(step>=total){if(RENDER)return;next+=GAP();load(pick(MODE))}}   // the song ends: a silence of 20 to 30 seconds, so the songs can breathe, then the next one
   }
-  let MODE=inGame()?"random":"first";
+  const GAP=()=>20+Math.random()*10;
+  /* v62: on the game's page, The Crossroads plays while the game is being set up (the lobby); the game's own songs begin
+     when it starts. setLobby is called by the game. */
+  let MODE=inGame()?"lobby":"first";
+  function setLobby(on){const m=on?"lobby":inGame()?"random":"first";if(m===MODE)return;MODE=m;if(!playing||!ac)return;
+    const t=ac.currentTime;out.gain.cancelScheduledValues(t);out.gain.setTargetAtTime(0,t,.35);   // fade out, then the next song
+    setTimeout(()=>{if(!playing||!ac)return;load(pick(MODE),true);next=ac.currentTime+.3;out.gain.cancelScheduledValues(ac.currentTime);out.gain.setTargetAtTime(BASE*vol(prefs()),ac.currentTime,.8);tick()},1600)}
   function start(){if(playing)return;if(!ctx())return;if(ac.state==="suspended")ac.resume();playing=true;load(pick(MODE),true);next=ac.currentTime+.15;
     out.gain.cancelScheduledValues(ac.currentTime);out.gain.setTargetAtTime(BASE*vol(prefs()),ac.currentTime,.8);timer=setInterval(tick,90);tick()}
   function stop(){if(!playing)return;playing=false;clearInterval(timer);timer=null;if(ac){out.gain.cancelScheduledValues(ac.currentTime);out.gain.setTargetAtTime(0,ac.currentTime,.3)}}
@@ -384,6 +390,6 @@
       load(i,true);next=.05;playing=true;tick(len-6.5);buf=await ac.startRendering()}
     finally{RENDER=false;[ac,out,BUS,CACHE,BEDS,DST,GL,T,ti,last,step,ei,EV,total,next,playing,prevF,SEED,MUTE]=keep}
     return buf}
-  window.ECMusic={sync,start,stop,duck,renderSong,next:nextSong,get playing(){return playing},get track(){return T?T.name:null},tracks:names,allTracks:TRACKS.map(t=>t.name),info:()=>TRACKS.map(t=>({name:t.name,bar:t.bar,chords:t.chords.length,total:t.mel.reduce((a,x)=>a+x[1],0)})),setMode:m=>{MODE=m},
+  window.ECMusic={sync,start,stop,duck,renderSong,setLobby,next:nextSong,get playing(){return playing},get track(){return T?T.name:null},tracks:names,allTracks:TRACKS.map(t=>t.name),info:()=>TRACKS.map(t=>({name:t.name,bar:t.bar,chords:t.chords.length,total:t.mel.reduce((a,x)=>a+x[1],0)})),setMode:m=>{MODE=m},
     setVol:v=>{setPref("musicVol",Math.round(Math.max(0,Math.min(1.5,v))*100)/100);sync()},get vol(){return vol(prefs())}};
 })();
