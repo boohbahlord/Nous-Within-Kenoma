@@ -20,7 +20,7 @@ function addNPCs(){
    Below −3 × your maximum you lose at once. */
 const debtOf=pl=>G.p[pl]?G.p[pl].debt||0:0;
 const effMana=pl=>mana(pl)-debtOf(pl);
-const DEBT_FLOOR=-8,BANK_FLOOR=-8,DEEP_DEBT=-6;   // v46: nobody goes below −8, the Bank included; Debt Collectors watch −6
+const DEBT_FLOOR=-8,BANK_FLOOR=-8,DEEP_DEBT=-1;   // v49: three turns at −1 or lower and the Debt Collectors come   // v46: nobody goes below −8, the Bank included; Debt Collectors watch −6
 const floorOf=pl=>DEBT_FLOOR;
 const bankOpen=()=>!!G.bank&&!G.bank.dead;
 function bankAdd(n){if(G.bank)G.bank.mana+=n}
@@ -38,7 +38,7 @@ function canAfford(pl,n){return mana(pl)>=n||creditOn(pl)&&effMana(pl)-n>=floorO
 function spend(pl,n){const have=mana(pl);
   if(have>=n){pay(pl,n);bankAdd(n);return}
   if(have)pay(pl,have);bankAdd(have);
-  const P=G.p[pl];P.debt=(P.debt||0)+(n-have);if(P.debtAt==null)P.debtAt=tnOf(pl)+3;if(pl===G.active)G.spent=true;
+  const P=G.p[pl];P.debt=(P.debt||0)+(n-have);if(P.debtAt==null)P.debtAt=tnOf(pl)+3;rpOf(pl).credit+=n-have;if(pl===G.active)G.spent=true;
   log(`${plName(pl)} spends ${n-have} mana on credit (${effMana(pl)}/${soulCap(pl)}).`);checkDebt(pl)}
 function noteBuy(id){const B=G.bank;if(!B)return;const r=G.moon.round;(B.buys[r]=B.buys[r]||{})[id]=(B.buys[r][id]||0)+1}
 
@@ -70,7 +70,7 @@ const loanDue=n=>Math.max(2,Math.ceil(n/2));   // 12 mana: 6 turns; never less t
 const loanRate=pl=>effMana(pl)<=-soulCap(pl)?.3:.2;
 function takeLoan(pl,n){const P=G.p[pl];n=Math.min(n,loanLimit(pl));if(n<=0)return 0;
   G.bank.mana-=n;const got=giveMana(pl,n),t=tnOf(pl);
-  (P.loans=P.loans||[]).push({owed:n,at:t+3,due:t+loanDue(n)});P.loanRound=G.moon.round;P.loanNext=t+LOAN_GAP;
+  (P.loans=P.loans||[]).push({owed:n,at:t+3,due:t+loanDue(n),t0:t});rpOf(pl).loans+=n;P.loanRound=G.moon.round;P.loanNext=t+LOAN_GAP;
   log(`<b>The Bank</b> lends ${plName(pl)} ${n} mana (it grows by 1d2 every 3 turns; due in ${loanDue(n)} turns).`,"event");return got}
 function owedOf(pl){return (G.p[pl].loans||[]).reduce((a,L)=>a+L.owed,0)}
 function repay(pl,n){const P=G.p[pl];n=Math.min(n,mana(pl),owedOf(pl));if(n<=0)return 0;const paid=payQuiet(pl,n);bankAdd(paid);let left=paid;
@@ -91,11 +91,11 @@ function sellThrall(pl){const P=G.p[pl];const c=(P.thralls||[]).shift();if(!c)re
 function bankTurn(pl){
   barbTick();
   const P=G.p[pl];if(!P||isHorde(pl)||!G.bank)return;
-  debtWatch(pl);if(P.guilty&&bankOpen())sendCollectors(R(2));
+  debtWatch(pl);if(P.guilty&&bankOpen()){let k=R(2);if(P.guiltyAt!=null&&tnOf(pl)-P.guiltyAt>=6)k=Math.ceil(k*1.5);sendCollectors(k)}   // v49: six turns in default: half as many again
   const n=tnOf(pl);
   if(bankOpen()){
-    for(const L of P.loans||[])if(n>=L.at){const add=R(2);L.owed+=add;L.at=n+3;log(`Interest: ${plName(pl)}'s loan grows by ${add} (1d2) to ${L.owed}.`)}
-    if(P.debt>0&&P.debtAt!=null&&n>=P.debtAt){const add=R(2);P.debt+=add;P.debtAt=n+3;log(`Interest: ${plName(pl)}'s mana debt grows by ${add} to −${P.debt}.`)}
+    for(const L of P.loans||[])if(n>=L.at){const add=R(2);L.owed+=add;L.at=n+3;rpOf(pl).intL+=add;log(`Interest: ${plName(pl)}'s loan grows by ${add} (1d2) to ${L.owed}.`)}
+    if(P.debt>0&&P.debtAt!=null&&n>=P.debtAt){const add=R(2);P.debt+=add;P.debtAt=n+3;rpOf(pl).intC+=add;log(`Interest: ${plName(pl)}'s mana debt grows by ${add} to −${P.debt}.`)}
     for(const L of [...(P.loans||[])])if(n>=L.due){P.loans.splice(P.loans.indexOf(L),1);const take=payQuiet(pl,Math.min(mana(pl),L.owed));bankAdd(take);
       if(take<L.owed){const P2=G.p[pl];P2.debt=(P2.debt||0)+L.owed-take;if(P2.debtAt==null)P2.debtAt=n+3}
       log(`A loan comes due: ${plName(pl)} turns in ${take} of ${L.owed} mana${take<L.owed?`; the other ${L.owed-take} become mana debt (${effMana(pl)})`:""}.`,"event")}
@@ -343,10 +343,13 @@ function waveCleared(W){
 const COLL_MAX=6;
 const debtTargets=()=>alive().filter(i=>!isHorde(i)&&G.p[i].guilty).sort((a,b)=>effMana(a)-effMana(b));
 function debtWatch(pl){const P=G.p[pl];if(!P||isHorde(pl)||isNPC(pl)||!G.bank)return;const n=tnOf(pl);
-  if(P.guilty){if(!P.debt&&effMana(pl)>=0){P.guilty=false;P.deepAt=null;log(`${plName(pl)} has paid off the debt: the Debt Collectors stop coming.`,"event")}return}
-  if(effMana(pl)<=DEEP_DEBT){if(P.deepAt==null)P.deepAt=n;else if(n-P.deepAt>=3){P.guilty=true;
-    log(`<b>${plName(pl)} has been ${-DEEP_DEBT} or more below zero for three turns.</b> The Bank sends Debt Collectors every turn until the debt is paid.`,"event");notify(null,`The Bank's Debt Collectors come for ${esc(P.name)}.`)}}
+  if(P.guilty){if(!P.debt&&effMana(pl)>=0&&!loanLate(pl)){P.guilty=false;P.deepAt=null;P.guiltyAt=null;log(`${plName(pl)} has paid off the debt: the Debt Collectors stop coming.`,"event")}return}
+  const late=loanLate(pl);
+  if(effMana(pl)<=DEEP_DEBT||late){if(P.deepAt==null)P.deepAt=n;if(late||n-P.deepAt>=2){P.guilty=true;P.guiltyAt=n;rpOf(pl).bad=true;
+    log(`<b>${plName(pl)} ${late?"has left a loan unpaid too long":"has been below zero for three turns"}.</b> The Bank sends Debt Collectors every turn until it is paid.`,"event");notify(null,`The Bank's Debt Collectors come for ${esc(P.name)}.`)}}
   else P.deepAt=null}
+/* v49: a Bank loan left open for 3 + (owed ÷ 3) of your turns brings the Debt Collectors too */
+const loanLate=pl=>(G.p[pl].loans||[]).some(L=>L.t0!=null&&tnOf(pl)-L.t0>=3+Math.floor(L.owed/3));
 function sendCollectors(k){const B=npcIx("bank"),tgt=debtTargets()[0];if(B<0||tgt==null||!G.bank||G.bank.dead)return 0;const ts=stacksOf(tgt);if(!ts.length)return 0;
   k=Math.min(k,COLL_MAX-stacksOf(B).filter(x=>x.st.hunt==null).length);let put=0;
   const free=[];for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(!G.board[r][c]&&!isVoid(r,c))free.push([r,c,Math.min(...ts.map(x=>Math.abs(x.r-r)+Math.abs(x.c-c)))]);

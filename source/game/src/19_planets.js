@@ -107,7 +107,7 @@ async function tradeCard(pl){
     ai:()=>{const k=Q.hand.map((c,ix)=>[rate(c),ix]).sort((a,b)=>a[0]-b[0])[0];return k&&k[0]<=rate(give)?k[1]:null}});
   if(j==null){log(`${plName(to)} turns down ${plName(pl)}'s trade.`);flash("The trade was refused.");return}
   const back=Q.hand[j];P.hand.splice(P.hand.indexOf(give),1);Q.hand.splice(Q.hand.indexOf(back),1);give.owner=to;back.owner=pl;Q.hand.push(give);P.hand.push(back);
-  log(`<b>Trade</b> under Jupiter: ${plName(pl)} and ${plName(to)} swap a card each.`,"event");jupKick();render();
+  log(`<b>Trade</b>${planetUp("jupiter")?" under Jupiter":""}: ${plName(pl)} and ${plName(to)} swap a card each.`,"event");if(planetUp("jupiter"))jupKick();render();
 }
 
 /* ---------- the Sun's fall ---------- */

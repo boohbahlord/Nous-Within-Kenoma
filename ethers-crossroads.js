@@ -3133,7 +3133,7 @@ function viewAuction(){
   const items=G.auction||[];
   ovShow(`<div class="ovbox"><h2>The Auction</h2><p class="dim">Tiphareth of Kether sells the souls its Traffickers chained. Offer mana or cards from your hand; the seller has to approve.</p>
 <div class="auct">${items.length?items.map((it,i)=>`<div class="aitem">${face(it.card,{owner:it.seller})}<div><b>${esc(nameOf(it.card))}</b><br><span class="dim">sold by ${plName(it.seller)}</span>${live&&it.seller!==V?`<br><button class="btn ghost sm" data-buy="${i}">Make an offer</button>`:""}</div></div>`).join(""):'<p class="dim">Nothing is for sale.</p>'}</div>
-${mysteryHTML(live)}${planetUp("jupiter")&&live?`<p><button class="btn ghost sm" id="tradeBtn">Trade a card from your hand</button> <small class="dim">Jupiter is up: offer one of your cards for one of another player's.</small></p>`:""}<p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
+${mysteryHTML(live)}${live?`<p><button class="btn ghost sm" id="tradeBtn">Trade a card from your hand</button> <small class="dim">Offer one of your cards for one of another player's; they pick what to give back, or refuse.</small></p>`:""}<p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
   $("#mcancel").onclick=ovHide;wireMystery();if($("#tradeBtn"))$("#tradeBtn").onclick=async()=>{ovHide();G.busy=true;try{await tradeCard(G.active)}finally{G.busy=false}render()};
   $("#ov").querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>{ovHide();makeOffer(G.auction[+b.dataset.buy])});
 }
@@ -4087,7 +4087,7 @@ function addNPCs(){
    Below −3 × your maximum you lose at once. */
 const debtOf=pl=>G.p[pl]?G.p[pl].debt||0:0;
 const effMana=pl=>mana(pl)-debtOf(pl);
-const DEBT_FLOOR=-8,BANK_FLOOR=-8,DEEP_DEBT=-6;   // v46: nobody goes below −8, the Bank included; Debt Collectors watch −6
+const DEBT_FLOOR=-8,BANK_FLOOR=-8,DEEP_DEBT=-1;   // v49: three turns at −1 or lower and the Debt Collectors come   // v46: nobody goes below −8, the Bank included; Debt Collectors watch −6
 const floorOf=pl=>DEBT_FLOOR;
 const bankOpen=()=>!!G.bank&&!G.bank.dead;
 function bankAdd(n){if(G.bank)G.bank.mana+=n}
@@ -4105,7 +4105,7 @@ function canAfford(pl,n){return mana(pl)>=n||creditOn(pl)&&effMana(pl)-n>=floorO
 function spend(pl,n){const have=mana(pl);
   if(have>=n){pay(pl,n);bankAdd(n);return}
   if(have)pay(pl,have);bankAdd(have);
-  const P=G.p[pl];P.debt=(P.debt||0)+(n-have);if(P.debtAt==null)P.debtAt=tnOf(pl)+3;if(pl===G.active)G.spent=true;
+  const P=G.p[pl];P.debt=(P.debt||0)+(n-have);if(P.debtAt==null)P.debtAt=tnOf(pl)+3;rpOf(pl).credit+=n-have;if(pl===G.active)G.spent=true;
   log(`${plName(pl)} spends ${n-have} mana on credit (${effMana(pl)}/${soulCap(pl)}).`);checkDebt(pl)}
 function noteBuy(id){const B=G.bank;if(!B)return;const r=G.moon.round;(B.buys[r]=B.buys[r]||{})[id]=(B.buys[r][id]||0)+1}
 
@@ -4137,7 +4137,7 @@ const loanDue=n=>Math.max(2,Math.ceil(n/2));   // 12 mana: 6 turns; never less t
 const loanRate=pl=>effMana(pl)<=-soulCap(pl)?.3:.2;
 function takeLoan(pl,n){const P=G.p[pl];n=Math.min(n,loanLimit(pl));if(n<=0)return 0;
   G.bank.mana-=n;const got=giveMana(pl,n),t=tnOf(pl);
-  (P.loans=P.loans||[]).push({owed:n,at:t+3,due:t+loanDue(n)});P.loanRound=G.moon.round;P.loanNext=t+LOAN_GAP;
+  (P.loans=P.loans||[]).push({owed:n,at:t+3,due:t+loanDue(n),t0:t});rpOf(pl).loans+=n;P.loanRound=G.moon.round;P.loanNext=t+LOAN_GAP;
   log(`<b>The Bank</b> lends ${plName(pl)} ${n} mana (it grows by 1d2 every 3 turns; due in ${loanDue(n)} turns).`,"event");return got}
 function owedOf(pl){return (G.p[pl].loans||[]).reduce((a,L)=>a+L.owed,0)}
 function repay(pl,n){const P=G.p[pl];n=Math.min(n,mana(pl),owedOf(pl));if(n<=0)return 0;const paid=payQuiet(pl,n);bankAdd(paid);let left=paid;
@@ -4158,11 +4158,11 @@ function sellThrall(pl){const P=G.p[pl];const c=(P.thralls||[]).shift();if(!c)re
 function bankTurn(pl){
   barbTick();
   const P=G.p[pl];if(!P||isHorde(pl)||!G.bank)return;
-  debtWatch(pl);if(P.guilty&&bankOpen())sendCollectors(R(2));
+  debtWatch(pl);if(P.guilty&&bankOpen()){let k=R(2);if(P.guiltyAt!=null&&tnOf(pl)-P.guiltyAt>=6)k=Math.ceil(k*1.5);sendCollectors(k)}   // v49: six turns in default: half as many again
   const n=tnOf(pl);
   if(bankOpen()){
-    for(const L of P.loans||[])if(n>=L.at){const add=R(2);L.owed+=add;L.at=n+3;log(`Interest: ${plName(pl)}'s loan grows by ${add} (1d2) to ${L.owed}.`)}
-    if(P.debt>0&&P.debtAt!=null&&n>=P.debtAt){const add=R(2);P.debt+=add;P.debtAt=n+3;log(`Interest: ${plName(pl)}'s mana debt grows by ${add} to −${P.debt}.`)}
+    for(const L of P.loans||[])if(n>=L.at){const add=R(2);L.owed+=add;L.at=n+3;rpOf(pl).intL+=add;log(`Interest: ${plName(pl)}'s loan grows by ${add} (1d2) to ${L.owed}.`)}
+    if(P.debt>0&&P.debtAt!=null&&n>=P.debtAt){const add=R(2);P.debt+=add;P.debtAt=n+3;rpOf(pl).intC+=add;log(`Interest: ${plName(pl)}'s mana debt grows by ${add} to −${P.debt}.`)}
     for(const L of [...(P.loans||[])])if(n>=L.due){P.loans.splice(P.loans.indexOf(L),1);const take=payQuiet(pl,Math.min(mana(pl),L.owed));bankAdd(take);
       if(take<L.owed){const P2=G.p[pl];P2.debt=(P2.debt||0)+L.owed-take;if(P2.debtAt==null)P2.debtAt=n+3}
       log(`A loan comes due: ${plName(pl)} turns in ${take} of ${L.owed} mana${take<L.owed?`; the other ${L.owed-take} become mana debt (${effMana(pl)})`:""}.`,"event")}
@@ -4410,10 +4410,13 @@ function waveCleared(W){
 const COLL_MAX=6;
 const debtTargets=()=>alive().filter(i=>!isHorde(i)&&G.p[i].guilty).sort((a,b)=>effMana(a)-effMana(b));
 function debtWatch(pl){const P=G.p[pl];if(!P||isHorde(pl)||isNPC(pl)||!G.bank)return;const n=tnOf(pl);
-  if(P.guilty){if(!P.debt&&effMana(pl)>=0){P.guilty=false;P.deepAt=null;log(`${plName(pl)} has paid off the debt: the Debt Collectors stop coming.`,"event")}return}
-  if(effMana(pl)<=DEEP_DEBT){if(P.deepAt==null)P.deepAt=n;else if(n-P.deepAt>=3){P.guilty=true;
-    log(`<b>${plName(pl)} has been ${-DEEP_DEBT} or more below zero for three turns.</b> The Bank sends Debt Collectors every turn until the debt is paid.`,"event");notify(null,`The Bank's Debt Collectors come for ${esc(P.name)}.`)}}
+  if(P.guilty){if(!P.debt&&effMana(pl)>=0&&!loanLate(pl)){P.guilty=false;P.deepAt=null;P.guiltyAt=null;log(`${plName(pl)} has paid off the debt: the Debt Collectors stop coming.`,"event")}return}
+  const late=loanLate(pl);
+  if(effMana(pl)<=DEEP_DEBT||late){if(P.deepAt==null)P.deepAt=n;if(late||n-P.deepAt>=2){P.guilty=true;P.guiltyAt=n;rpOf(pl).bad=true;
+    log(`<b>${plName(pl)} ${late?"has left a loan unpaid too long":"has been below zero for three turns"}.</b> The Bank sends Debt Collectors every turn until it is paid.`,"event");notify(null,`The Bank's Debt Collectors come for ${esc(P.name)}.`)}}
   else P.deepAt=null}
+/* v49: a Bank loan left open for 3 + (owed ÷ 3) of your turns brings the Debt Collectors too */
+const loanLate=pl=>(G.p[pl].loans||[]).some(L=>L.t0!=null&&tnOf(pl)-L.t0>=3+Math.floor(L.owed/3));
 function sendCollectors(k){const B=npcIx("bank"),tgt=debtTargets()[0];if(B<0||tgt==null||!G.bank||G.bank.dead)return 0;const ts=stacksOf(tgt);if(!ts.length)return 0;
   k=Math.min(k,COLL_MAX-stacksOf(B).filter(x=>x.st.hunt==null).length);let put=0;
   const free=[];for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(!G.board[r][c]&&!isVoid(r,c))free.push([r,c,Math.min(...ts.map(x=>Math.abs(x.r-r)+Math.abs(x.c-c)))]);
@@ -4646,7 +4649,7 @@ async function tradeCard(pl){
     ai:()=>{const k=Q.hand.map((c,ix)=>[rate(c),ix]).sort((a,b)=>a[0]-b[0])[0];return k&&k[0]<=rate(give)?k[1]:null}});
   if(j==null){log(`${plName(to)} turns down ${plName(pl)}'s trade.`);flash("The trade was refused.");return}
   const back=Q.hand[j];P.hand.splice(P.hand.indexOf(give),1);Q.hand.splice(Q.hand.indexOf(back),1);give.owner=to;back.owner=pl;Q.hand.push(give);P.hand.push(back);
-  log(`<b>Trade</b> under Jupiter: ${plName(pl)} and ${plName(to)} swap a card each.`,"event");jupKick();render();
+  log(`<b>Trade</b>${planetUp("jupiter")?" under Jupiter":""}: ${plName(pl)} and ${plName(to)} swap a card each.`,"event");if(planetUp("jupiter"))jupKick();render();
 }
 
 /* ---------- the Sun's fall ---------- */
@@ -5361,7 +5364,10 @@ const BANK_HELP=[
  ["Credit","Not a loan: tick Spend on credit to cast spells you can't afford. What your souls don't cover becomes mana debt at once."],
  ["Mana debt","Debt shows as mana below zero. It grows by 1d2 every 3 of your turns, and every soul you gain pays it first."],
  ["Your lowest point","You can go down to −8. Below −8 you lose the game."],
- ["Debt Collectors","Stay at −6 or lower for 3 of your turns and you are in default. From then on, at the start of each of your turns the Bank sends 1d2 Debt Collectors (six at most on the field) after whoever owes the most, until the debt is paid off. Every card they kill goes to the Ether, and its worth pays the debt."],
+ ["Debt Collectors","Stay below zero for 3 of your turns, or leave a Bank loan open for 3 + (owed ÷ 3) of your turns, and you are in default. From then on, at the start of each of your turns the Bank sends 1d2 Debt Collectors (half as many again after six turns in default; six at most on the field) after whoever owes the most, until it is paid off. Every card they kill goes to the Ether, and its worth pays the debt. Only a player who owes the Bank can strike a Debt Collector."],
+ ["The Report","Every Full Moon (every eighth round without the Moon) the Bank hands each player a Credit and Loan Report: what was taken on loans and credit, the interest, the taxes, the mana earned, and good or bad standing."],
+ ["Taxes","On Report day only: 1d2 for a base in the middle of the field; every other Ace or Tree, 1 in 3 (1 in 2 in bad standing) of 1d2. With no mana a tax goes unpaid (no credit), and the standing turns bad."],
+ ["Land in the middle","2 mana: a spawn point on the middle ground until the next Report, for any card but a Wall. A card without a base there costs 1d2 − 1."],
  ["Selling","Sell cards from your hand or deck for their soul worth, or 1 less (rolled at the sale). A standard card worth only 1 can't be sold. Sold cards go to the Ether, and your deck is reshuffled. Binah can sell thralls for 1 mana."],
  ["Upselling","A spell bought more than twice in each of two rounds in a row costs 1d2 − 1 more."],
  ["When the Bank is in the red","The Ether goes on sale (1 less, never below 1), and the Bank asks the richest player for a loan."],
@@ -8158,7 +8164,7 @@ const MK_MORE=`<h3>Tell me more</h3><ul class="mklist">
 <li><b>Drawing too much hurts:</b> cards past your hand limit go to the grave, and each one takes 1d6 off this round's Grave Blessing.</li>
 <li><b>The Ether</b> (top of the spells) sells new cards: Scouts, Miners, Repairmen, Archers, Aces and more. Conjured cards go into your deck.</li>
 <li><b>Fog of war:</b> you only see near your own cards. Scouts see two tiles out and uncover hidden Assassins and ambushers.</li>
-<li><b>The Bank:</b> a loan gives you mana now, due in half its amount in turns (at least 2); credit lets you cast what you can't afford and turns the rest into debt. Stay at −6 or lower for 3 turns and the Debt Collectors come every turn until you pay. Hover or hold a word in the Bank for the details.</li></ul>
+<li><b>The Bank:</b> a loan gives you mana now, due in half its amount in turns (at least 2); credit lets you cast what you can't afford and turns the rest into debt. Stay below zero for 3 turns and the Debt Collectors come every turn until you pay; every Full Moon the Bank's Credit and Loan Report shows your standing. Hover or hold a word in the Bank for the details.</li></ul>
 <p class="mkpoint">Everything else is in the <b>Help</b> index at the bottom of the page: basics, every card, every spell, the sky and the Bank, always there while you play. Hover (or press and hold) anything on the screen for what it does.</p>`;
 const mkHidden=()=>PREF.mkHide==="never"||PREF.mkHide==="next";
 function mountMustKnow(){const h=document.querySelector(".game header");if(!h||$("#mustknow"))return;
@@ -8534,5 +8540,134 @@ SPELLS.push({id:"cpup",tribe:"jester",name:"Puppet Conjure",cost:1,school:"Conju
 SPELL_TEXT.cpup={e:"Two Puppets (1d1 + 1) come from the Ether into your deck.",l:"The Jester only. A Puppet fights like a 2 Grunt; it never misses, shrugs off Crit Hits, and goes to the Outer Darkness when it dies."};
 ETHER_SHOP[0][1].push(["cpup","Puppets","two for 1 mana"]);ETHER_IDS.add("cpup");ETHER_KIND.cpup="puppet";
 if(window.__EC)Object.assign(window.__EC,{critBanner,dicePlusRoll,landRoll});
+
+/* ---------------- v49: the Bank's Credit and Loan Report, taxes, land in the middle, gifts and forgiveness ----------------
+   The Report: every Full Moon (every eighth round when the Moon isn't in the sky, the same day the Bank's land is taxed) each
+   player gets a paper for the turns since the last one: what they took from loans and on credit, the interest charged on each,
+   the taxes taken, the mana they earned, and their standing. Standing turns bad by going into default (the Debt Collectors), by
+   leaving a tax unpaid or by robbing the Bank.
+   Taxes, taken only on that day: 1d2 for a base standing in the middle of the field (ground that is nobody's home rows); and for
+   every other Ace or Tree a 1 in 3 chance (1 in 2 in bad standing) of 1d2. They can't be paid on credit: with no mana they go
+   unpaid, and the standing turns bad.
+   Land in the middle: 2 mana at the Bank buys a spawn point on a free tile of the middle ground until the next Report (one at a
+   time). Any card but a Wall can come down there; a card that comes down without a base on the tile costs 1d2 − 1. A base there
+   stays a spawn point after the land is gone, until it falls.
+   Between players: a lender can forgive a loan, and anyone can give mana or a card from the hand to another player.
+   Debt Collectors can only be attacked by a player who owes the Bank something. */
+
+/* ---------- the running account for the next Report ---------- */
+function rpOf(pl){const P=G.p[pl];if(!P.rp)P.rp={from:G.turnNo,round:G.moon.round,loans:0,credit:0,intL:0,intC:0,earned:0,bad:false};return P.rp}
+{const _as=addSoul;addSoul=function(pl,c){const ok=_as.apply(this,arguments);if(ok&&G&&G.p[pl]&&!isNPC(pl))rpOf(pl).earned+=soulOf(c);return ok}}
+const midTile=(r,c)=>!isVoid(r,c)&&!G.p.some((P,i)=>!isNPC(i)&&canSpawn(i,r,c));
+const owesBank=pl=>debtOf(pl)>0||owedOf(pl)>0||!!G.p[pl].guilty;
+const standingGood=pl=>{const P=G.p[pl];return !P.guilty&&!(P.rp&&P.rp.bad)};
+
+/* ---------- Report day ---------- */
+function bankReport(){if(!G.bank||survival())return;
+  for(const pl of alive().filter(i=>!isHorde(i)&&!isNPC(i))){const P=G.p[pl],rp=rpOf(pl);
+    if(P.robbed!=null&&P.robbed>=rp.round)rp.bad=true;
+    // taxes
+    let due=0;const lines=[];
+    for(const {st,r,c} of stacksOf(pl)){const b=st.cards.find(isBase);if(!b||kind(b)==="wall")continue;
+      if(midTile(r,c)){const t=R(2);due+=t;lines.push(`${KNAME[kind(b)]||"base"} in the middle (${coord(r,c)}): ${t}`)}
+      else if((kind(b)==="ace"||kind(b)==="tree")&&R(rp.bad||P.guilty?2:3)===1){const t=R(2);due+=t;lines.push(`${KNAME[kind(b)]||"base"} on ${coord(r,c)}: ${t}`)}}
+    let paid=0;if(due){paid=mana(pl)>0?payQuiet(pl,Math.min(due,mana(pl))):0;bankAdd(paid);if(paid<due)rp.bad=true}
+    const good=!rp.bad&&!P.guilty;
+    const paper={from:rp.from,to:G.turnNo,loans:rp.loans,credit:rp.credit,intL:rp.intL,intC:rp.intC,taxDue:due,taxPaid:paid,taxLines:lines,earned:rp.earned,good,debt:debtOf(pl),owed:owedOf(pl)};
+    (P.reports=P.reports||[]).unshift(paper);P.reports=P.reports.slice(0,8);(P.standing=P.standing||[]).unshift(good);P.standing=P.standing.slice(0,8);
+    P.rp=null;rpOf(pl);
+    log(`<b>The Bank's Report</b> for ${plName(pl)} (turns ${paper.from}–${paper.to}): ${good?"good standing":"bad standing"}${due?`; taxes ${paid} of ${due} paid`:""}.`,"event");
+    if(!good)notify(pl,`The Bank's Report: ${esc(P.name)} is in bad standing.`)}
+  // the land in the middle runs out
+  if((G.lands||[]).length){G.lands=[];log("The Bank's land in the middle goes back to the Bank (a base on it stays a spawn point until it falls).")}}
+{const _cr=cycleRound;cycleRound=async function(){const out=await _cr.apply(this,arguments);if(G.over)return out;if(G.moon.round>1&&payDay())bankReport();render();return out}}
+
+/* ---------- land in the middle ---------- */
+const landAt=(r,c)=>(G.lands||[]).find(l=>l.r===r&&l.c===c&&G.p[l.owner]&&!G.p[l.owner].out);
+const landFree=()=>{const t=[];for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(midTile(r,c)&&!G.board[r][c]&&!landAt(r,c)&&!(typeof flagAt==="function"&&flagAt(r,c)))t.push([r,c]);return t};
+function buyLand(pl,r,c){const P=G.p[pl];if(!bankOpen()||G.phase!=="prep"||G.active!==pl)return false;
+  if((G.lands||[]).some(l=>l.owner===pl)){if(!P.cpu)flash("You already hold land in the middle.");return false}
+  if(!landFree().some(([a,b])=>a===r&&b===c))return false;if(!canAfford(pl,2)){if(!P.cpu)flash("Land costs 2 mana.");return false}
+  spend(pl,2);(G.lands=G.lands||[]).push({r,c,owner:pl});
+  log(`${plName(pl)} buys land from the Bank on ${coord(r,c)}: a spawn point until the next Report.`,"event");return true}
+{NETFN.buyLand={get:()=>buyLand,set:f=>buyLand=f};const orig=buyLand;buyLand=function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:"buyLand",args:netClean(a),ui:uiSnap(),rid})}}
+{const _cp=canPlace;canPlace=function(card,r,c){if(_cp(card,r,c))return true;if(!G||G.phase==="setup"||isVoid(r,c))return false;
+  const l=landAt(r,c);if(!l||l.owner!==G.active||kind(card)==="wall")return false;const st=G.board[r][c];
+  if(!st)return true;if(st.owner!==G.active||kind(card)==="ace"||isBase(card))return false;
+  if(card.unit&&UNIT[card.unit].solo==="alone")return false;if(kind(card)==="joker"&&!st.cards.some(x=>x.color===card.color))return false;
+  return stackLegal([...st.cards,card])}}
+{const _pl=place;place=function(card,r,c){const l=landAt(r,c),pl=G.active;const out=_pl.apply(this,arguments);
+  const st=G.board[r][c];if(l&&l.owner===pl&&st&&!st.cards.some(isBase)){const fee=R(2)-1;if(fee){spend(pl,fee);log(`The Bank charges ${plName(pl)} ${fee} mana for a card on its land.`)}}
+  return out}}
+function landHTML_(r,c,under){const l=landAt(r,c);if(!l)return "";const P=G.p[l.owner];
+  return `<span class="landmk${under?" under":""}" style="--fc:${P.color}" data-tip="${esc(P.name)}'s land from the Bank: a spawn point for any card but a Wall until the next Report. A card without a base here costs 1d2 − 1.">$</span>`}
+{const _ch=crystalHTML;crystalHTML=function(r,c,under){return _ch(r,c,under)+landHTML_(r,c,under)}}
+
+/* ---------- Debt Collectors: only someone who owes the Bank can strike them ---------- */
+{const _ao=attackOptions;attackOptions=function(r,c){const out=_ao(r,c),st=G.board[r]&&G.board[r][c];if(!st||!G)return out;const bk=npcIx("bank");if(bk<0||owesBank(st.owner))return out;
+  return out.filter(o=>{const t=G.board[o.r][o.c];return !(t&&t.owner===bk&&t.cards.every(x=>x.unit==="debt"))})}}
+
+/* ---------- between players: forgive a loan, give mana or a card ---------- */
+function forgiveLoan(L){if(!L||!["open","late"].includes(L.state))return;L.state="done";const n=L.owed;L.owed=0;const bk=npcIx("bank");if(bk>=0)for(const x of stacksOf(bk))if(x.st.loan===L.id)G.board[x.r][x.c]=null;
+  log(`<b>${plName(L.to)} forgives ${plName(L.from)}'s loan</b> (${n} mana).`,"event");notify(L.from,`${esc(G.p[L.to].name)} forgives the loan.`)}
+function giftMana(from,to,n){n=Math.min(Math.max(0,Math.round(n)),mana(from));if(n<=0||from===to||!G.p[to]||G.p[to].out)return 0;
+  const paid=payQuiet(from,n),got=giveMana(to,paid);log(`${plName(from)} gives ${plName(to)} ${paid} mana${got<paid?` (${got} fit in the soul pile)`:""}.`,"event");return got}
+function giftCard(from,to,id){const P=G.p[from],Q=G.p[to],c=P.hand.find(x=>x.id===id);if(!c||!Q||Q.out||from===to)return false;
+  P.hand.splice(P.hand.indexOf(c),1);c.owner=to;if(Q.hand.length<handCap(to))Q.hand.push(c);else{Q.deck.push(c);shuffle(Q.deck)}
+  log(`${plName(from)} gives ${plName(to)} a card.`,"event");notify(to,`${esc(P.name)} gives ${esc(Q.name)} a card.`);return true}
+for(const [name,get,set] of [["forgiveLoan",()=>forgiveLoan,f=>forgiveLoan=f,a=>[a[0].id],a=>[p2pOf().find(x=>x.id===a[0])]],["giftMana",()=>giftMana,f=>giftMana=f],["giftCard",()=>giftCard,f=>giftCard=f]]){
+  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;const args=name==="forgiveLoan"?[a[0].id]:a;
+    sendHost({t:"cmd",fn:name,args:netClean(args),ui:uiSnap(),rid})})}
+NETFN.forgiveLoan.un=a=>[p2pOf().find(x=>x.id===a[0])];
+
+/* ---------- the Bank window: land on the front tab, the Report tab, gifts and forgiveness between players ---------- */
+function reportHTML(V){const P=G.p[V],rp=rpOf(V),R0=(P.reports||[])[0];
+  const paper=(x,cur)=>`<div class="rpaper${cur?" cur":""}"><h4>${cur?"This period so far":"Credit and Loan Report"} <small>turns ${x.from}–${cur?G.turnNo:x.to}</small></h4>
+<dl><dt>Taken from loans</dt><dd>${x.loans}</dd><dt>Taken on credit</dt><dd>${x.credit}</dd><dt>Together</dt><dd><b>${x.loans+x.credit}</b></dd>
+<dt>Interest on loans</dt><dd>${x.intL}</dd><dt>Interest on credit</dt><dd>${x.intC}</dd><dt>Interest together</dt><dd><b>${x.intL+x.intC}</b></dd>
+${cur?"":`<dt>Taxes taken</dt><dd>${x.taxPaid} of ${x.taxDue}${x.taxLines&&x.taxLines.length?`<small>${x.taxLines.map(esc).join("; ")}</small>`:""}</dd>`}
+<dt>Mana earned</dt><dd>${x.earned}</dd>${cur?"":`<dt>Owing at the end</dt><dd>debt ${x.debt} · loans ${x.owed}</dd>`}</dl>
+<p class="rstand ${(cur?standingGood(V):x.good)?"good":"bad"}">${(cur?standingGood(V):x.good)?"Good standing with the Bank.":"Bad standing: the Bank's Debt Collectors will inquire for further action."}</p></div>`;
+  const older=(P.reports||[]).slice(1);
+  return `<p class="dim">A Report comes every Full Moon (every eighth round without the Moon), the day the Bank also takes its taxes and its half of the land's Miners.</p>
+${paper({...rp},true)}${R0?paper(R0,false):`<p class="dim">No Report yet.</p>`}${older.length?`<details class="rold"><summary>Older Reports (${older.length})</summary>${older.map(x=>paper(x,false)).join("")}</details>`:""}`}
+{const _ob=openBank;openBank=function(){_ob();const box=$("#ov .ovbox.bank");if(!box||!G)return;const V=view(),live=canAct()&&G.phase==="prep"&&G.active===V;
+  // the Report tab
+  const tabs=box.querySelector(".btabs");if(tabs&&!tabs.querySelector('[data-bt="report"]')){
+    tabs.insertAdjacentHTML("beforeend",`<button type="button" class="stab" data-bt="report">Credit and Loan Report${standingGood(V)?"":' <i class="bang">!</i>'}</button>`);
+    const pane=document.createElement("div");pane.className="btab report";pane.dataset.t="report";pane.innerHTML=reportHTML(V);pane.hidden=true;box.querySelector(".btab.land").after(pane);
+    const show=t=>{tabs.querySelectorAll("[data-bt]").forEach(b=>{const on=b.dataset.bt===t;b.classList.toggle("on",on);b.setAttribute("aria-selected",on)});box.querySelectorAll(".btab").forEach(p=>p.hidden=p.dataset.t!==t);bankTab=t};
+    tabs.querySelectorAll("[data-bt]").forEach(b=>b.onclick=()=>show(b.dataset.bt));if(bankTab==="report")show("report")}
+  // land on the front tab
+  const acts=box.querySelector(".bacts");if(acts&&live&&bankOpen()){const mine=(G.lands||[]).find(l=>l.owner===V),free=landFree();
+    acts.insertAdjacentHTML("beforeend",`<p class="brow landrow"><span class="bkey" data-tip="A spawn point on the middle ground until the next Report: any card but a Wall can come down there; a card without a base on it costs 1d2 − 1. A base on it stays a spawn point after that, until it falls." tabindex="0">Land <i class="q">?</i></span>${mine?`<small class="dim">You hold land on ${coord(mine.r,mine.c)} until the next Report.</small>`:`<label class="${free.length?"":"off"}"><select id="bLandAt" aria-label="Where" ${free.length?"":"disabled"}>${free.length?free.map(([r,c])=>`<option value="${r},${c}">${coord(r,c)}</option>`).join(""):"<option>—</option>"}</select></label><button class="btn sm" id="bLandBtn" ${free.length&&canAfford(V,2)?"":"disabled"}>Buy for 2 mana</button><small class="dim">A spawn point in the middle until the next Report.</small>`}</p>`);
+    const b=$("#bLandBtn");if(b)b.onclick=()=>{const [r,c]=$("#bLandAt").value.split(",").map(Number);buyLand(V,r,c);render();openBank()}}
+  // between players: forgive, give
+  const p2p=box.querySelector(".btab.p2p");if(p2p){
+    p2p.querySelectorAll("ul.p2pl li").forEach(li=>{});
+    const lent=p2pOf().filter(x=>x.to===V&&["open","late"].includes(x.state));
+    if(lent.length)p2p.insertAdjacentHTML("beforeend",`<h3>Forgive a loan</h3><ul class="p2pl">${lent.map(x=>`<li>${plName(x.from)} owes you <b>${x.owed}</b> <button class="btn ghost sm" data-forgive="${x.id}">Forgive</button></li>`).join("")}</ul>`);
+    const others=alive().filter(i=>i!==V&&!isHorde(i)&&!isNPC(i));
+    if(live&&others.length)p2p.insertAdjacentHTML("beforeend",`<h3>Give, for nothing</h3><p class="p2pask"><label>To <select id="gTo">${others.map(i=>`<option value="${i}">${esc(G.p[i].name)}</option>`).join("")}</select></label>
+ <label><select id="gN">${Array.from({length:Math.max(1,mana(V))},(_,i)=>`<option>${i+1}</option>`).join("")}</select> mana</label> <button class="btn sm" id="gMana" ${mana(V)?"":"disabled"}>Give mana</button> <button class="btn ghost sm" id="gCard" ${G.p[V].hand.length?"":"disabled"}>Give a card…</button></p>`);
+    p2p.querySelectorAll("[data-forgive]").forEach(b=>b.onclick=()=>{const L=p2pOf().find(x=>x.id===+b.dataset.forgive);if(L)forgiveLoan(L);render();openBank()});
+    if($("#gMana"))$("#gMana").onclick=()=>{giftMana(V,+$("#gTo").value,+$("#gN").value);bankTab="p2p";render();openBank()};
+    if($("#gCard"))$("#gCard").onclick=async()=>{const to=+$("#gTo").value,P=G.p[V];ovHide();
+      const i=await askHuman(V,{kind:"cards",id:"gift",title:`Give ${esc(G.p[to].name)} which card?`,cards:P.hand,cancel:"Cancel",box:"plain"});
+      if(i!=null&&P.hand[i])giftCard(V,to,P.hand[i].id);bankTab="p2p";render();openBank()}}}}
+
+/* ---------- the tags beside a player: every status, each explained on hover or hold ---------- */
+{const _et=econTags;econTags=function(P){const t=_et(P);if(!G.bank||isHorde(P.i)||isNPC(P.i))return t;
+  if(P.guilty)t.unshift(`<span class="debttag" data-tip="In default with the Bank: Debt Collectors come every turn until the debt is paid off.">In default</span>`);
+  else if(P.rp&&P.rp.bad)t.unshift(`<span class="debttag" data-tip="Bad standing with the Bank this period (default, an unpaid tax or a robbery). It shows on the next Report.">Bad standing</span>`);
+  const l=(G.lands||[]).find(x=>x.owner===P.i);if(l)t.push(`<span class="saletag" data-tip="Land from the Bank on ${coord(l.r,l.c)}: a spawn point until the next Report.">Land ${coord(l.r,l.c)}</span>`);
+  if(P.shield)t.push(`<span class="saletag" data-tip="Please Don't Hurt Me: none of this player's stacks can be attacked until their next turn.">Untouchable</span>`);
+  if(P.noLoans)t.push(`<span class="debttag" data-tip="Tried to rob the Bank: no loans or credit, ever.">No loans</span>`);
+  return t}}
+const TAG_TIPS=[[/^Debt −/,"Mana debt: shows as mana below zero. Every soul gained pays it first; it grows by 1d2 every 3 turns."],[/^Loans /,"Owed to the Bank in loans, interest included."],[/^Credit$/,"Spends on credit: spells it can't afford become mana debt."],
+  [/^Ether sale$/,"Killed the most Barbarians: conjuring costs 1d2 − 1 less (never below 1)."],[/^Max /,"Maximum mana changed by spells and events."],[/^Sun-blind$/,"Blinded by the Second Sun."],[/^Choking on the Sun$/,"The Second Sun chokes this player: no attacks."]];
+{const _et=econTags;econTags=function(P){return _et(P).map(h=>{if(/data-tip=/.test(h))return h;const m=/^<span([^>]*)>([^<]*)</.exec(h);if(!m)return h;const tip=TAG_TIPS.find(([re])=>re.test(m[2]));
+  return tip?h.replace("<span",`<span data-tip="${esc(tip[1])}"`):h})}}
+if(window.__EC)Object.assign(window.__EC,{bankReport,buyLand,landFree,forgiveLoan,giftMana,giftCard,rpOf,attackOptions:(...a)=>attackOptions(...a)});
 
 })();

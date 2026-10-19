@@ -1476,3 +1476,17 @@ html.th-office .fawarn{background:#fbe3e1;color:#7a1d16}
 .stack .spfx .spname{bottom:19%;font-size:clamp(11px,1.4vw,15px);opacity:.5}
 .stack .spfx .spdur{max-width:92%;font-size:9px}
 .stack .dpicon{top:22%;font-size:clamp(28px,4.2vw,46px);opacity:.38}
+/* ================= v49 · the Bank's land, the Report ================= */
+.landmk{position:absolute;right:8%;top:6%;z-index:2;font:700 clamp(16px,2.4vw,26px)/1 var(--mono);color:var(--fc);text-shadow:0 0 6px #000,0 1px 2px #000;pointer-events:auto;cursor:help;transition:opacity .2s}
+.landmk.under{opacity:.3;pointer-events:none}
+.ovbox.bank .btab.report{font-size:13px}
+.rpaper{margin:8px 0;padding:10px 14px;background:linear-gradient(#e9dcc0,#dccba6);color:#2b2015;border:1px solid #8a6a3a;box-shadow:0 2px 8px #0008;border-radius:2px;font-family:var(--mono)}
+.rpaper.cur{background:linear-gradient(#d9d2c4,#cbc2b0);opacity:.92}
+.rpaper h4{margin:0 0 6px;font-family:"Grenze Gotisch","Old English Text MT",serif;font-weight:500;font-size:18px;color:#5a1a14}
+.rpaper h4 small{font-family:var(--mono);font-size:11px;color:#6b5a40;margin-left:6px}
+.rpaper dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 16px;margin:0}
+.rpaper dt{color:#6b5a40}.rpaper dd{margin:0}.rpaper dd small{display:block;color:#6b5a40;font-size:11px}
+.rpaper .rstand{margin:8px 0 0;font-weight:600}.rpaper .rstand.good{color:#2c5a1e}.rpaper .rstand.bad{color:#8e1622}
+.rold summary{cursor:pointer;color:var(--amber);font-size:12.5px;margin:6px 0}
+[data-tip].debttag,[data-tip].loantag,[data-tip].saletag,[data-tip].oathtag{cursor:help}
+.rpaper b{color:#2b2015;font-weight:700}.rpaper dl{font-size:12.5px;gap:0 16px;line-height:1.55}.rpaper{padding:8px 12px}

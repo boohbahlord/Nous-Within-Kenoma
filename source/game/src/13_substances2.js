@@ -172,7 +172,7 @@ function viewAuction(){
   const items=G.auction||[];
   ovShow(`<div class="ovbox"><h2>The Auction</h2><p class="dim">Tiphareth of Kether sells the souls its Traffickers chained. Offer mana or cards from your hand; the seller has to approve.</p>
 <div class="auct">${items.length?items.map((it,i)=>`<div class="aitem">${face(it.card,{owner:it.seller})}<div><b>${esc(nameOf(it.card))}</b><br><span class="dim">sold by ${plName(it.seller)}</span>${live&&it.seller!==V?`<br><button class="btn ghost sm" data-buy="${i}">Make an offer</button>`:""}</div></div>`).join(""):'<p class="dim">Nothing is for sale.</p>'}</div>
-${mysteryHTML(live)}${planetUp("jupiter")&&live?`<p><button class="btn ghost sm" id="tradeBtn">Trade a card from your hand</button> <small class="dim">Jupiter is up: offer one of your cards for one of another player's.</small></p>`:""}<p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
+${mysteryHTML(live)}${live?`<p><button class="btn ghost sm" id="tradeBtn">Trade a card from your hand</button> <small class="dim">Offer one of your cards for one of another player's; they pick what to give back, or refuse.</small></p>`:""}<p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
   $("#mcancel").onclick=ovHide;wireMystery();if($("#tradeBtn"))$("#tradeBtn").onclick=async()=>{ovHide();G.busy=true;try{await tradeCard(G.active)}finally{G.busy=false}render()};
   $("#ov").querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>{ovHide();makeOffer(G.auction[+b.dataset.buy])});
 }
