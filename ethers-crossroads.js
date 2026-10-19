@@ -825,28 +825,33 @@ async function pickGrave(pl,n,title){
   if(got<n&&G.grave.length&&G.p[pl].hand.length>=handCap(pl))log(`${plName(pl)}'s hand is full.`);
   return got;
 }
-/* v44: the Full Moon never asks for a stack inside an Ace */
-function strongest(pl){const c=stacksOf(pl).filter(x=>!x.st.hypo&&!hasK(x.st,"ace"));c.sort((a,b)=>stackRate(b.st)-stackRate(a.st)||b.st.cards.length-a.st.cards.length);return c[0]}
+/* v49: the Full Moon's toll: a random stack of two cards, or else one random card from the field (never inside an Ace or under
+   Hypostasis); with nothing to take there, three cards from the shuffled deck. Given, they go to the soul pile (anything over the
+   maximum to the grave). Refused, it costs 2d2 + 2 mana, which can take you below zero. */
+function moonTarget(pl){const ok=stacksOf(pl).filter(x=>!x.st.hypo&&!hasK(x.st,"ace"));
+  const twos=ok.filter(x=>x.st.cards.length===2);if(twos.length){const t=pick(twos);return {kind:"stack",r:t.r,c:t.c,st:t.st,cards:[...t.st.cards]}}
+  const all=ok.flatMap(x=>x.st.cards.filter(c=>!isBase(c)).map(c=>({x,c})));if(all.length){const {x,c}=pick(all);return {kind:"card",r:x.r,c:x.c,st:x.st,cards:[c]}}
+  const P=G.p[pl];if(P.deck.length){shuffle(P.deck);return {kind:"deck",cards:P.deck.slice(-3)}}
+  return null}
+function strongest(pl){return moonTarget(pl)}
 async function fullMoonToll(){
   for(const pl of order()){
     if(G.p[pl].tribe==="firm"){log(`${plName(pl)} owes the Full Moon nothing: the Firmament is above its toll.`);continue}
-    const t=strongest(pl);if(!t)continue;
-    const yes=await ask(pl,{kind:"yesno",id:"fullmoon",target:t,title:`Full Moon: ${esc(G.p[pl].name)}'s toll`,
-      text:`The Full Moon asks for your most powerful stack: <b>${t.st.cards.map(c=>esc(nameOf(c))).join(", ")}</b>. Sacrifice it to your soul pile (any mana over ${SOUL_CAP} goes to the grave), or refuse: every soul in your pile is drained and five random cards from your deck go to the grave.`,
-      yes:"Sacrifice it",no:"Refuse"});
-    if(yes){
-      G.board[t.r][t.c]=null;let m=0;
-      for(const c of t.st.cards){
-        if(c.captured&&c.captured.length){for(const s of c.captured)toGrave(s,"death");c.captured=[]}
-        if(c.unit&&buryUnit(c,t.r,t.c,pl))continue;   // Substance cards keep their own fates
-        if(addSoul(pl,c))m+=soulOf(c);else toGrave(c,"spent");
-      }
-      log(`${plName(pl)} sacrifices ${t.st.cards.length} card${t.st.cards.length>1?"s":""} to the Full Moon (+${m} mana).`,"event");
-    }else{
-      const P=G.p[pl];const lost=P.souls.length;for(const c of P.souls.splice(0))toGrave(c,"spent");
-      let burned=0;for(let i=0;i<5&&P.deck.length;i++){const c=P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0];toGrave(c,"burn");burned++}
-      log(`${plName(pl)} refuses the Full Moon: ${lost} soul${lost===1?"":"s"} drained, ${burned} deck card${burned===1?"":"s"} to the grave.`,"event");
-    }
+    const t=moonTarget(pl);if(!t)continue;const P=G.p[pl];
+    const what=t.kind==="deck"?`three cards from your shuffled deck (${t.cards.map(c=>esc(nameOf(c))).join(", ")})`:t.kind==="stack"?`a stack of two: <b>${t.cards.map(c=>esc(nameOf(c))).join(", ")}</b>`:`a card on your field: <b>${esc(nameOf(t.cards[0]))}</b>`;
+    const yes=await ask(pl,{kind:"yesno",id:"fullmoon",target:t,title:`Full Moon: ${esc(P.name)}'s toll`,
+      text:`The Full Moon asks for ${what}. Give it to your soul pile (any mana over your maximum goes to the grave), or refuse and pay 2d2 + 2 mana, even below zero.`,
+      yes:"Give it",no:"Refuse",ai:()=>t.kind==="deck"||AI.value({cards:t.cards,owner:pl})<7||effMana(pl)-6<=-4});
+    if(yes){let m=0;
+      if(t.kind==="deck"){for(const c of t.cards){P.deck.splice(P.deck.indexOf(c),1);if(addSoul(pl,c))m+=soulOf(c);else toGrave(c,"spent")}}
+      else{const st=G.board[t.r][t.c];if(st){for(const c of t.cards){const i=st.cards.indexOf(c);if(i<0)continue;st.cards.splice(i,1);
+          if(c.captured&&c.captured.length){for(const s of c.captured)toGrave(s,"death");c.captured=[]}
+          if(c.unit&&buryUnit(c,t.r,t.c,pl))continue;   // Substance cards keep their own fates
+          if(addSoul(pl,c))m+=soulOf(c);else toGrave(c,"spent")}
+        if(!st.cards.length){G.board[t.r][t.c]=null;freeCaptive(st,t.r,t.c)}}}
+      log(`${plName(pl)} gives the Full Moon ${t.cards.length} card${t.cards.length>1?"s":""}${t.kind==="deck"?" from the deck":""} (+${m} mana).`,"event");
+    }else{const d=rollN(2,2),n=sum(d)+2;tray(pl,"Full Moon",d,`−${n}`);addDebt(pl,n);
+      log(`${plName(pl)} refuses the Full Moon and pays ${n} mana (2d2 + 2: ${d.map(x=>x.v).join(" + ")} + 2), now at ${effMana(pl)}.`,"event")}
     render();checkWin();if(G.over)return;
   }
 }
@@ -6333,7 +6338,7 @@ const rnds=n=>`${n} round${n===1?"":"s"}`,trns=n=>`${n} turn${n===1?"":"s"}`;
 /* ---------- the strips ---------- */
 const MOON_PH=i=>{const bonus=G.opts.moonBonus!==false;
   if(i===0)return `Everyone raises 1d2 cards from the grave. Clairvoyance and Naked Hand cost 6.${bonus?" Every defense adds 1d2.":""}${oathNow(view(),"moon")?" Your Oath: 2d2 − 1 more.":""}`;
-  if(i===4)return `The toll: your strongest stack, or every soul and five deck cards. Every deck is shuffled; no drawing and no necromancy. Clairvoyance costs 2, Naked Hand is free.${bonus?" Every attack adds 1d2.":""} One in twenty is a Blood Moon.`;
+  if(i===4)return `The toll: a random stack of two (or else a card on your field, or else three deck cards), or 2d2 + 2 mana. Every deck is shuffled; no drawing and no necromancy. Clairvoyance costs 2, Naked Hand is free.${bonus?" Every attack adds 1d2.":""} One in twenty is a Blood Moon.`;
   return "Nothing happens."};
 function moonPieces(){const m=G.moon;
   return MOON.map((n,i)=>{const d=(i-m.i+8)%8,ev=i===0||i===4;
@@ -6381,7 +6386,7 @@ function skyLit(){const m=G.moon,k=sky();
 
 /* ---------- clicking the sky: the whole story in a paragraph ---------- */
 const SKY_PARA={
- moon:"The Moon turns one phase every round, after everyone has played, through eight phases; two of them do something. At the New Moon everyone raises 1d2 cards from the grave, Clairvoyance and Naked Hand cost 6, and every defense adds 1d2. At the Full Moon everyone pays its toll (their strongest stack, or every soul and five deck cards), every deck is shuffled, nobody draws or casts necromancy, Clairvoyance costs 2 and Naked Hand is free, and every attack adds 1d2. One Full Moon in twenty turns red: a Blood Moon gives New Moon gifts at Full Moon prices, and every card killed falls into the Outer Darkness. Anyone can swear the Oath of the Moon.",
+ moon:"The Moon turns one phase every round, after everyone has played, through eight phases; two of them do something. At the New Moon everyone raises 1d2 cards from the grave, Clairvoyance and Naked Hand cost 6, and every defense adds 1d2. At the Full Moon everyone pays its toll (a random stack of two, or else one card from the field, or else three cards from the shuffled deck; refusing costs 2d2 + 2 mana, even below zero), every deck is shuffled, nobody draws or casts necromancy, Clairvoyance costs 2 and Naked Hand is free, and every attack adds 1d2. One Full Moon in twenty turns red: a Blood Moon gives New Moon gifts at Full Moon prices, and every card killed falls into the Outer Darkness. Anyone can swear the Oath of the Moon.",
  saturn:"Saturn hangs in the Moon's place and stops its phases. At the start of each of their turns, everyone who owes it (every enemy of whoever raised it, or everyone if nobody did; never Binah or the Firmament) pays 1: a hand card, the top deck card or 1 mana. Whoever refuses gets a Debt Collector, and every Debt Collector still standing at the start of a round raises the price by one. Those who pay can swear the Oath of Saturn: Puppets fight for them after the 1st, 3rd, 6th and 9th toll, but one missed toll is a betrayal that locks the Oath and sends Saturn's own Puppets after them. Saturn has an eclipse (5% a round) with seven possible outcomes.",
  mars:"Mars, the Form of Strife, stops the Moon's phases. At the start of each turn, every stack made only of Grunts, Infantry or Puppets has a 5 in 8 chance (1 to 5 on 1d8) of advantage on its next attack. A Leviathan can coil on Mars; its toll and its weak spot come every eighth round. Yaldabaoth can eat Mars, and then it never comes back. Like every Heavenly Body but the Moon, it can be eclipsed (5% a round).",
  sun:"The Second Sun burns the fog of war away (Delusions still blind). Every 2d2 of your turns it judges you: pay 1 mana, take a wound on one of your stacks, or burn two deck cards; refuse and you are blind for that turn. What it takes goes to whoever raised it, or to the Bank. It never judges the Firmament. Yaldabaoth can make it cry; three times and it goes out as the Black Sun. Anyone else can swear the Oath of the Sun for fire mana, Scorched Earth and Blindness. The Leviathan can't lie on it.",
@@ -8669,5 +8674,25 @@ const TAG_TIPS=[[/^Debt −/,"Mana debt: shows as mana below zero. Every soul ga
 {const _et=econTags;econTags=function(P){return _et(P).map(h=>{if(/data-tip=/.test(h))return h;const m=/^<span([^>]*)>([^<]*)</.exec(h);if(!m)return h;const tip=TAG_TIPS.find(([re])=>re.test(m[2]));
   return tip?h.replace("<span",`<span data-tip="${esc(tip[1])}"`):h})}}
 if(window.__EC)Object.assign(window.__EC,{bankReport,buyLand,landFree,forgiveLoan,giftMana,giftCard,rpOf,attackOptions:(...a)=>attackOptions(...a)});
+
+/* ---------------- v49: particular animations ----------------
+   Under the two big switches (card animations, magic and other animations) each kind of animation can be turned off on its own
+   in the Menu: moves, strikes, deaths, mana, shuffles, spells, weather, fire, the drifting fog, the sky's shimmer, glowing notices,
+   the Blood Moon's screen effects and the Crit Hit banners. Kept on this device (localStorage "ec-prefs2": fxOff). */
+const FX_PARTS=[["moves","Cards moving"],["strikes","Strikes and hits"],["deaths","Deaths (smoke and the skull)"],["mana","Mana pouring in and out"],["shuffles","Shuffles and the grave's wisps"],
+  ["spells","Spell signs and bursts"],["weather","Weather: rain, wind, lightning, meteors"],["fire","Fire on the field"],["fog","The fog drifting"],["sky","The sky's shimmer"],
+  ["glow","Glowing notices"],["blood","The Blood Moon's screen effects"],["banners","Crit Hit and Miss banners"]];
+const FX_PART={slide:"moves",strike:"strikes",hit:"strikes",blunt:"strikes",boom:"strikes",burst:"strikes",smoke:"deaths",skull:"deaths",pour:"mana",fill:"mana",dollar:"mana",pop:"mana",
+  shuffle:"shuffles",wisp:"shuffles",sigil:"spells",symbol:"spells",area:"spells",spell:"spells",meteor:"weather",lightning:"weather",wind:"weather",rain:"weather",flames:"fire",fogroll:"fog"};
+const fxPartOn=k=>!(PREF.fxOff||[]).includes(k);
+for(const [m,k] of Object.entries(FX_PART)){const f=FX[m];if(typeof f!=="function")continue;FX[m]=function(){if(!fxPartOn(k))return m==="spell"?true:undefined;return f.apply(this,arguments)}}
+{const _cf=castFX;castFX=function(){if(!fxPartOn("spells"))return;return _cf.apply(this,arguments)}}
+{const _cb=critBanner;critBanner=function(){if(!fxPartOn("banners"))return;return _cb.apply(this,arguments)}}
+{const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);for(const k of ["fog","fire","sky","glow","blood"])document.documentElement.classList.toggle("still-"+k,!fxPartOn(k))}}
+/* the Menu: a fold of switches under the two big ones */
+{const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu");if(!m)return;const g=m.querySelector(".mgrid");if(!g||m.querySelector("#mParts"))return;
+  g.insertAdjacentHTML("afterend",`<details id="mParts" class="sub"><summary>Particular animations</summary><p class="dim">Each one on its own, under Card and Magic animations above.</p><div class="facats">${FX_PARTS.map(([k,t])=>`<label class="farow"><span class="fal"><b>${t}</b></span><input type="checkbox" data-fxp="${k}" ${fxPartOn(k)?"checked":""}></label>`).join("")}</div></details>`);
+  m.querySelectorAll("[data-fxp]").forEach(i=>i.onchange=()=>{const S=new Set(PREF.fxOff||[]);i.checked?S.delete(i.dataset.fxp):S.add(i.dataset.fxp);PREF.fxOff=[...S];savePrefs();applyPrefs()})}}
+if(window.__EC)Object.assign(window.__EC,{moonTarget:pl=>moonTarget(pl),fullMoonToll:()=>fullMoonToll()});
 
 })();

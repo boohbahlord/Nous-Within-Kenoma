@@ -41,7 +41,7 @@ land = head(EC + ' · Nous Within Kenoma', extra='<style>' + open('game/text/rul
 <li><b>Take turns.</b> Every turn runs <span class="flow">Optional Draw → Prep → Attack</span>. In the draw phase, roll a d4 as many times as you like and draw that many cards. In the prep phase, place, move and sacrifice cards and cast spells. In the attack phase, each of your stacks may attack once. The very first turn of the game has no draw phase.</li>
 <li><b>Fight with dice.</b> A stack fights with the score of its best card: the card's value plus its die. Stacking cards does not add their scores together, but every card in a stack is another hit it can take.</li>
 <li><b>Gather souls.</b> Sacrificed cards become your soul pile, worth up to six mana (a card from your hand is worth its Ether price − 1d2 + 1, rolled as you sacrifice it, but a card that costs 1 is always worth 1; a card on the field is worth its soul), which pays for spells such as Divine Odds, Clairvoyance or a King Conjure. Once a turn, the free Grave Blessing lets you roll for the dead.</li>
-<li><b>Watch the moon.</b> The New Moon gives back cards from the grave; the Full Moon takes your strongest stack or a heavy toll. Rarely, the Full Moon turns to a Blood Moon.</li>
+<li><b>Watch the moon.</b> The New Moon gives back cards from the grave; the Full Moon takes a stack of two or a card, or 2d2 + 2 mana. Rarely, the Full Moon turns to a Blood Moon.</li>
 <li><b>Win.</b> Destroy every card the other player has on the field, or leave them with no deck, no hand and no soul pile when their turn ends: an economic victory.</li>
 </ol>
 <p>The full rules, including every card's role, the stacking formula, all the spells, the moon and its events, are under All Rules. Play Game runs the game in the browser.</p>
@@ -215,7 +215,7 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 <h3>New Moon</h3>
 <ul><li>Players get to choose 1d2 cards from the grave for free.</li><li>Clairvoyance and Naked Hand cost six mana, and their spell options turn dark grey.</li></ul>
 <h3>Full Moon</h3>
-<ul><li>Players have to sacrifice their most powerful card or stack, by its point rating. If you don't accept, you are drained of all your mana and five random cards from your deck go to the grave.</li><li>All decks are shuffled.</li><li>No one can draw cards or cast necromancy spells.</li><li>Naked Hand is free and Clairvoyance costs only two mana; both turn a bright grey, the color of the Full Moon.</li></ul>
+<ul><li>Each player is asked for a random stack of two cards; with none, a random card from the field; with nothing on the field to take, three cards from their shuffled deck. Given, they go to the soul pile. Refused, it costs 2d2 + 2 mana, which can take you below zero.</li><li>All decks are shuffled.</li><li>No one can draw cards or cast necromancy spells.</li><li>Naked Hand is free and Clairvoyance costs only two mana; both turn a bright grey, the color of the Full Moon.</li></ul>
 <h3>Blood Moon</h3>
 <ul><li>Every Full Moon may turn into a Blood Moon. The moon turns red, and so does every necromancy spell, and the table turns the crimson of the Disturbed Satan chapter and starts to glitch.</li><li>New Moon effects take place: players pick cards from the grave. The Full Moon's drawbacks (the toll, the shuffle, no drawing, no necromancy) are void, but its cheaper prices stay.</li><li>Every card killed during the Blood Moon is sent to the <b>Outer Darkness</b> and can never be returned. A Joker that kills itself during it sends all the cards it held to the Outer Darkness.</li></ul>
 <h3>The Outer Darkness</h3>
@@ -245,7 +245,7 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 <li>Resurrection brings the card into your hand. Three of Swords destroys cards into the grave (or the Outer Darkness under a Blood Moon). Naked Hand lasts until the caster's turn ends.</li>
 <li>Hypostasis lasts through the enemy's next two turns and ends at the start of your second turn after casting. A stack under it can't be targeted by attacks or by the Full Moon's toll.</li>
 <li>The moon moves one phase each round, at the start of the first player's turn. Its New Moon gift and Full Moon toll reach both players at the start of the round, the first player first; the moon's prices, draw ban and Blood Moon last the whole round, and the spell prices apply to whoever casts that turn.</li>
-<li>The Full Moon's most powerful stack is the one whose best card has the highest point rating (its value plus the top of its die), with more cards breaking ties. A sacrificed stack's souls go to the soul pile up to six mana; the rest go to the grave.</li>
+<li>The Full Moon never takes a card inside an Ace or under Hypostasis. What is given goes to the soul pile up to your maximum; the rest goes to the grave.</li>
 <li>Not yet in the digital table: the Queen's protection from being surrounded, and placing same-suit cards inside a defending King. A King can't be sacrificed from a stack that holds other cards.</li>
 </ul>
 
@@ -254,7 +254,7 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 <table>
 <tr><th>Event</th><th>Chance</th><th>What it does</th></tr>
 <tr><td>New Moon</td><td>every 8 rounds</td><td>Players choose 1d2 cards from the grave for free. Clairvoyance and Naked Hand cost 6 mana.</td></tr>
-<tr><td>Full Moon</td><td>every 8 rounds</td><td>Sacrifice your most powerful stack, or lose all your mana and five deck cards. Decks shuffle; no drawing or necromancy. Naked Hand is free, Clairvoyance costs 2.</td></tr>
+<tr><td>Full Moon</td><td>every 8 rounds</td><td>Give a random stack of two (or a card, or three deck cards), or pay 2d2 + 2 mana. Decks shuffle; no drawing or necromancy. Naked Hand is free, Clairvoyance costs 2.</td></tr>
 <tr><td>Blood Moon</td><td>5% of Full Moons</td><td>New Moon gifts with Full Moon prices and no Full Moon drawbacks. Every card killed goes to the Outer Darkness, and a Joker's suicide sends it and its cards there too. The table turns crimson and glitches.</td></tr>
 </table>
 </main>
@@ -286,7 +286,7 @@ b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({beha
 </main>''', 1)
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
-play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=49">', ec=True) + f'''<main class="wide game">
+play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=49.1">', ec=True) + f'''<main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
@@ -325,7 +325,7 @@ play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="eth
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
 <script src="ethers-crossroads-quotes.js?v=4"></script>
-<script src="ethers-crossroads.js?v=49"></script>
+<script src="ethers-crossroads.js?v=49.1"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 
