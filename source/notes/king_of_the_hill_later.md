@@ -1,7 +1,8 @@
 # King of the Hill — saved for later (2026-10-18)
 
 The user asked to put King of the Hill in its own note and leave it: "let's put the note for king of the hill into a note and leave it there, we dont have to do it today, i want to delay that update for later".
-Status: **deferred**. Nothing of it is built. The large-map camera (K10) and the new maps (K12) are part of it and wait too.
+Status: **built** (2026-10-19, at the user's request in notes/v52_sheet_2026-10-19.md): v56 large maps and camera (K10, K12), v57
+King of the Hill part 1 (K1–K3, K5, K8, K11), v58 part 2 (K4, K6, K7, K9). Players 2–8 (team mode default); potions are decoration.
 The Claimer and Flags (first asked for King of the Hill) were made for every mode in v45 and are already in the game.
 
 ## The request, verbatim (from v44_sheet_2026-10-18.md, Part A)
