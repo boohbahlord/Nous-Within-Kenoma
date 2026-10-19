@@ -247,7 +247,7 @@ function buildDecks(){
   shuffle(G.ether);
 }
 const survival=()=>G.opts.mode==="survival";
-const isHorde=pl=>!!(G.p[pl]&&(G.p[pl].cpu==="horde"||G.p[pl].cpu==="npc"));   // the Horde, and the Barbarians and the Bank (no deck, no hand, no mana)
+const isHorde=pl=>!!(G.p[pl]&&(G.p[pl].cpu==="horde"||G.p[pl].cpu==="npc"));   // the Horde, and the Demons and the Bank (no deck, no hand, no mana)
 const hordeIx=()=>G.p.findIndex(P=>P.cpu==="horde");
 const alive=()=>G.p.filter(P=>!P.out).map(P=>P.i);
 const isEnemy=(a,b)=>a!=null&&b!=null&&a!==b&&G.p[a].team!==G.p[b].team;
@@ -264,14 +264,16 @@ function view(){ // which player sits at the bottom of the screen
   return G.lastView??hs[0];
 }
 const seat=pl=>G.map.seats[pl];
-const canSpawn=(pl,r,c)=>G.zone[r][c]===pl;
+/* v53: you spawn in your own lines, or in a teammate's when they hold the same side of the field */
+const canSpawn=(pl,r,c)=>{const z=G.zone[r][c];if(z===pl)return true;if(z<0||!G.p[z]||!G.p[pl]||G.p[z].team!==G.p[pl].team||isNPC(z)||isNPC(pl))return false;
+  const a=G.map.seats[z],b=G.map.seats[pl];return !!a&&!!b&&a.side===b.side};
 const isBack=(pl,r,c)=>G.backz[r][c]===pl;
 const backTiles=pl=>seat(pl).back.filter(([r,c])=>!isVoid(r,c));
 const zoneTiles=pl=>seat(pl).zone.filter(([r,c])=>!isVoid(r,c));
 const isFront=(pl,r,c)=>canSpawn(pl,r,c)&&!isBack(pl,r,c);
 /* kept for the two-player field: the rows of player 0 (bottom) and player 1 (top) */
 function backRow(pl){return seat(pl).back[0][0]}
-function frontRow(pl){const z=seat(pl).zone.find(([r,c])=>!isBack(pl,r,c));return z?z[0]:backRow(pl)}
+function frontRow(pl){const S=seat(pl);return S.back[0][0]+S.fwd[0]}   // v53: the row in front of the backline, a spawn line or not
 const ownLines=(pl,r,c)=>c==null?G.zone[r].includes(pl):canSpawn(pl,r,c);
 function stacksOf(pl){const out=[];G.board.forEach((row,r)=>row.forEach((st,c)=>{if(st&&st.owner===pl)out.push({st,r,c})}));return out}
 function at(r,c){return r>=0&&r<G.rows&&c>=0&&c<COLS?G.board[r][c]:undefined}

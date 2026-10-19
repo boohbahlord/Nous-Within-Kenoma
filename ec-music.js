@@ -167,6 +167,10 @@
   document.addEventListener("visibilitychange",sync);
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",mountCorner);else mountCorner();
   function nextSong(){if(!playing||!ac)return;load(pick(MODE));next=ac.currentTime+.15;tick()}
-  window.ECMusic={sync,start,stop,next:nextSong,get playing(){return playing},get track(){return T?T.name:null},tracks:TRACKS.map(t=>t.name),setMode:m=>{MODE=m},
+  /* the game's cycle sounds dip the music for a moment; the volume settings stay as they are */
+  let duckT=null;
+  function duck(ms){if(!ac||!playing)return;const t=ac.currentTime;out.gain.cancelScheduledValues(t);out.gain.setTargetAtTime(BASE*vol(prefs())*.22,t,.08);
+    clearTimeout(duckT);duckT=setTimeout(()=>{if(!ac||!playing)return;out.gain.cancelScheduledValues(ac.currentTime);out.gain.setTargetAtTime(BASE*vol(prefs()),ac.currentTime,.7)},ms||2600)}
+  window.ECMusic={sync,start,stop,duck,next:nextSong,get playing(){return playing},get track(){return T?T.name:null},tracks:TRACKS.map(t=>t.name),setMode:m=>{MODE=m},
     setVol:v=>{setPref("musicVol",Math.round(Math.max(0,Math.min(1.5,v))*100)/100);sync()},get vol(){return vol(prefs())}};
 })();

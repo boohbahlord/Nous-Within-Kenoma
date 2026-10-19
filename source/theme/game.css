@@ -566,7 +566,7 @@ details.cinfo.basics>summary{color:var(--amber-hi)}
 #selbox .acts{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
 #selbox .acts .sinfo,#selbox .acts .libbox{flex-basis:100%}
 
-/* ---- v16: the Bank, Barbarians, the meteor ---- */
+/* ---- v16: the Bank, Demons, the meteor ---- */
 .tile.fire::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse at 50% 85%,#ff7a1a66,#c2300022 55%,transparent 75%);animation:flick 1.6s ease-in-out infinite alternate}
 @keyframes flick{from{opacity:.65}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){.tile.fire::before{animation:none}}
@@ -1571,3 +1571,39 @@ html.th-office .necrocore{background:none}
 #foe.minis .pbox.sub{background:linear-gradient(color-mix(in srgb,var(--pc) 11%,transparent),color-mix(in srgb,var(--pc) 11%,transparent)),#0b0a0cb0}
 #foe.minis .minitags .seenmark{background:none;color:var(--amber);border:0;padding:0;font-size:10.5px;text-transform:none;letter-spacing:0}
 html.th-office #foe.minis .pbox.sub{background:color-mix(in srgb,var(--pc) 10%,#fff)}
+/* ================= v53 · Demons, the Bank's Collectors, the crit seal, effects on the page ================= */
+/* the Demon Band: crimson cards that can't be mistaken for anyone's */
+.stack.demon{background:linear-gradient(165deg,#8a1220,#4a060d 70%,#2a0306);color:#ffd9cf;border-color:#ff5050;box-shadow:inset 0 0 0 2px #2a0306,inset 0 0 0 3px #ff4a4a,0 0 10px #b3172caa,0 2px 4px #000a}
+.stack.demon .mini,.stack.demon .used,.stack.demon .souls{color:#ffb4a8}
+.stack.demon .ty{border-top-color:#ffb4a855;color:#ffb4a8}
+.stack.demon .ulead svg{filter:invert(1) sepia(1) saturate(3) hue-rotate(-30deg) brightness(1.1)}
+.stack.demon::before{content:"";position:absolute;inset:0;border-radius:5px;pointer-events:none;background:radial-gradient(ellipse at 50% 120%,#ff3a2a33,transparent 60%)}
+/* the Bank's Debt Collectors: black, red letters, gold edges */
+.stack.bankcoll{background:linear-gradient(170deg,#141012,#060405);color:#e0323f;box-shadow:inset 0 0 0 2px #060405,inset 0 0 0 3px #d4a72c,0 0 8px #d4a72c55,0 2px 4px #000a;border-color:#d4a72c}
+.stack.bankcoll .uname,.stack.bankcoll .ty,.stack.bankcoll .mini{color:#e0323f}
+.stack.bankcoll .ty{border-top-color:#d4a72c88}
+.stack.bankcoll .ulead svg{filter:invert(1) sepia(1) saturate(5) hue-rotate(-20deg) brightness(.95)}
+.stack.bountycoll{outline:1px dashed #d4a72c;outline-offset:2px}
+/* the crit seal: small, see-through, glowing, over the card */
+#critfx{position:absolute;left:0;top:0;transform:translate(-50%,-50%);z-index:80;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:0;background:none}
+#critfx svg{width:44px;height:44px;filter:drop-shadow(0 0 6px var(--cg,#ff4a5a)) drop-shadow(0 0 14px var(--cg,#ff4a5a));animation:sealspin 1.9s ease-out forwards}
+#critfx svg .s1{fill:color-mix(in srgb,var(--cg,#ff4a5a) 12%,transparent);stroke:var(--cg,#ff4a5a);stroke-width:2.6}
+#critfx svg .s2{fill:none;stroke:color-mix(in srgb,var(--cg,#ff4a5a) 60%,transparent);stroke-width:1.4}
+#critfx svg .s3{fill:none;stroke:color-mix(in srgb,var(--cg,#ff4a5a) 45%,transparent);stroke-width:1;stroke-dasharray:3 7}
+#critfx svg text{fill:#fff7f2;font:600 30px "Grenze Gotisch",serif;stroke:none}
+#critfx b{font-family:"Grenze Gotisch","Old English Text MT",serif;font-weight:500;font-size:19px;line-height:1;color:#fff4ef;text-shadow:0 0 4px var(--cg,#ff4a5a),0 0 10px var(--cg,#ff4a5a),0 0 18px var(--cg,#ff4a5a);white-space:nowrap;margin-top:-2px}
+#critfx .sp{position:absolute;left:50%;top:22px;width:4px;height:4px;border-radius:50%;background:#fff;box-shadow:0 0 6px 2px var(--cg,#ff4a5a);opacity:0}
+#critfx.go .sp.a{animation:spark 1.2s .1s ease-out forwards;--dx:-26px;--dy:-18px}
+#critfx.go .sp.b{animation:spark 1.2s .2s ease-out forwards;--dx:24px;--dy:-22px}
+#critfx.go .sp.c{animation:spark 1.2s .3s ease-out forwards;--dx:4px;--dy:-30px}
+#critfx.k-hit{--cg:#ff3b4e}#critfx.k-miss{--cg:#9a8cff}#critfx.k-dodge{--cg:#b8a6ff}#critfx.k-success{--cg:#f1c84a}
+#critfx.go{animation:critpop2 1.9s ease-out forwards}
+@keyframes critpop2{0%{opacity:0;transform:translate(-50%,-30%) scale(.6)}14%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}26%{transform:translate(-50%,-50%) scale(1)}78%{opacity:1}100%{opacity:0;transform:translate(-50%,-80%) scale(1)}}
+@keyframes sealspin{from{transform:rotate(-25deg)}to{transform:rotate(0)}}
+@keyframes spark{0%{opacity:0;transform:translate(0,0)}25%{opacity:1}100%{opacity:0;transform:translate(var(--dx),var(--dy))}}
+@media (prefers-reduced-motion:reduce){#critfx.go,#critfx svg,#critfx .sp{animation:none!important}}
+/* the effects layer belongs to the page, not to the screen */
+#fx{position:absolute;inset:auto;left:0;top:0;width:100%;height:100vh}
+#fx .fx,#fx .skull{position:absolute}
+.stack.demon,.stack.demon.red,.stack.demon.black{color:#ffe2d8}
+.stack.demon .lead,.stack.demon .lead .rk,.stack.demon .lead i{color:#ffe2d8;text-shadow:0 0 6px #ff3a2a88}

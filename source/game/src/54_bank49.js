@@ -122,7 +122,7 @@ ${paper({...rp},true)}${R0?paper(R0,false):`<p class="dim">No Report yet.</p>`}$
   if(P.noLoans)t.push(`<span class="debttag" data-tip="Tried to rob the Bank: no loans or credit, ever.">No loans</span>`);
   return t}}
 const TAG_TIPS=[[/^Debt −/,"Mana debt: shows as mana below zero. Every soul gained pays it first; it grows by 1d2 every 3 turns."],[/^Loans /,"Owed to the Bank in loans, interest included."],[/^Credit$/,"Spends on credit: spells it can't afford become mana debt."],
-  [/^Ether sale$/,"Killed the most Barbarians: conjuring costs 1d2 − 1 less (never below 1)."],[/^Max /,"Maximum mana changed by spells and events."],[/^Sun-blind$/,"Blinded by the Second Sun."],[/^Choking on the Sun$/,"The Second Sun chokes this player: no attacks."]];
+  [/^Ether sale$/,"Killed the most Demons: conjuring costs 1d2 − 1 less (never below 1)."],[/^Max /,"Maximum mana changed by spells and events."],[/^Sun-blind$/,"Blinded by the Second Sun."],[/^Choking on the Sun$/,"The Second Sun chokes this player: no attacks."]];
 {const _et=econTags;econTags=function(P){return _et(P).map(h=>{if(/data-tip=/.test(h))return h;const m=/^<span([^>]*)>([^<]*)</.exec(h);if(!m)return h;const tip=TAG_TIPS.find(([re])=>re.test(m[2]));
   return tip?h.replace("<span",`<span data-tip="${esc(tip[1])}"`):h})}}
 if(window.__EC)Object.assign(window.__EC,{bankReport,buyLand,landFree,forgiveLoan,giftMana,giftCard,rpOf,attackOptions:(...a)=>attackOptions(...a)});

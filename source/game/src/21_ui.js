@@ -121,8 +121,8 @@ document.addEventListener("touchmove",()=>clearTimeout(lpT),{passive:true});
 document.addEventListener("click",e=>{if(!touchy())return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]");if(!el||el.closest("button,label"))return;showTip(el,true);e.stopPropagation()});
 document.addEventListener("click",e=>{const t=$("#tipbox");if(t&&!t.hidden&&!e.target.closest("#tipbox")&&!(e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]")))t.hidden=true});
 /* piles (grave, Ether, Outer Darkness) grouped the way the shop is: by card type */
-const PILE_ORDER=["Standard","Special","Support","Base","Wildcard","Barbarian"];
-function pileGroups(cards){const g={};for(const c of cards){let k=cardClass(c);if(k==="Barbarian")k="Standard";(g[k]=g[k]||[]).push(c)}
+const PILE_ORDER=["Standard","Special","Support","Base","Wildcard","Demon"];
+function pileGroups(cards){const g={};for(const c of cards){let k=cardClass(c);if(k==="Demon")k="Standard";(g[k]=g[k]||[]).push(c)}
   const rk=c=>c.unit?100+Object.keys(UNIT).indexOf(c.unit):c.rank==="JK"?60:({J:51,Q:52,K:53,A:54}[c.rank]||num(c));
   return PILE_ORDER.filter(k=>g[k]).map(k=>[k,g[k].sort((a,b)=>rk(a)-rk(b))])}
 /* ---------- card info: rest the mouse on a card's top-right corner (no click); tap it on a touch screen ---------- */

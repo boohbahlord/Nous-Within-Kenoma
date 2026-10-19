@@ -30,7 +30,7 @@ const SPELL_TEXT={
  joy:{e:"Choose one, until your next turn. Pleasure and Joy: your cards glow, and those that die go back into your deck instead of the grave. Joyful Theft: each damage an enemy deals to your units moves 1 mana from them to you.",l:"Pleasure and Joy costs 1 + 1d2; Joyful Theft costs 1d3 − 1."},
  // Sorcery
  clair:{e:"Look at 2d6 cards of your deck and take one into your hand. Then the deck is shuffled.",l:"Needs room in your hand. 6 mana at the New Moon, 2 at the Full Moon."},
- tele:{n:"Select your stack in your own two lines, with no enemy beside it, and leave exactly one card checked.",e:"That card leaves the field and comes back into your hand at the start of your next turn.",l:"Needs room in your hand."},
+ tele:{n:"Select your stack in your own spawn lines, with no enemy beside it, and leave exactly one card checked.",e:"That card leaves the field and comes back into your hand at the start of your next turn.",l:"Needs room in your hand."},
  naked:{e:"You see your enemy's hand for the rest of this turn. Both of you are told it was seen.",l:"6 mana at the New Moon, free at the Full Moon."},
  bird:{e:"The fog of war lifts for you and your teammates for the rest of this round.",l:"Only with fog of war on. It does nothing against a Delusion."},
  gamble:{e:"Roll 1d10. On a 10 the Bank pays you 7d2 mana. On a 1 you lose one maximum mana, take 7d2 of mana debt, and a deck card goes to the Ether. Anything else: the mana is gone.",l:"Only while the Bank is open."},
@@ -228,7 +228,7 @@ const BANK_HELP=[
  ["Credit","Not a loan: tick Spend on credit to cast spells you can't afford. What your souls don't cover becomes mana debt at once."],
  ["Mana debt","Debt shows as mana below zero. It grows by 1d2 every 3 of your turns, and every soul you gain pays it first."],
  ["Your lowest point","You can go down to −8 (−12 under the Oath of Jupiter). Below that you lose the game."],
- ["Bounties","Each Report puts a bounty on everyone in bad standing. The Oath of Mercury (or anyone while Mercury is up) can take one and buy Debt Collectors (2 mana) that hunt only that player. Collect the debt within two Reports: half of it is yours, and your own debts are forgiven."],
+ ["Bounties","Each Report puts a bounty on everyone in bad standing. The Oath of Mercury (or anyone while Mercury is up) can take one: 5 Debt Collectors into the deck and 2 into the hand, hunting only that player (more for 2 mana each). Collect the debt within two Reports: half of it is yours, and your own debts are forgiven."],
  ["Debt Collectors","Stay below zero for 3 of your turns, or leave a Bank loan open for 3 + (owed ÷ 3) of your turns, and you are in default. From then on, at the start of each of your turns the Bank sends 1d2 Debt Collectors (half as many again after six turns in default; six at most on the field) after whoever owes the most, until it is paid off. Every card they kill goes to the Ether, and its worth pays the debt. Only a player who owes the Bank can strike a Debt Collector."],
  ["The Report","Every Full Moon (every eighth round without the Moon) the Bank hands each player a Credit and Loan Report: what was taken on loans and credit, the interest, the taxes, the mana earned, and good or bad standing."],
  ["Taxes","On Report day only: 1d2 for a base in the middle of the field; every other Ace or Tree, 1 in 3 (1 in 2 in bad standing) of 1d2. With no mana a tax goes unpaid (no credit), and the standing turns bad."],
@@ -236,9 +236,9 @@ const BANK_HELP=[
  ["Selling","Sell cards from your hand or deck for their soul worth, or 1 less (rolled at the sale). A standard card worth only 1 can't be sold. Sold cards go to the Ether, and your deck is reshuffled. Binah can sell thralls for 1 mana."],
  ["Upselling","A spell bought more than twice in each of two rounds in a row costs 1d2 − 1 more."],
  ["When the Bank is in the red","The Ether goes on sale (1 less, never below 1), and the Bank asks the richest player for a loan."],
- ["The angry Banker","If Barbarians hold the middle of the field for 7d2 turns, every price goes up by 1 until they are gone."],
+ ["The angry Banker","If Demons hold the middle of the field for 7d2 turns, every price goes up by 1 until they are gone."],
  ["Collapse","If the Bank and every player are 3 or more below zero, the Bank collapses: mana and debts go to zero, every maximum falls to three, cards leave the decks for the Ether, and prices wobble up for a while."]];
-function bankExplainHTML(){return `<details class="sub"><summary>The Bank, Barbarians and meteors explained</summary><dl class="spellinfo">${BANK_HELP.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}
-<dt>Barbarians</dt><dd>A crimson band takes the middle every 4 + 1d12 turns and with every Blood Moon, and fights anyone beside it. The player who kills the most of a band gets an Ether sale; breaking a big band can earn debt forgiveness.</dd>
+function bankExplainHTML(){return `<details class="sub"><summary>The Bank, Demons and meteors explained</summary><dl class="spellinfo">${BANK_HELP.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}
+<dt>Demons</dt><dd>A crimson band takes the middle every 4 + 1d12 turns and with every Blood Moon, and fights anyone beside it. The player who kills the most of a band gets an Ether sale; breaking a big band can earn debt forgiveness.</dd>
 <dt>Meteor</dt><dd>One round in a hundred: damage where it lands and maybe around it, then fire for two rounds.</dd>
 <dt>Gambling, Increase Max Mana, Mystery Generation</dt><dd>Gambling (Sorcery, 1 mana): a 10 on 1d10 wins 7d2; a 1 costs a maximum mana, 7d2 of debt and a deck card. Increase Max Mana (Conjuring, 4): +1, eighteen at most. Mystery Generation (in the Auction, 3 to 8 mana): three brand-new cards of any rarity, wildcards included.</dd></dl></details>`}
