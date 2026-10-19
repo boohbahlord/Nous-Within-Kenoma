@@ -120,18 +120,21 @@ function crystalTick(){
 function siegeTurn(pl){
   crystalTick();
   if(!G.p[pl]||isHorde(pl))return;
-  let got=0;const notes=[];
+  let got=0;const notes=[],per=[];   // v62: what each mining slot brought, for its stats
   for(const {st,r,c} of stacksOf(pl)){
     const ms=st.cards.filter(x=>x.unit==="miner");if(!ms.length)continue;
-    const cr=crystalAt(r,c);
-    if(hasK(st,"ace")){for(const m of ms)if(m.inSlot!=null&&m.inSlot<G.moon.round)got+=R(2)-(G.moon.gone==="jupiter"?0:1)}   // Jupiter: 1d2 instead of 1d2 − 1   // a miner slot: 1d2 − 1 a turn, from the round after it moves in
-    else if(cr){if(R(2)===2){const take=Math.min(cr.left,1+R(3));cr.left-=take;got+=take;notes.push(`${take} from the crystal on ${coord(r,c)}${cr.left?` (${cr.left} left)`:"; the crystal is spent and gone"}`);if(!cr.left)G.crystals.splice(G.crystals.indexOf(cr),1)}}
+    const cr=crystalAt(r,c),g0=got;
+    if(hasK(st,"ace")){for(const m of ms)if(m.inSlot!=null&&m.inSlot<G.moon.round)got+=R(2)-(G.moon.gone==="jupiter"?0:1);per.push(["ace:"+st.cards.find(x=>kind(x)==="ace").id,got-g0])}   // Jupiter: 1d2 instead of 1d2 − 1   // a miner slot: 1d2 − 1 a turn, from the round after it moves in
+    else if(cr){per.push(["cr:"+r+"."+c,0]);if(R(2)===2){const take=Math.min(cr.left,1+R(3));cr.left-=take;got+=take;per[per.length-1][1]=take;notes.push(`${take} from the crystal on ${coord(r,c)}${cr.left?` (${cr.left} left)`:"; the crystal is spent and gone"}`);if(!cr.left)G.crystals.splice(G.crystals.indexOf(cr),1)}}
     else for(const m of ms)if(R(6)===6)got++;   // out in the open: 1d6 − 5
   }
   if(got&&G.p[pl].minerX2!=null&&tnOf(pl)<=G.p[pl].minerX2)got*=2;   // Jupiter's eclipse: miners bring twice as much
   if(got&&oathNow(pl,"earth")){notes.push(`the Oath of the Earth +${got}`);got*=2}   // v50: +1 for every mana mined
+  {const raw=per.reduce((a,x)=>a+x[1],0)+0,k=raw?got/Math.max(1,raw):1;for(const [key,n] of per)mineNote(pl,key,n*k)}
   if(got){const n=giveMana(pl,got);log(`${plName(pl)}'s Miners bring in ${n} mana${notes.length?": "+notes.join("; "):""}${n<got?" (the soul pile is full)":""}.`)}
 }
+/* v62: each mining slot's takings are noted here (the Mining slots panel keeps them) */
+function mineNote(pl,key,n){}
 /* the end of a player's turn: Miners settle into their slots; suppression wears off */
 function siegeEnd(pl){
   for(const {st,r,c} of stacksOf(pl)){

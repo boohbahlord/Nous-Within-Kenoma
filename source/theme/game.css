@@ -1732,3 +1732,27 @@ html:not(.cardsym) .v61 .so{display:none}
 #gbar label:has(#pTheme),#gbar .gctl:has([data-z="ci"]),#gbar #pHand,#gbar #pFull,#gbar #pAnimC,#gbar #pAnimM,#gbar #pSpellBL{display:none!important}
 .ovbox.setup .seat .opts.swatches{grid-template-columns:repeat(auto-fill,minmax(54px,1fr));grid-auto-rows:auto;gap:2px 4px}
 .ovbox.setup .seat .opts.swatches .sw em{font-size:10px}
+/* v62: the Mining slots: small tiles below the field; a Miner picked in the hand lights the slots it can go into */
+.minepanel{border:1px solid var(--rule);background:color-mix(in srgb,var(--deep) 88%,transparent);margin:6px 0 10px;padding:4px 8px 8px}
+.minepanel .mshead{display:flex;align-items:center;gap:10px}
+.minepanel .msfold{background:none;border:0;color:var(--amber);font:inherit;font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;padding:4px 0}
+.minepanel .mshint{color:var(--amber-hi);font-size:12px}
+.minepanel .msmove{margin-left:auto;background:none;border:1px solid var(--rule);color:var(--dim);cursor:pointer;font-size:13px;line-height:1;padding:3px 7px}
+.minepanel .msmove:hover{color:var(--amber);border-color:var(--amber)}
+.minepanel .msrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.mslot{position:relative;display:flex;flex-direction:column;gap:3px;width:184px;padding:5px 6px 6px;text-align:left;font:inherit;color:var(--text);background:var(--well);border:1px solid var(--rule);cursor:default}
+.mslot.k-cr{border-color:color-mix(in srgb,#6ad0e8 50%,var(--rule))}.mslot.k-plot{border-color:color-mix(in srgb,#4f7a57 70%,var(--rule))}.mslot.k-moon{border-color:color-mix(in srgb,#cfc7ff 45%,var(--rule))}
+.mslot .msn{display:flex;align-items:baseline;gap:6px;font-size:12.5px;flex-wrap:wrap}.mslot .msn b{font-weight:400;color:var(--amber-hi)}
+.mslot .msn small{color:var(--dim);font-size:11px}.mslot .msn em{margin-left:auto;font-style:normal;font-size:11px;color:var(--dim)}
+.mslot .msc{display:flex;gap:4px;min-height:calc(48px * var(--ci));align-items:flex-start}
+.mslot .msempty{display:inline-block;width:calc(34px * var(--ci));height:calc(48px * var(--ci));border:1px dashed var(--rule);border-radius:3px;opacity:.7}
+.mslot .msstat{position:absolute;left:4px;right:4px;bottom:5px;display:flex;flex-direction:column;gap:1px;font-size:10.5px;line-height:1.25;color:#f1e7d6;background:#0d0a08cc;border:1px solid #ffffff14;padding:2px 5px;pointer-events:none}
+.mslot .msstat b{font-weight:500;color:#ffe0a3}
+.mslot:has(.msstat){padding-bottom:20px}
+.mslot.tplace{cursor:pointer;outline:2px solid var(--amber);outline-offset:1px;box-shadow:0 0 12px color-mix(in srgb,var(--amber) 45%,transparent);animation:msglow 1.6s ease-in-out infinite}
+@keyframes msglow{50%{box-shadow:0 0 4px color-mix(in srgb,var(--amber) 25%,transparent)}}
+@media (prefers-reduced-motion:reduce){.mslot.tplace{animation:none}}
+.minepanel .msrow{align-items:stretch}
+/* v62: what a wildcard is for, at the top of the Selected box */
+#selbox .wilduse{margin:0 0 6px;padding:5px 8px;border-left:2px solid var(--amber);background:color-mix(in srgb,var(--amber) 8%,transparent);font-size:12.5px;line-height:1.4}
+#selbox .wilduse b{color:var(--amber-hi);font-weight:400;margin-right:4px}

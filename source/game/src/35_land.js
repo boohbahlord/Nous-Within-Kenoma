@@ -94,9 +94,9 @@ function plantMiner(pl,p){const m=handMiners(pl)[0];if(!m||p.owner!==pl||p.miner
   log(`${plName(pl)} puts a Miner to work on plot ${p.i+1}: no enemy can reach it there.`);return true}
 /* the Miners work at the start of their owner's turn */
 {const _bt=bankTurn;bankTurn=function(pl){_bt(pl);if(!G.p[pl]||isHorde(pl)||!G.plots)return;let got=0;
-  for(const p of myPlots(pl))for(const m of p.miners)if(m.plotSince<G.moon.round){let n=R(2)-(planetUp("jupiter")?0:1);if(n&&G.p[pl].minerX2!=null&&tnOf(pl)<=G.p[pl].minerX2)n*=2;p.prod+=n;got+=n}
+  for(const p of myPlots(pl))for(const m of p.miners)if(m.plotSince<G.moon.round){let n=R(2)-(planetUp("jupiter")?0:1);if(n&&G.p[pl].minerX2!=null&&tnOf(pl)<=G.p[pl].minerX2)n*=2;p.prod+=n;got+=n;mineNote(pl,"plot:"+p.i,n)}
   // v38: Jupiter blesses the land itself: +1 a plot each turn while it is in the sky, +1d2 a plot during its eclipse
-  const jb=()=>eclipseOn("jupiter")?R(2):planetUp("jupiter")?1:0;let jup=0;for(const p of myPlots(pl)){const n=jb();p.prod+=n;jup+=n}
+  const jb=()=>eclipseOn("jupiter")?R(2):planetUp("jupiter")?1:0;let jup=0;for(const p of myPlots(pl)){const n=jb();p.prod+=n;jup+=n;if(n)mineNote(pl,"plot:"+p.i,n)}
   if(jup){got+=jup;log(`Jupiter over the Bank's land: ${plName(pl)}'s plots yield ${jup} more.`)}
   if(got){const n=giveMana(pl,got);log(`${plName(pl)}'s Miners on the Bank's land bring in ${n} mana${n<got?" (the soul pile is full)":""}. The Bank's half is due at the Full Moon.`)}}}
 /* pay day: the Bank takes half */
