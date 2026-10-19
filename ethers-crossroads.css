@@ -1508,7 +1508,6 @@ html.still-blood.bloodglitch .game #board,html.still-blood.bloodglitch .game h1,
 .pmhelp{font-size:11px!important}
 #turnctr{display:flex;align-items:baseline;gap:6px;margin-left:auto;font-family:"Grenze Gotisch","Old English Text MT",serif;font-weight:500;color:var(--amber-hi)}
 #turnctr span{font-size:18px}#turnctr b{font-weight:500;font-size:26px;color:#e0505b;text-shadow:0 0 10px #8e162266}
-#turnctr small{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
 #turnctr[hidden]{display:none}
 @media (max-width:640px){#turnctr b{font-size:20px}#turnctr span{font-size:15px}}
 /* v50: the Bank's bounties */
@@ -1522,3 +1521,53 @@ html.still-blood.bloodglitch .game #board,html.still-blood.bloodglitch .game h1,
 /* v51: pixel-art maps */
 .tile img.tart.px,#board .mapbg img.mapground{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;image-rendering:crisp-edges;image-rendering:pixelated;display:block;user-select:none;-webkit-user-drag:none}
 .tile img.tart.px{z-index:0}
+/* v52: the round label by the field, in the style of the line names */
+#fieldround{text-align:right;font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber-hi);margin:6px 2px -4px;line-height:1}
+/* v52: "Never show again" on What you must know glows so it can't be missed */
+.mknever .mkglow{border-color:var(--amber-hi);color:var(--amber-hi);animation:mkglow 2.4s ease-in-out infinite}
+@keyframes mkglow{0%,100%{box-shadow:0 0 0 0 #d9a44a00}50%{box-shadow:0 0 12px 2px #d9a44a99}}
+@media (prefers-reduced-motion:reduce){.mknever .mkglow{animation:none;box-shadow:0 0 8px 1px #d9a44a88}}
+/* v52: a caution is yellow with a ⚠ */
+.fawarn.caution{border-left-color:#e3b944;background:#4a3a0e55;color:#f3dc8a}
+.fawarn.caution b{color:#e3b944;margin-right:4px}
+html.th-office .fawarn.caution{background:#fdf3d4;color:#6a4f08}
+/* v52: the field settings: button choices on the left, switches and arrows on the right */
+.fa2col{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;align-items:start}
+.automaster{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 4px}
+.fadet>summary small{font-size:11px;letter-spacing:0;text-transform:none}
+/* v52: every Necromancy spell wears the same purple frame; Grave Blessing and Ritual Dice simply come first */
+.spell.nec{border-color:#7b4ea3;background:#24132fd9}
+.spell.nec .sn{color:#d9c2f2}
+.spell.nec:not(.off):hover{background:#33194a}
+.spell.nec.off{border-color:#4a3360}
+.necrocore{border:0;background:none;box-shadow:none;padding:0;margin:0}
+html.th-office .spell.nec{background:#f1eaf8;border-color:#a98ccc}html.th-office .spell.nec .sn{color:#4a2d6b}
+html.th-office .necrocore{background:none}
+/* v52: on phones the card-info corner is a little smaller, so a tap on the card picks the card */
+@media (hover:none) and (pointer:coarse){.cf .ci,.stack .ci{width:clamp(14px,23%,22px);height:clamp(14px,23%,22px)}}
+/* v52: three or more players: the others as small columns in their color, one shared dice box */
+#foe.multi.minis{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+#foe.minis .pbox.sub{padding:5px 7px 6px;border:0;border-left:3px solid var(--pc);background:color-mix(in srgb,var(--pc) 9%,transparent);font-size:12px;min-width:0;overflow:hidden}
+#foe.minis .ph.mini{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:0;font-size:13px}
+#foe.minis .ph.mini b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+#foe.minis .ph.mini .ally,#foe.minis .ph.mini .turnmark,#foe.minis .ph.mini .outmark{font-size:9.5px;padding:0 4px}
+#foe.minis .minisub{color:var(--dim);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:1px 0 4px}
+#foe.minis .mline{display:grid;grid-template-columns:3.4em 1fr auto;align-items:center;gap:5px;font-size:10.5px;color:var(--dim);margin:2px 0}
+#foe.minis .mline i{display:block;height:3px;background:#ffffff1a;position:relative}
+#foe.minis .mline u{display:block;height:100%;background:var(--pc)}
+#foe.minis .mline.neg u{background:#c0392b}
+#foe.minis .mline b{color:var(--text);font-weight:400;font-size:11px}
+#foe.minis .mline.neg b{color:#ff8f86}
+#foe.minis .minitags{display:flex;flex-wrap:wrap;gap:2px 6px;font-size:10.5px;color:var(--dim);margin-top:3px}
+#foe.minis .minitags>span{font-size:10.5px;padding:0 3px}
+#foe.minis .seenmark{white-space:normal}
+.trayall{display:flex;flex-direction:column;gap:3px;border:1px solid var(--rule);padding:5px 6px;background:var(--deep)}
+.trayall .tl{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.trayall .trow{display:grid;grid-template-columns:auto 1fr;grid-template-areas:"n l" "d d";gap:1px 8px;text-align:left;background:none;border:0;border-left:3px solid var(--pc);padding:2px 6px;color:var(--text);cursor:pointer;font:inherit;font-size:12px}
+.trayall .trow b{grid-area:n;font-weight:500}.trayall .trow small{grid-area:l;color:var(--dim);font-size:11px;align-self:center}
+.trayall .trow .dice{grid-area:d;display:flex;flex-wrap:wrap;gap:2px}.trayall .trow .dice svg{width:22px;height:22px}
+.trayall .trow em{grid-column:1/-1;font-style:normal;font-size:11px;color:var(--amber)}
+.trayall .trow:hover{background:#ffffff0d}
+#foe.minis .pbox.sub{background:linear-gradient(color-mix(in srgb,var(--pc) 11%,transparent),color-mix(in srgb,var(--pc) 11%,transparent)),#0b0a0cb0}
+#foe.minis .minitags .seenmark{background:none;color:var(--amber);border:0;padding:0;font-size:10.5px;text-transform:none;letter-spacing:0}
+html.th-office #foe.minis .pbox.sub{background:color-mix(in srgb,var(--pc) 10%,#fff)}

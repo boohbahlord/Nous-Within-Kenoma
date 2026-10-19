@@ -25,7 +25,7 @@ function mountMustKnow(){const h=document.querySelector(".game header");if(!h||$
 function paintMustKnow(){const m=$("#mustknow");if(m)m.hidden=mkHidden()}
 function openMustKnow(){
   ovShow(`<div class="ovbox wide mkbox" role="dialog" aria-labelledby="mkh"><button type="button" class="xclose" id="mkX" aria-label="Close">×</button>
-<p class="mknever"><button type="button" class="link" id="mkNever">Never show again</button></p>
+<p class="mknever"><button type="button" class="btn sm mkglow" id="mkNever">Never show again</button></p>
 <h2 id="mkh">What you must know</h2>
 <p class="mktldr"><b>TLDR</b> ${MK_TLDR}</p>
 <div class="mkbody">${MK_BODY}</div>

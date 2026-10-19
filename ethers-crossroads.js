@@ -1954,7 +1954,7 @@ function render(){
         const cap=st.cards.reduce((a,x)=>a+capMana(x),0);
         const odd=lead.unit||lead.puppet,ic=odd?inkSVG(lead.puppet?"puppet":lead.unit,inkOf(lead),28):"";
         const leadHTML=odd?`<span class="lead ulead"><span class="smark">${markHTML(lead)}</span>${ic}</span>`:`<span class="lead"><b class="rk${lead.rank==="JK"?" jk":""}">${lead.rank==="JK"?"Joker":lead.rank}</b><i>${lead.rank==="JK"?"✶":SUITS[lead.suit]}</i></span>`;
-        inner=`<div class="stack ${hasBase(st)?"base ":""}${mine?"mine":isEnemy(st.owner,V)?"theirs":"ally"} ${lead.color}${hated(st)?" hated":""}${shielded(st.owner)?" pink":""}${G.p[st.owner].joy?" joy":""}${lead.unit?" u-"+lead.unit:""}" style="--pc:${P.color}"><span class="so">${solidSVG(P.solid,P.color,16)}</span><span class="ci" title="Card info: click it, or drag it onto another stack to compare"></span>${st.cards.length>1?`<span class="cnt">×${st.cards.length}</span>`:""}${leadHTML}${st.cards.length>1?`<span class="mini">${st.cards.map(short).join(" ")}</span>`:""}${lead.maxHp?`<span class="bhp">${heartsHTML(lead)}</span>`:""}<em class="ty">${esc(typeWord(lead))}</em>${st.stun?`<span class="stun" title="Immobilized by lightning for ${st.stun} more turn${st.stun>1?"s":""}">${unitSVG("bolt","#6fb8ff",14)}${st.stun}</span>`:""}${st.odds?`<span class="odds ${st.odds}">${st.odds==="adv"?"▲":"▼"}</span>`:""}${st.hypo?`<span class="hypo" title="Hypostasis: untouchable">◈${st.hypo}</span>`:""}${cap?`<span class="souls" title="captured souls">✦${cap}</span>`:""}${st.owner===G.active&&(st.moved||st.attacked)&&G.phase!=="setup"?`<span class="used">${st.attacked?"atk":"mv"}</span>`:""}</div>`;
+        inner=`<div class="stack ${hasBase(st)?"base ":""}${mine?"mine":isEnemy(st.owner,V)?"theirs":"ally"} ${lead.color}${hated(st)?" hated":""}${shielded(st.owner)?" pink":""}${G.p[st.owner].joy?" joy":""}${lead.unit?" u-"+lead.unit:""}" style="--pc:${P.color}"><span class="so">${solidSVG(P.solid,P.color,16)}</span><span class="ci" aria-label="Card info"></span>${st.cards.length>1?`<span class="cnt">×${st.cards.length}</span>`:""}${leadHTML}${st.cards.length>1?`<span class="mini">${st.cards.map(short).join(" ")}</span>`:""}${lead.maxHp?`<span class="bhp">${heartsHTML(lead)}</span>`:""}<em class="ty">${esc(typeWord(lead))}</em>${st.stun?`<span class="stun" title="Immobilized by lightning for ${st.stun} more turn${st.stun>1?"s":""}">${unitSVG("bolt","#6fb8ff",14)}${st.stun}</span>`:""}${st.odds?`<span class="odds ${st.odds}">${st.odds==="adv"?"▲":"▼"}</span>`:""}${st.hypo?`<span class="hypo" title="Hypostasis: untouchable">◈${st.hypo}</span>`:""}${cap?`<span class="souls" title="captured souls">✦${cap}</span>`:""}${st.owner===G.active&&(st.moved||st.attacked)&&G.phase!=="setup"?`<span class="used">${st.attacked?"atk":"mv"}</span>`:""}</div>`;
       }
       if(st&&showsBack(V,r,c)){const P=G.p[st.owner];inner=`<div class="stack theirs facedown" style="--pc:${P.color}"><span class="so">${solidSVG(P.solid,P.color,16)}</span><span class="fdback">${solidSVG(P.solid,P.color,30)}</span><em class="ty">face down</em></div>`}
       else if(st){if(st.down)inner=inner.replace('class="stack ','class="stack down ');if(st.ambush&&!isEnemy(st.owner,V))inner=inner.replace('class="stack ','class="stack ambush ');inner=siegeDecor(inner,st,V,r,c)}
@@ -5090,7 +5090,7 @@ function whoHTML(){
   const ph=G.phase==="setup"?"Setup":G.phase==="moon"?"The sky turns":({draw:"Draw phase",prep:"Prep phase",attack:"Attack phase"})[G.phase]||"";
   const shared=G.nextLabel==="Ready →"&&G.phase!=="setup"&&G.phase!=="moon";
   const whoTxt=P.cpu?`<b>${esc(P.name)}</b> is playing…`:G.opts.online?(G.active===view()?`<b>Your turn</b>`:`<b>${esc(P.name)}</b> is playing…`):many?`<b>${esc(P.name)}</b>'s turn`:`<b>Your turn</b>`;
-  return `<span class="sl-k">Round ${rn}</span>${whoTxt}<span class="sl-sep">·</span>${ph}${shared?`<span class="sl-chip" data-tip="Every player takes this phase at the same time. Press Ready when you're done.">Shared phase</span>`:""}`;
+  return `${whoTxt}<span class="sl-sep">·</span>${ph}${shared?`<span class="sl-chip" data-tip="Every player takes this phase at the same time. Press Ready when you're done.">Shared phase</span>`:""}`;
 }
 
 /* ---------- windows: an X on every box that can be closed ---------- */
@@ -5110,7 +5110,7 @@ function showTip(el,pinned){const sp=el.dataset.sp&&SP(el.dataset.sp),sub=el.dat
   const th=t.offsetHeight;if(r.bottom+6+th>innerHeight&&r.top-th-6>0)t.style.top=r.top-th-6+scrollY+"px"}
 const touchy=()=>matchMedia("(hover: none)").matches;
 let tipEl=null;
-document.addEventListener("pointerover",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]");if(!el||el===tipEl)return;tipEl=el;clearTimeout(tipT);tipT=setTimeout(()=>showTip(el,false),260)});
+document.addEventListener("pointerover",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]");if(!el||el===tipEl)return;tipEl=el;clearTimeout(tipT);tipT=setTimeout(()=>showTip(el,false),850)});
 document.addEventListener("pointerout",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]");if(!el)return;if(e.relatedTarget&&el.contains(e.relatedTarget))return;tipEl=null;clearTimeout(tipT);const t=$("#tipbox");if(t&&!t.classList.contains("pinned"))t.hidden=true});
 /* on touch, a long press shows the tip with an X instead of acting */
 let lpT=0,lpFired=false;
@@ -7918,10 +7918,11 @@ function faPanelHTML(c,pl,pfx){
     h+=sec("Bases",row("bases",c.bases,"Target bases","Enemy Aces and the Tree are worth more to it.")+row("walls",c.walls,"Ignore Walls that aren't in the way","A Wall only matters when it stands between your field and a base."));
     h+=sec("Which cards it controls",`<div class="facats">${FA_CATS.map(([k,t,s2])=>row("ctl."+k,c.ctl[k],t,s2)).join("")}${!c.ctl.support?row("ctl.miners",c.ctl.miners,"Miners","Even with Support off"):""}</div>
 <details class="faextra" ${c.extra.length||c.xminus.length?"open":""}><summary>Yes, and… (single kinds of card: + it controls them, − it leaves them to you)</summary>${K.pmChips(FA_KINDS.map(k=>[k,shortInfo(k)]),c.extra,c.xminus,"data-fapm")}</details>`,"fafull");
-    h+=sec("Target priority",row("tprio",c.tprio,"Rank the kinds of card to target","Off: it weighs every target by the odds alone. On: the kinds on the left are hunted first.")+(c.tprio?
+    /* v52: the two rankings open like the Yes-and lists: ▸ closed is off, ▾ open is on */
+    h+=sec("Target priority",`<details class="faextra fadet" data-fadet="tprio" ${c.tprio?"open":""}><summary>Rank the kinds of card to target <small class="dim">(${c.tprio?"on":"off: every target is weighed by the odds alone"})</small></summary>`+
       row("tIgnoreGI",c.tIgnoreGI,"Ignore how strong a Grunt or Infantry is","A 2 and a 6 Grunt count the same when it picks a target.")+row("tSameGI",c.tSameGI,"Treat Grunts and Infantry alike","One kind instead of two in the ranking.")+
-      hierHTML((c.tSameGI?c.torder.filter(k=>k!=="infantry"):c.torder),c.teq,faHierHTML.tpending,k=>FA_TK.find(x=>x[0]===k)[1],()=>"","t"):""),"fafull","",c.tprio?FA_CAUTION:"");
-    h+=sec("Hierarchical control",row("hier",c.hier,"Rank the principles","When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.")+(c.hier?hierHTML(c.order,c.eq,faHierHTML.pending,k=>FA_PRINC.find(x=>x[0]===k)[1],k=>faVal(k,c),""):""),"fafull","",c.hier?FA_CAUTION:"");
+      hierHTML((c.tSameGI?c.torder.filter(k=>k!=="infantry"):c.torder),c.teq,faHierHTML.tpending,k=>FA_TK.find(x=>x[0]===k)[1],()=>"","t")+`<p class="dim">The kinds on the left are hunted first.</p></details>`,"fafull","",c.tprio?FA_CAUTION:"");
+    h+=sec("Hierarchical control",`<details class="faextra fadet" data-fadet="hier" ${c.hier?"open":""}><summary>Rank the principles <small class="dim">(${c.hier?"on":"off"})</small></summary><p class="dim">When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.</p>`+hierHTML(c.order,c.eq,faHierHTML.pending,k=>FA_PRINC.find(x=>x[0]===k)[1],k=>faVal(k,c),"")+`</details>`,"fafull","",c.hier?FA_CAUTION:"");
   }
   h+=`<p class="dim fanote fafull">Some options aren't the best choice for every situation on your field.</p>`;
   return h}
@@ -7984,7 +7985,7 @@ let faSig="";
 
 /* ---------- the setup: Off, or how well it plays ---------- */
 {const _ss=showStart;showStart=function(){const out=_ss.apply(this,arguments);const p=document.querySelector('.ovbox.setup .spanel[data-p="rules"]');
-  if(p&&!$("#ofauto"))p.insertAdjacentHTML("beforeend",`<fieldset class="pf"><legend>Field Automation</legend><label class="f">Field Automation <select id="ofauto"><option value="off">Off</option><option value="easy">On · Easy</option><option value="medium" selected>On · Medium (default)</option><option value="hard">On · Hard</option></select></label><p class="dim">Lets a player hand the cards on their field to the computer during the game; their hand and spells stay theirs. Off hides the button for everyone.</p></fieldset>`);
+  if(p&&!$("#ofauto"))p.insertAdjacentHTML("beforeend",`<fieldset class="pf"><legend>Field Automation</legend><label class="f">Field Automation <select id="ofauto"><option value="off">Off</option><option value="easy">On · Easy</option><option value="medium" selected>On · Medium (default)</option><option value="hard">On · Hard</option></select></label><p class="dim">Lets a player hand the cards on their field to the computer during the game; their hand and spells stay theirs. Off switches Field Automation off for everyone; Ritual Dice and Lazy Hand automation still work.</p></fieldset>`);
   return out}}
 {const _sg=startGame;startGame=function(opts){const s=$("#ofauto");if(opts&&s)opts.fieldAuto=s.value;return _sg.apply(this,arguments)}}
 
@@ -8197,7 +8198,7 @@ function mountMustKnow(){const h=document.querySelector(".game header");if(!h||$
 function paintMustKnow(){const m=$("#mustknow");if(m)m.hidden=mkHidden()}
 function openMustKnow(){
   ovShow(`<div class="ovbox wide mkbox" role="dialog" aria-labelledby="mkh"><button type="button" class="xclose" id="mkX" aria-label="Close">×</button>
-<p class="mknever"><button type="button" class="link" id="mkNever">Never show again</button></p>
+<p class="mknever"><button type="button" class="btn sm mkglow" id="mkNever">Never show again</button></p>
 <h2 id="mkh">What you must know</h2>
 <p class="mktldr"><b>TLDR</b> ${MK_TLDR}</p>
 <div class="mkbody">${MK_BODY}</div>
@@ -8273,8 +8274,15 @@ function flagHTML(r,c,under){const f=flagAt(r,c);if(!f)return "";const P=G.p[f.o
 {const _ch=crystalHTML;crystalHTML=function(r,c,under){return _ch(r,c,under)+flagHTML(r,c,under)}}
 
 /* the actions: claim, strike, repair (a joined player's click travels to the host) */
+/* v52: a Claimer can't claim a tile that is already a spawn point (anyone's spawn lines, the Bank's land, a base) */
+function claimWhy(r,c){const st=G.board[r][c];
+  if(G.zone[r][c]>=0||G.backz[r][c]>=0)return "A Claimer can't claim a spawn point: this tile is in a player's spawn lines.";
+  if(typeof landAt==="function"&&landAt(r,c))return "A Claimer can't claim a spawn point: this tile is Bank land.";
+  if(st&&st.cards.some(x=>isBase(x)&&kind(x)!=="wall"))return "A Claimer can't claim a spawn point: a base already stands here.";
+  return ""}
 function claimLand(r,c){const st=G.board[r][c];if(!st||st.owner!==G.active||G.phase!=="prep"||isVoid(r,c)||flagAt(r,c))return false;
   const cl=st.cards.find(x=>x.unit==="claimer");if(!cl)return false;
+  const why=claimWhy(r,c);if(why){if(!G.p[G.active].cpu)flash(why);return false}
   st.cards.splice(st.cards.indexOf(cl),1);cl.owner=null;delete cl.inSlot;G.ether.push(cl);
   if(!st.cards.length){G.board[r][c]=null;freeCaptive(st,r,c);if(G.sel&&G.sel.r===r&&G.sel.c===c)G.sel=null}else if(G.sel&&G.sel.pick)G.sel.pick.delete(cl.id);
   (G.flags=G.flags||[]).push({r,c,owner:G.active,hp:FLAG_HP,max:FLAG_HP});
@@ -8294,12 +8302,12 @@ for(const [name,get,set] of [["claimLand",()=>claimLand,f=>claimLand=f],["strike
 
 /* the selection box gets the buttons */
 {const _sa=siegeActs;siegeActs=function(st,mine,s){const out=_sa(st,mine,s);if(!mine||!canAct())return out;
-  if(G.phase==="prep"&&st.cards.some(x=>x.unit==="claimer")&&!flagAt(s.r,s.c))out.push(`<button class="btn sm" id="claimBtn" data-tip="A Flag goes up on this tile: a spawn point for your bases. The Claimer dies and goes back to the Ether.">Claim Land</button>`);
+  if(G.phase==="prep"&&st.cards.some(x=>x.unit==="claimer")&&!flagAt(s.r,s.c)){const why=claimWhy(s.r,s.c);out.push(`<button class="btn sm${why?" ghost":""}" id="claimBtn" data-tip="${esc(why||"A Flag goes up on this tile: a spawn point for your bases. The Claimer dies and goes back to the Ether.")}">Claim Land</button>`)}
   if(G.phase==="attack"&&canAttackFrom(st))for(const f of flagTargets(st,s.r,s.c,"strike"))out.push(`<button class="btn ghost sm" data-fstrike="${f.r},${f.c}">Strike ${esc(G.p[f.owner].name)}'s Flag on ${coord(f.r,f.c)} (${f.hp}/${f.max})</button>`);
   if(G.phase==="prep"&&repairReady(st))for(const f of flagTargets(st,s.r,s.c,"repair"))out.push(`<button class="btn ghost sm" data-frep="${f.r},${f.c}">Repair the Flag on ${coord(f.r,f.c)} (${f.hp}/${f.max})</button>`);
   return out}}
 {const _ws=wireSiege;wireSiege=function(st,s){_ws(st,s);
-  if($("#claimBtn"))$("#claimBtn").onclick=()=>{if(!canAct())return;claimLand(s.r,s.c);render()};
+  if($("#claimBtn"))$("#claimBtn").onclick=()=>{if(!canAct())return;const why=claimWhy(s.r,s.c);if(why){flash(why);return}claimLand(s.r,s.c);render()};
   document.querySelectorAll("[data-fstrike]").forEach(b=>b.onclick=()=>{if(!canAct())return;const [fr,fc]=b.dataset.fstrike.split(",").map(Number);strikeFlag(s.r,s.c,fr,fc);G.mode=null;render()});
   document.querySelectorAll("[data-frep]").forEach(b=>b.onclick=()=>{if(!canAct())return;const [fr,fc]=b.dataset.frep.split(",").map(Number);repairFlag(s.r,s.c,fr,fc);render()})}}
 
@@ -8315,7 +8323,7 @@ for(const [name,get,set] of [["claimLand",()=>claimLand,f=>claimLand=f],["strike
 /* the computer: strikes enemy Flags with stacks that didn't attack, and claims land with a Claimer out in the field */
 {const _ph=AI.phase;AI.phase=async function(pl,ph){const out=await _ph.apply(this,arguments);if(G.over||G.active!==pl)return out;
   if(ph==="attack")for(const {st,r,c} of stacksOf(pl)){if(!canAttackFrom(st))continue;const f=flagTargets(st,r,c,"strike")[0];if(f){strikeFlag(r,c,f.r,f.c);render()}}
-  if(ph==="prep")for(const {st,r,c} of stacksOf(pl))if(st.cards.some(x=>x.unit==="claimer")&&!canSpawn(pl,r,c)&&!flagAt(r,c)){claimLand(r,c);render()}
+  if(ph==="prep")for(const {st,r,c} of stacksOf(pl))if(st.cards.some(x=>x.unit==="claimer")&&!claimWhy(r,c)&&!flagAt(r,c)){claimLand(r,c);render()}
   return out}}
 if(window.__EC)Object.assign(window.__EC,{claimLand,strikeFlag,repairFlag,flagAt,canPlace:(...a)=>canPlace(...a),place:(...a)=>place(...a),pickGrave:(...a)=>pickGrave(...a),openSell:(...a)=>openSell(...a)});
 
@@ -8435,15 +8443,14 @@ paintFA=function(){const V=G?view():null,c=faMine();
 
 /* ---------- the Ritual Dice tab ---------- */
 function rdPanelHTML(c,pfx){const K=cfgKit("data-rd","data-rdact","rd"+pfx),{row,spin,sec}=K,off=!c.on;
-  let h=sec("Ritual Dice",row("on",c.on,"Buy Ritual Dice for me","At the start of your prep phase, before Grave Blessing. Turning this on turns Grave Blessing's auto on too.")+
-    `<p class="dim">Each Ritual Dice costs 1 mana and adds 3d6 to this turn's Grave Blessing. It is never bought when Grave Blessing can't be cast.</p>`,"fafull");
-  h+=sec("Playstyle",`<div class="opts faopts${off?" off":""}">${RD_PRESETS.map(([k,t,d])=>`<label class="opt"${K.tip(d)}><input type="radio" name="rd${pfx}-preset" data-rdpreset="${k}" ${c.preset===k?"checked":""} ${off?"disabled":""}><span>${t}${K.sm(d)}</span></label>`).join("")}<label class="opt"><input type="radio" name="rd${pfx}-preset" disabled ${c.preset==="custom"?"checked":""}><span>Custom</span></label></div>`,
+  let h=`<p class="dim fafull">At the start of your prep phase, before Grave Blessing (switching this on switches Grave Blessing's auto on too). Each Ritual Dice costs 1 mana and adds 3d6 to this turn's Grave Blessing. It is never bought when Grave Blessing can't be cast.</p>`;
+  h+=sec("Playstyle",`<div class="opts faopts${off?" off":""}">${RD_PRESETS.map(([k,t,d])=>`<label class="opt"${K.tip(d)}><input type="radio" name="rd${pfx}-preset" data-rdpreset="${k}" ${c.preset===k?"checked":""} ${off?"disabled":""}><span>${t}${K.sm(d)}</span></label>`).join("")}<label class="opt"${K.tip(c.lastCustom?"Your own settings, as you last left them.":"Change any setting below and it becomes Custom.")}><input type="radio" name="rd${pfx}-preset" data-rdpreset="custom" ${c.preset==="custom"?"checked":""} ${off||!c.lastCustom&&c.preset!=="custom"?"disabled":""}><span>Custom${K.sm(c.lastCustom?"As you last left it.":"")}</span></label></div>`,
     "fafull","Sets everything below at once. Change any of it and it becomes Custom.");
   h+=sec("How often",spin("Every","1: every turn",c.every,"every",c.every>1?"turns":"turn",off)+spin("How many each time","Each one is 1 mana and 3d6.",c.perTurn,"perTurn","",off));
   h+=sec("Only when the grave holds",K.chips(RD_KINDS,c.kinds,"data-rdkind",off)+`<p class="dim">None ticked: whatever the grave holds.</p>`);
-  h+=sec("Mana",spin("Only while I have at least","It buys only with this much mana to spare.",c.minMana,"minMana","mana",off)+
-    spin("Stop while I owe","Mana debt plus loans. 0: owing never stops it.",c.stopDebt?c.stopDebt:"0",`stopDebt`,c.stopDebt?"or more":"(never stops)",off));
-  h+=sec("Overdraw",row("noOD",c.noOD,"Don't buy on a turn I overdrew","An overdraw cuts Grave Blessing's dice; this waits it out.",off)+row("counterOD",c.counterOD,"Buy extra to make up for overdraw","Enough more Ritual Dice to cover the dice an overdraw takes away.",off||c.noOD));
+  h+=sec("Mana",spin("Only with at least","It buys only with this much mana to spare.",c.minMana,"minMana","mana",off)+
+    spin("Stop while owing","Mana debt plus loans. 0: owing never stops it.",c.stopDebt?c.stopDebt:"0",`stopDebt`,c.stopDebt?"or more":"(never stops)",off));
+  h+=sec("Overdraw",row("noOD",c.noOD,"Not on a turn with an overdraw","An overdraw cuts Grave Blessing's dice; this waits it out.",off)+row("counterOD",c.counterOD,"Buy extra to make up for overdraw","Enough more Ritual Dice to cover the dice an overdraw takes away.",off||c.noOD));
   h+=sec("Credit",row("credit",c.credit,"Buy on credit","When your mana runs short, the Bank's credit pays.",off)+spin("Stop buying on credit at","Your mana won't go below this to buy one.",c.creditStop,"creditStop","mana",off||!c.credit));
   return h}
 function rdSave(c){c=rdClean(c);PREF.rd=c;if(c.on&&G){const V=view();if(G.p[V]&&!G.p[V].autoBless){setAutoBless(V,true)}PREF.autoBless=true}savePrefs();autoSync();paintFA();if(G)render()}
@@ -8455,14 +8462,14 @@ function rdWire(root){
 
 /* ---------- the Lazy Hand tab ---------- */
 function lhPanelHTML(c,pfx){const K=cfgKit("data-lh","data-lhact","lh"+pfx),{row,spin,sec}=K,so=!c.sac;
-  let h=`<p class="fawarn fafull">We advise against letting Lazy Hand play for you: it doesn't know your plans. If you use it, check what it does now and then.</p>`;
+  let h=`<p class="fawarn caution fafull"><b aria-hidden="true">⚠</b> Caution: Lazy Hand doesn't know the plan. When it plays the cards, check its moves now and then.</p>`;
   h+=sec("Lazy Hand",row("keep",PREF.lazyAuto===true,"Keep Lazy Hand on","Every card you click in your hand is placed for you (the spell's auto switch).")+
-    row("autoPlace",c.autoPlace,"Place my cards by itself","At the start of your prep phase it places every card it may, where the computer would play it."),"fafull");
-  h+=sec("Never place for me",K.chips(RD_KINDS,c.exclude,"data-lhex")+`<details class="faextra" ${c.xextra.length||c.xminus.length?"open":""}><summary>Yes, and… (single kinds: + never placed for you, − placed for you even if its group is ticked)</summary>${K.pmChips(lhKeyList(),c.xextra,c.xminus,"data-lhxpm")}</details><p class="dim">You place these yourself, even with Lazy Hand on.</p>`,"fafull");
-  h+=sec("Sacrifice from my hand",row("sac",c.sac,"Sacrifice cards by itself","At the start of your prep phase, before anything is spent: the kinds you tick here.")+K.chips(RD_KINDS,c.skinds,"data-lhsk",so)+
+    row("autoPlace",c.autoPlace,"Place cards automatically","At the start of your prep phase it places every card it may, where the computer would play it."),"fafull");
+  h+=sec("Never placed automatically",K.chips(RD_KINDS,c.exclude,"data-lhex")+`<details class="faextra" ${c.xextra.length||c.xminus.length?"open":""}><summary>Yes, and… (single kinds: + never placed for you, − placed for you even if its group is ticked)</summary>${K.pmChips(lhKeyList(),c.xextra,c.xminus,"data-lhxpm")}</details><p class="dim">You place these yourself, even with Lazy Hand on.</p>`,"fafull");
+  h+=sec("Sacrifice from the hand",row("sac",c.sac,"Sacrifice cards by itself","At the start of your prep phase, before anything is spent: the kinds you tick here.")+K.chips(RD_KINDS,c.skinds,"data-lhsk",so)+
     `<details class="faextra" ${c.sextra.length||c.sminus.length?"open":""}><summary>Yes, and… (single kinds: + sacrificed, like the 2 Grunt; − never sacrificed)</summary>${K.pmChips(lhKeyList(),c.sextra,c.sminus,"data-lhspm",so)}</details>`+
-    row("negOnly",c.negOnly,"Only while my mana is below zero","It sacrifices until you are back at zero; the limits below don't apply.",so)+
-    row("notFull",c.notFull,"Not when my mana is full","It stops at your maximum, so nothing goes into the surplus.",so||c.negOnly)+
+    row("negOnly",c.negOnly,"Only while mana is below zero","It sacrifices until you are back at zero; the limits below don't apply.",so)+
+    row("notFull",c.notFull,"Not when mana is full","It stops at your maximum, so nothing goes into the surplus.",so||c.negOnly)+
     (!c.notFull?row("maxSurplus",c.maxSurplus,"Up to the most surplus","As far as the soul pile allows.",so||c.negOnly)+spin("Up to this far into the surplus","",c.surplus,"surplus","mana",so||c.negOnly||c.maxSurplus):""),"fafull");
   return h}
 function lhSave(c){PREF.lh=lhClean(c);savePrefs();autoSync();paintFA();if(G)render()}
@@ -8718,11 +8725,14 @@ for(const [m,k] of Object.entries(FX_PART)){const f=FX[m];if(typeof f!=="functio
   m.querySelectorAll("[data-fxp]").forEach(i=>i.onchange=()=>{const S=new Set(PREF.fxOff||[]);i.checked?S.delete(i.dataset.fxp):S.add(i.dataset.fxp);PREF.fxOff=[...S];savePrefs();applyPrefs()})}}
 if(window.__EC)Object.assign(window.__EC,{moonTarget:pl=>moonTarget(pl),fullMoonToll:()=>fullMoonToll()});
 
-/* ---------------- v49: the turn counter at the top of the play page, in blackletter ---------------- */
+/* ---------------- the round counter at the top of the play page, in blackletter (v49; v52: rounds only) ----------------
+   A round is every player's turn once; a turn is one player's draw, prep and attack phases. The top shows the round, and a
+   small label in the style of the line names sits at the top right of the field. */
 {const _r=render;render=function(){_r.apply(this,arguments);const h=document.querySelector(".game header");if(!h)return;let t=$("#turnctr");
   if(!t){t=document.createElement("div");t.id="turnctr";t.setAttribute("aria-live","off");h.appendChild(t)}
-  if(!G){t.hidden=true;return}t.hidden=false;const n=Math.max(1,G.turnNo||1);
-  t.innerHTML=`<span>Turn</span> <b>${n}</b><small>Round ${Math.max(1,G.moon?G.moon.round:1)}</small>`;t.title=`Turn ${n} of the game, round ${Math.max(1,G.moon?G.moon.round:1)}`}}
+  if(!G){t.hidden=true;return}t.hidden=false;const n=Math.max(1,G.moon?G.moon.round:1);
+  t.innerHTML=`<span>Round</span> <b>${n}</b>`;t.title=`Round ${n}: every player has a turn each round`;
+  const B=$("#board");if(B&&B.parentNode){let f=$("#fieldround");if(!f){f=document.createElement("div");f.id="fieldround";B.parentNode.insertBefore(f,B)}f.textContent=`Round ${n}`}}}
 
 /* ---------------- v50: the Oaths and the planets ----------------
    Saturn: breaking its Oath costs all your mana, 5 deck cards, 2 hand cards and 2 maximum; each Report in good standing pays
@@ -9104,5 +9114,109 @@ function pxGroundURL(){const M=G.map,C=PXPAL[M.theme],P=pxPainter(COLS*20,G.rows
 function pxMapToggle(on){PREF.pxMap=!!on;savePrefs();if(G&&G.map){G.map.ground=null;G.map.art={}}render()}
 {const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const s=$("#mPxMap");if(s)s.onchange=()=>pxMapToggle(s.value==="1")}}
 if(window.__EC)Object.assign(window.__EC,{pxTile,pxMapToggle});
+
+/* ---------------- v52: fixes and comfort ----------------
+   - The automation window keeps its fold-downs open while it is redrawn (the Yes-and lists used to snap shut).
+   - Each Configure Automation tab starts with its own on/off switch.
+   - With Field Automation switched off before the game, the settings button stays, for Ritual Dice and Lazy Hand.
+   - A watchdog redraws the spell list whenever the active player's mana, debt or phase changes, so a spell never stays
+     dark after mana arrives (a Bank loan, a gift, anything else).
+   - A loan offer from another player is no longer hidden behind the Bank window. */
+
+/* ---------- the open fold-downs survive a redraw ---------- */
+{const _p=paintFA;paintFA=function(){const keep=new Map(),key=(root,d)=>root.id+"|"+((d.querySelector(":scope>summary")||{}).textContent||"");
+  for(const root of [$("#facfg"),$("#fapanel")])if(root)root.querySelectorAll("details").forEach(d=>keep.set(key(root,d),d.open));
+  const out=_p.apply(this,arguments);
+  for(const root of [$("#facfg"),$("#fapanel")])if(root)root.querySelectorAll("details:not([data-fadet])").forEach(d=>{const k=key(root,d);if(keep.has(k))d.open=keep.get(k)});
+  return out}}
+
+/* ---------- an on/off switch at the top of every tab ---------- */
+const lhAnyOn=()=>{const l=lhMine();return PREF.lazyAuto===true||!!l.autoPlace||!!l.sac};
+function autoMasterHTML(){const V=G?view():null;let on,label,hint;
+  if(autoTab==="field"){if(V==null||!G.p[V]||!faAllowed())return "";on=faOn(V);label="Field automation";hint="The computer moves and attacks with the cards on the field."}
+  else if(autoTab==="ritual"){on=!!rdMine().on;label="Ritual Dice automation";hint="Buys Ritual Dice before Grave Blessing, as set below."}
+  else{on=lhAnyOn();label="Lazy Hand automation";hint="Places and sacrifices hand cards, as set below."}
+  return `<p class="fafull automaster"><button type="button" class="btn sm ${on?"":"ghost"}" data-amaster="${autoTab}" aria-pressed="${on}">${label}: ${on?"On":"Off"}</button><span class="dim">${hint}</span></p>`}
+autoBodyHTML=function(pfx,under){const V=G?view():null;
+  if(autoTab==="ritual")return autoMasterHTML()+rdPanelHTML(rdMine(),pfx);
+  if(autoTab==="lazy")return autoMasterHTML()+lhPanelHTML(lhMine(),pfx);
+  if(!faAllowed())return `<p class="dim fafull">Field Automation is off for this game (set before the game, in the Rules tab). Ritual Dice and Lazy Hand automation still work.</p>`;
+  return autoMasterHTML()+faPanelHTML(faMine(),V,pfx)};
+function lhMaster(){const c=lhMine();
+  if(lhAnyOn()){c.prev={keep:PREF.lazyAuto===true,autoPlace:!!c.autoPlace,sac:!!c.sac};PREF.lazyAuto=false;c.autoPlace=false;c.sac=false}
+  else{const p=c.prev||{};PREF.lazyAuto=p.keep||!(p.autoPlace||p.sac);c.autoPlace=!!p.autoPlace;c.sac=!!p.sac}
+  lhSave(c)}
+{const _w=wireAuto;wireAuto=function(root){_w(root);
+  root.querySelectorAll("[data-amaster]").forEach(b=>b.onclick=()=>{const k=b.dataset.amaster;
+    if(k==="field")faToggle();else if(k==="ritual"){const c=rdMine();c.on=!c.on;rdSave(c)}else lhMaster();paintFA();if(G)render()})}}
+/* the Lazy Hand settings keep what the master switch put away */
+{const _lc=lhClean;lhClean=function(c){const prev=c&&c.prev;const out=_lc(c);if(prev)out.prev={keep:!!prev.keep,autoPlace:!!prev.autoPlace,sac:!!prev.sac};return out}}
+
+/* ---------- Field Automation off for the game: the settings button stays ---------- */
+{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G||faAllowed())return;const ctl=$("#controls"),V=view();
+  const show=!G.over&&G.phase!=="setup"&&G.p[V]&&!G.p[V].cpu&&!isNPC(V)&&!(NET.role==="guest"&&NET.watch);
+  if(ctl&&show&&!ctl.querySelector(".fabar")){ctl.insertAdjacentHTML("beforeend",`<span class="fabar"><button type="button" class="btn ghost sm facfgb" data-tip="Configure Automation: Ritual Dice and Lazy Hand" aria-label="Configure Automation">▦</button></span>`);
+    ctl.querySelector(".facfgb").onclick=()=>faWindow(autoTab==="field"?"ritual":autoTab)}}}
+
+/* ---------- the spell list watchdog ---------- */
+let spSig="";
+setInterval(()=>{if(!G||G.over||document.hidden)return;const V=view(),P=G.p[G.active];if(!P)return;
+  const sig=[G.active,G.phase,G.busy,G.passing,mana(G.active),debtOf(G.active),owedOf(G.active),P.hand.length,G.spentOther,G.blessed,V].join("|");
+  if(sig===spSig)return;if(!spSig){spSig=sig;return}
+  if(G.busy||document.querySelector("#ov:not([hidden]) .ovbox"))return;   // wait until nothing is being asked; the next tick redraws
+  spSig=sig;render()},700);
+
+/* ---------- a loan offer from another player shows over the Bank window ---------- */
+{const _al=askLoan;askLoan=function(from,to,n){const was=!!document.querySelector("#ov:not([hidden]) .ovbox.bank"),out=_al.apply(this,arguments);
+  if(out&&out.state==="offer"&&!G.p[from].cpu&&was)bankHoldOpen=true;   // the terms are on screen now: don't draw the Bank over them
+  return out}}
+let bankHoldOpen=false;
+{const _ob=openBank;openBank=function(){if(bankHoldOpen){bankHoldOpen=false;return}return _ob.apply(this,arguments)}}
+
+/* ---------- the ▸ rankings: opening one turns it on, closing it turns it off ---------- */
+{const _fw=faWire;faWire=function(root){_fw(root);
+  root.querySelectorAll("[data-fadet]").forEach(d=>d.addEventListener("toggle",()=>{const c=faMine(),k=d.dataset.fadet;if(!!c[k]===d.open)return;c[k]=d.open;faSave(c)}))}}
+
+/* ---------- the field settings in two columns: the button choices on the left, the switches and arrows on the right ----------
+   (a phone has one column, so the switches come below) */
+{const _fp=faPanelHTML;faPanelHTML=function(){const html=_fp.apply(this,arguments);if(isPhone())return html;
+  const t=document.createElement("template");t.innerHTML=html;const kids=[...t.content.childNodes];let out="",run=[];
+  const flush=()=>{if(!run.length)return;const L=run.filter(e=>e.querySelector(".faopts")),R=run.filter(e=>!e.querySelector(".faopts"));
+    out+=`<div class="fa2col fafull"><div>${L.map(e=>e.outerHTML).join("")}</div><div>${R.map(e=>e.outerHTML).join("")}</div></div>`;run=[]};
+  for(const n of kids){if(n.nodeType===1&&n.matches("section.fasec")&&!n.classList.contains("fafull"))run.push(n);else{flush();out+=n.nodeType===1?n.outerHTML:(n.textContent||"")}}
+  flush();return out}}
+
+/* ---------- Ritual Dice: "Custom" remembers the last custom settings ---------- */
+const RD_KEYS=["every","perTurn","kinds","minMana","counterOD","noOD","stopDebt","credit","creditStop"];
+{const _rc=rdClean;rdClean=function(c){const out=_rc(c);if(c&&c.lastCustom&&typeof c.lastCustom==="object"){const l=_rc({...c.lastCustom});out.lastCustom={};for(const k of RD_KEYS)out.lastCustom[k]=l[k]}return out}}
+{const _rs=rdSave;rdSave=function(c){if(c&&c.preset==="custom"){c.lastCustom={};for(const k of RD_KEYS)c.lastCustom[k]=Array.isArray(c[k])?[...c[k]]:c[k]}return _rs(c)}}
+{const _rw=rdWire;rdWire=function(root){_rw(root);const b=root.querySelector('[data-rdpreset="custom"]');
+  if(b)b.onchange=()=>{const c=rdMine();if(c.lastCustom)rdSave({...c,...c.lastCustom,preset:"custom"});else rdSave({...c,preset:"custom"})}}}
+
+/* ---------- games of three or more: the other players as small columns in their color (D29) ----------
+   Each column: name, kind of player, a thin deck line and mana line with numbers, the hand count and the status tags.
+   No dice box in the columns: one shared dice box (by the hand) lists everyone's latest rolls. */
+const multiView=()=>!!G&&G.p.filter((P,i)=>i!==view()&&!isNPC(i)).length>=2;
+function miniBoxHTML(pl){const P=G.p[pl],V=view(),act=pl===G.active&&G.phase!=="setup";
+  const kindTxt=P.cpu==="horde"?"the Horde":(P.cpu?`computer · ${P.cpu}`:"player")+(TRIBES[P.tribe]?` · ${TRIBES[P.tribe].name}`:"");
+  let h=`<div class="ph mini"><button type="button" class="subst" data-stat="${pl}" aria-label="Status">${solidSVG(P.solid,P.color,15)}</button><b>${esc(P.name)}</b>${pl!==V&&!isEnemy(pl,V)?'<span class="ally">ally</span>':""}${P.out?'<span class="outmark">out</span>':act?'<span class="turnmark">to play</span>':""}</div><div class="minisub">${esc(kindTxt)}</div>`;
+  if(P.out)return h;
+  if(P.cpu==="horde"){const u=stacksOf(pl).reduce((a,x)=>a+x.st.cards.length,0);return h+`<div class="minitags">${u} card${u===1?"":"s"} on the field</div>`}
+  const N=Math.max(1,P.start||P.deck.length||1),n=P.deck.length,m=mana(pl)-(P.debt||0),cap=soulCap(pl);
+  const line=(t,v,max,txt,neg)=>`<div class="mline${neg?" neg":""}"><span>${t}</span><i><u style="width:${Math.max(0,Math.min(100,v/max*100)).toFixed(1)}%"></u></i><b>${txt}</b></div>`;
+  h+=line("Deck",n,N,n)+line("Mana",Math.max(0,m),cap,`${m}/${cap}`,m<0);
+  const open=eclipseOn("sun")&&!G.passing||P.shownBy!=null&&!G.passing&&(P.shownBy===V||!isEnemy(P.shownBy,V))||!isEnemy(pl,V)&&G.p.filter(Q=>!Q.cpu).length===1&&!G.passing;
+  const tags=[`<span>Hand <b>${P.hand.length}/${handCap(pl)}</b></span>`,...(open&&P.hand.length?[`<span class="seenmark" title="seen">${P.hand.map(c=>esc(nameOf(c))).join(", ")}</span>`]:[]),...econTags(P)];
+  if(P.tribe==="tiph"){const k=stacksOf(pl).reduce((a,x)=>a+x.st.cards.reduce((b,c)=>b+((c.prisoners||[]).length),0),0);if(k)tags.push(`<span>Prisoners <b>${k}</b></span>`)}
+  if(P.tribe==="yald")tags.push(`<span>Hunger <b>${P.hunger||0}/7</b></span>`);
+  if(P.tribe==="binah")tags.push(`<span>Thralls <b>${(P.thralls||[]).length}/10</b></span>`);
+  return h+`<div class="minitags">${tags.join("")}</div>`}
+{const _pb=pboxHTML;pboxHTML=function(pl,top){if(top&&pl!==view()&&multiView())return miniBoxHTML(pl);return _pb.apply(this,arguments)}}
+/* the one dice box: everyone's latest roll, newest first; a row opens that player's history */
+function trayAllHTML(){const L=G.p.map((P,i)=>({P,i})).filter(x=>x.P.tray&&!isNPC(x.i)).sort((a,b)=>b.P.tray.t-a.P.tray.t);
+  if(!L.length)return `<div class="trayall"><span class="tl">Dice</span><span class="dim">No rolls yet.</span></div>`;
+  return `<div class="trayall"><span class="tl">Dice, newest first</span>${L.map(({P,i})=>{const t=P.tray;return `<button type="button" class="trow" data-hist="${i}" style="--pc:${P.color}" aria-label="${esc(P.name)}: show history"><b>${esc(P.name)}</b><small>${esc(t.label)}</small><span class="dice">${t.dice.length?t.dice.map(d=>dieSVG(d,P.color)).join(""):'<span class="dim">no dice</span>'}</span>${t.line?`<em>${esc(t.line)}</em>`:""}</button>`}).join("")}</div>`}
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const foe=$("#foe");if(foe)foe.classList.toggle("minis",multiView());
+  if(multiView()){const t=$("#mytray");if(t&&t.innerHTML){t.innerHTML=trayAllHTML();t.querySelectorAll("[data-hist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.hist,b)})}}}}
 
 })();

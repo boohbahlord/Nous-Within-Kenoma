@@ -91,7 +91,7 @@ function whoHTML(){
   const ph=G.phase==="setup"?"Setup":G.phase==="moon"?"The sky turns":({draw:"Draw phase",prep:"Prep phase",attack:"Attack phase"})[G.phase]||"";
   const shared=G.nextLabel==="Ready →"&&G.phase!=="setup"&&G.phase!=="moon";
   const whoTxt=P.cpu?`<b>${esc(P.name)}</b> is playing…`:G.opts.online?(G.active===view()?`<b>Your turn</b>`:`<b>${esc(P.name)}</b> is playing…`):many?`<b>${esc(P.name)}</b>'s turn`:`<b>Your turn</b>`;
-  return `<span class="sl-k">Round ${rn}</span>${whoTxt}<span class="sl-sep">·</span>${ph}${shared?`<span class="sl-chip" data-tip="Every player takes this phase at the same time. Press Ready when you're done.">Shared phase</span>`:""}`;
+  return `${whoTxt}<span class="sl-sep">·</span>${ph}${shared?`<span class="sl-chip" data-tip="Every player takes this phase at the same time. Press Ready when you're done.">Shared phase</span>`:""}`;
 }
 
 /* ---------- windows: an X on every box that can be closed ---------- */
@@ -111,7 +111,7 @@ function showTip(el,pinned){const sp=el.dataset.sp&&SP(el.dataset.sp),sub=el.dat
   const th=t.offsetHeight;if(r.bottom+6+th>innerHeight&&r.top-th-6>0)t.style.top=r.top-th-6+scrollY+"px"}
 const touchy=()=>matchMedia("(hover: none)").matches;
 let tipEl=null;
-document.addEventListener("pointerover",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]");if(!el||el===tipEl)return;tipEl=el;clearTimeout(tipT);tipT=setTimeout(()=>showTip(el,false),260)});
+document.addEventListener("pointerover",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]");if(!el||el===tipEl)return;tipEl=el;clearTimeout(tipT);tipT=setTimeout(()=>showTip(el,false),850)});
 document.addEventListener("pointerout",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]");if(!el)return;if(e.relatedTarget&&el.contains(e.relatedTarget))return;tipEl=null;clearTimeout(tipT);const t=$("#tipbox");if(t&&!t.classList.contains("pinned"))t.hidden=true});
 /* on touch, a long press shows the tip with an X instead of acting */
 let lpT=0,lpFired=false;
