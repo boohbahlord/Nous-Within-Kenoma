@@ -1490,3 +1490,10 @@ html.th-office .fawarn{background:#fbe3e1;color:#7a1d16}
 .rold summary{cursor:pointer;color:var(--amber);font-size:12.5px;margin:6px 0}
 [data-tip].debttag,[data-tip].loantag,[data-tip].saletag,[data-tip].oathtag{cursor:help}
 .rpaper b{color:#2b2015;font-weight:700}.rpaper dl{font-size:12.5px;gap:0 16px;line-height:1.55}.rpaper{padding:8px 12px}
+/* v49 · particular animations held still */
+html.still-fog .fogveil,html.still-fog .tile.fog::after{animation:none!important}
+html.still-fire .tile.fire::before{animation:none!important}
+html.still-sky #moon svg.moon{animation:none!important}
+html.still-glow .bankbar.notify,html.still-glow #shared .notice,html.still-glow #shared .auct-l.notify,html.still-glow .foldable.foldglow>h3[data-fold],html.still-glow .mysbox .myscard::before{animation:none!important}
+html.still-blood.bloodglitch .game #board,html.still-blood.bloodglitch .game h1,html.still-blood.mirage body::before{animation:none!important}
+#mParts{margin:10px 0}#mParts .facats{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:0 18px}

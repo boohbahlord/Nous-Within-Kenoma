@@ -51,28 +51,33 @@ async function pickGrave(pl,n,title){
   if(got<n&&G.grave.length&&G.p[pl].hand.length>=handCap(pl))log(`${plName(pl)}'s hand is full.`);
   return got;
 }
-/* v44: the Full Moon never asks for a stack inside an Ace */
-function strongest(pl){const c=stacksOf(pl).filter(x=>!x.st.hypo&&!hasK(x.st,"ace"));c.sort((a,b)=>stackRate(b.st)-stackRate(a.st)||b.st.cards.length-a.st.cards.length);return c[0]}
+/* v49: the Full Moon's toll: a random stack of two cards, or else one random card from the field (never inside an Ace or under
+   Hypostasis); with nothing to take there, three cards from the shuffled deck. Given, they go to the soul pile (anything over the
+   maximum to the grave). Refused, it costs 2d2 + 2 mana, which can take you below zero. */
+function moonTarget(pl){const ok=stacksOf(pl).filter(x=>!x.st.hypo&&!hasK(x.st,"ace"));
+  const twos=ok.filter(x=>x.st.cards.length===2);if(twos.length){const t=pick(twos);return {kind:"stack",r:t.r,c:t.c,st:t.st,cards:[...t.st.cards]}}
+  const all=ok.flatMap(x=>x.st.cards.filter(c=>!isBase(c)).map(c=>({x,c})));if(all.length){const {x,c}=pick(all);return {kind:"card",r:x.r,c:x.c,st:x.st,cards:[c]}}
+  const P=G.p[pl];if(P.deck.length){shuffle(P.deck);return {kind:"deck",cards:P.deck.slice(-3)}}
+  return null}
+function strongest(pl){return moonTarget(pl)}
 async function fullMoonToll(){
   for(const pl of order()){
     if(G.p[pl].tribe==="firm"){log(`${plName(pl)} owes the Full Moon nothing: the Firmament is above its toll.`);continue}
-    const t=strongest(pl);if(!t)continue;
-    const yes=await ask(pl,{kind:"yesno",id:"fullmoon",target:t,title:`Full Moon: ${esc(G.p[pl].name)}'s toll`,
-      text:`The Full Moon asks for your most powerful stack: <b>${t.st.cards.map(c=>esc(nameOf(c))).join(", ")}</b>. Sacrifice it to your soul pile (any mana over ${SOUL_CAP} goes to the grave), or refuse: every soul in your pile is drained and five random cards from your deck go to the grave.`,
-      yes:"Sacrifice it",no:"Refuse"});
-    if(yes){
-      G.board[t.r][t.c]=null;let m=0;
-      for(const c of t.st.cards){
-        if(c.captured&&c.captured.length){for(const s of c.captured)toGrave(s,"death");c.captured=[]}
-        if(c.unit&&buryUnit(c,t.r,t.c,pl))continue;   // Substance cards keep their own fates
-        if(addSoul(pl,c))m+=soulOf(c);else toGrave(c,"spent");
-      }
-      log(`${plName(pl)} sacrifices ${t.st.cards.length} card${t.st.cards.length>1?"s":""} to the Full Moon (+${m} mana).`,"event");
-    }else{
-      const P=G.p[pl];const lost=P.souls.length;for(const c of P.souls.splice(0))toGrave(c,"spent");
-      let burned=0;for(let i=0;i<5&&P.deck.length;i++){const c=P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0];toGrave(c,"burn");burned++}
-      log(`${plName(pl)} refuses the Full Moon: ${lost} soul${lost===1?"":"s"} drained, ${burned} deck card${burned===1?"":"s"} to the grave.`,"event");
-    }
+    const t=moonTarget(pl);if(!t)continue;const P=G.p[pl];
+    const what=t.kind==="deck"?`three cards from your shuffled deck (${t.cards.map(c=>esc(nameOf(c))).join(", ")})`:t.kind==="stack"?`a stack of two: <b>${t.cards.map(c=>esc(nameOf(c))).join(", ")}</b>`:`a card on your field: <b>${esc(nameOf(t.cards[0]))}</b>`;
+    const yes=await ask(pl,{kind:"yesno",id:"fullmoon",target:t,title:`Full Moon: ${esc(P.name)}'s toll`,
+      text:`The Full Moon asks for ${what}. Give it to your soul pile (any mana over your maximum goes to the grave), or refuse and pay 2d2 + 2 mana, even below zero.`,
+      yes:"Give it",no:"Refuse",ai:()=>t.kind==="deck"||AI.value({cards:t.cards,owner:pl})<7||effMana(pl)-6<=-4});
+    if(yes){let m=0;
+      if(t.kind==="deck"){for(const c of t.cards){P.deck.splice(P.deck.indexOf(c),1);if(addSoul(pl,c))m+=soulOf(c);else toGrave(c,"spent")}}
+      else{const st=G.board[t.r][t.c];if(st){for(const c of t.cards){const i=st.cards.indexOf(c);if(i<0)continue;st.cards.splice(i,1);
+          if(c.captured&&c.captured.length){for(const s of c.captured)toGrave(s,"death");c.captured=[]}
+          if(c.unit&&buryUnit(c,t.r,t.c,pl))continue;   // Substance cards keep their own fates
+          if(addSoul(pl,c))m+=soulOf(c);else toGrave(c,"spent")}
+        if(!st.cards.length){G.board[t.r][t.c]=null;freeCaptive(st,t.r,t.c)}}}
+      log(`${plName(pl)} gives the Full Moon ${t.cards.length} card${t.cards.length>1?"s":""}${t.kind==="deck"?" from the deck":""} (+${m} mana).`,"event");
+    }else{const d=rollN(2,2),n=sum(d)+2;tray(pl,"Full Moon",d,`−${n}`);addDebt(pl,n);
+      log(`${plName(pl)} refuses the Full Moon and pays ${n} mana (2d2 + 2: ${d.map(x=>x.v).join(" + ")} + 2), now at ${effMana(pl)}.`,"event")}
     render();checkWin();if(G.over)return;
   }
 }
