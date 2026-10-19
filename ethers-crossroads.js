@@ -2228,10 +2228,11 @@ function seatForm(i,S,mode,L,taken){taken=taken||new Set();
 ${tm?`<div class="f"><span>Team</span><div class="opts">${[0,1].map(t=>`<label class="opt"><input type="radio" name="tm${n}" data-seat="${i}" data-k="team" value="${t}" ${S.team===t?"checked":""}><span>${t?"Side B":"Side A"}<small>${t?"Plays against Side A.":"Plays against Side B."} ${L==="koth"?"Each side needs at least one player.":"Each side needs two players."}</small></span></label>`).join("")}</div></div>`:""}
 <div class="f"><span>Substance</span><div class="opts subs">${Object.entries(TRIBES).map(([k,t])=>{const off=t.soon||taken.has(k)&&k!==S.tribe;return `<label class="opt${off?" off":""}"><input type="radio" name="tr${n}" data-seat="${i}" data-k="tribe" value="${k}" ${k===S.tribe?"checked":""} ${off?"disabled":""}><span>${t.solid?`<i class="subsym">${solidSVG(t.solid,t.color||"#f3d6a6",18)}</i>`:""}${t.name}<small>${taken.has(k)&&k!==S.tribe?"Another player has it: only the Beginner can be played by more than one player.":t.sub}</small></span></label>`}).join("")}</div></div>
 ${(()=>{const T=TRIBES[S.tribe]||{};
-  if(T.color)return `<p class="dim fixednote">${esc(T.name)} always plays in its own color and symbol: ${solidSVG(T.solid,T.color,20)}</p>`;
+  const acc=c0=>`<div class="f"><span>Accent</span><div class="opts swatches accents">${ACCENTS.map(([v,nm])=>`<label class="sw" title="${nm}${v==="auto"?" (a light shade of the color)":""}"><input type="radio" name="ac${n}" data-seat="${i}" data-k="accent" value="${v}" ${v===(S.accent||"auto")?"checked":""}><span style="--pc:${v==="auto"?accentOf(c0&&c0!=="random"?c0:"#c9a274","auto"):v}"></span><em>${nm}</em></label>`).join("")}</div></div>`;   // v61: the frame of your cards
+  if(T.color)return `<p class="dim fixednote">${esc(T.name)} always plays in its own color and symbol: ${solidSVG(T.solid,T.color,20)}</p>`+acc(T.color);
   const colors=`<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex])=>`<label class="sw" title="${nm}"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="${hex}" ${hex===S.color?"checked":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}<label class="sw swrand" title="Random: a color nobody else has"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="random" ${S.color==="random"?"checked":""}><span>?</span><em>Random</em></label></div></div>`;
-  if(T.solid)return colors+`<p class="dim fixednote">${esc(T.name)} always bears its own symbol: ${solidSVG(T.solid,S.color,20)}</p>`;
-  return colors+`<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="${k}" ${k===S.solid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}<label class="so-opt" title="Random: a symbol nobody else has"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="random" ${S.solid==="random"?"checked":""}><span><b class="sorand">?</b><em>Random</em></span></label></div></div>`;
+  if(T.solid)return colors+acc(S.color)+`<p class="dim fixednote">${esc(T.name)} always bears its own symbol: ${solidSVG(T.solid,S.color,20)}</p>`;
+  return colors+acc(S.color)+`<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="${k}" ${k===S.solid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}<label class="so-opt" title="Random: a symbol nobody else has"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="random" ${S.solid==="random"?"checked":""}><span><b class="sorand">?</b><em>Random</em></span></label></div></div>`;
 })()}
 </details></fieldset>`;
 }
@@ -2375,7 +2376,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     $("#seats").querySelectorAll("details.look").forEach((d,i)=>d.addEventListener("toggle",()=>{seatsS[i].open=d.open}));   // v60: each seat's fold stays as it was left
     $("#seats").querySelectorAll("[data-seat]").forEach(el=>el.addEventListener(el.tagName==="INPUT"&&el.type==="text"?"input":"change",()=>{
       const S=seatsS[+el.dataset.seat],k=el.dataset.k;S[k]=el.value;if(k==="name")S.named=true;
-      if(k==="color")el.closest(".seat").style.setProperty("--pc",el.value);
+      if(k==="color"){S.lookSet=true;el.closest(".seat").style.setProperty("--pc",el.value);drawSeats();return}   // v61: the accents follow the color
       if(k==="tribe"||k==="color"||k==="solid")S.lookSet=true;
       if(k==="type"){if(!S.lookSet){const i2=+el.dataset.seat,cpu=el.value!=="human";S.tribe=cpu?"random":"beginner";S.color=cpu?"random":COLORS[SEATCOL[i2]][1];S.solid=cpu?"random":SEATSOL[i2];drawSeats();return}
         turnUp()}
@@ -2436,7 +2437,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     let players=seatsS.slice(0,n).map((S,i)=>{
       const cpu=S.type==="human"?null:S.type;
       let name=(S.name.trim()||`P${i+1}`).slice(0,20);
-      return{name,tribe:S.tribe,color:S.color,solid:S.solid,cpu};
+      return{name,tribe:S.tribe,color:S.color,solid:S.solid,accent:S.accent||"auto",cpu};
     });
     const blk=skyBlocked(val("omoonon")),bad=players.find(p=>blk.includes(p.tribe));if(bad){flash(`${TRIBES[bad.tribe].name} can't be played with that Heavenly Body in the sky.`);return}
     for(const t of Object.keys(TRIBES))if(t!=="random"&&t!=="beginner"&&players.filter(p=>p.tribe===t).length>1){flash(`Only one player can be ${TRIBES[t].name}. The Beginner is the only Substance more than one player can share.`);return}
@@ -9812,5 +9813,52 @@ if(window.__EC)Object.assign(window.__EC,{seesTile:(...a)=>seesTile(...a),fogTil
   let d=$("#dicefold");if(!d){d=document.createElement("details");d.id="dicefold";d.className="dicefold";d.open=PREF.diceOpen!==false;d.innerHTML="<summary>Dice rolls</summary>";
     d.addEventListener("toggle",()=>{if(PREF.diceOpen===d.open)return;PREF.diceOpen=d.open;savePrefs()})}
   if(d.previousElementSibling!==sh)sh.after(d);if(t.parentNode!==d)d.appendChild(t);d.hidden=!t.innerHTML.trim()}}
+
+/* ---------------- v61: card faces in the players' colors, accent colors, stacks that look stacked ----------------
+   - Every card takes its player's color, darkened and calmed, with light lettering that reads on it; the frame is the
+     player's accent color. No mark in the top-left corner any more: the rank sits in the middle with a smaller suit.
+   - The player's symbol is on the cards only when Display (the Menu) says so.
+   - Demons are black with red; the Bank's cards are a faint banknote.
+   - Each color comes with accent colors to choose in the setup (the frame of the cards).
+   - A stack shows the edges of the cards beneath it: one edge for two cards, two for three or four, three for five or more,
+     each stack leaning its own way.
+   - The Display bar at the foot of the page keeps the quick settings; the rest live in the Menu. */
+
+/* ---------- accent colors ---------- */
+const ACCENTS=[["auto","Its own light"],["#efe2c8","Bone"],["#d9b552","Gold"],["#c9ccd6","Silver"],["#b3191f","Blood"],["#17120e","Onyx"]];
+const accentOf=(color,acc)=>!acc||acc==="auto"?`color-mix(in oklab,${color} 55%,#f3e7d2)`:acc;
+const pAccent=P=>P?accentOf(P.color,P.accent):"#9a8f80";
+
+/* ---------- the card face ---------- */
+{const _i=inkSVG;inkSVG=function(u,color,size){   // the art takes the card's lettering color, and its paper is the card itself
+  return _i(u,"currentColor",size).replace(new RegExp(`(fill|stroke)="${PAPER}"`,"g"),(m,a)=>`style="${a}:var(--cb,${PAPER})"`)}}
+const cardKind=P=>!P?"":P.npc==="bank"?" bankcard":P.npc==="barb"?" demoncard":"";
+{const _f=face;face=function(c,o={}){let h=_f.apply(this,arguments);
+  const own=o.owner!==undefined?o.owner:c.owner,P=own!=null&&G&&G.p[own]?G.p[own]:null;
+  h=h.replace(/<span class="cx">[\s\S]*?<\/span>(?=<(?:i class="su"|span class="uic"))/,"");   // no corner mark
+  if(!c.unit&&!c.puppet){const rk=c.rank==="JK"?"Joker":c.rank;h=h.replace(/<i class="su">([^<]*)<\/i>/,(m,su)=>`<span class="cmid"><b class="rk${c.rank==="JK"?" jk":""}">${rk}</b><i>${su}</i></span>`)}
+  return h.replace(/^<span class="cf /,`<span class="cf v61${cardKind(P)} `).replace(/style="--pc:([^"]*)"/,(m,col)=>`style="--pc:${col};--ca:${P?pAccent(P):"#8f8678"}"`)}}
+
+/* ---------- the stacks: accent, Demons, the Bank, and the cards beneath ---------- */
+const STACK_DIRS=[[2,-2],[-2,-2],[2,2],[-2,2],[0,-2.5],[2.5,0],[-2.5,0],[0,2.5]];
+function stackEdges(st,r,c){const n=st.cards.length,layers=n<=1?0:n===2?1:n<=4?2:3;if(!layers)return "";
+  let s=(st.cards[0].id|0)*7+r*31+c*17;const rnd=()=>{s=(s*1103515245+12345)&0x7fffffff;return s/0x7fffffff};
+  const d=STACK_DIRS[Math.floor(rnd()*STACK_DIRS.length)],wob=[rnd(),rnd(),rnd()];const out=[];
+  for(let k=1;k<=layers;k++){const x=(d[0]*k+(wob[k-1]-.5)*1.6).toFixed(1),y=(d[1]*k+(wob[(k)%3]-.5)*1.6).toFixed(1);
+    out.push(`${x}px ${y}px 0 0 var(--cbe)`,`${x}px ${y}px 0 1px #000a`)}
+  return out.join(",")}
+{const _sd=siegeDecor;siegeDecor=function(inner,st,V,r,c){let h=_sd.apply(this,arguments);if(!st)return h;const P=G.p[st.owner];
+  const stk=stackEdges(st,r,c),kind=cardKind(P);
+  h=h.replace(/(<div class="stack[^"]*") style="--pc:([^";]*)/,(m,a,col)=>`${a.replace('class="stack ',`class="stack v61${kind} `)} style="--pc:${col};--ca:${pAccent(P)};${stk?`--stk:${stk};`:""}`);
+  return h}}
+
+/* ---------- Display: the player's symbol on cards (off by default); the foot bar keeps the quick settings ---------- */
+{const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);document.documentElement.classList.toggle("cardsym",PREF.cardSym===true)}}
+{const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu"),a=m&&m.querySelector("#mSpellBL");if(!a||m.querySelector("#mCardSym"))return;
+  a.closest("label").insertAdjacentHTML("afterend",`<label class="f">Player symbols on cards <select id="mCardSym"><option value="0" ${PREF.cardSym===true?"":"selected"}>Off (default)</option><option value="1" ${PREF.cardSym===true?"selected":""}>On</option></select></label>`);
+  $("#mCardSym").onchange=e=>{PREF.cardSym=e.target.value==="1";savePrefs();applyPrefs();render()}}}
+
+if(window.__EC)Object.assign(window.__EC,{accentOf,ACCENTS,stackEdges,face:(...a)=>face(...a)});
+{const _m=mkPlayer;mkPlayer=function(i,o){const P=_m.apply(this,arguments);P.accent=o&&o.accent||"auto";return P}}
 
 })();

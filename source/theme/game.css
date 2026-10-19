@@ -1691,3 +1691,44 @@ summary .fasum{font-size:.72em;letter-spacing:.05em;vertical-align:1px}
 .ovbox.setup .seat details.look summary{margin:4px 0}
 .ovbox.setup .seat .opts.subs .opt{min-height:32px;padding:4px 26px 4px 8px;font-size:13px}
 .ovbox.setup .seat .opts.subs{gap:4px;grid-template-columns:repeat(auto-fill,minmax(min(100%,132px),1fr))}
+/* ---------- v61: card faces in the players' colors (darkened, calmed), the accent as the frame, light lettering ---------- */
+.cf.v61,.stack.v61{--cb:color-mix(in oklab,var(--pc) 44%,#211b16);--cbe:color-mix(in oklab,var(--cb) 78%,#000);--ct:#f4ead9;--cr:#ff9b90;
+  background:linear-gradient(160deg,color-mix(in oklab,var(--cb) 86%,#fff) 0%,var(--cb) 55%,color-mix(in oklab,var(--cb) 82%,#000) 100%);color:var(--ct);
+  box-shadow:inset 0 0 0 2px var(--cb),inset 0 0 0 3px var(--ca),var(--stk,0 0 #0000),0 2px 4px #0008}
+.cf.v61.red,.stack.v61.red{color:var(--cr)}
+.v61 .ty{color:color-mix(in oklab,var(--ct) 80%,transparent);border-top-color:color-mix(in oklab,var(--ca) 45%,transparent)}
+.v61 .mini,.v61 .used,.v61 .souls,.v61 .odds{color:color-mix(in oklab,var(--ct) 82%,transparent)}
+.v61 .hearts,.v61 .bhp,.v61 .bhp .hearts,.v61 .mini .hearts{color:#ff6b74}
+html:not(.cardsym) .v61 .so{display:none}
+.v61 .ci::before{border-color:var(--ca)}
+.cf.v61 .cmid{position:absolute;left:0;right:0;top:calc(20px * var(--ci));display:flex;justify-content:center;align-items:baseline;gap:2px;line-height:1}
+.cf.v61 .cmid .rk{font-family:"Grenze Gotisch","Old English Text MT",serif;font-weight:500;font-size:calc(27px * var(--ci))}
+.cf.v61 .cmid .rk.jk{font-size:calc(17px * var(--ci))}
+.cf.v61 .cmid i{font-style:normal;font-size:calc(13px * var(--ci))}
+.cf.sm.v61 .cmid{top:calc(11px * var(--ci))}.cf.sm.v61 .cmid .rk{font-size:calc(17px * var(--ci))}.cf.sm.v61 .cmid .rk.jk{font-size:calc(11px * var(--ci))}.cf.sm.v61 .cmid i{font-size:calc(9px * var(--ci))}
+.cf.v61.unit .uic{top:calc(17px * var(--ci))}.cf.sm.v61.unit .uic{top:calc(9px * var(--ci))}
+.stack.v61 .lead i{font-size:calc(clamp(11px,1.4vw,14px) * var(--ci))}
+#board.large .stack.v61 .lead i{font-size:min(calc(clamp(11px,1.4vw,14px) * var(--ci,1)),18cqw)}
+.stack.v61.base,.cf.v61.basecard{--cb:color-mix(in oklab,var(--pc) 32%,#4d463e)}
+.v61.hated{box-shadow:inset 0 0 0 2px var(--cb),inset 0 0 0 3px var(--ca),inset 0 0 22px #e0182aaa,var(--stk,0 0 #0000),0 2px 4px #0008}
+.stack.v61.hated::after{color:#ff6b74}
+.stack.v61.pink{--cb:#f0c6da;--ct:#2a0f1c;--cr:#a8123a;background:#f4d0e2;color:#2a0f1c;box-shadow:inset 0 0 0 2px #f7d4e4,inset 0 0 0 3px #e85b9b,var(--stk,0 0 #0000),0 0 10px #ff7ab8aa}
+.stack.v61.joy{box-shadow:inset 0 0 0 2px var(--cb),inset 0 0 0 4px var(--ca),var(--stk,0 0 #0000),0 0 14px var(--pc)}
+/* Demons: black, with red */
+.stack.v61.demon,.cf.v61.demoncard{--cb:#0e0a0a;--cbe:#1d0f10;--ca:#d3202e;--ct:#ff5a60;--cr:#ff5a60;background:linear-gradient(165deg,#1e1515,#0b0808 70%,#050303);color:#ff5a60;border-color:#7a0f16;
+  box-shadow:inset 0 0 0 2px #0b0808,inset 0 0 0 3px #d3202e,var(--stk,0 0 #0000),0 0 10px #b3172c77,0 2px 4px #000a}
+.stack.v61.demon .lead,.stack.v61.demon .lead .rk,.stack.v61.demon .lead i,.stack.v61.demon.red,.stack.v61.demon.black{color:#ff5a60;text-shadow:0 0 6px #ff1a2a55}
+.stack.v61.demon .mini,.stack.v61.demon .used,.stack.v61.demon .souls,.stack.v61.demon .ty{color:#e88a8e}
+.stack.v61 .ulead svg{filter:none}
+/* the Bank: a faint banknote */
+.stack.v61.bankcard,.cf.v61.bankcard{--cb:#e2e7d3;--cbe:#c4cbb0;--ca:#4f7a57;--ct:#1d3524;--cr:#a3150c;color:#1d3524;border-color:#2f4a33;
+  background:repeating-radial-gradient(circle at 50% 46%,#2f5a3a14 0 1px,transparent 1px 5px),repeating-linear-gradient(60deg,#2f5a3a0e 0 1px,transparent 1px 7px),repeating-linear-gradient(-60deg,#2f5a3a0e 0 1px,transparent 1px 7px),linear-gradient(160deg,#ebefdd,#d6dcc3);
+  box-shadow:inset 0 0 0 2px #e6eada,inset 0 0 0 3px #4f7a57,inset 0 0 0 5px #e6eada,inset 0 0 0 6px #4f7a5766,var(--stk,0 0 #0000),0 2px 4px #0008}
+.stack.v61.bankcard .ty,.stack.v61.bankcard .mini,.stack.v61.bankcard .uname,.cf.v61.bankcard .ty{color:#2f4a33;border-top-color:#4f7a5766}
+.stack.v61.bankcard .lead,.stack.v61.bankcard .lead .rk{color:#1d3524}
+.cf.v61 .cmid .rk,.cf.v61 .cmid i{color:inherit}
+/* v61: the Display bar at the foot keeps the quick settings; theme, card icons, hand, page width, animations and the spell
+   font live in the Menu (all of them were there already) */
+#gbar label:has(#pTheme),#gbar .gctl:has([data-z="ci"]),#gbar #pHand,#gbar #pFull,#gbar #pAnimC,#gbar #pAnimM,#gbar #pSpellBL{display:none!important}
+.ovbox.setup .seat .opts.swatches{grid-template-columns:repeat(auto-fill,minmax(54px,1fr));grid-auto-rows:auto;gap:2px 4px}
+.ovbox.setup .seat .opts.swatches .sw em{font-size:10px}
