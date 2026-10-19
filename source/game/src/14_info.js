@@ -247,6 +247,7 @@ ${sel("mSel","Selected stack box",[["bottom","Below the spells"],["top","Above t
 ${sel("mCtl","Turn buttons",[["bottom","Under the field"],["top","At the top"]],PREF.ctl)}
 ${sel("mCoord","Tile names",[["0","Off"],["1","On"]],PREF.coords?"1":"0")}
 ${sel("mFull","Page width",[["0","Standard"],["1","Full width"]],PREF.full?"1":"0")}
+${sel("mPxMap","Map art",[["1","Pixel art (default)"],["0","The old drawings"]],PREF.pxMap===false?"0":"1")}
 ${sel("mLines","Background lines",[["1","On"],["0","Off"]],PREF.lines===false?"0":"1")}
 ${sel("mSpellBL","Spell names",[["1","Old English (default)"],["0","Plain"]],PREF.spellBL===false?"0":"1")}
 ${sel("mAnimC","Card animations",[["1","On"],["0","Off"]],PREF.fxCards===false?"0":"1")}
