@@ -75,3 +75,26 @@ if(window.__EC)Object.assign(window.__EC,{mineSlots,mineStats,moonPlant:(...a)=>
   const us=[...new Set(cards.filter(c=>c.unit&&WILD_USE[c.unit]).map(c=>c.unit))];if(!us.length)return;
   box.insertAdjacentHTML("afterbegin",us.map(u=>`<p class="wilduse"><b>${esc((UNIT[u].short||UNIT[u].name))}</b> ${esc(WILD_USE[u])}</p>`).join(""))}}
 {const _f=face;face=function(c,o){const h=_f.apply(this,arguments);if(!c||!c.unit||!WILD_USE[c.unit])return h;return h.replace(/title="([^"]*)"/,(m,t)=>`title="${t}: ${esc(WILD_USE[c.unit])}"`)}}
+
+/* ---------- N1: a Wall can also go up on any empty tile within a circle of two around one of your Repairmen; while a Wall is
+   picked in the hand, the Repairmen's tiles glow blue ---------- */
+const nearRepair=(pl,r,c)=>stacksOf(pl).some(({st,r:a,c:b})=>st.cards.some(x=>x.unit==="repair")&&(a-r)**2+(b-c)**2<=5);   // a round circle of two
+{const _cp=canPlace;canPlace=function(card,r,c){if(_cp.apply(this,arguments))return true;
+  if(!G||!card||kind(card)!=="wall"||G.phase==="setup"||isVoid(r,c)||G.board[r][c])return false;return nearRepair(G.active,r,c)}}
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.selHand||kind(G.selHand)!=="wall")return;
+  for(const {st,r,c} of stacksOf(G.active))if(st.cards.some(x=>x.unit==="repair")){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(t)t.classList.add("repsrc")}}}
+if(INFO.wall)INFO.wall[2]=INFO.wall[2].map(([k,v])=>k==="Moves"?[k,"never; it goes up on any empty tile of your spawn lines, or on any empty tile within two of one of your Repairmen"]:[k,v]);
+if(INFO.repair&&!INFO.repair[2].some(r=>r[0]==="Builds"))INFO.repair[2].splice(1,0,["Builds","a Wall from your hand can go up on any empty tile within two of him"]);
+
+/* ---------- N8: the map's art in a few steps (Full, two thirds, one third, Off); with the map off, the tiles nobody can play
+   glow very faintly (no animation) so the field's shape still shows ---------- */
+const MAP_STEPS=[["Off",0],["⅓",.33],["⅔",.66],["Full",1]];
+const mapStep=()=>{const v=PREF.mapStep;return v==null?3:Math.max(0,Math.min(3,v|0))};
+{const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);const s=mapStep();document.documentElement.style.setProperty("--mapop",MAP_STEPS[s][1]);document.documentElement.classList.toggle("nomap",s===0)}}
+{const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu"),a=m&&m.querySelector("#mPxMap");if(!a||m.querySelector("#mMapOp"))return;
+  a.closest("label").insertAdjacentHTML("afterend",`<label class="f mslide">Map <input type="range" id="mMapOp" min="0" max="3" step="1" value="${mapStep()}"><b id="mMapOpV">${MAP_STEPS[mapStep()][0]}</b></label>`);
+  $("#mMapOp").oninput=e=>{PREF.mapStep=+e.target.value;$("#mMapOpV").textContent=MAP_STEPS[PREF.mapStep][0];savePrefs();applyPrefs()}}}
+
+/* ---------- music: The Crossroads plays while a game is set up; the game's songs once it starts ---------- */
+{const _sg=startGame;startGame=function(){const out=_sg.apply(this,arguments);try{window.ECMusic&&ECMusic.setLobby&&ECMusic.setLobby(false)}catch(e){}return out}}
+{const _ss=showStart;showStart=function(){const out=_ss.apply(this,arguments);try{window.ECMusic&&ECMusic.setLobby&&ECMusic.setLobby(true)}catch(e){}return out}}
