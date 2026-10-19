@@ -1451,3 +1451,28 @@ html.th-office .fawarn{background:#fbe3e1;color:#7a1d16}
 }
 .faextra summary{font-size:12.5px;color:var(--amber);cursor:pointer;margin:4px 0}
 .fasec p.dim{font-size:12px;margin:4px 0}.fasec .faopts .opt>span small{font-size:11px}
+/* ================= v48 · the banner, Dice Plus, the spells on a stack ================= */
+#critfx{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);z-index:80;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}
+#critfx[hidden]{display:none}
+#critfx b{font-family:"Grenze Gotisch","Old English Text MT",serif;font-weight:500;font-size:clamp(34px,6vw,58px);color:#e0303d;text-shadow:0 0 18px #8e1622,0 2px 4px #000}
+#critfx svg{width:clamp(54px,8vw,84px);height:auto;filter:drop-shadow(0 0 10px #8e1622aa)}
+#critfx svg polygon{fill:#1a0d10e6;stroke:#e0303d;stroke-width:3}
+#critfx svg path{fill:none;stroke:#e0303d88;stroke-width:1.6}
+#critfx svg text{fill:#ffd2cd;font:600 26px "Grenze Gotisch",serif}
+#critfx.k-miss b,#critfx.k-dodge b{color:#c9c2d6;text-shadow:0 0 14px #4a3d66,0 2px 4px #000}
+#critfx.k-success b{color:#f1d27a;text-shadow:0 0 18px #8a6a14,0 2px 4px #000}
+#critfx.go{animation:critpop 1.7s ease-out forwards}
+@keyframes critpop{0%{opacity:0;transform:translate(-50%,-50%) scale(.7)}12%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}25%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-56%) scale(1)}}
+@media (prefers-reduced-motion:reduce){#critfx.go{animation:none}}
+.stack.dp-atk{box-shadow:0 0 0 2px #ff8a1e,0 0 16px #ff8a1eaa}
+.stack.dp-def{box-shadow:0 0 0 2px #9b59d0,0 0 16px #9b59d0aa}
+.stack .dpicon{position:absolute;left:50%;top:-6%;transform:translateX(-50%);font-size:clamp(20px,3vw,34px);line-height:1;opacity:.55;pointer-events:none;z-index:4;text-shadow:0 0 8px currentColor}
+.stack.dp-atk .dpicon{color:#ffb15a}.stack.dp-def .dpicon{color:#c79bf0}
+.tile:has(.dpicon) .crys,.tile:has(.dpicon) .flagmk{opacity:.18}
+.stack .spfx{position:absolute;inset:0;pointer-events:none;z-index:3}
+.stack .spfx .spname{position:absolute;left:4px;right:4px;bottom:2px;font-family:"Grenze Gotisch","Old English Text MT",serif;font-size:clamp(10px,1.3vw,14px);line-height:1.05;color:#000;opacity:.42;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stack .spfx .spdur{position:absolute;right:3px;top:18px;font-size:9.5px;line-height:1.2;padding:0 3px;border-radius:2px;background:#0008;color:#fff;max-width:70%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dprow .dparm{font-size:13px;padding:0 6px;letter-spacing:0}
+.stack .spfx .spname{bottom:19%;font-size:clamp(11px,1.4vw,15px);opacity:.5}
+.stack .spfx .spdur{max-width:92%;font-size:9px}
+.stack .dpicon{top:22%;font-size:clamp(28px,4.2vw,46px);opacity:.38}

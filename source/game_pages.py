@@ -232,6 +232,9 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 <li>Stacking follows the MSV and DM formula, with one Queen and one Joker per stack at most. An Ace holds up to six cards inside it. Where an older line of the rules gave a different number (soldiers stacking to three, three soldiers with a King, a d12 for the King), the MSV, DM and SL formula decides.</li>
 <li>A stack's score is its best card. Dice add on attack. On defense, cards use their natural value only, unless a Queen is in the stack; an Ace stack defends with the Ace's 11 + d20. Jacks don't count on defense.</li>
 <li>If the attacker's total is higher, the defender takes one damage; otherwise the attacker takes one. Each damage removes the stack's lowest card, or a heart from a card that has hearts. Every Ace has two hearts: the first hit takes a heart and the cards inside are safe; when the last heart goes, the Ace falls with everything inside it. A Repairman can give an Ace a third heart, once. King and Ace rolls of 20 and 1 change the damage as written above. The dice box shows the attack total on the left and the defense total on the right, like 12&gt;1.</li>
+<li><b>The landing roll</b>: in every fight both sides also roll 1d20. The attacker's 1 is a <b>Crit Miss</b>: the attack misses. The attacker's 20, with two or more cards in the stack that can each attack, is a <b>Crit Hit</b>: the defender takes the blow whatever the scores, unless it rolls a 20 too. A defender's 1 costs it nothing. Three or more Puppets in a stack crit on 19 or 20; Puppets never miss and shrug off Crit Hits. Assassins shrug off Crit Hits and dodge on 17 to 20 of their own roll (a <b>Miss</b>). Every player sees the Crit Hit, Crit Miss or Miss on screen.</li>
+<li><b>Dice Plus</b> (Enchantment, 1d3 mana): on one of your stacks, a sword (its next attack) or a shield (its next defense) adds a d12 on this table: 1: +1 · 2: +1d2 · 3: +1d3 · 4: +1d4 · 5–6: +1d6 · 7–9: +1d8 · 10: +1d10 · 11: +1d12 · 12: two more d12 on the table, and every 12 rolls again. Once on a stack; as many stacks as you like. The stack glows orange (sword) or purple (shield).</li>
+<li><b>Spells on a stack</b>: their names show in faint blackletter at the bottom of the stack, and how long they last (and their odds) at its top right.</li>
 <li>Cards are placed from the hand into your own two lines: on an empty tile, or onto your own stack if the stack stays legal. Aces go only on empty backline tiles; Jokers spawn onto your stack holding a card of the same color.</li>
 <li>Each stack moves once per turn, one tile straight. A group made only of Jacks moves two tiles straight or one diagonal. You can split a stack by choosing which cards move.</li>
 <li>Stacks attack an enemy stack next to them (not diagonal, except Jack-only stacks). Aces and a King standing alone don't attack.</li>
@@ -283,7 +286,7 @@ b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({beha
 </main>''', 1)
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
-play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=47">', ec=True) + f'''<main class="wide game">
+play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=48">', ec=True) + f'''<main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
@@ -322,7 +325,7 @@ play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="eth
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
 <script src="ethers-crossroads-quotes.js?v=4"></script>
-<script src="ethers-crossroads.js?v=47"></script>
+<script src="ethers-crossroads.js?v=48"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 
