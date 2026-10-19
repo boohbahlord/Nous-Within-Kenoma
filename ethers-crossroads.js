@@ -2336,6 +2336,7 @@ ${["river","none"].filter(k=>!(mode==="survival"&&k==="river")).map(k=>`<label c
 ${mode==="survival"?'<p class="dim">Survival always uses the midline: the field is 5 tall.</p>':chk("omid","Use the midline","An empty line between the two armies: 5 tall with it, 4 without.",true)}
 </div>${chk("ocorners","Cut off the corners","The four corner tiles are removed from play. On by default for free-for-all and the 2v2 layouts on the edges.",false)}
 <div id="sizeother" class="sizesel" hidden></div>
+${mode==="survival"?"":`<div class="f" id="bigset"><span>Large maps</span><div class="opts">${[["","Standard (default)","The sizes above."],["long","10 long, 6 wide","1v1, or 2v2 with each team on one short end."],["sq","10 by 10","Any layout."],["plus","10 by 10 plus","A cross with arms 4 wide; everyone spawns at the end of an arm."],["round","Plus with a round middle","The cross with a round open middle; the hole option can open its center."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="obig" value="${v}" ${v?"":"checked"}><span>${t}<small>${d}</small></span></label>`).join("")}</div><p class="dim">Large maps scroll inside a frame: the mouse wheel zooms, dragging an empty spot or WASD and the arrow keys move it, and Q and E (or C and V) zoom. The Menu has Large Map Controls.</p></div>`}
 <p class="dim mapnote" id="rivernote" hidden>The River map is always 7 wide and 5 tall with the midline, and keeps its corners.</p>
 
 </fieldset>
@@ -2370,6 +2371,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     $("#sizeduel").hidden=L!=="duel";
     if(!$("#ocorners").dataset.touched)$("#ocorners").checked=big;
     $("#ocorners").disabled=L==="coop";
+    document.querySelectorAll('input[name=obig]').forEach(i=>{const no=L==="coop"||i.value==="long"&&!(L==="duel"||L==="team-same");i.disabled=no;i.closest(".opt").classList.toggle("off",no);if(no&&i.checked)document.querySelector('input[name=obig][value=""]').checked=true});
     document.querySelectorAll('input[name=omap][value=river]').forEach(i=>{i.disabled=L!=="duel";i.closest(".opt").classList.toggle("off",i.disabled);if(i.disabled&&i.checked)document.querySelector('input[name=omap][value=none]').checked=true});
     $("#dueldecks").hidden=L!=="duel";$("#ffadecks").hidden=!(L==="ffa"||L==="coop");$("#teamdecks").hidden=!L.startsWith("team");
     $("#elimset").hidden=(mode==="survival"?n:n)<(mode==="survival"?2:3);
@@ -2432,7 +2434,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     if(mode==="survival")players.push({name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>!players.some(p=>p.solid===s)))||"dodeca",cpu:"horde"});
     PREF.hand=val("dhand")||PREF.hand;PREF.sel=val("dsel")||PREF.sel;PREF.ctl=val("dctl")||PREF.ctl;PREF.theme=val("dtheme")??PREF.theme;PREF.coords=val("dcoord")==="1";PREF.full=val("dfull")==="1";PREF.lines=val("dlines")!=="0";if($("#danimc")){PREF.fxCards=$("#danimc").checked;PREF.fxMagic=$("#danimm").checked}PREF.bright=+($("#dbright")||{}).value||1;savePrefs();applyPrefs();
     startGame({mode,players,mid:mode==="survival"||!!($("#omid")&&$("#omid").checked),aceLock:$("#olock").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off","saturn"].includes(val("omoonon")||"on"),
-      map:val("omap"),cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
+      map:val("omap"),big:val("obig")||"",cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
       decks:+val("odecks"),specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:+val("odecks")===1&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
       startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",atkSpells:$("#oatk").checked,pshop:$("#opshop")?$("#opshop").checked:true,
       layout:L,turns:$("#oturns").value,timer:+$("#otimer").value,cpuSpeed:$("#ospeed").value,elimDark:val("oelim")==="dark",ffaDeck:val("offa"),shareDeck:$("#oshare").checked});
@@ -2585,7 +2587,12 @@ function mapPlan(o){
   else if(L==="team-same"){cols=clamp(o.cols,6,8,6);rows=clamp(o.rows,4,6,6);mid=rows>4}
   else if(L==="coop"){const h=n-1;cols=clamp(o.cols,Math.max(5,h*2),9,h===2?6:h===3?9:8);rows=clamp(o.rows,5,6,h===2?5:6);mid=true;corners=false}
   else rows=mid?5:4;
+  /* v56: the large maps: 10 long by 6 wide (1v1, and 2v2 on one end), 10 by 10, a 10 by 10 plus (arms 4 wide), and the plus
+     with a round middle. All of them use the large-map camera. */
+  const big=["long","sq","plus","round"].includes(o.big)&&o.mode!=="survival"&&L!=="coop"?o.big:null;
+  if(big){if(big==="long"&&!(L==="duel"||L==="team-same"))o={...o,big:"sq"};const b=o.big;cols=b==="long"?6:10;rows=10;mid=true;corners=false;if(theme==="river")theme="keep"}
   const V=Array.from({length:rows},()=>Array(cols).fill(false));
+  if(big&&(o.big==="plus"||o.big==="round"))for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const arm=(r>=3&&r<=6)||(c>=3&&c<=6),disc=o.big==="round"&&Math.hypot(r-4.5,c-4.5)<=3.7;V[r][c]=!(arm||disc)}
   if(corners)for(const r of [0,rows-1])for(const c of [0,cols-1])V[r][c]=true;
   if(theme==="river"){const r=2;for(let c=0;c<cols;c++)V[r][c]=!(bridge==="left"?c<2:c>=cols-2)}
   // seats: where each player spawns (zone), where their Aces go (back), which way is forward, how the view turns for them
@@ -2594,13 +2601,18 @@ function mapPlan(o){
     for(let k=0;k<lines;k++)for(const c of cs){const r=side==="bottom"?rows-1-k:k;(k===0?back:zone).push([r,c]);zone.push([r,c])}
     return{side,rot:S.rot,fwd:S.fwd,back,zone:[...new Map(zone.map(t=>[t.join(),t])).values()]}};
   const allc=[...Array(cols).keys()];
-  const lines=cols<=5&&rows<=5?1:2;   // v53: a field 5 by 5 or smaller has one spawn line a side, the backline
+  const lines=cols<=5&&rows<=5?1:2;
+  if(big&&(o.big==="plus"||o.big==="round"))allc.splice(0,allc.length,3,4,5,6);   // the plus: spawn at the ends of the arms   // v53: a field 5 by 5 or smaller has one spawn line a side, the backline
   if(L==="duel"){seats.push(mk2("bottom",allc,lines),mk2("top",allc,lines));teams.push(0,1)}
   else if(L==="ffa"||L==="team-side"||L==="team-across"){
     const sides=L==="ffa"?(n===3?["bottom","left","right"]:["bottom","left","top","right"]):L==="team-side"?["bottom","right","left","top"]:["bottom","left","top","right"];
-    sides.slice(0,n).forEach((sd,i)=>{const t=edgeTiles(sd,rows,cols);seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:t,zone:t});teams.push(L==="ffa"?i:i%2)});
+    const bigEdge=sd=>{const len=sd==="left"||sd==="right"?rows:cols,lo=o.big==="plus"||o.big==="round"?3:2,hi=len-1-lo,back=[],zone=[];
+      for(let d=0;d<2;d++)for(let a=lo;a<=hi;a++){const r=sd==="bottom"?rows-1-d:sd==="top"?d:a,c=sd==="left"?d:sd==="right"?cols-1-d:a;if(V[r][c])continue;zone.push([r,c]);if(!d)back.push([r,c])}
+      return {back,zone}};
+    sides.slice(0,n).forEach((sd,i)=>{if(big){const z=bigEdge(sd);seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:z.back,zone:z.zone})}
+      else{const t=edgeTiles(sd,rows,cols);seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:t,zone:t})}teams.push(L==="ffa"?i:i%2)});
   }else if(L==="team-same"){
-    const half=Math.floor(cols/2),lo=allc.slice(0,half),hi=allc.slice(half);
+    const half=Math.floor(allc.length/2),lo=allc.slice(0,half),hi=allc.slice(half);
     seats.push(mk2("bottom",lo,lines),mk2("top",hi,lines),mk2("bottom",hi,lines),mk2("top",lo,lines));teams.push(0,1,0,1);
   }else if(L==="coop"){
     const h=n-1,w=Math.floor(cols/h);
@@ -2617,7 +2629,7 @@ function mapPlan(o){
       if(hole===2&&!rs.includes(r)&&!cs.includes(c))continue;   // doubled: a cross; tripled: the full square
       V[r][c]=true}
   }
-  return{theme,cols,rows,mid,corners,bridge,void:V,seed:(Math.random()*1e9)|0,layout:L,seats,teams};
+  return{theme,cols,rows,mid,corners,bridge,void:V,seed:(Math.random()*1e9)|0,layout:L,seats,teams,big:big?o.big:null,large:cols>9||rows>9};
 }
 function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 const PAL={
@@ -9211,7 +9223,7 @@ function miniBoxHTML(pl){const P=G.p[pl],V=view(),act=pl===G.active&&G.phase!=="
   const line=(t,v,max,txt,neg)=>`<div class="mline${neg?" neg":""}"><span>${t}</span><i><u style="width:${Math.max(0,Math.min(100,v/max*100)).toFixed(1)}%"></u></i><b>${txt}</b></div>`;
   h+=line("Deck",n,N,n)+line("Mana",Math.max(0,m),cap,`${m}/${cap}`,m<0);
   const open=eclipseOn("sun")&&!G.passing||P.shownBy!=null&&!G.passing&&(P.shownBy===V||!isEnemy(P.shownBy,V))||!isEnemy(pl,V)&&G.p.filter(Q=>!Q.cpu).length===1&&!G.passing;
-  const tags=[`<span>Hand <b>${P.hand.length}/${handCap(pl)}</b></span>`,...(open&&P.hand.length?[`<span class="seenmark" title="seen">${P.hand.map(c=>esc(nameOf(c))).join(", ")}</span>`]:[]),...econTags(P)];
+  const tags=[`<span>Hand <b>${P.hand.length}/${handCap(pl)}</b></span>`,...(open&&P.hand.length?[`<span class="seenmark" title="seen">${P.hand.map(c=>esc(short(c))).join(" ")}</span>`]:[]),...econTags(P)];
   if(P.tribe==="tiph"){const k=stacksOf(pl).reduce((a,x)=>a+x.st.cards.reduce((b,c)=>b+((c.prisoners||[]).length),0),0);if(k)tags.push(`<span>Prisoners <b>${k}</b></span>`)}
   if(P.tribe==="yald")tags.push(`<span>Hunger <b>${P.hunger||0}/7</b></span>`);
   if(P.tribe==="binah")tags.push(`<span>Thralls <b>${(P.thralls||[]).length}/10</b></span>`);
@@ -9363,5 +9375,55 @@ function grPanelHTML(c,pfx){const K=cfgKit("data-gr","data-gract","gr"+pfx),{row
   root.querySelectorAll("[data-grk]").forEach(b=>b.onclick=()=>{const c=grMine();c.korder=rankMove(c.korder,b.dataset.grk);grSave(c)})}}
 
 if(window.__EC)Object.assign(window.__EC,{grMine,grClean,grPick,faWindow:t=>faWindow(t),ask:(...a)=>ask(...a),pickGrave:(...a)=>pickGrave(...a)});
+
+/* ---------------- v56: large maps and their camera ----------------
+   A map 10 or more tiles across sits in a frame that scrolls. Zooming changes the size of the tiles (not a picture of
+   them), so everything that measures the board (the fog, the effects, the card info) keeps working.
+   - The mouse wheel zooms around the pointer (Menu: off, or reversed).
+   - Dragging an empty spot of the field moves it; a stack is still clicked as always. On a touch screen the frame scrolls.
+   - WASD or the arrow keys move it (Shift: faster), Q and E or C and V zoom in and out (Menu: reversed). Not while typing.
+   - Menu, Large Map Controls: the wheel, both reversals and the speed. The section is faded outside a large map. */
+const CAM={z:1,ZMIN:.45,ZMAX:2.2,TILE:64};
+const isLarge=()=>!!(G&&G.map&&(G.map.large||COLS>9||G.rows>9));
+const camSpeed=()=>Math.max(.4,Math.min(3,+PREF.camSpeed||1));
+function camWrap(){const B=$("#board");if(!B)return null;let w=B.parentNode&&B.parentNode.classList&&B.parentNode.classList.contains("camwrap")?B.parentNode:null;
+  if(isLarge()&&!w){w=document.createElement("div");w.className="camwrap";B.parentNode.insertBefore(w,B);w.appendChild(B);camWire(w)}
+  if(w){const on=isLarge();w.classList.toggle("on",on);B.classList.toggle("large",on);B.style.setProperty("--tw",Math.round(CAM.TILE*CAM.z)+"px")}
+  return w}
+{const _r=render;render=function(){_r.apply(this,arguments);if(G)camWrap()}}
+/* zoom, keeping the spot under the pointer (or the middle of the frame) where it is */
+function camZoom(f,cx,cy){const w=camWrap();if(!w||!isLarge())return;const r=w.getBoundingClientRect(),x=cx==null?r.width/2:cx-r.left,y=cy==null?r.height/2:cy-r.top;
+  const z0=CAM.z,z1=Math.max(CAM.ZMIN,Math.min(CAM.ZMAX,z0*f));if(z1===z0)return;
+  const px=(w.scrollLeft+x)/z0,py=(w.scrollTop+y)/z0;CAM.z=z1;$("#board").style.setProperty("--tw",Math.round(CAM.TILE*z1)+"px");
+  w.scrollLeft=px*z1-x;w.scrollTop=py*z1-y}
+function camPan(dx,dy){const w=camWrap();if(!w||!isLarge())return;w.scrollBy({left:dx,top:dy,behavior:"auto"})}
+function camWire(w){
+  w.addEventListener("wheel",e=>{if(!isLarge()||PREF.camWheel===false)return;e.preventDefault();const dir=(e.deltaY<0?1:-1)*(PREF.camInvWheel?-1:1);camZoom(dir>0?1.12:1/1.12,e.clientX,e.clientY)},{passive:false});
+  let drag=null,moved=false;
+  w.addEventListener("pointerdown",e=>{if(!isLarge()||e.pointerType!=="mouse"||e.button!==0)return;if(e.target.closest(".stack,button,.ci,input,select,a"))return;
+    drag={x:e.clientX,y:e.clientY,l:w.scrollLeft,t:w.scrollTop};moved=false});
+  addEventListener("pointermove",e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>5){moved=true;w.classList.add("dragging")}
+    if(moved){w.scrollLeft=drag.l-dx;w.scrollTop=drag.t-dy}});
+  addEventListener("pointerup",()=>{if(!drag)return;drag=null;w.classList.remove("dragging");if(moved)setTimeout(()=>{moved=false},0)});
+  w.addEventListener("click",e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false}},true)}   // a drag is not a click on a tile
+const typing=t=>!!(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)));
+document.addEventListener("keydown",e=>{if(!isLarge()||e.ctrlKey||e.metaKey||e.altKey||typing(e.target))return;
+  if(document.querySelector("#ov:not([hidden]) .ovbox, #menu:not([hidden]), #facfg:not([hidden])"))return;
+  const k=e.key.toLowerCase(),step=46*camSpeed()*(e.shiftKey?2.2:1),inv=PREF.camInvKeys?-1:1;
+  const pan={w:[0,-1],arrowup:[0,-1],s:[0,1],arrowdown:[0,1],a:[-1,0],arrowleft:[-1,0],d:[1,0],arrowright:[1,0]}[k];
+  if(pan){e.preventDefault();camPan(pan[0]*step,pan[1]*step);return}
+  const zin=k==="q"||k==="c",zout=k==="e"||k==="v";if(zin||zout){e.preventDefault();camZoom((zin?1:-1)*inv>0?1.15:1/1.15)}});
+/* the Menu: Large Map Controls */
+{const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu");if(!m||m.querySelector("#mCam"))return;const anchor=m.querySelector("#mParts")||m.querySelector(".mgrid");if(!anchor)return;
+  const on=isLarge(),c=(id,t,v)=>`<label class="farow"><span class="fal"><b>${t}</b></span><input type="checkbox" id="${id}" ${v?"checked":""} ${on?"":"disabled"}></label>`;
+  anchor.insertAdjacentHTML("afterend",`<details id="mCam" class="sub${on?"":" faded"}"><summary>Large Map Controls${on?"":" <small>(large maps only)</small>"}</summary>
+<p class="dim">The mouse wheel zooms; drag an empty spot of the field to move it; WASD or the arrow keys move it (Shift: faster); Q and E, or C and V, zoom in and out.</p><div class="facats">
+${c("mCamWheel","Zoom with the mouse wheel",PREF.camWheel!==false)}${c("mCamInvW","Reverse the wheel's zoom",!!PREF.camInvWheel)}${c("mCamInvK","Reverse the keys' zoom",!!PREF.camInvKeys)}</div>
+<label class="f mslide">Moving speed <input type="range" id="mCamSpd" min="40" max="300" step="10" value="${Math.round(camSpeed()*100)}" ${on?"":"disabled"}><b id="mCamSpdV">${Math.round(camSpeed()*100)}%</b></label></details>`);
+  const set=(k,v)=>{PREF[k]=v;savePrefs()};
+  $("#mCamWheel").onchange=e=>set("camWheel",e.target.checked);$("#mCamInvW").onchange=e=>set("camInvWheel",e.target.checked);$("#mCamInvK").onchange=e=>set("camInvKeys",e.target.checked);
+  $("#mCamSpd").oninput=e=>{set("camSpeed",+e.target.value/100);$("#mCamSpdV").textContent=e.target.value+"%"}}}
+
+if(window.__EC)Object.assign(window.__EC,{camZoom,camPan,isLarge,CAM});
 
 })();

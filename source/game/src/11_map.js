@@ -23,7 +23,12 @@ function mapPlan(o){
   else if(L==="team-same"){cols=clamp(o.cols,6,8,6);rows=clamp(o.rows,4,6,6);mid=rows>4}
   else if(L==="coop"){const h=n-1;cols=clamp(o.cols,Math.max(5,h*2),9,h===2?6:h===3?9:8);rows=clamp(o.rows,5,6,h===2?5:6);mid=true;corners=false}
   else rows=mid?5:4;
+  /* v56: the large maps: 10 long by 6 wide (1v1, and 2v2 on one end), 10 by 10, a 10 by 10 plus (arms 4 wide), and the plus
+     with a round middle. All of them use the large-map camera. */
+  const big=["long","sq","plus","round"].includes(o.big)&&o.mode!=="survival"&&L!=="coop"?o.big:null;
+  if(big){if(big==="long"&&!(L==="duel"||L==="team-same"))o={...o,big:"sq"};const b=o.big;cols=b==="long"?6:10;rows=10;mid=true;corners=false;if(theme==="river")theme="keep"}
   const V=Array.from({length:rows},()=>Array(cols).fill(false));
+  if(big&&(o.big==="plus"||o.big==="round"))for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const arm=(r>=3&&r<=6)||(c>=3&&c<=6),disc=o.big==="round"&&Math.hypot(r-4.5,c-4.5)<=3.7;V[r][c]=!(arm||disc)}
   if(corners)for(const r of [0,rows-1])for(const c of [0,cols-1])V[r][c]=true;
   if(theme==="river"){const r=2;for(let c=0;c<cols;c++)V[r][c]=!(bridge==="left"?c<2:c>=cols-2)}
   // seats: where each player spawns (zone), where their Aces go (back), which way is forward, how the view turns for them
@@ -32,13 +37,18 @@ function mapPlan(o){
     for(let k=0;k<lines;k++)for(const c of cs){const r=side==="bottom"?rows-1-k:k;(k===0?back:zone).push([r,c]);zone.push([r,c])}
     return{side,rot:S.rot,fwd:S.fwd,back,zone:[...new Map(zone.map(t=>[t.join(),t])).values()]}};
   const allc=[...Array(cols).keys()];
-  const lines=cols<=5&&rows<=5?1:2;   // v53: a field 5 by 5 or smaller has one spawn line a side, the backline
+  const lines=cols<=5&&rows<=5?1:2;
+  if(big&&(o.big==="plus"||o.big==="round"))allc.splice(0,allc.length,3,4,5,6);   // the plus: spawn at the ends of the arms   // v53: a field 5 by 5 or smaller has one spawn line a side, the backline
   if(L==="duel"){seats.push(mk2("bottom",allc,lines),mk2("top",allc,lines));teams.push(0,1)}
   else if(L==="ffa"||L==="team-side"||L==="team-across"){
     const sides=L==="ffa"?(n===3?["bottom","left","right"]:["bottom","left","top","right"]):L==="team-side"?["bottom","right","left","top"]:["bottom","left","top","right"];
-    sides.slice(0,n).forEach((sd,i)=>{const t=edgeTiles(sd,rows,cols);seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:t,zone:t});teams.push(L==="ffa"?i:i%2)});
+    const bigEdge=sd=>{const len=sd==="left"||sd==="right"?rows:cols,lo=o.big==="plus"||o.big==="round"?3:2,hi=len-1-lo,back=[],zone=[];
+      for(let d=0;d<2;d++)for(let a=lo;a<=hi;a++){const r=sd==="bottom"?rows-1-d:sd==="top"?d:a,c=sd==="left"?d:sd==="right"?cols-1-d:a;if(V[r][c])continue;zone.push([r,c]);if(!d)back.push([r,c])}
+      return {back,zone}};
+    sides.slice(0,n).forEach((sd,i)=>{if(big){const z=bigEdge(sd);seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:z.back,zone:z.zone})}
+      else{const t=edgeTiles(sd,rows,cols);seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:t,zone:t})}teams.push(L==="ffa"?i:i%2)});
   }else if(L==="team-same"){
-    const half=Math.floor(cols/2),lo=allc.slice(0,half),hi=allc.slice(half);
+    const half=Math.floor(allc.length/2),lo=allc.slice(0,half),hi=allc.slice(half);
     seats.push(mk2("bottom",lo,lines),mk2("top",hi,lines),mk2("bottom",hi,lines),mk2("top",lo,lines));teams.push(0,1,0,1);
   }else if(L==="coop"){
     const h=n-1,w=Math.floor(cols/h);
@@ -55,7 +65,7 @@ function mapPlan(o){
       if(hole===2&&!rs.includes(r)&&!cs.includes(c))continue;   // doubled: a cross; tripled: the full square
       V[r][c]=true}
   }
-  return{theme,cols,rows,mid,corners,bridge,void:V,seed:(Math.random()*1e9)|0,layout:L,seats,teams};
+  return{theme,cols,rows,mid,corners,bridge,void:V,seed:(Math.random()*1e9)|0,layout:L,seats,teams,big:big?o.big:null,large:cols>9||rows>9};
 }
 function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 const PAL={
