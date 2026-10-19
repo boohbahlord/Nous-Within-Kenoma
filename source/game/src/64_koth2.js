@@ -83,9 +83,20 @@ function kothMercs(pl){const K=G.opts.koth;if(K.target<100||isNPC(pl)||isHorde(p
 /* ---------- the Bank on the map ---------- */
 UNIT.banker={name:"The Banker",short:"Banker",word:"Banker",nat:0,soul:3,cost:3,noDef:true,noAtk:true,kind:"Wildcard",desc:"the Bank's own; he can't be attacked",rt:0};
 TYPEWORD.banker="Banker";KNAME.banker="Banker";UNIT_ICON.banker=UNIT_ICON.debt;UNIT_MARK.banker="$";
-function kothBank(){const B=npcIx("bank");if(B<0||!G.bank)return;const C=KOTH_C,spots=[[C-3,C],[C+3,C],[C,C-3],[C,C+3]].filter(([r,c])=>!isVoid(r,c)&&!G.board[r][c]);if(!spots.length)return;
-  const [r,c]=pick(spots);G.kothBank=[r,c];G.void[r][c]=true;   // the building: no card can enter it
-  const free=[[0,1],[0,-1],[1,0],[-1,0],[1,1],[-1,-1],[1,-1],[-1,1]].map(([a,b])=>[r+a,c+b]).filter(([a,b])=>a>=0&&b>=0&&a<G.rows&&b<COLS&&!isVoid(a,b)&&!isHill(a,b)&&!G.board[a][b]);
+/* v59: the Bank stands outside the mountains, never inside the ring around the Hill: just beyond it if there is room, and
+   never where the building and its guards would cut a way through to the Hill */
+const BANK_NB=[[0,1],[0,-1],[1,0],[-1,0],[1,1],[-1,-1],[1,-1],[-1,1]];
+function kothBankSpot(){const C=KOTH_C,cheb=(r,c)=>Math.max(Math.abs(r-C),Math.abs(c-C)),ok=(r,c)=>r>=0&&c>=0&&r<G.rows&&c<COLS&&!isVoid(r,c);
+  const reach=block=>{const seen=new Set([C+","+C]),q=[[C,C]];while(q.length){const [r,c]=q.pop();for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){const rr=r+a,cc=c+b,k=rr+","+cc;if(!ok(rr,cc)||seen.has(k)||block.has(k))continue;seen.add(k);q.push([rr,cc])}}return seen};
+  const base=reach(new Set()),cands=[];
+  for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){const d=cheb(r,c);if(d<6||d>9||!ok(r,c)||G.board[r][c]||!base.has(r+","+c))continue;
+    const f=BANK_NB.map(([a,b])=>[r+a,c+b]).filter(([a,b])=>ok(a,b)&&!isHill(a,b)&&!G.board[a][b]);if(f.length>=3)cands.push({r,c,d,f:f.slice(0,3)})}
+  shuffle(cands);cands.sort((a,b)=>a.d-b.d);   // just outside the mountains first
+  for(const x of cands){const block=new Set([x.r+","+x.c,...x.f.map(t=>t.join())]),after=reach(block);if([...base].every(k=>block.has(k)||after.has(k)))return x}
+  return null}
+function kothBank(){const B=npcIx("bank");if(B<0||!G.bank)return;const spot=kothBankSpot();if(!spot)return;
+  const {r,c}=spot;G.kothBank=[r,c];G.void[r][c]=true;   // the building: no card can enter it
+  const free=BANK_NB.map(([a,b])=>[r+a,c+b]).filter(([a,b])=>a>=0&&b>=0&&a<G.rows&&b<COLS&&!isVoid(a,b)&&!isHill(a,b)&&!G.board[a][b]);
   const put=(cards,extra)=>{const t=free.shift();if(!t)return;cards.forEach(x=>x.owner=B);G.board[t[0]][t[1]]={owner:B,cards,moved:true,attacked:true,...extra}};
   put([mkUnit("banker",B)],{banker:true});put([mkUnit("debt",B),mkUnit("carriage",B)],{guard:true});put([mkUnit("debt",B),mkUnit("carriage",B)],{guard:true});
   G._vis=null;if(G.map&&G.map.art)for(const k of Object.keys(G.map.art))if(k.startsWith(r+"."+c+"."))delete G.map.art[k]}

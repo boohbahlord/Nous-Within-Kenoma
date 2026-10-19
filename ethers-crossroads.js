@@ -9164,7 +9164,7 @@ if(window.__EC)Object.assign(window.__EC,{pxTile,pxMapToggle});
 {const _p=paintFA;paintFA=function(){const keep=new Map(),key=(root,d)=>root.id+"|"+((d.querySelector(":scope>summary")||{}).textContent||"");
   for(const root of [$("#facfg"),$("#fapanel")])if(root)root.querySelectorAll("details").forEach(d=>keep.set(key(root,d),d.open));
   const out=_p.apply(this,arguments);
-  for(const root of [$("#facfg"),$("#fapanel")])if(root)root.querySelectorAll("details:not([data-fadet])").forEach(d=>{const k=key(root,d);if(keep.has(k))d.open=keep.get(k)});
+  for(const root of [$("#facfg"),$("#fapanel")])if(root)root.querySelectorAll("details:not([data-fadet]):not([data-grdet])").forEach(d=>{const k=key(root,d);if(keep.has(k))d.open=keep.get(k)});
   return out}}
 
 /* ---------- an on/off switch at the top of every tab ---------- */
@@ -9296,7 +9296,10 @@ function dropBountyCards(pl,ids){const P=G.p[pl];if(!P)return [];const out=bount
 {const _ly=FX.layer;FX.layer=function(){const l=_ly.call(FX);
   if(!l._paged){l._paged=true;l.appendChild=function(e){if(e&&e.style){const L=parseFloat(e.style.left),T=parseFloat(e.style.top);   // screen spots become page spots
       if(!isNaN(L))e.style.left=(L+scrollX)+"px";if(!isNaN(T))e.style.top=(T+scrollY)+"px"}return Node.prototype.appendChild.call(this,e)}}
-  const h=Math.max(document.documentElement.scrollHeight,document.body.scrollHeight)+"px";if(l.style.height!==h)l.style.height=h;
+  /* v59: the page is measured without the layer (it used to count itself, so it could only grow: dead space at the
+     bottom after zooming out), and the layer folds to nothing when no effect is playing */
+  l.style.height="0px";const h=Math.max(document.documentElement.scrollHeight,document.body.scrollHeight)+"px";l.style.height=h;
+  if(!l._watch){l._watch=new MutationObserver(()=>{if(!l.childElementCount)l.style.height="0px"});l._watch.observe(l,{childList:true})}
   return l}}
 
 /* ---------- the crit seal, over the card it concerns ---------- */
@@ -9343,10 +9346,10 @@ const TGROUP_NAMES={wildcard:"Wildcards",special:"Special",base:"Base",standard:
 
 /* ---------- Grave automation: the settings ---------- */
 const GR_GROUPS=["special","base","standard","support","wildcard"];
-const GR_DEF={on:false,kinds:[],extra:[],minus:[],group:true,gorder:[...GR_GROUPS],korder:[],strong:true,askNone:true};
+const GR_DEF={on:false,kinds:[],extra:[],minus:[],rank:true,group:true,gorder:[...GR_GROUPS],korder:[],strong:true,askNone:true};
 const grKeys=()=>{const k=lhKeyList().map(x=>x[0]),r=["JK","A","K","Q","J","10","9","8","7","6","5","4","3","2"];return [...r.filter(x=>k.includes(x)),...k.filter(x=>!r.includes(x))]};   // strongest first
 function grClean(c){c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringify(GR_DEF)),cats=new Set(RD_KINDS.map(x=>x[0])),keys=grKeys();
-  for(const k of ["on","group","strong","askNone"])if(typeof c[k]==="boolean")o[k]=c[k];
+  for(const k of ["on","rank","group","strong","askNone"])if(typeof c[k]==="boolean")o[k]=c[k];
   if(Array.isArray(c.kinds))o.kinds=c.kinds.filter(k=>cats.has(k));
   for(const k of ["extra","minus"])if(Array.isArray(c[k]))o[k]=c[k].filter(x=>keys.includes(x));o.minus=o.minus.filter(x=>!o.extra.includes(x));
   if(Array.isArray(c.gorder))o.gorder=[...c.gorder.filter(k=>GR_GROUPS.includes(k)),...GR_GROUPS.filter(k=>!c.gorder.includes(k))];
@@ -9363,7 +9366,7 @@ function grSave(c){PREF.gr=grClean(c);savePrefs();autoSync();paintFA();if(G)rend
 
 /* ---------- Grave automation: the choice ---------- */
 function grWants(c,cfg){const k=cardKey(c);if(cfg.minus.includes(k))return false;if(cfg.extra.includes(k))return true;return !cfg.kinds.length&&!cfg.extra.length||cfg.kinds.includes(cardCat(c))}
-function grRank(c,cfg){return cfg.group?cfg.gorder.indexOf(cardCat(c)):cfg.korder.indexOf(cardKey(c))}
+function grRank(c,cfg){return !cfg.rank?0:cfg.group?cfg.gorder.indexOf(cardCat(c)):cfg.korder.indexOf(cardKey(c))}
 function grPick(cards,cfg){let best=-1,bv=null;cards.forEach((c,i)=>{if(!grWants(c,cfg))return;const v=[grRank(c,cfg),cfg.strong?-(soulOf(c)*10+(costOf(c)||0)):0];
   if(!bv||v[0]<bv[0]||v[0]===bv[0]&&v[1]<bv[1]){bv=v;best=i}});return best}
 {const _ask=ask;ask=async function(pl,spec){const P=G&&G.p[pl],cfg=P&&!P.cpu&&P.grCfg;
@@ -9382,11 +9385,15 @@ function grPanelHTML(c,pfx){const K=cfgKit("data-gr","data-gract","gr"+pfx),{row
   const names=Object.fromEntries([...RD_KINDS.map(([k,t])=>[k,t]),...lhKeyList()]);
   let h=`<p class="dim fafull">Grave Blessing, the New Moon and every other raising from the grave: it picks the cards for you, best first, until the hand is full or the raising is done.</p>`;
   h+=sec("Which cards",K.chips(RD_KINDS,c.kinds,"data-grkind",off)+`<p class="dim">None ticked: any card.</p><details class="faextra"><summary>Yes, and… (single kinds: + always taken, − never taken)</summary>${K.pmChips(lhKeyList(),c.extra,c.minus,"data-grpm",off)}</details>`,"fafull");
-  h+=sec("In what order",row("group",c.group,"Rank by kinds of card","On: Special, Base, Standard and so on. Off: every single kind, like the King.",off)+
-    (c.group?kindRankHTML(c.gorder,"data-grg",names):kindRankHTML(c.korder,"data-grk",names))+row("strong",c.strong,"The strongest first","Within the same rank, the card worth the most.",off),"fafull");
+  /* v59: the ranking folds like the Field's: ▸ closed is off (only "the strongest first" decides), ▾ open is on */
+  h+=sec("In what order",`<details class="faextra fadet" data-grdet="rank" ${c.rank?"open":""}><summary>Rank the kinds of card <small class="dim">(${c.rank?"on":"off: the strongest first decides"})</small></summary>`+
+    row("group",c.group,"Rank by kinds of card","On: Special, Base, Standard and so on. Off: every single kind, like the King.",off)+
+    (c.group?kindRankHTML(c.gorder,"data-grg",names):kindRankHTML(c.korder,"data-grk",names))+`<p class="dim">The kinds at the top are raised first.</p></details>`+
+    row("strong",c.strong,"The strongest first","Within the same rank, the card worth the most.",off),"fafull");
   h+=sec("When nothing matches",row("askNone",c.askNone,"Ask which card to raise","Off: nothing is raised.",off),"fafull");
   return h}
 {const _wa=wireAuto;wireAuto=function(root){_wa(root);
+  root.querySelectorAll("[data-grdet]").forEach(d=>d.addEventListener("toggle",()=>{const c=grMine(),k=d.dataset.grdet;if(!!c[k]===d.open)return;c[k]=d.open;grSave(c)}));
   root.querySelectorAll('[data-amaster="grave"]').forEach(b=>b.onclick=()=>{const c=grMine();c.on=!c.on;grSave(c)});
   root.querySelectorAll("[data-gr]").forEach(i=>{const k=i.dataset.gr;if(!k)return;i.onchange=()=>{const c=grMine();c[k]=i.checked;grSave(c)}});
   root.querySelectorAll("[data-grkind]").forEach(i=>i.onchange=()=>{const c=grMine(),k=i.dataset.grkind;c.kinds=c.kinds.filter(x=>x!==k);if(i.checked)c.kinds.push(k);grSave(c)});
@@ -9399,7 +9406,8 @@ if(window.__EC)Object.assign(window.__EC,{grMine,grClean,grPick,faWindow:t=>faWi
 /* ---------------- v56: large maps and their camera ----------------
    A map 10 or more tiles across sits in a frame that scrolls. Zooming changes the size of the tiles (not a picture of
    them), so everything that measures the board (the fog, the effects, the card info) keeps working.
-   - The mouse wheel zooms around the pointer (Menu: off, or reversed).
+   - v59: the mouse wheel scrolls the page, as anywhere else; zooming with it is a choice (off by default) in the note
+     under the field, which also lists the controls and has − and + buttons. With it on, the wheel zooms around the pointer.
    - Dragging an empty spot of the field moves it; a stack is still clicked as always. On a touch screen the frame scrolls.
    - WASD or the arrow keys move it (Shift: faster), Q and E or C and V zoom in and out (Menu: reversed). Not while typing.
    - Menu, Large Map Controls: the wheel, both reversals and the speed. The section is faded outside a large map. */
@@ -9410,7 +9418,17 @@ function camWrap(){const B=$("#board");if(!B)return null;let w=B.parentNode&&B.p
   if(isLarge()&&!w){w=document.createElement("div");w.className="camwrap";B.parentNode.insertBefore(w,B);w.appendChild(B);camWire(w)}
   if(w){const on=isLarge();w.classList.toggle("on",on);B.classList.toggle("large",on);B.style.setProperty("--tw",Math.round(CAM.TILE*CAM.z)+"px")}
   return w}
-{const _r=render;render=function(){_r.apply(this,arguments);if(G)camWrap()}}
+{const _r=render;render=function(){_r.apply(this,arguments);if(G){camWrap();camNote()}}}
+/* ---------- the note under a large field: the controls, − and +, and the wheel's zoom switch ---------- */
+function camNote(){const w=camWrap();let n=$("#camnote");
+  if(!w||!isLarge()){if(n)n.hidden=true;return}
+  if(!n){n=document.createElement("div");n.id="camnote";n.className="camnote";w.after(n)}else if(n.previousElementSibling!==w)w.after(n);
+  n.hidden=false;const ph=isPhone(),key=(ph?"p":"c")+(PREF.camWheel===true);if(n.dataset.k===key)return;n.dataset.k=key;
+  n.innerHTML=`<span class="cz"><button type="button" class="btn ghost sm" data-cz="-1" aria-label="Zoom out">−</button><button type="button" class="btn ghost sm" data-cz="1" aria-label="Zoom in">+</button></span>`+
+    (ph?`<span class="dim">Swipe the field to move it.</span>`:`<span class="dim">Drag an empty spot to move the field · WASD or the arrow keys move it (Shift: faster) · Q and E zoom</span>
+<label class="cw"><input type="checkbox" id="camWheelBox" ${PREF.camWheel===true?"checked":""}> Zoom with the mouse wheel</label>`);
+  n.querySelectorAll("[data-cz]").forEach(b=>b.onclick=()=>camZoom(+b.dataset.cz>0?1.2:1/1.2));
+  const cb=n.querySelector("#camWheelBox");if(cb)cb.onchange=()=>{PREF.camWheel=cb.checked;savePrefs();const m=$("#mCamWheel");if(m)m.checked=cb.checked}}
 /* zoom, keeping the spot under the pointer (or the middle of the frame) where it is */
 function camZoom(f,cx,cy){const w=camWrap();if(!w||!isLarge())return;const r=w.getBoundingClientRect(),x=cx==null?r.width/2:cx-r.left,y=cy==null?r.height/2:cy-r.top;
   const z0=CAM.z,z1=Math.max(CAM.ZMIN,Math.min(CAM.ZMAX,z0*f));if(z1===z0)return;
@@ -9418,7 +9436,10 @@ function camZoom(f,cx,cy){const w=camWrap();if(!w||!isLarge())return;const r=w.g
   w.scrollLeft=px*z1-x;w.scrollTop=py*z1-y}
 function camPan(dx,dy){const w=camWrap();if(!w||!isLarge())return;w.scrollBy({left:dx,top:dy,behavior:"auto"})}
 function camWire(w){
-  w.addEventListener("wheel",e=>{if(!isLarge()||PREF.camWheel===false)return;e.preventDefault();const dir=(e.deltaY<0?1:-1)*(PREF.camInvWheel?-1:1);camZoom(dir>0?1.12:1/1.12,e.clientX,e.clientY)},{passive:false});
+  w.addEventListener("wheel",e=>{if(!isLarge()||e.ctrlKey)return;
+    if(PREF.camWheel!==true){   // the page scrolls, not the field's frame: the mouse over the field never traps the page
+      if(Math.abs(e.deltaX)>Math.abs(e.deltaY))return;e.preventDefault();const k=e.deltaMode===1?16:e.deltaMode===2?innerHeight:1;scrollBy(0,e.deltaY*k);return}
+    e.preventDefault();const dir=(e.deltaY<0?1:-1)*(PREF.camInvWheel?-1:1);camZoom(dir>0?1.12:1/1.12,e.clientX,e.clientY)},{passive:false});
   let drag=null,moved=false;
   w.addEventListener("pointerdown",e=>{if(!isLarge()||e.pointerType!=="mouse"||e.button!==0)return;if(e.target.closest(".stack,button,.ci,input,select,a"))return;
     drag={x:e.clientX,y:e.clientY,l:w.scrollLeft,t:w.scrollTop};moved=false});
@@ -9437,13 +9458,15 @@ document.addEventListener("keydown",e=>{if(!isLarge()||e.ctrlKey||e.metaKey||e.a
 {const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu");if(!m||m.querySelector("#mCam"))return;const anchor=m.querySelector("#mParts")||m.querySelector(".mgrid");if(!anchor)return;
   const on=isLarge(),c=(id,t,v)=>`<label class="farow"><span class="fal"><b>${t}</b></span><input type="checkbox" id="${id}" ${v?"checked":""} ${on?"":"disabled"}></label>`;
   anchor.insertAdjacentHTML("afterend",`<details id="mCam" class="sub${on?"":" faded"}"><summary>Large Map Controls${on?"":" <small>(large maps only)</small>"}</summary>
-<p class="dim">The mouse wheel zooms; drag an empty spot of the field to move it; WASD or the arrow keys move it (Shift: faster); Q and E, or C and V, zoom in and out.</p><div class="facats">
-${c("mCamWheel","Zoom with the mouse wheel",PREF.camWheel!==false)}${c("mCamInvW","Reverse the wheel's zoom",!!PREF.camInvWheel)}${c("mCamInvK","Reverse the keys' zoom",!!PREF.camInvKeys)}</div>
+<p class="dim">The mouse wheel scrolls the page unless zooming with it is on; drag an empty spot of the field to move it; WASD or the arrow keys move it (Shift: faster); Q and E, or C and V, zoom in and out.</p><div class="facats">
+${c("mCamWheel","Zoom with the mouse wheel",PREF.camWheel===true)}${c("mCamInvW","Reverse the wheel's zoom",!!PREF.camInvWheel)}${c("mCamInvK","Reverse the keys' zoom",!!PREF.camInvKeys)}</div>
 <label class="f mslide">Moving speed <input type="range" id="mCamSpd" min="40" max="300" step="10" value="${Math.round(camSpeed()*100)}" ${on?"":"disabled"}><b id="mCamSpdV">${Math.round(camSpeed()*100)}%</b></label></details>`);
   const set=(k,v)=>{PREF[k]=v;savePrefs()};
-  $("#mCamWheel").onchange=e=>set("camWheel",e.target.checked);$("#mCamInvW").onchange=e=>set("camInvWheel",e.target.checked);$("#mCamInvK").onchange=e=>set("camInvKeys",e.target.checked);
+  $("#mCamWheel").onchange=e=>{set("camWheel",e.target.checked);const n=$("#camnote");if(n)n.dataset.k="";camNote()};$("#mCamInvW").onchange=e=>set("camInvWheel",e.target.checked);$("#mCamInvK").onchange=e=>set("camInvKeys",e.target.checked);
   $("#mCamSpd").oninput=e=>{set("camSpeed",+e.target.value/100);$("#mCamSpdV").textContent=e.target.value+"%"}}}
 
+/* the crit seal over a card on a zoomed-out field is no bigger than its tile allows */
+{const _cb=critBanner;critBanner=function(){_cb.apply(this,arguments);const b=$("#critfx");if(!b)return;b.style.setProperty("--fxs",isLarge()?Math.max(.5,Math.min(1,CAM.TILE*CAM.z/64)).toFixed(2):"1")}}
 if(window.__EC)Object.assign(window.__EC,{camZoom,camPan,isLarge,CAM});
 
 /* ---------------- v57: King of the Hill ----------------
@@ -9658,9 +9681,20 @@ function kothMercs(pl){const K=G.opts.koth;if(K.target<100||isNPC(pl)||isHorde(p
 /* ---------- the Bank on the map ---------- */
 UNIT.banker={name:"The Banker",short:"Banker",word:"Banker",nat:0,soul:3,cost:3,noDef:true,noAtk:true,kind:"Wildcard",desc:"the Bank's own; he can't be attacked",rt:0};
 TYPEWORD.banker="Banker";KNAME.banker="Banker";UNIT_ICON.banker=UNIT_ICON.debt;UNIT_MARK.banker="$";
-function kothBank(){const B=npcIx("bank");if(B<0||!G.bank)return;const C=KOTH_C,spots=[[C-3,C],[C+3,C],[C,C-3],[C,C+3]].filter(([r,c])=>!isVoid(r,c)&&!G.board[r][c]);if(!spots.length)return;
-  const [r,c]=pick(spots);G.kothBank=[r,c];G.void[r][c]=true;   // the building: no card can enter it
-  const free=[[0,1],[0,-1],[1,0],[-1,0],[1,1],[-1,-1],[1,-1],[-1,1]].map(([a,b])=>[r+a,c+b]).filter(([a,b])=>a>=0&&b>=0&&a<G.rows&&b<COLS&&!isVoid(a,b)&&!isHill(a,b)&&!G.board[a][b]);
+/* v59: the Bank stands outside the mountains, never inside the ring around the Hill: just beyond it if there is room, and
+   never where the building and its guards would cut a way through to the Hill */
+const BANK_NB=[[0,1],[0,-1],[1,0],[-1,0],[1,1],[-1,-1],[1,-1],[-1,1]];
+function kothBankSpot(){const C=KOTH_C,cheb=(r,c)=>Math.max(Math.abs(r-C),Math.abs(c-C)),ok=(r,c)=>r>=0&&c>=0&&r<G.rows&&c<COLS&&!isVoid(r,c);
+  const reach=block=>{const seen=new Set([C+","+C]),q=[[C,C]];while(q.length){const [r,c]=q.pop();for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){const rr=r+a,cc=c+b,k=rr+","+cc;if(!ok(rr,cc)||seen.has(k)||block.has(k))continue;seen.add(k);q.push([rr,cc])}}return seen};
+  const base=reach(new Set()),cands=[];
+  for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){const d=cheb(r,c);if(d<6||d>9||!ok(r,c)||G.board[r][c]||!base.has(r+","+c))continue;
+    const f=BANK_NB.map(([a,b])=>[r+a,c+b]).filter(([a,b])=>ok(a,b)&&!isHill(a,b)&&!G.board[a][b]);if(f.length>=3)cands.push({r,c,d,f:f.slice(0,3)})}
+  shuffle(cands);cands.sort((a,b)=>a.d-b.d);   // just outside the mountains first
+  for(const x of cands){const block=new Set([x.r+","+x.c,...x.f.map(t=>t.join())]),after=reach(block);if([...base].every(k=>block.has(k)||after.has(k)))return x}
+  return null}
+function kothBank(){const B=npcIx("bank");if(B<0||!G.bank)return;const spot=kothBankSpot();if(!spot)return;
+  const {r,c}=spot;G.kothBank=[r,c];G.void[r][c]=true;   // the building: no card can enter it
+  const free=BANK_NB.map(([a,b])=>[r+a,c+b]).filter(([a,b])=>a>=0&&b>=0&&a<G.rows&&b<COLS&&!isVoid(a,b)&&!isHill(a,b)&&!G.board[a][b]);
   const put=(cards,extra)=>{const t=free.shift();if(!t)return;cards.forEach(x=>x.owner=B);G.board[t[0]][t[1]]={owner:B,cards,moved:true,attacked:true,...extra}};
   put([mkUnit("banker",B)],{banker:true});put([mkUnit("debt",B),mkUnit("carriage",B)],{guard:true});put([mkUnit("debt",B),mkUnit("carriage",B)],{guard:true});
   G._vis=null;if(G.map&&G.map.art)for(const k of Object.keys(G.map.art))if(k.startsWith(r+"."+c+"."))delete G.map.art[k]}
