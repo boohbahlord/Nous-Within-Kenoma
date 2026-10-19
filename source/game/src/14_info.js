@@ -53,7 +53,7 @@ function stealOnDamage(st){
 
 /* ---------- what a card or stack can do: the numbers behind the corner info ---------- */
 const UNIT_KIND={samson:"Wildcard",antony:"Wildcard",satan:"Wildcard",leviathan:"Wildcard",bullgoat:"Wildcard",goatbull:"Wildcard",debt:"Wildcard",slavemaster:"Wildcard",slave:"Wildcard",trafficker:"Wildcard",tree:"Base"};
-function cardClass(c){if(c.barb)return "Barbarian";if(isBase(c))return "Base";if(c.unit)return UNIT_KIND[c.unit]||UNIT[c.unit].kind||"Wildcard";if(isSpecial(c))return "Special";return "Standard"}
+function cardClass(c){if(c.barb)return "Demon";if(isBase(c))return "Base";if(c.unit)return UNIT_KIND[c.unit]||UNIT[c.unit].kind||"Wildcard";if(isSpecial(c))return "Special";return "Standard"}
 function rangeOf(st,mode){   // [min,max] of a stack's score
   const solo=st.cards.length===1&&st.cards[0].unit?st.cards[0]:null;
   if(solo&&UNIT[solo.unit].weapons){const U=UNIT[solo.unit];

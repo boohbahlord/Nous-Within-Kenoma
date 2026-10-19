@@ -1,7 +1,7 @@
 /* ---------------- Prompt 9: the Bank, loans and mana debt, selling cards, Gambling, max mana, Mystery Generation,
-   Barbarians, the meteor and its fire, the Banker's heart ---------------- */
+   Demons, the meteor and its fire, the Banker's heart ---------------- */
 
-/* ---------- the two sides nobody plays: the Barbarians and the Bank ----------
+/* ---------- the two sides nobody plays: the Demons and the Bank ----------
    They sit at the end of G.p with no seat, no deck and no mana, and act at the start of every round. */
 const isNPC=pl=>!!(G&&G.p[pl]&&G.p[pl].cpu==="npc");
 const npcIx=k=>G.p.findIndex(P=>P.npc===k);
@@ -9,7 +9,7 @@ function addNPCs(){
   G.bank={mana:0,dead:false,owes:[],buys:{},upsell:{},angry:false};
   if(G.opts.bankStart){const d=rollN(2*G.p.length,2);G.bank.mana=sum(d);G.bank.startRoll=d}
   if(survival())return;
-  for(const [k,name,color,solid] of [["barb","The Barbarian Band","#b3172c","dodeca"],["bank","The Bank","#d4a72c","octa"]]){
+  for(const [k,name,color,solid] of [["barb","The Demon Band","#b3172c","dodeca"],["bank","The Bank","#d4a72c","octa"]]){
     const i=G.p.length,P=mkPlayer(i,{name,color,solid,cpu:"npc"});P.npc=k;P.team=100+i;G.p.push(P);
     G.map.seats[i]={side:"none",rot:0,fwd:[0,0],back:[],zone:[]};
   }
@@ -51,7 +51,7 @@ function spellCost(sp){
   c=jupiterCost(sp,c);c=mercuryCost(sp,c);
   if(sp.school==="Conjuring"&&c>0){
     if(B.mana<0&&!B.dead)c=Math.max(1,c-1);   // the Bank is broke: the Ether goes on sale
-    const P=G.p[G.active];if(P&&P.saleUntil!=null&&tnOf(G.active)<=P.saleUntil)c=Math.max(0,c-saleCut(sp));   // a Barbarian-slayer's private sale: 1d2 − 1 off
+    const P=G.p[G.active];if(P&&P.saleUntil!=null&&tnOf(G.active)<=P.saleUntil)c=Math.max(0,c-saleCut(sp));   // a Demon-slayer's private sale: 1d2 − 1 off
   }
   return Math.max(0,c);
 }
@@ -87,7 +87,7 @@ function sellCards(pl,cards){const P=G.p[pl];let price=0;const rolls=[];cards=ca
 function sellThrall(pl){const P=G.p[pl];const c=(P.thralls||[]).shift();if(!c)return;c.owner=null;G.ether.push(c);const got=giveMana(pl,1);G.bank.mana-=got;
   log(`${plName(pl)} sells a thrall to the Bank (+${got} mana).`)}
 
-/* ---------- the start of a player's turn: interest, loans coming due, fire, Barbarians ---------- */
+/* ---------- the start of a player's turn: interest, loans coming due, fire, Demons ---------- */
 function bankTurn(pl){
   barbTick();
   const P=G.p[pl];if(!P||isHorde(pl)||!G.bank)return;
@@ -121,7 +121,7 @@ async function econRound(){
   G.fires=(G.fires||[]).filter(f=>f.until>=r);
   if(r>1&&Math.random()<(G.forceMeteor?1:.01)){G.forceMeteor=false;meteor()}
   if(G.over)return;
-  // a Blood Moon brings the Barbarians
+  // a Blood Moon brings the Demons
   if(G.moon.blood&&G.moon.i===4&&npcIx("barb")>=0&&G.opts.barbarians!==false)spawnBarbarians(true);
   // Saturn taxes the Bank too
   if(G.moon.gone==="saturn"&&G.saturnBy!=null&&!G.p[G.saturnBy].out&&!B.dead){const n=Math.min(1+(G.saturnDebt||0),Math.max(0,B.mana-BANK_FLOOR));B.mana-=n;const got=giveMana(G.saturnBy,n);log(`The Bank pays Saturn's tax: ${n} mana (${plName(G.saturnBy)} gets ${got}).`)}
@@ -191,7 +191,7 @@ function openBank(){
   const tt=n=>`${n} turn${n===1?"":"s"}`;
   const loans=(P.loans||[]).map(L=>`<li><b>${L.owed}</b> owed · grows in ${tt(Math.max(0,L.at-tnOf(V)))} · due in ${tt(Math.max(0,L.due-tnOf(V)))}</li>`).join("");
   const fl=floorOf(V),gap=e-fl,debt=P.debt||0;
-  const notes=[];if(B.dead)notes.push("The Banker is dead: the Bank and the Ether are closed.");if(B.angry)notes.push("The Banker is angry about the Barbarians holding the middle: every price +1.");
+  const notes=[];if(B.dead)notes.push("The Banker is dead: the Bank and the Ether are closed.");if(B.angry)notes.push("The Banker is angry about the Demons holding the middle: every price +1.");
   if(B.mana<0&&!B.dead)notes.push("The Bank is in the red: everything in the Ether costs 1 less.");const up=Object.keys(B.upsell);if(up.length)notes.push(`Upsold this round: ${up.map(id=>SP(id)?SP(id).name:id).join(", ")}.`);
   if(G.inflation&&G.turnNo<=G.inflation.until)notes.push(`After the collapse, prices wobble up until turn ${G.inflation.until}.`);
   const cap=soulCap(V),pay=Math.min(mana(V),owed),why=loanWhy(V);
@@ -265,7 +265,7 @@ function skyStrike(r,c,why){
   checkWin();
 }
 
-/* ---------- the Barbarians ---------- */
+/* ---------- the Demons ---------- */
 function barbTick(){
   const B=npcIx("barb");if(B<0||G.opts.barbarians===false||G.phase==="setup")return;
   if(G.barbNext==null){G.barbNext=G.turnNo+4+R(12);return}
@@ -274,19 +274,19 @@ function barbTick(){
   const held=stacksOf(B).some(x=>centerArea().some(([r,c])=>r===x.r&&c===x.c));
   if(held){if(G.barbHeld==null){G.barbHeld=G.turnNo;G.barbNeed=sum(rollN(7,2))}
     else if(G.bank&&!G.bank.angry&&!G.bank.dead&&G.turnNo-G.barbHeld>=G.barbNeed){G.bank.angry=true;
-      log(`<b>The Banker is angry.</b> The Barbarians have held the middle for ${G.barbNeed} turns: every price goes up by 1 until they are gone.`,"event");
-      popup("The Banker's justification",`<p>"Trade can't cross the middle of the field while those savages sit on it. Every caravan pays for guards, every guard wants his wage, and somebody has to pay the wage."</p><p>The Barbarians have held the middle for ${G.barbNeed} turns (7d2). Every spell costs 1 more until no Barbarian is left in the middle.</p>`)}}
-  else{G.barbHeld=null;if(G.bank&&G.bank.angry){G.bank.angry=false;log("The middle is clear of Barbarians: the Banker calms down and prices go back.","event")}}
+      log(`<b>The Banker is angry.</b> The Demons have held the middle for ${G.barbNeed} turns: every price goes up by 1 until they are gone.`,"event");
+      popup("The Banker's justification",`<p>"Trade can't cross the middle of the field while those savages sit on it. Every caravan pays for guards, every guard wants his wage, and somebody has to pay the wage."</p><p>The Demons have held the middle for ${G.barbNeed} turns (7d2). Every spell costs 1 more until no Demon is left in the middle.</p>`)}}
+  else{G.barbHeld=null;if(G.bank&&G.bank.angry){G.bank.angry=false;log("The middle is clear of Demons: the Banker calms down and prices go back.","event")}}
 }
 function centerArea(){const c0=centerTiles(),out=[];for(const [r,c] of c0)for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const rr=r+dr,cc=c+dc;if(rr>=0&&cc>=0&&rr<G.rows&&cc<COLS&&!out.some(t=>t[0]===rr&&t[1]===cc))out.push([rr,cc])}return out}
 function spawnBarbarians(blood){
   const B=npcIx("barb");if(B<0)return;
-  if(stacksOf(B).length>=6){log("The Barbarians already crowd the field: no new band comes.");return}
+  if(stacksOf(B).length>=6){log("The Demons already crowd the field: no new band comes.");return}
   const n=alive().filter(i=>!isHorde(i)).length,zones=new Set(G.p.flatMap((P,i)=>isNPC(i)?[]:seat(i).zone.map(t=>t.join())));
   const mid=[(G.rows-1)/2,(COLS-1)/2];const tiles=[];
   for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(!isVoid(r,c)&&!G.board[r][c]&&!zones.has(r+","+c))tiles.push([r,c]);
   tiles.sort((a,b)=>Math.hypot(a[0]-mid[0],a[1]-mid[1])-Math.hypot(b[0]-mid[0],b[1]-mid[1]));
-  if(!tiles.length){log("The Barbarians find no room in the middle.");return}
+  if(!tiles.length){log("The Demons find no room in the middle.");return}
   const dice=[],roll=(k,s)=>{let t=0;for(let i=0;i<k;i++){const v=R(s);dice.push({s,v});t+=v}return t},SU=["S","H","D","C"];
   const grunts=()=>Array.from({length:roll(1,3)+1},()=>mk(String(1+R(5)),pick(SU)));
   const inf=()=>Array.from({length:roll(1,3)},()=>mk(String(6+R(4)),pick(SU)));
@@ -301,11 +301,11 @@ function spawnBarbarians(blood){
   const put=cards=>{const t=tiles.shift();if(!t)return false;for(const c of cards){c.owner=B;c.wave=W.id;c.barb=true}G.board[t[0]][t[1]]={owner:B,cards,moved:true,attacked:true};W.left+=cards.length;return true};
   for(const s of stacks)if(put(s))W.stacks++;
   for(let i=0;i<aces;i++)if(put([mk("A",pick(SU))]))W.aces++;
-  tray(B,"Barbarians",dice,`${W.stacks} band${W.stacks>1?"s":""}${W.aces?` + ${W.aces} Ace${W.aces>1?"s":""}`:""}`,true);
-  log(`<b>Barbarians</b>${blood?" come with the Blood Moon and":""} take the middle of the field: ${W.stacks} band${W.stacks>1?"s":""}${W.aces?` and ${W.aces} Ace base${W.aces>1?"s":""}`:""}. They fight everyone.`,"event");
-  notify(null,`Barbarians take the middle of the field.`);
+  tray(B,"Demons",dice,`${W.stacks} band${W.stacks>1?"s":""}${W.aces?` + ${W.aces} Ace${W.aces>1?"s":""}`:""}`,true);
+  log(`<b>Demons</b>${blood?" come with the Blood Moon and":""} take the middle of the field: ${W.stacks} band${W.stacks>1?"s":""}${W.aces?` and ${W.aces} Ace base${W.aces>1?"s":""}`:""}. They fight everyone.`,"event");
+  notify(null,`Demons take the middle of the field.`);
 }
-/* the Barbarians strike at whatever stands beside them; they hold their ground */
+/* the Demons strike at whatever stands beside them; they hold their ground */
 async function barbAct(){
   const B=npcIx("barb");if(B<0)return;
   for(const {st,r,c} of stacksOf(B)){if(G.over||G.board[r][c]!==st)continue;st.attacked=false;st.moved=false;
@@ -313,7 +313,7 @@ async function barbAct(){
     if(best){attack(r,c,best.o.r,best.o.c,best.o.mode);render();await sleep(380)}
   }
 }
-/* who killed the Barbarians: the band's best killer gets a sale; a big band also clears their debt */
+/* who killed the Demons: the band's best killer gets a sale; a big band also clears their debt */
 function econBury(card,r,c,st){
   const F=G.fight,killer=F?(st===F.D?F.atkPl:st===F.A?F.defPl:null):null;
   warKill(killer);
@@ -326,13 +326,13 @@ function econBury(card,r,c,st){
 }
 function waveCleared(W){
   const ks=Object.entries(W.kills).sort((a,b)=>b[1]-a[1]);delete G.waves[W.id];
-  if(!ks.length){log("The last Barbarians of the band are gone.");return}
+  if(!ks.length){log("The last Demons of the band are gone.");return}
   const top=+ks[0][0],P=G.p[top];if(!P||P.out)return;
   P.saleUntil=tnOf(top)+3;
-  log(`<b>${plName(top)}</b> killed the most Barbarians (${ks[0][1]}): the Ether is on sale for them for three turns (every conjuring 1d2 − 1 less, never below 1 mana).`,"event");
+  log(`<b>${plName(top)}</b> killed the most Demons (${ks[0][1]}): the Ether is on sale for them for three turns (every conjuring 1d2 − 1 less, never below 1 mana).`,"event");
   if((W.aceKilled&&W.stacks>=2)||(W.stacks>=3&&!W.aces)){const d=P.debt||0,o=owedOf(top);P.debt=0;P.debtAt=null;P.loans=[];
-    log(`<b>The Banker forgives ${plName(top)}'s debts</b>${d||o?` (${d+o} mana)`:""} for breaking the Barbarians.`,"event");
-    popup("Debts forgiven",`<p>${plName(top)} broke a band of Barbarians${W.aceKilled?" and its Ace":""}. The Banker tears up their debts${d||o?`: ${d+o} mana`:""}.</p>`,top)}
+    log(`<b>The Banker forgives ${plName(top)}'s debts</b>${d||o?` (${d+o} mana)`:""} for breaking the Demons.`,"event");
+    popup("Debts forgiven",`<p>${plName(top)} broke a band of Demons${W.aceKilled?" and its Ace":""}. The Banker tears up their debts${d||o?`: ${d+o} mana`:""}.</p>`,top)}
   notify(top,`${esc(P.name)} gets an Ether sale for three turns.`);
 }
 

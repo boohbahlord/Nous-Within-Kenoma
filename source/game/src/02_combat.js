@@ -292,7 +292,7 @@ const capMana=j=>(j.captured||[]).reduce((a,c)=>a+soulOf(c),0);
 function bury(card,r,c,st){
   const owner=st.owner;
   if(card.puppet){toDark(card);log(`A Puppet falls into the Outer Darkness.`);return}   // v48: Puppets always go to the Outer Darkness
-  if(econBury(card,r,c,st))return;   // Barbarian kills are counted; what the Bank's Debt Collectors kill goes to the Ether
+  if(econBury(card,r,c,st))return;   // Demon kills are counted; what the Bank's Debt Collectors kill goes to the Ether
   if(card.upgraded){card.maxHp=2;card.upgraded=false}   // an upgraded Ace loses the extra heart when it falls
   if(card.hp!=null)card.hp=card.maxHp;
   if(card.hate)card.hate=false;

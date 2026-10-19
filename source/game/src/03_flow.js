@@ -266,7 +266,7 @@ function canPlace(card,r,c){
   if(!canSpawn(G.active,r,c)||isVoid(r,c))return false;
   const st=G.board[r][c],k=kind(card);
   if(k==="ace")return !st&&isBack(G.active,r,c);
-  if(k==="tree"||k==="wall"||(card.unit&&UNIT[card.unit].solo==="alone"))return !st;   // a Wall goes up on any empty tile of your two lines   // the Tree, Satan, the BullGoat and Slaves take an empty tile
+  if(k==="tree"||k==="wall"||(card.unit&&UNIT[card.unit].solo==="alone"))return !st;   // a Wall goes up on any empty tile of your spawn lines   // the Tree, Satan, the BullGoat and Slaves take an empty tile
   if(hq()&&!(st&&st.owner===G.active&&hasK(st,"ace")))return false;   // Headquarters: troops spawn only inside your Aces
   if(k==="joker"){if(!st||st.owner!==G.active)return false;return st.cards.some(x=>x.color===card.color)&&stackLegal([...st.cards,card])}
   if(!st)return true;

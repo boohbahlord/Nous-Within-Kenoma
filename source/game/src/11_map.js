@@ -32,17 +32,18 @@ function mapPlan(o){
     for(let k=0;k<lines;k++)for(const c of cs){const r=side==="bottom"?rows-1-k:k;(k===0?back:zone).push([r,c]);zone.push([r,c])}
     return{side,rot:S.rot,fwd:S.fwd,back,zone:[...new Map(zone.map(t=>[t.join(),t])).values()]}};
   const allc=[...Array(cols).keys()];
-  if(L==="duel"){seats.push(mk2("bottom",allc,2),mk2("top",allc,2));teams.push(0,1)}
+  const lines=cols<=5&&rows<=5?1:2;   // v53: a field 5 by 5 or smaller has one spawn line a side, the backline
+  if(L==="duel"){seats.push(mk2("bottom",allc,lines),mk2("top",allc,lines));teams.push(0,1)}
   else if(L==="ffa"||L==="team-side"||L==="team-across"){
     const sides=L==="ffa"?(n===3?["bottom","left","right"]:["bottom","left","top","right"]):L==="team-side"?["bottom","right","left","top"]:["bottom","left","top","right"];
     sides.slice(0,n).forEach((sd,i)=>{const t=edgeTiles(sd,rows,cols);seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:t,zone:t});teams.push(L==="ffa"?i:i%2)});
   }else if(L==="team-same"){
     const half=Math.floor(cols/2),lo=allc.slice(0,half),hi=allc.slice(half);
-    seats.push(mk2("bottom",lo,2),mk2("top",hi,2),mk2("bottom",hi,2),mk2("top",lo,2));teams.push(0,1,0,1);
+    seats.push(mk2("bottom",lo,lines),mk2("top",hi,lines),mk2("bottom",hi,lines),mk2("top",lo,lines));teams.push(0,1,0,1);
   }else if(L==="coop"){
     const h=n-1,w=Math.floor(cols/h);
-    for(let i=0;i<h;i++){seats.push(mk2("bottom",allc.slice(i*w,i===h-1?cols:(i+1)*w),2));teams.push(0)}
-    seats.push(mk2("top",allc,2));teams.push(1);
+    for(let i=0;i<h;i++){seats.push(mk2("bottom",allc.slice(i*w,i===h-1?cols:(i+1)*w),lines));teams.push(0)}
+    seats.push(mk2("top",allc,lines));teams.push(1);
   }
   // the hole in the middle (off by default; never with the river): one or two tiles each way, doubled or tripled where there's room
   const hole=+o.hole||0;

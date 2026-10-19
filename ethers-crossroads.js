@@ -314,7 +314,7 @@ function buildDecks(){
   shuffle(G.ether);
 }
 const survival=()=>G.opts.mode==="survival";
-const isHorde=pl=>!!(G.p[pl]&&(G.p[pl].cpu==="horde"||G.p[pl].cpu==="npc"));   // the Horde, and the Barbarians and the Bank (no deck, no hand, no mana)
+const isHorde=pl=>!!(G.p[pl]&&(G.p[pl].cpu==="horde"||G.p[pl].cpu==="npc"));   // the Horde, and the Demons and the Bank (no deck, no hand, no mana)
 const hordeIx=()=>G.p.findIndex(P=>P.cpu==="horde");
 const alive=()=>G.p.filter(P=>!P.out).map(P=>P.i);
 const isEnemy=(a,b)=>a!=null&&b!=null&&a!==b&&G.p[a].team!==G.p[b].team;
@@ -331,14 +331,16 @@ function view(){ // which player sits at the bottom of the screen
   return G.lastView??hs[0];
 }
 const seat=pl=>G.map.seats[pl];
-const canSpawn=(pl,r,c)=>G.zone[r][c]===pl;
+/* v53: you spawn in your own lines, or in a teammate's when they hold the same side of the field */
+const canSpawn=(pl,r,c)=>{const z=G.zone[r][c];if(z===pl)return true;if(z<0||!G.p[z]||!G.p[pl]||G.p[z].team!==G.p[pl].team||isNPC(z)||isNPC(pl))return false;
+  const a=G.map.seats[z],b=G.map.seats[pl];return !!a&&!!b&&a.side===b.side};
 const isBack=(pl,r,c)=>G.backz[r][c]===pl;
 const backTiles=pl=>seat(pl).back.filter(([r,c])=>!isVoid(r,c));
 const zoneTiles=pl=>seat(pl).zone.filter(([r,c])=>!isVoid(r,c));
 const isFront=(pl,r,c)=>canSpawn(pl,r,c)&&!isBack(pl,r,c);
 /* kept for the two-player field: the rows of player 0 (bottom) and player 1 (top) */
 function backRow(pl){return seat(pl).back[0][0]}
-function frontRow(pl){const z=seat(pl).zone.find(([r,c])=>!isBack(pl,r,c));return z?z[0]:backRow(pl)}
+function frontRow(pl){const S=seat(pl);return S.back[0][0]+S.fwd[0]}   // v53: the row in front of the backline, a spawn line or not
 const ownLines=(pl,r,c)=>c==null?G.zone[r].includes(pl):canSpawn(pl,r,c);
 function stacksOf(pl){const out=[];G.board.forEach((row,r)=>row.forEach((st,c)=>{if(st&&st.owner===pl)out.push({st,r,c})}));return out}
 function at(r,c){return r>=0&&r<G.rows&&c>=0&&c<COLS?G.board[r][c]:undefined}
@@ -703,7 +705,7 @@ const capMana=j=>(j.captured||[]).reduce((a,c)=>a+soulOf(c),0);
 function bury(card,r,c,st){
   const owner=st.owner;
   if(card.puppet){toDark(card);log(`A Puppet falls into the Outer Darkness.`);return}   // v48: Puppets always go to the Outer Darkness
-  if(econBury(card,r,c,st))return;   // Barbarian kills are counted; what the Bank's Debt Collectors kill goes to the Ether
+  if(econBury(card,r,c,st))return;   // Demon kills are counted; what the Bank's Debt Collectors kill goes to the Ether
   if(card.upgraded){card.maxHp=2;card.upgraded=false}   // an upgraded Ace loses the extra heart when it falls
   if(card.hp!=null)card.hp=card.maxHp;
   if(card.hate)card.hate=false;
@@ -1040,7 +1042,7 @@ function canPlace(card,r,c){
   if(!canSpawn(G.active,r,c)||isVoid(r,c))return false;
   const st=G.board[r][c],k=kind(card);
   if(k==="ace")return !st&&isBack(G.active,r,c);
-  if(k==="tree"||k==="wall"||(card.unit&&UNIT[card.unit].solo==="alone"))return !st;   // a Wall goes up on any empty tile of your two lines   // the Tree, Satan, the BullGoat and Slaves take an empty tile
+  if(k==="tree"||k==="wall"||(card.unit&&UNIT[card.unit].solo==="alone"))return !st;   // a Wall goes up on any empty tile of your spawn lines   // the Tree, Satan, the BullGoat and Slaves take an empty tile
   if(hq()&&!(st&&st.owner===G.active&&hasK(st,"ace")))return false;   // Headquarters: troops spawn only inside your Aces
   if(k==="joker"){if(!st||st.owner!==G.active)return false;return st.cards.some(x=>x.color===card.color)&&stackLegal([...st.cards,card])}
   if(!st)return true;
@@ -1143,7 +1145,7 @@ const SPELLS=[
  {id:"double",name:"Double Edged Sword",cost:1,school:"Curse",text:"Roll 3d6. Each 1 burns a card from your deck; each 6 burns a card from the enemy's deck.",ok:()=>!survival(),run:doubleEdge},
  {id:"three",dice:"1d3",name:"Three of Swords",cost:3,school:"Curse",text:"Roll 1d2. A 1 destroys one random card in the enemy's hand and one in yours; a 2 destroys two of each. If your hand runs short, the rest comes from your deck. The enemy loses nothing from the deck.",ok:()=>!survival(),run:threeSwords},
  {id:"clair",dice:"2+1d2",name:"Clairvoyance",cost:3,school:"Sorcery",text:"Look at 2d6 cards from your deck, take one into your hand, then reshuffle. 6 mana at the New Moon, 2 at the Full Moon.",ok:()=>me().deck.length>0&&me().hand.length<handCap(G.active),run:clairvoyance},
- {id:"tele",dice:"1d2−1",name:"Teleport",cost:1,school:"Sorcery",text:"Select your stack in your own two lines with no enemy beside it and leave exactly one card checked; that card leaves the field now and comes back into your hand at the start of your next turn.",ok:teleOk,run:teleport},
+ {id:"tele",dice:"1d2−1",name:"Teleport",cost:1,school:"Sorcery",text:"Select your stack in your own spawn lines with no enemy beside it and leave exactly one card checked; that card leaves the field now and comes back into your hand at the start of your next turn.",ok:teleOk,run:teleport},
  {id:"naked",dice:"1d2",name:"Naked Hand",cost:3,school:"Sorcery",text:"The other player's hand is shown to you for the rest of this turn, and both players are told it has been seen. 6 mana at the New Moon, free at the Full Moon.",ok:()=>!survival()&&enemiesOf(G.active).some(pl=>G.p[pl].hand.length>0),run:nakedHand},
  {id:"cj",name:"Jack Conjure",cost:1,school:"Conjuring",text:"A Jack's soul comes from the Ether into your deck.",ok:()=>etherHas("jack"),run:()=>conjure("jack")},
  {id:"cjk",name:"Joker Conjure",cost:2,school:"Conjuring",text:"A Joker's soul comes from the Ether into your deck.",ok:()=>etherHas("joker"),run:()=>conjure("joker")},
@@ -2017,7 +2019,7 @@ function renderSel(live){
   const box=$("#selbox"),st=selStack();
   if(G.phase==="setup"&&G.setupStep==="ace"&&live){box.innerHTML=`<p>Your Ace rises with a Jack inside it. Click a highlighted tile on your backline.</p>`;return}
   if(G.placing&&live){box.innerHTML=`<p><b>A Slave</b> is ready. Click an empty highlighted tile of your ground to put it down.</p>${unitInfo(G.placing)}`;return}
-  if(G.selHand){box.innerHTML=`${G.selHand.unit?unitInfo(G.selHand):""}<p><b>${esc(nameOf(G.selHand))}</b> selected. Click a highlighted tile in your two lines to place it${kind(G.selHand)==="ace"?" (Aces go on an empty backline tile)":kind(G.selHand)==="joker"?" (Jokers spawn onto your stack holding a card of the same color)":""}.</p>${!isBase(G.selHand)&&kind(G.selHand)!=="joker"&&!G.placing?`<label class="fdtog"><input type="checkbox" id="fdChk" ${G.faceDown?"checked":""}> Place it face down <small>Only you see it. Double disadvantage to attack, advantage to defend; it turns face up when attacked. Face-down stacks can ambush.</small></label>`:""}`;
+  if(G.selHand){box.innerHTML=`${G.selHand.unit?unitInfo(G.selHand):""}<p><b>${esc(nameOf(G.selHand))}</b> selected. Click a highlighted tile in your spawn lines to place it${kind(G.selHand)==="ace"?" (Aces go on an empty backline tile)":kind(G.selHand)==="joker"?" (Jokers spawn onto your stack holding a card of the same color)":""}.</p>${!isBase(G.selHand)&&kind(G.selHand)!=="joker"&&!G.placing?`<label class="fdtog"><input type="checkbox" id="fdChk" ${G.faceDown?"checked":""}> Place it face down <small>Only you see it. Double disadvantage to attack, advantage to defend; it turns face up when attacked. Face-down stacks can ambush.</small></label>`:""}`;
     if($("#fdChk"))$("#fdChk").onchange=e=>{G.faceDown=e.target.checked;render()};return}
   if(!st){box.innerHTML='<p class="dim">Select a stack on the board, or a card in your hand.</p>';return}
   if(showsBack(view(),G.sel.r,G.sel.c)){box.innerHTML=`<p><b>${esc(G.p[st.owner].name)}'s face-down stack</b> on ${coord(G.sel.r,G.sel.c)}. Its face is hidden; a Scout within two tiles would show it.</p>`;return}
@@ -2155,7 +2157,7 @@ const INFO={
  repair:["Repairman (support)","Repairman",[["Repair","one heart back to a Wall, an Ace or the Tree in his stack or beside it; then he rests 1d3 + 1 turns, and while he rests nothing fires from that base and it can't be repaired again"],["Strengthen","the Tree at full hearts goes up one, five at most"],["Upgrade","an Ace gets one more heart, once; he gives his life for it and goes to the grave"],["Fights","never; he dies last in his stack and can be captured when he stands alone"],["Conjure","2 mana; four per deck"]],"A hammer."],
  ram:["Battering Ram (support)","Ram",[["Ram","two damage to an enemy Wall right beside it, no roll; useless against Aces and the Tree"],["Crew","needs one or two Grunts, Infantry or Puppets in its stack; with nobody to push it, it can't move or ram"],["Can't die","blows never kill it: an enemy beside a lone Ram captures it (it joins a stack of soldiers that has room) or destroys it"],["Conjure","3 mana; four per deck"]],"A log on a frame."],
  miner:["Miner (support)","Miner",[["Miner slots","every Ace has two: a Miner there brings 1d2 − 1 mana at the start of every turn, from the round after it moves in"],["Crystal","on a crystal tile it digs: 1d2 each turn, and on a 2 it takes 1 + 1d3 of the crystal's 12 mana"],["In the open","1d6 − 5: one mana on a 6"],["First to fall","when its stack takes damage, the Miner goes first; an attacker beside it with a free capture slot takes it instead, and the blow still lands"],["Moves","one step"],["Stacks","two in an Ace, one with any other stack"],["Conjure","2 mana; four per deck; the Beginner's first Ace comes with one"]],"A pickaxe."],
- wall:["Wall (base)","Wall",[["Hearts","five; the cards inside are safe until it falls, then they all die with it"],["Defense","10"],["Holds","six cards, like an Ace; only ranged cards (Archers, Cannons) fire from it, one shot a turn"],["Moves","never; it goes up on any empty tile of your two lines"],["Hard hits","charges do double damage to it; Battering Rams and Cannons two; Lightning Strike two"],["Healing","a Healer can't heal it; a Repairman can"],["Conjure","4 mana; four per deck"]],"A fort wall."]
+ wall:["Wall (base)","Wall",[["Hearts","five; the cards inside are safe until it falls, then they all die with it"],["Defense","10"],["Holds","six cards, like an Ace; only ranged cards (Archers, Cannons) fire from it, one shot a turn"],["Moves","never; it goes up on any empty tile of your spawn lines"],["Hard hits","charges do double damage to it; Battering Rams and Cannons two; Lightning Strike two"],["Healing","a Healer can't heal it; a Repairman can"],["Conjure","4 mana; four per deck"]],"A fort wall."]
 };
 function infoHTML(){
   const tabs=Object.keys(INFO).map((k,i)=>`<button class="itab ${i===0?"on":""}" data-k="${k}">${INFO[k][0]}</button>`).join("");
@@ -2163,7 +2165,7 @@ function infoHTML(){
     return `<dt>${esc(s.name)} <span>${s.id==="hypo"?"3 + 1 per extra card":s.dice?s.dice+", rolled each round":s.cost?s.cost+" mana":"free"}${s.tribe&&TRIBES[s.tribe]?` · ${esc(TRIBES[s.tribe].name)}`:""}</span></dt><dd>${t.n?`<i>${esc(t.n)}</i> `:""}${esc(t.e)}${t.l?` <small>${esc(t.l)}</small>`:""}</dd>`}).join("")+"</dl>").join("");
   const subs=Object.entries(TRIBES).filter(([k])=>k!=="random").map(([k,t])=>`<dt>${esc(t.name)}</dt><dd>${esc(t.sub)}${t.pts&&t.pts.length?`<ul>${t.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>`:""}</dd>`).join("");
   return `<details class="cinfo basics"><summary>Basics explained</summary>
-<details class="sub"><summary>What am I doing?</summary><p>You command an army of cards on a small field. Each of your turns has three phases: <b>draw</b> (roll a d4 and draw that many, or skip), <b>prep</b> (place cards from your hand on your own two lines, move each stack one step, sacrifice cards for mana, cast spells) and <b>attack</b> (each of your stacks may attack an enemy stack next to it once). A fight compares two scores: the attacker's best card plus its die against the defender's best card. The loser takes a damage, which removes its lowest card. You win when the enemy has nothing left on the field, or no deck, hand or mana at all.</p><p>Your Ace starts on your back line with a Jack inside it. Aces are bases: they can't move or attack, they hold up to six cards, and they have two hearts. When an Ace falls, everything in it falls too.</p></details>
+<details class="sub"><summary>What am I doing?</summary><p>You command an army of cards on a small field. Each of your turns has three phases: <b>draw</b> (roll a d4 and draw that many, or skip), <b>prep</b> (place cards from your hand on your own spawn lines, move each stack one step, sacrifice cards for mana, cast spells) and <b>attack</b> (each of your stacks may attack an enemy stack next to it once). A fight compares two scores: the attacker's best card plus its die against the defender's best card. The loser takes a damage, which removes its lowest card. You win when the enemy has nothing left on the field, or no deck, hand or mana at all.</p><p>Your Ace starts on your back line with a Jack inside it. Aces are bases: they can't move or attack, they hold up to six cards, and they have two hearts. When an Ace falls, everything in it falls too.</p></details>
 <details class="sub"><summary>What matters on the screen?</summary><ul>
 <li><b>The field.</b> Your cards are at the bottom. Click one of your stacks to see where it can go (prep) or what it can hit (attack); the highlighted tiles are your options. Rest the mouse on a card's top-right corner (or tap it) for its stats; drag that corner onto another stack to compare them.</li>
 <li><b>Your deck and mana bars.</b> The deck bar is your army in reserve; the mana bar (indigo) pays for spells. Sacrificing a card gives you its soul as mana.</li>
@@ -2262,7 +2264,7 @@ function showStart(){
 <fieldset class="pf"><legend>Field</legend>
 ${chk("ocrys","Crystals (default)","A crystal cluster rises in the middle of the field every 1d6 + 4 turns (Headquarters opens with one). A Miner standing on it digs out its 12 mana.",true)}
 ${chk("ofog","Fog of war (default)","Each card sees only the eight tiles around it (a Scout two tiles out, in a diamond); ranged cards can fire blind into the fog. Assassins, ambushers and Scouts stay hidden until you stand right beside them.",true)}
-${chk("obarb","Barbarians (default)","Every 4 + 1d12 turns a crimson band of Grunts, Infantry or Jacks (sometimes with an Ace) takes the middle of the field and fights everyone. Whoever kills the most earns an Ether sale; a big band can earn debt forgiveness.",true)}
+${chk("obarb","Demons (default)","Every 4 + 1d12 turns a crimson band of Grunts, Infantry or Jacks (sometimes with an Ace) takes the middle of the field and fights everyone. Whoever kills the most earns an Ether sale; a big band can earn debt forgiveness.",true)}
 <label class="f">Hole in the middle <select id="ohole"><option value="0" selected>None (default)</option><option value="1">One or two tiles</option><option value="2">Doubled</option><option value="3">Tripled</option></select></label>
 <p class="dim">An empty pit in the center of the field, never on the River map and never in anyone's lines; it only grows where there is room.</p>
 ${chk("olock","Optional Ace rule","Cards inside an Ace must match its color.",false)}
@@ -2592,17 +2594,18 @@ function mapPlan(o){
     for(let k=0;k<lines;k++)for(const c of cs){const r=side==="bottom"?rows-1-k:k;(k===0?back:zone).push([r,c]);zone.push([r,c])}
     return{side,rot:S.rot,fwd:S.fwd,back,zone:[...new Map(zone.map(t=>[t.join(),t])).values()]}};
   const allc=[...Array(cols).keys()];
-  if(L==="duel"){seats.push(mk2("bottom",allc,2),mk2("top",allc,2));teams.push(0,1)}
+  const lines=cols<=5&&rows<=5?1:2;   // v53: a field 5 by 5 or smaller has one spawn line a side, the backline
+  if(L==="duel"){seats.push(mk2("bottom",allc,lines),mk2("top",allc,lines));teams.push(0,1)}
   else if(L==="ffa"||L==="team-side"||L==="team-across"){
     const sides=L==="ffa"?(n===3?["bottom","left","right"]:["bottom","left","top","right"]):L==="team-side"?["bottom","right","left","top"]:["bottom","left","top","right"];
     sides.slice(0,n).forEach((sd,i)=>{const t=edgeTiles(sd,rows,cols);seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:t,zone:t});teams.push(L==="ffa"?i:i%2)});
   }else if(L==="team-same"){
     const half=Math.floor(cols/2),lo=allc.slice(0,half),hi=allc.slice(half);
-    seats.push(mk2("bottom",lo,2),mk2("top",hi,2),mk2("bottom",hi,2),mk2("top",lo,2));teams.push(0,1,0,1);
+    seats.push(mk2("bottom",lo,lines),mk2("top",hi,lines),mk2("bottom",hi,lines),mk2("top",lo,lines));teams.push(0,1,0,1);
   }else if(L==="coop"){
     const h=n-1,w=Math.floor(cols/h);
-    for(let i=0;i<h;i++){seats.push(mk2("bottom",allc.slice(i*w,i===h-1?cols:(i+1)*w),2));teams.push(0)}
-    seats.push(mk2("top",allc,2));teams.push(1);
+    for(let i=0;i<h;i++){seats.push(mk2("bottom",allc.slice(i*w,i===h-1?cols:(i+1)*w),lines));teams.push(0)}
+    seats.push(mk2("top",allc,lines));teams.push(1);
   }
   // the hole in the middle (off by default; never with the river): one or two tiles each way, doubled or tripled where there's room
   const hole=+o.hole||0;
@@ -3384,7 +3387,7 @@ function stealOnDamage(st){
 
 /* ---------- what a card or stack can do: the numbers behind the corner info ---------- */
 const UNIT_KIND={samson:"Wildcard",antony:"Wildcard",satan:"Wildcard",leviathan:"Wildcard",bullgoat:"Wildcard",goatbull:"Wildcard",debt:"Wildcard",slavemaster:"Wildcard",slave:"Wildcard",trafficker:"Wildcard",tree:"Base"};
-function cardClass(c){if(c.barb)return "Barbarian";if(isBase(c))return "Base";if(c.unit)return UNIT_KIND[c.unit]||UNIT[c.unit].kind||"Wildcard";if(isSpecial(c))return "Special";return "Standard"}
+function cardClass(c){if(c.barb)return "Demon";if(isBase(c))return "Base";if(c.unit)return UNIT_KIND[c.unit]||UNIT[c.unit].kind||"Wildcard";if(isSpecial(c))return "Special";return "Standard"}
 function rangeOf(st,mode){   // [min,max] of a stack's score
   const solo=st.cards.length===1&&st.cards[0].unit?st.cards[0]:null;
   if(solo&&UNIT[solo.unit].weapons){const U=UNIT[solo.unit];
@@ -4075,9 +4078,9 @@ Object.assign(UNIT_ICON,{
   b.onclick=()=>{if(!canAct())return;libDone();render()}}}
 
 /* ---------------- Prompt 9: the Bank, loans and mana debt, selling cards, Gambling, max mana, Mystery Generation,
-   Barbarians, the meteor and its fire, the Banker's heart ---------------- */
+   Demons, the meteor and its fire, the Banker's heart ---------------- */
 
-/* ---------- the two sides nobody plays: the Barbarians and the Bank ----------
+/* ---------- the two sides nobody plays: the Demons and the Bank ----------
    They sit at the end of G.p with no seat, no deck and no mana, and act at the start of every round. */
 const isNPC=pl=>!!(G&&G.p[pl]&&G.p[pl].cpu==="npc");
 const npcIx=k=>G.p.findIndex(P=>P.npc===k);
@@ -4085,7 +4088,7 @@ function addNPCs(){
   G.bank={mana:0,dead:false,owes:[],buys:{},upsell:{},angry:false};
   if(G.opts.bankStart){const d=rollN(2*G.p.length,2);G.bank.mana=sum(d);G.bank.startRoll=d}
   if(survival())return;
-  for(const [k,name,color,solid] of [["barb","The Barbarian Band","#b3172c","dodeca"],["bank","The Bank","#d4a72c","octa"]]){
+  for(const [k,name,color,solid] of [["barb","The Demon Band","#b3172c","dodeca"],["bank","The Bank","#d4a72c","octa"]]){
     const i=G.p.length,P=mkPlayer(i,{name,color,solid,cpu:"npc"});P.npc=k;P.team=100+i;G.p.push(P);
     G.map.seats[i]={side:"none",rot:0,fwd:[0,0],back:[],zone:[]};
   }
@@ -4127,7 +4130,7 @@ function spellCost(sp){
   c=jupiterCost(sp,c);c=mercuryCost(sp,c);
   if(sp.school==="Conjuring"&&c>0){
     if(B.mana<0&&!B.dead)c=Math.max(1,c-1);   // the Bank is broke: the Ether goes on sale
-    const P=G.p[G.active];if(P&&P.saleUntil!=null&&tnOf(G.active)<=P.saleUntil)c=Math.max(0,c-saleCut(sp));   // a Barbarian-slayer's private sale: 1d2 − 1 off
+    const P=G.p[G.active];if(P&&P.saleUntil!=null&&tnOf(G.active)<=P.saleUntil)c=Math.max(0,c-saleCut(sp));   // a Demon-slayer's private sale: 1d2 − 1 off
   }
   return Math.max(0,c);
 }
@@ -4163,7 +4166,7 @@ function sellCards(pl,cards){const P=G.p[pl];let price=0;const rolls=[];cards=ca
 function sellThrall(pl){const P=G.p[pl];const c=(P.thralls||[]).shift();if(!c)return;c.owner=null;G.ether.push(c);const got=giveMana(pl,1);G.bank.mana-=got;
   log(`${plName(pl)} sells a thrall to the Bank (+${got} mana).`)}
 
-/* ---------- the start of a player's turn: interest, loans coming due, fire, Barbarians ---------- */
+/* ---------- the start of a player's turn: interest, loans coming due, fire, Demons ---------- */
 function bankTurn(pl){
   barbTick();
   const P=G.p[pl];if(!P||isHorde(pl)||!G.bank)return;
@@ -4197,7 +4200,7 @@ async function econRound(){
   G.fires=(G.fires||[]).filter(f=>f.until>=r);
   if(r>1&&Math.random()<(G.forceMeteor?1:.01)){G.forceMeteor=false;meteor()}
   if(G.over)return;
-  // a Blood Moon brings the Barbarians
+  // a Blood Moon brings the Demons
   if(G.moon.blood&&G.moon.i===4&&npcIx("barb")>=0&&G.opts.barbarians!==false)spawnBarbarians(true);
   // Saturn taxes the Bank too
   if(G.moon.gone==="saturn"&&G.saturnBy!=null&&!G.p[G.saturnBy].out&&!B.dead){const n=Math.min(1+(G.saturnDebt||0),Math.max(0,B.mana-BANK_FLOOR));B.mana-=n;const got=giveMana(G.saturnBy,n);log(`The Bank pays Saturn's tax: ${n} mana (${plName(G.saturnBy)} gets ${got}).`)}
@@ -4267,7 +4270,7 @@ function openBank(){
   const tt=n=>`${n} turn${n===1?"":"s"}`;
   const loans=(P.loans||[]).map(L=>`<li><b>${L.owed}</b> owed · grows in ${tt(Math.max(0,L.at-tnOf(V)))} · due in ${tt(Math.max(0,L.due-tnOf(V)))}</li>`).join("");
   const fl=floorOf(V),gap=e-fl,debt=P.debt||0;
-  const notes=[];if(B.dead)notes.push("The Banker is dead: the Bank and the Ether are closed.");if(B.angry)notes.push("The Banker is angry about the Barbarians holding the middle: every price +1.");
+  const notes=[];if(B.dead)notes.push("The Banker is dead: the Bank and the Ether are closed.");if(B.angry)notes.push("The Banker is angry about the Demons holding the middle: every price +1.");
   if(B.mana<0&&!B.dead)notes.push("The Bank is in the red: everything in the Ether costs 1 less.");const up=Object.keys(B.upsell);if(up.length)notes.push(`Upsold this round: ${up.map(id=>SP(id)?SP(id).name:id).join(", ")}.`);
   if(G.inflation&&G.turnNo<=G.inflation.until)notes.push(`After the collapse, prices wobble up until turn ${G.inflation.until}.`);
   const cap=soulCap(V),pay=Math.min(mana(V),owed),why=loanWhy(V);
@@ -4341,7 +4344,7 @@ function skyStrike(r,c,why){
   checkWin();
 }
 
-/* ---------- the Barbarians ---------- */
+/* ---------- the Demons ---------- */
 function barbTick(){
   const B=npcIx("barb");if(B<0||G.opts.barbarians===false||G.phase==="setup")return;
   if(G.barbNext==null){G.barbNext=G.turnNo+4+R(12);return}
@@ -4350,19 +4353,19 @@ function barbTick(){
   const held=stacksOf(B).some(x=>centerArea().some(([r,c])=>r===x.r&&c===x.c));
   if(held){if(G.barbHeld==null){G.barbHeld=G.turnNo;G.barbNeed=sum(rollN(7,2))}
     else if(G.bank&&!G.bank.angry&&!G.bank.dead&&G.turnNo-G.barbHeld>=G.barbNeed){G.bank.angry=true;
-      log(`<b>The Banker is angry.</b> The Barbarians have held the middle for ${G.barbNeed} turns: every price goes up by 1 until they are gone.`,"event");
-      popup("The Banker's justification",`<p>"Trade can't cross the middle of the field while those savages sit on it. Every caravan pays for guards, every guard wants his wage, and somebody has to pay the wage."</p><p>The Barbarians have held the middle for ${G.barbNeed} turns (7d2). Every spell costs 1 more until no Barbarian is left in the middle.</p>`)}}
-  else{G.barbHeld=null;if(G.bank&&G.bank.angry){G.bank.angry=false;log("The middle is clear of Barbarians: the Banker calms down and prices go back.","event")}}
+      log(`<b>The Banker is angry.</b> The Demons have held the middle for ${G.barbNeed} turns: every price goes up by 1 until they are gone.`,"event");
+      popup("The Banker's justification",`<p>"Trade can't cross the middle of the field while those savages sit on it. Every caravan pays for guards, every guard wants his wage, and somebody has to pay the wage."</p><p>The Demons have held the middle for ${G.barbNeed} turns (7d2). Every spell costs 1 more until no Demon is left in the middle.</p>`)}}
+  else{G.barbHeld=null;if(G.bank&&G.bank.angry){G.bank.angry=false;log("The middle is clear of Demons: the Banker calms down and prices go back.","event")}}
 }
 function centerArea(){const c0=centerTiles(),out=[];for(const [r,c] of c0)for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const rr=r+dr,cc=c+dc;if(rr>=0&&cc>=0&&rr<G.rows&&cc<COLS&&!out.some(t=>t[0]===rr&&t[1]===cc))out.push([rr,cc])}return out}
 function spawnBarbarians(blood){
   const B=npcIx("barb");if(B<0)return;
-  if(stacksOf(B).length>=6){log("The Barbarians already crowd the field: no new band comes.");return}
+  if(stacksOf(B).length>=6){log("The Demons already crowd the field: no new band comes.");return}
   const n=alive().filter(i=>!isHorde(i)).length,zones=new Set(G.p.flatMap((P,i)=>isNPC(i)?[]:seat(i).zone.map(t=>t.join())));
   const mid=[(G.rows-1)/2,(COLS-1)/2];const tiles=[];
   for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(!isVoid(r,c)&&!G.board[r][c]&&!zones.has(r+","+c))tiles.push([r,c]);
   tiles.sort((a,b)=>Math.hypot(a[0]-mid[0],a[1]-mid[1])-Math.hypot(b[0]-mid[0],b[1]-mid[1]));
-  if(!tiles.length){log("The Barbarians find no room in the middle.");return}
+  if(!tiles.length){log("The Demons find no room in the middle.");return}
   const dice=[],roll=(k,s)=>{let t=0;for(let i=0;i<k;i++){const v=R(s);dice.push({s,v});t+=v}return t},SU=["S","H","D","C"];
   const grunts=()=>Array.from({length:roll(1,3)+1},()=>mk(String(1+R(5)),pick(SU)));
   const inf=()=>Array.from({length:roll(1,3)},()=>mk(String(6+R(4)),pick(SU)));
@@ -4377,11 +4380,11 @@ function spawnBarbarians(blood){
   const put=cards=>{const t=tiles.shift();if(!t)return false;for(const c of cards){c.owner=B;c.wave=W.id;c.barb=true}G.board[t[0]][t[1]]={owner:B,cards,moved:true,attacked:true};W.left+=cards.length;return true};
   for(const s of stacks)if(put(s))W.stacks++;
   for(let i=0;i<aces;i++)if(put([mk("A",pick(SU))]))W.aces++;
-  tray(B,"Barbarians",dice,`${W.stacks} band${W.stacks>1?"s":""}${W.aces?` + ${W.aces} Ace${W.aces>1?"s":""}`:""}`,true);
-  log(`<b>Barbarians</b>${blood?" come with the Blood Moon and":""} take the middle of the field: ${W.stacks} band${W.stacks>1?"s":""}${W.aces?` and ${W.aces} Ace base${W.aces>1?"s":""}`:""}. They fight everyone.`,"event");
-  notify(null,`Barbarians take the middle of the field.`);
+  tray(B,"Demons",dice,`${W.stacks} band${W.stacks>1?"s":""}${W.aces?` + ${W.aces} Ace${W.aces>1?"s":""}`:""}`,true);
+  log(`<b>Demons</b>${blood?" come with the Blood Moon and":""} take the middle of the field: ${W.stacks} band${W.stacks>1?"s":""}${W.aces?` and ${W.aces} Ace base${W.aces>1?"s":""}`:""}. They fight everyone.`,"event");
+  notify(null,`Demons take the middle of the field.`);
 }
-/* the Barbarians strike at whatever stands beside them; they hold their ground */
+/* the Demons strike at whatever stands beside them; they hold their ground */
 async function barbAct(){
   const B=npcIx("barb");if(B<0)return;
   for(const {st,r,c} of stacksOf(B)){if(G.over||G.board[r][c]!==st)continue;st.attacked=false;st.moved=false;
@@ -4389,7 +4392,7 @@ async function barbAct(){
     if(best){attack(r,c,best.o.r,best.o.c,best.o.mode);render();await sleep(380)}
   }
 }
-/* who killed the Barbarians: the band's best killer gets a sale; a big band also clears their debt */
+/* who killed the Demons: the band's best killer gets a sale; a big band also clears their debt */
 function econBury(card,r,c,st){
   const F=G.fight,killer=F?(st===F.D?F.atkPl:st===F.A?F.defPl:null):null;
   warKill(killer);
@@ -4402,13 +4405,13 @@ function econBury(card,r,c,st){
 }
 function waveCleared(W){
   const ks=Object.entries(W.kills).sort((a,b)=>b[1]-a[1]);delete G.waves[W.id];
-  if(!ks.length){log("The last Barbarians of the band are gone.");return}
+  if(!ks.length){log("The last Demons of the band are gone.");return}
   const top=+ks[0][0],P=G.p[top];if(!P||P.out)return;
   P.saleUntil=tnOf(top)+3;
-  log(`<b>${plName(top)}</b> killed the most Barbarians (${ks[0][1]}): the Ether is on sale for them for three turns (every conjuring 1d2 − 1 less, never below 1 mana).`,"event");
+  log(`<b>${plName(top)}</b> killed the most Demons (${ks[0][1]}): the Ether is on sale for them for three turns (every conjuring 1d2 − 1 less, never below 1 mana).`,"event");
   if((W.aceKilled&&W.stacks>=2)||(W.stacks>=3&&!W.aces)){const d=P.debt||0,o=owedOf(top);P.debt=0;P.debtAt=null;P.loans=[];
-    log(`<b>The Banker forgives ${plName(top)}'s debts</b>${d||o?` (${d+o} mana)`:""} for breaking the Barbarians.`,"event");
-    popup("Debts forgiven",`<p>${plName(top)} broke a band of Barbarians${W.aceKilled?" and its Ace":""}. The Banker tears up their debts${d||o?`: ${d+o} mana`:""}.</p>`,top)}
+    log(`<b>The Banker forgives ${plName(top)}'s debts</b>${d||o?` (${d+o} mana)`:""} for breaking the Demons.`,"event");
+    popup("Debts forgiven",`<p>${plName(top)} broke a band of Demons${W.aceKilled?" and its Ace":""}. The Banker tears up their debts${d||o?`: ${d+o} mana`:""}.</p>`,top)}
   notify(top,`${esc(P.name)} gets an Ether sale for three turns.`);
 }
 
@@ -5120,8 +5123,8 @@ document.addEventListener("touchmove",()=>clearTimeout(lpT),{passive:true});
 document.addEventListener("click",e=>{if(!touchy())return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]");if(!el||el.closest("button,label"))return;showTip(el,true);e.stopPropagation()});
 document.addEventListener("click",e=>{const t=$("#tipbox");if(t&&!t.hidden&&!e.target.closest("#tipbox")&&!(e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]")))t.hidden=true});
 /* piles (grave, Ether, Outer Darkness) grouped the way the shop is: by card type */
-const PILE_ORDER=["Standard","Special","Support","Base","Wildcard","Barbarian"];
-function pileGroups(cards){const g={};for(const c of cards){let k=cardClass(c);if(k==="Barbarian")k="Standard";(g[k]=g[k]||[]).push(c)}
+const PILE_ORDER=["Standard","Special","Support","Base","Wildcard","Demon"];
+function pileGroups(cards){const g={};for(const c of cards){let k=cardClass(c);if(k==="Demon")k="Standard";(g[k]=g[k]||[]).push(c)}
   const rk=c=>c.unit?100+Object.keys(UNIT).indexOf(c.unit):c.rank==="JK"?60:({J:51,Q:52,K:53,A:54}[c.rank]||num(c));
   return PILE_ORDER.filter(k=>g[k]).map(k=>[k,g[k].sort((a,b)=>rk(a)-rk(b))])}
 /* ---------- card info: rest the mouse on a card's top-right corner (no click); tap it on a touch screen ---------- */
@@ -5177,7 +5180,7 @@ const SPELL_TEXT={
  joy:{e:"Choose one, until your next turn. Pleasure and Joy: your cards glow, and those that die go back into your deck instead of the grave. Joyful Theft: each damage an enemy deals to your units moves 1 mana from them to you.",l:"Pleasure and Joy costs 1 + 1d2; Joyful Theft costs 1d3 − 1."},
  // Sorcery
  clair:{e:"Look at 2d6 cards of your deck and take one into your hand. Then the deck is shuffled.",l:"Needs room in your hand. 6 mana at the New Moon, 2 at the Full Moon."},
- tele:{n:"Select your stack in your own two lines, with no enemy beside it, and leave exactly one card checked.",e:"That card leaves the field and comes back into your hand at the start of your next turn.",l:"Needs room in your hand."},
+ tele:{n:"Select your stack in your own spawn lines, with no enemy beside it, and leave exactly one card checked.",e:"That card leaves the field and comes back into your hand at the start of your next turn.",l:"Needs room in your hand."},
  naked:{e:"You see your enemy's hand for the rest of this turn. Both of you are told it was seen.",l:"6 mana at the New Moon, free at the Full Moon."},
  bird:{e:"The fog of war lifts for you and your teammates for the rest of this round.",l:"Only with fog of war on. It does nothing against a Delusion."},
  gamble:{e:"Roll 1d10. On a 10 the Bank pays you 7d2 mana. On a 1 you lose one maximum mana, take 7d2 of mana debt, and a deck card goes to the Ether. Anything else: the mana is gone.",l:"Only while the Bank is open."},
@@ -5375,7 +5378,7 @@ const BANK_HELP=[
  ["Credit","Not a loan: tick Spend on credit to cast spells you can't afford. What your souls don't cover becomes mana debt at once."],
  ["Mana debt","Debt shows as mana below zero. It grows by 1d2 every 3 of your turns, and every soul you gain pays it first."],
  ["Your lowest point","You can go down to −8 (−12 under the Oath of Jupiter). Below that you lose the game."],
- ["Bounties","Each Report puts a bounty on everyone in bad standing. The Oath of Mercury (or anyone while Mercury is up) can take one and buy Debt Collectors (2 mana) that hunt only that player. Collect the debt within two Reports: half of it is yours, and your own debts are forgiven."],
+ ["Bounties","Each Report puts a bounty on everyone in bad standing. The Oath of Mercury (or anyone while Mercury is up) can take one: 5 Debt Collectors into the deck and 2 into the hand, hunting only that player (more for 2 mana each). Collect the debt within two Reports: half of it is yours, and your own debts are forgiven."],
  ["Debt Collectors","Stay below zero for 3 of your turns, or leave a Bank loan open for 3 + (owed ÷ 3) of your turns, and you are in default. From then on, at the start of each of your turns the Bank sends 1d2 Debt Collectors (half as many again after six turns in default; six at most on the field) after whoever owes the most, until it is paid off. Every card they kill goes to the Ether, and its worth pays the debt. Only a player who owes the Bank can strike a Debt Collector."],
  ["The Report","Every Full Moon (every eighth round without the Moon) the Bank hands each player a Credit and Loan Report: what was taken on loans and credit, the interest, the taxes, the mana earned, and good or bad standing."],
  ["Taxes","On Report day only: 1d2 for a base in the middle of the field; every other Ace or Tree, 1 in 3 (1 in 2 in bad standing) of 1d2. With no mana a tax goes unpaid (no credit), and the standing turns bad."],
@@ -5383,10 +5386,10 @@ const BANK_HELP=[
  ["Selling","Sell cards from your hand or deck for their soul worth, or 1 less (rolled at the sale). A standard card worth only 1 can't be sold. Sold cards go to the Ether, and your deck is reshuffled. Binah can sell thralls for 1 mana."],
  ["Upselling","A spell bought more than twice in each of two rounds in a row costs 1d2 − 1 more."],
  ["When the Bank is in the red","The Ether goes on sale (1 less, never below 1), and the Bank asks the richest player for a loan."],
- ["The angry Banker","If Barbarians hold the middle of the field for 7d2 turns, every price goes up by 1 until they are gone."],
+ ["The angry Banker","If Demons hold the middle of the field for 7d2 turns, every price goes up by 1 until they are gone."],
  ["Collapse","If the Bank and every player are 3 or more below zero, the Bank collapses: mana and debts go to zero, every maximum falls to three, cards leave the decks for the Ether, and prices wobble up for a while."]];
-function bankExplainHTML(){return `<details class="sub"><summary>The Bank, Barbarians and meteors explained</summary><dl class="spellinfo">${BANK_HELP.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}
-<dt>Barbarians</dt><dd>A crimson band takes the middle every 4 + 1d12 turns and with every Blood Moon, and fights anyone beside it. The player who kills the most of a band gets an Ether sale; breaking a big band can earn debt forgiveness.</dd>
+function bankExplainHTML(){return `<details class="sub"><summary>The Bank, Demons and meteors explained</summary><dl class="spellinfo">${BANK_HELP.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}
+<dt>Demons</dt><dd>A crimson band takes the middle every 4 + 1d12 turns and with every Blood Moon, and fights anyone beside it. The player who kills the most of a band gets an Ether sale; breaking a big band can earn debt forgiveness.</dd>
 <dt>Meteor</dt><dd>One round in a hundred: damage where it lands and maybe around it, then fire for two rounds.</dd>
 <dt>Gambling, Increase Max Mana, Mystery Generation</dt><dd>Gambling (Sorcery, 1 mana): a 10 on 1d10 wins 7d2; a 1 costs a maximum mana, 7d2 of debt and a deck card. Increase Max Mana (Conjuring, 4): +1, eighteen at most. Mystery Generation (in the Auction, 3 to 8 mana): three brand-new cards of any rarity, wildcards included.</dd></dl></details>`}
 
@@ -8236,7 +8239,7 @@ mountMustKnow();paintHelpHead();
 if(window.__EC)Object.assign(window.__EC,{openMustKnow,helpToast});
 
 /* ---------------- v45: nothing in the Ether is free ----------------
-   Sales and blessings (a Barbarian-slayer's Ether sale, Venus, the Oath of the Moon, Jupiter) can make a conjuring cheaper, but
+   Sales and blessings (a Demon-slayer's Ether sale, Venus, the Oath of the Moon, Jupiter) can make a conjuring cheaper, but
    never cheaper than 1 mana, so nobody can sweep the Ether bare for nothing. */
 {const _sc=spellCost;spellCost=function(sp){let c=_sc(sp);if(sp&&sp.school==="Conjuring"&&G&&baseCost(sp)>0)c=Math.max(1,c);return c}}
 
@@ -8700,7 +8703,7 @@ ${paper({...rp},true)}${R0?paper(R0,false):`<p class="dim">No Report yet.</p>`}$
   if(P.noLoans)t.push(`<span class="debttag" data-tip="Tried to rob the Bank: no loans or credit, ever.">No loans</span>`);
   return t}}
 const TAG_TIPS=[[/^Debt −/,"Mana debt: shows as mana below zero. Every soul gained pays it first; it grows by 1d2 every 3 turns."],[/^Loans /,"Owed to the Bank in loans, interest included."],[/^Credit$/,"Spends on credit: spells it can't afford become mana debt."],
-  [/^Ether sale$/,"Killed the most Barbarians: conjuring costs 1d2 − 1 less (never below 1)."],[/^Max /,"Maximum mana changed by spells and events."],[/^Sun-blind$/,"Blinded by the Second Sun."],[/^Choking on the Sun$/,"The Second Sun chokes this player: no attacks."]];
+  [/^Ether sale$/,"Killed the most Demons: conjuring costs 1d2 − 1 less (never below 1)."],[/^Max /,"Maximum mana changed by spells and events."],[/^Sun-blind$/,"Blinded by the Second Sun."],[/^Choking on the Sun$/,"The Second Sun chokes this player: no attacks."]];
 {const _et=econTags;econTags=function(P){return _et(P).map(h=>{if(/data-tip=/.test(h))return h;const m=/^<span([^>]*)>([^<]*)</.exec(h);if(!m)return h;const tip=TAG_TIPS.find(([re])=>re.test(m[2]));
   return tip?h.replace("<span",`<span data-tip="${esc(tip[1])}"`):h})}}
 if(window.__EC)Object.assign(window.__EC,{bankReport,buyLand,landFree,forgiveLoan,giftMana,giftCard,rpOf,attackOptions:(...a)=>attackOptions(...a)});
@@ -8922,7 +8925,7 @@ function bountyHTML(V){const live=canAct()&&G.phase==="prep"&&G.active===V,can=b
     return `<li class="bnty${mine?" mine":""}"><b>${plName(b.target)}</b> owes <b>${b.owed}</b>${b.state==="taken"?` · ${mine?"yours":`hunted by ${plName(b.by)}`}: ${Math.min(b.got,b.owed)} of ${b.owed} collected, ${Math.max(0,b.due-(G.reportN||0))} Report${b.due-(G.reportN||0)===1?"":"s"} left`:""}
 ${b.state==="open"&&b.target!==V?`<button class="btn sm" data-bacc="${b.id}" ${live&&can?"":"disabled"}>Accept</button>`:""}
 ${mine?`<button class="btn sm" data-bcol="${b.id}" ${live&&cs<BOUNTY_MAXC&&canAfford(V,BOUNTY_COLL)?"":"disabled"}>Buy a Debt Collector (${BOUNTY_COLL} mana) · ${cs}/${BOUNTY_MAXC}</button>${caps.map(x=>`<button class="btn ghost sm" data-bcap="${x.r},${x.c}" ${live?"":"disabled"}>Turn in the captured ${esc(nameOf(x.st.captive))} (${costOf(x.st.captive)||1})</button>`).join("")}`:""}</li>`};
-  return `<p class="dim">Each Report puts a bounty on everyone in bad standing. Take one and buy Debt Collectors (2 mana) that hunt only that player, a teammate too, with no betrayal. Their kills, and captured support cards you turn in, pay off the debt. Finish within two Reports: half the debt is yours, and your own Bank debts are forgiven. Fail: your Collectors go to the Bank, your other bounties end, and you wait one Report.</p>
+  return `<p class="dim">Each Report puts a bounty on everyone in bad standing. Take one: 5 Debt Collectors go into your deck and 2 into your hand (past the hand limit if need be). They hunt only that player, a teammate too, with no betrayal; more can be bought for 2 mana. Their kills, and captured support cards you turn in, pay off the debt. Finish within two Reports: half the debt is yours, and your own Bank debts are forgiven. Fail: your Collectors in hand, deck and field go to the Bank, your other bounties end, and you wait one Report.</p>
 ${why?`<p class="bwhy">${why}</p>`:""}${L.length?`<ul class="p2pl bntyl">${L.map(row).join("")}</ul>`:`<p class="dim">No bounties right now.</p>`}`}
 {const _ob=openBank;openBank=function(){_ob();const box=$("#ov .ovbox.bank");if(!box||!G)return;const V=view(),live=canAct()&&G.phase==="prep"&&G.active===V;
   const tabs=box.querySelector(".btabs");
@@ -9218,5 +9221,68 @@ function trayAllHTML(){const L=G.p.map((P,i)=>({P,i})).filter(x=>x.P.tray&&!isNP
   return `<div class="trayall"><span class="tl">Dice, newest first</span>${L.map(({P,i})=>{const t=P.tray;return `<button type="button" class="trow" data-hist="${i}" style="--pc:${P.color}" aria-label="${esc(P.name)}: show history"><b>${esc(P.name)}</b><small>${esc(t.label)}</small><span class="dice">${t.dice.length?t.dice.map(d=>dieSVG(d,P.color)).join(""):'<span class="dim">no dice</span>'}</span>${t.line?`<em>${esc(t.line)}</em>`:""}</button>`}).join("")}</div>`}
 {const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const foe=$("#foe");if(foe)foe.classList.toggle("minis",multiView());
   if(multiView()){const t=$("#mytray");if(t&&t.innerHTML){t.innerHTML=trayAllHTML();t.querySelectorAll("[data-hist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.hist,b)})}}}}
+
+/* ---------------- v53: bounty Collectors in hand and deck, Demons, the Bank's black Collectors, crits on the cards ----------------
+   - Taking a bounty puts 5 Debt Collectors (made from nothing) into the hunter's deck and 2 into the hand, past the hand limit if
+     need be: the one place the limit can be broken. Placed, they hunt only the bounty's target. When the bounty ends they vanish;
+     when it fails, the Bank takes them from hand, deck and field and sets them on the field as its own.
+   - The Demon Band's stacks are crimson; the Bank's Debt Collectors are black cards with red letters and gold edges.
+   - The crit banner is a small glowing seal over the card it concerns, carried by the page (it scrolls with the field).
+     Every effect over the cards is drawn on the page, not on the screen, so it stays on its card when the page scrolls.
+   - The music dips for a moment under a cycle's sound (a bell, drums, a harp…), without touching the volume settings. */
+
+/* ---------- the bounty's own Collectors ---------- */
+const BOUNTY_DECK=5,BOUNTY_HAND=2;
+{const _ab=acceptBounty;acceptBounty=function(pl,id){const ok=_ab.apply(this,arguments);if(!ok||NET.role==="guest")return ok;
+  const P=G.p[pl],mk1=()=>{const c=mkUnit("debt",pl);c.bounty=id;return c};
+  for(let i=0;i<BOUNTY_DECK;i++)P.deck.push(mk1());shuffle(P.deck);
+  for(let i=0;i<BOUNTY_HAND;i++)P.hand.push(mk1());   // past the hand limit if need be: the only place it can be broken
+  log(`The Bank arms ${plName(pl)} for the hunt: ${BOUNTY_DECK} Debt Collectors into the deck and ${BOUNTY_HAND} into the hand.`);
+  return ok}}
+/* a Collector card placed on the field carries its bounty with it */
+{const _pl=place;place=function(card,r,c){const out=_pl.apply(this,arguments);const st=G.board[r]&&G.board[r][c];if(card&&card.bounty!=null&&st)st.bounty=card.bounty;return out}}
+const bountyCards=(pl,ids)=>{const P=G.p[pl];return P?[...P.hand,...P.deck].filter(c=>c.bounty!=null&&ids.includes(c.bounty)):[]};
+function dropBountyCards(pl,ids){const P=G.p[pl];if(!P)return [];const out=bountyCards(pl,ids);P.hand=P.hand.filter(c=>!out.includes(c));P.deck=P.deck.filter(c=>!out.includes(c));return out}
+{const _be=bountyEnd;bountyEnd=function(b,state,msg){const out=_be.apply(this,arguments);if(b.by!=null){const n=dropBountyCards(b.by,[b.id]).length;if(n)log(`${n} unused Debt Collector${n>1?"s":""} of the bounty fade${n>1?"":"s"} back into nothing.`)}return out}}
+{const _bf=bountyFail;bountyFail=function(b){const h=b.by,ids=bountiesOf().filter(x=>x.by===h&&x.state==="taken").map(x=>x.id),cards=dropBountyCards(h,ids),bk=npcIx("bank");
+  const out=_bf.apply(this,arguments);let n=0;
+  if(bk>=0)for(const c of cards){const t=freeTilesNear(b.target,true)[0];if(!t)break;c.owner=bk;delete c.bounty;G.board[t[0]][t[1]]={owner:bk,cards:[c],moved:true,attacked:true,hunt:b.target};n++}
+  if(n)log(`The Bank sets ${n} of ${plName(h)}'s Debt Collectors from hand and deck on the field as its own.`);
+  return out}}
+
+/* ---------- the look of the Demons and of the Bank's Collectors ---------- */
+{const _sd=siegeDecor;siegeDecor=function(inner,st,V,r,c){let h=_sd.apply(this,arguments);if(!st)return h;
+  const P=G.p[st.owner];let cls="";
+  if(P&&P.npc==="barb"||st.cards.some(x=>x.barb))cls+=" demon";
+  if(P&&P.npc==="bank"&&st.cards.every(x=>x.unit==="debt"))cls+=" bankcoll";
+  if(st.bounty!=null)cls+=" bountycoll";
+  return cls?h.replace('class="stack ',`class="stack${cls} `):h}}
+
+/* ---------- every effect is drawn on the page, so it stays on its card when the page scrolls ---------- */
+{const _ly=FX.layer;FX.layer=function(){const l=_ly.call(FX);
+  if(!l._paged){l._paged=true;l.appendChild=function(e){if(e&&e.style){const L=parseFloat(e.style.left),T=parseFloat(e.style.top);   // screen spots become page spots
+      if(!isNaN(L))e.style.left=(L+scrollX)+"px";if(!isNaN(T))e.style.top=(T+scrollY)+"px"}return Node.prototype.appendChild.call(this,e)}}
+  const h=Math.max(document.documentElement.scrollHeight,document.body.scrollHeight)+"px";if(l.style.height!==h)l.style.height=h;
+  return l}}
+
+/* ---------- the crit seal, over the card it concerns ---------- */
+{const _ar=attackRun;attackRun=function(r1,c1,r2,c2){const was=G._atk;G._atk=[r2,c2];try{return _ar.apply(this,arguments)}finally{G._atk=was}}}
+{const _cl=critLog;critLog=function(k,n,html){_cl.apply(this,arguments);if(G._atk&&G.log[0]&&G.log[0].crit)Object.assign(G.log[0].crit,{r:G._atk[0],c:G._atk[1]})}}
+const SEAL_SVG=n=>`<svg viewBox="-50 -50 100 100" aria-hidden="true"><polygon class="s1" points="0,-46 40,-23 40,23 0,46 -40,23 -40,-23"/><path class="s2" d="M0,-46L-24,14L24,14Z M-40,-23L-24,14 M40,-23L24,14 M-40,23L-24,14 M40,23L24,14 M0,46L-24,14 M0,46L24,14"/><circle class="s3" r="48"/><text x="0" y="6" text-anchor="middle" dominant-baseline="middle">${n}</text></svg>`;
+critBanner=function(k,n,r,c){if(typeof fxPartOn==="function"&&!fxPartOn("banners"))return;
+  if(r==null&&G&&G.log){const e=G.log.find(l=>l.crit);if(e&&e.crit.k===k&&e.crit.n===n){r=e.crit.r;c=e.crit.c}}
+  let b=$("#critfx");if(!b){b=document.createElement("div");b.id="critfx";b.setAttribute("aria-live","polite");document.body.appendChild(b)}
+  const t=k==="hit"?"Crit Hit":k==="miss"?"Crit Miss":k==="success"?"Crit Success":"Miss";
+  const tile=r!=null?document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`):null,box=(tile||$("#board")||document.body).getBoundingClientRect();
+  b.style.left=(box.left+box.width/2+scrollX)+"px";b.style.top=(tile?box.top+box.height*.15:box.top+box.height/2)+scrollY+"px";
+  b.className="k-"+k+(tile?" ontile":"");b.innerHTML=`${k==="dodge"?"":SEAL_SVG(n)}<b>${t}</b><i class="sp a"></i><i class="sp b"></i><i class="sp c"></i>`;
+  b.hidden=false;b.classList.remove("go");void b.offsetWidth;b.classList.add("go");
+  clearTimeout(critBanner.t);critBanner.t=setTimeout(()=>{b.hidden=true},1900)};
+
+/* ---------- the music dips under a cycle's sound ---------- */
+for(const k of ["moonchime","bell","horn","harp","coins","drums","quill","whispers"])if(typeof AUD[k]==="function"){const f=AUD[k];
+  AUD[k]=function(){try{if(window.ECMusic&&ECMusic.duck)ECMusic.duck(k==="whispers"?3200:2600)}catch(e){}return f.apply(this,arguments)}}
+
+if(window.__EC)Object.assign(window.__EC,{critBanner:(...a)=>critBanner(...a),acceptBounty:(...a)=>acceptBounty(...a),place:(...a)=>place(...a),canPlace:(...a)=>canPlace(...a),attackRun:(...a)=>attackRun(...a)});
 
 })();

@@ -22,7 +22,7 @@ MODES_HTML = """<h2 id="modes">Game Modes</h2>
 <p>A Substance is what you play as. Each one changes your deck, your spells or your limits. <a href="ethers-crossroads-rules.html#substances">Every Substance in full</a>.</p>
 <dl class="subtags">@@SUBTAGS@@</dl>
 <h3>More players, maps and options</h3>
-<p>With three or four players the field is a 7 by 7 square by default: free-for-all, or two against two with teammates side by side, across, or sharing one end. The battle maps are the Keep, the Sahel, the Forest, the Dungeon and the River, all at night. Before a game you can set the field size, the decks, the specials, the starting mana, the sky, the Bank, Barbarians, crystals, fog of war and more. <a href="ethers-crossroads-rules.html#modes">Every option</a>.</p>
+<p>With three or four players the field is a 7 by 7 square by default: free-for-all, or two against two with teammates side by side, across, or sharing one end. The battle maps are the Keep, the Sahel, the Forest, the Dungeon and the River, all at night. Before a game you can set the field size, the decks, the specials, the starting mana, the sky, the Bank, Demons, crystals, fog of war and more. <a href="ethers-crossroads-rules.html#modes">Every option</a>.</p>
 """
 import json as _json
 _S = _json.load(open('game/text/substances.json'))
@@ -235,7 +235,7 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 <li><b>The landing roll</b>: in every fight both sides also roll 1d20. The attacker's 1 is a <b>Crit Miss</b>: the attack misses. The attacker's 20, with two or more cards in the stack that can each attack, is a <b>Crit Hit</b>: the defender takes the blow whatever the scores, unless it rolls a 20 too. A defender's 1 costs it nothing. Three or more Puppets in a stack crit on 19 or 20; Puppets never miss and shrug off Crit Hits. Assassins shrug off Crit Hits and dodge on 17 to 20 of their own roll (a <b>Miss</b>). Every player sees the Crit Hit, Crit Miss or Miss on screen.</li>
 <li><b>Dice Plus</b> (Enchantment, 1d3 mana): on one of your stacks, a sword (its next attack) or a shield (its next defense) adds a d12 on this table: 1: +1 · 2: +1d2 · 3: +1d3 · 4: +1d4 · 5–6: +1d6 · 7–9: +1d8 · 10: +1d10 · 11: +1d12 · 12: two more d12 on the table, and every 12 rolls again. Once on a stack; as many stacks as you like. The stack glows orange (sword) or purple (shield).</li>
 <li><b>Spells on a stack</b>: their names show in faint blackletter at the bottom of the stack, and how long they last (and their odds) at its top right.</li>
-<li>Cards are placed from the hand into your own two lines: on an empty tile, or onto your own stack if the stack stays legal. Aces go only on empty backline tiles; Jokers spawn onto your stack holding a card of the same color.</li>
+<li>Cards are placed from the hand into your own spawn lines: on an empty tile, or onto your own stack if the stack stays legal. Your spawn lines are your backline and frontline; on a field 5 wide and 5 tall or smaller they are your backline alone. Teammates on the same side may spawn on each other's lines. Aces go only on empty backline tiles; Jokers spawn onto your stack holding a card of the same color.</li>
 <li>Each stack moves once per turn, one tile straight. A group made only of Jacks moves two tiles straight or one diagonal. You can split a stack by choosing which cards move.</li>
 <li>Stacks attack an enemy stack next to them (not diagonal, except Jack-only stacks). Aces and a King standing alone don't attack.</li>
 <li>Paying mana spends your smallest souls first; any mana overpaid is lost, and spent souls go to the grave. Sacrifices happen before any mana is spent, and the Grave Blessing must come before spending too (Ritual Dice excepted).</li>
@@ -286,7 +286,7 @@ b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({beha
 </main>''', 1)
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
-play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=52">', ec=True) + f'''<main class="wide game">
+play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=53">', ec=True) + f'''<main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
@@ -325,7 +325,7 @@ play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="eth
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
 <script src="ethers-crossroads-quotes.js?v=4"></script>
-<script src="ethers-crossroads.js?v=52"></script>
+<script src="ethers-crossroads.js?v=53"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 
