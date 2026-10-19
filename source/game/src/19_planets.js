@@ -44,17 +44,19 @@ async function skyAsync(pl){
     if(P.sunNext==null){P.sunNext=tnOf(pl)+R(2)+R(2);return}
     if(tnOf(pl)<P.sunNext)return;
     P.sunNext=tnOf(pl)+R(2)+R(2);
-    const by=planetBy(),opts=[];
-    if(mana(pl)>=1)opts.push({id:"mana",label:"Pay 1 mana",sub:by!=null?`It goes to ${G.p[by].name}.`:"It goes to the Bank."});
-    if(stacksOf(pl).length)opts.push({id:"hurt",label:"One damage to a random stack of yours"});
-    if(P.deck.length>=2)opts.push({id:"deck",label:"Two cards from your deck",sub:"They burn in the Sun (to the grave)."});
-    opts.push({id:"no",label:"Refuse",sub:"Blinded by the Sun for this turn: you can't see even what is beside you."});
+    // v65, the Sun's judgement (the user's): 1d6 mana to the Bank, or 1d2 damage to your stacks, or 1d2 + 1d3 deck cards; or blindness for 1d3 turns
+    const nM=R(6),nH=R(2),nD=R(2)+R(3),nB=R(3),opts=[];
+    if(mana(pl)>=nM)opts.push({id:"mana",label:`Pay ${nM} mana`,sub:"1d6, to the Bank."});
+    if(stacksOf(pl).length)opts.push({id:"hurt",label:`${nH} damage to your stacks`,sub:`1d2: ${nH>1?"each blow to a random stack of yours":"one blow to a random stack of yours"}.`});
+    if(P.deck.length)opts.push({id:"deck",label:`${Math.min(nD,P.deck.length)} cards from your deck`,sub:"1d2 + 1d3: they burn in the Sun (to the grave)."});
+    opts.push({id:"no",label:`Blindness for ${nB} turn${nB>1?"s":""}`,sub:"1d3: you can't see even what is beside you."});
     const ch=opts.length===1?"no":await ask(pl,{kind:"choice",id:"sunjudge",title:`The Second Sun judges ${esc(P.name)}`,options:opts,
-      ai:()=>mana(pl)>=2?"mana":P.deck.length>8?"deck":stacksOf(pl).length>3?"hurt":opts[0].id});
-    if(ch==="mana"){payQuiet(pl,1);if(by!=null)giveMana(by,1);else bankAdd(1);log(`${plName(pl)} worships the Earth before the Second Sun: 1 mana${by!=null?` to ${plName(by)}`:" to the Bank"}.`);sunPayback(pl,1)}
-    else if(ch==="hurt"){const x=pick(stacksOf(pl));log(`${plName(pl)} offers the Second Sun a wound on ${coord(x.r,x.c)}.`);damage(x.r,x.c,1,false);sunPayback(pl,1)}
-    else if(ch==="deck"){let w=0;for(let i=0;i<2;i++){const c=P.deck.pop();w+=soulOf(c);toGrave(c,"burn")}log(`${plName(pl)} burns two deck cards in the Second Sun.`);sunPayback(pl,w)}
-    else{P.sunBlind=tnOf(pl);G._vis=null;log(`<b>The Second Sun</b> blinds ${plName(pl)} for this turn.`,"event");notify(pl,`${esc(P.name)} is blinded by the Sun this turn.`)}
+      ai:()=>mana(pl)>=nM+2?"mana":P.deck.length>8+nD?"deck":stacksOf(pl).length>3&&opts.some(o=>o.id==="hurt")?"hurt":opts.some(o=>o.id==="mana")?"mana":opts[0].id});
+    if(ch==="mana"){payQuiet(pl,nM);bankAdd(nM);log(`${plName(pl)} worships the Earth before the Second Sun: ${nM} mana to the Bank.`);sunPayback(pl,nM)}
+    else if(ch==="hurt"){const hit=[];for(let i=0;i<nH;i++){const L=stacksOf(pl);if(!L.length)break;const x=pick(L);hit.push(coord(x.r,x.c));damage(x.r,x.c,1,false)}
+      log(`${plName(pl)} offers the Second Sun ${nH} wound${nH>1?"s":""} (${hit.join(", ")}).`);sunPayback(pl,nH)}
+    else if(ch==="deck"){let w=0,k=0;for(let i=0;i<nD&&P.deck.length;i++){const c=P.deck.pop();w+=soulOf(c);toGrave(c,"burn");k++}log(`${plName(pl)} burns ${k} deck card${k>1?"s":""} in the Second Sun.`);sunPayback(pl,w)}
+    else{P.sunBlind=tnOf(pl);P.sunBlindTo=tnOf(pl)+nB-1;G._vis=null;log(`<b>The Second Sun</b> blinds ${plName(pl)} for ${nB} turn${nB>1?"s":""}.`,"event");notify(pl,`${esc(P.name)} is blinded by the Sun for ${nB} turn${nB>1?"s":""}.`)}
     render();
   }
   // the Black Sun: the Firmament who raised it pays Yaldabaoth every 1d2 of its turns
@@ -66,7 +68,7 @@ async function skyAsync(pl){
       else{let k=0;for(let i=0;i<n&&P.deck.length;i++){const c=P.deck.pop();c.owner=Y;G.p[Y].deck.push(c);k++}shuffle(G.p[Y].deck);log(`The Black Sun: ${plName(pl)} gives ${plName(Y)} ${k} deck card${k===1?"":"s"}.`,"event")}}
   }
 }
-const sunBlind=pl=>!!(G.p[pl]&&G.p[pl].sunBlind!=null&&G.p[pl].sunBlind===tnOf(pl));
+const sunBlind=pl=>{const P=G.p[pl];if(!P||P.sunBlind==null)return false;const t=tnOf(pl);return t>=P.sunBlind&&t<=(P.sunBlindTo!=null?P.sunBlindTo:P.sunBlind)};   // v65: blind for 1d3 turns
 
 /* ---------- the start of a turn: Venus and its Oath ---------- */
 function planetTurn(pl){
@@ -144,7 +146,7 @@ SPELLS.push(
  {id:"sun",tribe:"firm",dice:"2d3",name:"Second Sun",cost:4,school:"Astrology",text:"Select your stack with a Joker: the Joker shoots itself (its souls go to your soul pile) and an indigo Second Sun (“King”) takes the moon's place. The fog of war is gone while it burns (Delusions stay). Every 2d2 turns it judges each other player: 1 mana to you, one damage to one of their stacks, or two deck cards; or blindness for that turn. Others can swear the Oath of the Earth. The Leviathan can't lie on it.",
   ok:()=>firmPlace("sun")()&&G.moon.gone!=="blacksun"&&selOwnJoker(),run:async()=>{const s=G.sel,st=selStack();await jokerSuicide(s.r,s.c,st,G.active);setPlanet("sun",G.active);
    log(`<b>The Second Sun</b> rises where the moon was, raised by ${plName(G.active)}.`,"event");
-   popup("The Second Sun",`<p>${plName(G.active)}'s Joker shoots itself and an indigo sun rises in the moon's place. The fog of war burns away.</p><p>Every 2d2 turns the Sun judges each player, who pays 1 mana, a wound to one of their stacks or two deck cards, or is blind for that turn. Anyone can swear the <b>Oath of the Earth</b> (Astrology).</p>`,G.active)}},
+   popup("The Second Sun",`<p>${plName(G.active)}'s Joker shoots itself and an indigo sun rises in the moon's place. The fog of war burns away.</p><p>Every 2d2 turns the Sun judges each player, who pays 1d6 mana to the Bank, 1d2 damage to their stacks or 1d2 + 1d3 deck cards, or is blind for 1d3 turns. Anyone can swear the <b>Oath of the Earth</b> (Astrology).</p>`,G.active)}},
  {id:"sunfall",tribe:"firm",name:"Second Sun's Fall",cost:0,school:"Astrology",text:"Free. Select a stack: the Sun crashes onto it. Two damage there, one damage on a 2 of 1d2 on every tile around it, one on a 10 of 1d10 on the ring beyond, your own troops too. A Black Sun instead destroys that tile and everything on it for good (and on a 6 of 1d6 every tile around it). The sky is empty afterwards.",
   ok:()=>(sunUp()||planetUp("blacksun"))&&!!selStack(),run:async()=>{const {r,c}=G.sel;SND.gun();sunFall(r,c);if(G.sel&&!at(G.sel.r,G.sel.c))G.sel=null}},
  {id:"venus",tribe:"firm",dice:"2d3",name:"Venus",cost:4,school:"Astrology",text:"Venus (“Harmony”) takes the moon's place. Choose: you (or your teammate) get +2 mana a turn and +2 maximum, or (not in Survival) +1 mana a turn while every enemy gets +2 maximum. Anyone can swear the Oath of Venus.",
@@ -235,7 +237,7 @@ const PNOTE={
 function planetInfoHTML(k){
   const V=view(),P=G.p[V],L=[],by=planetBy();
   if(k==="sun"){L.push(`The indigo Second Sun burns in the moon's place${by!=null?`, raised by ${esc(G.p[by].name)}`:""}. The fog of war is gone (a Delusion still blinds). The Leviathan can't lie on it.`);
-    L.push(P.tribe==="firm"?"The Sun doesn't judge you.":`Every 2d2 of your turns it judges you: 1 mana${by!=null?" to "+esc(G.p[by].name):" to the Bank"}, one damage to one of your stacks, or two deck cards; or you are blind for that turn.`);
+    L.push(P.tribe==="firm"?"The Sun doesn't judge you.":`Every 2d2 of your turns it judges you: 1d6 mana to the Bank, 1d2 damage to your stacks, or 1d2 + 1d3 deck cards; or you are blind for 1d3 turns.`);
     L.push(`It has cried ${G.sunTears||0} of 3 times; at three it becomes the Black Sun.`);
     L.push(P.oath==="earth"?"You have sworn the Oath of the Earth: no necromancy, and Sorcery dice prices roll twice for you and keep the lower.":"You can swear the Oath of the Earth (Astrology): no necromancy, cheaper Sorcery dice prices.")}
   if(k==="blacksun"){L.push("The Black Sun: the Second Sun cried three times and its flames went out. The fog of war is back.");if(G.blackBy!=null)L.push(`The Firmament that raised it pays ${esc(G.p[G.blackBy].name)} 1d2 mana or 1d2 deck cards every 1d2 of its turns.`);L.push("If it falls, it destroys the tile it lands on for good.")}

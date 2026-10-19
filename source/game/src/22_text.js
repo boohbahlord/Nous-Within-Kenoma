@@ -68,7 +68,7 @@ const SPELL_TEXT={
  deckcards:{n:"Your Tree of Neither Life Or Death on the field.",e:"Your deck is full again, as it was at the start of the game. The cards still in it go to the grave; your hand stays.",l:"Once a game."},
  // Astrology
  mars:{e:"Mars takes the moon's place. At the start of each turn, every stack of only Grunts and Infantry gets advantage on its next attack on 1–5 of 1d8.",l:"The moon's phases stop and your Miner on the moon is lost; a Leviathan on the moon moves onto Mars. Not while Saturn is up, and never once Mars has been eaten."},
- sun:{n:"Select your stack with a Joker.",e:"The Joker shoots itself (its souls go to your soul pile) and the Second Sun takes the moon's place. While it burns there is no fog of war. Every 2d2 turns it judges each other player: 1 mana to you, one damage to one of their stacks, or two deck cards; or they are blind for that turn.",l:"Delusions still blind. Other players can swear the Oath of the Earth. The Leviathan can't lie on it."},
+ sun:{n:"Select your stack with a Joker.",e:"The Joker shoots itself (its souls go to your soul pile) and the Second Sun takes the moon's place. While it burns there is no fog of war. Every 2d2 turns it judges each other player: 1d6 mana to the Bank, 1d2 damage to their stacks, or 1d2 + 1d3 deck cards; or they are blind for 1d3 turns.",l:"Delusions still blind. Other players can swear the Oath of the Earth. The Leviathan can't lie on it."},
  sunfall:{n:"The Second Sun or the Black Sun in the sky, and a stack selected.",e:"The Sun crashes onto the stack: two damage there, one on a 2 of 1d2 on every tile around it, and one on a 10 of 1d10 on the ring beyond, your own units included.",l:"A Black Sun destroys that tile and everything on it for good, and on a 6 of 1d6 every tile around it. The sky is empty afterwards."},
  venus:{e:"Venus takes the moon's place. Choose: you or a teammate get +2 mana a turn and +2 maximum, or you get +1 mana a turn while every enemy gets +2 maximum.",l:"The second choice isn't offered in Survival. Anyone can swear the Oath of Venus."},
  jupiter:{e:"Jupiter takes the moon's place. Miners in an Ace bring 1d2 a turn, two conjurings go on sale each round, hand cards can be traded at the Auction, and a Jester's Sacrificial Suicide brings 1d2 − 1 more.",l:"You may get a mana back when others buy on sale or trade. Anyone can swear the Oath of Jupiter."},
@@ -156,7 +156,7 @@ moonInfoHTML=function(){
 planetInfoHTML=function(k){
   const V=view(),P=G.p[V],L=[],by=planetBy(),oath=(id,txt)=>P.oath===id?`Your Oath: ${txt}`:`You can swear the ${SP("oath_"+id).name} (Astrology).`;
   if(k==="sun"){L.push(by!=null?`Raised by ${plN(by)}.`:"","No fog of war while it burns. Delusions still blind.","The Leviathan can't lie on it.");
-    L.push(P.tribe==="firm"?"It doesn't judge you.":`Every 2d2 of your turns it judges you: 1 mana${by!=null?" to "+plN(by):" to the Bank"}, one damage to one of your stacks, or two deck cards. Refuse and you are blind for that turn.`);
+    L.push(P.tribe==="firm"?"It doesn't judge you.":`Every 2d2 of your turns it judges you: 1d6 mana to the Bank, 1d2 damage to your stacks, or 1d2 + 1d3 deck cards. Refuse and you are blind for 1d3 turns.`);
     L.push(`It has cried ${G.sunTears||0} of 3 times. At three it becomes the Black Sun.`);
     if(P.tribe!=="firm")L.push(oath("sun","fire mana from sacrifices to the Sun and from its judgements; Scorched Earth and Blindness."));
     skyCommon(L);return skyBox("The Second Sun","",L,"sun")}
@@ -216,7 +216,7 @@ const SKY_ROWS=[
  ["moon","The Moon","The default sky.","Turns one phase a round. The New Moon gives 1d2 grave cards and makes Clairvoyance and Naked Hand cost 6. The Full Moon takes its toll, shuffles every deck and forbids drawing and necromancy. One Full Moon in twenty is a Blood Moon."],
  ["saturn","Saturn","Yaldabaoth, at seven hunger; or the sky from the start.","Every enemy pays 1 each turn (a hand card, the top deck card or 1 mana), or a Debt Collector rises. Binah never pays."],
  ["mars","Mars","The Firmament; or the sky from the start.","Each turn, stacks of only Grunts, Infantry or Puppets get advantage on their next attack on 1–5 of 1d8."],
- ["sun","The Second Sun","The Firmament, with a Joker that shoots itself; or the sky from the start.","No fog of war. Every 2d2 turns it judges each other player: 1 mana, a wound or two deck cards, or a blind turn. Three cries from Yaldabaoth make it the Black Sun."],
+ ["sun","The Second Sun","The Firmament, with a Joker that shoots itself; or the sky from the start.","No fog of war. Every 2d2 turns it judges each other player: 1d6 mana to the Bank, 1d2 damage to their stacks or 1d2 + 1d3 deck cards, or 1d3 blind turns. Three cries from Yaldabaoth make it the Black Sun."],
  ["venus","Venus","The Firmament; or the sky from the start.","+2 mana a turn and +2 maximum for the caster or a teammate, or +1 a turn while every enemy gets +2 maximum."],
  ["mercury","Mercury","The Firmament; or the sky from the start.","Votes for Peace or Total War, bought Peace, and under its Oath Betrayal, Declare War and Bribe the Banker."],
  ["jupiter","Jupiter","The Firmament; or the sky from the start.","Ace miners bring 1d2, two conjurings on sale each round, trades at the Auction."]];
