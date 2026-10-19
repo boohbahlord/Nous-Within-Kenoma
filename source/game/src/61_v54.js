@@ -22,10 +22,10 @@ const TGROUP_NAMES={wildcard:"Wildcards",special:"Special",base:"Base",standard:
 
 /* ---------- Grave automation: the settings ---------- */
 const GR_GROUPS=["special","base","standard","support","wildcard"];
-const GR_DEF={on:false,kinds:[],extra:[],minus:[],group:true,gorder:[...GR_GROUPS],korder:[],strong:true,askNone:true};
+const GR_DEF={on:false,kinds:[],extra:[],minus:[],rank:true,group:true,gorder:[...GR_GROUPS],korder:[],strong:true,askNone:true};
 const grKeys=()=>{const k=lhKeyList().map(x=>x[0]),r=["JK","A","K","Q","J","10","9","8","7","6","5","4","3","2"];return [...r.filter(x=>k.includes(x)),...k.filter(x=>!r.includes(x))]};   // strongest first
 function grClean(c){c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringify(GR_DEF)),cats=new Set(RD_KINDS.map(x=>x[0])),keys=grKeys();
-  for(const k of ["on","group","strong","askNone"])if(typeof c[k]==="boolean")o[k]=c[k];
+  for(const k of ["on","rank","group","strong","askNone"])if(typeof c[k]==="boolean")o[k]=c[k];
   if(Array.isArray(c.kinds))o.kinds=c.kinds.filter(k=>cats.has(k));
   for(const k of ["extra","minus"])if(Array.isArray(c[k]))o[k]=c[k].filter(x=>keys.includes(x));o.minus=o.minus.filter(x=>!o.extra.includes(x));
   if(Array.isArray(c.gorder))o.gorder=[...c.gorder.filter(k=>GR_GROUPS.includes(k)),...GR_GROUPS.filter(k=>!c.gorder.includes(k))];
@@ -42,7 +42,7 @@ function grSave(c){PREF.gr=grClean(c);savePrefs();autoSync();paintFA();if(G)rend
 
 /* ---------- Grave automation: the choice ---------- */
 function grWants(c,cfg){const k=cardKey(c);if(cfg.minus.includes(k))return false;if(cfg.extra.includes(k))return true;return !cfg.kinds.length&&!cfg.extra.length||cfg.kinds.includes(cardCat(c))}
-function grRank(c,cfg){return cfg.group?cfg.gorder.indexOf(cardCat(c)):cfg.korder.indexOf(cardKey(c))}
+function grRank(c,cfg){return !cfg.rank?0:cfg.group?cfg.gorder.indexOf(cardCat(c)):cfg.korder.indexOf(cardKey(c))}
 function grPick(cards,cfg){let best=-1,bv=null;cards.forEach((c,i)=>{if(!grWants(c,cfg))return;const v=[grRank(c,cfg),cfg.strong?-(soulOf(c)*10+(costOf(c)||0)):0];
   if(!bv||v[0]<bv[0]||v[0]===bv[0]&&v[1]<bv[1]){bv=v;best=i}});return best}
 {const _ask=ask;ask=async function(pl,spec){const P=G&&G.p[pl],cfg=P&&!P.cpu&&P.grCfg;
@@ -61,11 +61,15 @@ function grPanelHTML(c,pfx){const K=cfgKit("data-gr","data-gract","gr"+pfx),{row
   const names=Object.fromEntries([...RD_KINDS.map(([k,t])=>[k,t]),...lhKeyList()]);
   let h=`<p class="dim fafull">Grave Blessing, the New Moon and every other raising from the grave: it picks the cards for you, best first, until the hand is full or the raising is done.</p>`;
   h+=sec("Which cards",K.chips(RD_KINDS,c.kinds,"data-grkind",off)+`<p class="dim">None ticked: any card.</p><details class="faextra"><summary>Yes, and… (single kinds: + always taken, − never taken)</summary>${K.pmChips(lhKeyList(),c.extra,c.minus,"data-grpm",off)}</details>`,"fafull");
-  h+=sec("In what order",row("group",c.group,"Rank by kinds of card","On: Special, Base, Standard and so on. Off: every single kind, like the King.",off)+
-    (c.group?kindRankHTML(c.gorder,"data-grg",names):kindRankHTML(c.korder,"data-grk",names))+row("strong",c.strong,"The strongest first","Within the same rank, the card worth the most.",off),"fafull");
+  /* v59: the ranking folds like the Field's: ▸ closed is off (only "the strongest first" decides), ▾ open is on */
+  h+=sec("In what order",`<details class="faextra fadet" data-grdet="rank" ${c.rank?"open":""}><summary>Rank the kinds of card <small class="dim">(${c.rank?"on":"off: the strongest first decides"})</small></summary>`+
+    row("group",c.group,"Rank by kinds of card","On: Special, Base, Standard and so on. Off: every single kind, like the King.",off)+
+    (c.group?kindRankHTML(c.gorder,"data-grg",names):kindRankHTML(c.korder,"data-grk",names))+`<p class="dim">The kinds at the top are raised first.</p></details>`+
+    row("strong",c.strong,"The strongest first","Within the same rank, the card worth the most.",off),"fafull");
   h+=sec("When nothing matches",row("askNone",c.askNone,"Ask which card to raise","Off: nothing is raised.",off),"fafull");
   return h}
 {const _wa=wireAuto;wireAuto=function(root){_wa(root);
+  root.querySelectorAll("[data-grdet]").forEach(d=>d.addEventListener("toggle",()=>{const c=grMine(),k=d.dataset.grdet;if(!!c[k]===d.open)return;c[k]=d.open;grSave(c)}));
   root.querySelectorAll('[data-amaster="grave"]').forEach(b=>b.onclick=()=>{const c=grMine();c.on=!c.on;grSave(c)});
   root.querySelectorAll("[data-gr]").forEach(i=>{const k=i.dataset.gr;if(!k)return;i.onchange=()=>{const c=grMine();c[k]=i.checked;grSave(c)}});
   root.querySelectorAll("[data-grkind]").forEach(i=>i.onchange=()=>{const c=grMine(),k=i.dataset.grkind;c.kinds=c.kinds.filter(x=>x!==k);if(i.checked)c.kinds.push(k);grSave(c)});

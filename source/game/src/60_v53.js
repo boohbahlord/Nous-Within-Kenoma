@@ -38,7 +38,10 @@ function dropBountyCards(pl,ids){const P=G.p[pl];if(!P)return [];const out=bount
 {const _ly=FX.layer;FX.layer=function(){const l=_ly.call(FX);
   if(!l._paged){l._paged=true;l.appendChild=function(e){if(e&&e.style){const L=parseFloat(e.style.left),T=parseFloat(e.style.top);   // screen spots become page spots
       if(!isNaN(L))e.style.left=(L+scrollX)+"px";if(!isNaN(T))e.style.top=(T+scrollY)+"px"}return Node.prototype.appendChild.call(this,e)}}
-  const h=Math.max(document.documentElement.scrollHeight,document.body.scrollHeight)+"px";if(l.style.height!==h)l.style.height=h;
+  /* v59: the page is measured without the layer (it used to count itself, so it could only grow: dead space at the
+     bottom after zooming out), and the layer folds to nothing when no effect is playing */
+  l.style.height="0px";const h=Math.max(document.documentElement.scrollHeight,document.body.scrollHeight)+"px";l.style.height=h;
+  if(!l._watch){l._watch=new MutationObserver(()=>{if(!l.childElementCount)l.style.height="0px"});l._watch.observe(l,{childList:true})}
   return l}}
 
 /* ---------- the crit seal, over the card it concerns ---------- */

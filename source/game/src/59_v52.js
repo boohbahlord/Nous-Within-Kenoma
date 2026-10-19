@@ -10,7 +10,7 @@
 {const _p=paintFA;paintFA=function(){const keep=new Map(),key=(root,d)=>root.id+"|"+((d.querySelector(":scope>summary")||{}).textContent||"");
   for(const root of [$("#facfg"),$("#fapanel")])if(root)root.querySelectorAll("details").forEach(d=>keep.set(key(root,d),d.open));
   const out=_p.apply(this,arguments);
-  for(const root of [$("#facfg"),$("#fapanel")])if(root)root.querySelectorAll("details:not([data-fadet])").forEach(d=>{const k=key(root,d);if(keep.has(k))d.open=keep.get(k)});
+  for(const root of [$("#facfg"),$("#fapanel")])if(root)root.querySelectorAll("details:not([data-fadet]):not([data-grdet])").forEach(d=>{const k=key(root,d);if(keep.has(k))d.open=keep.get(k)});
   return out}}
 
 /* ---------- an on/off switch at the top of every tab ---------- */

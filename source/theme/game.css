@@ -1645,3 +1645,24 @@ html.th-office #foe.minis .pbox.sub{background:color-mix(in srgb,var(--pc) 10%,#
 .stack .carbadge i{font-style:normal;font-size:8px;color:#e0505b}
 .stack.merc{box-shadow:inset 0 0 0 2px #efe2c8,inset 0 0 0 3px var(--pc),0 0 9px var(--pc),0 2px 4px #0008}
 .stack .so.crown svg{filter:drop-shadow(0 0 3px #f1d27a)}
+/* v59: the note under a large field: the controls, − and +, and the wheel's zoom switch */
+.camnote{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:-4px 0 10px;font-size:12.5px;line-height:1.4}
+.camnote .cz{display:inline-flex;gap:4px}.camnote .cz .btn{min-width:30px;padding:2px 8px}
+.camnote .cw{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--text)}
+/* v59: on a large map each tile is a container, so what is on a card scales with the tile and never outgrows its border.
+   Tile names shrink with the tile and hide under a stack; a small tile shows only the card in its middle. */
+#board.large .tile{container-type:inline-size}
+#board.large .tile .coord{font-size:clamp(5px,14cqw,9px);left:2px;top:1px;letter-spacing:0}
+#board.large .tile:has(.stack) .coord{display:none}
+#board.large .stack .lead .rk{font-size:min(calc(clamp(20px,2.7vw,30px) * var(--ci,1)),34cqw)}
+#board.large .stack .lead .rk.jk{font-size:min(calc(clamp(14px,1.9vw,19px) * var(--ci,1)),24cqw)}
+#board.large .stack .lead i{font-size:min(calc(clamp(15px,2vw,20px) * var(--ci,1)),24cqw)}
+#board.large .stack .lead svg,#board.large .stack .lead img{max-width:58cqw;max-height:58cqw}
+#board.large .stack .so svg{width:min(calc(19px * var(--ci,1)),20cqw);height:min(calc(19px * var(--ci,1)),20cqw)}
+#board.large .stack .mini{font-size:min(calc(11px * var(--ci,1)),13cqw);min-height:0}
+#board.large .stack .ty{font-size:min(calc(9px * var(--ci,1)),11cqw);letter-spacing:.03em}
+#board.large .stack .cnt{font-size:min(calc(13px * var(--ci,1)),15cqw)}
+#board.large .stack .bhp{font-size:min(calc(10px * var(--ci,1)),13cqw);bottom:min(calc(17px * var(--ci,1)),24cqw)}
+#board.large .stack .odds,#board.large .stack .hypo,#board.large .stack .souls,#board.large .stack .used{font-size:min(calc(11px * var(--ci,1)),13cqw)}
+@container (max-width:54px){#board.large .stack>:not(.lead){display:none!important}#board.large .stack .lead{margin:auto}}
+#critfx{scale:var(--fxs,1)}
