@@ -38,7 +38,6 @@
       if(bar===6||bar===13){const r=t+B*.72;   // the distortion tears open, then falls into a muffle
         BUS.mpre.gain.setTargetAtTime(9,r,.03);BUS.mlp.frequency.setTargetAtTime(3200,r,.02);BUS.mlp.frequency.setTargetAtTime(380,r+.18,.25);BUS.mpre.gain.setTargetAtTime(2,r+.45,.6);rip(r-.6,.9,.06,false)}
       if(bar===7||bar===14||bar===0){BUS.wg1.gain.setTargetAtTime(.0012,t,B*.25);BUS.w1.frequency.setTargetAtTime(.4,t,B*.25);BUS.mlp.frequency.setTargetAtTime(1300,t,B*.35);BUS.pre.gain.setTargetAtTime(1,t,B*.3)}}});
-  const OSS_ON=b=>!(b===4||b===5||b===13);
   const TRACKS=[
     /* v59: slower, a wisp of a voice; the notes dissolve into one another and into the room */
     {name:"The Crossroads",bpm:58,bar:8,lead:"wisp",leadV:.15,bassV:1.15,rel:.7,leg:1.18,glide:true,bass:"softarp",drum:"brush",lp:2400,
@@ -73,13 +72,13 @@
         if([3,7,10,13].includes(bar)){const m=C.r+12+C.third;on(send(.6,.2,BUS.bass));voice("viol",hz(m),t+B*.15,B*.8,.022,.5);
           GL={r:Math.pow(2,1/12),d:B*.7};voice("viol",hz(m),t+B*.15,B*.8,.022,.5);GL=null}}},
     /* v59: a voice behind a closed mouth, wobbling; more bass; little drums carry it; the phrases answer each other loud and soft */
-    {name:"Tomb of Saturn",bpm:52,trim:.62,bar:8,drum:"",lead:"muffle",leadV:.2,rel:.5,leg:1.05,bass:"sub",bassV:1.25,lp:2600,echo:.4,fb:.4,dly:.6,
+    {name:"Tomb of Saturn",bpm:52,trim:.55,bar:8,drum:"",lead:"muffle",leadV:.2,rel:.5,leg:1.05,bass:"softsub",bassV:1.25,lp:2600,echo:.4,fb:.4,dly:.6,
       dyn:1,contrast:.55,rv:.45,ds:.2,rev:[6,.6],swell:.2,
       chords:chords("Gm Eb Cm D Gm Eb Bb D Gm Eb Cm D Gm Eb Bb D"),
       mel:mel(`D5:4 Bb4:4 G4:6 r:2 Eb5:4 D5:2 C5:2 F#4:4 A4:4 G5:4 F5:2 D5:2 Eb5:6 r:2 D5:2 C5:2 Bb4:4 A4:4 F#4:4
         Bb4:4 G4:4 Eb4:6 r:2 G4:4 F4:2 Eb4:2 D4:4 F#4:4 D5:4 C5:2 Bb4:2 G4:6 r:2 F4:2 D4:2 Bb3:4 D4:8`),
       step:x=>{const {t,i,bar,E8}=x;on(BUS.perc);
-        if(i===0)thump(t,.22,72,.16);if(i===5&&bar%2)thump(t,.12,96,.12);if(i===3&&rnd()<.4)thump(t,.08,110,.1);
+        if(i===0)thump(t,.16,72,.16,.018);if(i===5&&bar%2)thump(t,.09,96,.12,.015);if(i===3&&rnd()<.4)thump(t,.06,110,.1,.012);
         shaker(t,.012+.014*Math.sin(Math.PI*i/8));if(rnd()<.5)shaker(t+E8*.5,.006);
         if(i===0&&bar%4===0){on(send(.8,.3,BUS.perc));voice("fmsoft",hz(91),t,.4,.025,1.6)}}},   // a finger cymbal, far off
     /* v59: rewritten in F Lydian: clusters of notes, then a breath; in the quiet, notes fall away (the only air in it);
@@ -103,26 +102,6 @@
         B4:.333 D5:.333 G5:.334 A5:.333 B5:.333 D6:.334 r:2 C6:1:.24:a B5:1:.2:a G5:2:.14:a
         G5:.5 E5:.5 D5:.5 B4:.5 r:3 A4:1.5:.2:a G4:1.5:.14:a
         A4:.5 C5:.5 E5:.5 B5:4.5:.6 r:2`)},
-    /* v59: the same, with a softer, rounder glass and a little static under it */
-    {name:"The Drowned Chapel",bpm:48,bar:8,drum:"drip",lead:"glass",leadV:.18,bass:"choirpad",lp:2400,echo:.42,fb:.42,dly:.7,bed:[.01,.012],
-      chords:chords("Dm Eb Dm Eb Gm Eb Dm Dm Bb Eb Dm A Dm Eb Dm Dm"),
-      mel:mel(`A4:4 D5:4 Eb5:6 r:2 D5:2 C5:2 A4:4 Bb4:4 G4:4 G4:2 Bb4:2 D5:4 Eb5:4 D5:2 Bb4:2 A4:8 r:8
-        F5:4 D5:4 Eb5:4 G5:4 F5:2 E5:2 D5:4 C#5:4 E5:4 D5:4 A4:4 G4:4 Bb4:2 Eb5:2 D5:8 r:8`)},
-    /* v59: flanged and quiet; static tears in and out; the heart struggles; the tempo drags and rushes; when the
-       flanging stops the song draws back, then swells out of the quiet */
-    {name:"Ossuary",bpm:72,bar:8,bass:"walk",bassV:.7,lead:"fmsoft",leadV:.2,rel:.9,drum:"metal",lp:2600,flange:.6,
-      dyn:.7,rv:.3,ds:.12,rev:[4,.5],
-      tempo:b=>b===4||b===5?.85:b===6||b===7?.92:b===12||b===13?1.1:b===14||b===15?.8:1,
-      chords:chords("Em Em C B Em Em Am B Em G C B Am F# B Em"),
-      mel:mel(`E5:1 r:1 G5:1 r:1 B4:2 E5:2 D#5:2 E5:2 B4:4 C5:1 r:1 E5:1 r:1 G5:2 E5:2 F#5:2 D#5:2 B4:4
-        G5:2 F#5:1 E5:1 B4:2 G4:2 A#4:2 B4:2 E4:4 C5:2 E5:2 A5:2 G5:1 F5:1 F#5:3 E5:1 D#5:4
-        E5:2 B4:2 G4:2 E4:2 D5:2 B4:2 G4:2 B4:2 E5:3 D5:1 C5:2 G4:2 B4:2 C5:2 B4:2 A#4:2
-        A4:2 C5:2 E5:2 C5:2 A#4:2 C#5:2 F#5:4 F#5:2 E5:2 D#5:2 B4:2 E5:6 r:2`),
-      step:x=>{const {t,i,E8}=x;if(i!==0&&!(i===4&&rnd()<.35))return;if(rnd()<.15)return;   // a beat that doesn't come
-        on(BUS.perc);const v=.3+rnd()*.25;thump(t+(rnd()-.5)*.04,v,58,.09);thump(t+E8*(.4+rnd()*.45),v*.6,50,.09)},
-      onBar:x=>{const {t,bar,E8}=x,B=E8*8,on_=OSS_ON(bar);BUS.fwet.gain.setTargetAtTime(on_?.6:0,t,on_?B*.3:.15);
-        if(bar===4||bar===13)BUS.pre.gain.setTargetAtTime(.5,t,.4);if(bar===6||bar===14)BUS.pre.gain.setTargetAtTime(1.05,t,B*.6);if(bar===8||bar===0)BUS.pre.gain.setTargetAtTime(.9,t,B*.5);
-        if([1,6,9,11,14].includes(bar))rip(t+B*rnd()*.5,B*(.4+rnd()*.5),.045+rnd()*.05,rnd()<.5)}},
     /* v59: a sad, bowed voice that slides; a swing that ripples as it falls, then stacks itself back up */
     {name:"Whispers Under the Stair",bpm:60,trim:.9,bar:8,bass:"drone",lead:"lament",leadV:.135,rel:.5,leg:1.04,glide:true,drum:"",lp:2200,echo:.3,fb:.36,
       dyn:.8,rv:.45,ds:.15,rev:[5.5,.55],swell:.15,
@@ -131,27 +110,9 @@
         F4:2 Ab4:2 C5:2 Db5:2 B4:4 D5:4 Eb5:4 C5:4 Db5:3 C5:1 Ab4:4 F5:3 Eb5:1 Db5:2 C5:2 B4:6 r:2
         C5:2 Eb5:2 G5:4 F5:2 D5:2 B4:4 C5:4 G4:4 C5:6 r:2`),
       onBar:x=>{if(x.bar%4===3)swingFx(x.t+x.E8*3,x.C)}},
-    /* v59: a new melody that swells instead of striking, broken off where you don't expect it, swept away, and back;
-       it sinks into the background for a while. The bass and the beat are as they were. */
-    {name:"Moonless Road",bpm:70,trim:.72,bar:8,lead:"swell",leadV:.3,rel:.35,leg:1,bass:"sub",drum:"trip",lp:3000,echo:.3,
-      dyn:.9,contrast:.75,rv:.3,ds:.2,rev:[3.5,.5],swipe:true,cut:.12,
-      chords:chords("Bm G Em F# Bm G A F# Bm D Em F# G Em F# Bm"),
-      mel:mel(`F#5:3 D5:1.5 B4:2.5 r:1 r:.5 B4:1 D5:1.5 G5:3 r:2 E5:1.5 G5:1 B5:2.5 G5:1::s r:2 F#5:4 E5:1 C#5:1.5 A#4:1.5
-        B4:1.5 D5:1.5 F#5:1 r:.5 A5:2.5 F#5:1 D5:3::s r:1.5 G5:.5 E5:1 D5:2 C#5:2.5 E5:1 A5:3 r:1.5 A#4:1.5 C#5:1.5 F#5:2::s r:3
-        r:1 D5:1 F#5:1.5 B5:3.5 r:1 A5:1.5 F#5:1 D5:1.5 E5:1 F#5:3 G5:2.5 E5:1::s r:2.5 B4:1 E5:1 C#5:3 A#4:1 C#5:1 E5:3
-        D5:1.5 B4:1 G4:1.5 B4:1 D5:3 G5:3::s r:1 E5:1.5 C#5:2.5 A#4:2 C#5:1.5 E5:1 F#5:2.5 r:1 B4:6 r:2`),
-      onBar:x=>{BUS.lead.gain.setTargetAtTime(x.bar>=8&&x.bar<12?.45:1,x.t,x.E8*4)}},   // it melts into the background, then returns
-    {name:"The Well at Midnight",bpm:46,bar:8,bass:"pad",lead:"fmbell",leadV:.12,drum:"drip static",lp:2200,echo:.44,fb:.44,dly:.75,
-      chords:chords("Am Bb Am Bb Gm Bb Am Am Dm Bb Am E Am Bb Am Am"),
-      mel:mel(`E5:6 r:2 F5:4 D5:4 C5:8 r:4 Bb4:4 D5:4 G4:4 F5:6 r:2 E5:4 A4:4 r:8
-        F5:4 A5:4 Bb5:4 F5:4 E5:8 G#4:4 B4:4 A4:6 r:2 D5:4 F5:4 E5:8 r:8`)},
-    requiem("Requiem for the Ether","hungarian","Dm Bb A Dm Dm E7b5 A Dm Bb Faug Dm A Bb C#m A Dm"),
+    requiem("Requiem for the Ether","melodic","Dm G A Dm Dm Em7 A Dm G Faug Dm A G C#dim A Dm"),
     /* versions to compare, heard only when written out (renderSong), not in the game's order */
-    {name:"The Well at Midnight (double speed)",alt:true,bpm:92,bar:8,bass:"pad",lead:"fmbell",leadV:.12,drum:"drip static",lp:2200,echo:.44,fb:.44,dly:.75,
-      chords:chords("Am Bb Am Bb Gm Bb Am Am Dm Bb Am E Am Bb Am Am"),
-      mel:mel(`E5:6 r:2 F5:4 D5:4 C5:8 r:4 Bb4:4 D5:4 G4:4 F5:6 r:2 E5:4 A4:4 r:8
-        F5:4 A5:4 Bb5:4 F5:4 E5:8 G#4:4 B4:4 A4:6 r:2 D5:4 F5:4 E5:8 r:8`)},
-    requiem("Requiem for the Ether (melodic minor)","melodic","Dm G A Dm Dm Em7 A Dm G Faug Dm A G C#dim A Dm",true)
+    requiem("Requiem for the Ether (Hungarian minor)","hungarian","Dm Bb A Dm Dm E7b5 A Dm Bb Faug Dm A Bb C#m A Dm",true)
   ];  const BASE=.17;   // 100% volume, kept low on purpose
   const prefs=()=>{try{return JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){return {}}};
   const soundOn=()=>{try{return localStorage.getItem("ec-sound")!=="off"}catch(e){return true}};
@@ -175,7 +136,7 @@
     const pre=gn(),swl=gn(),fdry=gn(),fwet=gn(0),fd=ac.createDelay(.05),ffb=gn(.55),fl=ac.createOscillator(),flg=gn(.0035);fd.delayTime.value=.0068;fl.frequency.value=.13;
     const wow=ac.createDelay(1);wow.delayTime.value=.03;const w1=ac.createOscillator(),wg1=gn(0),w2=ac.createOscillator(),wg2=gn(0);w1.frequency.value=.3;w2.frequency.value=.071;
     pre.connect(swl);swl.connect(fdry);swl.connect(fd);fd.connect(fwet);fd.connect(ffb);ffb.connect(fd);fl.connect(flg);flg.connect(fd.delayTime);
-    fdry.connect(wow);fwet.connect(wow);w1.connect(wg1);wg1.connect(wow.delayTime);w2.connect(wg2);wg2.connect(wow.delayTime);const trim=gn();wow.connect(trim);trim.connect(out);fl.start();w1.start();w2.start();
+    fdry.connect(wow);fwet.connect(wow);w1.connect(wg1);wg1.connect(wow.delayTime);w2.connect(wg2);wg2.connect(wow.delayTime);const trim=gn(),hp=biq("highpass",25,.6);wow.connect(trim);trim.connect(hp);hp.connect(out);fl.start();w1.start();w2.start();
     const music=gn(),mdry=gn(),mpre=gn(2),ws=ac.createWaveShaper(),mlp=biq("lowpass",1400,.5),mwet=gn(0);ws.curve=fuzzCurve();ws.oversample="2x";
     music.connect(mdry);mdry.connect(pre);music.connect(mpre);mpre.connect(ws);ws.connect(mlp);mlp.connect(mwet);mwet.connect(pre);
     const lead=gn(),leadLP=biq("lowpass",20000,.5);lead.connect(leadLP);leadLP.connect(music);const bass=gn();bass.connect(music);
@@ -251,6 +212,7 @@
       vib([o1,o2,o3],t,stop,4.4,.0045,.3);
       const nb=noiseSrc(t,dur+.4),bp=biq("bandpass",f*2,7),ng=gn(0);ng.gain.setValueAtTime(0,t);ng.gain.linearRampToValueAtTime(peak*1.6,t+a*.6);ng.gain.setTargetAtTime(0,t+a,.18);nb.connect(bp).connect(ng).connect(D);   // breath
       return true}
+    if(type==="softsine"){const R=rel||.4,a=vib_||.1,g=gn();g.connect(D);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+a);g.gain.setTargetAtTime(0,t+dur,R);osc("sine",f,t,t+dur+R*6,g);return true}   // vib_ here is the attack time
     if(type==="softtri"){const R=rel||.3,g=gn();g.connect(D);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+.03);g.gain.setTargetAtTime(peak*.55,t+.04,.25);g.gain.setTargetAtTime(0,t+dur,R);osc("triangle",f,t,t+dur+R*5,g);return true}
     if(type==="softbox"){const R=rel||.9,end=t+Math.max(dur,.4),g=gn();g.connect(D);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+.018);g.gain.setTargetAtTime(peak*.4,t+.03,.35);g.gain.setTargetAtTime(0,end,R);
       osc("sine",f,t,end+R*5,g);const g2=gn();g2.connect(D);env(g2,t,.012,peak*.16,.02,.22);osc("sine",f*2,t,t+1.5,g2);
@@ -305,8 +267,8 @@
     const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();f.type=kind==="tick"?"highpass":"lowpass";f.frequency.value=kind==="tick"?2500:kind==="soft"?140:180;g.gain.value=kind==="kick"?.5:kind==="soft"?.3:.06;
     s.buffer=b;s.connect(f).connect(g).connect(DST);s.start(t)}
   /* v59 percussion and textures */
-  function thump(t,v,f,dec){const o=ac.createOscillator(),g=gn(0);o.frequency.setValueAtTime(f*1.7,t);o.frequency.exponentialRampToValueAtTime(f,t+.07);
-    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.006);g.gain.setTargetAtTime(0,t+.02,dec||.09);o.connect(g);g.connect(DST);o.start(t);o.stop(t+.8)}
+  function thump(t,v,f,dec,a){const o=ac.createOscillator(),g=gn(0);o.frequency.setValueAtTime(f*(a?1.3:1.7),t);o.frequency.exponentialRampToValueAtTime(f,t+.07);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+(a||.006));g.gain.setTargetAtTime(0,t+.02,dec||.09);o.connect(g);g.connect(DST);o.start(t);o.stop(t+.8)}
   function wood(t,v){const s=noiseSrc(t,.06),b=biq("bandpass",1500+Math.random()*700,6),g=gn(0);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v*3,t+.002);g.gain.setTargetAtTime(0,t+.004,.012);s.connect(b).connect(g).connect(DST)}
   function shaker(t,v){const s=noiseSrc(t,.12),b=biq("highpass",5200,.7),g=gn(0);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.012);g.gain.setTargetAtTime(0,t+.02,.03);s.connect(b).connect(g).connect(DST)}
   function brush(t,v){const s=noiseSrc(t,.4),b=biq("bandpass",4200,.5),g=gn(0);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.025);g.gain.setTargetAtTime(0,t+.04,.07);s.connect(b).connect(g).connect(DST)}
@@ -314,12 +276,19 @@
   function rip(t,len,peak,slow){t=Math.max(t,ac.currentTime);const s=noiseSrc(t,len+2),b=biq("bandpass",500,2.5),ws=ac.createWaveShaper(),g=gn(0);ws.curve=distCurve();
     b.frequency.setValueAtTime(500+rnd()*400,t);b.frequency.exponentialRampToValueAtTime(2500+rnd()*2500,t+len);
     g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+len);g.gain.setTargetAtTime(0,t+len,slow?.45:.03);s.connect(b).connect(ws).connect(g).connect(send(.35,.15))}
-  // a swing that ripples as it falls, then stacks itself back up, note on note
-  function swingFx(t,C){const pan=ac.createStereoPanner(),pl=ac.createOscillator(),pg=gn(.75);pl.frequency.value=.42;pl.connect(pg).connect(pan.pan);pl.start(t);pl.stop(t+8);pan.connect(send(.7,.25));
-    const f0=hz(C.r+24+C.fifth),o=ac.createOscillator(),tr=gn(1),g=gn(0),tl=ac.createOscillator(),tg=gn(.7);o.type="sine";
-    o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f0/2.2,t+2.8);tl.frequency.setValueAtTime(7.5,t);tl.frequency.linearRampToValueAtTime(2.4,t+2.8);tl.connect(tg).connect(tr.gain);
-    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.05,t+.15);g.gain.setTargetAtTime(0,t+1.4,.7);o.connect(tr).connect(g).connect(pan);o.start(t);o.stop(t+5);tl.start(t);tl.stop(t+5);
-    const st=[0,C.third,C.fifth,12,12+C.third,12+C.fifth],t0=t+2.6;on(pan);GL=null;st.forEach((x,k)=>{const tt=t0+k*.3;voice("glass",hz(C.r+12+x),tt,t0+2.2-tt+.4,.03+k*.004,.6)})}
+  // a swing, muffled, like a wave: it rises, then falls and slows, and as it fades it opens up, dark into light;
+  // then it stacks itself back up, note on note
+  function swingFx(t,C){const pan=ac.createStereoPanner(),pl=ac.createOscillator(),pg=gn(.45);pl.frequency.value=.28;pl.connect(pg).connect(pan.pan);pl.start(t);pl.stop(t+9);pan.connect(send(.9,.3));
+    const up=1.4,down=4.4,f0=hz(C.r+24+C.fifth),lp=biq("lowpass",520,.7),g=gn(0),tr=gn(1),tl=ac.createOscillator(),tg=gn(.28);
+    lp.frequency.setValueAtTime(520,t);lp.frequency.linearRampToValueAtTime(800,t+up);lp.frequency.linearRampToValueAtTime(3400,t+down);
+    const o=ac.createOscillator(),o2=ac.createOscillator(),k2=gn(.35);o.type="sine";o2.type="triangle";
+    for(const [x,m] of [[o,1],[o2,1.003]]){x.frequency.setValueAtTime(f0*m,t);x.frequency.exponentialRampToValueAtTime(f0*m*1.335,t+up);x.frequency.exponentialRampToValueAtTime(f0*m*.5,t+down)}
+    tl.frequency.setValueAtTime(3.2,t);tl.frequency.linearRampToValueAtTime(3.6,t+up);tl.frequency.linearRampToValueAtTime(.9,t+down);tl.connect(tg).connect(tr.gain);   // its ripple slows as it goes
+    o.connect(tr);o2.connect(k2).connect(tr);tr.connect(lp);
+    const nb=noiseSrc(t,down+1),bp=biq("bandpass",f0*1.5,1.2),ng=gn(.5);nb.connect(bp).connect(ng).connect(tr);   // the wash of a wave in it
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.024,t+up);g.gain.setTargetAtTime(0,t+up+.2,.9);lp.connect(g).connect(pan);
+    for(const x of [o,o2,tl]){x.start(t);x.stop(t+down+1)}
+    const st=[0,C.third,C.fifth,12,12+C.third,12+C.fifth],t0=t+down-.6;on(pan);GL=null;st.forEach((x,k)=>{const tt=t0+k*.3;voice("glass",hz(C.r+12+x),tt,t0+2.2-tt+.4,.03+k*.004,.6)})}
   // a bed of hiss and a needle's crackle under the whole song
   function stopBeds(){if(!ac)return;for(const s of BEDS)try{s.stop(ac.currentTime+.05)}catch(e){}BEDS=[]}
   function startBed(t,dur,[h,c]){const mk=(buf,ty,f,q,v)=>{if(!v)return;const s=ac.createBufferSource();s.buffer=buf;s.loop=true;const b=biq(ty,f,q),g=gn(0);s.connect(b);b.connect(g);g.connect(BUS.fx);
@@ -386,6 +355,7 @@
         else if(T.bass==="drone"&&i===0){note("triangle",hz(root-12),next,E8*T.bar,.42,.4);note("sine",hz(root-5),next,E8*T.bar,.18,.4)}
         else if(T.bass==="pad"&&i===0){const d=E8*T.bar;note("triangle",hz(root-12),next,d,.36,.5);for(const v of [0,third,fifth])pad(hz(root+v),next,d,.07)}
         else if(T.bass==="chordpad"&&i===0){const d=E8*T.bar;note("sine",hz(root-12),next,d,.26,.6);for(const v of C.iv)pad(hz(C.r+v),next,d*1.1,.045)}
+        else if(T.bass==="softsub"){if(i===0)voice("softsine",hz(root-24),next,E8*T.bar,.3,.5,.3);if(i===0||i===4)voice("softsine",hz(root-12),next,E8*3.4,.17,.3,.04);if(i===6)voice("softsine",hz(root-12),next,E8*.9,.24,.2,.03)}
         else if(T.bass==="sub"){if(i===0||i===4)note("sine",hz(root-24),next,E8*3.6,.6,.25);if(i===6)note("sine",hz(root-12),next,E8*.9,.3)}
         else if(T.bass==="choirpad"&&i===0){const d=E8*T.bar;note("sine",hz(root-12),next,d,.32,.5);for(const v of C.iv)voice("choir",hz(root+v),next,d,.035,.5,false)}}
       if(MUTE!=="lead")while(ei<EV.length&&EV[ei].s<step+1-1e-6){const e=EV[ei++];playLead(e,next+(e.s-step)*E8+(T.hum?(rnd()*2-1)*T.hum:0),E8,x)}
