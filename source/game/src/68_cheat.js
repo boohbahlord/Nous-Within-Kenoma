@@ -111,7 +111,7 @@ if(window.__EC)Object.assign(window.__EC,{castW:(...a)=>cast(...a),eliminateW:(.
 document.addEventListener("change",e=>{const i=e.target;if(!i||i.id!=="ocheat"||!i.checked)return;i.checked=false;
   let w=$("#cheatq");if(!w){w=document.createElement("div");w.id="cheatq";w.className="faov";document.body.appendChild(w)}
   w.innerHTML=`<div class="ovbox cheatbox" role="alertdialog" aria-labelledby="cheatqh"><button type="button" class="xclose" id="cheatqX" aria-label="No, keep it off">×</button><h2 id="cheatqh">Are you sure?</h2>
-<p>Cheat mode lets you change the rules while you play: free magic, infinite mana, every spell, blocks, rare events and spawns, and no victory or loss. Every player sees that it is on, and an online room shows it in the list.</p>
+<p>The game is not meant to be played like this. Cheat mode lets you change the rules while you play: free magic, infinite mana, every spell, blocks, rare events and spawns, and no victory or loss. Every player sees that it is on, and an online room shows it in the list.</p>
 <p class="acts"><button type="button" class="btn" id="cheatqY">Yes, I understand</button></p></div>`;w.hidden=false;
   const close=on=>{w.hidden=true;i.checked=on;if(on)i.dispatchEvent(new Event("input",{bubbles:true}))};
   $("#cheatqY").onclick=()=>close(true);$("#cheatqX").onclick=()=>close(false);w.onclick=ev=>{if(ev.target===w)close(false)};$("#cheatqY").focus()});
