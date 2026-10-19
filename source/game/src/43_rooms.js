@@ -10,7 +10,7 @@ const ROOM_DIR="ec-rooms-v1",ROOM_TTL=60000,ROOM_BEAT=20000;
 const roomTZ=()=>{try{const z=Intl.DateTimeFormat().resolvedOptions().timeZone||"",o=-new Date().getTimezoneOffset(),h=Math.trunc(o/60),m=Math.abs(o%60);
   const off=`UTC${o>=0?"+":"−"}${Math.abs(h)}${m?":"+String(m).padStart(2,"0"):""}`,city=z.split("/").pop().replace(/_/g," ");return !city||/^(UTC|GMT|Etc)/.test(z)?(o?off:"UTC"):`${city} (${off})`}catch(e){return ""}};
 const cleanRoom=r=>({code:String(r&&r.code||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,12),title:String(r&&r.title||"").slice(0,40),desc:String(r&&r.desc||"").slice(0,200),
-  players:Math.max(1,Math.min(8,+(r&&r.players)||1)),cap:Math.max(2,Math.min(8,+(r&&r.cap)||4)),tz:String(r&&r.tz||"").slice(0,40),playing:!!(r&&r.playing),local:!!(r&&r.local)});
+  players:Math.max(1,Math.min(8,+(r&&r.players)||1)),cap:Math.max(2,Math.min(8,+(r&&r.cap)||4)),tz:String(r&&r.tz||"").slice(0,40),playing:!!(r&&r.playing),local:!!(r&&r.local),cheat:!!(r&&r.cheat)});
 
 /* ---------- a stand-in for the connection service between tabs of one browser (for LOCAL rooms and for trying it alone) ---------- */
 class TabPeer{
@@ -48,7 +48,7 @@ function dirKeep(peer){DIR.peer=peer;DIR.keeper=true;
     else if(d.t==="unreg"&&d.code)delete DIR.rooms[String(d.code).toUpperCase()];
     else if(d.t==="list")send1(c,{t:"rooms",rooms:dirList()})})})}
 function dirList(){const now=Date.now();for(const [k,r] of Object.entries(DIR.rooms))if(now-r.at>ROOM_TTL)delete DIR.rooms[k];return Object.values(DIR.rooms).map(r=>{const o={...r};delete o.at;return o})}
-function myRoom(){const R=NET.room||{};return cleanRoom({code:NET.code,title:R.title||`${NET.name}'s room`,desc:R.desc,players:1+guestIds().length,cap:R.cap,tz:roomTZ(),playing:!!(G&&G.opts.online&&!G.over),local:roomsLocal()})}
+function myRoom(){const R=NET.room||{};return cleanRoom({code:NET.code,title:R.title||`${NET.name}'s room`,desc:R.desc,players:1+guestIds().length,cap:R.cap,tz:roomTZ(),playing:!!(G&&G.opts.online&&!G.over),local:roomsLocal(),cheat:G&&G.opts.online&&!G.over?!!G.opts.cheat:!!($("#ocheat")&&$("#ocheat").checked)})}
 async function dirBeat(){if(DIR.busy)return;DIR.busy=true;
   try{const open=(NET.role==="lobby-host"||NET.role==="host")&&NET.room&&NET.room.open;
     if(!open){if(DIR.conn)try{send1(DIR.conn,{t:"unreg",code:NET.code});DIR.conn.close()}catch(e){}DIR.conn=null;
@@ -100,7 +100,7 @@ async function paintRooms(){const box=$("#rmList");if(!box)return;box.innerHTML=
   if(!$("#rmList"))return;
   if(!rooms.length){box.innerHTML='<p class="dim">No open rooms right now. Open one yourself, or join a friend with their code.</p>';return}
   rooms.sort((a,b)=>a.playing-b.playing||b.players-a.players);
-  box.innerHTML=`<ul class="rmlist">${rooms.map((r,i)=>`<li><div class="rmtop"><b>${esc(r.title||"A room")}</b><span class="rmn">${r.players}/${r.cap} players</span>${r.playing?'<span class="rmtag">playing</span>':""}</div>
+  box.innerHTML=`<ul class="rmlist">${rooms.map((r,i)=>`<li><div class="rmtop"><b>${esc(r.title||"A room")}</b><span class="rmn">${r.players}/${r.cap} players</span>${r.playing?'<span class="rmtag">playing</span>':""}${r.cheat?'<span class="rmtag cheattag" title="The host has cheat mode on.">cheat mode on</span>':""}</div>
 <div class="rmsub dim">${esc(r.tz||"")}</div>${r.desc?`<details class="rmd"><summary>About this room</summary><p>${esc(r.desc)}</p></details>`:""}
 <p><button type="button" class="btn sm" data-rmjoin="${i}" ${r.players>=r.cap?"disabled":""}>${r.players>=r.cap?"Full":r.playing?"Join and watch":"Join"}</button></p></li>`).join("")}</ul>`;
   box.querySelectorAll("[data-rmjoin]").forEach(b=>b.onclick=()=>{const r=rooms[+b.dataset.rmjoin];$("#onCode").value=r.code;$("#onJoin").click()})}
