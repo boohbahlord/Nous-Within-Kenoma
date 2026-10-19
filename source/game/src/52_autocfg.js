@@ -41,7 +41,7 @@ function lhClean(c){c=c&&typeof c==="object"?c:{};const o={...LH_DEF},keys=new S
   o.xminus=o.xminus.filter(x=>!o.xextra.includes(x));o.sminus=o.sminus.filter(x=>!o.sextra.includes(x));
   o.surplus=clampN(c.surplus??0,0,30,0);return o}
 const lhMine=()=>lhClean(PREF.lh);
-const cardCat=c=>{const k=cardClass(c).toLowerCase();return k==="barbarian"?"standard":k};
+const cardCat=c=>{const k=cardClass(c).toLowerCase();return k==="demon"?"standard":k};
 const cardKey=c=>c.puppet?"puppet":c.unit?c.unit:c.rank;
 const lhExcluded=(c,cfg)=>{if(!cfg)return false;const k=cardKey(c);if((cfg.xminus||[]).includes(k))return false;return cfg.exclude.includes(cardCat(c))||cfg.xextra.includes(k)};
 const lhSacs=(c,cfg)=>{const k=cardKey(c);if((cfg.sminus||[]).includes(k))return false;return cfg.skinds.includes(cardCat(c))||cfg.sextra.includes(k)};
@@ -65,7 +65,7 @@ function autoBodyHTML(pfx,under){const V=G?view():null;
   if(autoTab==="lazy")return lhPanelHTML(lhMine(),pfx);
   if(!faAllowed())return `<p class="dim fafull">Field Automation is off for this game (the Rules tab before a game).</p>`;
   const on=V!=null&&faOn(V);return `${under?`<p class="fafull"><button type="button" class="btn ${on?"":"ghost"} sm" id="faTogU" aria-pressed="${on}">${on?"Turn field automation off":"Turn field automation on"}</button></p>`:""}${faPanelHTML(faMine(),V,pfx)}`}
-const whereHTML=pfx=>{const K=cfgKit("data-fa","data-faact","fa"+pfx);return K.sec("Where",K.row("under",faMine().under,"Show these controls under the field","A wide fold-down above Basics explained, with all three tabs."),"fafull fawhere")};
+const whereHTML=pfx=>{const K=cfgKit("data-fa","data-faact","fa"+pfx);return K.sec("Where",K.row("under",faMine().under,"Show these controls under the field","A wide fold-down above Basics explained, with every tab."),"fafull fawhere")};
 function wireAuto(root){
   root.querySelectorAll("[data-atab]").forEach(b=>b.onclick=()=>{autoTab=b.dataset.atab;PREF.autoTab=autoTab;savePrefs();paintFA()});
   faWire(root);rdWire(root);lhWire(root);const t=root.querySelector("#faTogU");if(t)t.onclick=faToggle}
@@ -79,7 +79,7 @@ paintFA=function(){const V=G?view():null,c=faMine();
   const want=!!(G&&!G.over&&c.under&&G.p[V]&&!G.p[V].cpu&&!isNPC(V));
   if(!want){if(d)d.remove();return}
   if(!d){d=document.createElement("details");d.id="fapanel";d.className="cinfo fapanel";if(PREF.faOpen)d.open=true;d.addEventListener("toggle",()=>{PREF.faOpen=d.open;savePrefs()});info.prepend(d)}
-  d.innerHTML=`<summary>Configure Automation <span class="dim">· Field ${autoStatus("field")} · Ritual Dice ${autoStatus("ritual")} · Lazy Hand ${autoStatus("lazy")}</span></summary><div class="fawide">${autoTabsHTML()}${autoBodyHTML("u",true)}</div>`;
+  d.innerHTML=`<summary>Configure Automation <span class="dim">· Field ${autoStatus("field")} · Ritual Dice ${autoStatus("ritual")} · Lazy Hand ${autoStatus("lazy")} · Grave ${autoStatus("grave")}</span></summary><div class="fawide">${autoTabsHTML()}${autoBodyHTML("u",true)}</div>`;
   wireAuto(d)};
 
 /* ---------- the Ritual Dice tab ---------- */
