@@ -1497,3 +1497,17 @@ html.still-sky #moon svg.moon{animation:none!important}
 html.still-glow .bankbar.notify,html.still-glow #shared .notice,html.still-glow #shared .auct-l.notify,html.still-glow .foldable.foldglow>h3[data-fold],html.still-glow .mysbox .myscard::before{animation:none!important}
 html.still-blood.bloodglitch .game #board,html.still-blood.bloodglitch .game h1,html.still-blood.mirage body::before{animation:none!important}
 #mParts{margin:10px 0}#mParts .facats{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:0 18px}
+/* v49 · +/− chips, the turn counter */
+.pmchips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.pmchip{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:5px;padding:2px 8px 2px 4px;border:1px solid var(--rule);border-radius:3px;font-size:12px;color:var(--dim)}
+.pmchip i{font-style:normal;display:inline-grid;place-items:center;width:15px;height:15px;border-radius:2px;background:#ffffff10;font-weight:700;color:var(--dim)}
+.pmchip.plus{border-color:#5fbf6f;color:var(--text)}.pmchip.plus i{background:#2c5a1e;color:#d8f5d0}
+.pmchip.minus{border-color:#c0392b;color:var(--text)}.pmchip.minus i{background:#6a1a14;color:#ffd2cd}
+.pmchip:focus-visible{outline:1px solid var(--amber)}
+.pmchips.off{opacity:.42;pointer-events:none}
+.pmhelp{font-size:11px!important}
+#turnctr{display:flex;align-items:baseline;gap:6px;margin-left:auto;font-family:"Grenze Gotisch","Old English Text MT",serif;font-weight:500;color:var(--amber-hi)}
+#turnctr span{font-size:18px}#turnctr b{font-weight:500;font-size:26px;color:#e0505b;text-shadow:0 0 10px #8e162266}
+#turnctr small{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+#turnctr[hidden]{display:none}
+@media (max-width:640px){#turnctr b{font-size:20px}#turnctr span{font-size:15px}}
