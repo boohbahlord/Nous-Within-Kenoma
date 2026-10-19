@@ -97,10 +97,11 @@ function seatForm(i,S,mode,L,taken){taken=taken||new Set();
 ${tm?`<div class="f"><span>Team</span><div class="opts">${[0,1].map(t=>`<label class="opt"><input type="radio" name="tm${n}" data-seat="${i}" data-k="team" value="${t}" ${S.team===t?"checked":""}><span>${t?"Side B":"Side A"}<small>${t?"Plays against Side A.":"Plays against Side B."} ${L==="koth"?"Each side needs at least one player.":"Each side needs two players."}</small></span></label>`).join("")}</div></div>`:""}
 <div class="f"><span>Substance</span><div class="opts subs">${Object.entries(TRIBES).map(([k,t])=>{const off=t.soon||taken.has(k)&&k!==S.tribe;return `<label class="opt${off?" off":""}"><input type="radio" name="tr${n}" data-seat="${i}" data-k="tribe" value="${k}" ${k===S.tribe?"checked":""} ${off?"disabled":""}><span>${t.solid?`<i class="subsym">${solidSVG(t.solid,t.color||"#f3d6a6",18)}</i>`:""}${t.name}<small>${taken.has(k)&&k!==S.tribe?"Another player has it: only the Beginner can be played by more than one player.":t.sub}</small></span></label>`}).join("")}</div></div>
 ${(()=>{const T=TRIBES[S.tribe]||{};
-  if(T.color)return `<p class="dim fixednote">${esc(T.name)} always plays in its own color and symbol: ${solidSVG(T.solid,T.color,20)}</p>`;
+  const acc=c0=>`<div class="f"><span>Accent</span><div class="opts swatches accents">${ACCENTS.map(([v,nm])=>`<label class="sw" title="${nm}${v==="auto"?" (a light shade of the color)":""}"><input type="radio" name="ac${n}" data-seat="${i}" data-k="accent" value="${v}" ${v===(S.accent||"auto")?"checked":""}><span style="--pc:${v==="auto"?accentOf(c0&&c0!=="random"?c0:"#c9a274","auto"):v}"></span><em>${nm}</em></label>`).join("")}</div></div>`;   // v61: the frame of your cards
+  if(T.color)return `<p class="dim fixednote">${esc(T.name)} always plays in its own color and symbol: ${solidSVG(T.solid,T.color,20)}</p>`+acc(T.color);
   const colors=`<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex])=>`<label class="sw" title="${nm}"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="${hex}" ${hex===S.color?"checked":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}<label class="sw swrand" title="Random: a color nobody else has"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="random" ${S.color==="random"?"checked":""}><span>?</span><em>Random</em></label></div></div>`;
-  if(T.solid)return colors+`<p class="dim fixednote">${esc(T.name)} always bears its own symbol: ${solidSVG(T.solid,S.color,20)}</p>`;
-  return colors+`<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="${k}" ${k===S.solid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}<label class="so-opt" title="Random: a symbol nobody else has"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="random" ${S.solid==="random"?"checked":""}><span><b class="sorand">?</b><em>Random</em></span></label></div></div>`;
+  if(T.solid)return colors+acc(S.color)+`<p class="dim fixednote">${esc(T.name)} always bears its own symbol: ${solidSVG(T.solid,S.color,20)}</p>`;
+  return colors+acc(S.color)+`<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="${k}" ${k===S.solid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}<label class="so-opt" title="Random: a symbol nobody else has"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="random" ${S.solid==="random"?"checked":""}><span><b class="sorand">?</b><em>Random</em></span></label></div></div>`;
 })()}
 </details></fieldset>`;
 }
@@ -244,7 +245,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     $("#seats").querySelectorAll("details.look").forEach((d,i)=>d.addEventListener("toggle",()=>{seatsS[i].open=d.open}));   // v60: each seat's fold stays as it was left
     $("#seats").querySelectorAll("[data-seat]").forEach(el=>el.addEventListener(el.tagName==="INPUT"&&el.type==="text"?"input":"change",()=>{
       const S=seatsS[+el.dataset.seat],k=el.dataset.k;S[k]=el.value;if(k==="name")S.named=true;
-      if(k==="color")el.closest(".seat").style.setProperty("--pc",el.value);
+      if(k==="color"){S.lookSet=true;el.closest(".seat").style.setProperty("--pc",el.value);drawSeats();return}   // v61: the accents follow the color
       if(k==="tribe"||k==="color"||k==="solid")S.lookSet=true;
       if(k==="type"){if(!S.lookSet){const i2=+el.dataset.seat,cpu=el.value!=="human";S.tribe=cpu?"random":"beginner";S.color=cpu?"random":COLORS[SEATCOL[i2]][1];S.solid=cpu?"random":SEATSOL[i2];drawSeats();return}
         turnUp()}
@@ -305,7 +306,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     let players=seatsS.slice(0,n).map((S,i)=>{
       const cpu=S.type==="human"?null:S.type;
       let name=(S.name.trim()||`P${i+1}`).slice(0,20);
-      return{name,tribe:S.tribe,color:S.color,solid:S.solid,cpu};
+      return{name,tribe:S.tribe,color:S.color,solid:S.solid,accent:S.accent||"auto",cpu};
     });
     const blk=skyBlocked(val("omoonon")),bad=players.find(p=>blk.includes(p.tribe));if(bad){flash(`${TRIBES[bad.tribe].name} can't be played with that Heavenly Body in the sky.`);return}
     for(const t of Object.keys(TRIBES))if(t!=="random"&&t!=="beginner"&&players.filter(p=>p.tribe===t).length>1){flash(`Only one player can be ${TRIBES[t].name}. The Beginner is the only Substance more than one player can share.`);return}
