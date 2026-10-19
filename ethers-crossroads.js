@@ -3946,18 +3946,21 @@ function crystalTick(){
 function siegeTurn(pl){
   crystalTick();
   if(!G.p[pl]||isHorde(pl))return;
-  let got=0;const notes=[];
+  let got=0;const notes=[],per=[];   // v62: what each mining slot brought, for its stats
   for(const {st,r,c} of stacksOf(pl)){
     const ms=st.cards.filter(x=>x.unit==="miner");if(!ms.length)continue;
-    const cr=crystalAt(r,c);
-    if(hasK(st,"ace")){for(const m of ms)if(m.inSlot!=null&&m.inSlot<G.moon.round)got+=R(2)-(G.moon.gone==="jupiter"?0:1)}   // Jupiter: 1d2 instead of 1d2 − 1   // a miner slot: 1d2 − 1 a turn, from the round after it moves in
-    else if(cr){if(R(2)===2){const take=Math.min(cr.left,1+R(3));cr.left-=take;got+=take;notes.push(`${take} from the crystal on ${coord(r,c)}${cr.left?` (${cr.left} left)`:"; the crystal is spent and gone"}`);if(!cr.left)G.crystals.splice(G.crystals.indexOf(cr),1)}}
+    const cr=crystalAt(r,c),g0=got;
+    if(hasK(st,"ace")){for(const m of ms)if(m.inSlot!=null&&m.inSlot<G.moon.round)got+=R(2)-(G.moon.gone==="jupiter"?0:1);per.push(["ace:"+st.cards.find(x=>kind(x)==="ace").id,got-g0])}   // Jupiter: 1d2 instead of 1d2 − 1   // a miner slot: 1d2 − 1 a turn, from the round after it moves in
+    else if(cr){per.push(["cr:"+r+"."+c,0]);if(R(2)===2){const take=Math.min(cr.left,1+R(3));cr.left-=take;got+=take;per[per.length-1][1]=take;notes.push(`${take} from the crystal on ${coord(r,c)}${cr.left?` (${cr.left} left)`:"; the crystal is spent and gone"}`);if(!cr.left)G.crystals.splice(G.crystals.indexOf(cr),1)}}
     else for(const m of ms)if(R(6)===6)got++;   // out in the open: 1d6 − 5
   }
   if(got&&G.p[pl].minerX2!=null&&tnOf(pl)<=G.p[pl].minerX2)got*=2;   // Jupiter's eclipse: miners bring twice as much
   if(got&&oathNow(pl,"earth")){notes.push(`the Oath of the Earth +${got}`);got*=2}   // v50: +1 for every mana mined
+  {const raw=per.reduce((a,x)=>a+x[1],0)+0,k=raw?got/Math.max(1,raw):1;for(const [key,n] of per)mineNote(pl,key,n*k)}
   if(got){const n=giveMana(pl,got);log(`${plName(pl)}'s Miners bring in ${n} mana${notes.length?": "+notes.join("; "):""}${n<got?" (the soul pile is full)":""}.`)}
 }
+/* v62: each mining slot's takings are noted here (the Mining slots panel keeps them) */
+function mineNote(pl,key,n){}
 /* the end of a player's turn: Miners settle into their slots; suppression wears off */
 function siegeEnd(pl){
   for(const {st,r,c} of stacksOf(pl)){
@@ -4522,7 +4525,7 @@ function skyTurn(pl){
   const P=G.p[pl];if(!P)return;
   // the Miner on the moon dies when the moon leaves the sky or the Leviathan climbs onto it
   checkMoonMiner();const MM=G.moonMiner;
-  if(MM&&MM.owner===pl){const v=R(2)-1;if(v){const got=giveMana(pl,v);if(got)log(`${plName(pl)}'s Miner on the moon brings ${got} mana.`)}}
+  if(MM&&MM.owner===pl){const v=R(2)-1;mineNote(pl,"moon",v);if(v){const got=giveMana(pl,v);if(got)log(`${plName(pl)}'s Miner on the moon brings ${got} mana.`)}}
   if(G.rain&&G.rain.by===pl){G.rain=null;log(`The rain over the field stops.`)}
   if(G.ffog&&G.ffog.by===pl&&tnOf(pl)>=G.ffog.until){G.ffog=null;log(`The Firmament's fog lifts.`)}
   // Mars: plain soldiers find their courage
@@ -4530,7 +4533,7 @@ function skyTurn(pl){
     if(n)log(`Mars stirs ${n} of ${plName(pl)}'s soldier stack${n>1?"s":""}: advantage on the next attack.`)}
 }
 function checkMoonMiner(){const MM=G.moonMiner;
-  if(MM&&(G.moon.gone||G.moonLev||G.p[MM.owner].out)){G.moonMiner=null;MM.card.owner=MM.owner;toGrave(MM.card,"death");
+  if(MM&&(G.moon.gone||G.moonLev&&G.moonLev.owner!==MM.owner||G.p[MM.owner].out)){   // v62: the Leviathan's own player keeps the Moon's mining slotG.moonMiner=null;MM.card.owner=MM.owner;toGrave(MM.card,"death");
     log(`${G.moon.gone?"The moon has left the sky":"The Leviathan is on the moon"}: ${plName(MM.owner)}'s Miner on the moon is gone.`,"event");notify(MM.owner,"The Miner on the moon is lost.")}}
 /* Rain: every sacrifice gives one more mana, and one mana to the Firmament */
 function rainSac(pl){const Rn=G.rain;if(!Rn||G.p[Rn.by].out)return;
@@ -7110,9 +7113,9 @@ function plantMiner(pl,p){const m=handMiners(pl)[0];if(!m||p.owner!==pl||p.miner
   log(`${plName(pl)} puts a Miner to work on plot ${p.i+1}: no enemy can reach it there.`);return true}
 /* the Miners work at the start of their owner's turn */
 {const _bt=bankTurn;bankTurn=function(pl){_bt(pl);if(!G.p[pl]||isHorde(pl)||!G.plots)return;let got=0;
-  for(const p of myPlots(pl))for(const m of p.miners)if(m.plotSince<G.moon.round){let n=R(2)-(planetUp("jupiter")?0:1);if(n&&G.p[pl].minerX2!=null&&tnOf(pl)<=G.p[pl].minerX2)n*=2;p.prod+=n;got+=n}
+  for(const p of myPlots(pl))for(const m of p.miners)if(m.plotSince<G.moon.round){let n=R(2)-(planetUp("jupiter")?0:1);if(n&&G.p[pl].minerX2!=null&&tnOf(pl)<=G.p[pl].minerX2)n*=2;p.prod+=n;got+=n;mineNote(pl,"plot:"+p.i,n)}
   // v38: Jupiter blesses the land itself: +1 a plot each turn while it is in the sky, +1d2 a plot during its eclipse
-  const jb=()=>eclipseOn("jupiter")?R(2):planetUp("jupiter")?1:0;let jup=0;for(const p of myPlots(pl)){const n=jb();p.prod+=n;jup+=n}
+  const jb=()=>eclipseOn("jupiter")?R(2):planetUp("jupiter")?1:0;let jup=0;for(const p of myPlots(pl)){const n=jb();p.prod+=n;jup+=n;if(n)mineNote(pl,"plot:"+p.i,n)}
   if(jup){got+=jup;log(`Jupiter over the Bank's land: ${plName(pl)}'s plots yield ${jup} more.`)}
   if(got){const n=giveMana(pl,got);log(`${plName(pl)}'s Miners on the Bank's land bring in ${n} mana${n<got?" (the soul pile is full)":""}. The Bank's half is due at the Full Moon.`)}}}
 /* pay day: the Bank takes half */
@@ -9860,5 +9863,85 @@ function stackEdges(st,r,c){const n=st.cards.length,layers=n<=1?0:n===2?1:n<=4?2
 
 if(window.__EC)Object.assign(window.__EC,{accentOf,ACCENTS,stackEdges,face:(...a)=>face(...a)});
 {const _m=mkPlayer;mkPlayer=function(i,o){const P=_m.apply(this,arguments);P.accent=o&&o.accent||"auto";return P}}
+/* the book's passages fold on a computer too, closed until their heading is clicked */
+FOLD_ALWAYS.add("quotes");
+
+/* ---------------- v62: mining slots, and wildcards that say what they're for ----------------
+   - Each wildcard's card info starts with one short line on how to use it (the Selected box and the card's tips show the
+     same info). */
+
+/* ---------- wildcards: what each is for, in a line ---------- */
+const WILD_USE={
+  samson:"Shoot an enemy two tiles away (3d20) or slash up close. Stacks only with an Ace. When he falls, Antony rises.",
+  antony:"Every card he kills charges a bolt for Lightning Strike.",
+  satan:"Fights at 6d12 with no modifiers, alone. Lead with him into your strongest enemy.",
+  leviathan:"At a New Moon, Rise to the Moon (free): every enemy pays a toll each New Moon after. What it kills goes to the Outer Darkness.",
+  bullgoat:"Charge an enemy two or three tiles away in a straight line (10 + 2d20). When it dies it comes back as the Goatbull.",
+  goatbull:"Stomp a stack to pin it for 2d2 of its turns; charge an enemy exactly two tiles away.",
+  debt:"Fights with the score of the card it faces. Only players in debt to the Bank can strike it.",
+  slavemaster:"Enemy soldiers killed in its fights become your thralls (ten at most).",
+  slave:"Shoot an enemy two tiles away (10 + 1d12). No defense; keep it behind your lines.",
+  trafficker:"Enemies that die beside it become prisoners (three at most); sell them with Life for Sell."};
+for(const [u,t] of Object.entries(WILD_USE))if(INFO[u]&&Array.isArray(INFO[u][2])&&!INFO[u][2].some(r=>r[0]==="Use"))INFO[u][2].unshift(["Use",t]);
+
+/* ---------- Mining slots (the user's design) ----------
+   A row of small slots below the field, the hand, the Grave and Ether row and the dice: one for each of your Aces (two Miners),
+   each crystal one of your stacks stands on, each plot of the Bank's land you hold, and the Moon (when your Miner is on it,
+   or your Leviathan is: then the Moon's mining slot is yours). Pick a Miner in your hand, then a lit slot: the Miner goes
+   straight there, wherever it is on the field. Each slot shows its takings: the last pay period (its rounds), a turn on
+   average, and ever. ▾ folds it; the arrow at the right moves it below Configure Automation, then below Help, then back. */
+mineNote=function(pl,key,n){if(!G)return;const M=G.mine=G.mine||{},k=pl+"|"+key,e=M[k]||(M[k]={t:0,h:[]});n=Math.round(n*100)/100;e.t=Math.round((e.t+n)*100)/100;e.h.push([G.moon.round,n]);if(e.h.length>90)e.h.shift()};
+{const _cr=cycleRound;cycleRound=function(){try{if(G&&typeof payDay==="function"&&payDay()){const a=G.payHist=G.payHist||[];if(a[a.length-1]!==G.moon.round)a.push(G.moon.round)}}catch(e){}return _cr.apply(this,arguments)}}
+function minePeriod(){const ph=(G.payHist||[]).filter(x=>x<=G.moon.round);
+  if(!ph.length)return {a:1,b:G.moon.round,done:false};return {a:ph.length>1?ph[ph.length-2]+1:1,b:ph[ph.length-1],done:true}}
+function mineStats(pl,key){const e=G.mine&&G.mine[pl+"|"+key];if(!e)return null;const P=minePeriod(),inP=e.h.filter(([r])=>r>=P.a&&r<=P.b);
+  const sum=Math.round(inP.reduce((a,x)=>a+x[1],0)*10)/10;return {P,sum,avg:inP.length?Math.round(sum/inP.length*10)/10:0,turns:inP.length,ever:e.t}}
+function mineSlots(V){const out=[];if(!G||V==null||!G.p[V]||G.phase==="setup")return out;
+  for(const {st,r,c} of stacksOf(V)){const ms=st.cards.filter(x=>x.unit==="miner"),ace=st.cards.find(x=>kind(x)==="ace");
+    if(ace){out.push({k:"ace:"+ace.id,kind:"ace",name:"Ace",at:coord(r,c),r,c,st,ms,cap:2});continue}
+    const cr=crystalAt(r,c);if(cr)out.push({k:"cr:"+r+"."+c,kind:"cr",name:"Crystal",at:coord(r,c),sub:`${cr.left} left`,r,c,st,ms,cap:1})}
+  for(const p of G.plots||[])if(p.owner===V)out.push({k:"plot:"+p.i,kind:"plot",name:`Plot ${p.i+1}`,at:"the Bank's land",p,ms:p.miners,cap:1});
+  const MM=G.moonMiner,ML=G.moonLev,mine=MM&&MM.owner===V,lev=ML&&ML.owner===V;
+  if(mine||lev)out.push({k:"moon",kind:"moon",name:"The Moon",at:lev?"the Leviathan's":"",ms:mine?[MM.card]:[],lev:lev?ML.card:null,cap:1});
+  return out}
+/* can the Miner picked in the hand go into this slot now? */
+function mineFits(s,V){const m=G&&G.selHand;if(!m||m.unit!=="miner"||G.active!==V||G.phase!=="prep"||!canAct())return false;
+  if(s.kind==="ace"||s.kind==="cr")return s.st.owner===V&&stackLegal([...s.st.cards,m]);
+  if(s.kind==="plot")return !s.p.miners.length;
+  if(s.kind==="moon")return !!s.lev&&!G.moonMiner;return false}
+/* the Moon's mining slot, held by the Leviathan's player */
+function moonPlant(pl){const ML=G.moonLev,m=G.p[pl].hand.find(x=>x.unit==="miner");if(!ML||ML.owner!==pl||G.moonMiner||!m)return false;
+  G.p[pl].hand.splice(G.p[pl].hand.indexOf(m),1);m.owner=pl;G.moonMiner={owner:pl,card:m};G.selHand=null;
+  log(`${plName(pl)} sends a Miner up to the Moon, where the Leviathan keeps watch: it mines from the next turn.`);return true}
+NETFN.moonPlant={get:()=>moonPlant,set:f=>moonPlant=f};{const orig=moonPlant;moonPlant=function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:"moonPlant",args:netClean(a),ui:uiSnap(),rid})}}
+function mineAct(s,V){if(!mineFits(s,V))return;const m=G.selHand;
+  if(s.kind==="ace"||s.kind==="cr")place(m,s.r,s.c);else if(s.kind==="plot"){plantMiner(V,s.p);G.selHand=null}else if(s.kind==="moon")moonPlant(V);
+  render()}
+const MINE_POS=["field","auto","help"];
+function mineSlotHTML(s,V){const st=mineStats(V,s.k),fit=mineFits(s,V),empty=Math.max(0,s.cap-s.ms.length);
+  const cards=(s.lev?face(s.lev,{cls:"sm",noci:true}):"")+s.ms.map(m=>face(m,{cls:"sm",noci:true})).join("")+Array.from({length:empty},()=>`<span class="msempty" aria-hidden="true"></span>`).join("");
+  const stat=st?`<span class="msstat"><span>Rounds ${st.P.a}–${st.P.b}${st.P.done?"":"…"}: <b>${st.sum}</b> (<b>${st.avg}</b> a turn)</span><span>Ever: <b>${st.ever}</b> mana</span></span>`:"";
+  return `<button type="button" class="mslot k-${s.kind}${fit?" tplace":""}" data-ms="${esc(s.k)}" ${fit?"":"aria-disabled=\"true\""} title="${esc(s.name+(s.at?" · "+s.at:""))}${fit?": place the Miner here":""}">
+<span class="msn"><b>${esc(s.name)}</b>${s.at?`<small>${esc(s.at)}</small>`:""}${s.sub?`<small>${esc(s.sub)}</small>`:""}<em>${s.ms.length}/${s.cap||1}</em></span><span class="msc">${cards}</span>${stat}</button>`}
+function paintMines(){if(!G)return;const V=view(),slots=mineSlots(V);let box=$("#minepanel");
+  if(!slots.length){if(box)box.hidden=true;return}
+  if(!box){box=document.createElement("section");box.id="minepanel";box.className="minepanel";box.setAttribute("aria-label","Mining slots")}
+  const pos=MINE_POS[PREF.minePos|0]||"field",anchor=pos==="auto"?($("#fapanel")||$("#helphead")):pos==="help"?$("#info"):($("#dicefold")||$("#shared"));
+  if(anchor&&box.previousElementSibling!==anchor)anchor.after(box);
+  const open=PREF.mineOpen!==false,picking=G.selHand&&G.selHand.unit==="miner";box.hidden=false;
+  const next=MINE_POS[((PREF.minePos|0)+1)%3];
+  box.innerHTML=`<div class="mshead"><button type="button" class="msfold" aria-expanded="${open}">${open?"▾":"▸"} Mining slots <span class="dim">${slots.length}</span></button>${picking&&open?`<span class="mshint">Pick a lit slot for your Miner.</span>`:""}<button type="button" class="msmove" title="${next==="auto"?"Move below Configure Automation":next==="help"?"Move below Help":"Move back below the field"}" aria-label="Move the mining slots">${next==="field"?"⇡":"⇣"}</button></div>${open?`<div class="msrow">${slots.map(s=>mineSlotHTML(s,V)).join("")}</div>`:""}`;
+  box.querySelector(".msfold").onclick=()=>{PREF.mineOpen=!open;savePrefs();paintMines()};
+  box.querySelector(".msmove").onclick=()=>{PREF.minePos=((PREF.minePos|0)+1)%3;savePrefs();paintMines();box.scrollIntoView({block:"nearest"})};
+  box.querySelectorAll("[data-ms]").forEach(b=>b.onclick=()=>{const s=slots.find(x=>x.k===b.dataset.ms);if(s)mineAct(s,V)})}
+{const _r=render;render=function(){_r.apply(this,arguments);try{paintMines()}catch(e){console.error(e)}}}
+if(window.__EC)Object.assign(window.__EC,{mineSlots,mineStats,moonPlant:(...a)=>moonPlant(...a),paintMines});
+/* the wildcards' use line also in the Selected box (a wildcard picked in the hand, or in the stack picked on the field) and
+   in the card's own tip */
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const box=$("#selbox");if(!box||box.querySelector(".wilduse"))return;
+  let cards=[];if(G.selHand)cards=[G.selHand];else if(G.sel&&G.board[G.sel.r]&&G.board[G.sel.r][G.sel.c])cards=G.board[G.sel.r][G.sel.c].cards;
+  const us=[...new Set(cards.filter(c=>c.unit&&WILD_USE[c.unit]).map(c=>c.unit))];if(!us.length)return;
+  box.insertAdjacentHTML("afterbegin",us.map(u=>`<p class="wilduse"><b>${esc((UNIT[u].short||UNIT[u].name))}</b> ${esc(WILD_USE[u])}</p>`).join(""))}}
+{const _f=face;face=function(c,o){const h=_f.apply(this,arguments);if(!c||!c.unit||!WILD_USE[c.unit])return h;return h.replace(/title="([^"]*)"/,(m,t)=>`title="${t}: ${esc(WILD_USE[c.unit])}"`)}}
 
 })();

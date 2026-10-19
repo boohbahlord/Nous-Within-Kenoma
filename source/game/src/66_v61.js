@@ -44,3 +44,5 @@ function stackEdges(st,r,c){const n=st.cards.length,layers=n<=1?0:n===2?1:n<=4?2
 
 if(window.__EC)Object.assign(window.__EC,{accentOf,ACCENTS,stackEdges,face:(...a)=>face(...a)});
 {const _m=mkPlayer;mkPlayer=function(i,o){const P=_m.apply(this,arguments);P.accent=o&&o.accent||"auto";return P}}
+/* the book's passages fold on a computer too, closed until their heading is clicked */
+FOLD_ALWAYS.add("quotes");

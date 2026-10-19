@@ -14,7 +14,7 @@ function skyTurn(pl){
   const P=G.p[pl];if(!P)return;
   // the Miner on the moon dies when the moon leaves the sky or the Leviathan climbs onto it
   checkMoonMiner();const MM=G.moonMiner;
-  if(MM&&MM.owner===pl){const v=R(2)-1;if(v){const got=giveMana(pl,v);if(got)log(`${plName(pl)}'s Miner on the moon brings ${got} mana.`)}}
+  if(MM&&MM.owner===pl){const v=R(2)-1;mineNote(pl,"moon",v);if(v){const got=giveMana(pl,v);if(got)log(`${plName(pl)}'s Miner on the moon brings ${got} mana.`)}}
   if(G.rain&&G.rain.by===pl){G.rain=null;log(`The rain over the field stops.`)}
   if(G.ffog&&G.ffog.by===pl&&tnOf(pl)>=G.ffog.until){G.ffog=null;log(`The Firmament's fog lifts.`)}
   // Mars: plain soldiers find their courage
@@ -22,7 +22,7 @@ function skyTurn(pl){
     if(n)log(`Mars stirs ${n} of ${plName(pl)}'s soldier stack${n>1?"s":""}: advantage on the next attack.`)}
 }
 function checkMoonMiner(){const MM=G.moonMiner;
-  if(MM&&(G.moon.gone||G.moonLev||G.p[MM.owner].out)){G.moonMiner=null;MM.card.owner=MM.owner;toGrave(MM.card,"death");
+  if(MM&&(G.moon.gone||G.moonLev&&G.moonLev.owner!==MM.owner||G.p[MM.owner].out)){   // v62: the Leviathan's own player keeps the Moon's mining slotG.moonMiner=null;MM.card.owner=MM.owner;toGrave(MM.card,"death");
     log(`${G.moon.gone?"The moon has left the sky":"The Leviathan is on the moon"}: ${plName(MM.owner)}'s Miner on the moon is gone.`,"event");notify(MM.owner,"The Miner on the moon is lost.")}}
 /* Rain: every sacrifice gives one more mana, and one mana to the Firmament */
 function rainSac(pl){const Rn=G.rain;if(!Rn||G.p[Rn.by].out)return;
