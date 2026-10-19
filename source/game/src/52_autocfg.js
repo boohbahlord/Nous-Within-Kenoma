@@ -84,15 +84,14 @@ paintFA=function(){const V=G?view():null,c=faMine();
 
 /* ---------- the Ritual Dice tab ---------- */
 function rdPanelHTML(c,pfx){const K=cfgKit("data-rd","data-rdact","rd"+pfx),{row,spin,sec}=K,off=!c.on;
-  let h=sec("Ritual Dice",row("on",c.on,"Buy Ritual Dice for me","At the start of your prep phase, before Grave Blessing. Turning this on turns Grave Blessing's auto on too.")+
-    `<p class="dim">Each Ritual Dice costs 1 mana and adds 3d6 to this turn's Grave Blessing. It is never bought when Grave Blessing can't be cast.</p>`,"fafull");
-  h+=sec("Playstyle",`<div class="opts faopts${off?" off":""}">${RD_PRESETS.map(([k,t,d])=>`<label class="opt"${K.tip(d)}><input type="radio" name="rd${pfx}-preset" data-rdpreset="${k}" ${c.preset===k?"checked":""} ${off?"disabled":""}><span>${t}${K.sm(d)}</span></label>`).join("")}<label class="opt"><input type="radio" name="rd${pfx}-preset" disabled ${c.preset==="custom"?"checked":""}><span>Custom</span></label></div>`,
+  let h=`<p class="dim fafull">At the start of your prep phase, before Grave Blessing (switching this on switches Grave Blessing's auto on too). Each Ritual Dice costs 1 mana and adds 3d6 to this turn's Grave Blessing. It is never bought when Grave Blessing can't be cast.</p>`;
+  h+=sec("Playstyle",`<div class="opts faopts${off?" off":""}">${RD_PRESETS.map(([k,t,d])=>`<label class="opt"${K.tip(d)}><input type="radio" name="rd${pfx}-preset" data-rdpreset="${k}" ${c.preset===k?"checked":""} ${off?"disabled":""}><span>${t}${K.sm(d)}</span></label>`).join("")}<label class="opt"${K.tip(c.lastCustom?"Your own settings, as you last left them.":"Change any setting below and it becomes Custom.")}><input type="radio" name="rd${pfx}-preset" data-rdpreset="custom" ${c.preset==="custom"?"checked":""} ${off||!c.lastCustom&&c.preset!=="custom"?"disabled":""}><span>Custom${K.sm(c.lastCustom?"As you last left it.":"")}</span></label></div>`,
     "fafull","Sets everything below at once. Change any of it and it becomes Custom.");
   h+=sec("How often",spin("Every","1: every turn",c.every,"every",c.every>1?"turns":"turn",off)+spin("How many each time","Each one is 1 mana and 3d6.",c.perTurn,"perTurn","",off));
   h+=sec("Only when the grave holds",K.chips(RD_KINDS,c.kinds,"data-rdkind",off)+`<p class="dim">None ticked: whatever the grave holds.</p>`);
-  h+=sec("Mana",spin("Only while I have at least","It buys only with this much mana to spare.",c.minMana,"minMana","mana",off)+
-    spin("Stop while I owe","Mana debt plus loans. 0: owing never stops it.",c.stopDebt?c.stopDebt:"0",`stopDebt`,c.stopDebt?"or more":"(never stops)",off));
-  h+=sec("Overdraw",row("noOD",c.noOD,"Don't buy on a turn I overdrew","An overdraw cuts Grave Blessing's dice; this waits it out.",off)+row("counterOD",c.counterOD,"Buy extra to make up for overdraw","Enough more Ritual Dice to cover the dice an overdraw takes away.",off||c.noOD));
+  h+=sec("Mana",spin("Only with at least","It buys only with this much mana to spare.",c.minMana,"minMana","mana",off)+
+    spin("Stop while owing","Mana debt plus loans. 0: owing never stops it.",c.stopDebt?c.stopDebt:"0",`stopDebt`,c.stopDebt?"or more":"(never stops)",off));
+  h+=sec("Overdraw",row("noOD",c.noOD,"Not on a turn with an overdraw","An overdraw cuts Grave Blessing's dice; this waits it out.",off)+row("counterOD",c.counterOD,"Buy extra to make up for overdraw","Enough more Ritual Dice to cover the dice an overdraw takes away.",off||c.noOD));
   h+=sec("Credit",row("credit",c.credit,"Buy on credit","When your mana runs short, the Bank's credit pays.",off)+spin("Stop buying on credit at","Your mana won't go below this to buy one.",c.creditStop,"creditStop","mana",off||!c.credit));
   return h}
 function rdSave(c){c=rdClean(c);PREF.rd=c;if(c.on&&G){const V=view();if(G.p[V]&&!G.p[V].autoBless){setAutoBless(V,true)}PREF.autoBless=true}savePrefs();autoSync();paintFA();if(G)render()}
@@ -104,14 +103,14 @@ function rdWire(root){
 
 /* ---------- the Lazy Hand tab ---------- */
 function lhPanelHTML(c,pfx){const K=cfgKit("data-lh","data-lhact","lh"+pfx),{row,spin,sec}=K,so=!c.sac;
-  let h=`<p class="fawarn fafull">We advise against letting Lazy Hand play for you: it doesn't know your plans. If you use it, check what it does now and then.</p>`;
+  let h=`<p class="fawarn caution fafull"><b aria-hidden="true">⚠</b> Caution: Lazy Hand doesn't know the plan. When it plays the cards, check its moves now and then.</p>`;
   h+=sec("Lazy Hand",row("keep",PREF.lazyAuto===true,"Keep Lazy Hand on","Every card you click in your hand is placed for you (the spell's auto switch).")+
-    row("autoPlace",c.autoPlace,"Place my cards by itself","At the start of your prep phase it places every card it may, where the computer would play it."),"fafull");
-  h+=sec("Never place for me",K.chips(RD_KINDS,c.exclude,"data-lhex")+`<details class="faextra" ${c.xextra.length||c.xminus.length?"open":""}><summary>Yes, and… (single kinds: + never placed for you, − placed for you even if its group is ticked)</summary>${K.pmChips(lhKeyList(),c.xextra,c.xminus,"data-lhxpm")}</details><p class="dim">You place these yourself, even with Lazy Hand on.</p>`,"fafull");
-  h+=sec("Sacrifice from my hand",row("sac",c.sac,"Sacrifice cards by itself","At the start of your prep phase, before anything is spent: the kinds you tick here.")+K.chips(RD_KINDS,c.skinds,"data-lhsk",so)+
+    row("autoPlace",c.autoPlace,"Place cards automatically","At the start of your prep phase it places every card it may, where the computer would play it."),"fafull");
+  h+=sec("Never placed automatically",K.chips(RD_KINDS,c.exclude,"data-lhex")+`<details class="faextra" ${c.xextra.length||c.xminus.length?"open":""}><summary>Yes, and… (single kinds: + never placed for you, − placed for you even if its group is ticked)</summary>${K.pmChips(lhKeyList(),c.xextra,c.xminus,"data-lhxpm")}</details><p class="dim">You place these yourself, even with Lazy Hand on.</p>`,"fafull");
+  h+=sec("Sacrifice from the hand",row("sac",c.sac,"Sacrifice cards by itself","At the start of your prep phase, before anything is spent: the kinds you tick here.")+K.chips(RD_KINDS,c.skinds,"data-lhsk",so)+
     `<details class="faextra" ${c.sextra.length||c.sminus.length?"open":""}><summary>Yes, and… (single kinds: + sacrificed, like the 2 Grunt; − never sacrificed)</summary>${K.pmChips(lhKeyList(),c.sextra,c.sminus,"data-lhspm",so)}</details>`+
-    row("negOnly",c.negOnly,"Only while my mana is below zero","It sacrifices until you are back at zero; the limits below don't apply.",so)+
-    row("notFull",c.notFull,"Not when my mana is full","It stops at your maximum, so nothing goes into the surplus.",so||c.negOnly)+
+    row("negOnly",c.negOnly,"Only while mana is below zero","It sacrifices until you are back at zero; the limits below don't apply.",so)+
+    row("notFull",c.notFull,"Not when mana is full","It stops at your maximum, so nothing goes into the surplus.",so||c.negOnly)+
     (!c.notFull?row("maxSurplus",c.maxSurplus,"Up to the most surplus","As far as the soul pile allows.",so||c.negOnly)+spin("Up to this far into the surplus","",c.surplus,"surplus","mana",so||c.negOnly||c.maxSurplus):""),"fafull");
   return h}
 function lhSave(c){PREF.lh=lhClean(c);savePrefs();autoSync();paintFA();if(G)render()}

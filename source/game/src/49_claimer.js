@@ -32,8 +32,15 @@ function flagHTML(r,c,under){const f=flagAt(r,c);if(!f)return "";const P=G.p[f.o
 {const _ch=crystalHTML;crystalHTML=function(r,c,under){return _ch(r,c,under)+flagHTML(r,c,under)}}
 
 /* the actions: claim, strike, repair (a joined player's click travels to the host) */
+/* v52: a Claimer can't claim a tile that is already a spawn point (anyone's spawn lines, the Bank's land, a base) */
+function claimWhy(r,c){const st=G.board[r][c];
+  if(G.zone[r][c]>=0||G.backz[r][c]>=0)return "A Claimer can't claim a spawn point: this tile is in a player's spawn lines.";
+  if(typeof landAt==="function"&&landAt(r,c))return "A Claimer can't claim a spawn point: this tile is Bank land.";
+  if(st&&st.cards.some(x=>isBase(x)&&kind(x)!=="wall"))return "A Claimer can't claim a spawn point: a base already stands here.";
+  return ""}
 function claimLand(r,c){const st=G.board[r][c];if(!st||st.owner!==G.active||G.phase!=="prep"||isVoid(r,c)||flagAt(r,c))return false;
   const cl=st.cards.find(x=>x.unit==="claimer");if(!cl)return false;
+  const why=claimWhy(r,c);if(why){if(!G.p[G.active].cpu)flash(why);return false}
   st.cards.splice(st.cards.indexOf(cl),1);cl.owner=null;delete cl.inSlot;G.ether.push(cl);
   if(!st.cards.length){G.board[r][c]=null;freeCaptive(st,r,c);if(G.sel&&G.sel.r===r&&G.sel.c===c)G.sel=null}else if(G.sel&&G.sel.pick)G.sel.pick.delete(cl.id);
   (G.flags=G.flags||[]).push({r,c,owner:G.active,hp:FLAG_HP,max:FLAG_HP});
@@ -53,12 +60,12 @@ for(const [name,get,set] of [["claimLand",()=>claimLand,f=>claimLand=f],["strike
 
 /* the selection box gets the buttons */
 {const _sa=siegeActs;siegeActs=function(st,mine,s){const out=_sa(st,mine,s);if(!mine||!canAct())return out;
-  if(G.phase==="prep"&&st.cards.some(x=>x.unit==="claimer")&&!flagAt(s.r,s.c))out.push(`<button class="btn sm" id="claimBtn" data-tip="A Flag goes up on this tile: a spawn point for your bases. The Claimer dies and goes back to the Ether.">Claim Land</button>`);
+  if(G.phase==="prep"&&st.cards.some(x=>x.unit==="claimer")&&!flagAt(s.r,s.c)){const why=claimWhy(s.r,s.c);out.push(`<button class="btn sm${why?" ghost":""}" id="claimBtn" data-tip="${esc(why||"A Flag goes up on this tile: a spawn point for your bases. The Claimer dies and goes back to the Ether.")}">Claim Land</button>`)}
   if(G.phase==="attack"&&canAttackFrom(st))for(const f of flagTargets(st,s.r,s.c,"strike"))out.push(`<button class="btn ghost sm" data-fstrike="${f.r},${f.c}">Strike ${esc(G.p[f.owner].name)}'s Flag on ${coord(f.r,f.c)} (${f.hp}/${f.max})</button>`);
   if(G.phase==="prep"&&repairReady(st))for(const f of flagTargets(st,s.r,s.c,"repair"))out.push(`<button class="btn ghost sm" data-frep="${f.r},${f.c}">Repair the Flag on ${coord(f.r,f.c)} (${f.hp}/${f.max})</button>`);
   return out}}
 {const _ws=wireSiege;wireSiege=function(st,s){_ws(st,s);
-  if($("#claimBtn"))$("#claimBtn").onclick=()=>{if(!canAct())return;claimLand(s.r,s.c);render()};
+  if($("#claimBtn"))$("#claimBtn").onclick=()=>{if(!canAct())return;const why=claimWhy(s.r,s.c);if(why){flash(why);return}claimLand(s.r,s.c);render()};
   document.querySelectorAll("[data-fstrike]").forEach(b=>b.onclick=()=>{if(!canAct())return;const [fr,fc]=b.dataset.fstrike.split(",").map(Number);strikeFlag(s.r,s.c,fr,fc);G.mode=null;render()});
   document.querySelectorAll("[data-frep]").forEach(b=>b.onclick=()=>{if(!canAct())return;const [fr,fc]=b.dataset.frep.split(",").map(Number);repairFlag(s.r,s.c,fr,fc);render()})}}
 
@@ -74,6 +81,6 @@ for(const [name,get,set] of [["claimLand",()=>claimLand,f=>claimLand=f],["strike
 /* the computer: strikes enemy Flags with stacks that didn't attack, and claims land with a Claimer out in the field */
 {const _ph=AI.phase;AI.phase=async function(pl,ph){const out=await _ph.apply(this,arguments);if(G.over||G.active!==pl)return out;
   if(ph==="attack")for(const {st,r,c} of stacksOf(pl)){if(!canAttackFrom(st))continue;const f=flagTargets(st,r,c,"strike")[0];if(f){strikeFlag(r,c,f.r,f.c);render()}}
-  if(ph==="prep")for(const {st,r,c} of stacksOf(pl))if(st.cards.some(x=>x.unit==="claimer")&&!canSpawn(pl,r,c)&&!flagAt(r,c)){claimLand(r,c);render()}
+  if(ph==="prep")for(const {st,r,c} of stacksOf(pl))if(st.cards.some(x=>x.unit==="claimer")&&!claimWhy(r,c)&&!flagAt(r,c)){claimLand(r,c);render()}
   return out}}
 if(window.__EC)Object.assign(window.__EC,{claimLand,strikeFlag,repairFlag,flagAt,canPlace:(...a)=>canPlace(...a),place:(...a)=>place(...a),pickGrave:(...a)=>pickGrave(...a),openSell:(...a)=>openSell(...a)});

@@ -74,8 +74,8 @@ ol.toc a{display:grid;grid-template-columns:4ch minmax(0,1fr);gap:12px;padding:9
 ol.toc a:hover,ol.toc a:focus-visible{background:var(--well);color:var(--amber-hi)}
 ol.toc .n{color:var(--amber);text-align:right}
 /* compact cards, split by black hairlines */
-.cards{display:grid;gap:0;border-top:1px solid #000;border-bottom:1px solid #000}
-.cards a.card + a.card{border-top:1px solid #000}
+/* v52: every box keeps its whole outline (the group rules above and below were cutting it) */
+.cards{display:grid;gap:0}
 a.card{position:relative;overflow:hidden;display:flex;flex-wrap:wrap;gap:2px 14px;align-items:baseline;justify-content:space-between;padding:9px 14px;margin:5px 0;background:var(--well);border:1px solid var(--rule);color:var(--text);font-size:16px;line-height:1.4}
 a.card span{color:var(--dim);font-size:13px}
 a.card:hover,a.card:focus-visible{border-color:var(--amber);color:var(--amber-hi);outline:none}
