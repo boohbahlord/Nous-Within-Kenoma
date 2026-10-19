@@ -65,6 +65,7 @@ async function turnAsync(pl){   // the start of a turn that may ask something: S
   if(P.tribe==="firm"){log(`${plName(pl)} ignores Saturn's tax: the Firmament stands above it.`);return}
   if(P.tribe==="binah"){log(`${plName(pl)} ignores Saturn's tax: Binah owes the Demiurge nothing.`);return}
   const n=1+(G.saturnDebt||0);let paid=0;
+  if(P.standing&&P.standing[0]&&P.standing[1]&&Math.random()<.25){log(`<b>Saturn</b> passes ${plName(pl)} by this turn: two Bank Reports in good standing. The toll counts as paid.`,"event");saturnPaid(pl,n,n);return}   // v50
   for(let i=0;i<n;i++){
     const opts=[];
     if(P.hand.length)opts.push({id:"hand",label:"A random card from your hand"});
@@ -73,7 +74,7 @@ async function turnAsync(pl){   // the start of a turn that may ask something: S
     opts.push({id:"no",label:"Refuse",sub:S==null?"The Bank sends a Debt Collector after you.":"Yaldabaoth regurgitates a Debt Collector onto the field."});
     const ch=opts.length===1?"no":await ask(pl,{kind:"choice",id:"saturn",title:`Saturn: ${esc(P.name)} owes ${n-i} more`,options:opts,
       ai:()=>P.deck.length>8?"deck":mana(pl)>=2?"mana":P.hand.length?"hand":P.deck.length?"deck":"no"});
-    if(ch==="no"||ch==null){spawnDebt(pl);if(G.satStrict&&!oathNow(pl,"saturn"))spawnDebt(pl);saturnMissed(pl);break}
+    if(ch==="no"||ch==null){spawnDebt(pl);if(G.satStrict&&!oathNow(pl,"saturn")&&!(G.satStrictSafe||[]).includes(pl))spawnDebt(pl);saturnMissed(pl);break}
     let c=null;
     if(ch==="hand")c=P.hand.splice(Math.floor(Math.random()*P.hand.length),1)[0];
     if(ch==="deck")c=P.deck.pop();
@@ -198,6 +199,7 @@ async function makeOffer(it,auto){
     const S=G.p[it.seller];
     if(pay.mana){let moved=0;P.souls.sort((a,b)=>soulOf(a)-soulOf(b));while(moved<pay.mana&&P.souls.length){const c=P.souls.shift();moved+=soulOf(c);if(!addSoul(it.seller,c))toGrave(c,"spent")}}
     else for(const c of pay.cards){P.hand.splice(P.hand.indexOf(c),1);c.owner=it.seller;if(S.hand.length<handCap(it.seller))S.hand.push(c);else if(!addSoul(it.seller,c))toGrave(c,"spent")}
+    if(oathNow(it.seller,"mercury")&&!isNPC(it.seller)){const g=giveMana(it.seller,1);if(g)log(`The Oath of Mercury: ${plName(it.seller)} gets 1 more mana for the sale.`)}   // v50
     G.auction.splice(G.auction.indexOf(it),1);
     const c=it.card;c.owner=pl;if(c.hp!=null)c.hp=c.maxHp;if(P.hand.length<handCap(pl))P.hand.push(c);else{P.deck.push(c);shuffle(P.deck)}
     log(`<b>The Auction</b>: ${plName(pl)} buys ${esc(nameOf(c))} from ${plName(it.seller)} for ${what}.`,"event");notify(pl,`${esc(P.name)} buys ${esc(nameOf(c))} at the Auction.`);

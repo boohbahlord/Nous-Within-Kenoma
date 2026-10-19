@@ -17,7 +17,7 @@ function spellRow(s,live){
   const P=me(),od=G.p[G.active].od,ok=live&&spellReady(s),cost=spellCost(s);
   let moon="";if(s.id==="clair"||s.id==="naked"){if(newPrices())moon="moon-dark";else if(fullPrices())moon="moon-bright"}
   let extra="";
-  if(s.id==="bless"){const aces=stacksOf(G.active).filter(x=>hasK(x.st,"ace")).length,n=Math.min(6,1+aces,blessCap(G.active))+3*(G.ritual||0);extra=`<small class="dc">${n}d6</small>`+(od?`<small class="odpen ${od>6?"big":""}">−${od}d6 max</small>`:"")}
+  if(s.id==="bless"){const aces=stacksOf(G.active).filter(x=>hasK(x.st,"ace")).length,n=Math.min(6,1+aces,blessCap(G.active))+3*(G.ritual||0)+(oathNow(G.active,"moon")?1:0);extra=`<small class="dc">${n}d6</small>`+(od?`<small class="odpen ${od>6?"big":""}">−${od}d6 max</small>`:"")}
   const moonPrice=(s.id==="clair"||s.id==="naked")&&(newPrices()||fullPrices());
   if(s.dice)extra+=`<small class="dc">${moonPrice?(newPrices()?"New Moon price":"Full Moon price"):s.dice}</small>`;
   if(s.id==="bolt"){const b=G.p[G.active].bolts||0;extra+=`<span class="bolts" aria-label="${b} of 3 bolts">${[0,1,2].map(i=>`<i class="${i<b?"f":""}">${unitSVG("bolt",i<b?"#8fd0ff":"#4a5a66",13)}</i>`).join("")}</span>`}

@@ -46,7 +46,7 @@ function fillDrawer(){
   e.innerHTML=`<div class="dhead"><h2>${D.title}</h2><button type="button" class="xclose" aria-label="Close">×</button></div><p class="dnote">${note}</p><div class="dbody scrollbox">${body}</div>`;
   e.querySelector(".dbody").scrollTop=keep;e.querySelector(".xclose").onclick=closeDrawer;
   e.querySelectorAll("[data-cast]").forEach(b=>b.onclick=async()=>{if(!canAct())return;await cast(SP(b.dataset.cast));render()});
-  e.querySelectorAll("[data-break]").forEach(b=>b.onclick=()=>{if(!canAct())return;toggleOath(b.dataset.break);render()});
+  e.querySelectorAll("[data-break]").forEach(b=>b.onclick=async()=>{if(!canAct())return;const k=b.dataset.break;if(k==="saturn"&&!await saturnBreakOk(view()))return;toggleOath(k);render()});
 }
 function oathsHTML(){
   const V=G.p[view()],live=canAct()&&G.phase==="prep"&&G.active===view();
@@ -55,7 +55,7 @@ function oathsHTML(){
     const act=sworn?`<button class="btn ghost sm" data-break="${k}" ${live?"":"disabled"}>Break</button>`:`<button class="btn sm" data-cast="${sp.id}" ${ok?"":"disabled"}>Swear</button>`;
     return `<div class="orow${sworn?" sworn":""}"><div class="otop"><b>${esc(sp.name)}</b><span class="oneed">${need}</span></div><p>${esc(t.e||sp.text)}</p><div class="oact">${sworn?'<span class="otag">Sworn</span>':blk?`<span class="dim">${esc(blk)}</span>`:""}${act}</div></div>`}).join("");
   const opened=Object.entries(OATH_ONLY).filter(([,k])=>V.oath===k).map(([id])=>SP(id).name);
-  return [`One Oath at a time: swearing a new one breaks the old. An Oath to a Heavenly Body only works while that Heavenly Body is in the sky.${opened.length?` Your Oath opens: ${opened.join(", ")}.`:""}`,rows];
+  return [`One Oath at a time: swearing a new one breaks the old. An Oath holds whatever is in the sky; it ends only if its Heavenly Body is eaten.${opened.length?` Your Oath opens: ${opened.join(", ")}.`:""}`,rows];
 }
 function planetsHTML(){
   const live=canAct()&&G.phase==="prep"&&G.active===view();

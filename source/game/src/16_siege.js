@@ -129,6 +129,7 @@ function siegeTurn(pl){
     else for(const m of ms)if(R(6)===6)got++;   // out in the open: 1d6 − 5
   }
   if(got&&G.p[pl].minerX2!=null&&tnOf(pl)<=G.p[pl].minerX2)got*=2;   // Jupiter's eclipse: miners bring twice as much
+  if(got&&oathNow(pl,"earth")){notes.push(`the Oath of the Earth +${got}`);got*=2}   // v50: +1 for every mana mined
   if(got){const n=giveMana(pl,got);log(`${plName(pl)}'s Miners bring in ${n} mana${notes.length?": "+notes.join("; "):""}${n<got?" (the soul pile is full)":""}.`)}
 }
 /* the end of a player's turn: Miners settle into their slots; suppression wears off */

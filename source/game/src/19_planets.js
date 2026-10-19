@@ -13,7 +13,8 @@ const PLANETS={
 };
 const planetUp=k=>G.moon.gone===k;
 const sunUp=()=>G.moon.gone==="sun";
-const oathOf=pl=>G.p[pl]&&G.p[pl].oath&&(G.p[pl].oath==="earth"||G.p[pl].oath===OATH_SKY[sky()])?G.p[pl].oath:null;   // the Earth needs no Heavenly Body
+const oathOf=pl=>G.p[pl]&&G.p[pl].oath||null;   // v50: an Oath holds whatever is in the sky
+const oathFree=k=>!(G.eatenP||[]).includes(k);   // v50: any Heavenly Body not eaten can be sworn to
 const OATH_SKY={sun:"earth",venus:"venus",jupiter:"jupiter"};
 const planetBy=()=>G.planetBy!=null&&G.p[G.planetBy]&&!G.p[G.planetBy].out?G.planetBy:null;
 
@@ -32,7 +33,6 @@ function setPlanet(k,by){
   const old=sky();
   if(G.moonLev&&(k==="sun"||k==="blacksun")){const L=G.moonLev;G.moonLev=null;L.card.hp=L.card.maxHp;G.p[L.owner].deck.push(L.card);shuffle(G.p[L.owner].deck);log(`The Leviathan can't lie on the Sun: it falls back into ${plName(L.owner)}'s deck.`,"event")}
   G.moon.gone=k;G.moon.i=-1;G.moon.blood=false;G.planetBy=by;if(k==="sun"){G.sunTears=0;G.sunJudgeStart=G.turnNo}
-  for(const P of G.p)if(P.oath&&P.oath!==OATH_SKY[k]){P.oath=null}
   G._vis=null;applyMoonTheme();checkMoonMiner();
   if(OATH_SKY[k])notify(null,`${PLANETS[k].name} is in the sky: anyone can swear its Oath (Astrology).`);
   if(old==="jupiter"){G.jupSale=null}
@@ -156,19 +156,21 @@ SPELLS.push(
    log(`<b>Venus</b> rises for ${plName(G.venus.target)}: ${mode==="a"?"+2 mana a turn and +2 maximum":"+1 mana a turn, and every enemy +2 maximum"}.`,"event")}},
  {id:"jupiter",tribe:"firm",dice:"2d3",name:"Jupiter",cost:4,school:"Astrology",text:"Jupiter (“Fortune”) takes the moon's place. Miners in an Ace's slots bring 1d2 a turn; each round two conjurings are on sale (maybe one mana back); cards can be traded hand to hand at the Auction; a Jester's Sacrificial Suicide brings 1d2 − 1 more. You may get a mana when others buy on sale or trade. Anyone can swear the Oath of Jupiter.",
   ok:firmPlace("jupiter"),run:async()=>{setPlanet("jupiter",G.active);rollJupSale();log(`<b>Jupiter</b> rises where the moon was, raised by ${plName(G.active)}.`,"event")}},
- {id:"oath_earth",name:"Oath of the Earth",cost:0,school:"Astrology",text:"Free, while the Second Sun burns. Swear to the Earth: no necromancy for you, and every Sorcery spell with a dice price rolls its price twice for you and keeps the lower. Cast again to break the Oath.",
+ {id:"oath_earth",name:"Oath of the Earth",cost:0,school:"Astrology",text:"Free. Swear to the Earth: no necromancy for you, and every Sorcery spell with a dice price rolls its price twice for you and keeps the lower. Cast again to break the Oath.",
   ok:()=>me().tribe!=="firm",run:async()=>{toggleOath("earth")}},
- {id:"oath_venus",name:"Oath of Venus",cost:0,school:"Astrology",text:"Free, while Venus is up. Each turn you start without having attacked a player: +2 mana and +2 maximum for that turn. Each attack on a player costs 1d2 mana and two maximum for 1d3 turns. Cast again to break the Oath.",
-  ok:()=>planetUp("venus"),run:async()=>{toggleOath("venus")}},
- {id:"oath_jupiter",name:"Oath of Jupiter",cost:0,school:"Astrology",text:"Free, while Jupiter is up. Every conjuring costs you one less, except what already costs one. Cast again to break the Oath.",
-  ok:()=>planetUp("jupiter"),run:async()=>{toggleOath("jupiter")}},
+ {id:"oath_venus",name:"Oath of Venus",cost:0,school:"Astrology",text:"Free. Each turn you start without having attacked a player: +2 mana and +2 maximum for that turn. Each attack on a player costs 1d2 mana and two maximum for 1d3 turns. Cast again to break the Oath.",
+  ok:()=>oathFree("venus"),run:async()=>{toggleOath("venus")}},
+ {id:"oath_jupiter",name:"Oath of Jupiter",cost:0,school:"Astrology",text:"Free. Every conjuring costs you one less, except what already costs one, and your mana can fall to −12 instead of −8. Cast again to break the Oath.",
+  ok:()=>oathFree("jupiter"),run:async()=>{toggleOath("jupiter")}},
  {id:"cry",tribe:"yald",name:"The Sun Cries",cost:0,school:"Sorcery",text:"Free, once every 1d3 turns, while the Second Sun burns: Yaldabaoth makes it weep. Three times and its flames go out: the Black Sun. Then the Firmament that raised it pays you 1d2 mana or 1d2 deck cards every 1d2 of its turns.",
   ok:()=>sunUp()&&tnOf(G.active)>=(me().cryReady||0),run:async()=>{const P=me();P.cryReady=tnOf(G.active)+R(3);G.sunTears=(G.sunTears||0)+1;
    if(G.sunTears>=3){G.moon.gone="blacksun";G.blackBy=G.active;applyMoonTheme();G._vis=null;for(const Q of G.p)if(Q.oath==="earth")Q.oath=null;
      log(`<b>The Sun cries a third time</b> and its flames go out: <b>the Black Sun</b>.`,"event");popup("The Black Sun",`<p>${plName(G.active)} makes the Second Sun weep a third time. Its flames go out.</p><p>The fog of war returns. The Firmament that raised it now pays Yaldabaoth 1d2 mana or 1d2 deck cards every 1d2 of its turns.</p>`,G.active)}
    else{log(`<b>The Sun cries</b> (${G.sunTears} of 3): ${plName(G.active)}'s Yaldabaoth dims it.`,"event");applyMoonTheme()}}}
 );
-function toggleOath(k){const P=me();if(P.oath==="saturn"&&P.satLocked){flash("You betrayed Saturn: its Oath holds you now.");return}if(P.oath===k){P.oath=null;log(`${plName(G.active)} breaks the ${SP("oath_"+k).name}.`);return}
+function toggleOath(k){const P=me();if(P.oath==="saturn"&&P.satLocked){flash("You betrayed Saturn: its Oath holds you now.");return}
+  if(P.oath==="saturn")saturnBreak(G.active);   // v50: breaking the Oath of Saturn costs dearly
+  if(P.oath===k){P.oath=null;log(`${plName(G.active)} breaks the ${SP("oath_"+k).name}.`);return}
   P.oath=k;P.venusAttacked=false;log(`${plName(G.active)} swears the ${SP("oath_"+k).name}.`,"event")}
 
 /* Night's Judgement eats whatever hangs in the sky: the moon at the New or Full Moon, any Heavenly Body at any time */
@@ -178,7 +180,7 @@ Object.assign(SP("judge"),{text:"Free: Yaldabaoth eats what hangs in the sky: th
    if(G.moonLev){const L=G.moonLev;G.moonLev=null;L.card.hp=L.card.maxHp;G.p[L.owner].deck.push(L.card);shuffle(G.p[L.owner].deck);log(`The Leviathan falls from the eaten sky back into ${plName(L.owner)}'s deck.`)}
    if(k==="sun"&&eclipseOn("sun")){P.choke=G.moon.round+1;log(`${plName(pl)} eats the Sun in its eclipse and chokes on it: blind, with no hold on his own troops, this round and the next.`,"event")}
    (G.eatenP=G.eatenP||[]).push(k==="blacksun"?"sun":k);if(k==="mars")G.marsEaten=true;
-   G.moon.gone="eaten";G.moon.i=-1;G.moon.blood=false;G.planetBy=null;G.venus=null;G.jupSale=null;for(const Q of G.p)Q.oath=null;applyMoonTheme();G._vis=null;
+   G.moon.gone="eaten";G.moon.i=-1;G.moon.blood=false;G.planetBy=null;G.venus=null;G.jupSale=null;for(const Q of G.p)if(Q.oath===(k==="blacksun"?"sun":k)){Q.oath=null;log(`${plName(Q.i)}'s Oath ends with what it was sworn to.`)}applyMoonTheme();G._vis=null;
    const use=await ask(pl,{kind:"choice",id:"moonuse",title:`Night's Judgement: ${nm} is eaten`,options:[{id:"hunger",label:`Feed the hunger (${(P.hunger||0)+v} of 7)`},{id:"mana",label:`Take ${v} mana`}],ai:()=>"hunger"});
    if(use==="mana")giveMana(pl,v);else P.hunger=(P.hunger||0)+v;
    log(`<b>Night's Judgement</b>: ${plName(pl)} eats ${nm}${use==="mana"?" for mana":` (hunger ${P.hunger} of 7)`}.`,"event");

@@ -76,7 +76,7 @@ const SUITNAME={S:"Spades",H:"Hearts",D:"Diamonds",C:"Clubs"};
 let COLS=5;const SOUL_CAP=6, HAND_CAP=6;   // COLS is set by the map for each game; SOUL_CAP is also what a Joker can hold
 /* a Substance can raise a player's own limits. Mana can go up to three times the maximum for a round (the surplus);
    anything over the maximum fades at the start of the next round */
-const surCap=pl=>G&&G.satStrict&&!oathNow(pl,"saturn")?soulCap(pl):Math.min(54,soulCap(pl)*3);   // a strict Saturn (its eclipse) allows no surplus
+const surCap=pl=>G&&G.satStrict&&!oathNow(pl,"saturn")&&!(G.satStrictSafe||[]).includes(pl)?soulCap(pl):Math.min(54,soulCap(pl)*3);   // a strict Saturn (its eclipse) allows no surplus
 const handCap=pl=>G&&G.p[pl]?({jester:7,beginner:8}[G.p[pl].tribe]||HAND_CAP):HAND_CAP;
 function soulCap(pl){
   if(!G||!G.p[pl])return SOUL_CAP;const P=G.p[pl];
@@ -1209,7 +1209,7 @@ async function conjure(k){
 }
 async function blessing(){
   const pl=G.active,aces=stacksOf(pl).filter(x=>hasK(x.st,"ace")).length;
-  const want=Math.min(6,1+aces),cap=blessCap(pl),rit=3*(G.ritual||0),n=Math.min(want,cap)+rit;   // v47: Ritual Dice adds 3d6 a purchase, past the six-dice cap and the overdraw cut
+  const want=Math.min(6,1+aces),cap=blessCap(pl),rit=3*(G.ritual||0),n=Math.min(want,cap)+rit+(oathNow(pl,"moon")?1:0);   // v50: the Oath of the Moon rolls one more   // v47: Ritual Dice adds 3d6 a purchase, past the six-dice cap and the overdraw cut
   const why=`1${aces?` + ${aces} for Ace${aces>1?"s":""} on the field`:""}${1+aces>6?", 6 at most":""}${cap<want?`, cut to ${cap} by overdrawing`:""}${rit?`, + ${rit} from Ritual Dice`:""}`;
   const d=rollN(n,6),six=d.filter(x=>x.v===6).length;G.blessed=true;
   tray(pl,"Grave Blessing",d,`${six} six${six===1?"":"es"}`);
@@ -3031,6 +3031,7 @@ async function turnAsync(pl){   // the start of a turn that may ask something: S
   if(P.tribe==="firm"){log(`${plName(pl)} ignores Saturn's tax: the Firmament stands above it.`);return}
   if(P.tribe==="binah"){log(`${plName(pl)} ignores Saturn's tax: Binah owes the Demiurge nothing.`);return}
   const n=1+(G.saturnDebt||0);let paid=0;
+  if(P.standing&&P.standing[0]&&P.standing[1]&&Math.random()<.25){log(`<b>Saturn</b> passes ${plName(pl)} by this turn: two Bank Reports in good standing. The toll counts as paid.`,"event");saturnPaid(pl,n,n);return}   // v50
   for(let i=0;i<n;i++){
     const opts=[];
     if(P.hand.length)opts.push({id:"hand",label:"A random card from your hand"});
@@ -3039,7 +3040,7 @@ async function turnAsync(pl){   // the start of a turn that may ask something: S
     opts.push({id:"no",label:"Refuse",sub:S==null?"The Bank sends a Debt Collector after you.":"Yaldabaoth regurgitates a Debt Collector onto the field."});
     const ch=opts.length===1?"no":await ask(pl,{kind:"choice",id:"saturn",title:`Saturn: ${esc(P.name)} owes ${n-i} more`,options:opts,
       ai:()=>P.deck.length>8?"deck":mana(pl)>=2?"mana":P.hand.length?"hand":P.deck.length?"deck":"no"});
-    if(ch==="no"||ch==null){spawnDebt(pl);if(G.satStrict&&!oathNow(pl,"saturn"))spawnDebt(pl);saturnMissed(pl);break}
+    if(ch==="no"||ch==null){spawnDebt(pl);if(G.satStrict&&!oathNow(pl,"saturn")&&!(G.satStrictSafe||[]).includes(pl))spawnDebt(pl);saturnMissed(pl);break}
     let c=null;
     if(ch==="hand")c=P.hand.splice(Math.floor(Math.random()*P.hand.length),1)[0];
     if(ch==="deck")c=P.deck.pop();
@@ -3164,6 +3165,7 @@ async function makeOffer(it,auto){
     const S=G.p[it.seller];
     if(pay.mana){let moved=0;P.souls.sort((a,b)=>soulOf(a)-soulOf(b));while(moved<pay.mana&&P.souls.length){const c=P.souls.shift();moved+=soulOf(c);if(!addSoul(it.seller,c))toGrave(c,"spent")}}
     else for(const c of pay.cards){P.hand.splice(P.hand.indexOf(c),1);c.owner=it.seller;if(S.hand.length<handCap(it.seller))S.hand.push(c);else if(!addSoul(it.seller,c))toGrave(c,"spent")}
+    if(oathNow(it.seller,"mercury")&&!isNPC(it.seller)){const g=giveMana(it.seller,1);if(g)log(`The Oath of Mercury: ${plName(it.seller)} gets 1 more mana for the sale.`)}   // v50
     G.auction.splice(G.auction.indexOf(it),1);
     const c=it.card;c.owner=pl;if(c.hp!=null)c.hp=c.maxHp;if(P.hand.length<handCap(pl))P.hand.push(c);else{P.deck.push(c);shuffle(P.deck)}
     log(`<b>The Auction</b>: ${plName(pl)} buys ${esc(nameOf(c))} from ${plName(it.seller)} for ${what}.`,"event");notify(pl,`${esc(P.name)} buys ${esc(nameOf(c))} at the Auction.`);
@@ -3916,6 +3918,7 @@ function siegeTurn(pl){
     else for(const m of ms)if(R(6)===6)got++;   // out in the open: 1d6 − 5
   }
   if(got&&G.p[pl].minerX2!=null&&tnOf(pl)<=G.p[pl].minerX2)got*=2;   // Jupiter's eclipse: miners bring twice as much
+  if(got&&oathNow(pl,"earth")){notes.push(`the Oath of the Earth +${got}`);got*=2}   // v50: +1 for every mana mined
   if(got){const n=giveMana(pl,got);log(`${plName(pl)}'s Miners bring in ${n} mana${notes.length?": "+notes.join("; "):""}${n<got?" (the soul pile is full)":""}.`)}
 }
 /* the end of a player's turn: Miners settle into their slots; suppression wears off */
@@ -4093,7 +4096,7 @@ function addNPCs(){
 const debtOf=pl=>G.p[pl]?G.p[pl].debt||0:0;
 const effMana=pl=>mana(pl)-debtOf(pl);
 const DEBT_FLOOR=-8,BANK_FLOOR=-8,DEEP_DEBT=-1;   // v49: three turns at −1 or lower and the Debt Collectors come   // v46: nobody goes below −8, the Bank included; Debt Collectors watch −6
-const floorOf=pl=>DEBT_FLOOR;
+const floorOf=pl=>G&&G.p[pl]&&G.p[pl].oath==="jupiter"?-12:DEBT_FLOOR;   // v50: the Oath of Jupiter lets you sink to −12
 const bankOpen=()=>!!G.bank&&!G.bank.dead;
 function bankAdd(n){if(G.bank)G.bank.mana+=n}
 function payQuiet(pl,n){const P=G.p[pl];P.souls.sort((a,b)=>soulOf(a)-soulOf(b));let paid=0;
@@ -4238,7 +4241,7 @@ SPELLS.push(
  {id:"gamble",name:"Gambling",cost:1,school:"Sorcery",text:"Roll 1d10. A natural 10 turns your mana into 7d2 mana, paid by the Bank. A 1 costs you one maximum mana, puts you 7d2 into mana debt and takes a card from your deck into the Ether. Anything else: the mana is gone.",
   ok:()=>bankOpen(),run:async()=>{const pl=G.active,P=me(),d=R(10);
    if(d===10){const w=rollN(7,2),n=Math.min(sum(w),Math.max(0,G.bank.mana-BANK_FLOOR)),got=giveMana(pl,n);G.bank.mana-=got;tray(pl,"Gambling",[{s:10,v:d},...w],`+${got}`);log(`<b>Gambling</b>: ${plName(pl)} rolls a natural 10 and wins ${n} mana (${got} fit).`,"event")}
-   else if(d===1){const w=rollN(7,2),n=Math.max(0,Math.min(sum(w),effMana(pl)-DEBT_FLOOR));P.maxAdd=(P.maxAdd||0)-1;const c=P.deck.pop();if(c){c.owner=null;G.ether.push(c)}tray(pl,"Gambling",[{s:10,v:d},...w],`−${n}`);
+   else if(d===1){const w=rollN(7,2),n=Math.max(0,Math.min(sum(w),effMana(pl)-floorOf(pl)));P.maxAdd=(P.maxAdd||0)-1;const c=P.deck.pop();if(c){c.owner=null;G.ether.push(c)}tray(pl,"Gambling",[{s:10,v:d},...w],`−${n}`);
      log(`<b>Gambling</b>: ${plName(pl)} rolls a 1. One maximum mana is lost, ${n} mana of debt (7d2) is owed${c?", and a card leaves the deck for the Ether":""}.`,"event");addDebt(pl,n)}
    else{tray(pl,"Gambling",[{s:10,v:d}],"nothing");log(`Gambling: ${plName(pl)} rolls ${d}. Nothing.`)}}},
  {id:"maxmana",name:"Increase Max Mana",cost:4,school:"Conjuring",text:"Your maximum mana goes up by one for the rest of the game, eighteen at most.",ok:()=>soulCap(G.active)<18,run:async()=>{const P=me();P.maxAdd=(P.maxAdd||0)+1;log(`${plName(G.active)} buys one more maximum mana (${soulCap(G.active)}).`)}}
@@ -4560,7 +4563,8 @@ const PLANETS={
 };
 const planetUp=k=>G.moon.gone===k;
 const sunUp=()=>G.moon.gone==="sun";
-const oathOf=pl=>G.p[pl]&&G.p[pl].oath&&(G.p[pl].oath==="earth"||G.p[pl].oath===OATH_SKY[sky()])?G.p[pl].oath:null;   // the Earth needs no Heavenly Body
+const oathOf=pl=>G.p[pl]&&G.p[pl].oath||null;   // v50: an Oath holds whatever is in the sky
+const oathFree=k=>!(G.eatenP||[]).includes(k);   // v50: any Heavenly Body not eaten can be sworn to
 const OATH_SKY={sun:"earth",venus:"venus",jupiter:"jupiter"};
 const planetBy=()=>G.planetBy!=null&&G.p[G.planetBy]&&!G.p[G.planetBy].out?G.planetBy:null;
 
@@ -4579,7 +4583,6 @@ function setPlanet(k,by){
   const old=sky();
   if(G.moonLev&&(k==="sun"||k==="blacksun")){const L=G.moonLev;G.moonLev=null;L.card.hp=L.card.maxHp;G.p[L.owner].deck.push(L.card);shuffle(G.p[L.owner].deck);log(`The Leviathan can't lie on the Sun: it falls back into ${plName(L.owner)}'s deck.`,"event")}
   G.moon.gone=k;G.moon.i=-1;G.moon.blood=false;G.planetBy=by;if(k==="sun"){G.sunTears=0;G.sunJudgeStart=G.turnNo}
-  for(const P of G.p)if(P.oath&&P.oath!==OATH_SKY[k]){P.oath=null}
   G._vis=null;applyMoonTheme();checkMoonMiner();
   if(OATH_SKY[k])notify(null,`${PLANETS[k].name} is in the sky: anyone can swear its Oath (Astrology).`);
   if(old==="jupiter"){G.jupSale=null}
@@ -4703,19 +4706,21 @@ SPELLS.push(
    log(`<b>Venus</b> rises for ${plName(G.venus.target)}: ${mode==="a"?"+2 mana a turn and +2 maximum":"+1 mana a turn, and every enemy +2 maximum"}.`,"event")}},
  {id:"jupiter",tribe:"firm",dice:"2d3",name:"Jupiter",cost:4,school:"Astrology",text:"Jupiter (“Fortune”) takes the moon's place. Miners in an Ace's slots bring 1d2 a turn; each round two conjurings are on sale (maybe one mana back); cards can be traded hand to hand at the Auction; a Jester's Sacrificial Suicide brings 1d2 − 1 more. You may get a mana when others buy on sale or trade. Anyone can swear the Oath of Jupiter.",
   ok:firmPlace("jupiter"),run:async()=>{setPlanet("jupiter",G.active);rollJupSale();log(`<b>Jupiter</b> rises where the moon was, raised by ${plName(G.active)}.`,"event")}},
- {id:"oath_earth",name:"Oath of the Earth",cost:0,school:"Astrology",text:"Free, while the Second Sun burns. Swear to the Earth: no necromancy for you, and every Sorcery spell with a dice price rolls its price twice for you and keeps the lower. Cast again to break the Oath.",
+ {id:"oath_earth",name:"Oath of the Earth",cost:0,school:"Astrology",text:"Free. Swear to the Earth: no necromancy for you, and every Sorcery spell with a dice price rolls its price twice for you and keeps the lower. Cast again to break the Oath.",
   ok:()=>me().tribe!=="firm",run:async()=>{toggleOath("earth")}},
- {id:"oath_venus",name:"Oath of Venus",cost:0,school:"Astrology",text:"Free, while Venus is up. Each turn you start without having attacked a player: +2 mana and +2 maximum for that turn. Each attack on a player costs 1d2 mana and two maximum for 1d3 turns. Cast again to break the Oath.",
-  ok:()=>planetUp("venus"),run:async()=>{toggleOath("venus")}},
- {id:"oath_jupiter",name:"Oath of Jupiter",cost:0,school:"Astrology",text:"Free, while Jupiter is up. Every conjuring costs you one less, except what already costs one. Cast again to break the Oath.",
-  ok:()=>planetUp("jupiter"),run:async()=>{toggleOath("jupiter")}},
+ {id:"oath_venus",name:"Oath of Venus",cost:0,school:"Astrology",text:"Free. Each turn you start without having attacked a player: +2 mana and +2 maximum for that turn. Each attack on a player costs 1d2 mana and two maximum for 1d3 turns. Cast again to break the Oath.",
+  ok:()=>oathFree("venus"),run:async()=>{toggleOath("venus")}},
+ {id:"oath_jupiter",name:"Oath of Jupiter",cost:0,school:"Astrology",text:"Free. Every conjuring costs you one less, except what already costs one, and your mana can fall to −12 instead of −8. Cast again to break the Oath.",
+  ok:()=>oathFree("jupiter"),run:async()=>{toggleOath("jupiter")}},
  {id:"cry",tribe:"yald",name:"The Sun Cries",cost:0,school:"Sorcery",text:"Free, once every 1d3 turns, while the Second Sun burns: Yaldabaoth makes it weep. Three times and its flames go out: the Black Sun. Then the Firmament that raised it pays you 1d2 mana or 1d2 deck cards every 1d2 of its turns.",
   ok:()=>sunUp()&&tnOf(G.active)>=(me().cryReady||0),run:async()=>{const P=me();P.cryReady=tnOf(G.active)+R(3);G.sunTears=(G.sunTears||0)+1;
    if(G.sunTears>=3){G.moon.gone="blacksun";G.blackBy=G.active;applyMoonTheme();G._vis=null;for(const Q of G.p)if(Q.oath==="earth")Q.oath=null;
      log(`<b>The Sun cries a third time</b> and its flames go out: <b>the Black Sun</b>.`,"event");popup("The Black Sun",`<p>${plName(G.active)} makes the Second Sun weep a third time. Its flames go out.</p><p>The fog of war returns. The Firmament that raised it now pays Yaldabaoth 1d2 mana or 1d2 deck cards every 1d2 of its turns.</p>`,G.active)}
    else{log(`<b>The Sun cries</b> (${G.sunTears} of 3): ${plName(G.active)}'s Yaldabaoth dims it.`,"event");applyMoonTheme()}}}
 );
-function toggleOath(k){const P=me();if(P.oath==="saturn"&&P.satLocked){flash("You betrayed Saturn: its Oath holds you now.");return}if(P.oath===k){P.oath=null;log(`${plName(G.active)} breaks the ${SP("oath_"+k).name}.`);return}
+function toggleOath(k){const P=me();if(P.oath==="saturn"&&P.satLocked){flash("You betrayed Saturn: its Oath holds you now.");return}
+  if(P.oath==="saturn")saturnBreak(G.active);   // v50: breaking the Oath of Saturn costs dearly
+  if(P.oath===k){P.oath=null;log(`${plName(G.active)} breaks the ${SP("oath_"+k).name}.`);return}
   P.oath=k;P.venusAttacked=false;log(`${plName(G.active)} swears the ${SP("oath_"+k).name}.`,"event")}
 
 /* Night's Judgement eats whatever hangs in the sky: the moon at the New or Full Moon, any Heavenly Body at any time */
@@ -4725,7 +4730,7 @@ Object.assign(SP("judge"),{text:"Free: Yaldabaoth eats what hangs in the sky: th
    if(G.moonLev){const L=G.moonLev;G.moonLev=null;L.card.hp=L.card.maxHp;G.p[L.owner].deck.push(L.card);shuffle(G.p[L.owner].deck);log(`The Leviathan falls from the eaten sky back into ${plName(L.owner)}'s deck.`)}
    if(k==="sun"&&eclipseOn("sun")){P.choke=G.moon.round+1;log(`${plName(pl)} eats the Sun in its eclipse and chokes on it: blind, with no hold on his own troops, this round and the next.`,"event")}
    (G.eatenP=G.eatenP||[]).push(k==="blacksun"?"sun":k);if(k==="mars")G.marsEaten=true;
-   G.moon.gone="eaten";G.moon.i=-1;G.moon.blood=false;G.planetBy=null;G.venus=null;G.jupSale=null;for(const Q of G.p)Q.oath=null;applyMoonTheme();G._vis=null;
+   G.moon.gone="eaten";G.moon.i=-1;G.moon.blood=false;G.planetBy=null;G.venus=null;G.jupSale=null;for(const Q of G.p)if(Q.oath===(k==="blacksun"?"sun":k)){Q.oath=null;log(`${plName(Q.i)}'s Oath ends with what it was sworn to.`)}applyMoonTheme();G._vis=null;
    const use=await ask(pl,{kind:"choice",id:"moonuse",title:`Night's Judgement: ${nm} is eaten`,options:[{id:"hunger",label:`Feed the hunger (${(P.hunger||0)+v} of 7)`},{id:"mana",label:`Take ${v} mana`}],ai:()=>"hunger"});
    if(use==="mana")giveMana(pl,v);else P.hunger=(P.hunger||0)+v;
    log(`<b>Night's Judgement</b>: ${plName(pl)} eats ${nm}${use==="mana"?" for mana":` (hunger ${P.hunger} of 7)`}.`,"event");
@@ -4954,8 +4959,8 @@ SPELLS.push(
   ok:()=>planetUp("mercury")&&!peaceOn(),run:async()=>{startPeace(2,`bought by ${esc(me().name)}`)}},
  {id:"war",name:"Total War",cost:0,school:"Astrology",text:"Free, under Mercury; everyone must agree. For 3 + 1d2 − 1 rounds every card killed falls into the Outer Darkness and gives its killer a mana, curses cost 1d2 − 1 less, and teammates may strike each other: each damage to a teammate pays its soul's worth + 1d2 − 1.",
   ok:()=>planetUp("mercury")&&!warOn()&&!peaceOn()&&!G.voted,run:async()=>{G.voted=true;const v=await vote("Total War","Agree to Total War for 3 or 4 rounds?");if(!v.no.length)startWar(2+R(2),"agreed by everyone");else log("No war: not everyone agrees.")}},
- {id:"oath_mercury",name:"Oath of Mercury",cost:0,school:"Astrology",text:"Free, while Mercury is up. Unlocks Betrayal, Declare War and Bribe the Banker. Cast again to break the Oath.",
-  ok:()=>planetUp("mercury"),run:async()=>{toggleOath("mercury")}},
+ {id:"oath_mercury",name:"Oath of Mercury",cost:0,school:"Astrology",text:"Free. Unlocks Betrayal, Declare War and Bribe the Banker. Cast again to break the Oath.",
+  ok:()=>oathFree("mercury"),run:async()=>{toggleOath("mercury")}},
  {id:"betray",dice:"1d2+2d3",name:"Betrayal",cost:6,school:"Astrology",text:"Oath of Mercury, in a team game. You leave your team for good. For two rounds every card killed falls into the Outer Darkness, and every damage between you and your former teammates pays its dealer the soul's worth + 1d2 − 1.",
   ok:()=>oathOf(G.active)==="mercury"&&alliesOf(G.active).filter(i=>!isHorde(i)).length>0,run:async()=>{const pl=G.active,mates=alliesOf(pl).filter(i=>!isHorde(i));
    const sure=await ask(pl,{kind:"yesno",id:"betray",title:"Betrayal",text:`Betray ${mates.map(i=>esc(G.p[i].name)).join(" and ")}? It can't be undone.`,yes:"Betray",no:"Stay loyal",ai:()=>true});
@@ -5010,7 +5015,7 @@ function spellRow(s,live){
   const P=me(),od=G.p[G.active].od,ok=live&&spellReady(s),cost=spellCost(s);
   let moon="";if(s.id==="clair"||s.id==="naked"){if(newPrices())moon="moon-dark";else if(fullPrices())moon="moon-bright"}
   let extra="";
-  if(s.id==="bless"){const aces=stacksOf(G.active).filter(x=>hasK(x.st,"ace")).length,n=Math.min(6,1+aces,blessCap(G.active))+3*(G.ritual||0);extra=`<small class="dc">${n}d6</small>`+(od?`<small class="odpen ${od>6?"big":""}">−${od}d6 max</small>`:"")}
+  if(s.id==="bless"){const aces=stacksOf(G.active).filter(x=>hasK(x.st,"ace")).length,n=Math.min(6,1+aces,blessCap(G.active))+3*(G.ritual||0)+(oathNow(G.active,"moon")?1:0);extra=`<small class="dc">${n}d6</small>`+(od?`<small class="odpen ${od>6?"big":""}">−${od}d6 max</small>`:"")}
   const moonPrice=(s.id==="clair"||s.id==="naked")&&(newPrices()||fullPrices());
   if(s.dice)extra+=`<small class="dc">${moonPrice?(newPrices()?"New Moon price":"Full Moon price"):s.dice}</small>`;
   if(s.id==="bolt"){const b=G.p[G.active].bolts||0;extra+=`<span class="bolts" aria-label="${b} of 3 bolts">${[0,1,2].map(i=>`<i class="${i<b?"f":""}">${unitSVG("bolt",i<b?"#8fd0ff":"#4a5a66",13)}</i>`).join("")}</span>`}
@@ -5214,10 +5219,10 @@ const SPELL_TEXT={
  venus:{e:"Venus takes the moon's place. Choose: you or a teammate get +2 mana a turn and +2 maximum, or you get +1 mana a turn while every enemy gets +2 maximum.",l:"The second choice isn't offered in Survival. Anyone can swear the Oath of Venus."},
  jupiter:{e:"Jupiter takes the moon's place. Miners in an Ace bring 1d2 a turn, two conjurings go on sale each round, hand cards can be traded at the Auction, and a Jester's Sacrificial Suicide brings 1d2 − 1 more.",l:"You may get a mana back when others buy on sale or trade. Anyone can swear the Oath of Jupiter."},
  mercury:{e:"Mercury takes the moon's place. Anyone can call a vote for Peace or Total War, or buy Peace.",l:"Those who swear the Oath of Mercury can betray their team, declare war alone and bribe the Banker."},
- oath_earth:{e:"No necromancy for you. Every Sorcery spell with a dice price rolls its price twice for you and keeps the lower.",l:"Cast again to break the Oath."},
- oath_venus:{n:"Venus in the sky.",e:"Each turn you start without having attacked a player: +2 mana and +2 maximum for that turn. Each attack on a player costs 1d2 mana and two maximum for 1d3 turns.",l:"Cast again to break the Oath."},
- oath_jupiter:{n:"Jupiter in the sky.",e:"Every conjuring costs you one less, unless it already costs one.",l:"Cast again to break the Oath."},
- oath_mercury:{n:"Mercury in the sky.",e:"Unlocks Betrayal, Declare War and Bribe the Banker.",l:"Cast again to break the Oath."},
+ oath_earth:{n:"Any sky.",e:"No necromancy for you (Grave Blessing raises nothing). Every Sorcery spell with a dice price rolls its price twice for you and keeps the lower. Gambling: a 1d2 for doubled odds and a 1d2 for no loss on a 1 (both at once: plain odds). Gamble II: 1 mana, 1d20, a 20 fills your soul pile. Every enemy Joker you kill: +1d2 + 1d3 mana and doubled odds on your next Gamble. Miners bring twice as much.",l:"Cast again to break the Oath."},
+ oath_venus:{n:"Any sky.",e:"Each turn you start without having attacked a player: +2 mana and +2 maximum for that turn. Pay other players' debts at the Bank: every 1d2 paid takes 1 mana off one of your next buys; 6 or more at once gives +2 on defense for 2d3 turns. Healers cost one less.",l:"Each attack on a player costs 1d2 mana and two maximum for 1d3 turns. Cast again to break the Oath."},
+ oath_jupiter:{n:"Any sky.",e:"Every conjuring costs you one less, unless it already costs one. Your mana can fall to −12 before you lose, not −8.",l:"Cast again to break the Oath."},
+ oath_mercury:{n:"Any sky.",e:"Unlocks Betrayal, Declare War and Bribe the Banker. +1 mana for every Auction sale. Rob the Bank in any round, once a round. Take the Bank's bounties at any time.",l:"Cast again to break the Oath."},
  peace:{n:"Mercury in the sky. Every player must agree.",e:"Peace for 3 + 1d2 − 1 rounds. Every stack goes home, every card with hearts heals, curses and enchantments end, and everyone takes three cards from the grave, one at a time.",l:"No player can attack another or step into another player's lines. Stacks with no room at home go back into the deck, weakest first."},
  buypeace:{n:"Mercury in the sky.",e:"Peace for two rounds without a vote, with everything Peace brings."},
  war:{n:"Mercury in the sky. Every player must agree.",e:"Total War for 3 + 1d2 − 1 rounds. Every card killed falls into the Outer Darkness and pays its killer a mana, and curses cost 1d2 − 1 less.",l:"Teammates may strike each other: each damage to a teammate pays its soul's worth + 1d2 − 1."},
@@ -5368,7 +5373,8 @@ const BANK_HELP=[
  ["Loan limits","One loan at a time, one a round, and the next no sooner than 3 of your turns after the last."],
  ["Credit","Not a loan: tick Spend on credit to cast spells you can't afford. What your souls don't cover becomes mana debt at once."],
  ["Mana debt","Debt shows as mana below zero. It grows by 1d2 every 3 of your turns, and every soul you gain pays it first."],
- ["Your lowest point","You can go down to −8. Below −8 you lose the game."],
+ ["Your lowest point","You can go down to −8 (−12 under the Oath of Jupiter). Below that you lose the game."],
+ ["Bounties","Each Report puts a bounty on everyone in bad standing. The Oath of Mercury (or anyone while Mercury is up) can take one and buy Debt Collectors (2 mana) that hunt only that player. Collect the debt within two Reports: half of it is yours, and your own debts are forgiven."],
  ["Debt Collectors","Stay below zero for 3 of your turns, or leave a Bank loan open for 3 + (owed ÷ 3) of your turns, and you are in default. From then on, at the start of each of your turns the Bank sends 1d2 Debt Collectors (half as many again after six turns in default; six at most on the field) after whoever owes the most, until it is paid off. Every card they kill goes to the Ether, and its worth pays the debt. Only a player who owes the Bank can strike a Debt Collector."],
  ["The Report","Every Full Moon (every eighth round without the Moon) the Bank hands each player a Credit and Loan Report: what was taken on loans and credit, the interest, the taxes, the mana earned, and good or bad standing."],
  ["Taxes","On Report day only: 1d2 for a base in the middle of the field; every other Ace or Tree, 1 in 3 (1 in 2 in bad standing) of 1d2. With no mana a tax goes unpaid (no credit), and the standing turns bad."],
@@ -5573,7 +5579,7 @@ function fillDrawer(){
   e.innerHTML=`<div class="dhead"><h2>${D.title}</h2><button type="button" class="xclose" aria-label="Close">×</button></div><p class="dnote">${note}</p><div class="dbody scrollbox">${body}</div>`;
   e.querySelector(".dbody").scrollTop=keep;e.querySelector(".xclose").onclick=closeDrawer;
   e.querySelectorAll("[data-cast]").forEach(b=>b.onclick=async()=>{if(!canAct())return;await cast(SP(b.dataset.cast));render()});
-  e.querySelectorAll("[data-break]").forEach(b=>b.onclick=()=>{if(!canAct())return;toggleOath(b.dataset.break);render()});
+  e.querySelectorAll("[data-break]").forEach(b=>b.onclick=async()=>{if(!canAct())return;const k=b.dataset.break;if(k==="saturn"&&!await saturnBreakOk(view()))return;toggleOath(k);render()});
 }
 function oathsHTML(){
   const V=G.p[view()],live=canAct()&&G.phase==="prep"&&G.active===view();
@@ -5582,7 +5588,7 @@ function oathsHTML(){
     const act=sworn?`<button class="btn ghost sm" data-break="${k}" ${live?"":"disabled"}>Break</button>`:`<button class="btn sm" data-cast="${sp.id}" ${ok?"":"disabled"}>Swear</button>`;
     return `<div class="orow${sworn?" sworn":""}"><div class="otop"><b>${esc(sp.name)}</b><span class="oneed">${need}</span></div><p>${esc(t.e||sp.text)}</p><div class="oact">${sworn?'<span class="otag">Sworn</span>':blk?`<span class="dim">${esc(blk)}</span>`:""}${act}</div></div>`}).join("");
   const opened=Object.entries(OATH_ONLY).filter(([,k])=>V.oath===k).map(([id])=>SP(id).name);
-  return [`One Oath at a time: swearing a new one breaks the old. An Oath to a Heavenly Body only works while that Heavenly Body is in the sky.${opened.length?` Your Oath opens: ${opened.join(", ")}.`:""}`,rows];
+  return [`One Oath at a time: swearing a new one breaks the old. An Oath holds whatever is in the sky; it ends only if its Heavenly Body is eaten.${opened.length?` Your Oath opens: ${opened.join(", ")}.`:""}`,rows];
 }
 function planetsHTML(){
   const live=canAct()&&G.phase==="prep"&&G.active===view();
@@ -5667,23 +5673,21 @@ if(window.__EC){window.__EC.mysteryRoll=mysteryRoll;window.__EC.mysteryBuy=myste
 
 /* ---------- which sky each Oath needs ---------- */
 OATH_SKY.sun="sun";OATH_SKY.moon="moon";OATH_SKY.saturn="saturn";
-OATHS.splice(0,OATHS.length,["earth","Any sky"],["sun","The Second Sun in the sky"],["moon","The Moon in the sky"],["saturn","Saturn in the sky"],["venus","Venus in the sky"],["jupiter","Jupiter in the sky"],["mercury","Mercury in the sky"]);
+OATHS.splice(0,OATHS.length,["earth","No necromancy"],["sun","Not the Firmament"],["moon","A Joker each Full Moon"],["saturn","Pays Saturn"],["venus","No attacks"],["jupiter","Cheaper conjuring"],["mercury","Betrayal and bounties"]);
 Object.assign(OATH_ONLY,{scorch:"sun",sunblind:"sun",moonjoker:"moon"});
 const oathNow=(pl,k)=>oathOf(pl)===k;
-/* changing the sky ends every Oath to the old sky (the Earth stays); a Saturn-sworn player who missed a toll can't be released */
-{const _sp=setPlanet;setPlanet=function(k,by){const keep=G.p.map(P=>P.oath);_sp(k,by);
-  G.p.forEach((P,i)=>{if(keep[i]==="earth")P.oath="earth";if(keep[i]==="saturn"&&P.satLocked)P.oath="saturn"})}}
+/* v50: an Oath no longer ends when the sky changes; only eating its Heavenly Body ends it */
 
 /* ---------- the Oath spells ---------- */
 const OATH_TXT={
-  sun:{n:"The Second Sun in the sky.",e:"The Sun's blessing: you gain fire mana (3 at most, 6 for a round) by sacrificing cards to the Sun, and from every judgement it takes from you. Fire mana pays for Scorched Earth and Blindness.",l:"Cast again to break the Oath. The Sun still judges you."},
-  moon:{n:"The Moon in the sky.",e:"Every New Moon, 2d2 − 1 more cards from the grave. Every Full Moon, +2 mana and +2 maximum. Jokers conjure for one less, and twice between Full Moons you can conjure a Moon Joker from nowhere. A Joker that shoots itself at the New Moon goes back into your deck, and under a Blood Moon your dead don't fall into the Outer Darkness.",l:"A Joker of yours must shoot itself before each Full Moon. If none does, you get no grave cards at the next New Moon and lose one maximum mana."},
-  saturn:{n:"Saturn in the sky, and a toll to pay.",e:"Pay Saturn's toll and Saturn sends Puppets to fight for you: one stack of 1d4 after the first toll, two after the third and the sixth, three after the ninth. The computer moves them.",l:"Miss one toll and you betray Saturn: no Puppets for the next three tolls, Saturn's own Puppets come for you three turns after every missed toll, and you can no longer break the Oath."}
+  sun:{n:"Any sky. Not for the Firmament.",e:"The Sun's blessing: you gain fire mana (3 at most, 6 for a round) by sacrificing cards to the Sun, and from every judgement it takes from you. Fire mana pays for Scorched Earth and Blindness.",l:"Cast again to break the Oath. The Sun still judges you."},
+  moon:{n:"Any sky. With no Moon up, its Full Moon still comes every 8 rounds.",e:"Every New Moon, 2d2 − 1 more cards from the grave. Every Full Moon, +2 mana and +2 maximum. Grave Blessing rolls one more die. Jokers conjure for one less, and twice between Full Moons you can conjure a Moon Joker from nowhere. A Joker that shoots itself at the New Moon goes back into your deck, and under a Blood Moon your dead don't fall into the Outer Darkness.",l:"A Joker of yours must shoot itself before each Full Moon. If none does, you get no grave cards at the next New Moon and lose one maximum mana."},
+  saturn:{n:"Any sky. Not for the Firmament or Binah.",e:"Each Bank report in good standing: +10% of your mana (at least 1) and +1 maximum for good. While Saturn is up, pay its toll and Saturn sends Puppets to fight for you: one stack of 1d4 after the first toll, two after the third and the sixth, three after the ninth. The computer moves them.",l:"Breaking it costs all your mana, 5 random deck cards, 2 random hand cards and 2 maximum. Miss one toll and you betray Saturn: no Puppets for the next three tolls, Saturn's own Puppets come for you three turns after every missed toll, and you can no longer break the Oath."}
 };
 SPELLS.push(
- {id:"oath_sun",name:"Oath of the Sun",cost:0,school:"Astrology",text:"",ok:()=>sunUp()&&me().tribe!=="firm",run:async()=>{toggleOath("sun")}},
- {id:"oath_moon",name:"Oath of the Moon",cost:0,school:"Astrology",text:"",ok:()=>!G.moon.gone,run:async()=>{toggleOath("moon");const P=me();if(P.oath==="moon")P.moonDone=false}},
- {id:"oath_saturn",name:"Oath of Saturn",cost:0,school:"Astrology",text:"",ok:()=>planetUp("saturn")&&paysSaturn(G.active),run:async()=>{toggleOath("saturn")}},
+ {id:"oath_sun",name:"Oath of the Second Sun",cost:0,school:"Astrology",text:"",ok:()=>oathFree("sun")&&me().tribe!=="firm",run:async()=>{toggleOath("sun")}},
+ {id:"oath_moon",name:"Oath of the Moon",cost:0,school:"Astrology",text:"",ok:()=>oathFree("moon"),run:async()=>{toggleOath("moon");const P=me();if(P.oath==="moon")P.moonDone=false}},
+ {id:"oath_saturn",name:"Oath of Saturn",cost:0,school:"Astrology",text:"",ok:()=>oathFree("saturn")&&(planetUp("saturn")?paysSaturn(G.active):!["firm","binah"].includes(me().tribe)),run:async()=>{toggleOath("saturn")}},
  {id:"scorch",name:"Scorched Earth",cost:0,school:"Astrology",fire:true,dice:"1d2+2 fire",text:"",
   ok:()=>oathNow(G.active,"sun")&&fireOf(G.active)>=fireCost(SP("scorch")),run:async()=>{await scorchedEarth(G.active)}},
  {id:"sunblind",name:"Blindness",cost:0,school:"Astrology",fire:true,dice:"2+1d2 fire",text:"",
@@ -5695,8 +5699,8 @@ SPELLS.push(
 PRICE.scorch=()=>R(2)+2;PRICE.sunblind=()=>2+R(2);
 Object.assign(SPELL_TEXT,{
  oath_sun:OATH_TXT.sun,oath_moon:OATH_TXT.moon,oath_saturn:OATH_TXT.saturn,
- scorch:{n:"The Oath of the Sun. Choose any tile.",e:"The ground burns in a circle two tiles around it, the middle included, for 1d3 turns. Each turn a stack standing in the fire takes one damage on a 4 of 1d4, your own included.",l:"Paid with fire mana. It never takes the last heart of an Ace or the Tree."},
- sunblind:{n:"The Oath of the Sun. Choose an enemy player.",e:"From the start of the next round to its end they are blind: they see nothing on the field, not even their own cards.",l:"Paid with fire mana. They are told what happened."},
+ scorch:{n:"The Oath of the Second Sun. Choose any tile.",e:"The ground burns in a circle two tiles around it, the middle included, for 1d3 turns. Each turn a stack standing in the fire takes one damage on a 4 of 1d4, your own included.",l:"Paid with fire mana. It never takes the last heart of an Ace or the Tree."},
+ sunblind:{n:"The Oath of the Second Sun. Choose an enemy player.",e:"From the start of the next round to its end they are blind: they see nothing on the field, not even their own cards.",l:"Paid with fire mana. They are told what happened."},
  moonjoker:{n:"The Oath of the Moon.",e:"A new Joker, made from nothing (not from the Ether), comes into your deck.",l:"Twice between Full Moons."}});
 for(const id of ["oath_sun","oath_moon","oath_saturn","scorch","sunblind","moonjoker"]){const s=SP(id),t=SPELL_TEXT[id];s.text=[t.n,t.e,t.l].filter(Boolean).join(" ")}
 
@@ -5711,7 +5715,7 @@ function giveFire(pl,n){const P=G.p[pl];const before=P.fire||0;P.fire=Math.min(F
 function payFire(pl,sp){const n=fireCost(sp);G.p[pl].fire=Math.max(0,fireOf(pl)-n);return n}
 /* sacrificing to the Sun: the card's worth in fire mana, the card burns to the grave */
 function sacrificeToSun(card,from){
-  const pl=G.active,P=me();if(!oathNow(pl,"sun")||!sunUp())return false;
+  const pl=G.active,P=me();if(!oathNow(pl,"sun"))return false;   // v50: the Second Sun need not be in the sky
   if(fireOf(pl)>=FIRE_SUR){flash(`You hold ${FIRE_SUR} fire mana, the most there can be.`);return false}
   if(from==="hand")P.hand.splice(P.hand.indexOf(card),1);
   else{const st=G.board[from.r][from.c];st.cards.splice(st.cards.indexOf(card),1);
@@ -5768,7 +5772,8 @@ const totalBlind=V=>!!(G&&V!=null&&G.p[V]&&(G.p[V].blindRound===G.moon.round||su
 
 
 /* ---------- the Oath of the Moon ---------- */
-const fullIn=()=>G.moon.gone?null:(4-G.moon.i+8)%8;   // rounds until the next Full Moon (0: this round)
+const fullIn=()=>G.moon.gone?(8-G.moon.round%8)%8:(4-G.moon.i+8)%8;   // rounds until the next Full Moon (0: this round); with no Moon up, every 8th round
+const moonFullNow=()=>G.moon.gone?G.moon.round>0&&G.moon.round%8===0:G.moon.i===4;
 const MOON_WORDS=["A Joker must commit itself.","Before the Full Moon, a Joker dies by its own hand.","The Moon asks for a Joker.","A Joker must give itself to the Moon.","The Moon waits for a Joker's death."];
 function moonOathRow(V){
   const P=G.p[V];if(!P||!oathNow(V,"moon"))return "";
@@ -5786,7 +5791,7 @@ function moonWhisper(){
   let w=$("#whisper");if(!w){w=document.createElement("div");w.id="whisper";w.setAttribute("aria-hidden","true");document.body.appendChild(w)}
   w.textContent=pick(MOON_WORDS);w.style.left=(8+Math.random()*55)+"vw";w.style.top=(18+Math.random()*55)+"vh";w.className="on";
   setTimeout(()=>{w.className=""},4200)}
-{const _sk=skyCapMod;skyCapMod=function(P){let m=_sk(P);if(P&&G&&!G.moon.gone&&G.moon.i===4&&P.oath==="moon")m+=2;return m}}
+{const _sk=skyCapMod;skyCapMod=function(P){let m=_sk(P);if(P&&G&&moonFullNow()&&P.oath==="moon")m+=2;return m}}
 {const _nm=newMoonGift;newMoonGift=async function(){
   if(G.noGraveNext&&!G.moon.blood)return _nm();
   // a player who broke the Moon's demand gets nothing from this New Moon
@@ -5866,7 +5871,7 @@ async function saturnNPC(){
   const S=npcIx("saturn");if(S<0)return;
   for(const {st,r,c} of stacksOf(S)){if(G.over||G.board[r][c]!==st)continue;st.attacked=false;st.moved=false;
     const who=st.hunt;
-    const ok=E=>E&&!isNPC(E.owner)&&(who!=null?E.owner===who:!oathNow(E.owner,"saturn"));
+    const ok=E=>E&&!isNPC(E.owner)&&(who!=null?E.owner===who:!satSafe(E.owner));
     let o=attackOptions(r,c).find(o=>o.mode!=="capture"&&o.mode!=="destroy"&&ok(G.board[o.r][o.c]));
     if(!o&&who!=null){if(!G.p[who]||G.p[who].out){G.board[r][c]=null;continue}
       const tl=stacksOf(who);if(!tl.length)continue;const dist=(a,b)=>Math.min(...tl.map(x=>Math.abs(x.r-a)+Math.abs(x.c-b)));let best=null;
@@ -5881,25 +5886,26 @@ async function saturnNPC(){
 
 /* ---------- Saturn's eclipse: one outcome, rolled on d100 ---------- */
 const SAT_ECL=[[5,"collapse"],[25,"collectors"],[20,"grunts"],[25,"meteor"],[10,"tithe"],[5,"banker"],[10,"strict"]];
-const satSafe=pl=>oathNow(pl,"saturn");
+const satSafe=pl=>oathNow(pl,"saturn")||good4(pl);
+const good4=pl=>{const s=G.p[pl]&&G.p[pl].standing||[];return s.length>=4&&s.slice(0,4).every(Boolean)};   // v50: four Reports in good standing: Saturn's eclipse passes you by
 async function saturnEclipse(){
   let x=R(100),k="meteor";for(const [p,id] of SAT_ECL){if(x<=p){k=id;break}x-=p}
   G.eclipse={k:"saturn",round:G.moon.round,what:k};applyMoonTheme();
   log(`<b>An eclipse of Saturn.</b>`,"event");
   const B=G.bank,pls=realPlayers();let html="";
-  if(k==="collapse"){html="<p>The rings darken and the markets fall: <b>the Bank collapses</b>.</p><p class='dim'>Those under the Oath of Saturn are spared unless they are 6 or more in mana debt.</p>";if(B&&!B.dead)collapse();else html+="<p class='dim'>(There is no Bank left to fall.)</p>"}
+  if(k==="collapse"){html="<p>The rings darken and the markets fall: <b>the Bank collapses</b>.</p><p class='dim'>Those under the Oath of Saturn are spared unless they are 6 or more in mana debt, and so is anyone in good standing for the last four Reports.</p>";if(B&&!B.dead)collapse();else html+="<p class='dim'>(There is no Bank left to fall.)</p>"}
   if(k==="collectors"){const T=pls.filter(i=>effMana(i)<-3&&!satSafe(i));const bk=npcIx("bank");let n=0;
     for(const pl of T){if(bk<0)break;const t=freeTilesNear(pl,true)[0];if(!t)continue;G.board[t[0]][t[1]]={owner:bk,cards:[mkUnit("debt",bk)],moved:true,attacked:true,hunt:pl};n++}
     html=`<p>Saturn's shadow falls on the debtors: <b>Debt Collectors</b> rise after everyone more than 3 mana in debt${T.length?`: ${T.map(plName).join(", ")}`:" (no one is)"}.</p>`}
   if(k==="grunts"){const S=npcIx("saturn");let n=0;if(S>=0){const mid=[(G.rows-1)/2,(COLS-1)/2],zones=new Set(G.p.flatMap((P,i)=>isNPC(i)?[]:seat(i).zone.map(t=>t.join())));
     const tiles=[];for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(!G.board[r][c]&&!isVoid(r,c)&&!zones.has(r+","+c))tiles.push([r,c]);tiles.sort((a,b)=>Math.hypot(a[0]-mid[0],a[1]-mid[1])-Math.hypot(b[0]-mid[0],b[1]-mid[1]));
     for(let i=0;i<3&&tiles.length;i++){const [r,c]=tiles.shift();const cards=Array.from({length:R(4)},()=>mk(String(1+R(5)),pick(["S","H","D","C"])));cards.forEach(q=>q.owner=S);G.board[r][c]={owner:S,cards,moved:true,attacked:true,wild:true};n++}}
-    html=`<p>Saturn spits out <b>${n} stack${n===1?"":"s"} of Grunts</b>. They fight anyone beside them, except those under its Oath.</p>`}
+    html=`<p>Saturn spits out <b>${n} stack${n===1?"":"s"} of Grunts</b>. They fight anyone beside them, except those under its Oath and those in good standing with the Bank for four Reports.</p>`}
   if(k==="meteor"){html="<p>Something falls from Saturn's ring: <b>a meteor</b>.</p>";meteor()}
   if(k==="tithe"){const hit=pls.filter(i=>!satSafe(i));for(const pl of hit){const P=G.p[pl];P.maxAdd=(P.maxAdd||0)-3;for(let i=0;i<3&&P.deck.length;i++)toGrave(P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0],"burn");payQuiet(pl,Math.min(3,mana(pl)))}
     html=`<p>Saturn takes its tithe: <b>three maximum mana, three deck cards and three mana</b> from ${hit.length?hit.map(plName).join(", "):"no one"}.</p>`}
   if(k==="banker"){if(B&&!B.dead){B.dead=true;html="<p>The Banker looks up at the dark ring, clutches his chest and falls over the ledger. <b>The Bank is closed</b> and the Ether shuts its doors.</p>"}else html="<p>Saturn's shadow passes over an empty Bank.</p>"}
-  if(k==="strict"){G.satStrict=true;html="<p>Saturn binds the economy: <b>no surplus mana for the rest of the game</b>, and Debt Collectors come more often for debts to the Bank or to Saturn.</p><p class='dim'>Those under the Oath of Saturn are spared.</p>"}
+  if(k==="strict"){G.satStrict=true;G.satStrictSafe=realPlayers().filter(good4);html="<p>Saturn binds the economy: <b>no surplus mana for the rest of the game</b>, and Debt Collectors come more often for debts to the Bank or to Saturn.</p><p class='dim'>Those under the Oath of Saturn, and those in good standing for the last four Reports, are spared.</p>"}
   popup("Saturn eclipsed",html);render();checkWin();
 }
 {const _ec=eclipse;eclipse=async function(k){if(k==="saturn")return saturnEclipse();return _ec(k)}}
@@ -5922,7 +5928,7 @@ async function saturnEclipse(){
 
 /* ---------- the strict economy and the collapse ---------- */
 {const _cl=collapse;collapse=function(){
-  const keep=realPlayers().filter(i=>oathNow(i,"saturn")&&effMana(i)>-6).map(i=>{const P=G.p[i];return {i,souls:[...P.souls],debt:P.debt,loans:[...(P.loans||[])],maxAdd:P.maxAdd,deck:[...P.deck],board:stacksOf(i).map(x=>({r:x.r,c:x.c,st:x.st,cards:[...x.st.cards]}))}});
+  const keep=realPlayers().filter(i=>oathNow(i,"saturn")&&effMana(i)>-6||good4(i)).map(i=>{const P=G.p[i];return {i,souls:[...P.souls],debt:P.debt,loans:[...(P.loans||[])],maxAdd:P.maxAdd,deck:[...P.deck],board:stacksOf(i).map(x=>({r:x.r,c:x.c,st:x.st,cards:[...x.st.cards]}))}});
   _cl();
   for(const k of keep){const P=G.p[k.i];P.souls=k.souls;P.debt=k.debt;P.loans=k.loans;P.maxAdd=k.maxAdd;P.deck=k.deck;
     for(const b of k.board){b.st.cards=b.cards;G.board[b.r][b.c]=b.st}
@@ -5939,7 +5945,7 @@ async function oathRound(){
   // fire mana: the surplus over 3 fades with the round
   for(const P of G.p)if((P.fire||0)>FIRE_MAX){P.fire=FIRE_MAX}
   // the Full Moon checks the Moon's demand
-  if(!G.moon.gone&&G.moon.i===4){
+  if(moonFullNow()){
     for(const pl of realPlayers()){const P=G.p[pl];if(!oathNow(pl,"moon"))continue;
       const got=giveMana(pl,2);log(`The Full Moon keeps its Oath: ${plName(pl)} gets ${got} mana and two more maximum this round.`);
       if(!P.moonDone){P.maxAdd=(P.maxAdd||0)-1;P.moonNoGrave=true;log(`${plName(pl)} broke the Moon's demand: no Joker gave itself. One maximum mana is lost, and the next New Moon gives nothing.`,"event");
@@ -5957,15 +5963,24 @@ async function oathRound(){
 /* ---------- the computer and the Oaths ---------- */
 {const _ap=aiPlanets;aiPlanets=async function(pl,W,cast1){await _ap(pl,W,cast1);if(G.over)return;const P=G.p[pl],lv=P.cpu;
   if(sunUp()&&P.oath!=="sun"&&P.tribe!=="firm"&&P.oath!=="earth"&&Math.random()<(lv==="hard"?.5:.25))await cast1("oath_sun");
-  if(!G.moon.gone&&P.oath!=="moon"&&!P.oath&&[...P.hand,...P.deck].some(c=>kind(c)==="joker")&&Math.random()<(lv==="hard"?.35:.15))await cast1("oath_moon");
+  if(P.oath!=="moon"&&!P.oath&&oathFree("moon")&&[...P.hand,...P.deck].some(c=>kind(c)==="joker")&&Math.random()<(lv==="hard"?.35:.15))await cast1("oath_moon");
   if(planetUp("saturn")&&P.oath!=="saturn"&&!P.oath&&paysSaturn(pl)&&P.deck.length>10&&Math.random()<.35)await cast1("oath_saturn");
   if(oathNow(pl,"sun")){if(fireOf(pl)>=fireCost(SP("sunblind"))&&Math.random()<.35)await cast1("sunblind");if(fireOf(pl)>=fireCost(SP("scorch"))&&Math.random()<.5)await cast1("scorch")}
-  if(oathNow(pl,"moon")){if(!P.moonDone){const j=stacksOf(pl).find(x=>hasK(x.st,"joker"));if(j&&fullIn()<=2)await cast1("suicide",j.r,j.c)}
-    if((P.moonJokers||0)<2&&mana(pl)>=3&&Math.random()<.4)await cast1("moonjoker")}
+  if(oathNow(pl,"moon"))await aiMoonOath(pl,cast1);
 }}
 
+/* v50: the computer keeps the Moon's demand: a Joker goes onto the field in time, and shoots itself before the Full Moon */
+async function aiMoonOath(pl,cast1){const P=G.p[pl],n=fullIn();
+  if(!P.moonDone&&n<=3){
+    let j=stacksOf(pl).find(x=>hasK(x.st,"joker"));
+    if(!j){const c=P.hand.find(x=>kind(x)==="joker");
+      if(c){let spot=null;for(const x of stacksOf(pl))if(canPlace(c,x.r,x.c)){spot=x;break}
+        if(spot){place(c,spot.r,spot.c);render();await sleep(300);j=stacksOf(pl).find(x=>hasK(x.st,"joker"))}}}
+    if(j&&(n<=1||P.cpu==="hard"&&n<=2||Math.random()<.5))await cast1("suicide",j.r,j.c);
+    else if(!j&&!P.hand.some(x=>kind(x)==="joker")&&(P.moonJokers||0)<2&&mana(pl)>=1)await cast1("moonjoker")}
+  if((P.moonJokers||0)<2&&mana(pl)>=3&&Math.random()<.4)await cast1("moonjoker")}
 /* ---------- on the screen: the Sun's sacrifice, fire mana, the blind veil, aiming at a tile ---------- */
-const sunSacOk=V=>V===G.active&&oathNow(V,"sun")&&sunUp();
+const sunSacOk=V=>V===G.active&&oathNow(V,"sun");
 {const _et=econTags;econTags=function(P){const t=_et(P);
   if(oathNow(P.i,"sun"))t.push(`<span class="firetag" title="Fire mana: 3 at most, 6 for a round">Fire ${fireOf(P.i)}/${FIRE_MAX}</span>`);
   if(totalBlind(P.i)&&!sunBlind(P.i))t.push(`<span class="debttag">Blind</span>`);
@@ -6134,10 +6149,10 @@ async function cycleRound(){
 const bankBanned=pl=>!!(G.p[pl]&&G.p[pl].bankBan!=null&&tnOf(pl)<=G.p[pl].bankBan);
 const etherBanned=pl=>!!(G.p[pl]&&G.p[pl].etherBan!=null&&tnOf(pl)<=G.p[pl].etherBan);
 const jailLeft=P=>Math.max(1,P.jail.until-Math.max(G.moon.round,P.jail.from+1)+1);   // the round they are caught in is not counted
-const robOk=pl=>!!(G&&G.p[pl]&&G.mercCyc===G.moon.round&&planetUp("mercury")&&bankOpen()&&G.bank&&G.bank.mana>0&&!isHorde(pl)&&!G.p[pl].jail&&G.p[pl].robbed!==G.moon.round&&!bankBanned(pl));   // v44: nothing to rob from an empty Bank
-SPELLS.push({id:"robbank",name:"Rob the Bank",cost:0,school:"Bank",text:"Free, once, in a round of Mercury's cycle. Roll 1d20. A natural 20: +5 maximum mana, and as much of the Bank\u2019s mana as your soul pile can hold. Not while the Bank is empty. A 1: Jail for 2d2 rounds (an easy computer plays for you, and you cast nothing); after Jail, no Ether and no Bank for ten turns, and no loans ever again. Anything else: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again.",
+const robOk=pl=>!!(G&&G.p[pl]&&(G.mercCyc===G.moon.round&&planetUp("mercury")||oathNow(pl,"mercury"))&&bankOpen()&&G.bank&&G.bank.mana>0&&!isHorde(pl)&&!G.p[pl].jail&&G.p[pl].robbed!==G.moon.round&&!bankBanned(pl));   // v44: nothing to rob from an empty Bank
+SPELLS.push({id:"robbank",name:"Rob the Bank",cost:0,school:"Bank",text:"Free, once, in a round of Mercury's cycle (any round, once a round, under the Oath of Mercury). Roll 1d20. A natural 20: +5 maximum mana, and as much of the Bank\u2019s mana as your soul pile can hold. Not while the Bank is empty. A 1: Jail for 2d2 rounds (an easy computer plays for you, and you cast nothing); after Jail, no Ether and no Bank for ten turns, and no loans ever again. Anything else: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again.",
   ok:()=>robOk(G.active),run:async()=>{await robBank(G.active)}});
-SPELL_TEXT.robbank={n:"Mercury's cycle, once, in your prep phase.",e:"Roll 1d20. A natural 20: +5 maximum mana, and as much of the Bank\u2019s mana as your soul pile can hold. The Bank can\u2019t be robbed while it is empty. 2 to 19: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again. A 1: Jail for 2d2 rounds; an easy computer plays for you and you cast nothing.",l:"After Jail: no Ether and no Bank for ten turns, and no loans ever again."};
+SPELL_TEXT.robbank={n:"Mercury's cycle, once, in your prep phase. Under the Oath of Mercury: any round, once a round.",e:"Roll 1d20. A natural 20: +5 maximum mana, and as much of the Bank\u2019s mana as your soul pile can hold. The Bank can\u2019t be robbed while it is empty. 2 to 19: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again. A 1: Jail for 2d2 rounds; an easy computer plays for you and you cast nothing.",l:"After Jail: no Ether and no Bank for ten turns, and no loans ever again."};
 const ROB_FAILS=[
   n=>`The vault door ${n} broke open was painted on the wall. The guards laughed for a while before they drew their swords.`,
   n=>`The Banker was counting coins in the dark the whole time. He wrote down ${n}'s face and rang the bell.`,
@@ -6389,7 +6404,7 @@ const SKY_PARA={
  moon:"The Moon turns one phase every round, after everyone has played, through eight phases; two of them do something. At the New Moon everyone raises 1d2 cards from the grave, Clairvoyance and Naked Hand cost 6, and every defense adds 1d2. At the Full Moon everyone pays its toll (a random stack of two, or else one card from the field, or else three cards from the shuffled deck; refusing costs 2d2 + 2 mana, even below zero), every deck is shuffled, nobody draws or casts necromancy, Clairvoyance costs 2 and Naked Hand is free, and every attack adds 1d2. One Full Moon in twenty turns red: a Blood Moon gives New Moon gifts at Full Moon prices, and every card killed falls into the Outer Darkness. Anyone can swear the Oath of the Moon.",
  saturn:"Saturn hangs in the Moon's place and stops its phases. At the start of each of their turns, everyone who owes it (every enemy of whoever raised it, or everyone if nobody did; never Binah or the Firmament) pays 1: a hand card, the top deck card or 1 mana. Whoever refuses gets a Debt Collector, and every Debt Collector still standing at the start of a round raises the price by one. Those who pay can swear the Oath of Saturn: Puppets fight for them after the 1st, 3rd, 6th and 9th toll, but one missed toll is a betrayal that locks the Oath and sends Saturn's own Puppets after them. Saturn has an eclipse (5% a round) with seven possible outcomes.",
  mars:"Mars, the Form of Strife, stops the Moon's phases. At the start of each turn, every stack made only of Grunts, Infantry or Puppets has a 5 in 8 chance (1 to 5 on 1d8) of advantage on its next attack. A Leviathan can coil on Mars; its toll and its weak spot come every eighth round. Yaldabaoth can eat Mars, and then it never comes back. Like every Heavenly Body but the Moon, it can be eclipsed (5% a round).",
- sun:"The Second Sun burns the fog of war away (Delusions still blind). Every 2d2 of your turns it judges you: pay 1 mana, take a wound on one of your stacks, or burn two deck cards; refuse and you are blind for that turn. What it takes goes to whoever raised it, or to the Bank. It never judges the Firmament. Yaldabaoth can make it cry; three times and it goes out as the Black Sun. Anyone else can swear the Oath of the Sun for fire mana, Scorched Earth and Blindness. The Leviathan can't lie on it.",
+ sun:"The Second Sun burns the fog of war away (Delusions still blind). Every 2d2 of your turns it judges you: pay 1 mana, take a wound on one of your stacks, or burn two deck cards; refuse and you are blind for that turn. What it takes goes to whoever raised it, or to the Bank. It never judges the Firmament. Yaldabaoth can make it cry; three times and it goes out as the Black Sun. Anyone else can swear the Oath of the Second Sun for fire mana, Scorched Earth and Blindness. The Leviathan can't lie on it.",
  blacksun:"The Second Sun cried three times and went out: this is the Black Sun. The fog of war is back. The Firmament that raised it pays Yaldabaoth 1d2 mana or 1d2 deck cards every 1d2 of its turns. If it falls, it destroys the tile it lands on for good.",
  venus:"Venus, the Form of Harmony. Whoever raised it chose a gift: +2 mana a turn and +2 maximum for one of their side, or +1 a turn while every enemy gets +2 maximum. Under the Oath of Venus, every turn you start without having attacked a player gives +2 mana and +2 maximum, and each attack on a player costs 1d2 mana and two maximum for 1d3 turns. Every sixth round is Venus's cycle: her sworn pay 1 less for support and base cards from the Ether that round, and every wounded card of theirs heals a heart; anyone else gets the same on a 4 of 1d4. Her eclipse doubles her gifts, heals every card and can mend a betrayal.",
  jupiter:"Jupiter, the Form of Abundance. Miners in an Ace bring 1d2 a turn instead of 1d2 − 1. Every round two conjurings go on sale. Hand cards can be traded at the Auction, and a Jester's Sacrificial Suicide brings 1d2 − 1 more. Whoever raised it may get a mana when others buy on sale or trade. Under the Oath of Jupiter every conjuring costs one less, unless it already costs one.",
@@ -8707,5 +8722,225 @@ if(window.__EC)Object.assign(window.__EC,{moonTarget:pl=>moonTarget(pl),fullMoon
   if(!t){t=document.createElement("div");t.id="turnctr";t.setAttribute("aria-live","off");h.appendChild(t)}
   if(!G){t.hidden=true;return}t.hidden=false;const n=Math.max(1,G.turnNo||1);
   t.innerHTML=`<span>Turn</span> <b>${n}</b><small>Round ${Math.max(1,G.moon?G.moon.round:1)}</small>`;t.title=`Turn ${n} of the game, round ${Math.max(1,G.moon?G.moon.round:1)}`}}
+
+/* ---------------- v50: the Oaths and the planets ----------------
+   Saturn: breaking its Oath costs all your mana, 5 deck cards, 2 hand cards and 2 maximum; each Report in good standing pays
+     +10% of your mana and +1 maximum. The Moon: one more Grave Blessing die (04_spells). The Earth: luck at Gambling, Gamble II,
+     a reward for every enemy Joker killed, Miners bring twice (16_siege). Jupiter: the floor is −12 (17_econ).
+   Mercury: +1 mana an Auction sale (13_substances2), Rob the Bank any round (28_shop), and the Bank's bounties.
+   Venus: pay other players' debts for a discount on your next buys; Healers cost one less; a big payment guards you (+2 defense). */
+
+/* ---------- the computer keeps the Moon's demand before it spends anything ---------- */
+{const _ph=AI.phase;AI.phase=async function(pl,ph){
+  if(ph==="prep"&&G.p[pl]&&!isHorde(pl)&&oathNow(pl,"moon")&&!G.p[pl].moonDone){
+    const cast1=async(id,r,c)=>{const sp=SP(id);const old=G.sel;G.sel=r==null?null:{r,c,pick:new Set()};if(!spellReady(sp)){G.sel=old;return false}await cast(sp);G.sel=null;render();await sleep(420);return true};
+    try{await aiMoonOath(pl,cast1)}catch(e){console.error(e)}}
+  return _ph.apply(this,arguments)}}
+
+/* ---------- the Oath of Saturn: what breaking it costs ---------- */
+function saturnBreak(pl){const P=G.p[pl];if(!P)return;
+  const m=Math.max(0,mana(pl)),paid=payQuiet(pl,m);bankAdd(paid);
+  let d=0;for(let i=0;i<5&&P.deck.length;i++){toGrave(P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0],"burn");d++}
+  let h=0;for(let i=0;i<2&&P.hand.length;i++){toGrave(P.hand.splice(Math.floor(Math.random()*P.hand.length),1)[0],"burn");h++}
+  P.maxAdd=(P.maxAdd||0)-2;P.satPaid=0;
+  log(`<b>Saturn</b> takes its price from ${plName(pl)} for the broken Oath: ${paid} mana, ${d} deck card${d===1?"":"s"}, ${h} hand card${h===1?"":"s"} and two maximum mana.`,"event")}
+const SAT_BREAK_TXT="Breaking the Oath of Saturn costs all your mana, 5 random cards from your deck, 2 random cards from your hand, and 2 maximum mana.";
+async function saturnBreakOk(V){const P=G.p[V];if(!P||P.oath!=="saturn"||P.satLocked)return true;if(P.cpu)return false;
+  return !!await askHuman(V,{kind:"yesno",id:"satbreak",title:"Break the Oath of Saturn?",text:SAT_BREAK_TXT,yes:"Break it",no:"Keep it"})}
+for(const [k] of OATHS){const sp=SP("oath_"+k);if(!sp)continue;const run=sp.run;
+  sp.run=async()=>{const P=me();if(P.oath==="saturn"&&!P.satLocked){
+      const yes=await ask(G.active,{kind:"yesno",id:"satbreak",title:"Break the Oath of Saturn?",text:SAT_BREAK_TXT,yes:"Break it",no:"Keep it",ai:()=>false});
+      if(!yes){log(`${plName(G.active)} keeps the Oath of Saturn.`);return}}
+    return run()}}
+
+/* ---------- Report day: Saturn's reward, the bounties ---------- */
+{const _br=bankReport;bankReport=function(){
+  if(!G.bank||survival())return _br.apply(this,arguments);
+  const t=G.turnNo;_br.apply(this,arguments);G.reportN=(G.reportN||0)+1;
+  for(const pl of alive().filter(i=>!isHorde(i)&&!isNPC(i))){const P=G.p[pl],R0=(P.reports||[])[0];if(!R0||R0.to!==t)continue;
+    if(R0.good&&oathNow(pl,"saturn")){const add=Math.max(1,Math.ceil(Math.max(0,mana(pl))*.1)),got=giveMana(pl,add);P.maxAdd=(P.maxAdd||0)+1;
+      log(`<b>The Oath of Saturn</b>: a Report in good standing pays ${plName(pl)} ${got} mana (10%) and one more maximum.`,"event")}}
+  bountyReport()}}
+
+/* ---------- the Bank's bounties (the Oath of Mercury, or anyone while Mercury is up) ---------- */
+const BOUNTY_COLL=2,BOUNTY_MAXC=3;
+const bountiesOf=()=>G.bounties||(G.bounties=[]);
+const bountyById=id=>bountiesOf().find(b=>b.id===id);
+const bountyLive=b=>b&&(b.state==="open"||b.state==="taken");
+const bountyOn=pl=>bountiesOf().find(b=>bountyLive(b)&&b.target===pl);
+const bountyBanned=pl=>{const P=G.p[pl];return !!P&&P.bountyBan!=null&&(G.reportN||0)<P.bountyBan};
+const bountyCanTake=pl=>!!G.p[pl]&&!isNPC(pl)&&!isHorde(pl)&&!G.p[pl].out&&bankOpen()&&(oathNow(pl,"mercury")||planetUp("mercury"))&&!bountyBanned(pl)&&!bankBanned(pl)&&!G.p[pl].jail;
+const bountyColls=b=>stacksOf(b.by).filter(x=>x.st.bounty===b.id);
+/* what is owed the Bank: debt, loans, the last unpaid tax, and 3 for a robbery */
+function bountyOwed(pl){const P=G.p[pl],R0=(P.reports||[])[0];let n=debtOf(pl)+owedOf(pl);if(R0)n+=Math.max(0,R0.taxDue-R0.taxPaid);if(P.robbed!=null&&R0&&P.robbed>=G.moon.round-8)n+=3;return Math.max(2,n)}
+/* pay down a player's debt to the Bank, then their loans */
+function payDown(pl,n){const P=G.p[pl];let left=n;const d=Math.min(left,P.debt||0);if(d){P.debt-=d;left-=d;if(!P.debt)P.debtAt=null}
+  for(const L of P.loans||[]){if(left<=0)break;const x=Math.min(left,L.owed);L.owed-=x;left-=x}
+  P.loans=(P.loans||[]).filter(L=>L.owed>0);return n-left}
+function bountyReport(){const N=G.reportN||0;
+  for(const b of bountiesOf()){if(!bountyLive(b))continue;
+    if(!G.p[b.target]||G.p[b.target].out){bountyEnd(b,"void",`The bounty on ${plName(b.target)} is called off: they are out of the game.`);continue}
+    if(b.state==="taken"&&!owesBank(b.target)){bountyEnd(b,"void",`The bounty on ${plName(b.target)} ends: nothing is owed the Bank any more.`);continue}
+    if(b.state==="taken"&&N>=b.due){bountyFail(b);continue}
+    if(b.state==="open"&&(G.p[b.target].standing||[])[0]&&!owesBank(b.target))bountyEnd(b,"void",`The bounty on ${plName(b.target)} is lifted: good standing again.`)}
+  for(const pl of alive().filter(i=>!isHorde(i)&&!isNPC(i))){const P=G.p[pl];if((P.standing||[])[0]!==false||bountyOn(pl))continue;
+    const b={id:(G.bountyId=(G.bountyId||0)+1),target:pl,owed:bountyOwed(pl),got:0,by:null,due:null,state:"open",at:N};bountiesOf().push(b);
+    log(`<b>The Bank</b> posts a bounty on ${plName(pl)}: ${b.owed} mana owed. ${planetUp("mercury")?"Anyone":"The Oath of Mercury"} can take it at the Bank.`,"event")}
+  G.bounties=bountiesOf().filter(bountyLive)}
+function bountyEnd(b,state,msg){b.state=state;if(b.by!=null)for(const x of bountyColls(b))G.board[x.r][x.c]=null;if(msg)log(msg,"event")}
+function bountyFail(b){const h=b.by,P=G.p[h],bk=npcIx("bank");
+  for(const o of bountiesOf().filter(x=>x.by===h&&x.state==="taken")){
+    for(const x of bountyColls(o)){if(bk<0){G.board[x.r][x.c]=null;continue}x.st.owner=bk;for(const c of x.st.cards)c.owner=bk;x.st.hunt=o.target;delete x.st.bounty}
+    if(o!==b){o.state="open";o.by=null;o.due=null}}
+  b.state="open";b.by=null;b.due=null;P.bountyBan=(G.reportN||0)+1;
+  log(`<b>${plName(h)} fails the bounty</b> on ${plName(b.target)}: their Debt Collectors now belong to the Bank, their other bounties are cancelled, and they must wait a Report to take another.`,"event");
+  notify(h,`${esc(P.name)} failed a bounty.`)}
+function bountyGain(b,v,how){if(!bountyLive(b)||b.state!=="taken")return;const paid=payDown(b.target,v);b.got+=v;
+  log(`The bounty: ${plName(b.by)} collects ${v} for the Bank from ${plName(b.target)} (${how}; ${Math.min(b.got,b.owed)} of ${b.owed}${paid<v?"; nothing more is owed":""}).`);
+  if(b.got>=b.owed||!owesBank(b.target))bountyDone(b)}
+function bountyDone(b){const h=b.by,P=G.p[h];
+  const forg=debtOf(h)+owedOf(h);P.debt=0;P.debtAt=null;P.loans=[];
+  const want=Math.ceil(b.owed/2),n=Math.min(want,Math.max(0,G.bank.mana-BANK_FLOOR)),got=giveMana(h,n);G.bank.mana-=got;
+  bountyEnd(b,"done",`<b>${plName(h)} completes the bounty</b> on ${plName(b.target)}: ${got} mana from the Bank (half of ${b.owed})${forg?`, and ${forg} of their own debt is forgiven`:""}.`);
+  popup("Bounty complete",`<p>${plName(h)} collected what ${plName(b.target)} owed the Bank.</p><p>Reward: <b>${got}</b> mana${forg?`, and the Bank forgives ${forg} mana of ${esc(P.name)}'s own debts and loans`:""}.</p>`,h)}
+function acceptBounty(pl,id){const b=bountyById(id);if(!b||b.state!=="open"||b.target===pl||!bountyCanTake(pl))return false;
+  b.state="taken";b.by=pl;b.due=(G.reportN||0)+2;
+  log(`${plName(pl)} takes the Bank's bounty on ${plName(b.target)} (${b.owed} mana, by the second Report from now).`,"event");notify(b.target,`${esc(G.p[pl].name)} hunts ${esc(G.p[b.target].name)} for the Bank.`);return true}
+function buyBountyColl(pl,id){const b=bountyById(id);if(!b||b.state!=="taken"||b.by!==pl||G.active!==pl||G.phase!=="prep"||!bankOpen())return false;
+  if(bountyColls(b).length>=BOUNTY_MAXC){if(!G.p[pl].cpu)flash(`At most ${BOUNTY_MAXC} Debt Collectors on one bounty.`);return false}
+  if(!canAfford(pl,BOUNTY_COLL)){if(!G.p[pl].cpu)flash(`A Debt Collector costs ${BOUNTY_COLL} mana.`);return false}
+  const t=freeTilesNear(b.target,true)[0];if(!t){if(!G.p[pl].cpu)flash("No free ground near them.");return false}
+  spend(pl,BOUNTY_COLL);G.board[t[0]][t[1]]={owner:pl,cards:[mkUnit("debt",pl)],moved:true,attacked:true,bounty:b.id};
+  log(`${plName(pl)} buys a Debt Collector for the bounty on ${plName(b.target)}: it waits on ${coord(t[0],t[1])}.`,"event");return true}
+function turnInCapt(pl,r,c){const st=G.board[r]&&G.board[r][c];if(!st||st.owner!==pl||!st.captive||G.active!==pl)return false;
+  const x=st.captive,b=bountiesOf().find(o=>o.state==="taken"&&o.by===pl&&o.target===x.capturedFrom);if(!b)return false;
+  st.captive=null;x.owner=null;x.capturedFrom=null;if(x.hp!=null)x.hp=x.maxHp;G.ether.push(x);bountyGain(b,costOf(x)||1,`a captured ${nameOf(x)} turned in to the Ether`);return true}
+for(const [name,get,set] of [["acceptBounty",()=>acceptBounty,f=>acceptBounty=f],["buyBountyColl",()=>buyBountyColl,f=>buyBountyColl=f],["turnInCapt",()=>turnInCapt,f=>turnInCapt=f]]){
+  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+/* a bounty's Debt Collectors strike only its target, a teammate too (that is no betrayal) */
+{const _ao=attackOptions;attackOptions=function(r,c){let out=_ao(r,c);const st=G&&G.board[r]&&G.board[r][c];if(!st||st.bounty==null)return out;
+  const b=bountyById(st.bounty);if(!b||b.state!=="taken")return [];
+  out=out.filter(o=>{const t=G.board[o.r][o.c];return t&&t.owner===b.target});
+  if(!isEnemy(st.owner,b.target)&&!st.attacked&&!st.stun&&!st.pin&&canAttackFrom(st)){const w=UNIT.debt.weapons[0];
+    for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const r2=r+dr,c2=c+dc,t=G.board[r2]&&G.board[r2][c2];
+      if(t&&t.owner===b.target&&!t.hypo&&!shielded(t.owner)&&reaches(w.reach,r,c,r2,c2)&&!out.some(o=>o.r===r2&&o.c===c2))out.push({r:r2,c:c2,mode:w.id,ranged:false,w})}}
+  return out}}
+/* what a bounty's Debt Collector kills goes to the Ether, and its price comes off the target's debt */
+{const _eb=econBury;econBury=function(card,r,c,st){const out=_eb.apply(this,arguments);if(out)return out;const F=G.fight;if(!F)return false;
+  const kst=st===F.D?F.A:st===F.A?F.D:null,b=kst&&kst.bounty!=null?bountyById(kst.bounty):null;
+  if(!b||b.state!=="taken"||st.owner!==b.target||card.unit&&!UNIT[card.unit].ether)return false;
+  card.owner=null;if(card.hp!=null)card.hp=card.maxHp;G.ether.push(card);bountyGain(b,costOf(card)||1,`${nameOf(card)} into the Ether`);return true}}
+/* a computer hunter's Debt Collectors close in on the target at the end of its turn */
+function bountyMove(pl){if(!G.p[pl].cpu)return;
+  for(const b of bountiesOf().filter(o=>o.state==="taken"&&o.by===pl))for(const x of bountyColls(b)){let {st,r,c}=x;if(G.board[r][c]!==st||st.attacked)continue;
+    const hit=()=>{const o=attackOptions(r,c)[0];if(o){attack(r,c,o.r,o.c,o.mode);return true}return false};if(hit()||st.moved)continue;
+    const tl=stacksOf(b.target);if(!tl.length)continue;const dist=(a,d)=>Math.min(...tl.map(y=>Math.abs(y.r-a)+Math.abs(y.c-d)));let best=null;
+    for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){const rr=r+dr,cc=c+dc;if(rr<0||cc<0||rr>=G.rows||cc>=COLS||isVoid(rr,cc)||G.board[rr][cc])continue;const d=dist(rr,cc);if(d<dist(r,c)&&(!best||d<best.d))best={rr,cc,d}}
+    if(best){G.board[best.rr][best.cc]=st;G.board[r][c]=null;st.moved=true;r=best.rr;c=best.cc;hit()}}}
+{const _et=endTurn;endTurn=function(pl){if(G.p[pl]&&!G.p[pl].out&&!isHorde(pl)&&!isNPC(pl))try{bountyMove(pl)}catch(e){console.error(e)}return _et(pl)}}
+
+/* ---------- the Oath of the Earth: Gambling, Gamble II, the Jokers it kills ---------- */
+{const GSP=SP("gamble"),run0=GSP.run;
+  GSP.run=async()=>{const pl=G.active,P=me();if(!oathNow(pl,"earth"))return run0();
+    const a=R(2),b=R(2);let dbl=a===2,safe=b===2;const notes=[];
+    if(dbl&&safe){dbl=safe=false;notes.push("both Earth rolls came up, so the odds stay plain")}else{if(dbl)notes.push("doubled odds: 9 or 10 wins");if(safe)notes.push("a 1 costs nothing")}
+    if(P.earthJoker){P.earthJoker=false;if(!dbl)notes.push("doubled odds for the enemy Joker killed");dbl=true}
+    const d=R(10),ed=[{s:2,v:a},{s:2,v:b}],why=notes.length?` (the Oath of the Earth: ${notes.join("; ")})`:"";
+    if(d===10||dbl&&d===9){const w=rollN(7,2),n=Math.min(sum(w),Math.max(0,G.bank.mana-BANK_FLOOR)),got=giveMana(pl,n);G.bank.mana-=got;tray(pl,"Gambling",[{s:10,v:d},...ed,...w],`+${got}`);log(`<b>Gambling</b>: ${plName(pl)} rolls ${d} and wins ${n} mana (${got} fit)${why}.`,"event")}
+    else if(d===1&&!safe){const w=rollN(7,2),n=Math.max(0,Math.min(sum(w),effMana(pl)-floorOf(pl)));P.maxAdd=(P.maxAdd||0)-1;const c=P.deck.pop();if(c){c.owner=null;G.ether.push(c)}tray(pl,"Gambling",[{s:10,v:d},...ed,...w],`−${n}`);
+      log(`<b>Gambling</b>: ${plName(pl)} rolls a 1${why}. One maximum mana is lost, ${n} mana of debt (7d2) is owed${c?", and a card leaves the deck for the Ether":""}.`,"event");addDebt(pl,n)}
+    else{tray(pl,"Gambling",[{s:10,v:d},...ed],"nothing");log(`Gambling: ${plName(pl)} rolls ${d}${d===1?", and the Earth catches the fall":""}. Nothing${why}.`)}}}
+SPELLS.push({id:"gamble2",name:"Gamble II",cost:1,school:"Sorcery",text:"",ok:()=>oathNow(G.active,"earth")&&bankOpen(),run:async()=>{const pl=G.active,P=me(),dbl=!!P.earthJoker;P.earthJoker=false;const d=R(20);
+  if(d===20||dbl&&d===19){const room=Math.max(0,surCap(pl)-mana(pl)),n=Math.min(room,Math.max(0,G.bank.mana-BANK_FLOOR)),got=giveMana(pl,n);G.bank.mana-=got;
+    tray(pl,"Gamble II",[{s:20,v:d}],`+${got}`);log(`<b>Gamble II</b>: ${plName(pl)} rolls ${d}${dbl?" (doubled odds for the Joker killed)":""}: the Bank fills the soul pile with ${got} mana.`,"event");critLog("success",d,`${plName(pl)}: Crit Success`)}
+  else{tray(pl,"Gamble II",[{s:20,v:d}],"nothing");log(`Gamble II: ${plName(pl)} rolls ${d}${dbl?" (doubled odds)":""}. Nothing.`)}}});
+OATH_ONLY.gamble2="earth";
+Object.assign(SPELL_TEXT,{gamble2:{n:"The Oath of the Earth, while the Bank is open.",e:"Roll 1d20. A natural 20 is a Crit Success: the Bank fills your soul pile as full as it can hold, the surplus included.",l:"Anything else: the mana is gone. Gamble II never costs more than its mana."}});
+SP("gamble2").text=[SPELL_TEXT.gamble2.n,SPELL_TEXT.gamble2.e,SPELL_TEXT.gamble2.l].join(" ");
+if(SPELL_TEXT.gamble)SPELL_TEXT.gamble.l=(SPELL_TEXT.gamble.l||"")+" Under the Oath of the Earth: a 1d2 for doubled odds (9 or 10 wins) and a 1d2 for no loss on a 1; both at once and the odds stay plain.";
+{const _b=bury;bury=function(card,r,c,st){const F=G.fight;
+  if(F&&card&&kind(card)==="joker"&&st){const k=st===F.D?F.atkPl:st===F.A?F.defPl:null;
+    if(k!=null&&G.p[k]&&!isNPC(k)&&!isHorde(k)&&isEnemy(k,st.owner)&&oathNow(k,"earth")){const P=G.p[k],add=R(2)+R(3),got=giveMana(k,add);P.earthJoker=true;
+      log(`The Oath of the Earth: ${plName(k)} kills a Joker: +${got} mana (1d2 + 1d3), and doubled odds on the next Gamble.`)}}
+  return _b.apply(this,arguments)}}
+
+/* ---------- the Oath of Venus: paying others' debts, cheaper Healers, a guard ---------- */
+const venusDefOn=pl=>{const P=G.p[pl];return !!P&&P.venusDef!=null&&tnOf(pl)<=P.venusDef};
+function payDebtFor(from,to,n){if(!oathNow(from,"venus")||from===to||!G.p[to]||G.p[to].out||G.active!==from)return 0;
+  n=Math.min(Math.round(n),Math.max(0,mana(from)),debtOf(to)+owedOf(to));if(n<=0)return 0;
+  const paid=payQuiet(from,n);bankAdd(paid);payDown(to,paid);
+  let left=paid,t=0;while(left>0){const d=R(2);if(d>left)break;left-=d;t++}
+  const P=G.p[from];P.venusDisc=(P.venusDisc||0)+t;
+  let guard="";if(paid>=6){const k=R(3)+R(3);P.venusDef=tnOf(from)+k;guard=` Venus guards them: +2 on defense for ${k} turns.`}
+  log(`<b>The Oath of Venus</b>: ${plName(from)} pays ${paid} of ${plName(to)}'s debt to the Bank. ${t} discount${t===1?"":"s"} of 1 mana on their next buys.${guard}`,"event");
+  notify(to,`${esc(P.name)} pays ${paid} of ${esc(G.p[to].name)}'s debt.`);return paid}
+{NETFN.payDebtFor={get:()=>payDebtFor,set:f=>payDebtFor=f,any:true};const orig=payDebtFor;payDebtFor=function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:"payDebtFor",args:netClean(a),ui:uiSnap(),rid})}}
+let vdOff=false;
+{const _sc=spellCost;spellCost=function(sp){let c=_sc(sp);if(!sp||!G)return c;const P=G.p[G.active];
+  if(sp.id==="cheal"&&oathNow(G.active,"venus"))c=Math.max(1,c-1);
+  if(!vdOff&&P&&P.venusDisc>0&&c>1)c-=1;
+  return c}}
+{const _c=cast;cast=async function(sp){const P=G&&G.p[G.active];let use=false;
+  if(NET.role!=="guest"&&P&&P.venusDisc>0&&sp&&!(G.busy&&!P.cpu)){vdOff=true;const raw=spellCost(sp);vdOff=false;use=raw>1&&spellReady(sp)}
+  const out=await _c.apply(this,arguments);
+  if(use){P.venusDisc--;log(`The Oath of Venus takes 1 mana off ${plName(P.i)}'s ${esc(sp.name)} (${P.venusDisc} discount${P.venusDisc===1?"":"s"} left).`)}
+  return out}}
+{const _rs=rollStack;rollStack=function(st,mode){const out=_rs.apply(this,arguments);
+  if(mode==="def"&&st&&st.owner!=null&&!hasK(st,"satan")&&venusDefOn(st.owner)&&out&&out.parts){out.total+=2;out.parts.push("Venus +2")}
+  return out}}
+
+/* ---------- the texts built again after the changes above ---------- */
+{const s=SP("gamble"),t=SPELL_TEXT.gamble;if(s&&t)s.text=[t.n,t.e,t.l].filter(Boolean).join(" ")}
+
+/* ---------- the computer: Gamble II, bounties, Venus ---------- */
+{const _ap=aiPlanets;aiPlanets=async function(pl,W,cast1){await _ap(pl,W,cast1);if(G.over)return;const P=G.p[pl],lv=P.cpu;
+  if(oathNow(pl,"earth")&&mana(pl)>=2&&Math.random()<(P.earthJoker?.7:.2))await cast1("gamble2");
+  if(lv!=="easy"&&bountyCanTake(pl)&&!bountiesOf().some(b=>b.state==="taken"&&b.by===pl)&&mana(pl)>=3&&Math.random()<.5){
+    const b=bountiesOf().filter(o=>o.state==="open"&&o.target!==pl&&isEnemy(pl,o.target)).sort((x,y)=>y.owed-x.owed)[0];if(b)acceptBounty(pl,b.id)}
+  for(const b of bountiesOf().filter(o=>o.state==="taken"&&o.by===pl)){
+    for(const x of stacksOf(pl))if(x.st.captive&&x.st.captive.capturedFrom===b.target)turnInCapt(pl,x.r,x.c);
+    if(b.state==="taken"&&bountyColls(b).length<2&&mana(pl)>=BOUNTY_COLL+2)buyBountyColl(pl,b.id)}
+  if(oathNow(pl,"venus")&&mana(pl)>=5){const to=alliesOf(pl).filter(i=>!isHorde(i)&&!isNPC(i)&&!G.p[i].out&&debtOf(i)+owedOf(i)>0)[0];if(to!=null)payDebtFor(pl,to,Math.min(mana(pl)-2,debtOf(to)+owedOf(to)))}
+}}
+
+/* ---------- the Bank window: the Bounties tab; Venus pays debts between players ---------- */
+function bountyHTML(V){const live=canAct()&&G.phase==="prep"&&G.active===V,can=bountyCanTake(V),L=bountiesOf().filter(bountyLive);
+  const why=!bankOpen()?"The Bank is closed.":bountyBanned(V)?"You failed a bounty: wait for the next Report.":!(oathNow(V,"mercury")||planetUp("mercury"))?"Only the Oath of Mercury takes bounties, or anyone while Mercury is in the sky.":"";
+  const row=b=>{const mine=b.by===V,cs=b.state==="taken"&&mine?bountyColls(b).length:0;
+    const caps=mine?stacksOf(V).filter(x=>x.st.captive&&x.st.captive.capturedFrom===b.target):[];
+    return `<li class="bnty${mine?" mine":""}"><b>${plName(b.target)}</b> owes <b>${b.owed}</b>${b.state==="taken"?` · ${mine?"yours":`hunted by ${plName(b.by)}`}: ${Math.min(b.got,b.owed)} of ${b.owed} collected, ${Math.max(0,b.due-(G.reportN||0))} Report${b.due-(G.reportN||0)===1?"":"s"} left`:""}
+${b.state==="open"&&b.target!==V?`<button class="btn sm" data-bacc="${b.id}" ${live&&can?"":"disabled"}>Accept</button>`:""}
+${mine?`<button class="btn sm" data-bcol="${b.id}" ${live&&cs<BOUNTY_MAXC&&canAfford(V,BOUNTY_COLL)?"":"disabled"}>Buy a Debt Collector (${BOUNTY_COLL} mana) · ${cs}/${BOUNTY_MAXC}</button>${caps.map(x=>`<button class="btn ghost sm" data-bcap="${x.r},${x.c}" ${live?"":"disabled"}>Turn in the captured ${esc(nameOf(x.st.captive))} (${costOf(x.st.captive)||1})</button>`).join("")}`:""}</li>`};
+  return `<p class="dim">Each Report puts a bounty on everyone in bad standing. Take one and buy Debt Collectors (2 mana) that hunt only that player, a teammate too, with no betrayal. Their kills, and captured support cards you turn in, pay off the debt. Finish within two Reports: half the debt is yours, and your own Bank debts are forgiven. Fail: your Collectors go to the Bank, your other bounties end, and you wait one Report.</p>
+${why?`<p class="bwhy">${why}</p>`:""}${L.length?`<ul class="p2pl bntyl">${L.map(row).join("")}</ul>`:`<p class="dim">No bounties right now.</p>`}`}
+{const _ob=openBank;openBank=function(){_ob();const box=$("#ov .ovbox.bank");if(!box||!G)return;const V=view(),live=canAct()&&G.phase==="prep"&&G.active===V;
+  const tabs=box.querySelector(".btabs");
+  if(tabs&&!tabs.querySelector('[data-bt="bounty"]')&&!survival()){const n=bountiesOf().filter(b=>b.state==="open"&&b.target!==V).length;
+    tabs.insertAdjacentHTML("beforeend",`<button type="button" class="stab" data-bt="bounty">Bounties${n?` <i class="bang">${n}</i>`:""}</button>`);
+    const pane=document.createElement("div");pane.className="btab bounty";pane.dataset.t="bounty";pane.innerHTML=bountyHTML(V);pane.hidden=true;(box.querySelector(".btab.report")||box.querySelector(".btab.land")).after(pane);
+    const show=t=>{tabs.querySelectorAll("[data-bt]").forEach(b=>{const on=b.dataset.bt===t;b.classList.toggle("on",on);b.setAttribute("aria-selected",on)});box.querySelectorAll(".btab").forEach(p=>p.hidden=p.dataset.t!==t);bankTab=t};
+    tabs.querySelectorAll("[data-bt]").forEach(b=>b.onclick=()=>show(b.dataset.bt));if(bankTab==="bounty")show("bounty");
+    const again=()=>{bankTab="bounty";render();openBank()};
+    pane.querySelectorAll("[data-bacc]").forEach(b=>b.onclick=()=>{acceptBounty(V,+b.dataset.bacc);again()});
+    pane.querySelectorAll("[data-bcol]").forEach(b=>b.onclick=()=>{buyBountyColl(V,+b.dataset.bcol);again()});
+    pane.querySelectorAll("[data-bcap]").forEach(b=>b.onclick=()=>{const [r,c]=b.dataset.bcap.split(",").map(Number);turnInCapt(V,r,c);again()})}
+  const p2p=box.querySelector(".btab.p2p");
+  if(p2p&&live&&oathNow(V,"venus")){const owe=alive().filter(i=>i!==V&&!isHorde(i)&&!isNPC(i)&&debtOf(i)+owedOf(i)>0),m=Math.max(0,mana(V));
+    p2p.insertAdjacentHTML("beforeend",`<h3>Pay a debt (the Oath of Venus)</h3>${owe.length?`<p class="p2pask"><label>For <select id="vTo">${owe.map(i=>`<option value="${i}">${esc(G.p[i].name)} (owes ${debtOf(i)+owedOf(i)})</option>`).join("")}</select></label>
+ <label><select id="vN">${Array.from({length:Math.max(1,m)},(_,i)=>`<option>${i+1}</option>`).join("")}</select> mana</label> <button class="btn sm" id="vPay" ${m?"":"disabled"}>Pay</button></p><p class="dim">Every 1d2 paid takes 1 mana off one of your next buys. 6 or more at once: +2 on defense for 2d3 turns.</p>`:`<p class="dim">Nobody owes the Bank right now.</p>`}`);
+    const b=$("#vPay");if(b)b.onclick=()=>{payDebtFor(V,+$("#vTo").value,+$("#vN").value);bankTab="p2p";render();openBank()}}}}
+
+/* ---------- the tags beside a player ---------- */
+{const _et=econTags;econTags=function(P){const t=_et(P);if(!G||isHorde(P.i)||isNPC(P.i))return t;
+  const b=bountyOn(P.i);if(b)t.push(`<span class="debttag" data-tip="The Bank has a bounty on this player: ${b.owed} mana owed.${b.state==="taken"?` Hunted by ${esc(G.p[b.by].name)}.`:""}">Bounty ${b.owed}</span>`);
+  const h=bountiesOf().filter(o=>o.state==="taken"&&o.by===P.i).length;if(h)t.push(`<span class="oathtag" data-tip="Hunting ${h} bount${h>1?"ies":"y"} for the Bank.">Hunting ${h}</span>`);
+  if(P.venusDisc>0)t.push(`<span class="saletag" data-tip="The Oath of Venus: each takes 1 mana off one of the next buys that cost more than 1.">Venus −${P.venusDisc}</span>`);
+  if(venusDefOn(P.i))t.push(`<span class="oathtag" data-tip="The Oath of Venus: +2 on defense until turn ${P.venusDef}.">Venus guard</span>`);
+  if(P.earthJoker)t.push(`<span class="oathtag" data-tip="The Oath of the Earth: doubled odds on the next Gambling or Gamble II.">Earth luck</span>`);
+  if(bountyBanned(P.i))t.push(`<span class="debttag" data-tip="Failed a bounty: no bounties until the next Report.">No bounties</span>`);
+  return t}}
+
+if(window.__EC)Object.assign(window.__EC,{saturnBreak,acceptBounty:(...a)=>acceptBounty(...a),buyBountyColl:(...a)=>buyBountyColl(...a),turnInCapt:(...a)=>turnInCapt(...a),bountyReport,bountiesOf,payDebtFor:(...a)=>payDebtFor(...a),
+  bankReport:(...a)=>bankReport(...a),attackOptions:(...a)=>attackOptions(...a),spellCost:(...a)=>spellCost(...a),cast:(...a)=>cast(...a),toggleOath:(...a)=>toggleOath(...a),bury:(...a)=>bury(...a),blessing:(...a)=>blessing(...a),floorOf,fullIn,moonFullNow,oathRound:(...a)=>oathRound(...a),aiMoonOath,turnAsync:(...a)=>turnAsync(...a),openDrawer:(...a)=>openDrawer(...a)});
 
 })();
