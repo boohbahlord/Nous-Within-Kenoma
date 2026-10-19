@@ -21,7 +21,13 @@ const AI=(()=>{
     const k=key(A)+"|"+key(D)+"|"+(mode||"");if(cache.has(k))return cache.get(k);
     const w0=weaponOf(A,mode),fa=hasK(A,"satan")?null:netFx(A.odds,hated(A)?"dis":null,hated(D)?"adv":null),fd=hasK(D,"satan")?null:netFx(D.odds,hated(D)?"dis":null);
     let w=0;for(let i=0;i<n;i++){const a=rollStack(A,"atk",D,fa,w0),d=rollStack(D,"def",A,fd);if(a.total>d.total)w++}
-    const p=w/n;cache.set(k,p);return p;
+    let p=w/n;
+    // v48: the landing roll: a Crit Miss on 1 (not Puppets), an Assassin's dodge, a Crit Hit on 20 (19 for three Puppets)
+    const can=A.cards.filter(c=>!isBase(c)&&!(c.unit&&UNIT[c.unit].noAtk)&&kind(c)!=="queen").length,pup=A.cards.length>0&&A.cards.every(c=>c.puppet);
+    const fi=D.cards.filter(c=>!isBase(c)&&!(c.unit&&UNIT[c.unit].sup)),imm=fi.length>0&&fi.every(c=>c.puppet||c.unit==="assassin");
+    const miss=pup?0:.05,dodge=D.cards.some(c=>c.unit==="assassin")?.2:0,crit=imm?0:pup&&A.cards.length>=3?.1*.95:can>=2?.05*.95:0;
+    p=(1-miss)*(1-dodge)*(p+(1-p)*crit);
+    cache.set(k,p);return p;
   }
   function value(st){let v=0;for(const c of st.cards){v+=1+soulOf(c)*.8+rate(c)/7;if(kind(c)==="joker")v+=2+capMana(c)*1.4;if(kind(c)==="ace")v+=3;if(c.hp)v+=c.hp*2.2;if(kind(c)==="tree")v+=4}return v}
   function killsOnHit(st){const b=st.cards.find(isBase);if(b)return !(b.hp>1);if(st.cards.length===1)return !(st.cards[0].hp>1);const low=[...st.cards].sort((a,b)=>nat(a)-nat(b))[0];return kind(low)==="king"}

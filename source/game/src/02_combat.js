@@ -189,6 +189,9 @@ function attackRun(r1,c1,r2,c2,mode,forced){
     if(G.moon.i===4&&!pureA){const v=R(2);ra.total+=v;ra.dice.push({s:2,v});ra.parts.push(`${G.moon.blood?"Blood":"Full"} Moon +${v}`)}
     if(G.moon.i===0&&!pureD){const v=R(2);rd.total+=v;rd.dice.push({s:2,v});rd.parts.push(`New Moon +${v}`)}
   }
+  const LR=landRoll(opt.A||A,D);   // v48: the landing roll, 1d20 each
+  if(A.dplus&&A.dplus.m==="atk"){const x=dicePlusRoll();ra.total+=x.total;ra.dice.push(...x.dice);ra.parts.push(`Dice Plus +${x.total}`);A.dplus=null}
+  if(D.dplus&&D.dplus.m==="def"){const x=dicePlusRoll();rd.total+=x.total;rd.dice.push(...x.dice);rd.parts.push(`Dice Plus +${x.total}`);D.dplus=null}
   const queenA=hasK(A,"queen");
   let dmgD=0,dmgA=0,notes=[];
   if(wasDown)notes.push("The face-down stack turns face up.");
@@ -212,9 +215,14 @@ function attackRun(r1,c1,r2,c2,mode,forced){
     if(w&&w.id==="cannon"){dmgD=Math.max(dmgD,2);notes.push("Cannon fire: two damage to the Wall.")}
   }
   if(dmgD>0&&w&&w.id==="cannon"){const ace=D.cards.find(x=>kind(x)==="ace");if(ace&&(ace.hp||1)<=1&&!D.cards.some(x=>x.unit==="miner")){dmgD=0;notes.push("A Cannon can't take an Ace's last heart.")}}
+  if(LR.miss){dmgD=0;dmgA=0;notes.push("Crit Miss: the attack misses.")}
+  else if(LR.dodge){dmgD=0;dmgA=0;notes.push("The Assassin dodges: Miss.")}
+  else if(LR.crit){if(!dmgD)dmgD=1;dmgA=0;notes.push("Crit Hit: the blow lands whatever the scores.")}
+  notes.push(`(Landing ${LR.la} vs ${LR.ld}.)`);
   const line=`${ra.total}${cmpSign(ra.total,rd.total)}${rd.total}`;
   tray(atkPl,"Attack",ra.dice,opt.blind?(dmgD?"a hit in the fog":"lost in the fog"):line);tray(defPl,"Defense",rd.dice,line,true);G.histTile=null;
   log(`<b>${plName(atkPl)}</b> attacks from ${coord(r1,c1)} to ${coord(r2,c2)}: <span class="dice">${ra.parts.join(", ")}</span> = <b>${ra.total}</b> vs <span class="dice">${rd.parts.join(", ")}</span> = <b>${rd.total}</b> <span class="tot">(${esc(line)})</span>. ${notes.join(" ")} ${dmgD?`Defender takes ${dmgD} damage.`:""}${dmgA?`Attacker takes ${dmgA} damage.`:""}${!dmgA&&!dmgD?"No damage.":""}`,"combat");
+  if(LR.miss)critLog("miss",1,`${plName(atkPl)}: Crit Miss`);else if(LR.dodge)critLog("dodge",LR.ld,`${plName(defPl)}'s Assassin dodges: Miss`);else if(LR.crit)critLog("hit",LR.la,`${plName(atkPl)}: Crit Hit`);
   G.fight={A,D,atkPl,defPl,ranged:!!opt.ranged};
   if(dmgD)warDamagePay(atkPl,defPl,dmgD,D);
   if(dmgD){const n=damage(r2,c2,dmgD,true);if(hasK(A,"antony")&&n)addBolts(atkPl,n,"Antony's kill")}
@@ -225,6 +233,25 @@ function attackRun(r1,c1,r2,c2,mode,forced){
     if(!G.board[tr][tc]&&!isVoid(tr,tc)){G.board[tr][tc]=A;G.board[r1][c1]=null;A.moved=true;log(`The BullGoat closes the gap to ${coord(tr,tc)}.`)}}
   return{win:dmgD>0,line};
 }
+/* ---------- v48: the landing roll ----------
+   Both sides roll 1d20 in every fight. The attacker's 1 is a Crit Miss: the attack misses (Puppets never miss). The attacker's
+   20, with two or more cards in the stack that can each attack, is a Crit Hit: the defender takes the blow whatever the scores,
+   unless it rolls a 20 too. Three or more Puppets crit on 19 or 20. Puppets and Assassins ignore Crit Hits, and an Assassin
+   dodges on 17 to 20 of its own roll. A defender's 1 costs it nothing. */
+function landRoll(A,D){const la=R(20),ld=R(20);
+  const can=A.cards.filter(c=>!isBase(c)&&!(c.unit&&UNIT[c.unit].noAtk)&&kind(c)!=="queen"),pup=A.cards.length>0&&A.cards.every(c=>c.puppet);
+  const critMin=pup&&A.cards.length>=3?19:20,canCrit=can.length>=2||pup&&A.cards.length>=3;
+  const fighters=D.cards.filter(c=>!isBase(c)&&!(c.unit&&UNIT[c.unit].sup)),immune=fighters.length>0&&fighters.every(c=>c.puppet||c.unit==="assassin");
+  const miss=la===1&&!pup,dodge=!miss&&D.cards.some(c=>c.unit==="assassin")&&ld>=17,crit=!miss&&!dodge&&canCrit&&la>=critMin&&ld!==20&&!immune;
+  return {la,ld,miss,dodge,crit}}
+/* the banner every player sees: it rides on a line of the log */
+function critLog(k,n,html){log(html+".","crit");G.log[0].crit={k,n}}
+/* ---------- v48: Dice Plus: a d12 on the table below, a 12 rolls two more ---------- */
+const DP_DIE={2:2,3:3,4:4,5:6,6:6,7:8,8:8,9:8,10:10,11:12};
+function dicePlusRoll(){let total=0;const dice=[],q=[R(12)];let guard=0;
+  while(q.length&&guard++<40){const v=q.shift();dice.push({s:12,v});if(v===12){q.push(R(12),R(12));continue}
+    if(v===1){total+=1;continue}const s=DP_DIE[v],x=R(s);dice.push({s,v:x});total+=x}
+  return {total,dice}}
 /* returns how many cards died */
 function damage(r,c,n,defending){
   const st=G.board[r][c];if(!st)return 0;
@@ -264,6 +291,7 @@ function adjacentJokers(r,c,of){
 const capMana=j=>(j.captured||[]).reduce((a,c)=>a+soulOf(c),0);
 function bury(card,r,c,st){
   const owner=st.owner;
+  if(card.puppet){toDark(card);log(`A Puppet falls into the Outer Darkness.`);return}   // v48: Puppets always go to the Outer Darkness
   if(econBury(card,r,c,st))return;   // Barbarian kills are counted; what the Bank's Debt Collectors kill goes to the Ether
   if(card.upgraded){card.maxHp=2;card.upgraded=false}   // an upgraded Ace loses the extra heart when it falls
   if(card.hp!=null)card.hp=card.maxHp;

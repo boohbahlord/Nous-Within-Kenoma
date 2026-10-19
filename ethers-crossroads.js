@@ -600,6 +600,9 @@ function attackRun(r1,c1,r2,c2,mode,forced){
     if(G.moon.i===4&&!pureA){const v=R(2);ra.total+=v;ra.dice.push({s:2,v});ra.parts.push(`${G.moon.blood?"Blood":"Full"} Moon +${v}`)}
     if(G.moon.i===0&&!pureD){const v=R(2);rd.total+=v;rd.dice.push({s:2,v});rd.parts.push(`New Moon +${v}`)}
   }
+  const LR=landRoll(opt.A||A,D);   // v48: the landing roll, 1d20 each
+  if(A.dplus&&A.dplus.m==="atk"){const x=dicePlusRoll();ra.total+=x.total;ra.dice.push(...x.dice);ra.parts.push(`Dice Plus +${x.total}`);A.dplus=null}
+  if(D.dplus&&D.dplus.m==="def"){const x=dicePlusRoll();rd.total+=x.total;rd.dice.push(...x.dice);rd.parts.push(`Dice Plus +${x.total}`);D.dplus=null}
   const queenA=hasK(A,"queen");
   let dmgD=0,dmgA=0,notes=[];
   if(wasDown)notes.push("The face-down stack turns face up.");
@@ -623,9 +626,14 @@ function attackRun(r1,c1,r2,c2,mode,forced){
     if(w&&w.id==="cannon"){dmgD=Math.max(dmgD,2);notes.push("Cannon fire: two damage to the Wall.")}
   }
   if(dmgD>0&&w&&w.id==="cannon"){const ace=D.cards.find(x=>kind(x)==="ace");if(ace&&(ace.hp||1)<=1&&!D.cards.some(x=>x.unit==="miner")){dmgD=0;notes.push("A Cannon can't take an Ace's last heart.")}}
+  if(LR.miss){dmgD=0;dmgA=0;notes.push("Crit Miss: the attack misses.")}
+  else if(LR.dodge){dmgD=0;dmgA=0;notes.push("The Assassin dodges: Miss.")}
+  else if(LR.crit){if(!dmgD)dmgD=1;dmgA=0;notes.push("Crit Hit: the blow lands whatever the scores.")}
+  notes.push(`(Landing ${LR.la} vs ${LR.ld}.)`);
   const line=`${ra.total}${cmpSign(ra.total,rd.total)}${rd.total}`;
   tray(atkPl,"Attack",ra.dice,opt.blind?(dmgD?"a hit in the fog":"lost in the fog"):line);tray(defPl,"Defense",rd.dice,line,true);G.histTile=null;
   log(`<b>${plName(atkPl)}</b> attacks from ${coord(r1,c1)} to ${coord(r2,c2)}: <span class="dice">${ra.parts.join(", ")}</span> = <b>${ra.total}</b> vs <span class="dice">${rd.parts.join(", ")}</span> = <b>${rd.total}</b> <span class="tot">(${esc(line)})</span>. ${notes.join(" ")} ${dmgD?`Defender takes ${dmgD} damage.`:""}${dmgA?`Attacker takes ${dmgA} damage.`:""}${!dmgA&&!dmgD?"No damage.":""}`,"combat");
+  if(LR.miss)critLog("miss",1,`${plName(atkPl)}: Crit Miss`);else if(LR.dodge)critLog("dodge",LR.ld,`${plName(defPl)}'s Assassin dodges: Miss`);else if(LR.crit)critLog("hit",LR.la,`${plName(atkPl)}: Crit Hit`);
   G.fight={A,D,atkPl,defPl,ranged:!!opt.ranged};
   if(dmgD)warDamagePay(atkPl,defPl,dmgD,D);
   if(dmgD){const n=damage(r2,c2,dmgD,true);if(hasK(A,"antony")&&n)addBolts(atkPl,n,"Antony's kill")}
@@ -636,6 +644,25 @@ function attackRun(r1,c1,r2,c2,mode,forced){
     if(!G.board[tr][tc]&&!isVoid(tr,tc)){G.board[tr][tc]=A;G.board[r1][c1]=null;A.moved=true;log(`The BullGoat closes the gap to ${coord(tr,tc)}.`)}}
   return{win:dmgD>0,line};
 }
+/* ---------- v48: the landing roll ----------
+   Both sides roll 1d20 in every fight. The attacker's 1 is a Crit Miss: the attack misses (Puppets never miss). The attacker's
+   20, with two or more cards in the stack that can each attack, is a Crit Hit: the defender takes the blow whatever the scores,
+   unless it rolls a 20 too. Three or more Puppets crit on 19 or 20. Puppets and Assassins ignore Crit Hits, and an Assassin
+   dodges on 17 to 20 of its own roll. A defender's 1 costs it nothing. */
+function landRoll(A,D){const la=R(20),ld=R(20);
+  const can=A.cards.filter(c=>!isBase(c)&&!(c.unit&&UNIT[c.unit].noAtk)&&kind(c)!=="queen"),pup=A.cards.length>0&&A.cards.every(c=>c.puppet);
+  const critMin=pup&&A.cards.length>=3?19:20,canCrit=can.length>=2||pup&&A.cards.length>=3;
+  const fighters=D.cards.filter(c=>!isBase(c)&&!(c.unit&&UNIT[c.unit].sup)),immune=fighters.length>0&&fighters.every(c=>c.puppet||c.unit==="assassin");
+  const miss=la===1&&!pup,dodge=!miss&&D.cards.some(c=>c.unit==="assassin")&&ld>=17,crit=!miss&&!dodge&&canCrit&&la>=critMin&&ld!==20&&!immune;
+  return {la,ld,miss,dodge,crit}}
+/* the banner every player sees: it rides on a line of the log */
+function critLog(k,n,html){log(html+".","crit");G.log[0].crit={k,n}}
+/* ---------- v48: Dice Plus: a d12 on the table below, a 12 rolls two more ---------- */
+const DP_DIE={2:2,3:3,4:4,5:6,6:6,7:8,8:8,9:8,10:10,11:12};
+function dicePlusRoll(){let total=0;const dice=[],q=[R(12)];let guard=0;
+  while(q.length&&guard++<40){const v=q.shift();dice.push({s:12,v});if(v===12){q.push(R(12),R(12));continue}
+    if(v===1){total+=1;continue}const s=DP_DIE[v],x=R(s);dice.push({s,v:x});total+=x}
+  return {total,dice}}
 /* returns how many cards died */
 function damage(r,c,n,defending){
   const st=G.board[r][c];if(!st)return 0;
@@ -675,6 +702,7 @@ function adjacentJokers(r,c,of){
 const capMana=j=>(j.captured||[]).reduce((a,c)=>a+soulOf(c),0);
 function bury(card,r,c,st){
   const owner=st.owner;
+  if(card.puppet){toDark(card);log(`A Puppet falls into the Outer Darkness.`);return}   // v48: Puppets always go to the Outer Darkness
   if(econBury(card,r,c,st))return;   // Barbarian kills are counted; what the Bank's Debt Collectors kill goes to the Ether
   if(card.upgraded){card.maxHp=2;card.upgraded=false}   // an upgraded Ace loses the extra heart when it falls
   if(card.hp!=null)card.hp=card.maxHp;
@@ -1280,7 +1308,13 @@ const AI=(()=>{
     const k=key(A)+"|"+key(D)+"|"+(mode||"");if(cache.has(k))return cache.get(k);
     const w0=weaponOf(A,mode),fa=hasK(A,"satan")?null:netFx(A.odds,hated(A)?"dis":null,hated(D)?"adv":null),fd=hasK(D,"satan")?null:netFx(D.odds,hated(D)?"dis":null);
     let w=0;for(let i=0;i<n;i++){const a=rollStack(A,"atk",D,fa,w0),d=rollStack(D,"def",A,fd);if(a.total>d.total)w++}
-    const p=w/n;cache.set(k,p);return p;
+    let p=w/n;
+    // v48: the landing roll: a Crit Miss on 1 (not Puppets), an Assassin's dodge, a Crit Hit on 20 (19 for three Puppets)
+    const can=A.cards.filter(c=>!isBase(c)&&!(c.unit&&UNIT[c.unit].noAtk)&&kind(c)!=="queen").length,pup=A.cards.length>0&&A.cards.every(c=>c.puppet);
+    const fi=D.cards.filter(c=>!isBase(c)&&!(c.unit&&UNIT[c.unit].sup)),imm=fi.length>0&&fi.every(c=>c.puppet||c.unit==="assassin");
+    const miss=pup?0:.05,dodge=D.cards.some(c=>c.unit==="assassin")?.2:0,crit=imm?0:pup&&A.cards.length>=3?.1*.95:can>=2?.05*.95:0;
+    p=(1-miss)*(1-dodge)*(p+(1-p)*crit);
+    cache.set(k,p);return p;
   }
   function value(st){let v=0;for(const c of st.cards){v+=1+soulOf(c)*.8+rate(c)/7;if(kind(c)==="joker")v+=2+capMana(c)*1.4;if(kind(c)==="ace")v+=3;if(c.hp)v+=c.hp*2.2;if(kind(c)==="tree")v+=4}return v}
   function killsOnHit(st){const b=st.cards.find(isBase);if(b)return !(b.hp>1);if(st.cards.length===1)return !(st.cards[0].hp>1);const low=[...st.cards].sort((a,b)=>nat(a)-nat(b))[0];return kind(low)==="king"}
@@ -4961,7 +4995,7 @@ const ETHER_SHOP=[
   ["Base",[["ca","Ace"],["cwall","Wall"]]]];
 const ETHER_IDS=new Set(ETHER_SHOP.flatMap(([,l])=>l.map(x=>x[0])));
 const ETHER_KIND={cs:"soldier",carch:"archer",ccan:"cannon",cj:"jack",cq:"queen",ck:"king",cjk:"joker",cas:"assassin",csc:"scout",cmine:"miner",crep:"repair",cram:"ram",cheal:"healer",ca:"ace",cwall:"wall"};
-const etherLeft=id=>{const k=ETHER_KIND[id];if(k==="miner"||k==="repair")return Infinity;return G.ether.filter(c=>k==="soldier"?/^\d+$/.test(c.rank):c.unit?c.unit===k:kind(c)===k).length};
+const etherLeft=id=>{const k=ETHER_KIND[id];if(k==="miner"||k==="repair"||k==="puppet")return Infinity;return G.ether.filter(c=>k==="soldier"?/^\d+$/.test(c.rank):c.unit?c.unit===k:kind(c)===k).length};
 SP("maxmana").name="Increase Max Mana";
 
 function spellRow(s,live){
@@ -5022,7 +5056,7 @@ function fillEther(){
   const e=$("#etherpanel");if(!e||!G)return;const live=canAct()&&G.phase==="prep",keep=e.querySelector(".dbody")?e.querySelector(".dbody").scrollTop:0;
   const blk=SPELLS.filter(s=>ETHER_IDS.has(s.id)).map(spellBlock).find(Boolean)||"";
   const rows=ETHER_SHOP.map(([cat,items])=>{
-    const its=items.map(([id,nm,sub])=>({id,nm,sub,sp:SP(id),left:etherLeft(id)})).filter(x=>x.sp).sort((a,b)=>spellCost(a.sp)-spellCost(b.sp)||a.nm.localeCompare(b.nm));
+    const its=items.map(([id,nm,sub])=>({id,nm,sub,sp:SP(id),left:etherLeft(id)})).filter(x=>x.sp&&spellMine(x.sp)).sort((a,b)=>spellCost(a.sp)-spellCost(b.sp)||a.nm.localeCompare(b.nm));
     return `<h3>${cat}</h3>${its.map(x=>{const c=spellCost(x.sp),ok=live&&!blk&&x.left>0&&spellReady(x.sp);
       return `<button class="spell eitem ${ok?"":"off"}" data-buy="${x.id}" data-sp="${x.id}"><span class="sn">${esc(x.nm)}${x.sp.dice?`<small class="dc">${x.sp.dice}</small>`:""}<small class="left">${x.left===Infinity?"unlimited":x.left?x.left+" left":"none left"}</small></span><em>${c?c+" mana":"free"}</em></button>`}).join("")}`}).join("");
   e.innerHTML=`<div class="dhead"><h2>The Ether</h2><button type="button" class="xclose" aria-label="Close the Ether">×</button></div>
@@ -8441,5 +8475,64 @@ async function lhAutoPlace(pl){const P=G.p[pl],c=P.lhCfg;if(!c||!c.autoPlace||G.
   return `<div class="spellrow"><button type="button" class="autotog cfgtog${on?" on":""}" id="rdCfg" aria-label="Ritual Dice automation" data-tip="Ritual Dice automation (${on?"on":"off"}): buy it for you, when and how much.">⚙</button>${h}</div>`}}
 {const _rs=renderSpells;renderSpells=function(live){_rs(live);const b=$("#rdCfg");if(b)b.onclick=e=>{e.stopPropagation();faWindow("ritual")}}}
 if(window.__EC)Object.assign(window.__EC,{rdMine,lhMine,autoRitual,lhAutoSac,lhAutoPlace,faWindow:t=>faWindow(t)});
+
+/* ---------------- v48: the banners, Dice Plus, the names of the spells on a stack, the Jester's Puppets ---------------- */
+
+/* ---------- the banner: "Crit Hit", "Crit Miss" or "Miss" in red blackletter over a d20, for every player (it rides on the log) ---------- */
+const D20_SVG=n=>`<svg viewBox="-50 -50 100 100" aria-hidden="true"><polygon points="0,-46 40,-23 40,23 0,46 -40,23 -40,-23"/><path d="M0,-46L-24,14L24,14Z M-40,-23L-24,14 M40,-23L24,14 M-40,23L-24,14 M40,23L24,14 M0,46L-24,14 M0,46L24,14"/><text x="0" y="6" text-anchor="middle" dominant-baseline="middle">${n}</text></svg>`;
+let critSeen=0;
+function critBanner(k,n){let b=$("#critfx");if(!b){b=document.createElement("div");b.id="critfx";b.setAttribute("aria-live","polite");document.body.appendChild(b)}
+  const t=k==="hit"?"Crit Hit":k==="miss"?"Crit Miss":k==="success"?"Crit Success":"Miss";
+  b.className="k-"+k;b.innerHTML=`<b>${t}</b>${k==="dodge"?"":D20_SVG(n)}`;b.hidden=false;b.classList.remove("go");void b.offsetWidth;b.classList.add("go");
+  clearTimeout(critBanner.t);critBanner.t=setTimeout(()=>{b.hidden=true},1700)}
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.log)return;
+  const e=G.log.find(l=>l.crit);if(!e)return;const id=e.n||e.t;if(!critSeen){critSeen=id;if(Date.now()-e.t>4000)return}
+  if(id!==critSeen&&Date.now()-e.t<6000){critSeen=id;critBanner(e.crit.k,e.crit.n)}else critSeen=id}}
+
+/* ---------- Dice Plus (Enchantment, 1d3 mana): a sword (its next attack) or a shield (its next defense) adds a d12 roll ---------- */
+const dpCanAtk=st=>st.cards.some(c=>!isBase(c)&&(!(c.unit&&UNIT[c.unit].noAtk)||(c.unit&&UNIT[c.unit].shooter))&&kind(c)!=="queen");
+const dpCanDef=st=>!hasK(st,"tree")&&st.cards.some(c=>{const k=kind(c);if(k==="jack"||k==="slave"||k==="queen"||k==="joker"&&st.cards.length>1)return false;return !(c.unit&&UNIT[c.unit].noDef)});
+let dpArm=null;   // a sword or shield picked first, on this device
+PRICE.dplus=()=>R(3);
+SPELLS.push({id:"dplus",dice:"1d3",name:"Dice Plus",cost:2,school:"Enchantment",
+  text:"Select your stack, then a sword (its next attack) or a shield (its next defense): that roll adds a d12 on the Dice Plus table. Once on a stack; as many stacks as you like.",
+  ok:()=>{const st=selOwn()&&selStack();return !!st&&!st.dplus&&(dpCanAtk(st)||dpCanDef(st))},
+  run:async()=>{const st=selStack(),opts=[];if(dpCanAtk(st))opts.push({id:"atk",label:"Sword",sub:"its next attack"});if(dpCanDef(st))opts.push({id:"def",label:"Shield",sub:"its next defense"});
+    let m=dpArm&&opts.some(o=>o.id===dpArm)?dpArm:opts.length===1?opts[0].id:await ask(G.active,{kind:"choice",id:"dplus",title:"Dice Plus: sword or shield?",options:opts,ai:()=>opts[0].id});
+    dpArm=null;if(!m)m=opts[0].id;st.dplus={m};log(`Dice Plus: a ${m==="atk"?"sword":"shield"} hangs over ${plName(G.active)}'s stack (a d12 on its next ${m==="atk"?"attack":"defense"}).`)}});
+SPELL_TEXT.dplus={n:"Select one of your stacks that can attack or defend, one without Dice Plus.",e:"Pick a sword (its next attack) or a shield (its next defense). That roll adds a d12 on the table: 1: +1 · 2: +1d2 · 3: +1d3 · 4: +1d4 · 5–6: +1d6 · 7–9: +1d8 · 10: +1d10 · 11: +1d12 · 12: two more d12 on the table, and every 12 rolls again.",l:"Once on a stack, as many stacks as you like."};
+{const s=SP("dplus");const t=SPELL_TEXT.dplus;s.text=[t.n,t.e,t.l].join(" ")}
+/* the row has a sword and a shield: pick one, then click one of your stacks */
+{const _sr=spellRow;spellRow=function(s,live){const h=_sr(s,live);if(!s||s.id!=="dplus"||!G)return h;
+  return `<div class="spellrow dprow"><button type="button" class="autotog dparm${dpArm==="atk"?" on":""}" data-dparm="atk" aria-label="Dice Plus on an attack" data-tip="Pick the sword, then click one of your stacks.">⚔</button><button type="button" class="autotog dparm${dpArm==="def"?" on":""}" data-dparm="def" aria-label="Dice Plus on a defense" data-tip="Pick the shield, then click one of your stacks.">⛨</button>${h}</div>`}}
+{const _rs=renderSpells;renderSpells=function(live){_rs(live);document.querySelectorAll("[data-dparm]").forEach(b=>b.onclick=e=>{e.stopPropagation();if(!canAct())return;
+  const m=b.dataset.dparm;dpArm=dpArm===m?null:m;if(dpArm){const st=selOwn()&&selStack();if(st&&spellReady(SP("dplus"))){cast(SP("dplus"));return}flash(`Dice Plus (${m==="atk"?"sword":"shield"}): click one of your stacks.`)}render()})}}
+{const _tc=tileClick;tileClick=function(r,c){const out=_tc.apply(this,arguments);
+  if(dpArm&&G&&canAct()){const st=selOwn()&&selStack();if(st){const sp=SP("dplus");if(spellReady(sp))cast(sp);else{flash("Dice Plus can't go on that stack.");dpArm=null;render()}}}
+  return out}}
+
+/* ---------- the spells on a stack: their names in see-through blackletter at the bottom, how long and the odds at the top right ---------- */
+function stackSpells(st){const L=[],t=n=>`${n} turn${n===1?"":"s"}`;
+  if(st.odds==="adv")L.push(["Divine Odds","next fight","advantage"]);
+  if(st.odds==="dis")L.push(["Hexed Odds","next fight","disadvantage"]);
+  if(st.dplus)L.push(["Dice Plus",st.dplus.m==="atk"?"next attack":"next defense","+d12"]);
+  if(st.mars)L.push(["Mars","next attack","advantage"]);
+  if(st.hypo)L.push(["Hypostasis",t(st.hypo),""]);
+  if(st.pin)L.push(["Behooved",t(st.pin.turns||1),"pinned"]);
+  if(st.stun)L.push(["Lightning Strike",t(st.stun),"pinned"]);
+  if(st.supp)L.push(["Suppressed",t(st.supp.n||1),"disadvantage"]);
+  if(hated(st))L.push(["Hate","until it fights","disadvantage"]);
+  return L}
+{const _sd=siegeDecor;siegeDecor=function(inner,st,V,r,c){let h=_sd(inner,st,V,r,c);const L=stackSpells(st);
+  const add=[];if(st.dplus){h=h.replace('class="stack ',`class="stack dp-${st.dplus.m} `);add.push(`<span class="dpicon" aria-hidden="true">${st.dplus.m==="atk"?"⚔":"⛨"}</span>`)}
+  if(L.length)add.push(`<span class="spfx" title="${esc(L.map(x=>`${x[0]}: ${x[1]}${x[2]?", "+x[2]:""}`).join(" · "))}"><span class="spdur">${L[0][1]}${L[0][2]?" · "+L[0][2]:""}${L.length>1?` +${L.length-1}`:""}</span><span class="spname">${L.map(x=>x[0]).join(" · ")}</span></span>`);
+  if(add.length&&h.endsWith("</div>"))h=h.slice(0,-6)+add.join("")+"</div>";return h}}
+
+/* ---------- the Jester's Puppets from the Ether: two for 1 mana, the Jester only ---------- */
+SPELLS.push({id:"cpup",tribe:"jester",name:"Puppet Conjure",cost:1,school:"Conjuring",text:"The Jester only: two Puppets (1d1 + 1) come from the Ether into your deck. A Puppet fights like a 2 Grunt and always goes to the Outer Darkness when it dies.",
+  ok:()=>true,run:async()=>{const P=me();for(let i=0;i<2;i++){const c=mk("2",pick(["S","H","D","C"]));c.puppet=true;c.owner=G.active;P.deck.push(c)}shuffle(P.deck);log(`Two Puppets come from the Ether into ${plName(G.active)}'s deck.`)}});
+SPELL_TEXT.cpup={e:"Two Puppets (1d1 + 1) come from the Ether into your deck.",l:"The Jester only. A Puppet fights like a 2 Grunt; it never misses, shrugs off Crit Hits, and goes to the Outer Darkness when it dies."};
+ETHER_SHOP[0][1].push(["cpup","Puppets","two for 1 mana"]);ETHER_IDS.add("cpup");ETHER_KIND.cpup="puppet";
+if(window.__EC)Object.assign(window.__EC,{critBanner,dicePlusRoll,landRoll});
 
 })();

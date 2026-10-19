@@ -10,7 +10,7 @@ const ETHER_SHOP=[
   ["Base",[["ca","Ace"],["cwall","Wall"]]]];
 const ETHER_IDS=new Set(ETHER_SHOP.flatMap(([,l])=>l.map(x=>x[0])));
 const ETHER_KIND={cs:"soldier",carch:"archer",ccan:"cannon",cj:"jack",cq:"queen",ck:"king",cjk:"joker",cas:"assassin",csc:"scout",cmine:"miner",crep:"repair",cram:"ram",cheal:"healer",ca:"ace",cwall:"wall"};
-const etherLeft=id=>{const k=ETHER_KIND[id];if(k==="miner"||k==="repair")return Infinity;return G.ether.filter(c=>k==="soldier"?/^\d+$/.test(c.rank):c.unit?c.unit===k:kind(c)===k).length};
+const etherLeft=id=>{const k=ETHER_KIND[id];if(k==="miner"||k==="repair"||k==="puppet")return Infinity;return G.ether.filter(c=>k==="soldier"?/^\d+$/.test(c.rank):c.unit?c.unit===k:kind(c)===k).length};
 SP("maxmana").name="Increase Max Mana";
 
 function spellRow(s,live){
@@ -71,7 +71,7 @@ function fillEther(){
   const e=$("#etherpanel");if(!e||!G)return;const live=canAct()&&G.phase==="prep",keep=e.querySelector(".dbody")?e.querySelector(".dbody").scrollTop:0;
   const blk=SPELLS.filter(s=>ETHER_IDS.has(s.id)).map(spellBlock).find(Boolean)||"";
   const rows=ETHER_SHOP.map(([cat,items])=>{
-    const its=items.map(([id,nm,sub])=>({id,nm,sub,sp:SP(id),left:etherLeft(id)})).filter(x=>x.sp).sort((a,b)=>spellCost(a.sp)-spellCost(b.sp)||a.nm.localeCompare(b.nm));
+    const its=items.map(([id,nm,sub])=>({id,nm,sub,sp:SP(id),left:etherLeft(id)})).filter(x=>x.sp&&spellMine(x.sp)).sort((a,b)=>spellCost(a.sp)-spellCost(b.sp)||a.nm.localeCompare(b.nm));
     return `<h3>${cat}</h3>${its.map(x=>{const c=spellCost(x.sp),ok=live&&!blk&&x.left>0&&spellReady(x.sp);
       return `<button class="spell eitem ${ok?"":"off"}" data-buy="${x.id}" data-sp="${x.id}"><span class="sn">${esc(x.nm)}${x.sp.dice?`<small class="dc">${x.sp.dice}</small>`:""}<small class="left">${x.left===Infinity?"unlimited":x.left?x.left+" left":"none left"}</small></span><em>${c?c+" mana":"free"}</em></button>`}).join("")}`}).join("");
   e.innerHTML=`<div class="dhead"><h2>The Ether</h2><button type="button" class="xclose" aria-label="Close the Ether">×</button></div>
