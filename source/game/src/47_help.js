@@ -16,7 +16,7 @@ const MK_MORE=`<h3>Tell me more</h3><ul class="mklist">
 <li><b>Drawing too much hurts:</b> cards past your hand limit go to the grave, and each one takes 1d6 off this round's Grave Blessing.</li>
 <li><b>The Ether</b> (top of the spells) sells new cards: Scouts, Miners, Repairmen, Archers, Aces and more. Conjured cards go into your deck.</li>
 <li><b>Fog of war:</b> you only see near your own cards. Scouts see two tiles out and uncover hidden Assassins and ambushers.</li>
-<li><b>The Bank:</b> a loan gives you mana now, due in half its amount in turns (at least 2); credit lets you cast what you can't afford and turns the rest into debt. Stay at −6 or lower for 3 turns and the Debt Collectors come every turn until you pay. Hover or hold a word in the Bank for the details.</li></ul>
+<li><b>The Bank:</b> a loan gives you mana now, due in half its amount in turns (at least 2); credit lets you cast what you can't afford and turns the rest into debt. Stay below zero for 3 turns and the Debt Collectors come every turn until you pay; every Full Moon the Bank's Credit and Loan Report shows your standing. Hover or hold a word in the Bank for the details.</li></ul>
 <p class="mkpoint">Everything else is in the <b>Help</b> index at the bottom of the page: basics, every card, every spell, the sky and the Bank, always there while you play. Hover (or press and hold) anything on the screen for what it does.</p>`;
 const mkHidden=()=>PREF.mkHide==="never"||PREF.mkHide==="next";
 function mountMustKnow(){const h=document.querySelector(".game header");if(!h||$("#mustknow"))return;
