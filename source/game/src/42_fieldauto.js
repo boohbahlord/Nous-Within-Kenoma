@@ -15,7 +15,7 @@ const FA_CATS=[["soldiers","Soldiers","Grunts, Infantry, Puppets"],["specials","
   ["ranged","Ranged","Archers and Cannons"],["wildcards","Wildcards","the Substances' own cards"]];
 const FA_KINDS=["grunt","infantry","puppet","jack","queen","king","joker","assassin","scout","healer","repair","ram","miner","archer","cannon",
   "samson","antony","satan","bullgoat","goatbull","slavemaster","slave","leviathan","trafficker","debt"];
-const FA_DEF={mode:"full",stance:"auto",rush:0,formation:"auto",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,
+const FA_DEF={tgroup:true,tgorder:["wildcard","special","base","standard","support"],mode:"full",stance:"auto",rush:0,formation:"auto",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,
   ctl:{soldiers:true,specials:true,support:true,miners:true,ranged:true,wildcards:true},extra:[],hier:false,order:FA_PRINC.map(p=>p[0]),eq:[],under:false,
   noAttack:false,flee:false,tprio:false,torder:null,teq:[],tIgnoreGI:false,tSameGI:false,xminus:[]};
 /* v47: the kinds of card the field can rank as targets, strongest first by default (suit doesn't matter) */
@@ -24,7 +24,8 @@ const FA_TK=[["wildcards","Wildcards"],["joker","Jokers"],["king","Kings"],["ace
 const FA_TKEYS=FA_TK.map(x=>x[0]);
 const faClean=c=>{c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringify(FA_DEF));
   for(const k of ["mode","stance","formation","lives","battles"])if(typeof c[k]==="string")o[k]=c[k];
-  o.rush=Math.max(0,Math.min(9,Math.round(+c.rush||0)));for(const k of ["ambush","bases","walls","hier","under","noAttack","flee","tprio","tIgnoreGI","tSameGI"])if(typeof c[k]==="boolean")o[k]=c[k];
+  o.rush=Math.max(0,Math.min(9,Math.round(+c.rush||0)));for(const k of ["ambush","bases","walls","hier","under","noAttack","flee","tprio","tIgnoreGI","tSameGI","tgroup"])if(typeof c[k]==="boolean")o[k]=c[k];
+  if(Array.isArray(c.tgorder))o.tgorder=[...c.tgorder.filter(k=>o.tgorder.includes(k)),...o.tgorder.filter(k=>!c.tgorder.includes(k))];   // v54: the ranking by kinds of card
   o.torder=Array.isArray(c.torder)?[...c.torder.filter(k=>FA_TKEYS.includes(k)),...FA_TKEYS.filter(k=>!c.torder.includes(k))]:[...FA_TKEYS];
   if(Array.isArray(c.teq))o.teq=c.teq.filter(p=>Array.isArray(p)&&p.length===2&&p.every(k=>FA_TKEYS.includes(k)));
   if(Array.isArray(c.order)&&!c.order.includes("noatk"))c={...c,order:["noatk",...c.order]};   // older settings: Don't attack goes on top
@@ -164,8 +165,9 @@ function faPanelHTML(c,pl,pfx){
 <details class="faextra" ${c.extra.length||c.xminus.length?"open":""}><summary>Yes, and… (single kinds of card: + it controls them, − it leaves them to you)</summary>${K.pmChips(FA_KINDS.map(k=>[k,shortInfo(k)]),c.extra,c.xminus,"data-fapm")}</details>`,"fafull");
     /* v52: the two rankings open like the Yes-and lists: ▸ closed is off, ▾ open is on */
     h+=sec("Target priority",`<details class="faextra fadet" data-fadet="tprio" ${c.tprio?"open":""}><summary>Rank the kinds of card to target <small class="dim">(${c.tprio?"on":"off: every target is weighed by the odds alone"})</small></summary>`+
-      row("tIgnoreGI",c.tIgnoreGI,"Ignore how strong a Grunt or Infantry is","A 2 and a 6 Grunt count the same when it picks a target.")+row("tSameGI",c.tSameGI,"Treat Grunts and Infantry alike","One kind instead of two in the ranking.")+
-      hierHTML((c.tSameGI?c.torder.filter(k=>k!=="infantry"):c.torder),c.teq,faHierHTML.tpending,k=>FA_TK.find(x=>x[0]===k)[1],()=>"","t")+`<p class="dim">The kinds on the left are hunted first.</p></details>`,"fafull","",c.tprio?FA_CAUTION:"");
+      row("tgroup",c.tgroup,"Rank by kinds of card","On: Special, Base, Standard and so on. Off: every single kind, like the King.")+
+      (c.tgroup?kindRankHTML(c.tgorder,"data-tgact",TGROUP_NAMES):row("tIgnoreGI",c.tIgnoreGI,"Ignore how strong a Grunt or Infantry is","A 2 and a 6 Grunt count the same when it picks a target.")+row("tSameGI",c.tSameGI,"Treat Grunts and Infantry alike","One kind instead of two in the ranking.")+
+      hierHTML((c.tSameGI?c.torder.filter(k=>k!=="infantry"):c.torder),c.teq,faHierHTML.tpending,k=>FA_TK.find(x=>x[0]===k)[1],()=>"","t"))+`<p class="dim">The kinds on the left are hunted first.</p></details>`,"fafull","",c.tprio?FA_CAUTION:"");
     h+=sec("Hierarchical control",`<details class="faextra fadet" data-fadet="hier" ${c.hier?"open":""}><summary>Rank the principles <small class="dim">(${c.hier?"on":"off"})</small></summary><p class="dim">When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.</p>`+hierHTML(c.order,c.eq,faHierHTML.pending,k=>FA_PRINC.find(x=>x[0]===k)[1],k=>faVal(k,c),"")+`</details>`,"fafull","",c.hier?FA_CAUTION:"");
   }
   h+=`<p class="dim fanote fafull">Some options aren't the best choice for every situation on your field.</p>`;

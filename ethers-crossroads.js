@@ -7774,7 +7774,7 @@ const FA_CATS=[["soldiers","Soldiers","Grunts, Infantry, Puppets"],["specials","
   ["ranged","Ranged","Archers and Cannons"],["wildcards","Wildcards","the Substances' own cards"]];
 const FA_KINDS=["grunt","infantry","puppet","jack","queen","king","joker","assassin","scout","healer","repair","ram","miner","archer","cannon",
   "samson","antony","satan","bullgoat","goatbull","slavemaster","slave","leviathan","trafficker","debt"];
-const FA_DEF={mode:"full",stance:"auto",rush:0,formation:"auto",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,
+const FA_DEF={tgroup:true,tgorder:["wildcard","special","base","standard","support"],mode:"full",stance:"auto",rush:0,formation:"auto",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,
   ctl:{soldiers:true,specials:true,support:true,miners:true,ranged:true,wildcards:true},extra:[],hier:false,order:FA_PRINC.map(p=>p[0]),eq:[],under:false,
   noAttack:false,flee:false,tprio:false,torder:null,teq:[],tIgnoreGI:false,tSameGI:false,xminus:[]};
 /* v47: the kinds of card the field can rank as targets, strongest first by default (suit doesn't matter) */
@@ -7783,7 +7783,8 @@ const FA_TK=[["wildcards","Wildcards"],["joker","Jokers"],["king","Kings"],["ace
 const FA_TKEYS=FA_TK.map(x=>x[0]);
 const faClean=c=>{c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringify(FA_DEF));
   for(const k of ["mode","stance","formation","lives","battles"])if(typeof c[k]==="string")o[k]=c[k];
-  o.rush=Math.max(0,Math.min(9,Math.round(+c.rush||0)));for(const k of ["ambush","bases","walls","hier","under","noAttack","flee","tprio","tIgnoreGI","tSameGI"])if(typeof c[k]==="boolean")o[k]=c[k];
+  o.rush=Math.max(0,Math.min(9,Math.round(+c.rush||0)));for(const k of ["ambush","bases","walls","hier","under","noAttack","flee","tprio","tIgnoreGI","tSameGI","tgroup"])if(typeof c[k]==="boolean")o[k]=c[k];
+  if(Array.isArray(c.tgorder))o.tgorder=[...c.tgorder.filter(k=>o.tgorder.includes(k)),...o.tgorder.filter(k=>!c.tgorder.includes(k))];   // v54: the ranking by kinds of card
   o.torder=Array.isArray(c.torder)?[...c.torder.filter(k=>FA_TKEYS.includes(k)),...FA_TKEYS.filter(k=>!c.torder.includes(k))]:[...FA_TKEYS];
   if(Array.isArray(c.teq))o.teq=c.teq.filter(p=>Array.isArray(p)&&p.length===2&&p.every(k=>FA_TKEYS.includes(k)));
   if(Array.isArray(c.order)&&!c.order.includes("noatk"))c={...c,order:["noatk",...c.order]};   // older settings: Don't attack goes on top
@@ -7923,8 +7924,9 @@ function faPanelHTML(c,pl,pfx){
 <details class="faextra" ${c.extra.length||c.xminus.length?"open":""}><summary>Yes, and… (single kinds of card: + it controls them, − it leaves them to you)</summary>${K.pmChips(FA_KINDS.map(k=>[k,shortInfo(k)]),c.extra,c.xminus,"data-fapm")}</details>`,"fafull");
     /* v52: the two rankings open like the Yes-and lists: ▸ closed is off, ▾ open is on */
     h+=sec("Target priority",`<details class="faextra fadet" data-fadet="tprio" ${c.tprio?"open":""}><summary>Rank the kinds of card to target <small class="dim">(${c.tprio?"on":"off: every target is weighed by the odds alone"})</small></summary>`+
-      row("tIgnoreGI",c.tIgnoreGI,"Ignore how strong a Grunt or Infantry is","A 2 and a 6 Grunt count the same when it picks a target.")+row("tSameGI",c.tSameGI,"Treat Grunts and Infantry alike","One kind instead of two in the ranking.")+
-      hierHTML((c.tSameGI?c.torder.filter(k=>k!=="infantry"):c.torder),c.teq,faHierHTML.tpending,k=>FA_TK.find(x=>x[0]===k)[1],()=>"","t")+`<p class="dim">The kinds on the left are hunted first.</p></details>`,"fafull","",c.tprio?FA_CAUTION:"");
+      row("tgroup",c.tgroup,"Rank by kinds of card","On: Special, Base, Standard and so on. Off: every single kind, like the King.")+
+      (c.tgroup?kindRankHTML(c.tgorder,"data-tgact",TGROUP_NAMES):row("tIgnoreGI",c.tIgnoreGI,"Ignore how strong a Grunt or Infantry is","A 2 and a 6 Grunt count the same when it picks a target.")+row("tSameGI",c.tSameGI,"Treat Grunts and Infantry alike","One kind instead of two in the ranking.")+
+      hierHTML((c.tSameGI?c.torder.filter(k=>k!=="infantry"):c.torder),c.teq,faHierHTML.tpending,k=>FA_TK.find(x=>x[0]===k)[1],()=>"","t"))+`<p class="dim">The kinds on the left are hunted first.</p></details>`,"fafull","",c.tprio?FA_CAUTION:"");
     h+=sec("Hierarchical control",`<details class="faextra fadet" data-fadet="hier" ${c.hier?"open":""}><summary>Rank the principles <small class="dim">(${c.hier?"on":"off"})</small></summary><p class="dim">When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.</p>`+hierHTML(c.order,c.eq,faHierHTML.pending,k=>FA_PRINC.find(x=>x[0]===k)[1],k=>faVal(k,c),"")+`</details>`,"fafull","",c.hier?FA_CAUTION:"");
   }
   h+=`<p class="dim fanote fafull">Some options aren't the best choice for every situation on your field.</p>`;
@@ -8403,7 +8405,7 @@ function lhClean(c){c=c&&typeof c==="object"?c:{};const o={...LH_DEF},keys=new S
   o.xminus=o.xminus.filter(x=>!o.xextra.includes(x));o.sminus=o.sminus.filter(x=>!o.sextra.includes(x));
   o.surplus=clampN(c.surplus??0,0,30,0);return o}
 const lhMine=()=>lhClean(PREF.lh);
-const cardCat=c=>{const k=cardClass(c).toLowerCase();return k==="barbarian"?"standard":k};
+const cardCat=c=>{const k=cardClass(c).toLowerCase();return k==="demon"?"standard":k};
 const cardKey=c=>c.puppet?"puppet":c.unit?c.unit:c.rank;
 const lhExcluded=(c,cfg)=>{if(!cfg)return false;const k=cardKey(c);if((cfg.xminus||[]).includes(k))return false;return cfg.exclude.includes(cardCat(c))||cfg.xextra.includes(k)};
 const lhSacs=(c,cfg)=>{const k=cardKey(c);if((cfg.sminus||[]).includes(k))return false;return cfg.skinds.includes(cardCat(c))||cfg.sextra.includes(k)};
@@ -8427,7 +8429,7 @@ function autoBodyHTML(pfx,under){const V=G?view():null;
   if(autoTab==="lazy")return lhPanelHTML(lhMine(),pfx);
   if(!faAllowed())return `<p class="dim fafull">Field Automation is off for this game (the Rules tab before a game).</p>`;
   const on=V!=null&&faOn(V);return `${under?`<p class="fafull"><button type="button" class="btn ${on?"":"ghost"} sm" id="faTogU" aria-pressed="${on}">${on?"Turn field automation off":"Turn field automation on"}</button></p>`:""}${faPanelHTML(faMine(),V,pfx)}`}
-const whereHTML=pfx=>{const K=cfgKit("data-fa","data-faact","fa"+pfx);return K.sec("Where",K.row("under",faMine().under,"Show these controls under the field","A wide fold-down above Basics explained, with all three tabs."),"fafull fawhere")};
+const whereHTML=pfx=>{const K=cfgKit("data-fa","data-faact","fa"+pfx);return K.sec("Where",K.row("under",faMine().under,"Show these controls under the field","A wide fold-down above Basics explained, with every tab."),"fafull fawhere")};
 function wireAuto(root){
   root.querySelectorAll("[data-atab]").forEach(b=>b.onclick=()=>{autoTab=b.dataset.atab;PREF.autoTab=autoTab;savePrefs();paintFA()});
   faWire(root);rdWire(root);lhWire(root);const t=root.querySelector("#faTogU");if(t)t.onclick=faToggle}
@@ -8441,7 +8443,7 @@ paintFA=function(){const V=G?view():null,c=faMine();
   const want=!!(G&&!G.over&&c.under&&G.p[V]&&!G.p[V].cpu&&!isNPC(V));
   if(!want){if(d)d.remove();return}
   if(!d){d=document.createElement("details");d.id="fapanel";d.className="cinfo fapanel";if(PREF.faOpen)d.open=true;d.addEventListener("toggle",()=>{PREF.faOpen=d.open;savePrefs()});info.prepend(d)}
-  d.innerHTML=`<summary>Configure Automation <span class="dim">· Field ${autoStatus("field")} · Ritual Dice ${autoStatus("ritual")} · Lazy Hand ${autoStatus("lazy")}</span></summary><div class="fawide">${autoTabsHTML()}${autoBodyHTML("u",true)}</div>`;
+  d.innerHTML=`<summary>Configure Automation <span class="dim">· Field ${autoStatus("field")} · Ritual Dice ${autoStatus("ritual")} · Lazy Hand ${autoStatus("lazy")} · Grave ${autoStatus("grave")}</span></summary><div class="fawide">${autoTabsHTML()}${autoBodyHTML("u",true)}</div>`;
   wireAuto(d)};
 
 /* ---------- the Ritual Dice tab ---------- */
@@ -9284,5 +9286,82 @@ for(const k of ["moonchime","bell","horn","harp","coins","drums","quill","whispe
   AUD[k]=function(){try{if(window.ECMusic&&ECMusic.duck)ECMusic.duck(k==="whispers"?3200:2600)}catch(e){}return f.apply(this,arguments)}}
 
 if(window.__EC)Object.assign(window.__EC,{critBanner:(...a)=>critBanner(...a),acceptBounty:(...a)=>acceptBounty(...a),place:(...a)=>place(...a),canPlace:(...a)=>canPlace(...a),attackRun:(...a)=>attackRun(...a)});
+
+/* ---------------- v54: Grave automation, and rankings by kinds of card ----------------
+   - A fourth tab in Configure Automation, Grave: when a spell or the moon lets you raise cards from the grave, it picks them
+     for you. Which kinds it takes (with a Yes-and list for single kinds), and in what order (a ranking). When nothing in the
+     grave matches, it can ask you instead, or stop.
+   - Every ranking of kinds starts grouped (Special, Base, Standard, Support, Wildcard) and can be split into single kinds
+     (the King, the 7…) by switching "Rank by kinds of card" off. Suits never count. */
+
+/* ---------- a plain ranking: one row per entry, ▲ and ▼ ---------- */
+function kindRankHTML(order,attr,names){
+  return `<ol class="krank">${order.map((k,i)=>`<li><span class="farank">${i+1}</span><b>${esc(names[k]||k)}</b><span class="facolbtns"><button type="button" class="btn ghost sm" ${attr}="up:${k}" aria-label="Higher" ${i?"":"disabled"}>▲</button><button type="button" class="btn ghost sm" ${attr}="down:${k}" aria-label="Lower" ${i<order.length-1?"":"disabled"}>▼</button></span></li>`).join("")}</ol>`}
+const rankMove=(order,v)=>{const [a,k]=v.split(":"),o=[...order],i=o.indexOf(k),j=a==="up"?i-1:i+1;if(i<0||j<0||j>=o.length)return o;[o[i],o[j]]=[o[j],o[i]];return o};
+
+/* ---------- the field's target ranking, by kinds ---------- */
+const TGROUP={wildcards:"wildcard",joker:"special",king:"special",queen:"special",jack:"special",assassin:"special",ace:"base",wall:"base",tree:"base",
+  cannon:"standard",archer:"standard",infantry:"standard",grunt:"standard",puppet:"standard",healer:"support",repair:"support",ram:"support",miner:"support",claimer:"support",scout:"support"};
+const TGROUP_NAMES={wildcard:"Wildcards",special:"Special",base:"Base",standard:"Standard",support:"Support"};
+{const _tf=faTargetFactor;faTargetFactor=function(cfg){if(!cfg.tprio||!cfg.tgroup)return _tf(cfg);
+  const go=cfg.tgorder,N=Math.max(1,go.length-1);
+  return E=>{const best=Math.min(...E.cards.map(x=>{const i=go.indexOf(TGROUP[faTKind(x,cfg)]||"standard");return i<0?go.length:i}));return Math.max(.2,1.6-1.2*best/N)}}}
+{const _fw=faWire;faWire=function(root){_fw(root);
+  root.querySelectorAll("[data-tgact]").forEach(b=>b.onclick=()=>{const c=faMine();c.tgorder=rankMove(c.tgorder,b.dataset.tgact);faSave(c)})}}
+
+/* ---------- Grave automation: the settings ---------- */
+const GR_GROUPS=["special","base","standard","support","wildcard"];
+const GR_DEF={on:false,kinds:[],extra:[],minus:[],group:true,gorder:[...GR_GROUPS],korder:[],strong:true,askNone:true};
+const grKeys=()=>{const k=lhKeyList().map(x=>x[0]),r=["JK","A","K","Q","J","10","9","8","7","6","5","4","3","2"];return [...r.filter(x=>k.includes(x)),...k.filter(x=>!r.includes(x))]};   // strongest first
+function grClean(c){c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringify(GR_DEF)),cats=new Set(RD_KINDS.map(x=>x[0])),keys=grKeys();
+  for(const k of ["on","group","strong","askNone"])if(typeof c[k]==="boolean")o[k]=c[k];
+  if(Array.isArray(c.kinds))o.kinds=c.kinds.filter(k=>cats.has(k));
+  for(const k of ["extra","minus"])if(Array.isArray(c[k]))o[k]=c[k].filter(x=>keys.includes(x));o.minus=o.minus.filter(x=>!o.extra.includes(x));
+  if(Array.isArray(c.gorder))o.gorder=[...c.gorder.filter(k=>GR_GROUPS.includes(k)),...GR_GROUPS.filter(k=>!c.gorder.includes(k))];
+  o.korder=[...(Array.isArray(c.korder)?c.korder.filter(k=>keys.includes(k)):[]),...keys.filter(k=>!(c.korder||[]).includes(k))];
+  return o}
+const grMine=()=>grClean(PREF.gr);
+function grSave(c){PREF.gr=grClean(c);savePrefs();autoSync();paintFA();if(G)render()}
+/* the seat carries the settings, so the host can pick for a player online */
+{const _sc=setAutoCfg;setAutoCfg=function(pl,key,cfg){if(key!=="grCfg")return _sc.apply(this,arguments);
+  if(NET.role==="guest"){const rid=++NET.rid;sendHost({t:"cmd",fn:"setAutoCfg",args:netClean([pl,key,cfg]),ui:uiSnap(),rid});return}
+  if(G&&G.p[pl])G.p[pl].grCfg=grClean(cfg)}}
+{const _as=autoSync;autoSync=function(){_as.apply(this,arguments);if(!G||G.over)return;const V=view(),P=G.p[V];if(!P||P.cpu||isNPC(V))return;
+  const cfg=grMine(),j=JSON.stringify(cfg),k=V+"grCfg";if(autoSent[k]===j&&(NET.role==="guest"||JSON.stringify(P.grCfg)===j))return;autoSent[k]=j;setAutoCfg(V,"grCfg",cfg)}}
+
+/* ---------- Grave automation: the choice ---------- */
+function grWants(c,cfg){const k=cardKey(c);if(cfg.minus.includes(k))return false;if(cfg.extra.includes(k))return true;return !cfg.kinds.length&&!cfg.extra.length||cfg.kinds.includes(cardCat(c))}
+function grRank(c,cfg){return cfg.group?cfg.gorder.indexOf(cardCat(c)):cfg.korder.indexOf(cardKey(c))}
+function grPick(cards,cfg){let best=-1,bv=null;cards.forEach((c,i)=>{if(!grWants(c,cfg))return;const v=[grRank(c,cfg),cfg.strong?-(soulOf(c)*10+(costOf(c)||0)):0];
+  if(!bv||v[0]<bv[0]||v[0]===bv[0]&&v[1]<bv[1]){bv=v;best=i}});return best}
+{const _ask=ask;ask=async function(pl,spec){const P=G&&G.p[pl],cfg=P&&!P.cpu&&P.grCfg;
+  if(spec&&spec.id==="grave"&&cfg&&cfg.on&&Array.isArray(spec.cards)){const i=grPick(spec.cards,cfg);
+    if(i>=0){await sleep(250);return i}
+    if(!cfg.askNone){log(`Grave automation: nothing in the grave matches ${plName(pl)}'s settings.`);return null}}
+  return _ask.apply(this,arguments)}}
+
+/* ---------- Grave automation: the tab ---------- */
+AUTO_TABS.push(["grave","Grave"]);
+{const _st=autoStatus;autoStatus=function(k){if(k==="grave")return grMine().on?"On":"Off";return _st(k)}}
+{const _am=autoMasterHTML;autoMasterHTML=function(){if(autoTab!=="grave")return _am();const on=grMine().on;
+  return `<p class="fafull automaster"><button type="button" class="btn sm ${on?"":"ghost"}" data-amaster="grave" aria-pressed="${on}">Grave automation: ${on?"On":"Off"}</button><span class="dim">Picks the cards raised from the grave, as set below.</span></p>`}}
+{const _ab=autoBodyHTML;autoBodyHTML=function(pfx,under){if(autoTab!=="grave")return _ab.apply(this,arguments);return autoMasterHTML()+grPanelHTML(grMine(),pfx)}}
+function grPanelHTML(c,pfx){const K=cfgKit("data-gr","data-gract","gr"+pfx),{row,sec}=K,off=!c.on;
+  const names=Object.fromEntries([...RD_KINDS.map(([k,t])=>[k,t]),...lhKeyList()]);
+  let h=`<p class="dim fafull">Grave Blessing, the New Moon and every other raising from the grave: it picks the cards for you, best first, until the hand is full or the raising is done.</p>`;
+  h+=sec("Which cards",K.chips(RD_KINDS,c.kinds,"data-grkind",off)+`<p class="dim">None ticked: any card.</p><details class="faextra"><summary>Yes, and… (single kinds: + always taken, − never taken)</summary>${K.pmChips(lhKeyList(),c.extra,c.minus,"data-grpm",off)}</details>`,"fafull");
+  h+=sec("In what order",row("group",c.group,"Rank by kinds of card","On: Special, Base, Standard and so on. Off: every single kind, like the King.",off)+
+    (c.group?kindRankHTML(c.gorder,"data-grg",names):kindRankHTML(c.korder,"data-grk",names))+row("strong",c.strong,"The strongest first","Within the same rank, the card worth the most.",off),"fafull");
+  h+=sec("When nothing matches",row("askNone",c.askNone,"Ask which card to raise","Off: nothing is raised.",off),"fafull");
+  return h}
+{const _wa=wireAuto;wireAuto=function(root){_wa(root);
+  root.querySelectorAll('[data-amaster="grave"]').forEach(b=>b.onclick=()=>{const c=grMine();c.on=!c.on;grSave(c)});
+  root.querySelectorAll("[data-gr]").forEach(i=>{const k=i.dataset.gr;if(!k)return;i.onchange=()=>{const c=grMine();c[k]=i.checked;grSave(c)}});
+  root.querySelectorAll("[data-grkind]").forEach(i=>i.onchange=()=>{const c=grMine(),k=i.dataset.grkind;c.kinds=c.kinds.filter(x=>x!==k);if(i.checked)c.kinds.push(k);grSave(c)});
+  root.querySelectorAll("[data-grpm]").forEach(b=>b.onclick=()=>{const c=grMine(),[p,m]=pmCycle(c.extra,c.minus,b.dataset.grpm);c.extra=p;c.minus=m;grSave(c)});
+  root.querySelectorAll("[data-grg]").forEach(b=>b.onclick=()=>{const c=grMine();c.gorder=rankMove(c.gorder,b.dataset.grg);grSave(c)});
+  root.querySelectorAll("[data-grk]").forEach(b=>b.onclick=()=>{const c=grMine();c.korder=rankMove(c.korder,b.dataset.grk);grSave(c)})}}
+
+if(window.__EC)Object.assign(window.__EC,{grMine,grClean,grPick,faWindow:t=>faWindow(t),ask:(...a)=>ask(...a),pickGrave:(...a)=>pickGrave(...a)});
 
 })();

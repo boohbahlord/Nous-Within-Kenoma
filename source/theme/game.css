@@ -1607,3 +1607,9 @@ html.th-office #foe.minis .pbox.sub{background:color-mix(in srgb,var(--pc) 10%,#
 #fx .fx,#fx .skull{position:absolute}
 .stack.demon,.stack.demon.red,.stack.demon.black{color:#ffe2d8}
 .stack.demon .lead,.stack.demon .lead .rk,.stack.demon .lead i{color:#ffe2d8;text-shadow:0 0 6px #ff3a2a88}
+/* v54: a plain ranking (Grave automation, and the field's ranking by kinds) */
+.krank{list-style:none;margin:4px 0 6px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px}
+.krank li{display:flex;align-items:center;gap:6px;border:1px solid var(--rule);padding:3px 6px;background:#00000022}
+.krank li b{flex:1;font-weight:400;font-size:12.5px}
+.krank .farank{color:var(--dim);font-size:11px;min-width:1.4em}
+.krank .facolbtns{display:flex;gap:2px}.krank .facolbtns .btn{padding:0 5px;min-width:0}
