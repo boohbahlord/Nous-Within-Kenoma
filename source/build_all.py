@@ -105,6 +105,7 @@ L4 = {23, 42}; L3 = {3, 6, 9, 14, 25, 28, 30, 34, 37, 38, 41}
 L2 = {5, 8, 10, 11, 15, 17, 18, 19, 20, 21, 22, 24, 27, 29, 36}
 def ch_fx(n):
     lvl = 0 if n == 35 else 4 if n in L4 else 3 if n in L3 else 2 if n in L2 else 1
+    lvl = min(lvl, 2)   # 2026-10-19: heavy static (3, 4) brought down to medium; medium has no rolling TV band
     fx = '' if n in (1, 2, 3, 4, 26, 35) else 'strings bars'
     theme = 'th-indigo th-blue' if n in (1, 2, 3) else 'th-indigo' if n == 4 else 'th-crimson' if n == 23 else 'th-black' if n == 26 else ''
     return dict(static=lvl, fx=fx, theme=theme)
