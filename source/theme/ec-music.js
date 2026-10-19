@@ -169,8 +169,9 @@
       n=h.bag.shift();h.played.push(n);if(!h.bag.length)h.played=[]}   // a cycle ends when its last song starts
     firstDone=true;h.heard[n]=Date.now();saveHist(h);return names.indexOf(n)}
   function load(i){T=TRACKS[i];ti=i;last=i;step=0;mi=0;mLeft=0;total=T.mel.reduce((a,x)=>a+x[1],0);if(ac)room()}
-  function tick(){if(!playing||!ac)return;const E8=60/T.bpm/2;
-    while(next<ac.currentTime+.4){
+  let RENDER=false;
+  function tick(until){if(!playing||!ac)return;const E8=60/T.bpm/2;
+    while(next<(until!=null?until:ac.currentTime+.4)){
       const bar=Math.floor(step/T.bar)%T.chords.length,i=step%T.bar,[root,third,fifth]=T.chords[bar];
       if(T.bass==="arp")note("triangle",hz(root+[0,fifth,12,fifth,12+third,fifth,12,fifth][i]-12),next,E8*.9,.5);
       else if(T.bass==="slowarp"){if(i%2===0)note("triangle",hz(root+[0,fifth,12,fifth][i/2%4]-12),next,E8*1.9,.45,.12)}
@@ -191,7 +192,7 @@
       if(has("metal")&&(i===3||i===7)&&((step*11+bar*3)%5===0))clank(next);   // iron struck somewhere in the dark
       if(has("static")&&i===0&&(bar*7)%3===1)hit(next,"static");   // a radio that won't quite tune
       next+=E8;step++;
-      if(mi>=T.mel.length&&mLeft<=0){next+=E8*2;load(pick(MODE))}}   // the song ends: the next one (or the same, outside the game)
+      if(mi>=T.mel.length&&mLeft<=0){if(RENDER)return;next+=E8*2;load(pick(MODE))}}   // the song ends: the next one (or the same, outside the game)
   }
   let MODE=inGame()?"random":"first";
   function start(){if(playing)return;if(!ctx())return;if(ac.state==="suspended")ac.resume();playing=true;load(pick(MODE));next=ac.currentTime+.15;
@@ -217,6 +218,15 @@
   let duckT=null;
   function duck(ms){if(!ac||!playing)return;const t=ac.currentTime;out.gain.cancelScheduledValues(t);out.gain.setTargetAtTime(BASE*vol(prefs())*.22,t,.08);
     clearTimeout(duckT);duckT=setTimeout(()=>{if(!ac||!playing)return;out.gain.cancelScheduledValues(ac.currentTime);out.gain.setTargetAtTime(BASE*vol(prefs()),ac.currentTime,.7)},ms||2600)}
-  window.ECMusic={sync,start,stop,duck,next:nextSong,get playing(){return playing},get track(){return T?T.name:null},tracks:TRACKS.map(t=>t.name),setMode:m=>{MODE=m},
+  /* one song written out to an audio buffer (for listening to it outside the game): the same scheduler, run ahead of time
+     on an offline context, once through */
+  async function renderSong(i){const OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;if(!OAC)return null;
+    const keep=[ac,out,BUS,PW,T,ti,last,step,mi,mLeft,total,next,playing],t=TRACKS[i],E8=60/t.bpm/2,len=t.mel.reduce((a,x)=>a+x[1],0)*E8+5;
+    ac=new OAC(2,Math.ceil(44100*len),44100);PW=null;out=ac.createGain();out.gain.value=BASE;const lp=ac.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1600;
+    const dl=ac.createDelay(1);dl.delayTime.value=.42;const fb=ac.createGain();fb.gain.value=.22;const wet=ac.createGain();wet.gain.value=.28;
+    out.connect(lp);lp.connect(ac.destination);lp.connect(dl);dl.connect(fb);fb.connect(dl);dl.connect(wet);wet.connect(ac.destination);BUS={lp,dl,fb,wet};
+    load(i);next=.05;playing=true;RENDER=true;try{tick(len-4)}finally{RENDER=false}
+    const buf=await ac.startRendering();[ac,out,BUS,PW,T,ti,last,step,mi,mLeft,total,next,playing]=keep;return buf}
+  window.ECMusic={sync,start,stop,duck,renderSong,next:nextSong,get playing(){return playing},get track(){return T?T.name:null},tracks:TRACKS.map(t=>t.name),setMode:m=>{MODE=m},
     setVol:v=>{setPref("musicVol",Math.round(Math.max(0,Math.min(1.5,v))*100)/100);sync()},get vol(){return vol(prefs())}};
 })();
