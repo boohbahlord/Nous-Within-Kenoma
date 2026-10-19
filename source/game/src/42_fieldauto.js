@@ -17,14 +17,14 @@ const FA_KINDS=["grunt","infantry","puppet","jack","queen","king","joker","assas
   "samson","antony","satan","bullgoat","goatbull","slavemaster","slave","leviathan","trafficker","debt"];
 const FA_DEF={tgroup:true,tgorder:["wildcard","special","base","standard","support"],mode:"full",stance:"auto",rush:0,formation:"auto",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,
   ctl:{soldiers:true,specials:true,support:true,miners:true,ranged:true,wildcards:true},extra:[],hier:false,order:FA_PRINC.map(p=>p[0]),eq:[],under:false,
-  noAttack:false,flee:false,tprio:false,torder:null,teq:[],tIgnoreGI:false,tSameGI:false,xminus:[]};
+  noAttack:false,flee:false,tprio:false,torder:null,teq:[],tIgnoreGI:false,tSameGI:false,xminus:[],hill:true,hillHow:"army",grp:"normal",fLink:true};
 /* v47: the kinds of card the field can rank as targets, strongest first by default (suit doesn't matter) */
 const FA_TK=[["wildcards","Wildcards"],["joker","Jokers"],["king","Kings"],["ace","Aces"],["queen","Queens"],["jack","Jacks"],["wall","Walls"],["tree","The Tree"],["assassin","Assassins"],
   ["cannon","Cannons"],["infantry","Infantry"],["archer","Archers"],["grunt","Grunts"],["puppet","Puppets"],["healer","Healers"],["repair","Repairmen"],["ram","Rams"],["miner","Miners"],["claimer","Claimers"],["scout","Scouts"]];
 const FA_TKEYS=FA_TK.map(x=>x[0]);
 const faClean=c=>{c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringify(FA_DEF));
-  for(const k of ["mode","stance","formation","lives","battles"])if(typeof c[k]==="string")o[k]=c[k];
-  o.rush=Math.max(0,Math.min(9,Math.round(+c.rush||0)));for(const k of ["ambush","bases","walls","hier","under","noAttack","flee","tprio","tIgnoreGI","tSameGI","tgroup"])if(typeof c[k]==="boolean")o[k]=c[k];
+  for(const k of ["mode","stance","formation","lives","battles","hillHow","grp"])if(typeof c[k]==="string")o[k]=c[k];
+  o.rush=Math.max(0,Math.min(9,Math.round(+c.rush||0)));for(const k of ["ambush","bases","walls","hier","under","noAttack","flee","tprio","tIgnoreGI","tSameGI","tgroup","hill","fLink"])if(typeof c[k]==="boolean")o[k]=c[k];
   if(Array.isArray(c.tgorder))o.tgorder=[...c.tgorder.filter(k=>o.tgorder.includes(k)),...o.tgorder.filter(k=>!c.tgorder.includes(k))];   // v54: the ranking by kinds of card
   o.torder=Array.isArray(c.torder)?[...c.torder.filter(k=>FA_TKEYS.includes(k)),...FA_TKEYS.filter(k=>!c.torder.includes(k))]:[...FA_TKEYS];
   if(Array.isArray(c.teq))o.teq=c.teq.filter(p=>Array.isArray(p)&&p.length===2&&p.every(k=>FA_TKEYS.includes(k)));
@@ -39,7 +39,7 @@ const faLevel=()=>{const v=G&&G.opts.fieldAuto;return ["easy","medium","hard"].i
 const faState=pl=>G&&G.p[pl]&&G.p[pl].fa||null;
 const faOn=pl=>faAllowed()&&!!(faState(pl)&&faState(pl).on)&&!G.p[pl].cpu&&!isNPC(pl);
 /* the simple modes narrow everything to a few choices */
-function faEff(c){c=faClean(c);const d=JSON.parse(JSON.stringify(FA_DEF));
+function faEff(c){c=faClean(c);const d=JSON.parse(JSON.stringify(FA_DEF));d.hill=c.hill;d.hillHow=c.hillHow;   // Capture the Hill is the player's in every mode
   if(c.mode==="full")return Object.assign(d,{mode:"full",under:c.under});
   if(c.mode==="mostly")return Object.assign(d,{mode:"mostly",stance:c.stance,ambush:c.ambush,under:c.under,noAttack:c.noAttack});
   if(c.mode==="attacks")return Object.assign(d,{mode:"attacks",ambush:false,under:c.under});
@@ -151,11 +151,13 @@ function faPanelHTML(c,pl,pfx){
   let h=sec("Simple mode",radio("mode",c.mode,[["full","Fully automatic","It decides everything, offense, defense or the center (the default)"],["mostly","Mostly automatic","You choose the stance, ambushes and whether it attacks"],
     ["attacks","Attacks only","It only attacks; you move every card"],["custom","Every option","Choose each setting yourself"]]),"fafull famodes");
   h+=sec("Attack",some?row("noAttack",c.noAttack,"Don't attack","Your field moves but never attacks. On top of the ranking unless you move it."):row("",true,"Attacks when the odds say so","Your field attacks enemies in sight when the odds say so.",true),some?"":"falock");
+  if(kothOn())h+=sec("Capture the Hill",row("hill",c.hill,"Capture the Hill","It goes for the Hill to score (on by default).")+(c.hill?radio("hillHow",c.hillHow,[["army","Gather an army first","Cards gather into a big army, then march on the Hill together"],["straight","Straight there","Every card heads for the Hill at once"],["groups","In small groups","Groups of two or three set out one after another"]]):""));
   if(some){h+=sec("Stance",radio("stance",c.stance,[["auto","Automatic","Changes with the field"],["offensive","Offensive",""],["defensive","Defensive",""],["center","Control the center",""]]));
     h+=sec("Ambush",row("ambush",c.ambush,"Set ambushes","Assassins and face-down stacks with nothing in reach wait in ambush."))}
   if(custom){
     h+=sec("Rush the enemy",row("rushon",c.rush>0,"Rush","Everything it controls goes for the enemy, whatever the stance.")+spin("For how long",left!=null?`${left?left+" left":"over"}`:"",Math.max(1,c.rush),"rush",`round${Math.max(1,c.rush)>1?"s":""}`,!c.rush));
-    h+=sec("Formation",radio("formation",c.formation,[["auto","Automatic",""],["wide","Wide","Spread out, surround, take the advantage"],["deep","Tall","Columns: stack strength, even with fewer to stack with"]]));
+    h+=sec("Formation",radio("formation",c.formation,[["auto","Automatic",""],["wide","Wide","Spread out, surround, take the advantage"],["deep","Tall","Columns: stack strength, even with fewer to stack with"]])+row("fLink",c.fLink,"Formation shapes the groups","Wide attacks in small groups, Tall in big ones, while Attack groups is Normal."));
+    h+=sec("Attack groups",radio("grp",c.grp,[["normal","Normal","Each stack as the odds say (the default)"],["big","Big","Stacks join up and attack in force; a lone card rarely attacks"],["small","Small","Twos and singles spread out and strike from many sides"]]));
     h+=sec("Lives",radio("lives",c.lives,[["preserve","Preserve","Keep cards alive first"],["balanced","Balanced","The default"],["throw","Throw them in","Trade cards freely to hurt the enemy"]])+(c.formation==="deep"?row("flee",c.flee,"Flee when low","A stack that has lost half its cards pulls back from the enemy."):""),"","",
       "Lives is about your cards: how many it is willing to lose.");
     h+=sec("Picking battles",radio("battles",c.battles,[["careful","Careful","Fights only with good odds"],["normal","Normal",""],["reckless","Reckless","Takes long shots"]]),"","Lives ranks above this unless you change the order in Hierarchical control.",

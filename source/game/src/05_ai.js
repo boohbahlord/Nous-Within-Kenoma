@@ -44,13 +44,65 @@ const AI=(()=>{
   let pcache=new Map();
   function walk(r1,c1,r2,c2){
     if(!G.void||!G.void.some(row=>row.some(Boolean)))return dist(r1,c1,r2,c2);
-    const key=r2*16+c2;let F=pcache.get(key);
+    const key=r2*1000+c2;let F=pcache.get(key);
     if(!F){F=Array.from({length:G.rows},()=>Array(COLS).fill(99));const q=[[r2,c2]];F[r2][c2]=0;
       while(q.length){const [r,c]=q.shift();for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){const a=r+dr,b=c+dc;if(a<0||b<0||a>=G.rows||b>=COLS||isVoid(a,b)||F[a][b]<=F[r][c]+1)continue;F[a][b]=F[r][c]+1;q.push([a,b])}}
       pcache.set(key,F)}
     return F[r1][c1];
   }
   function enemyStacks(pl){return enemiesOf(pl).flatMap(stacksOf).filter(x=>seesTile(pl,x.r,x.c))}   // a deluded computer is as blind as a person
+  /* v64 · King of the Hill: how each side goes for the Hill. "army" gathers a big army first, "straight" goes straight there,
+     "groups" goes in small groups. Computers take the game's setting (or each its own way); Field Automation takes the player's. */
+  function hillDist(r,c){let F=pcache.get("hill");
+    if(!F){F=Array.from({length:G.rows},()=>Array(COLS).fill(99));const q=[];
+      for(let a=HILL[0];a<=HILL[1];a++)for(let b=HILL[0];b<=HILL[1];b++)if(a<G.rows&&b<COLS){F[a][b]=0;q.push([a,b])}
+      for(let i=0;i<q.length;i++){const [a,b]=q[i];for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){const x=a+dr,y=b+dc;if(x<0||y<0||x>=G.rows||y>=COLS||isVoid(x,y)||F[x][y]<=F[a][b]+1)continue;F[x][y]=F[a][b]+1;q.push([x,y])}}
+      pcache.set("hill",F)}
+    return F[r][c]>=99?30:F[r][c]}
+  const HILL_HOW=["army","straight","groups"];
+  function hillHow(pl){if(!kothOn()||isHorde(pl)||isNPC(pl))return null;
+    if(FAX&&FAX.pl===pl)return FAX.hill||null;
+    const P=G.p[pl],set=G.opts.koth.cpu||"each";
+    if(HILL_HOW.includes(set))return set;
+    if(!HILL_HOW.includes(P.hillHow))P.hillHow=HILL_HOW[(pl*7+(G.map.seed|0))%3];   // each its own way, fixed for the game
+    return P.hillHow}
+  const fighters=st=>st.cards.filter(c=>!isBase(c)&&!["miner","wall","tree","carriage"].includes(c.unit)&&kind(c)!=="tree").length;
+  /* the army is ready when enough cards stand on the field; it gathers again when it falls to less than half that */
+  function armyGo(pl){const P=G.p[pl],n=stacksOf(pl).reduce((a,x)=>a+fighters(x.st),0),rd=G.moon.round|0;
+    const more=P.hand.filter(c=>!isBase(c)&&!c.unit).length+(FAX&&FAX.pl===pl?0:Math.min(4,P.deck.length)),need=Math.max(3,Math.min(7,n+more));   // as big as it can get, up to 7
+    const S=G.koth&&G.koth.score||{},foe=Object.entries(S).some(([g,v])=>g!==kothGroup(pl)&&v>=G.opts.koth.target-8);   // an enemy near the target: go now
+    if(!P.hillGo&&P.hillWait==null)P.hillWait=rd;
+    if(n>=need||foe||n>=3&&rd-P.hillWait>=6){P.hillGo=true;P.hillWait=null}   // ready, or gathered long enough
+    else if(P.hillGo&&n<Math.ceil(need/2)){P.hillGo=false;P.hillWait=rd}
+    return !!P.hillGo}
+  const grpMax=pl=>FAX&&FAX.pl===pl&&FAX.grp==="big"?4:3;
+  /* how hard a stack of these cards pulls toward the Hill */
+  function hillPull(pl,S){const how=hillHow(pl);if(!how)return 0;const n=fighters(S);if(!n)return 0;
+    if(how==="straight")return .8;
+    if(how==="groups")return n>=2?.8:.25;
+    return armyGo(pl)?(n>=2?.9:.7):.08}
+  /* the bonus or cost of merging into a stack of n cards */
+  function stackAdj(pl,n){const how=hillHow(pl),g=FAX&&FAX.pl===pl?FAX.grp:null;let s=0;
+    if(how==="groups")s+=n<=grpMax(pl)?.3:-1.4;
+    if(how==="army"&&!armyGo(pl))s+=.8;
+    if(g==="big")s+=.6;else if(g==="small")s+=n<=2?.1:-1;
+    return s}
+  /* nothing in sight (fog of war): head for the enemy's ground (the Horde and offense push toward the enemy's back line too) */
+  function farNear(pl,r,c){let d=99;for(const e of enemiesOf(pl))for(const [er,ec] of zoneTiles(e))d=Math.min(d,walk(r,c,er,ec));return d===99?0:d*.8}
+  const nearOf=(pl,r,c)=>{let n=99;for(const e of enemyStacks(pl))n=Math.min(n,walk(r,c,e.r,e.c));return n===99?farNear(pl,r,c):n};
+  /* the far-off pulls on a tile: toward the enemy, the center (Field Automation) and the Hill */
+  function pullOf(pl,S,r,c,W,near){
+    const hp=hillPull(pl,S),n=hp?Math.max(1,fighters(S)):1;   // in King of the Hill the pulls are per card, so joining a stack never hides a card's walk
+    let p=W.dist*near*n+(W.ctr?W.ctr*(Math.abs(r-(G.rows-1)/2)+Math.abs(c-(COLS-1)/2)):0);
+    if(hp)p+=n*(hp*hillDist(r,c)-(isHill(r,c)?1.5:0));   // standing on the Hill is what scores
+    return p}
+  /* gathering an army: a stack drifts toward the biggest of its own */
+  function rallyScore(pl,S,r,c){const how=hillHow(pl),solo=fighters(S)===1;
+    if(!(how==="army"&&!armyGo(pl)||how==="groups"&&solo))return 0;const ids=new Set(S.cards.map(x=>x.id));
+    let R=null;for(const x of stacksOf(pl)){if(hasBase(x.st)||x.st.cards.some(y=>ids.has(y.id)))continue;const n=fighters(x.st);if(!n)continue;
+      if(how==="army"){if(!R||n>R.n)R={r:x.r,c:x.c,n}}   // the army gathers on its biggest stack
+      else if(n<grpMax(pl)){const d=walk(r,c,x.r,x.c);if(!R||d<R.d)R={r:x.r,c:x.c,d}}}   // a lone card finds a partner
+    return R?-.3*walk(r,c,R.r,R.c):0}
   /* how good it is for stack S (owned by pl) to stand at r,c */
   function tileScore(pl,S,r,c,W,canHit){
     const n=L(pl).mc;let opp=0,risk=0,allies=0;
@@ -72,12 +124,8 @@ const AI=(()=>{
       }
     }
     for(const x of stacksOf(pl))if(x.st!==S&&dist(x.r,x.c,r,c)===1)allies++;
-    if(near===99){   // nothing in sight (fog of war): head for the enemy's ground
-      let d=99;for(const e of enemiesOf(pl))for(const [er,ec] of zoneTiles(e))d=Math.min(d,walk(r,c,er,ec));near=d===99?0:d*.8}
-    // the Horde and offense push toward the enemy's back line too
-    const kc=G.opts.layout==="koth"&&!isHorde(pl)?.55:0;   // v57: King of the Hill: everyone wants the Hill in the middle
-    const ctr=W.ctr||kc?Math.abs(r-(G.rows-1)/2)+Math.abs(c-(COLS-1)/2):0;   // Field Automation: holding the center
-    return W.atk*opp-W.def*risk-W.dist*near+W.ally*allies-(W.ctr||kc)*ctr;
+    if(near===99)near=farNear(pl,r,c);
+    return W.atk*opp-W.def*risk+W.ally*allies+rallyScore(pl,S,r,c)-pullOf(pl,S,r,c,W,near);
   }
   /* v44 · Field Automation: support cards (Scouts, Healers, Repairmen) serve the stacks they support instead of chasing fights.
      A Healer keeps beside or inside a hurt or strong stack, a Repairman beside a damaged base, a Scout a step or two from its own
@@ -98,7 +146,7 @@ const AI=(()=>{
   }
   function stance(pl){
     if(isHorde(pl))return HORDE;
-    if(G.turnNo-(G.lastAttack||0)>10)return PUSH;   // nobody has fought for five rounds: break the stalemate
+    if(G.turnNo-(G.lastAttack||0)>10)return hillHow(pl)?OFF:PUSH;   // nobody has fought for five rounds: break the stalemate (in King of the Hill the Hill is the way)
     const es=enemiesOf(pl).filter(e=>!isNPC(e)),my=stacksOf(pl).reduce((a,x)=>a+value(x.st),0),th=enemyStacks(pl).reduce((a,x)=>a+value(x.st),0)/Math.max(1,es.length);
     const eDeck=es.length?Math.min(...es.map(e=>G.p[e].deck.length)):0,deckAdv=(G.p[pl].deck.length-eDeck)/40;
     let o=my/(th+1)+deckAdv+L(pl).bias;
@@ -124,6 +172,7 @@ const AI=(()=>{
     if(k==="tree")return (t?-9:(isBack(pl,r,c)?4:3)-tileScore(pl,{cards:[card],owner:pl},r,c,DEF,false)*.1)*jit(pl);
     if(t&&hasBase(t)&&k!=="ace")return (hq()?1.2+rate(card)/12-t.cards.length*.15:(W===DEF?.7:.2)-t.cards.length*.3)*jit(pl);   // cards inside an Ace cannot fight, and die with it
     let s=tileScore(pl,S,r,c,W,false)-(t?tileScore(pl,t,r,c,W,false):0)+value(S)-(t?value(t):0);
+    if(!t&&G.map&&G.map.large)s+=zonePull(pl,S,W);   // v64: on a large field the long walk ahead is the same from every spawn tile, so it doesn't stop a card going down
     if(k==="ace")s+=lvl(pl)==="hard"?4:2;
     if(k==="queen"&&t&&hasK(t,"king"))s+=W===DEF?3:1.5;
     if(k==="king"&&t&&hasK(t,"queen"))s+=W===DEF?3:1.5;
@@ -132,6 +181,10 @@ const AI=(()=>{
     if(isBack(pl,r,c)&&W===DEF)s+=.3;
     return s*jit(pl);
   }
+  const zcache=new Map();
+  function zonePull(pl,S,W){const k=pl+"|"+hillPull(pl,S)+"|"+fighters(S)+"|"+W.dist+"|"+(W.ctr||0)+"|"+G.turnNo+"|"+stacksOf(pl).length;if(zcache.has(k))return zcache.get(k);
+    if(zcache.size>200)zcache.clear();let m=null;for(const [r,c] of seat(pl).zone){if(isVoid(r,c))continue;const p=pullOf(pl,S,r,c,W,nearOf(pl,r,c));if(m==null||p<m)m=p}
+    zcache.set(k,m||0);return m||0}
   async function placements(pl,W,keep){
     for(let guard=0;guard<8;guard++){
       const P=G.p[pl];if(P.hand.length<=keep+(P.deck.length?0:1))return;
@@ -158,6 +211,8 @@ const AI=(()=>{
       if(FAX&&!FAX.ok(grp))continue;   // Field Automation: a stack it doesn't control stays where the player put it
       if(!stackLegal(grp)){ // too many to leave together (a full Ace): send out the strongest group that can stand on its own
         const g2=[];for(const c of [...grp].sort((a,b)=>rate(b)-rate(a)))if(stackLegal([...g2,c]))g2.push(c);grp=g2;if(!grp.length)continue}
+      if(FAX&&FAX.pl===pl&&FAX.grp==="small"&&grp.length>2&&!hasBase(st)){   // small groups: two set out, the rest stay
+        const g2=[];for(const c of [...grp].sort((a,b)=>rate(b)-rate(a)))if(g2.length<2&&stackLegal([...g2,c]))g2.push(c);const rest=grp.filter(c=>!g2.includes(c));if(g2.length&&stackLegal(rest))grp=g2}
       const inAce=hasBase(st);const S={cards:grp,owner:pl,hypo:st.hypo};
       if(FAX&&FAX.flee&&!inAce&&(st.peak||0)>=2&&grp.length<=Math.floor(st.peak/2)){   // v47: Flee when low: pull back, toward friends
         const W2={atk:0,def:2.2,dist:-.5,ally:.6},tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets),stay=tileScore(pl,S,o.r,o.c,W2,false);let best=null;
@@ -174,7 +229,7 @@ const AI=(()=>{
       for(const [r,c] of tg){
         const t=G.board[r][c];
         let s;
-        if(t){const M={cards:[...t.cards,...grp],owner:pl,hypo:0};s=tileScore(pl,M,r,c,W,true)-tileScore(pl,t,r,c,W,true)+.2+(W.stack||0)}
+        if(t){const M={cards:[...t.cards,...grp],owner:pl,hypo:0};s=tileScore(pl,M,r,c,W,true)-tileScore(pl,t,r,c,W,true)+.2+(W.stack||0)+(hasBase(t)?0:stackAdj(pl,fighters(M)))}
         else s=tileScore(pl,S,r,c,W,true);
         s*=jit(pl);
         if(!best||s>best.s)best={r,c,s};
@@ -194,10 +249,13 @@ const AI=(()=>{
         if(o.mode==="capture"||o.mode==="destroy"||o.mode==="ram"){const sc=(o.mode==="capture"?value(E)+2:o.mode==="ram"?3.5:value(E)*.8+.5)*jit(pl);if(!best||sc>best.sc)best={r,c,r2,c2,sc,p:1,mode:o.mode};continue}
         if(o.mode==="suppress"){if(lvl(pl)!=="easy"&&canAttackFrom({cards:E.cards,attacked:false})&&Math.random()<.12){const sc=.45;if(!best||sc>best.sc)best={r,c,r2,c2,sc,p:1,mode:o.mode}}continue}
         const p0=o.mode==="stomp"?(E.pin?0:.62):winP(o.A||st,E,lv.mc,o.mode),p=o.ranged||o.mode==="stomp"?Math.min(1,p0+(1-p0)*.6):p0;   // a ranged miss (or a failed Stomp) costs nothing
-        const sc=(p*gain(E)*(o.mode==="stomp"?.6:1)-(1-p)*loss(st))*jit(pl);
+        let sc=(p*gain(E)*(o.mode==="stomp"?.6:1)-(1-p)*loss(st))*jit(pl);
+        const onHill=hillHow(pl)&&isHill(r2,c2);if(onHill)sc+=1.2*p;   // v64: knocking an enemy off the Hill is worth more
+        const g=FAX&&FAX.pl===pl?FAX.grp:null,n=fighters(st);
+        if(g==="big"){if(n<=1&&p<.75&&!onHill)continue;sc*=1+.12*(n-1)}else if(g==="small")sc*=n<=2?1.15:.9;
         const late=isHorde(pl)?0:G.turnNo>90?Math.min(.25,.1+(G.turnNo-90)/200):!G.p[pl].deck.length?.1:0;
   
-        const go=p>=(lv.thr-late+(FAX?FAX.thrAdj:0))*(lvl(pl)==="easy"?(.7+Math.random()*.6):1)||(lvl(pl)!=="easy"&&sc>.4)||isHorde(pl);   // the Horde never holds back: whatever it can reach, it hits
+        const go=p>=(lv.thr-late-(onHill?.08:0)+(FAX?FAX.thrAdj:0))*(lvl(pl)==="easy"?(.7+Math.random()*.6):1)||(lvl(pl)!=="easy"&&sc>.4)||isHorde(pl);   // the Horde never holds back: whatever it can reach, it hits
         if(go&&(!best||sc>best.sc))best={r,c,r2,c2,sc,p,mode:o.mode};
       }
     }
@@ -277,6 +335,8 @@ const AI=(()=>{
   }
   async function conjures(pl,W){
     const lv=lvl(pl),P=G.p[pl];if(Math.random()>L(pl).spell)return;
+    if(hillHow(pl)&&mana(pl)>=2){const cars=[...P.deck,...P.hand,...stacksOf(pl).flatMap(x=>x.st.cards)].filter(c=>c.unit==="carriage").length;
+      if(cars<(lv==="hard"?3:2))await tryCast("ccar")}   // v64: Carriages carry stacks to the Hill
     // keep the deck alive with whatever mana is left
     const low=P.deck.length<(lv==="hard"?Math.max(18,P.start*.7):12);
     if(low||mana(pl)>=5){
@@ -378,5 +438,5 @@ const AI=(()=>{
           if(!attackOptions(r,c).length&&Math.random()<ctx.ambushP){st.ambush=true;log(`${plName(pl)}'s field sets a stack in ambush.`,"ai")}}}
       else if(ph==="attack")await attacks(pl);
     }finally{FAX=null;cache.clear();G.sel=null}}
-  return{phase,setup,choose,winP,value,LV,bestSpot,field,stance:pl=>stance(pl),W:{PUSH,OFF,DEF},enemyStacks:pl=>enemyStacks(pl)};
+  return{phase,setup,choose,winP,value,LV,bestSpot,field,stance:pl=>stance(pl),W:{PUSH,OFF,DEF},enemyStacks:pl=>enemyStacks(pl),hillHow:pl=>hillHow(pl),hillDist:(r,c)=>hillDist(r,c)};
 })();
