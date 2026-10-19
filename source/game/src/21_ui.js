@@ -10,6 +10,10 @@ const ETHER_SHOP=[
   ["Base",[["ca","Ace"],["cwall","Wall"]]]];
 const ETHER_IDS=new Set(ETHER_SHOP.flatMap(([,l])=>l.map(x=>x[0])));
 const ETHER_KIND={cs:"soldier",carch:"archer",ccan:"cannon",cj:"jack",cq:"queen",ck:"king",cjk:"joker",cas:"assassin",csc:"scout",cmine:"miner",crep:"repair",cram:"ram",cheal:"healer",ca:"ace",cwall:"wall"};
+/* v59 fix: the Ether as a whole is closed only when every spell in it is (Jail, a dead Banker…); one spell's own limit
+   (the Carriage outside King of the Hill) closes only that spell. The Carriage isn't listed outside King of the Hill. */
+const etherShown=id=>id!=="ccar"||kothOn();
+function etherBlock(){const b=SPELLS.filter(s=>ETHER_IDS.has(s.id)&&etherShown(s.id)).map(spellBlock);return b.length&&b.every(Boolean)?b[0]:""}
 const etherLeft=id=>{const k=ETHER_KIND[id];if(k==="miner"||k==="repair"||k==="puppet"||k==="carriage")return Infinity;return G.ether.filter(c=>k==="soldier"?/^\d+$/.test(c.rank):c.unit?c.unit===k:kind(c)===k).length};
 SP("maxmana").name="Increase Max Mana";
 
@@ -40,7 +44,7 @@ function renderSpells(live){
     let list=SPELLS.filter(s=>s.school===sc&&mine(s));
     let pinned="";
     if(sc==="Conjuring"){const mx=list.find(s=>s.id==="maxmana");list=list.filter(s=>s.id!=="maxmana");
-      const blk=SPELLS.filter(s=>ETHER_IDS.has(s.id)).map(spellBlock).find(Boolean)||"";
+      const blk=etherBlock();
       pinned=`<button class="spell ether ${live&&!blk?"":"off"}" id="openEther" data-tip="${esc(blk||"Open the Ether: every card you can conjure into your deck, by type, cheapest first.")}"><span class="sn"><i class="ethmark" aria-hidden="true">✦</i>Ether<small class="dc">${G.ether.length} souls</small></span><em>shop ›</em></button>`+(mx?spellRow(mx,live):"")}
     if(sc==="Astrology")pinned=astroPins(live,V);
     if(sc==="Necromancy")pinned=moonOathRow(view());
@@ -69,10 +73,10 @@ function openEtherShop(){let e=$("#etherpanel");
 function closeEther(){const e=$("#etherpanel");if(e)e.hidden=true}
 function fillEther(){
   const e=$("#etherpanel");if(!e||!G)return;const live=canAct()&&G.phase==="prep",keep=e.querySelector(".dbody")?e.querySelector(".dbody").scrollTop:0;
-  const blk=SPELLS.filter(s=>ETHER_IDS.has(s.id)).map(spellBlock).find(Boolean)||"";
+  const blk=etherBlock();
   const rows=ETHER_SHOP.map(([cat,items])=>{
-    const its=items.map(([id,nm,sub])=>({id,nm,sub,sp:SP(id),left:etherLeft(id)})).filter(x=>x.sp&&spellMine(x.sp)).sort((a,b)=>spellCost(a.sp)-spellCost(b.sp)||a.nm.localeCompare(b.nm));
-    return `<h3>${cat}</h3>${its.map(x=>{const c=spellCost(x.sp),ok=live&&!blk&&x.left>0&&spellReady(x.sp);
+    const its=items.map(([id,nm,sub])=>({id,nm,sub,sp:SP(id),left:etherLeft(id)})).filter(x=>x.sp&&spellMine(x.sp)&&etherShown(x.id)).sort((a,b)=>spellCost(a.sp)-spellCost(b.sp)||a.nm.localeCompare(b.nm));
+    return `<h3>${cat}</h3>${its.map(x=>{const c=spellCost(x.sp),ok=live&&!blk&&!spellBlock(x.sp)&&x.left>0&&spellReady(x.sp);
       return `<button class="spell eitem ${ok?"":"off"}" data-buy="${x.id}" data-sp="${x.id}"><span class="sn">${esc(x.nm)}${x.sp.dice?`<small class="dc">${x.sp.dice}</small>`:""}<small class="left">${x.left===Infinity?"unlimited":x.left?x.left+" left":"none left"}</small></span><em>${c?c+" mana":"free"}</em></button>`}).join("")}`}).join("");
   e.innerHTML=`<div class="dhead"><h2>The Ether</h2><button type="button" class="xclose" aria-label="Close the Ether">×</button></div>
 <p class="dnote">${blk?esc(blk):live?"Conjure a card's soul into your deck. Dice prices are rolled each round.":"You can conjure in your own prep phase."}</p>
