@@ -2,7 +2,7 @@
 import json, html, os, re, shutil
 
 OUT = 'site'
-SITE_V = '48'   # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+SITE_V = '49'   # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 os.makedirs(OUT, exist_ok=True)
 shutil.copy('theme/site.js', f'{OUT}/site.js')
 shutil.copy('theme/ec-music.js', f'{OUT}/ec-music.js')
@@ -24,6 +24,7 @@ def head(title, extra='', static=1, fx='strings bars', theme='', ec=False):
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>{esc(title)}</title>
+<link rel="icon" type="image/png" href="favicon.png">
 <link rel="preload" href="cascadia-code-latin-200-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="site.css?v={SITE_V}">{extra}{EC_THEME + chr(10) + f'<script src="ec-music.js?v={SITE_V}" defer></script>' if ec else ''}
 <script src="site.js?v={SITE_V}" defer></script>
