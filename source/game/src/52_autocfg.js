@@ -28,7 +28,7 @@ function rdClean(c){c=c&&typeof c==="object"?c:{};const o={...RD_DEF};
 const rdMine=()=>rdClean(PREF.rd);
 
 /* ---------- Lazy Hand settings ---------- */
-const LH_DEF={exclude:[],xextra:[],autoPlace:false,sac:false,skinds:[],sextra:[],notFull:true,surplus:0,maxSurplus:false,negOnly:false};
+const LH_DEF={exclude:[],xextra:[],xminus:[],sminus:[],autoPlace:false,sac:false,skinds:[],sextra:[],notFull:true,surplus:0,maxSurplus:false,negOnly:false};
 const LH_RANKS=["2","3","4","5","6","7","8","9","10","J","Q","K","A","JK"];
 const LH_UNITS=["puppet","scout","healer","repair","ram","miner","claimer","archer","cannon","assassin","wall","samson","antony","bullgoat","goatbull","slavemaster","slave","leviathan","trafficker","debt"];
 let lhKeysMemo=null;
@@ -37,12 +37,14 @@ function lhKeyList(){if(lhKeysMemo)return lhKeysMemo;
 function lhClean(c){c=c&&typeof c==="object"?c:{};const o={...LH_DEF},keys=new Set([...LH_RANKS,...LH_UNITS]),cats=new Set(RD_KINDS.map(x=>x[0]));
   for(const k of ["autoPlace","sac","notFull","maxSurplus","negOnly"])if(typeof c[k]==="boolean")o[k]=c[k];
   for(const k of ["exclude","skinds"])o[k]=Array.isArray(c[k])?c[k].filter(x=>cats.has(x)):[];
-  for(const k of ["xextra","sextra"])o[k]=Array.isArray(c[k])?c[k].filter(x=>keys.has(x)):[];
+  for(const k of ["xextra","sextra","xminus","sminus"])o[k]=Array.isArray(c[k])?c[k].filter(x=>keys.has(x)):[];
+  o.xminus=o.xminus.filter(x=>!o.xextra.includes(x));o.sminus=o.sminus.filter(x=>!o.sextra.includes(x));
   o.surplus=clampN(c.surplus??0,0,30,0);return o}
 const lhMine=()=>lhClean(PREF.lh);
 const cardCat=c=>{const k=cardClass(c).toLowerCase();return k==="barbarian"?"standard":k};
 const cardKey=c=>c.puppet?"puppet":c.unit?c.unit:c.rank;
-const lhExcluded=(c,cfg)=>!!cfg&&(cfg.exclude.includes(cardCat(c))||cfg.xextra.includes(cardKey(c)));
+const lhExcluded=(c,cfg)=>{if(!cfg)return false;const k=cardKey(c);if((cfg.xminus||[]).includes(k))return false;return cfg.exclude.includes(cardCat(c))||cfg.xextra.includes(k)};
+const lhSacs=(c,cfg)=>{const k=cardKey(c);if((cfg.sminus||[]).includes(k))return false;return cfg.skinds.includes(cardCat(c))||cfg.sextra.includes(k)};
 
 /* ---------- the settings travel to the player's seat ---------- */
 function setAutoCfg(pl,key,cfg){if(!G||!G.p[pl]||!["rdCfg","lhCfg"].includes(key))return;G.p[pl][key]=key==="rdCfg"?rdClean(cfg):lhClean(cfg)}
@@ -105,9 +107,9 @@ function lhPanelHTML(c,pfx){const K=cfgKit("data-lh","data-lhact","lh"+pfx),{row
   let h=`<p class="fawarn fafull">We advise against letting Lazy Hand play for you: it doesn't know your plans. If you use it, check what it does now and then.</p>`;
   h+=sec("Lazy Hand",row("keep",PREF.lazyAuto===true,"Keep Lazy Hand on","Every card you click in your hand is placed for you (the spell's auto switch).")+
     row("autoPlace",c.autoPlace,"Place my cards by itself","At the start of your prep phase it places every card it may, where the computer would play it."),"fafull");
-  h+=sec("Never place for me",K.chips(RD_KINDS,c.exclude,"data-lhex")+`<details class="faextra" ${c.xextra.length?"open":""}><summary>Yes, and… (single kinds it never places)</summary>${K.chips(lhKeyList(),c.xextra,"data-lhxx")}</details><p class="dim">You place these yourself, even with Lazy Hand on.</p>`,"fafull");
+  h+=sec("Never place for me",K.chips(RD_KINDS,c.exclude,"data-lhex")+`<details class="faextra" ${c.xextra.length||c.xminus.length?"open":""}><summary>Yes, and… (single kinds: + never placed for you, − placed for you even if its group is ticked)</summary>${K.pmChips(lhKeyList(),c.xextra,c.xminus,"data-lhxpm")}</details><p class="dim">You place these yourself, even with Lazy Hand on.</p>`,"fafull");
   h+=sec("Sacrifice from my hand",row("sac",c.sac,"Sacrifice cards by itself","At the start of your prep phase, before anything is spent: the kinds you tick here.")+K.chips(RD_KINDS,c.skinds,"data-lhsk",so)+
-    `<details class="faextra" ${c.sextra.length?"open":""}><summary>Yes, and… (single kinds it sacrifices, like the 2 Grunt)</summary>${K.chips(lhKeyList(),c.sextra,"data-lhsx",so)}</details>`+
+    `<details class="faextra" ${c.sextra.length||c.sminus.length?"open":""}><summary>Yes, and… (single kinds: + sacrificed, like the 2 Grunt; − never sacrificed)</summary>${K.pmChips(lhKeyList(),c.sextra,c.sminus,"data-lhspm",so)}</details>`+
     row("negOnly",c.negOnly,"Only while my mana is below zero","It sacrifices until you are back at zero; the limits below don't apply.",so)+
     row("notFull",c.notFull,"Not when my mana is full","It stops at your maximum, so nothing goes into the surplus.",so||c.negOnly)+
     (!c.notFull?row("maxSurplus",c.maxSurplus,"Up to the most surplus","As far as the soul pile allows.",so||c.negOnly)+spin("Up to this far into the surplus","",c.surplus,"surplus","mana",so||c.negOnly||c.maxSurplus):""),"fafull");
@@ -115,14 +117,16 @@ function lhPanelHTML(c,pfx){const K=cfgKit("data-lh","data-lhact","lh"+pfx),{row
 function lhSave(c){PREF.lh=lhClean(c);savePrefs();autoSync();paintFA();if(G)render()}
 function lhWire(root){
   root.querySelectorAll("[data-lh]").forEach(i=>{const k=i.dataset.lh;if(!k)return;i.onchange=()=>{if(k==="keep"){PREF.lazyAuto=i.checked;savePrefs();paintFA();if(G)render();return}const c=lhMine();c[k]=i.checked;lhSave(c)}});
-  for(const [attr,key] of [["data-lhex","exclude"],["data-lhxx","xextra"],["data-lhsk","skinds"],["data-lhsx","sextra"]])
+  for(const [attr,pk,mk] of [["data-lhxpm","xextra","xminus"],["data-lhspm","sextra","sminus"]])
+    root.querySelectorAll(`[${attr}]`).forEach(b=>b.onclick=()=>{const c=lhMine(),[p,m]=pmCycle(c[pk],c[mk],b.getAttribute(attr));c[pk]=p;c[mk]=m;lhSave(c)});
+  for(const [attr,key] of [["data-lhex","exclude"],["data-lhsk","skinds"]])
     root.querySelectorAll(`[${attr}]`).forEach(i=>i.onchange=()=>{const c=lhMine(),k=i.getAttribute(attr);c[key]=c[key].filter(x=>x!==k);if(i.checked)c[key].push(k);lhSave(c)});
   root.querySelectorAll("[data-lhact]").forEach(b=>b.onclick=()=>{const c=lhMine(),v=b.dataset.lhact,k=v.slice(0,-1);c[k]=(c[k]||0)+(v.endsWith("+")?1:-1);lhSave(c)})}
 
 /* ---------- what they do: at the start of a person's prep phase, sacrifices, Ritual Dice, Grave Blessing, then placing ---------- */
 async function lhAutoSac(pl){const P=G.p[pl],c=P.lhCfg;if(!c||!c.sac||G.over)return;let n=0;
   for(const card of [...P.hand]){if(!sacrificeAllowed()||!canSacCard(card))continue;
-    if(!(c.skinds.includes(cardCat(card))||c.sextra.includes(cardKey(card))))continue;
+    if(!lhSacs(card,c))continue;
     const hi=handSacRange(card)[1],m=mana(pl);
     if(c.negOnly){if(effMana(pl)>=0)break}
     else{const lim=c.notFull?soulCap(pl):c.maxSurplus?surCap(pl):Math.min(surCap(pl),soulCap(pl)+c.surplus);if(m+hi>lim)continue}
