@@ -100,3 +100,15 @@ function notePause(pl,what){const k=what+"|"+G.turnNo;G._blindNote=G._blindNote|
   const t=document.querySelector(".fabar .fatog");if(t&&faOn(V)&&!t.dataset.blind){t.dataset.blind="1";t.textContent="Auto field: paused (blind)";t.title="Field Automation pauses while you are blind; it carries on when you can see again."}
   const l=$("#lazyBtn");if(l&&!l.classList.contains("blindpause")){l.classList.add("blindpause");l.setAttribute("data-tip","Lazy Hand pauses while you are blind.")}}}
 if(window.__EC)Object.assign(window.__EC,{skyAsyncW:(...a)=>skyAsync(...a),totalBlindW:V=>totalBlind(V),faRunW2:(...a)=>faRun(...a),lhAutoPlaceW:(...a)=>lhAutoPlace(...a)});
+
+/* ---------- v66: the Puppet's picture: a round head in the middle of the card, like a puppet toy or a dummy doll: dot eyes, a
+   small nose, a smile and a boy's hair. It stays clear of the count in the corner (the old hanging puppet ran into it). ---------- */
+UNIT_ICON.puppet=`<g transform="scale(1.15)">`+`<path d="M6.4,1.4a6.4,6.4 0 1,1 -12.8,0a6.4,6.4 0 1,1 12.8,0Z"/>`+   // the head
+  `<path d="M-6.2,-0.4C-6.4,-4.6 -3.4,-6.9 0.2,-6.9C3.4,-6.9 6.2,-4.9 6.3,-0.6 M-5.6,-2.2L-3.6,-4.9 M-3.3,-1.9L-1.4,-5.4 M-0.8,-1.8L0.9,-5.6 M1.7,-2L3.3,-5.2 M0.4,-6.9C0.8,-8.6 2.4,-9.2 3.3,-8.3"/>`+   // a boy's fringe and a tuft
+  `<circle cx="-2.3" cy="0.9" r="0.95" fill="@" stroke="none"/><circle cx="2.3" cy="0.9" r="0.95" fill="@" stroke="none"/>`+   // dot eyes
+  `<path d="M0,2.2V3.1"/><path d="M-2.7,4.6Q0,6.6 2.7,4.6"/></g>`;   // a small nose and a smile
+
+/* ---------- v66: hearts down the left edge of the card, top to bottom; smaller when there are many ---------- */
+const heartN=h=>h.replace(/<span class="hearts" aria-label="(\d+) of (\d+) hearts"/g,(m,a,b)=>`${m} style="--hn:${Math.max(3,+b)}"`);
+{const _f=face;face=function(){return heartN(_f.apply(this,arguments))}}
+{const _sd=siegeDecor;siegeDecor=function(){return heartN(_sd.apply(this,arguments))}}
