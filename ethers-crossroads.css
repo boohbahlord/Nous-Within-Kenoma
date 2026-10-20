@@ -1808,3 +1808,12 @@ html.nomap #board .tile.void,html.nomap #board .tile.water{visibility:visible!im
 .falockrow .flockico{display:inline-block;width:11px;height:12px;vertical-align:-1px;font-style:normal}.falockrow .flockico svg{width:100%;height:100%}
 #lockq .lockbox{max-width:min(420px,100%)}
 .spellrow #lazyBtn.blindpause{opacity:.5}
+/* v66: the Tree takes its player's color like every card (an older paper rule was stronger on the card face and left it white) */
+.cf.v61.u-tree,.cf.v61.u-tree.basecard,.stack.v61.u-tree{background:linear-gradient(160deg,color-mix(in oklab,var(--cb) 86%,#fff) 0%,var(--cb) 55%,color-mix(in oklab,var(--cb) 82%,#000) 100%)}
+/* v66: hearts down the left edge of the card, top to bottom, smaller when there are many (5 hearts on a Tree fit) */
+.cf.v61 .hearts,.stack.v61 .bhp{writing-mode:vertical-lr;text-orientation:upright;left:calc(5px * var(--ci,1));right:auto;top:calc(9px * var(--ci,1));bottom:auto;text-align:start;letter-spacing:0;line-height:1;white-space:nowrap}
+.cf.v61 .hearts{font-size:min(calc(9px * var(--ci,1)),calc(40px * var(--ci,1) / var(--hn,3)))}
+.stack.v61 .bhp .hearts{writing-mode:inherit;text-orientation:inherit;font-size:min(calc(11px * var(--ci,1)),calc(52px * var(--ci,1) / var(--hn,3)))}
+html.cardsym .cf.v61 .hearts,html.cardsym .stack.v61 .bhp{top:calc(24px * var(--ci,1))}
+#board.large .stack.v61 .bhp{top:min(calc(9px * var(--ci,1)),8cqw);left:min(calc(5px * var(--ci,1)),5cqw)}
+#board.large .stack.v61 .bhp .hearts{font-size:min(calc(11px * var(--ci,1)),calc(52px * var(--ci,1) / var(--hn,3)),12cqw)}
