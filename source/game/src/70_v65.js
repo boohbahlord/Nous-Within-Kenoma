@@ -129,3 +129,6 @@ function wildFlush(){const q=wildQ;wildQ=[];if(!q.length||!G)return;
   else{const at=G.dark.includes(card)?"falls into the Outer Darkness":G.ether.includes(card)?"goes to the Ether":G.grave.includes(card)?"lies in the grave":"is gone";where=`${who}'s ${nm} is dead: it ${at}.`}
   wildQ.push({title,html:where,owner,born});if(wildQ.length===1)setTimeout(wildFlush,0);
   return out}}
+
+/* ---------- v68: tile names on by default (once, for everyone; the Menu and the Display bar still turn them off) ---------- */
+if(!PREF.coordsOn68){PREF.coordsOn68=true;PREF.coords=true;try{savePrefs();applyPrefs()}catch(e){}}

@@ -2544,7 +2544,7 @@ const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{
   if(!p.v38m){p.v38m=1;if(isPhone())p.sel="top"}
   // v43: the Ether's Crossroads theme is the default (once, for anyone who had never chosen a theme)
   if(!p.v43t){p.v43t=1;if(p.theme==null||p.theme==="")p.theme="darkfantasy"}
-  return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:false,full:false,theme:"darkfantasy",lines:true,bright:1},p)})();
+  return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:true,full:false,theme:"darkfantasy",lines:true,bright:1},p)})();
 const sfxV=()=>Math.max(0,Math.min(1.5,PREF.sfxVol==null?1:+PREF.sfxVol));   // v43: the sound effects' volume, 0 to 150%
 function savePrefs(){try{localStorage.setItem("ec-prefs2",JSON.stringify(PREF))}catch(e){}}
 const THEMES={darkfantasy:["Ether's Crossroads",["th-darkfantasy"]],"":["Kenoma",[]],dull:["Kenoma (dull)",["th-dull"]],office:["Office",["th-office"]],officedark:["Office Dark",["th-officedark"]],earth:["Druid",["th-earth"]],jester:["Jester",["th-black","th-jester"]],ten:["Ten",["th-indigo","th-blue"]],satan:["Disturbed Satan",["th-crimson"]]};
@@ -4459,7 +4459,8 @@ function barbTick(){
 function centerArea(){const c0=centerTiles(),out=[];for(const [r,c] of c0)for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const rr=r+dr,cc=c+dc;if(rr>=0&&cc>=0&&rr<G.rows&&cc<COLS&&!out.some(t=>t[0]===rr&&t[1]===cc))out.push([rr,cc])}return out}
 function spawnBarbarians(blood){
   const B=npcIx("barb");if(B<0)return;
-  if(stacksOf(B).length>=6){log("The Demons already crowd the field: no new band comes.");return}
+  const have=stacksOf(B),room=6-have.length,haveA=have.filter(x=>x.st.cards.some(c=>kind(c)==="ace")).length;   // v68: never more than six Demon stacks on the field, counting what is already there
+  if(room<=0){log("The Demons already crowd the field: no new band comes.");return}
   const n=alive().filter(i=>!isHorde(i)).length,zones=new Set(G.p.flatMap((P,i)=>isNPC(i)?[]:seat(i).zone.map(t=>t.join())));
   const mid=[(G.rows-1)/2,(COLS-1)/2];const tiles=[];
   for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(!isVoid(r,c)&&!G.board[r][c]&&!zones.has(r+","+c))tiles.push([r,c]);
@@ -4473,15 +4474,17 @@ function spawnBarbarians(blood){
   const stacks=[grunts()];if(n>=3)stacks.push(any());
   if(roll(1,2)===1)stacks.push(grunts());
   else{stacks.push(pick([inf,jacks])());if(roll(1,4)===4)stacks.push(any());if(n>=3&&roll(1,4)===4)stacks.push(any())}
-  stacks.length=Math.min(stacks.length,n<=2?3:n===3?4:5);
+  stacks.length=Math.min(stacks.length,n<=2?3:n===3?4:5,room);
   let aces=n>=4?2:0;if(roll(1,6)===6)aces++;if(n===3&&aces===1&&roll(1,6)===6)aces++;aces=Math.min(aces,n<=2?1:n===3?2:3);
-  const W={id:(G.waveNo=(G.waveNo||0)+1),stacks:0,aces:0,aceKilled:false,kills:{},left:0};(G.waves=G.waves||{})[W.id]=W;
-  const put=cards=>{const t=tiles.shift();if(!t)return false;for(const c of cards){c.owner=B;c.wave=W.id;c.barb=true}G.board[t[0]][t[1]]={owner:B,cards,moved:true,attacked:true};W.left+=cards.length;return true};
+  aces=Math.max(0,Math.min(aces,(n<=3?1:2)-haveA,room-stacks.length));   // v68: one or two Demon Aces on the field at most, all bands together
+  const W={id:(G.waveNo=(G.waveNo||0)+1),stacks:0,aces:0,aceKilled:false,kills:{},left:0,troops:0};(G.waves=G.waves||{})[W.id]=W;
+  const put=cards=>{const t=tiles.shift();if(!t)return false;for(const c of cards){c.owner=B;c.wave=W.id;c.barb=true}G.board[t[0]][t[1]]={owner:B,cards,moved:true,attacked:true};W.left+=cards.length;W.troops+=cards.filter(c=>kind(c)!=="ace").length;return true};
   for(const s of stacks)if(put(s))W.stacks++;
   for(let i=0;i<aces;i++)if(put([mk("A",pick(SU))]))W.aces++;
   tray(B,"Demons",dice,`${W.stacks} band${W.stacks>1?"s":""}${W.aces?` + ${W.aces} Ace${W.aces>1?"s":""}`:""}`,true);
   log(`<b>Demons</b>${blood?" come with the Blood Moon and":""} take the middle of the field: ${W.stacks} band${W.stacks>1?"s":""}${W.aces?` and ${W.aces} Ace base${W.aces>1?"s":""}`:""}. They fight everyone.`,"event");
   notify(null,`Demons take the middle of the field.`);
+  popup("Demons",`<p>${blood?"With the Blood Moon, a":"A"} crimson band of Demons takes the middle of the field: ${W.stacks} band${W.stacks>1?"s":""}${W.aces?` and ${W.aces} Ace base${W.aces>1?"s":""}`:""}. They fight everyone.</p><p class="dim">Whoever kills the most of the band earns an Ether sale. When its soldiers are gone, its Aces crumble.</p>`);
 }
 /* the Demons strike at whatever stands beside them; they hold their ground */
 async function barbAct(){
@@ -4495,8 +4498,12 @@ async function barbAct(){
 function econBury(card,r,c,st){
   const F=G.fight,killer=F?(st===F.D?F.atkPl:st===F.A?F.defPl:null):null;
   warKill(killer);
-  if(card.wave&&G.waves&&G.waves[card.wave]){const W=G.waves[card.wave];W.left--;if(killer!=null&&!isNPC(killer))W.kills[killer]=(W.kills[killer]||0)+1;if(kind(card)==="ace")W.aceKilled=true;
-    delete card.wave;delete card.barb;if(W.left<=0)waveCleared(W)}
+  if(card.wave&&G.waves&&G.waves[card.wave]){const W=G.waves[card.wave];W.left--;if(killer!=null&&!isNPC(killer))W.kills[killer]=(W.kills[killer]||0)+1;if(kind(card)==="ace")W.aceKilled=true;else if(W.troops!=null)W.troops--;
+    delete card.wave;delete card.barb;
+    if(W.troops!=null&&W.troops<=0&&W.left>0){   // v68: with no soldiers left, the band's Aces crumble and the band is broken
+      const B=npcIx("barb");let k=0;for(const x of stacksOf(B))if(x.st.cards.every(y=>y.wave===W.id&&kind(y)==="ace")){for(const y of x.st.cards){W.left--;delete y.wave;delete y.barb}G.board[x.r][x.c]=null;k++}
+      if(k)log(`The Demons' band is broken: ${k===1?"its Ace crumbles":`its ${k} Aces crumble`} with no one left to hold ${k===1?"it":"them"}.`,"event")}
+    if(W.left<=0)waveCleared(W)}
   // the Bank's Debt Collectors send what they kill to the Ether and keep its price
   const bk=npcIx("bank");
   if(F&&bk>=0&&killer===bk&&!(card.unit&&!UNIT[card.unit].ether)){card.owner=null;if(card.hp!=null)card.hp=card.maxHp;G.ether.push(card);const v=costOf(card)||1;bankAdd(v);log(`The Bank takes ${esc(nameOf(card))} into the Ether and books ${v} mana.`);return true}
@@ -10295,5 +10302,8 @@ function wildFlush(){const q=wildQ;wildQ=[];if(!q.length||!G)return;
   else{const at=G.dark.includes(card)?"falls into the Outer Darkness":G.ether.includes(card)?"goes to the Ether":G.grave.includes(card)?"lies in the grave":"is gone";where=`${who}'s ${nm} is dead: it ${at}.`}
   wildQ.push({title,html:where,owner,born});if(wildQ.length===1)setTimeout(wildFlush,0);
   return out}}
+
+/* ---------- v68: tile names on by default (once, for everyone; the Menu and the Display bar still turn them off) ---------- */
+if(!PREF.coordsOn68){PREF.coordsOn68=true;PREF.coords=true;try{savePrefs();applyPrefs()}catch(e){}}
 
 })();
