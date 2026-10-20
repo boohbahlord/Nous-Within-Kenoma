@@ -81,7 +81,7 @@ const RD_KEYS=["every","perTurn","kinds","minMana","counterOD","noOD","stopDebt"
    No dice box in the columns: one shared dice box (by the hand) lists everyone's latest rolls. */
 const multiView=()=>!!G&&G.p.filter((P,i)=>i!==view()&&!isNPC(i)).length>=2;
 function miniBoxHTML(pl){const P=G.p[pl],V=view(),act=pl===G.active&&G.phase!=="setup";
-  const kindTxt=P.cpu==="horde"?"the Horde":(P.cpu?`computer · ${P.cpu}`:"player")+(TRIBES[P.tribe]?` · ${TRIBES[P.tribe].name}`:"");
+  const kindTxt=P.cpu==="horde"?"the Horde":(P.cpu?`computer · ${P.cpu}${P.arch&&AI.ARCH[P.arch]?" · "+AI.ARCH[P.arch].name:""}`:"player")+(TRIBES[P.tribe]?` · ${TRIBES[P.tribe].name}`:"");
   let h=`<div class="ph mini"><button type="button" class="subst" data-stat="${pl}" aria-label="Status">${solidSVG(P.solid,P.color,15)}</button><b>${esc(P.name)}</b>${pl!==V&&!isEnemy(pl,V)?'<span class="ally">ally</span>':""}${P.out?'<span class="outmark">out</span>':act?'<span class="turnmark">to play</span>':""}</div><div class="minisub">${esc(kindTxt)}</div>`;
   if(P.out)return h;
   if(P.cpu==="horde"){const u=stacksOf(pl).reduce((a,x)=>a+x.st.cards.length,0);return h+`<div class="minitags">${u} card${u===1?"":"s"} on the field</div>`}
