@@ -1305,6 +1305,22 @@ const AI=(()=>{
     horde: {mc:36,noise:0,  thr:.4, spell:0,  skipMove:0,  bias:1,  draw:0}
   };
   let FAX=null;   // v38: Field Automation plays a person's field with their settings (see 42_fieldauto.js)
+  /* v69 · archetypes: computer playstyles made from the Field Automation principles (stance, lives, battles, formation,
+     attack groups, bases, the Hill) plus leanings for the economy, spells and Oaths. The difficulty still sets how well they
+     play (the dice they weigh, the noise, the mistakes); the archetype sets what they want. */
+  const ARCH={
+    warlord:{name:"Warlord",sub:"Offensive and reckless: throws cards in, takes long shots, goes straight for the Hill.",bias:.35,w:{atk:1.2,def:.8,dist:1.25},thr:-.07,loss:.8,hill:"straight",econ:.6,spell:1,oaths:{mercury:3,sun:3,moon:2,earth:1}},
+    bulwark:{name:"Bulwark",sub:"Defensive and careful: keeps its cards alive, stacks tall, pulls back when hurt.",bias:-.3,w:{atk:.9,def:1.3,ally:1.3},thr:.07,loss:1.35,grp:"big",hill:"army",flee:true,econ:1.1,spell:1,oaths:{venus:3,saturn:3,earth:2,moon:1}},
+    swarm:{name:"Swarm",sub:"Wide: many small groups that spread out and surround.",bias:.1,w:{ally:1.6},stack:-.4,grp:"small",hill:"groups",econ:1,spell:1,oaths:{moon:2,earth:2,jupiter:2,venus:1}},
+    phalanx:{name:"Phalanx",sub:"Tall: big stacks that move and attack in force.",bias:.05,w:{},stack:.7,grp:"big",hill:"army",econ:1,spell:1,oaths:{jupiter:3,saturn:2,moon:1,earth:1}},
+    siege:{name:"Besieger",sub:"Hunts the enemy's bases.",bias:.2,w:{dist:1.2},bases:true,hill:"straight",econ:.8,spell:1,oaths:{mercury:2,sun:2,earth:1,moon:1}},
+    prospector:{name:"Prospector",sub:"Economy first: Miners in its Aces, the Bank's land, mana.",bias:-.1,w:{def:1.1},thr:.03,hill:"army",econ:2.2,spell:1.1,oaths:{earth:3,jupiter:3,saturn:2,venus:2}},
+    mystic:{name:"Mystic",sub:"Spells and Oaths: curses, odds and conjurings.",bias:0,w:{},hill:"groups",econ:1,spell:1.35,oaths:{moon:3,sun:3,earth:2,saturn:1,venus:1,jupiter:1,mercury:1}}
+  };
+  const archOf=pl=>{const P=G.p[pl];return P&&P.cpu&&P.cpu!=="horde"&&!isNPC(pl)?ARCH[P.arch]||null:null};
+  function archCtx(pl){const A=archOf(pl);if(!A)return null;const P=G.p[pl],set=G.opts.koth&&G.opts.koth.cpu||"each";
+    return {level:P.cpu,ok:()=>true,okAtk:()=>true,thrAdj:A.thr||0,lossMul:A.loss||1,gainMul:E=>A.bases&&hasBase(E)&&!hasK(E,"wall")?1.6:1,
+      wMul:A.w||{},stack:A.stack||0,grp:A.grp||null,flee:!!A.flee,bias:A.bias||0,arch:A,hill:kothOn()?(set==="each"?A.hill:set):null}}
   const L=pl=>FAX&&FAX.pl===pl?LV[FAX.level]||LV.medium:LV[G.p[pl].cpu]||LV.medium;
   const lvl=pl=>FAX&&FAX.pl===pl?FAX.level:G.p[pl].cpu;
   const jit=pl=>1+(Math.random()*2-1)*L(pl).noise;
@@ -1387,7 +1403,7 @@ const AI=(()=>{
   /* the far-off pulls on a tile: toward the enemy, the center (Field Automation) and the Hill */
   function pullOf(pl,S,r,c,W,near){
     const hp=hillPull(pl,S),n=hp?Math.max(1,fighters(S)):1;   // in King of the Hill the pulls are per card, so joining a stack never hides a card's walk
-    let p=W.dist*near*n+(W.ctr?W.ctr*(Math.abs(r-(G.rows-1)/2)+Math.abs(c-(COLS-1)/2)):0);
+    let p=W.dist*(FAX&&FAX.pl===pl&&FAX.wMul&&FAX.wMul.dist||1)*near*n+(W.ctr?W.ctr*(Math.abs(r-(G.rows-1)/2)+Math.abs(c-(COLS-1)/2)):0);
     if(hp)p+=n*(hp*hillDist(r,c)-(isHill(r,c)?1.5:0));   // standing on the Hill is what scores
     return p}
   /* gathering an army: a stack drifts toward the biggest of its own */
@@ -1419,7 +1435,8 @@ const AI=(()=>{
     }
     for(const x of stacksOf(pl))if(x.st!==S&&dist(x.r,x.c,r,c)===1)allies++;
     if(near===99)near=farNear(pl,r,c);
-    return W.atk*opp-W.def*risk+W.ally*allies+rallyScore(pl,S,r,c)-pullOf(pl,S,r,c,W,near);
+    const M=FAX&&FAX.pl===pl&&FAX.wMul||{};   // v69: the archetype's weights
+    return W.atk*(M.atk||1)*opp-W.def*(M.def||1)*risk+W.ally*(M.ally||1)*allies+rallyScore(pl,S,r,c)-pullOf(pl,S,r,c,W,near);
   }
   /* v44 · Field Automation: support cards (Scouts, Healers, Repairmen) serve the stacks they support instead of chasing fights.
      A Healer keeps beside or inside a hurt or strong stack, a Repairman beside a damaged base, a Scout a step or two from its own
@@ -1443,7 +1460,7 @@ const AI=(()=>{
     if(G.turnNo-(G.lastAttack||0)>10)return hillHow(pl)?OFF:PUSH;   // nobody has fought for five rounds: break the stalemate (in King of the Hill the Hill is the way)
     const es=enemiesOf(pl).filter(e=>!isNPC(e)),my=stacksOf(pl).reduce((a,x)=>a+value(x.st),0),th=enemyStacks(pl).reduce((a,x)=>a+value(x.st),0)/Math.max(1,es.length);
     const eDeck=es.length?Math.min(...es.map(e=>G.p[e].deck.length)):0,deckAdv=(G.p[pl].deck.length-eDeck)/40;
-    let o=my/(th+1)+deckAdv+L(pl).bias;
+    let o=my/(th+1)+deckAdv+L(pl).bias+(FAX&&FAX.pl===pl&&FAX.bias||0);   // v69: the archetype leans one way
     if(lvl(pl)==="easy")o+=Math.random()*.6-.3;
     if(!G.p[pl].deck.length||!eDeck||G.turnNo>90*Math.max(1,G.p.length/2)||hq()&&G.turnNo>8)return OFF;   // a dry deck ends the waiting game
     return o>1?OFF:DEF;
@@ -1456,7 +1473,7 @@ const AI=(()=>{
     const t=G.board[r][c];const S={cards:t?[...t.cards,card]:[card],owner:pl,hypo:t?t.hypo:0};
     const k=kind(card),u=card.unit;
     if(u==="wall")return ((isFront(pl,r,c)?3:1.5)+(enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=3)?1:0)-stacksOf(pl).filter(x=>hasK(x.st,"wall")).length*1.5)*jit(pl);
-    if(u==="miner"){if(t&&hasK(t,"ace"))return 4.5*jit(pl);if(t)return -1;
+    if(u==="miner"){if(t&&hasK(t,"ace"))return (t.cards.filter(x=>x.unit==="miner").length<2?4.5:-1)*jit(pl);if(t)return -1;   // v69: two Miners to an Ace, no more
       const cr=(G.crystals||[]).filter(x=>!G.board[x.r][x.c]||G.board[x.r][x.c].owner===pl);if(!cr.length)return -1;
       return (3.2-Math.min(...cr.map(x=>dist(x.r,x.c,r,c)))*.25-(enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=1)?2:0))*jit(pl)}
     if(u==="archer"||u==="cannon")return (t?(hasBase(t)?4+(enemyStacks(pl).some(e=>Math.max(Math.abs(e.r-r),Math.abs(e.c-c))<=3)?1:0):2):(isBack(pl,r,c)?2.2:1.4))*jit(pl);
@@ -1523,7 +1540,7 @@ const AI=(()=>{
       for(const [r,c] of tg){
         const t=G.board[r][c];
         let s;
-        if(t){const M={cards:[...t.cards,...grp],owner:pl,hypo:0};s=tileScore(pl,M,r,c,W,true)-tileScore(pl,t,r,c,W,true)+.2+(W.stack||0)+(hasBase(t)?0:stackAdj(pl,fighters(M)))}
+        if(t){const M={cards:[...t.cards,...grp],owner:pl,hypo:0};s=tileScore(pl,M,r,c,W,true)-tileScore(pl,t,r,c,W,true)+.2+(W.stack||0)+(FAX&&FAX.pl===pl&&!hasBase(t)?FAX.stack||0:0)+(hasBase(t)?0:stackAdj(pl,fighters(M)))}
         else s=tileScore(pl,S,r,c,W,true);
         s*=jit(pl);
         if(!best||s>best.s)best={r,c,s};
@@ -1644,11 +1661,35 @@ const AI=(()=>{
     if(lv==="hard")return P.hand.length<=1||(P.hand.length<=2&&P.deck.length>P.start*.5);
     return P.hand.length<=2;
   }
+  /* ---------- v69 · the economy: Miners into the Aces (only as many as there are slots), now and then the Bank's land ---------- */
+  const minersOwned=pl=>{const P=G.p[pl];return [...P.hand,...P.deck].filter(c=>c.unit==="miner").length};
+  function freeMineSlots(pl){let n=0;for(const {st} of stacksOf(pl))if(hasK(st,"ace"))n+=Math.max(0,2-st.cards.filter(x=>x.unit==="miner").length);
+    for(const p of (G.plots||[]))if(p.owner===pl&&!p.miners.length)n++;return n}
+  async function economy(pl){const P=G.p[pl],A=archOf(pl),e=A?A.econ:1;
+    // a Miner in the hand goes into one of its Aces that has a free slot, anywhere on the field (the mining slots)
+    for(const m of P.hand.filter(c=>c.unit==="miner")){const at=stacksOf(pl).filter(x=>hasK(x.st,"ace")&&x.st.cards.filter(y=>y.unit==="miner").length<2&&stackLegal([...x.st.cards,m])).sort((a,b)=>value(b.st)-value(a.st))[0];
+      if(!at)break;place(m,at.r,at.c);cache.clear();await step()}
+    // very rarely, a plot of the Bank's land, with a Miner to work it
+    if(typeof buyPlot==="function"&&typeof bankOpen==="function"&&bankOpen()&&G.plots){
+      const p=G.plots.find(q=>q.owner==null),price=p?plotPrice(p):99,miner=P.hand.find(c=>c.unit==="miner");
+      if(p&&miner&&mana(pl)>=price+3&&Math.random()<.03*e&&buyPlot(pl,p)){plantMiner(pl,p);await step()}}
+    // a Miner conjured only when a slot is waiting for it
+    if(freeMineSlots(pl)>minersOwned(pl)&&mana(pl)>=4&&Math.random()<.22*e*L(pl).spell)await tryCast("cmine")}
+  /* ---------- v69 · the Oaths: by the archetype's leanings, any Oath that can be sworn now, not almost always the Moon's ---------- */
+  async function aiOaths(pl){const P=G.p[pl],A=archOf(pl);if(!A||P.oath||Math.random()>.3*(A.spell||1))return;
+    const has=k=>[...P.hand,...P.deck].some(c=>kind(c)===k)||stacksOf(pl).some(x=>hasK(x.st,k));
+    const opts=Object.entries(A.oaths||{}).filter(([k])=>{const sp=SP("oath_"+k);return sp&&(k!=="moon"||has("joker"))&&spellReady(sp)});
+    if(!opts.length)return;let t=opts.reduce((a,[,w])=>a+w,0)*Math.random();
+    for(const [k,w] of opts){t-=w;if(t<=0){await tryCast("oath_"+k);return}}}
   /* ---------- whole turns ---------- */
   /* one phase of a computer's turn */
   async function phase(pl,ph){
     cache.clear();pcache.clear();
     if(isHorde(pl))return hordePhase(pl,ph);
+    const ac=archCtx(pl),oldF=FAX;if(ac){FAX=Object.assign({pl},ac);for(const {st} of stacksOf(pl))st.peak=Math.max(st.peak||0,st.cards.filter(c=>!isBase(c)).length)}   // v69: the archetype plays through the same levers as Field Automation
+    try{return await phase0(pl,ph)}finally{if(ac)FAX=oldF}
+  }
+  async function phase0(pl,ph){
     if(ph==="draw"){for(let n=0;n<3&&shouldDraw(pl);n++){rollDraw();await step()}return}
     if(ph==="prep"){
       const W=stance(pl),lv=lvl(pl);
@@ -1657,8 +1698,10 @@ const AI=(()=>{
       await sacrifices(pl,lv==="hard"?5:lv==="medium"?4:2,lv==="hard"?2:1);
       await necro(pl);
       await aiSubstance(pl,W);
+      await aiOaths(pl);
       await curses(pl,W);
       await placements(pl,W,lv==="hard"?1:0);
+      await economy(pl);
       await moves(pl,W);
       await odds(pl);
       await conjures(pl,W);
@@ -1732,7 +1775,7 @@ const AI=(()=>{
           if(!attackOptions(r,c).length&&Math.random()<ctx.ambushP){st.ambush=true;log(`${plName(pl)}'s field sets a stack in ambush.`,"ai")}}}
       else if(ph==="attack")await attacks(pl);
     }finally{FAX=null;cache.clear();G.sel=null}}
-  return{phase,setup,choose,winP,value,LV,bestSpot,field,stance:pl=>stance(pl),W:{PUSH,OFF,DEF},enemyStacks:pl=>enemyStacks(pl),hillHow:pl=>hillHow(pl),hillDist:(r,c)=>hillDist(r,c)};
+  return{ARCH,phase,setup,choose,winP,value,LV,bestSpot,field,stance:pl=>stance(pl),W:{PUSH,OFF,DEF},enemyStacks:pl=>enemyStacks(pl),hillHow:pl=>hillHow(pl),hillDist:(r,c)=>hillDist(r,c)};
 })();
 
 /* ---------------- Survival ---------------- */
@@ -1931,7 +1974,7 @@ function bars(P){
 }
 function pboxHTML(pl,top){
   const P=G.p[pl],act=pl===G.active&&G.phase!=="setup";
-  const tag=P.cpu==="horde"?"the Horde":(P.cpu?`computer · ${P.cpu} · `:"")+(TRIBES[P.tribe]?TRIBES[P.tribe].name:"");
+  const tag=P.cpu==="horde"?"the Horde":(P.cpu?`computer · ${P.cpu}${P.arch&&AI.ARCH[P.arch]?" · "+AI.ARCH[P.arch].name:""} · `:"")+(TRIBES[P.tribe]?TRIBES[P.tribe].name:"");
   const V=view(),rel=pl===V?"":isEnemy(pl,V)?"":'<span class="ally">ally</span>';
   let h=`<div class="ph" style="--pc:${P.color}"><button type="button" class="subst" data-stat="${pl}" title="Status: hover or click">${solidSVG(P.solid,P.color,18)}</button><b>${esc(P.name)}</b><span class="dim">${esc(tag)}</span>${rel}${P.out?'<span class="outmark">out</span>':act?'<span class="turnmark">to play</span>':""}</div>`;
   if(P.out)return h;
@@ -2277,7 +2320,7 @@ function seatForm(i,S,mode,L,taken){taken=taken||new Set();
   let type;
   const you=mode==="cpu"&&i===0;   // v60: "You" is a tag in your own color beside your seat's name
   if(you)type="";else if(mode==="survival")type=`<span class="dim">Human</span>`;
-  else type=`<label class="f">Plays as <select data-seat="${i}" data-k="type">${(mode==="cpu"?[]:[["human","Human"]]).concat([["easy","Computer · Easy"],["medium","Computer · Medium"],["hard","Computer · Hard"]]).map(([v,t])=>`<option value="${v}" ${S.type===v?"selected":""}>${t}</option>`).join("")}</select></label>`;
+  else type=`<label class="f">Plays as <select data-seat="${i}" data-k="type">${(mode==="cpu"?[]:[["human","Human"]]).concat([["easy","Computer · Easy"],["medium","Computer · Medium"],["hard","Computer · Hard"]]).map(([v,t])=>`<option value="${v}" ${S.type===v?"selected":""}>${t}</option>`).join("")}</select></label>`+(S.type&&S.type!=="human"?`<label class="f">Style <select data-seat="${i}" data-k="arch" title="${esc(AI.ARCH[S.arch]?AI.ARCH[S.arch].sub:"Each computer gets one of the styles at random.")}">${[["random","Random (default)"],...Object.entries(AI.ARCH).map(([k,a])=>[k,a.name])].map(([v,t])=>`<option value="${v}" ${(S.arch||"random")===v?"selected":""}>${t}</option>`).join("")}</select></label>`:"");   // v69: the computer's playstyle
   const pcol=TRIBES[S.tribe]&&TRIBES[S.tribe].color||(S.color==="random"?"#c9a274":S.color);
   const T0=TRIBES[S.tribe]||{},scol=T0.color||S.color,ssol=T0.solid||S.solid,
     lsum=`<span class="dim lsum">· ${esc(T0.name||"Random")} ${scol&&scol!=="random"?`<i class="lsw" style="background:${scol}"></i>`:`<i class="lsw rnd">?</i>`}${ssol&&ssol!=="random"&&SOLIDS[ssol]?`<i class="lso">${solidSVG(ssol,scol&&scol!=="random"?scol:"#f3d6a6",14)}</i>`:""}</span>`;
@@ -2500,7 +2543,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     let players=seatsS.slice(0,n).map((S,i)=>{
       const cpu=S.type==="human"?null:S.type;
       let name=(S.name.trim()||`P${i+1}`).slice(0,20);
-      return{name,tribe:S.tribe,color:S.color,solid:S.solid,accent:S.accent||"auto",cpu};
+      return{name,tribe:S.tribe,color:S.color,solid:S.solid,accent:S.accent||"auto",cpu,arch:cpu&&cpu!=="horde"?S.arch||"random":null};
     });
     const blk=skyBlocked(val("omoonon")),bad=players.find(p=>blk.includes(p.tribe));if(bad){flash(`${TRIBES[bad.tribe].name} can't be played with that Heavenly Body in the sky.`);return}
     for(const t of Object.keys(TRIBES))if(t!=="random"&&t!=="beginner"&&players.filter(p=>p.tribe===t).length>1){flash(`Only one player can be ${TRIBES[t].name}. The Beginner is the only Substance more than one player can share.`);return}
@@ -9320,7 +9363,7 @@ const RD_KEYS=["every","perTurn","kinds","minMana","counterOD","noOD","stopDebt"
    No dice box in the columns: one shared dice box (by the hand) lists everyone's latest rolls. */
 const multiView=()=>!!G&&G.p.filter((P,i)=>i!==view()&&!isNPC(i)).length>=2;
 function miniBoxHTML(pl){const P=G.p[pl],V=view(),act=pl===G.active&&G.phase!=="setup";
-  const kindTxt=P.cpu==="horde"?"the Horde":(P.cpu?`computer · ${P.cpu}`:"player")+(TRIBES[P.tribe]?` · ${TRIBES[P.tribe].name}`:"");
+  const kindTxt=P.cpu==="horde"?"the Horde":(P.cpu?`computer · ${P.cpu}${P.arch&&AI.ARCH[P.arch]?" · "+AI.ARCH[P.arch].name:""}`:"player")+(TRIBES[P.tribe]?` · ${TRIBES[P.tribe].name}`:"");
   let h=`<div class="ph mini"><button type="button" class="subst" data-stat="${pl}" aria-label="Status">${solidSVG(P.solid,P.color,15)}</button><b>${esc(P.name)}</b>${pl!==V&&!isEnemy(pl,V)?'<span class="ally">ally</span>':""}${P.out?'<span class="outmark">out</span>':act?'<span class="turnmark">to play</span>':""}</div><div class="minisub">${esc(kindTxt)}</div>`;
   if(P.out)return h;
   if(P.cpu==="horde"){const u=stacksOf(pl).reduce((a,x)=>a+x.st.cards.length,0);return h+`<div class="minitags">${u} card${u===1?"":"s"} on the field</div>`}
@@ -10305,5 +10348,8 @@ function wildFlush(){const q=wildQ;wildQ=[];if(!q.length||!G)return;
 
 /* ---------- v68: tile names on by default (once, for everyone; the Menu and the Display bar still turn them off) ---------- */
 if(!PREF.coordsOn68){PREF.coordsOn68=true;PREF.coords=true;try{savePrefs();applyPrefs()}catch(e){}}
+
+/* ---------- v69: each computer's playstyle (an archetype; Random picks one for the game) ---------- */
+{const _m=mkPlayer;mkPlayer=function(i,o){const P=_m.apply(this,arguments);if(P.cpu&&P.cpu!=="horde"&&!P.npc&&!(o&&o.npc)){const ks=Object.keys(AI.ARCH);P.arch=ks.includes(o&&o.arch)?o.arch:pick(ks)}return P}}
 
 })();

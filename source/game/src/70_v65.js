@@ -132,3 +132,6 @@ function wildFlush(){const q=wildQ;wildQ=[];if(!q.length||!G)return;
 
 /* ---------- v68: tile names on by default (once, for everyone; the Menu and the Display bar still turn them off) ---------- */
 if(!PREF.coordsOn68){PREF.coordsOn68=true;PREF.coords=true;try{savePrefs();applyPrefs()}catch(e){}}
+
+/* ---------- v69: each computer's playstyle (an archetype; Random picks one for the game) ---------- */
+{const _m=mkPlayer;mkPlayer=function(i,o){const P=_m.apply(this,arguments);if(P.cpu&&P.cpu!=="horde"&&!P.npc&&!(o&&o.npc)){const ks=Object.keys(AI.ARCH);P.arch=ks.includes(o&&o.arch)?o.arch:pick(ks)}return P}}
