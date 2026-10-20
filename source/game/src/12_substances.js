@@ -121,13 +121,13 @@ function buryUnit(card,r,c,owner){
     else for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const rr=r+dr,cc=c+dc;if(at(rr,cc)===null&&!isVoid(rr,cc)){G.board[rr][cc]={owner,cards:[a],moved:true,attacked:true,hypo:0};placed=[rr,cc];break}}
     if(!placed)P.hand.push(a);
     log(`<b>Samson falls.</b> ${plName(owner)}'s Antony rises from his heart${placed?` on ${coord(placed[0],placed[1])}`:", into the hand"}. Samson wanders through Limbo.`,"event");
-    popup("Antony rises",`<p>The angel Antony was sharing Samson's form, lodged in his heart, and has resurrected his corpse with himself.</p><p class="dim">Samson's card is not in the grave or the Outer Darkness: he wanders through Limbo. Look for the Limbo tab in the Outer Darkness.</p>`,owner);
+    popup("Antony rises",`<p>The angel Antony was sharing Samson's form, lodged in his heart, and has resurrected his corpse with himself.</p><p class="dim">Samson's card wanders through Limbo.</p>`,owner);
     return true;
   }
   if(u==="antony"){
     G.unknown.push(card);G.p.forEach(Q=>Q.readUnknown=false);
     log(`<b>Antony is gone.</b> ${plName(owner)}'s Antony went missing.`,"event");
-    popup("Antony went missing",`<p>The card leaves no body behind. Antony went missing.</p><p class="dim">Look for the Unknown tab in the Outer Darkness.</p>`,owner);
+    popup("Antony is dead",`<p>The card leaves no body behind. Antony went missing.</p>`,owner);
     return true;
   }
   if(u==="satan"){toDark(card);log(`<b>Satan falls into the Outer Darkness.</b>`,"event");notify(owner,`Satan falls into the Outer Darkness.`);return true}
