@@ -2039,8 +2039,7 @@ function render(){
   $("#seedark").onclick=()=>viewDark("dark");
   const bl=$("#blindnote");if(bl)bl.hidden=!blindFor(V);
   const PV=G.p[V];
-  if(G.limbo.length&&!PV.readLimbo)$("#shared").insertAdjacentHTML("beforeend",`<button class="link notice limbo-n" id="nlimbo">Limbo: Samson is wandering <b>new</b></button>`);
-  if(G.unknown.length&&!PV.readUnknown)$("#shared").insertAdjacentHTML("beforeend",`<button class="link notice unk-n" id="nunk">Unknown: Antony went missing <b>new</b></button>`);
+  // v67: no "new" notices for Limbo and Unknown any more: their tabs wait in the Outer Darkness
   if(!survival()||(G.auction||[]).length){$("#shared").insertAdjacentHTML("beforeend",`<button class="link auct-l" id="seeauct">Auction <b>${G.auction.length}</b></button>`);$("#seeauct").onclick=viewAuction}
   if($("#nlimbo"))$("#nlimbo").onclick=()=>{PV.readLimbo=true;viewDark("limbo");render()};
   if($("#nunk"))$("#nunk").onclick=()=>{PV.readUnknown=true;viewDark("unknown");render()};
@@ -2935,13 +2934,13 @@ function buryUnit(card,r,c,owner){
     else for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const rr=r+dr,cc=c+dc;if(at(rr,cc)===null&&!isVoid(rr,cc)){G.board[rr][cc]={owner,cards:[a],moved:true,attacked:true,hypo:0};placed=[rr,cc];break}}
     if(!placed)P.hand.push(a);
     log(`<b>Samson falls.</b> ${plName(owner)}'s Antony rises from his heart${placed?` on ${coord(placed[0],placed[1])}`:", into the hand"}. Samson wanders through Limbo.`,"event");
-    popup("Antony rises",`<p>The angel Antony was sharing Samson's form, lodged in his heart, and has resurrected his corpse with himself.</p><p class="dim">Samson's card is not in the grave or the Outer Darkness: he wanders through Limbo. Look for the Limbo tab in the Outer Darkness.</p>`,owner);
+    popup("Antony rises",`<p>The angel Antony was sharing Samson's form, lodged in his heart, and has resurrected his corpse with himself.</p><p class="dim">Samson's card wanders through Limbo.</p>`,owner);
     return true;
   }
   if(u==="antony"){
     G.unknown.push(card);G.p.forEach(Q=>Q.readUnknown=false);
     log(`<b>Antony is gone.</b> ${plName(owner)}'s Antony went missing.`,"event");
-    popup("Antony went missing",`<p>The card leaves no body behind. Antony went missing.</p><p class="dim">Look for the Unknown tab in the Outer Darkness.</p>`,owner);
+    popup("Antony is dead",`<p>The card leaves no body behind. Antony went missing.</p>`,owner);
     return true;
   }
   if(u==="satan"){toDark(card);log(`<b>Satan falls into the Outer Darkness.</b>`,"event");notify(owner,`Satan falls into the Outer Darkness.`);return true}
@@ -10279,5 +10278,22 @@ UNIT_ICON.puppet=`<g transform="scale(1.15)">`+`<path d="M6.4,1.4a6.4,6.4 0 1,1 
 const heartN=h=>h.replace(/<span class="hearts" aria-label="(\d+) of (\d+) hearts"/g,(m,a,b)=>`${m} style="--hn:${Math.max(3,+b)}"`);
 {const _f=face;face=function(){return heartN(_f.apply(this,arguments))}}
 {const _sd=siegeDecor;siegeDecor=function(){return heartN(_sd.apply(this,arguments))}}
+
+/* ---------- v67: a popup whenever a wildcard dies, saying where it went; several at once share one popup. Samson keeps his
+   own ("Antony rises": a new card arose from the old one), and so does Antony; the BullGoat's says the Goatbull will come. ---------- */
+const WILD_DEAD=new Set(["satan","leviathan","bullgoat","goatbull","debt","slavemaster","slave","trafficker","tree"]);
+let wildQ=[];
+function wildFlush(){const q=wildQ;wildQ=[];if(!q.length||!G)return;
+  const lines=q.map(x=>`<li>${x.html}</li>`).join(""),born=q.some(x=>x.born);
+  popup(q.length>1?"Wildcards are dead":q[0].title,q.length>1?`<ul class="wilddead">${lines}</ul>`:`<p>${q[0].html}</p>`,q[0].owner)}
+{const _bu=bury;bury=function(card,r,c,st){const u=card&&card.unit,owner=st&&st.owner,was=u;
+  const out=_bu.apply(this,arguments);
+  if(!G||!was||!WILD_DEAD.has(was)||owner==null||!G.p[owner])return out;
+  const who=esc(G.p[owner].name),nm=esc(UNIT[was].name);let where,title=`${UNIT[was].short||UNIT[was].name} is dead`,born=false;
+  if(was==="bullgoat"){title="The Goatbull will rise";born=true;where=`${who}'s BullGoat is dead. It goes back into the deck and will be drawn again as the Goatbull: a new card arises from the old one.`}
+  else if(was==="slave")where=`${who}'s Slave is dead. It dies as the soldier it once was, into the grave.`;
+  else{const at=G.dark.includes(card)?"falls into the Outer Darkness":G.ether.includes(card)?"goes to the Ether":G.grave.includes(card)?"lies in the grave":"is gone";where=`${who}'s ${nm} is dead: it ${at}.`}
+  wildQ.push({title,html:where,owner,born});if(wildQ.length===1)setTimeout(wildFlush,0);
+  return out}}
 
 })();

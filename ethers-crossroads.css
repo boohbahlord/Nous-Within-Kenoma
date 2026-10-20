@@ -1817,3 +1817,4 @@ html.nomap #board .tile.void,html.nomap #board .tile.water{visibility:visible!im
 html.cardsym .cf.v61 .hearts,html.cardsym .stack.v61 .bhp{top:calc(24px * var(--ci,1))}
 #board.large .stack.v61 .bhp{top:min(calc(9px * var(--ci,1)),8cqw);left:min(calc(5px * var(--ci,1)),5cqw)}
 #board.large .stack.v61 .bhp .hearts{font-size:min(calc(11px * var(--ci,1)),calc(52px * var(--ci,1) / var(--hn,3)),12cqw)}
+#pop .wilddead{margin:6px 0 0;padding-left:18px}#pop .wilddead li{margin:3px 0}

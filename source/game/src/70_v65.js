@@ -112,3 +112,20 @@ UNIT_ICON.puppet=`<g transform="scale(1.15)">`+`<path d="M6.4,1.4a6.4,6.4 0 1,1 
 const heartN=h=>h.replace(/<span class="hearts" aria-label="(\d+) of (\d+) hearts"/g,(m,a,b)=>`${m} style="--hn:${Math.max(3,+b)}"`);
 {const _f=face;face=function(){return heartN(_f.apply(this,arguments))}}
 {const _sd=siegeDecor;siegeDecor=function(){return heartN(_sd.apply(this,arguments))}}
+
+/* ---------- v67: a popup whenever a wildcard dies, saying where it went; several at once share one popup. Samson keeps his
+   own ("Antony rises": a new card arose from the old one), and so does Antony; the BullGoat's says the Goatbull will come. ---------- */
+const WILD_DEAD=new Set(["satan","leviathan","bullgoat","goatbull","debt","slavemaster","slave","trafficker","tree"]);
+let wildQ=[];
+function wildFlush(){const q=wildQ;wildQ=[];if(!q.length||!G)return;
+  const lines=q.map(x=>`<li>${x.html}</li>`).join(""),born=q.some(x=>x.born);
+  popup(q.length>1?"Wildcards are dead":q[0].title,q.length>1?`<ul class="wilddead">${lines}</ul>`:`<p>${q[0].html}</p>`,q[0].owner)}
+{const _bu=bury;bury=function(card,r,c,st){const u=card&&card.unit,owner=st&&st.owner,was=u;
+  const out=_bu.apply(this,arguments);
+  if(!G||!was||!WILD_DEAD.has(was)||owner==null||!G.p[owner])return out;
+  const who=esc(G.p[owner].name),nm=esc(UNIT[was].name);let where,title=`${UNIT[was].short||UNIT[was].name} is dead`,born=false;
+  if(was==="bullgoat"){title="The Goatbull will rise";born=true;where=`${who}'s BullGoat is dead. It goes back into the deck and will be drawn again as the Goatbull: a new card arises from the old one.`}
+  else if(was==="slave")where=`${who}'s Slave is dead. It dies as the soldier it once was, into the grave.`;
+  else{const at=G.dark.includes(card)?"falls into the Outer Darkness":G.ether.includes(card)?"goes to the Ether":G.grave.includes(card)?"lies in the grave":"is gone";where=`${who}'s ${nm} is dead: it ${at}.`}
+  wildQ.push({title,html:where,owner,born});if(wildQ.length===1)setTimeout(wildFlush,0);
+  return out}}

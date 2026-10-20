@@ -181,8 +181,7 @@ function render(){
   $("#seedark").onclick=()=>viewDark("dark");
   const bl=$("#blindnote");if(bl)bl.hidden=!blindFor(V);
   const PV=G.p[V];
-  if(G.limbo.length&&!PV.readLimbo)$("#shared").insertAdjacentHTML("beforeend",`<button class="link notice limbo-n" id="nlimbo">Limbo: Samson is wandering <b>new</b></button>`);
-  if(G.unknown.length&&!PV.readUnknown)$("#shared").insertAdjacentHTML("beforeend",`<button class="link notice unk-n" id="nunk">Unknown: Antony went missing <b>new</b></button>`);
+  // v67: no "new" notices for Limbo and Unknown any more: their tabs wait in the Outer Darkness
   if(!survival()||(G.auction||[]).length){$("#shared").insertAdjacentHTML("beforeend",`<button class="link auct-l" id="seeauct">Auction <b>${G.auction.length}</b></button>`);$("#seeauct").onclick=viewAuction}
   if($("#nlimbo"))$("#nlimbo").onclick=()=>{PV.readLimbo=true;viewDark("limbo");render()};
   if($("#nunk"))$("#nunk").onclick=()=>{PV.readUnknown=true;viewDark("unknown");render()};
