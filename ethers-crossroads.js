@@ -4209,7 +4209,7 @@ function crystalHTML(r,c,under){const x=crystalAt(r,c);if(!x)return "";
 function siegeDecor(inner,st,V,r,c){
   const cls=[],b=[],mine=st.owner===V;
   if(shieldUp(st))cls.push("hshield");else if(st.mars)cls.push("marsadv");
-  if(st.mars)b.push(`<span class="supp" style="color:#c2401c" title="Mars: advantage on its next attack">♂</span>`);
+  if(st.mars)b.push(`<span class="supp" style="color:#c2401c" title="Mars: advantage on its next attack">♂︎</span>`);
   if(hasBase(st)&&repLocked(st)){cls.push("replock");b.push(`<span class="rlock" title="A Repairman is at work: nothing fires from here for ${st.repLock-tnOf(st.owner)} more turn(s)">${unitSVG("repair","#2a2016",34)}<em>${st.repLock-tnOf(st.owner)}</em></span>`)}
   if(st.captive)b.push(`<span class="capt" title="Captured: ${esc(nameOf(st.captive))}">⛓${unitSVG(st.captive.unit,"#5b3a1a",12)}</span>`);
   if(st.supp)b.push(`<span class="supp" title="Suppressed: disadvantage on its next attack (${st.supp.n} turn${st.supp.n>1?"s":""})">▼${st.supp.n}</span>`);
@@ -6938,7 +6938,7 @@ const FX={
   smoke(rect){if(!rect)return;for(let i=0;i<5;i++){const s=rect.width*(.25+Math.random()*.2),dx=(Math.random()-.5)*rect.width*.5;
     FX.play(FX.make("puff",rect,{w:s,h:s,dx,dy:rect.height*.15}),[{transform:"translateY(0) scale(.5)",opacity:.7},{transform:`translateY(${-rect.height*(.45+Math.random()*.3)}px) scale(1.4)`,opacity:0}],750+i*80,i*40)}},
   sigil(rect,big){if(!rect)return;const s=big?Math.max(56,rect.height*1.1):Math.max(28,rect.height*.6);
-    FX.play(FX.make("sigil"+(big?" big":""),rect,{w:s,h:s,html:"♄",col:SCHOOL_COL.Necromancy}),[{transform:"translateY(6px) scale(.6)",opacity:0},{transform:"translateY(-4px) scale(1)",opacity:1,offset:.3},{transform:`translateY(${big?-34:-18}px) scale(${big?1.35:1.1})`,opacity:0}],big?1300:900);
+    FX.play(FX.make("sigil"+(big?" big":""),rect,{w:s,h:s,html:"♄︎",col:SCHOOL_COL.Necromancy}),[{transform:"translateY(6px) scale(.6)",opacity:0},{transform:"translateY(-4px) scale(1)",opacity:1,offset:.3},{transform:`translateY(${big?-34:-18}px) scale(${big?1.35:1.1})`,opacity:0}],big?1300:900);
     if(big)FX.burst(rect,SCHOOL_COL.Necromancy,true)},
   pop(rect,text,col){if(!rect)return;FX.play(FX.make("popn",rect,{w:60,h:22,html:esc(text),col,dx:rect.width*.35}),[{transform:"translateY(4px)",opacity:0},{transform:"translateY(-6px)",opacity:1,offset:.25},{transform:"translateY(-26px)",opacity:0}],1000)},
   shuffle(rect){if(!rect)return;const k=Date.now();if(FX._sh&&k-FX._sh<350)return;FX._sh=k;
@@ -7018,8 +7018,8 @@ function castFX(sp,pl,sel,fires){
 if(window.__EC)Object.assign(window.__EC,{FX,cast:sp=>cast(sp),sacrifice:(...a)=>sacrifice(...a),doMove:(r,c)=>doMove(r,c),attack:(...a)=>attack(...a),damage:(...a)=>damage(...a)});
 
 /* ---------------- Prompt 12, part 4b (v33): the schools' signs, the rest of the effects, Mystery Generation's reveal ----------------
-   Every spell raises its school's sign where it lands: Necromancy Saturn (lead) ♄, Enchantment Jupiter ♃, Curse Mars ♂, Sorcery the
-   Sun ☉ (with rays, to tell it from gold), Illusion Neptune ♆, Conjuring alchemical gold ☉, Astrology the Earth ⊕. The sacrifice sign
+   Every spell raises its school's sign where it lands: Necromancy Saturn (lead) ♄︎, Enchantment Jupiter ♃︎, Curse Mars ♂︎, Sorcery the
+   Sun ☉︎ (with rays, to tell it from gold), Illusion Neptune ♆︎, Conjuring alchemical gold ☉︎, Astrology the Earth ⊕. The sacrifice sign
    is bigger. Effects: lightning (Lightning Strike), meteor and boom (Asteroid, meteors), fire (flames on burning tiles), rain (Rain),
    wind (Bird's Eye, Teleport), fog (the Firmament's Fog, Quiet Eyes), wisp (cards raised from the grave), pour and fill (mana spent and
    gained), blunt (melee blows), boom (Cannons and Rams). "$" pops on the Bank window's buttons and where a Debt Collector strikes.
@@ -8445,7 +8445,7 @@ function lazyPlace(card){const pl=G.active,t=lazySpot(pl,card);
   if(!t){flash(`Lazy Hand finds no place for ${nameOf(card)}: place it yourself.`);return false}   // v71: the click falls through and picks the card up
   G.selHand=card;G.mode=null;place(card,t[0],t[1]);G.selHand=null;if(!lazyAuto())lazyArmed=false;render();return true}
 function lazyHTML(live){const ok=live&&lazyCan(),on=lazyAuto();
-  return `<div class="spellrow lazyrow"><button type="button" class="autotog cfgtog${lhMine().autoPlace||lhMine().sac?" on":""}" id="lhCfg" aria-label="Lazy Hand automation" data-tip="Lazy Hand automation: what it never places, and sacrifices from your hand.">⚙</button><button type="button" class="autotog${on?" on":""}" id="autoLazy" aria-pressed="${on}" data-tip="Keep Lazy Hand on: every card you click in your hand is placed for you.">auto</button><button type="button" class="spell lazy ${ok?"":"off"} ${lazyOn()?"armed":""}" id="lazyBtn" aria-pressed="${lazyOn()}" data-tip="Lazy Hand: click it, then a card in your hand, and the computer places that card for you. With Field Automation on, it follows those settings. Free, as often as you like."><span class="sn">${HAND_ICON}Lazy Hand</span><em>${lazyOn()?"on":"free"}</em></button></div>`}
+  return `<div class="spellrow lazyrow"><button type="button" class="autotog cfgtog${lhMine().autoPlace||lhMine().sac?" on":""}" id="lhCfg" aria-label="Lazy Hand automation" data-tip="Lazy Hand automation: what it never places, and sacrifices from your hand.">⚙︎</button><button type="button" class="autotog${on?" on":""}" id="autoLazy" aria-pressed="${on}" data-tip="Keep Lazy Hand on: every card you click in your hand is placed for you.">auto</button><button type="button" class="spell lazy ${ok?"":"off"} ${lazyOn()?"armed":""}" id="lazyBtn" aria-pressed="${lazyOn()}" data-tip="Lazy Hand: click it, then a card in your hand, and the computer places that card for you. With Field Automation on, it follows those settings. Free, as often as you like."><span class="sn">${HAND_ICON}Lazy Hand</span><em>${lazyOn()?"on":"free"}</em></button></div>`}
 {const _rs=renderSpells;renderSpells=function(live){_rs(live);const bs=$("#bankslot");if(!bs||!G||isNPC(view())||G.p[view()].cpu)return;
   bs.insertAdjacentHTML("beforeend",lazyHTML(live));
   $("#lazyBtn").onclick=()=>{if(!lazyCan())return;if(lazyAuto()){PREF.lazyAuto=false;savePrefs();lazyArmed=false}else lazyArmed=!lazyArmed;
@@ -8801,7 +8801,7 @@ async function lhAutoPlace(pl){const P=G.p[pl],c=P.lhCfg;if(!c||!c.autoPlace||G.
 
 /* ---------- the Ritual Dice row gets its settings button ---------- */
 {const _sr=spellRow;spellRow=function(s,live){const h=_sr(s,live);if(!s||s.id!=="ritual"||!G)return h;const on=rdMine().on;
-  return `<div class="spellrow"><button type="button" class="autotog cfgtog${on?" on":""}" id="rdCfg" aria-label="Ritual Dice automation" data-tip="Ritual Dice automation (${on?"on":"off"}): buy it for you, when and how much.">⚙</button>${h}</div>`}}
+  return `<div class="spellrow"><button type="button" class="autotog cfgtog${on?" on":""}" id="rdCfg" aria-label="Ritual Dice automation" data-tip="Ritual Dice automation (${on?"on":"off"}): buy it for you, when and how much.">⚙︎</button>${h}</div>`}}
 {const _rs=renderSpells;renderSpells=function(live){_rs(live);const b=$("#rdCfg");if(b)b.onclick=e=>{e.stopPropagation();faWindow("ritual")}}}
 if(window.__EC)Object.assign(window.__EC,{rdMine,lhMine,autoRitual,lhAutoSac,lhAutoPlace,faWindow:t=>faWindow(t)});
 
@@ -8833,7 +8833,7 @@ SPELL_TEXT.dplus={n:"Select one of your stacks that can attack or defend, one wi
 {const s=SP("dplus");const t=SPELL_TEXT.dplus;s.text=[t.n,t.e,t.l].join(" ")}
 /* the row has a sword and a shield: pick one, then click one of your stacks */
 {const _sr=spellRow;spellRow=function(s,live){const h=_sr(s,live);if(!s||s.id!=="dplus"||!G)return h;
-  return `<div class="spellrow dprow"><button type="button" class="autotog dparm${dpArm==="atk"?" on":""}" data-dparm="atk" aria-label="Dice Plus on an attack" data-tip="Pick the sword, then click one of your stacks.">⚔</button><button type="button" class="autotog dparm${dpArm==="def"?" on":""}" data-dparm="def" aria-label="Dice Plus on a defense" data-tip="Pick the shield, then click one of your stacks.">⛨</button>${h}</div>`}}
+  return `<div class="spellrow dprow"><button type="button" class="autotog dparm${dpArm==="atk"?" on":""}" data-dparm="atk" aria-label="Dice Plus on an attack" data-tip="Pick the sword, then click one of your stacks.">⚔︎</button><button type="button" class="autotog dparm${dpArm==="def"?" on":""}" data-dparm="def" aria-label="Dice Plus on a defense" data-tip="Pick the shield, then click one of your stacks.">⛨</button>${h}</div>`}}
 {const _rs=renderSpells;renderSpells=function(live){_rs(live);document.querySelectorAll("[data-dparm]").forEach(b=>b.onclick=e=>{e.stopPropagation();if(!canAct())return;
   const m=b.dataset.dparm;dpArm=dpArm===m?null:m;if(dpArm){const st=selOwn()&&selStack();if(st&&spellReady(SP("dplus"))){cast(SP("dplus"));return}flash(`Dice Plus (${m==="atk"?"sword":"shield"}): click one of your stacks.`)}render()})}}
 {const _tc=tileClick;tileClick=function(r,c){const out=_tc.apply(this,arguments);
@@ -8853,7 +8853,7 @@ function stackSpells(st){const L=[],t=n=>`${n} turn${n===1?"":"s"}`;
   if(hated(st))L.push(["Hate","until it fights","disadvantage"]);
   return L}
 {const _sd=siegeDecor;siegeDecor=function(inner,st,V,r,c){let h=_sd(inner,st,V,r,c);const L=stackSpells(st);
-  const add=[];if(st.dplus){h=h.replace('class="stack ',`class="stack dp-${st.dplus.m} `);add.push(`<span class="dpicon" aria-hidden="true">${st.dplus.m==="atk"?"⚔":"⛨"}</span>`)}
+  const add=[];if(st.dplus){h=h.replace('class="stack ',`class="stack dp-${st.dplus.m} `);add.push(`<span class="dpicon" aria-hidden="true">${st.dplus.m==="atk"?"⚔︎":"⛨"}</span>`)}
   if(L.length)add.push(`<span class="spfx" title="${esc(L.map(x=>`${x[0]}: ${x[1]}${x[2]?", "+x[2]:""}`).join(" · "))}"><span class="spdur">${L[0][1]}${L[0][2]?" · "+L[0][2]:""}${L.length>1?` +${L.length-1}`:""}</span><span class="spname">${L.map(x=>x[0]).join(" · ")}</span></span>`);
   if(add.length&&h.endsWith("</div>"))h=h.slice(0,-6)+add.join("")+"</div>";return h}}
 
@@ -10913,7 +10913,7 @@ ${ec?`<circle r="43" fill="url(#nepdark)"/>`:""}<circle r="40" fill="url(#nepglo
   const lost=V!=null&&G.p[V]?stacksOf(V).filter(x=>x.st.lost).length:0;if(lost)L.push(`${lost} of your stacks ${lost===1?"is":"are"} lost in the cloud.`);
   L.push("The first mana each player earns or spends each round rolls 1d20: a 1 sends it to another player (a spender still pays), a 20 doubles it.","The moon's phases are stopped.");
   skyCommon(L);return skyBox("Neptune","",L,"neptune")}}
-SKY_PARA.neptune="Neptune, the Form of Dissolve, stops the Moon's phases. Every 4d2 turns a cloud in its blue settles over the tiles around the cards for 2d4 turns, drifting with every turn. Its tiles are in fog for everyone, even beside your own cards (a tile with your own stack stays yours). At the start of each player's turn in the cloud, a 1 on 1d20 loses one of their stacks for 1d3 + 1d2 − 1 of their turns: they can't see it or command it, nor can their automation; it never attacks, defends itself, and wanders. Another of their stacks beside it finds it: then they see it, see-through, as everyone does. The first mana each player earns or spends each round rolls 1d20: a 1 sends it to another player (a spender still pays), a 20 doubles it. Its cycle, every ten rounds, lasts 2d3 rounds: the tiles fade into the map and everyone's numbers go dark; a sacrifice's mana goes to another player on a 1 of 1d8; the mana a purchase brings the Bank goes to a random player on a 1 of 1d10 (not in Survival); a drawn card is lost at sea on a 1 of 1d20 (another from the same draw on a 1 of 1d3), found 1d10 turns later by anyone; a card that dies sinks on a 1 of 1d4, to the Outer Darkness (1 on 1d2) or the Ether (2); at its start Neptune offers each player a free Clairvoyance or 2d6 + 1d2 mana for 1d6 deck cards; and once a round, on a 1 of 1d8, a player may sacrifice up to three cards from the grave for their soul worth. Its eclipse (5% in each round of its cycle) lasts 2d3 rounds and brings its whole cycle with it: everyone's numbers lie and hands go blank and shuffled, every deck is shuffled, names turn to astrological signs, every stack on the field takes a stranger's color (a stranger's stack can be picked up, but acting with it costs 1d2 deck cards; once a round, on a 1 of 1d6, it moves by accident), a 1 of 1d20 sends a move or an attack astray (twice a round at most), prices, the Ether's counts and the Bank's mana lie (one price in eight reads free), Field Automation and Lazy Hand wait (still On, crossed out), the field may turn around, and the music sinks an octave and a half step, muffled.";
+SKY_PARA.neptune="Neptune, the Form of Dissolve, stops the Moon's phases. Every 4d2 turns a cloud in its blue settles over the tiles around the cards for 2d4 turns, drifting with every turn. Its tiles are in fog for everyone, even beside your own cards (a tile with your own stack stays yours). At the start of each player's turn in the cloud, a 1 on 1d20 loses one of their stacks for 1d3 + 1d2 − 1 of their turns: they can't see it or command it, nor can their automation; it never attacks, defends itself, and wanders. Another of their stacks beside it finds it: then they see it, see-through, as everyone does. The first mana each player earns or spends each round rolls 1d20: a 1 sends it to another player (a spender still pays), a 20 doubles it. Its cycle, every ten rounds, lasts 2d3 rounds: the tiles fade into the map and everyone's numbers go dark; a sacrifice's mana goes to another player on a 1 of 1d8; the mana a purchase brings the Bank goes to a random player on a 1 of 1d10 (not in Survival); a drawn card is lost at sea on a 1 of 1d20 (another from the same draw on a 1 of 1d3), found 1d10 turns later by anyone; a card that dies sinks on a 1 of 1d4, to the Outer Darkness (1 on 1d2) or the Ether (2); at its start Neptune offers each player a free Clairvoyance or 2d6 + 1d2 mana for 1d6 deck cards; and once a round, on a 1 of 1d8, a player may sacrifice up to three cards from the grave for their soul worth. Its eclipse (5% in each round of its cycle) lasts 2d3 rounds and brings its whole cycle with it: everyone's numbers lie and hands go blank and shuffled, every deck is shuffled, names turn to random letters and numbers, every stack on the field takes a stranger's color (a stranger's stack can be picked up, but acting with it costs 1d2 deck cards; once a round, on a 1 of 1d6, it moves by accident), a 1 of 1d20 sends a move or an attack astray (twice a round at most), prices, the Ether's counts and the Bank's mana lie (one price in eight reads free), Field Automation and Lazy Hand wait (still On, crossed out), the field may turn around, and the music sinks an octave and a half step, muffled.";
 
 /* ---------- v71c-2: Neptune's cycle, every ten rounds it has hung in the sky, for 2d3 rounds ----------
    It glows; the tiles lose their outlines into the map and everyone's numbers go dark. A sacrifice's mana goes to a random
@@ -10995,7 +10995,7 @@ let nepBuying=null;
 /* ---------- v71c-3: Neptune's eclipse: 5% in each round of its cycle (v71i) (or Eclipse mode; never with eclipses off), as long as
    its cycle would be (2d3 rounds, rolled for itself), and every effect of its cycle with it. Neptune glows brighter in a
    black aura. Everyone's numbers lie (Mana Delusion) and hands go blank and shuffled (Blind Hand); every deck is
-   shuffled; names turn to jumbles of astrological signs; every stack on the field takes a stranger's color, so nobody
+   shuffled; names turn to random runs of letters and numbers; every stack on the field takes a stranger's color, so nobody
    is sure which are theirs. A stranger's stack can be picked up, but acting with it costs 1d2 deck cards; once a round,
    on a 1 of 1d6, it moves by accident. Twice a round at most, a 1 of 1d20 sends a move or an attack astray. Prices lie
    (one in eight reads free), and so do the Ether's counts and the Bank's mana. Field Automation and Lazy Hand still read
@@ -11003,17 +11003,22 @@ let nepBuying=null;
    half step, muffled. ---------- */
 const nepEcOn=()=>nepUp()&&!!G.eclipse&&G.eclipse.k==="neptune";
 function nepEcPause(pl){return !!G&&nepEcFor(pl)}   // used by blindPause (70_v65)
-const NEP_SIGNS="☉☽☿♀♂♃♄♅♆♇♈♉♊♋♌♍♎♏♐♑♒♓☊☋☌☍";
+/* v71m: a name under the eclipse is a random run of letters and numbers (4 to 7, both kinds in it); the zodiac signs it
+   used to be made of showed as emoji on phones */
+const NEP_CHARS="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz",NEP_DIGITS="0123456789";
+function nepJumble(){const n=3+R(4),all=NEP_CHARS+NEP_DIGITS,ch=s=>s[Math.floor(Math.random()*s.length)];const a=Array.from({length:n},()=>ch(all));
+  if(!a.some(x=>NEP_DIGITS.includes(x)))a[Math.floor(Math.random()*n)]=ch(NEP_DIGITS);if(!a.some(x=>NEP_CHARS.includes(x))){const i=Math.floor(Math.random()*n);a[i]=ch(NEP_CHARS)}
+  return a.join("")}
 const nepHash=s=>{let h=2166136261;for(const ch of String(s))h=Math.imul(h^ch.charCodeAt(0),16777619);return h>>>0};
 {const _e=eclipse;eclipse=async function(k){if(k!=="neptune")return _e.apply(this,arguments);if(typeof eclipsesOff==="function"&&eclipsesOff())return;
   const d=sum(rollN(2,3)),r=G.moon.round;G.eclipse={k:"neptune",round:r,until:r+d-1};
-  const names={};for(const P of G.p){let s="";const n=3+R(4);for(let i=0;i<n;i++)s+=NEP_SIGNS[Math.floor(Math.random()*NEP_SIGNS.length)];names[P.i]=s}
+  const names={};for(const P of G.p)names[P.i]=nepJumble();
   G.nepEc={names,seed:R(1e6),flip:R(2)===1,mis:{},foe:{}};
   for(const P of G.p){if(P.out||isNPC(P.i)||isHorde(P.i))continue;shuffle(P.deck);shuffle(P.hand);
     (G.blindHand=G.blindHand||[]).push({by:"nep",t:P.i,left:999});(G.manaDel=G.manaDel||[]).push({by:"nep",t:P.i,left:999,off:delOff()})}
   applyMoonTheme();
   log(`<b>Neptune's eclipse</b> for ${d} round${d>1?"s":""} (2d3): names, numbers, prices and colors lie, hands go blank, every deck is shuffled, and automation waits. All of Neptune's cycle comes with it.`,"event");
-  popup("Neptune is eclipsed",`<p>A black aura closes around Neptune for <b>${d} round${d>1?"s":""}</b> (2d3), and everything it touches dissolves.</p><ul><li>Every player's numbers lie, and hands go blank and shuffled; every deck is shuffled.</li><li>Names turn to signs, and every stack on the field takes a stranger's color: a stack you pick up may not be yours, and acting with one that isn't costs 1d2 cards from your deck (once a round, on a 1 of 1d6, it moves by accident).</li><li>Twice a round, a 1 of 1d20 sends a move or an attack astray.</li><li>Prices, the Ether's counts and the Bank's mana lie.</li><li>Field Automation and Lazy Hand wait for it to end.</li><li>Everything in Neptune's cycle happens too.</li></ul>`);
+  popup("Neptune is eclipsed",`<p>A black aura closes around Neptune for <b>${d} round${d>1?"s":""}</b> (2d3), and everything it touches dissolves.</p><ul><li>Every player's numbers lie, and hands go blank and shuffled; every deck is shuffled.</li><li>Names turn to random letters and numbers, and every stack on the field takes a stranger's color: a stack you pick up may not be yours, and acting with one that isn't costs 1d2 cards from your deck (once a round, on a 1 of 1d6, it moves by accident).</li><li>Twice a round, a 1 of 1d20 sends a move or an attack astray.</li><li>Prices, the Ether's counts and the Bank's mana lie.</li><li>Field Automation and Lazy Hand wait for it to end.</li><li>Everything in Neptune's cycle happens too.</li></ul>`);
   render()}}
 {const _ee=endEclipse;endEclipse=function(){if(G.eclipse&&G.eclipse.k==="neptune"){G.nepEc=null;for(const k of ["blindHand","manaDel"])if(G[k])G[k]=G[k].filter(x=>x.by!=="nep")}return _ee.apply(this,arguments)}}
 /* acting with a stranger's stack */
@@ -11096,7 +11101,7 @@ function nepLostTargets(k){const me_=G.active,P=G.p[me_],out=[];
   if(P.nepWay!=="self"&&G.moon.round>3)for(const e of enemiesOf(me_))if(!isNPC(e)&&!isHorde(e)&&!G.p[e].out&&!nepSelf(e))out.push(e);
   return out}
 const nepLostOk=k=>!!G&&oathNow(G.active,"neptune")&&!nepEcOn()&&!(k==="ev"&&nepEvOn())&&!nepSelf(G.active)&&nepLostTargets(k).length>0;
-function nepSignNames(){const names={};for(const P of G.p){let s="";const n=3+R(4);for(let i=0;i<n;i++)s+=NEP_SIGNS[Math.floor(Math.random()*NEP_SIGNS.length)];names[P.i]=s}return names}
+function nepSignNames(){const names={};for(const P of G.p)names[P.i]=nepJumble();return names}
 async function castLostness(k){const me_=G.active,P=G.p[me_],nm=k==="ev"?"Lostness I":"Lostness II";
   const ts=nepLostTargets(k);let t=ts.length===1?ts[0]:await ask(me_,{kind:"player",id:"lostness",title:`${nm}: on whom?`,players:ts,ai:()=>me_});
   if(t==null)return;

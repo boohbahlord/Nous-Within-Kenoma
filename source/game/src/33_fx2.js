@@ -1,6 +1,6 @@
 /* ---------------- Prompt 12, part 4b (v33): the schools' signs, the rest of the effects, Mystery Generation's reveal ----------------
-   Every spell raises its school's sign where it lands: Necromancy Saturn (lead) ♄, Enchantment Jupiter ♃, Curse Mars ♂, Sorcery the
-   Sun ☉ (with rays, to tell it from gold), Illusion Neptune ♆, Conjuring alchemical gold ☉, Astrology the Earth ⊕. The sacrifice sign
+   Every spell raises its school's sign where it lands: Necromancy Saturn (lead) ♄︎, Enchantment Jupiter ♃︎, Curse Mars ♂︎, Sorcery the
+   Sun ☉︎ (with rays, to tell it from gold), Illusion Neptune ♆︎, Conjuring alchemical gold ☉︎, Astrology the Earth ⊕. The sacrifice sign
    is bigger. Effects: lightning (Lightning Strike), meteor and boom (Asteroid, meteors), fire (flames on burning tiles), rain (Rain),
    wind (Bird's Eye, Teleport), fog (the Firmament's Fog, Quiet Eyes), wisp (cards raised from the grave), pour and fill (mana spent and
    gained), blunt (melee blows), boom (Cannons and Rams). "$" pops on the Bank window's buttons and where a Debt Collector strikes.

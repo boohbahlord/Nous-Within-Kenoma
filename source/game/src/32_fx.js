@@ -40,7 +40,7 @@ const FX={
   smoke(rect){if(!rect)return;for(let i=0;i<5;i++){const s=rect.width*(.25+Math.random()*.2),dx=(Math.random()-.5)*rect.width*.5;
     FX.play(FX.make("puff",rect,{w:s,h:s,dx,dy:rect.height*.15}),[{transform:"translateY(0) scale(.5)",opacity:.7},{transform:`translateY(${-rect.height*(.45+Math.random()*.3)}px) scale(1.4)`,opacity:0}],750+i*80,i*40)}},
   sigil(rect,big){if(!rect)return;const s=big?Math.max(56,rect.height*1.1):Math.max(28,rect.height*.6);
-    FX.play(FX.make("sigil"+(big?" big":""),rect,{w:s,h:s,html:"♄",col:SCHOOL_COL.Necromancy}),[{transform:"translateY(6px) scale(.6)",opacity:0},{transform:"translateY(-4px) scale(1)",opacity:1,offset:.3},{transform:`translateY(${big?-34:-18}px) scale(${big?1.35:1.1})`,opacity:0}],big?1300:900);
+    FX.play(FX.make("sigil"+(big?" big":""),rect,{w:s,h:s,html:"♄︎",col:SCHOOL_COL.Necromancy}),[{transform:"translateY(6px) scale(.6)",opacity:0},{transform:"translateY(-4px) scale(1)",opacity:1,offset:.3},{transform:`translateY(${big?-34:-18}px) scale(${big?1.35:1.1})`,opacity:0}],big?1300:900);
     if(big)FX.burst(rect,SCHOOL_COL.Necromancy,true)},
   pop(rect,text,col){if(!rect)return;FX.play(FX.make("popn",rect,{w:60,h:22,html:esc(text),col,dx:rect.width*.35}),[{transform:"translateY(4px)",opacity:0},{transform:"translateY(-6px)",opacity:1,offset:.25},{transform:"translateY(-26px)",opacity:0}],1000)},
   shuffle(rect){if(!rect)return;const k=Date.now();if(FX._sh&&k-FX._sh<350)return;FX._sh=k;
