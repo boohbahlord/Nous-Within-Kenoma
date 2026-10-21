@@ -114,7 +114,7 @@ const PALETTE=[["Crimson","#d7333b"],["Blood","#b3191f"],["Rose","#e4648f"],["Ro
   ["Gold","#e3b944"],["Lime","#c6df47"],["Moss","#8fb33f"],["Emerald","#2fa36b"],["Forest","#2f9150"],["Verdigris","#45b89c"],["Frost","#74d7ea"],["Ice","#9fe3f0"],
   ["Azure","#4c92e6"],["Sapphire","#3a6fd8"],["Indigo","#5d5fe3"],["Violet","#a77de8"],["Amethyst","#9a62d8"],["Magenta","#cf4fd0"],
   ["Slate","#8597ad"],["Ash","#7a7f88"],["Silver","#c9ccd6"],["Bone","#efe2c8"],["Onyx","#17120e"]];
-const COLORS=PALETTE.filter(([n])=>n!=="Bone"&&n!=="Onyx");
+const COLORS=PALETTE.filter(([n])=>n!=="Bone");   // v71m: Onyx (black) is a player's color too; its names and symbols get a light edge
 /* how alike two colors look (CIE Lab distance under 20): such colors can't both be players' colors */
 const labOf=h=>{const f=c=>{c/=255;return c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4)},[r,g,b]=[1,3,5].map(i=>f(parseInt(h.slice(i,i+2),16)));
   const X=(.4124*r+.3576*g+.1805*b)/.95047,Y=.2126*r+.7152*g+.0722*b,Z=(.0193*r+.1192*g+.9505*b)/1.08883,q=t=>t>.008856?Math.cbrt(t):7.787*t+16/116;
@@ -2362,7 +2362,7 @@ const MODES=[
  ["local","Standard","Local play: against computers, together on this device, or both. Up to four people, and computers (Easy, Medium or Hard) in any other seat. 1v1, free-for-all, two against two, or up to 8 in King of the Hill. With more than one person the board turns to whoever is playing, and the screen goes dark while you pass it."],
  ["survival","Survival","1 to 4 players hold the line against a Horde that comes in waves and grows with each one. Count the rounds you last."]];
 let startMode=null;
-const ORD=["One","Two","Three","Four"],SEATCOL=["Ember","Azure","Verdigris","Rose","Violet","Moss","Gold","Frost"].map(n=>COLORS.findIndex(c=>c[0]===n)),SEATSOL=["tetra","icosa","cube","octa","dodeca","tetra","icosa","cube"];   // v57: eight seats for King of the Hill
+const ORD=["One","Two","Three","Four"];   // v71m: seats start on Random color and symbol (no fixed seat colors any more)
 const LAYOUTS={
  duel:["1v1","Two players, one army at each end of the field. Needs exactly 2 players."],
  ffa:["Free-for-all","Everyone for themselves, one player to each edge of the field. Needs 3 or 4 players."],
@@ -2387,11 +2387,12 @@ ${S.noSubs?`<p class="dim fixednote">No Emanations (the Table option): everyone 
 ${(()=>{const T=TRIBES[S.tribe]||{};
   const acc=c0=>`<div class="f"><span>Accent</span><div class="opts swatches accents">${ACCENTS.map(([v,nm])=>`<label class="sw" title="${nm}${v==="auto"?" (a light shade of the color)":""}"><input type="radio" name="ac${n}" data-seat="${i}" data-k="accent" value="${v}" ${v===(S.accent||"auto")?"checked":""}><span style="--pc:${v==="auto"?accentOf(c0&&c0!=="random"?c0:"#c9a274","auto"):v}"></span><em>${nm}</em></label>`).join("")}</div></div><p class="dim acnote">The accent is the thin frame around each of your cards, and the glow on the card you have selected.</p>`;   // v61: the frame of your cards (v71: and the selection glow)
   if(T.color)return `<p class="dim fixednote">${esc(T.name)} always plays in its own color and symbol: ${solidSVG(T.solid,T.color,20)}</p>`+acc(T.color);
-  const tc0=S.takenC||[],tcOf=h=>{const x=tc0.find(([c])=>colorNear(c,h));return x?x[1]:null},tc=Object.fromEntries(COLORS.map(([,h])=>[h,tcOf(h)]).filter(x=>x[1]));   // v71: a color another seat holds, or one like it, can't be picked
+  const tc0=S.takenC||[],tcOf=h=>{const x=tc0.find(([c])=>S.alikeOk?c===h:colorNear(c,h));return x?x[1]:null},tc=Object.fromEntries(COLORS.map(([,h])=>[h,tcOf(h)]).filter(x=>x[1]));   // v71: a color another seat holds, or one like it, can't be picked
   const colors=`<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex])=>`<label class="sw${tc[hex]&&hex!==S.color?" off":""}" title="${nm}${tc[hex]&&hex!==S.color?` (too like ${esc(tc[hex])}'s color)`:""}"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="${hex}" ${hex===S.color?"checked":""} ${tc[hex]&&hex!==S.color?"disabled":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}<label class="sw swrand" title="Random: a color nobody else has"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="random" ${S.color==="random"?"checked":""}><span>?</span><em>Random</em></label></div></div>`;
   if(T.solid)return colors+acc(S.color)+`<p class="dim fixednote">${esc(T.name)} always bears its own symbol: ${solidSVG(T.solid,S.color,20)}</p>`;
   return colors+acc(S.color)+`<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="${k}" ${k===S.solid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}<label class="so-opt" title="Random: a symbol nobody else has"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="random" ${S.solid==="random"?"checked":""}><span><b class="sorand">?</b><em>Random</em></span></label></div></div>`;
 })()}
+${lookExtras(i,S,n)}
 </details></fieldset>`;
 }
 const val=name=>{const e=document.querySelector(`input[name="${name}"]:checked`);return e&&e.value};
@@ -2407,13 +2408,14 @@ function showStart(){
   }
   const mode=startMode,M=MODES.find(m=>m[0]===mode);
   const seatsS=[0,1,2,3,4,5,6,7].map(i=>({name:mode==="survival"&&i===0?"Survivor":`P${i+1}`,type:i===0?"human":"medium",
-    tribe:i>0?"random":"beginner",color:i>0?"random":COLORS[SEATCOL[i]][1],solid:i>0?"random":SEATSOL[i],team:i%2,named:false}));
+    tribe:i>0?"random":"beginner",color:"random",solid:"random",team:i%2,named:false}));   // v71m: color and symbol start on Random
   let curLayout=null;
   const counts=mode==="survival"?[1,2,3,4]:mode==="online"?[2,3,4]:[2,3,4,5,6,7,8];
   const forms=`<fieldset class="pf"><legend>Table</legend>
 <label class="f">${mode==="survival"?"Players against the Horde":"Players"} <select id="pcount">${counts.map(c=>`<option value="${c}" ${c===counts[0]?"selected":""}>${c}</option>`).join("")}</select></label>
 <div class="f" id="layoutf" ${mode==="survival"?"hidden":""}><span>Layout</span><div class="opts">${Object.entries(LAYOUTS).map(([k,[t,d]],i)=>`<label class="opt" data-lay="${k}"><input type="radio" name="olayout" value="${k}" ${i===0?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
 <p class="dim" id="laynote"></p>
+${chk("oalike","Allow colors that look alike","Players may pick a color close to another player's (never the very same one). Off by default: a color too like another player's can't be picked.",false)}
 ${chk("onosubs","No Emanations","Every player plays by the plain rules, with no Emanation's advantages or drawbacks. On by default in Survival.",mode==="survival")}
 <div id="kothopts" hidden><div class="f"><span>King of the Hill</span><div class="opts">
 ${chk("okteam","Team mode","Players form two sides, Side A and Side B (not necessarily even). Off: everyone for themselves.",true)}
@@ -2492,7 +2494,8 @@ ${chk("oskyrand","A random start","Every few rounds only. Each new Heavenly Body
 <label class="opt"><input type="checkbox" id="danimm" ${PREF.fxMagic!==false?"checked":""}><span>Magic and other animations (on by default)<small>Spells, the sky, fire and weather, and the drifting fog. Off, the fog of war stands still.</small></span></label></div>
 <p class="dim">Turning animations off helps slower phones. Also in the Display bar at the bottom of the game.</p></fieldset>
 <fieldset class="pf"><legend>Colors</legend><div class="opts">
-<label class="opt"><input type="checkbox" id="dcb" ${PREF.cb?"checked":""}><span>Colorblind-safe colors (off by default)<small>Every player shows in a color that red-green and blue-yellow colorblind eyes can tell apart, the nearest to the one they picked. Their cards and stacks carry a faint pattern of their own and always show their symbol. Only on this device.</small></span></label></div></fieldset>
+<label class="opt"><input type="checkbox" id="dcb" ${PREF.cb?"checked":""}><span>Colorblind-safe colors (off by default)<small>Every player shows in a color that red-green and blue-yellow colorblind eyes can tell apart, the nearest to the one they picked. Their cards and stacks carry a faint pattern of their own and always show their symbol. Only on this device.</small></span></label>
+<label class="opt"><input type="checkbox" id="dpat" ${PREF.pat===false?"":"checked"}><span>Card patterns (on by default)<small>Each player's cards and stacks carry a faint pattern of their own: each seat picks one, or Random.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Connection</legend><div class="opts">${NET_NAMES.map((t,i)=>`<label class="opt"><input type="radio" name="dnet" value="${i}" ${netLvl()===i?"checked":""}><span>${t}${i?"":" (default)"}<small>${NET_SUBS[i]}</small></span></label>`).join("")}</div>
 <p class="dim">How much the game loads and sends, on this device. Also in the Menu and the Display bar.</p></fieldset>
 <fieldset class="pf"><legend>Background lines</legend><div class="opts">
@@ -2553,24 +2556,24 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     const key=L+(L==="coop"?n:"");if(key!==curLayout){curLayout=key;sizeUp()}
     if($("#kothopts")){$("#kothopts").hidden=L!=="koth";SEAT_KOTH_TEAM=$("#okteam").checked;$("#oktug").disabled=!SEAT_KOTH_TEAM;kothMapUp(L)}
     $("#laynote").textContent=mode==="survival"?(n===1?"One survivor on the usual field.":`${n} survivors share the bottom of the field, and the Horde spawns once for each of you. Any seat can be a computer; people take their turns one after another on this device, and the Horde moves first each round.`):"";
-    const blk=skyBlocked(val("omoonon")),hum=humans(),ns=$("#onosubs")&&$("#onosubs").checked;
-    seatsS.forEach((S,i)=>{S.you=i===0&&S.type==="human"&&hum===1&&!NET.inSetup;S.noHuman=S.type!=="human"&&hum>=4;S.noSubs=ns});   // v70d: four people on one device at most
+    const blk=skyBlocked(val("omoonon")),hum=humans(),ns=$("#onosubs")&&$("#onosubs").checked,alike=!!($("#oalike")&&$("#oalike").checked),near=(a,b)=>alike?a===b:colorNear(a,b);
+    seatsS.forEach((S,i)=>{S.you=i===0&&S.type==="human"&&hum===1&&!NET.inSetup;S.noHuman=S.type!=="human"&&hum>=4;S.noSubs=ns;S.alikeOk=alike});   // v70d: four people on one device at most
     // v71: no two seats share a color; an Emanation's own color (Satan's crimson) takes Crimson from the others, and a seat that held it moves
     // v71e: and no two alike (colorNear): a color too close to another seat's can't be picked
     const colOf=Q=>!ns&&TRIBES[Q.tribe]&&TRIBES[Q.tribe].color||(Q.color&&Q.color!=="random"?Q.color:null);
     const takenBy=i=>seatsS.slice(0,n).map((Q,j)=>j===i?null:[colOf(Q),Q.name||`P${j+1}`]).filter(x=>x&&x[0]);
     seatsS.slice(0,n).forEach((S,i)=>{if(!ns&&TRIBES[S.tribe]&&TRIBES[S.tribe].color||!S.color||S.color==="random")return;
-      const fixedBy=seatsS.slice(0,n).some((Q,j)=>j!==i&&!ns&&TRIBES[Q.tribe]&&TRIBES[Q.tribe].color&&colorNear(TRIBES[Q.tribe].color,S.color));
-      if(fixedBy){const t=takenBy(i),free=COLORS.map(c=>c[1]).find(c=>!t.some(([h])=>colorNear(h,c)));if(free)S.color=free}});
+      const fixedBy=seatsS.slice(0,n).some((Q,j)=>j!==i&&!ns&&TRIBES[Q.tribe]&&TRIBES[Q.tribe].color&&near(TRIBES[Q.tribe].color,S.color));
+      if(fixedBy){const t=takenBy(i),free=COLORS.map(c=>c[1]).find(c=>!t.some(([h])=>near(h,c)));if(free)S.color=free}});
     seatsS.slice(0,n).forEach((S,i)=>{S.takenC=takenBy(i)});
     $("#seats").innerHTML=seatsS.slice(0,n).map((S,i)=>seatForm(i,S,mode,L,new Set([...blk,...seatsS.slice(0,n).filter((Q,j)=>j!==i&&Q.tribe!=="random"&&Q.tribe!=="beginner").map(Q=>Q.tribe)]))).join("");
     $("#seats").querySelectorAll("details.look").forEach((d,i)=>d.addEventListener("toggle",()=>{seatsS[i].open=d.open}));   // v60: each seat's fold stays as it was left
     $("#seats").querySelectorAll("[data-seat]").forEach(el=>el.addEventListener(el.tagName==="INPUT"&&el.type==="text"?"input":"change",()=>{
-      const S=seatsS[+el.dataset.seat],k=el.dataset.k;S[k]=el.value;if(k==="name")S.named=true;
+      const S=seatsS[+el.dataset.seat],k=el.dataset.k;S[k]=el.type==="checkbox"?el.checked:el.value;if(k==="name")S.named=true;
       if(k==="color"){S.lookSet=true;el.closest(".seat").style.setProperty("--pc",el.value);drawSeats();return}   // v61: the accents follow the color
       if(k==="tribe"||k==="color"||k==="solid")S.lookSet=true;
       if(k==="type"){if(el.value==="human"&&humans()>4){S.type="medium";flash("Four people can play on one device at most.");drawSeats();return}
-        if(!S.lookSet){const i2=+el.dataset.seat,cpu=el.value!=="human";S.tribe=cpu?"random":"beginner";S.color=cpu?"random":COLORS[SEATCOL[i2]][1];S.solid=cpu?"random":SEATSOL[i2]}
+        if(!S.lookSet){const cpu=el.value!=="human";S.tribe=cpu?"random":"beginner";S.color="random";S.solid="random"}
         drawSeats();return}
       if(k==="team"){S.team=+el.value;drawSeats()}
       if(k==="tribe"){S.open=true;drawSeats()}
@@ -2617,7 +2620,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
   };
   $("#oeach").addEventListener("change",()=>$("#oeach").dataset.touched=1);
   document.querySelectorAll('input[name=odeckper],input[name=oetherper],input[name=ospecials],input[name=osuitmode],#ojoker').forEach(i=>i.addEventListener("change",()=>{if(i.name==="odeckper")$("#decksset").dataset.touched=1;sumUp()}));sumUp();
-  $("#onosubs").addEventListener("change",drawSeats);
+  $("#onosubs").addEventListener("change",drawSeats);$("#oalike").addEventListener("change",drawSeats);
   const SKY_NOTE={bid:"Every 2 + 1d2 − 1 completed cycles, the Heavenly Body announces it is leaving. Players bid mana to keep it for one more cycle, or to see it go; the highest bid wins (an Oath of that Heavenly Body adds half again to a bid on a 2 of 1d2). If nobody bids to keep it, a new Heavenly Body takes the sky.",never:"The Heavenly Body stays until a spell, the shop or an Emanation changes it.",cycles:"After this many of its cycles, a new Heavenly Body takes the sky.",rounds:"After this many rounds, a new Heavenly Body takes the sky, wherever it is in its cycle."};
   const skyUp=()=>{const m=$("#oskychg").value,ev=m==="cycles"||m==="rounds",dice=val("oskyhow")==="dice";$("#skychgnote").textContent=SKY_NOTE[m];
     $("#skyevery").hidden=!ev;$("#oskyunit").textContent=m==="rounds"?"rounds":"cycles";$("#skyn").hidden=dice;$("#skyd").hidden=!dice;
@@ -2638,7 +2641,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     let players=seatsS.slice(0,n).map((S,i)=>{
       const cpu=S.type==="human"?null:S.type;
       let name=(S.name.trim()||`P${i+1}`).slice(0,20);
-      return{name,tribe:S.tribe,color:S.color,solid:S.solid,accent:S.accent||"auto",cpu,arch:cpu&&cpu!=="horde"?S.arch||"random":null};
+      return{name,tribe:S.tribe,color:S.color,solid:S.solid,accent:S.accent||"auto",pattern:S.pattern||"random",sheen:!!S.sheen,cpu,arch:cpu&&cpu!=="horde"?S.arch||"random":null};
     });
     const blk=skyBlocked(val("omoonon")),bad=players.find(p=>blk.includes(p.tribe));if(bad){flash(`${TRIBES[bad.tribe].name} can't be played with that Heavenly Body in the sky.`);return}
     if($("#onosubs").checked)players.forEach(p=>{p.tribe="plain"});   // v70d: No Emanations: everyone plays by the plain rules
@@ -2655,7 +2658,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     startGame({mode,players,mid:mode==="survival"||(val("orowsd")?+val("orowsd")>4:true),aceLock:$("#olock").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,cheat:!!($("#ocheat")&&$("#ocheat").checked),hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off","saturn"].includes(val("omoonon")||"on"),
       map:L==="koth"?"hill":val("omap"),big:L==="koth"?"":val("obig")||"",koth:L==="koth"?{team:$("#okteam").checked,tug:$("#okteam").checked&&$("#oktug").checked,double:$("#okdouble").checked,contest:$("#okcontest").checked,target:+val("oktarget")||50,near:val("oknear")==="near",cpu:val("okcpu")||"each"}:null,cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:L==="duel"&&val("orowsd")?+val("orowsd"):undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
       deckPer:val("odeckper")||"1",etherPer:val("oetherper")||"same",noSubs:$("#onosubs").checked,specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:val("odeckper")==="half"&&L==="duel"&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
-      startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",cycleEvents:$("#ocycev").checked,eclipses:$("#oeclipse").checked,skyChange:skyChangeOpts(),atkSpells:$("#oatk").checked,pshop:$("#opshop")?$("#opshop").checked:true,
+      startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",cycleEvents:$("#ocycev").checked,alikeOk:!!($("#oalike")&&$("#oalike").checked),eclipses:$("#oeclipse").checked,skyChange:skyChangeOpts(),atkSpells:$("#oatk").checked,pshop:$("#opshop")?$("#opshop").checked:true,
       layout:L,turns:$("#oturns").value,timer:+$("#otimer").value,cpuSpeed:$("#ospeed").value,elimDark:val("oelim")==="dark",shareDeck:$("#oshare").checked});
   };
 }
@@ -2971,16 +2974,16 @@ function resolveSubstances(opts){
     const T=TRIBES[p.tribe];if(T.color)p.color=T.color;if(T.solid)p.solid=T.solid;
   }
   // v43: Random color and Random symbol take what nobody else has (after the fixed ones of the Emanations)
-  const ps=opts.players.filter(p=>p.cpu!=="horde");
+  const ps=opts.players.filter(p=>p.cpu!=="horde"),near=(a,b)=>opts.alikeOk?a===b:colorNear(a,b);   // v71m: alike colors can be allowed
   const usedC=ps.filter(p=>TRIBES[p.tribe].color||p.color&&p.color!=="random").map(p=>TRIBES[p.tribe].color||p.color);
-  for(const p of ps)if(!TRIBES[p.tribe].color&&(!p.color||p.color==="random")){const free=COLORS.map(c=>c[1]).filter(c=>!usedC.some(u=>colorNear(u,c)));p.color=pick(free.length?free:COLORS.map(c=>c[1]));usedC.push(p.color)}   // v71e: nothing alike
+  for(const p of ps)if(!TRIBES[p.tribe].color&&(!p.color||p.color==="random")){const free=COLORS.map(c=>c[1]).filter(c=>!usedC.some(u=>near(u,c)));p.color=pick(free.length?free:COLORS.map(c=>c[1]));usedC.push(p.color)}   // v71e: nothing alike
   const usedS=new Set(ps.filter(p=>TRIBES[p.tribe].solid||p.solid&&p.solid!=="random").map(p=>TRIBES[p.tribe].solid||p.solid));
   for(const p of ps)if(!TRIBES[p.tribe].solid&&(!p.solid||p.solid==="random")){const free=Object.keys(SOLIDS).filter(k=>!usedS.has(k));p.solid=pick(free.length?free:Object.keys(SOLIDS));usedS.add(p.solid)}
   // a fixed color can collide with (or look like) a color someone picked: the one who picked moves to a free color
   const used=opts.players.filter(p=>p.cpu!=="horde"&&TRIBES[p.tribe].color).map(p=>p.color);
   for(const p of opts.players){
     if(p.cpu==="horde"||TRIBES[p.tribe].color)continue;
-    if(used.some(u=>colorNear(u,p.color)))p.color=COLORS.map(c=>c[1]).find(c=>!used.some(u=>colorNear(u,c)))||p.color;
+    if(used.some(u=>near(u,p.color)))p.color=COLORS.map(c=>c[1]).find(c=>!used.some(u=>near(u,c)))||p.color;
     used.push(p.color);
   }
 }
@@ -11436,5 +11439,59 @@ function fxMinPaint(){const m=$("#menu");if(!m)return;const on=fxMin(),each=fxEa
   fxMinPaint()}}
 
 if(window.__EC)Object.assign(window.__EC,{fxMinSet,fxLvl,FX_LVLS,fxSeen:(e,id)=>fxSeen(e,id)});
+
+/* ---------- v71m: more symbols, card patterns, metal sheen, and black as a player's color ----------
+   - Five more shapes for the players' symbols, so a full table of eight never runs short: the Sphere, the Pyramid, the
+     Prism, the Pentagram and the Cuboctahedron, drawn like the Platonic solids.
+   - Card patterns: each player's cards and stacks carry a faint pattern of their own. In the seat's look, Pattern is
+     Random by default (a pattern nobody else has), None, or one of eight. A Display setting (on by default) shows them;
+     Colorblind-safe colors always show them.
+   - Metal sheen (off by default, per player): a slow shine sweeps across that player's cards and stacks.
+   - Onyx (black) is a player's color: its names, symbols and dice get a light edge so they read on dark pages. */
+Object.assign(SOLIDS,{sphere:"Sphere",pyramid:"Pyramid",prism:"Prism",penta:"Pentagram",cubocta:"Cuboctahedron"});
+{const _sp=solidPath;solidPath=function(s){
+  if(s==="sphere")return "M-9,0A9,9 0 1,0 9,0A9,9 0 1,0 -9,0Z M-9,0A9,3.1 0 1,0 9,0A9,3.1 0 1,0 -9,0Z M0,-9A3.4,9 0 1,0 0,9A3.4,9 0 1,0 0,-9Z";
+  if(s==="pyramid"){const T=[0,-9.5],L=[-9.5,5],F=[-1.5,8.8],R=[9.5,4.4];return ring([T,L,F,R])+seg(T,F)}
+  if(s==="prism"){const f=[[-9,7.6],[1.4,7.6],[-3.8,-1.6]],b=[[-2.4,1.4],[8,1.4],[2.8,-7.8]];return ring(f)+seg(f[1],b[1])+seg(f[2],b[2])+seg(b[1],b[2])+seg(b[0],b[2])}
+  if(s==="penta"){const p=poly(5,9.8,-90);return "M"+[0,2,4,1,3].map(i=>p[i].join(",")).join("L")+"Z"}
+  if(s==="cubocta"){const q=poly(4,9.6,45),m=q.map((v,i)=>{const w=q[(i+1)%4];return[(v[0]+w[0])/2,(v[1]+w[1])/2]});return ring(q)+ring(m)}
+  return _sp.apply(this,arguments)}}
+
+/* black needs a light edge to read on dark pages */
+const darkCol=c=>typeof c==="string"&&/^#[0-9a-f]{6}$/i.test(c)&&labOf(c)[0]<14;
+{const _ss=solidSVG;solidSVG=function(s,color,size){const h=_ss.apply(this,arguments);return darkCol(color)?h.replace('stroke="#000" stroke-opacity=".55"','stroke="#e8e0d4" stroke-opacity=".8"'):h}}
+{const _d=dieSVG;dieSVG=function(d,col){return _d.call(this,d,darkCol(col)?"#a59d92":col)}}
+{const _mk=FX.make;FX.make=function(cls,rect,o){if(o&&darkCol(o.col))o=Object.assign({},o,{col:"#a59d92"});return _mk.call(this,cls,rect,o)}}
+
+/* patterns: one per player, chosen or random (none for the Bank's and the Demons' cards) */
+const PATTERNS=["Slant","Reverse","Dots","Upright","Flat","Hatch","Grid","Rings"];
+const SHEEN_T=6;
+{const _m=mkPlayer;mkPlayer=function(i,o){const P=_m.apply(this,arguments);P.patSel=o&&o.pattern!=null?String(o.pattern):"random";P.sheen=!!(o&&o.sheen);return P}}
+function dealPatterns(){if(!G||!G.p)return;const ps=G.p.filter(P=>P&&!P.npc&&!isNPC(P.i));
+  for(const P of ps){const v=P.patSel;P.pattern=v==="none"?-1:/^\d$/.test(v)&&+v<PATTERNS.length?+v:null}
+  const used=new Set(ps.map(P=>P.pattern).filter(x=>x!=null&&x>=0));
+  for(const P of ps)if(P.pattern==null){const free=PATTERNS.map((_,k)=>k).filter(k=>!used.has(k));P.pattern=pick(free.length?free:PATTERNS.map((_,k)=>k));used.add(P.pattern)}}
+{const _ng=newGame;newGame=function(){const out=_ng.apply(this,arguments);dealPatterns();return out}}
+function lookStyle(P){if(!P||P.npc)return "";let s="";if(P.pattern!=null&&P.pattern>=0)s+=`--cbpat:var(--pat${P.pattern});`;
+  if(P.sheen)s+=`--shd:-${(performance.now()/1000%SHEEN_T).toFixed(2)}s;`;return s}   // the shine keeps its pace when the page is drawn again
+{const _f=face;face=function(c,o={}){const h=_f.apply(this,arguments),own=o.owner!==undefined?o.owner:c.owner,P=own!=null&&G&&G.p[own]?G.p[own]:null,ls=lookStyle(P);
+  if(!ls)return h;return (P.sheen?h.replace(/^<span class="cf /,'<span class="cf sheen '):h).replace('style="--pc:',`style="${ls}--pc:`)}}
+{const _sd=siegeDecor;siegeDecor=function(inner,st){const h=_sd.apply(this,arguments);if(!st)return h;const P=G.p[st.owner],ls=lookStyle(P);if(!ls)return h;
+  return h.replace(/(<div class="stack[^"]*") style="/,(m,a)=>`${P.sheen?a.replace('class="stack ','class="stack sheen '):a} style="${ls}`)}}
+{const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);document.documentElement.classList.toggle("nopat",PREF.pat===false)}}
+
+/* the seat's look: Pattern and Metal sheen, after the symbol */
+function lookExtras(i,S,n){const v=S.pattern||"random",pc=S.color&&S.color!=="random"?S.color:"#c9a274";
+  return `<div class="f"><span>Pattern</span><div class="opts swatches pats">${[["random","Random"],["none","None"],...PATTERNS.map((nm,k)=>[String(k),nm])].map(([val,nm])=>
+    `<label class="sw pat${val==="random"?" swrand":""}" title="${val==="random"?"Random: a pattern nobody else has":nm}"><input type="radio" name="pt${n}" data-seat="${i}" data-k="pattern" value="${val}" ${v===val?"checked":""}><span style="--pc:${pc};${/^\d$/.test(val)?`--cbpat:var(--pat${val})`:""}">${val==="random"?"?":""}</span><em>${nm}</em></label>`).join("")}</div></div>
+<label class="chk"><input type="checkbox" data-seat="${i}" data-k="sheen" ${S.sheen?"checked":""}> <span><b>Metal sheen</b><small>A slow shine sweeps across this player's cards and stacks. Off by default.</small></span></label>`}
+
+/* the Display: Card patterns, on by default (the Menu, and the setup's Colors box) */
+{const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu"),a=m&&m.querySelector("#mCardSym");if(!a||m.querySelector("#mPat"))return;
+  a.closest("label").insertAdjacentHTML("afterend",`<label class="f">Card patterns <select id="mPat"><option value="1" ${PREF.pat===false?"":"selected"}>On (default)</option><option value="0" ${PREF.pat===false?"selected":""}>Off</option></select></label>`);
+  $("#mPat").onchange=e=>{PREF.pat=e.target.value==="1";savePrefs();applyPrefs()}}}
+document.addEventListener("change",e=>{if(e.target&&e.target.id==="dpat"){PREF.pat=e.target.checked;savePrefs();applyPrefs()}});
+
+if(window.__EC)Object.assign(window.__EC,{dealPatterns,PATTERNS,darkCol});
 
 })();

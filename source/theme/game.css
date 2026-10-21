@@ -1945,14 +1945,14 @@ html.th-office .ovbox.bank .landerr{color:#a3202a}
 /* v71h: Colorblind-safe colors (75_access.js). Each player's cards and stacks carry a faint pattern of their own, and the
    player symbol always shows. The dark blue is lifted for words on dark themes; on Office every name is darkened. */
 @property --cbpat{syntax:"*";inherits:false}
-html.cvd .v61[style*="--pc:#56b4e9"]{--cbpat:repeating-linear-gradient(45deg,#ffffff2b 0 1.5px,#0000 1.5px 7px)}
-html.cvd .v61[style*="--pc:#d55e00"]{--cbpat:repeating-linear-gradient(-45deg,#ffffff2b 0 1.5px,#0000 1.5px 7px)}
-html.cvd .v61[style*="--pc:#f0e442"]{--cbpat:radial-gradient(circle,#ffffff3d 0 1.4px,#0000 1.9px) 0 0/7px 7px}
-html.cvd .v61[style*="--pc:#cc79a7"]{--cbpat:repeating-linear-gradient(90deg,#ffffff2b 0 1.5px,#0000 1.5px 7px)}
-html.cvd .v61[style*="--pc:#0072b2"]{--cbpat:repeating-linear-gradient(0deg,#ffffff2b 0 1.5px,#0000 1.5px 7px)}
-html.cvd .v61[style*="--pc:#009e73"]{--cbpat:repeating-linear-gradient(45deg,#ffffff24 0 1.5px,#0000 1.5px 9px),repeating-linear-gradient(-45deg,#ffffff24 0 1.5px,#0000 1.5px 9px)}
-html.cvd .v61[style*="--pc:#e69f00"]{--cbpat:repeating-linear-gradient(0deg,#ffffff24 0 1.5px,#0000 1.5px 9px),repeating-linear-gradient(90deg,#ffffff24 0 1.5px,#0000 1.5px 9px)}
-html.cvd .v61[style*="--pc:#dddddd"]{--cbpat:repeating-radial-gradient(circle at 50% 45%,#ffffff2b 0 1.5px,#0000 1.5px 6px)}
+html.cvd .v61[style*="--pc:#56b4e9"]{--cbpat:var(--pat0)}
+html.cvd .v61[style*="--pc:#d55e00"]{--cbpat:var(--pat1)}
+html.cvd .v61[style*="--pc:#f0e442"]{--cbpat:var(--pat2)}
+html.cvd .v61[style*="--pc:#cc79a7"]{--cbpat:var(--pat3)}
+html.cvd .v61[style*="--pc:#0072b2"]{--cbpat:var(--pat4)}
+html.cvd .v61[style*="--pc:#009e73"]{--cbpat:var(--pat5)}
+html.cvd .v61[style*="--pc:#e69f00"]{--cbpat:var(--pat6)}
+html.cvd .v61[style*="--pc:#dddddd"]{--cbpat:var(--pat7)}
 html.cvd [style*="--pc:"]{--pct:var(--pc)}
 html.cvd:not(.th-office) [style*="--pc:#0072b2"],html.cvd:not(.th-office) [style*="--pc: #0072b2"]{--pct:#4a9fdc}
 html.cvd .pn,html.cvd .note,html.cvd #pop h2{color:var(--pct,var(--pc))}
@@ -1968,3 +1968,24 @@ html.lite #menu label.mslide:has(#mMus){display:none}
 @media (max-width:520px){#menu .mslides label.f.mslide:has(#mFxLvl){grid-template-columns:minmax(5.5em,7em) auto minmax(60px,1fr) auto minmax(3.4em,7.5em)}#menu #mFxLvlV{white-space:normal}}
 /* v71m: symbols are never drawn as emoji (where the browser can choose; the strings also ask for text with U+FE0E) */
 html.ecpage body,.fx{font-variant-emoji:text}
+
+/* v71m: card patterns: eight, each player one of their own (79_looks.js); off in the Display, they stay for colorblind eyes */
+:root{--pat0:repeating-linear-gradient(45deg,#ffffff2b 0 1.5px,#0000 1.5px 7px);--pat1:repeating-linear-gradient(-45deg,#ffffff2b 0 1.5px,#0000 1.5px 7px);
+  --pat2:radial-gradient(circle,#ffffff3d 0 1.4px,#0000 1.9px) 0 0/7px 7px;--pat3:repeating-linear-gradient(90deg,#ffffff2b 0 1.5px,#0000 1.5px 7px);
+  --pat4:repeating-linear-gradient(0deg,#ffffff2b 0 1.5px,#0000 1.5px 7px);
+  --pat5:repeating-linear-gradient(45deg,#ffffff24 0 1.5px,#0000 1.5px 9px),repeating-linear-gradient(-45deg,#ffffff24 0 1.5px,#0000 1.5px 9px);
+  --pat6:repeating-linear-gradient(0deg,#ffffff24 0 1.5px,#0000 1.5px 9px),repeating-linear-gradient(90deg,#ffffff24 0 1.5px,#0000 1.5px 9px);
+  --pat7:repeating-radial-gradient(circle at 50% 45%,#ffffff2b 0 1.5px,#0000 1.5px 6px)}
+html.nopat:not(.cvd) .v61{--cbpat:none!important}
+.sw.pat span{border-radius:6px;background:var(--cbpat,none),color-mix(in oklab,var(--pc) 44%,#211b16)}
+.sw.pat.swrand span{background:conic-gradient(#ee7a3c,#e3b944,#45b89c,#4c92e6,#a77de8,#e4648f,#d7333b,#ee7a3c)}
+/* metal sheen: a slow shine sweeps across a player's cards and stacks, then rests; it keeps its pace when the page redraws */
+.v61.sheen:not(.down)::before{content:"";position:absolute;inset:0;z-index:1;border-radius:inherit;pointer-events:none;mix-blend-mode:screen;
+  background:linear-gradient(105deg,transparent 0 38%,#ffffff1a 44%,#ffffff70 50%,#ffffff1a 56%,transparent 62% 100%) no-repeat;background-size:320% 100%;
+  animation:sheen 6s ease-in-out infinite;animation-delay:var(--shd,0s)}
+@keyframes sheen{0%{background-position:110% 0}40%,100%{background-position:-10% 0}}
+html.lite .v61.sheen::before,html.still-glow .v61.sheen::before{animation:none;background-position:-10% 0}
+@media (prefers-reduced-motion:reduce){.v61.sheen::before{animation:none;background-position:-10% 0}}
+/* Onyx (black) names read on dark pages: a light edge */
+.pn[style*="--pc:#17120e"],.note[style*="--pc: #17120e"],#pop .popbox[style*="--pc:#17120e"] h2{text-shadow:0 0 1px #e8e0d4,0 0 3px #e8e0d4bb,0 0 7px #ffffff40}
+html.th-office .pn[style*="--pc:#17120e"]{text-shadow:none}
