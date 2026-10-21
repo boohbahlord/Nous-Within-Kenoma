@@ -245,7 +245,7 @@ async function saturnEclipse(){
 {const _ec=eclipse;eclipse=async function(k){if(k==="saturn")return saturnEclipse();return _ec(k)}}
 {const _ee=endEclipse;endEclipse=function(){if(G.eclipse&&G.eclipse.k==="saturn"){G.eclipse=null;log("The eclipse of Saturn passes.");applyMoonTheme();G._vis=null;return}return _ee()}}
 {const _er=eclipseRound;eclipseRound=async function(){await _er();if(G.over)return;
-  if(sky()==="saturn"&&!G.eclipse&&(Math.random()<.05||G.opts.eclipseStart&&!G.eclipsedOnce||G.forceEclipse)){G.forceEclipse=false;G.eclipsedOnce=true;await saturnEclipse()}}}
+  if(sky()==="saturn"&&!G.eclipse&&(ecCycleNow("saturn")&&Math.random()<.05||G.opts.eclipseStart&&!G.eclipsedOnce||G.forceEclipse)){G.forceEclipse=false;G.eclipsedOnce=true;await saturnEclipse()}}}
 
 /* ---------- Venus's eclipse also heals every card, and can mend a betrayal ---------- */
 {const _ec2=eclipse;eclipse=async function(k){await _ec2(k);if(k!=="venus")return;
