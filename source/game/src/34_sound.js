@@ -93,6 +93,7 @@ const AUD=(()=>{
     "ecl-venus":A=>{drone(A,130.8,"sine",.008,500);A.timers.push(setInterval(()=>S.harp(),18000));S.harp()},
     "ecl-jupiter":A=>{drone(A,98,"sine",.01,600);drone(A,147,"sine",.007,600);A.timers.push(setInterval(()=>S.coins(),8000));S.coins()},
     "ecl-mercury":A=>{drone(A,73,"triangle",.01,400);A.timers.push(setInterval(()=>{S.quill();setTimeout(()=>S.whispers(),2500)},10000));S.quill();setTimeout(()=>S.whispers(),2500)},
+    "ecl-neptune":A=>{drone(A,46.2,"sine",.017,260);drone(A,69.3,"triangle",.008,380,-7);hiss(A,.012,650,.5)},   // v71c: deep water
     "ecl-saturn":A=>{drone(A,49,"sawtooth",.014,300);drone(A,73.5,"sawtooth",.009,300);A.timers.push(setInterval(()=>S.bell(),9000));S.bell()}};
   function setAmb(k){if(k===ambKey)return;stopAmb();if(!k||!AMB[k]||!ok()){ambKey=k&&AMB[k]?null:k;return}ambKey=k;const a=ctx();if(!a)return;amb={nodes:[],gains:[],timers:[]};try{AMB[k](amb)}catch(e){console.error(e)}}
   Object.assign(S,{setAmb,stopAmb,ok});Object.defineProperty(S,"ambKey",{get:()=>ambKey});return S;

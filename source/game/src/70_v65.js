@@ -88,7 +88,7 @@ if(window.__EC)Object.assign(window.__EC,{setFaLock:(...a)=>setFaLock(...a),atta
 
 /* ---------- blind: Field Automation and Lazy Hand pause (N3). While a player is blinded (the second Sun, an eclipse and the
    like) their field isn't played for them and Lazy Hand places nothing; both stay on and carry on once they can see. ---------- */
-const blindPause=pl=>typeof totalBlind==="function"&&totalBlind(pl);
+const blindPause=pl=>typeof totalBlind==="function"&&totalBlind(pl)||nepEcPause(pl);   // v71c: and Neptune's eclipse
 function notePause(pl,what){const k=what+"|"+G.turnNo;G._blindNote=G._blindNote||{};if(G._blindNote[pl]===k)return;G._blindNote[pl]=k;
   log(`${what} pauses while ${plName(pl)} is blind; it carries on when they can see again.`,"event")}
 {const _fr=faRun;faRun=async function(pl){if(G&&faOn(pl)&&blindPause(pl)){notePause(pl,"Field Automation");return}return _fr.apply(this,arguments)}}
@@ -97,8 +97,9 @@ function notePause(pl,what){const k=what+"|"+G.turnNo;G._blindNote=G._blindNote|
 {const _l=lazyPlace;lazyPlace=function(card){if(G&&blindPause(G.active)){G.selHand=card;G.mode=null;flash("Lazy Hand pauses while you are blind: place this card yourself.");render();return false}return _l.apply(this,arguments)}}
 /* the buttons say so */
 {const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view();if(V==null||!blindPause(V))return;
-  const t=document.querySelector(".fabar .fatog");if(t&&faOn(V)&&!t.dataset.blind){t.dataset.blind="1";t.textContent="Auto field: paused (blind)";t.title="Field Automation pauses while you are blind; it carries on when you can see again."}
-  const l=$("#lazyBtn");if(l&&!l.classList.contains("blindpause")){l.classList.add("blindpause");l.setAttribute("data-tip","Lazy Hand pauses while you are blind.")}}}
+  const nep=nepEcPause(V);   // v71c: in Neptune's eclipse the switches stay On, crossed out
+  const t=document.querySelector(".fabar .fatog");if(t&&faOn(V)&&!t.dataset.blind){t.dataset.blind="1";if(nep){t.classList.add("nepcancel");t.title="Neptune's eclipse: Field Automation is lost in the fog until it ends."}else{t.textContent="Auto field: paused (blind)";t.title="Field Automation pauses while you are blind; it carries on when you can see again."}}
+  const l=$("#lazyBtn");if(l&&!l.classList.contains("blindpause")){l.classList.add("blindpause");if(nep)l.classList.add("nepcancel");l.setAttribute("data-tip",nep?"Neptune's eclipse: Lazy Hand is lost in the fog until it ends.":"Lazy Hand pauses while you are blind.")}}}
 if(window.__EC)Object.assign(window.__EC,{skyAsyncW:(...a)=>skyAsync(...a),totalBlindW:V=>totalBlind(V),faRunW2:(...a)=>faRun(...a),lhAutoPlaceW:(...a)=>lhAutoPlace(...a)});
 
 /* ---------- v66: the Puppet's picture: a round head in the middle of the card, like a puppet toy or a dummy doll: dot eyes, a

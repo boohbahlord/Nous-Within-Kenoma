@@ -111,7 +111,8 @@
   const themeOn=P=>true;   // v71: the music plays in every theme
   const vol=P=>Math.max(0,Math.min(1.5,P.musicVol==null?1:+P.musicVol));
   const inGame=()=>/ethers-crossroads-play/.test(location.pathname);
-  const hz=m=>440*Math.pow(2,(m-69)/12);
+  let TR=0,LPF=null;   // v71c: Neptune's eclipse transposes the music down an octave and a half step, and muffles it
+  const hz=m=>440*Math.pow(2,(m+TR-69)/12);
   let ac=null,out=null,timer=null,playing=false,T=null,ti=0,next=0,step=0,ei=0,EV=[],total=0,last=-1,BUS=null,CACHE={},DST=null,GL=null,prevF=null,BEDS=[],MUTE="";
   /* a seeded chance, so a song written out sounds the same each time; in play it is new each time through */
   let SEED=1;const rnd=()=>{SEED=SEED+0x6D2B79F5|0;let t=Math.imul(SEED^SEED>>>15,1|SEED);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296};
@@ -123,7 +124,7 @@
   /* the mix: everything -> a swell -> a flanger -> a slow pitch wobble -> the volume -> the song's low-pass and its old echo.
      The melody and the bass pass a fuzz on the way (off unless a song wants it). The room and the delay come back in before the flanger. */
   function graph(){CACHE={};BEDS=[];
-    out=gn(0);const lp=biq("lowpass",1600),dl=ac.createDelay(1);dl.delayTime.value=.42;const fb=gn(.22),wet=gn(.28);
+    out=gn(0);const lp=biq("lowpass",TR?520:1600);LPF=lp;const dl=ac.createDelay(1);dl.delayTime.value=.42;const fb=gn(.22),wet=gn(.28);
     out.connect(lp);lp.connect(ac.destination);lp.connect(dl);dl.connect(fb);fb.connect(dl);dl.connect(wet);wet.connect(ac.destination);
     const pre=gn(),swl=gn(),fdry=gn(),fwet=gn(0),fd=ac.createDelay(.05),ffb=gn(.55),fl=ac.createOscillator(),flg=gn(.0035);fd.delayTime.value=.0068;fl.frequency.value=.13;
     const wow=ac.createDelay(1);wow.delayTime.value=.03;const w1=ac.createOscillator(),wg1=gn(0),w2=ac.createOscillator(),wg2=gn(0);w1.frequency.value=.3;w2.frequency.value=.071;
@@ -383,6 +384,7 @@
   /* v70: an event's or an eclipse's sound: the music fades out slowly to make room for it, and comes back slowly after.
      duck(ms) for a short sound; hold(true/false) while an eclipse's (or the Blood Moon's) sound lasts. */
   let duckT=null;
+  function nep(on){const t=on?-13:0;if(t===TR)return;TR=t;if(LPF&&ac)LPF.frequency.setTargetAtTime(on?520:1600,ac.currentTime,.8)}   // v71c: Neptune's eclipse
   function hold(on){on=!!on;if(on===HOLD)return;HOLD=on;if(!ac||!playing)return;out.gain.cancelScheduledValues(ac.currentTime);out.gain.setTargetAtTime(LV(),ac.currentTime,on?1.1:1.4)}
   function duck(ms){if(!ac||!playing)return;const t=ac.currentTime;out.gain.cancelScheduledValues(t);out.gain.setTargetAtTime(BASE*vol(prefs())*.06,t,.45);
     clearTimeout(duckT);duckT=setTimeout(()=>{if(!ac||!playing)return;out.gain.cancelScheduledValues(ac.currentTime);out.gain.setTargetAtTime(LV(),ac.currentTime,.7)},ms||2600)}
@@ -395,6 +397,6 @@
       load(i,true);next=.05;playing=true;tick(len-6.5);buf=await ac.startRendering()}
     finally{RENDER=false;[ac,out,BUS,CACHE,BEDS,DST,GL,T,ti,last,step,ei,EV,total,next,playing,prevF,SEED,MUTE]=keep}
     return buf}
-  window.ECMusic={sync,start,stop,duck,hold,renderSong,setLobby,next:nextSong,get playing(){return playing},get track(){return T?T.name:null},tracks:names,allTracks:TRACKS.map(t=>t.name),info:()=>TRACKS.map(t=>({name:t.name,bar:t.bar,chords:t.chords.length,total:t.mel.reduce((a,x)=>a+x[1],0)})),setMode:m=>{MODE=m},
+  window.ECMusic={sync,start,stop,duck,hold,nep,renderSong,setLobby,next:nextSong,get playing(){return playing},get track(){return T?T.name:null},tracks:names,allTracks:TRACKS.map(t=>t.name),info:()=>TRACKS.map(t=>({name:t.name,bar:t.bar,chords:t.chords.length,total:t.mel.reduce((a,x)=>a+x[1],0)})),setMode:m=>{MODE=m},
     setVol:v=>{setPref("musicVol",Math.round(Math.max(0,Math.min(1.5,v))*100)/100);sync()},get vol(){return vol(prefs())}};
 })();

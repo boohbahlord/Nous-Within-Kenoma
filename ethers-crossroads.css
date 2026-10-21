@@ -1911,3 +1911,9 @@ html.nepev #board .tile .coord,html.nepev #board .rl{opacity:0}
 html.nepev .pbox .meter,html.nepev .pbox p.stats,html.nepev #me .meter,html.nepev #me p.stats{visibility:hidden}
 .nepword{font-family:"Grenze Gotisch","Old English Text MT",serif;font-size:17px;color:#3f9be0;opacity:.85;text-shadow:0 0 6px #3f9be088;margin-right:6px;animation:nepword 2.4s ease-in-out}
 @keyframes nepword{0%{opacity:0;letter-spacing:.3em}40%{opacity:.9}100%{opacity:.75;letter-spacing:0}}
+/* v71c-3: Neptune's eclipse */
+.nepcancel{position:relative}
+.nepcancel::after{content:"";position:absolute;left:50%;top:50%;width:1.6em;height:1.6em;transform:translate(-50%,-50%);border-radius:50%;border:2px solid #3f9be0;background:linear-gradient(45deg,transparent 45%,#3f9be0 45%,#3f9be0 55%,transparent 55%);opacity:.9;pointer-events:none}
+html.nepflip #board{rotate:180deg}
+html.nepflip #board .stack,html.nepflip #board .coord,html.nepflip #board .rl,html.nepflip #board .crys{rotate:180deg}
+html.nepec .game h1{text-shadow:0 0 14px #6a1fa0}
