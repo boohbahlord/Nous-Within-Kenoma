@@ -47,7 +47,7 @@ const PALETTE=[["Crimson","#d7333b"],["Blood","#b3191f"],["Rose","#e4648f"],["Ro
   ["Gold","#e3b944"],["Lime","#c6df47"],["Moss","#8fb33f"],["Emerald","#2fa36b"],["Forest","#2f9150"],["Verdigris","#45b89c"],["Frost","#74d7ea"],["Ice","#9fe3f0"],
   ["Azure","#4c92e6"],["Sapphire","#3a6fd8"],["Indigo","#5d5fe3"],["Violet","#a77de8"],["Amethyst","#9a62d8"],["Magenta","#cf4fd0"],
   ["Slate","#8597ad"],["Ash","#7a7f88"],["Silver","#c9ccd6"],["Bone","#efe2c8"],["Onyx","#17120e"]];
-const COLORS=PALETTE.filter(([n])=>n!=="Bone"&&n!=="Onyx");
+const COLORS=PALETTE.filter(([n])=>n!=="Bone");   // v71m: Onyx (black) is a player's color too; its names and symbols get a light edge
 /* how alike two colors look (CIE Lab distance under 20): such colors can't both be players' colors */
 const labOf=h=>{const f=c=>{c/=255;return c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4)},[r,g,b]=[1,3,5].map(i=>f(parseInt(h.slice(i,i+2),16)));
   const X=(.4124*r+.3576*g+.1805*b)/.95047,Y=.2126*r+.7152*g+.0722*b,Z=(.0193*r+.1192*g+.9505*b)/1.08883,q=t=>t>.008856?Math.cbrt(t):7.787*t+16/116;
