@@ -2395,8 +2395,8 @@ ${chk("obank","The Bank opens with mana","The Bank starts with (2 × players)d2 
 ${chk("oeach","Each player rolls their own","On by default with one deck; off by default otherwise, when one roll sets the same starting mana for everyone.",false)}
 <p class="dim">Starting souls come from the Ether as soldier souls, worth 1 mana each.</p>
 </fieldset>
-<fieldset class="pf"><legend>Starting Heavenly Body</legend>
-<div class="opts skyopts">${SKY_OPTS.map(([v,nm,txt],i)=>`<label class="opt sky-${v}"><input type="radio" name="omoonon" value="${v}" ${i?"":"checked"}><span>${nm}<small>${txt}</small>${SKY_FORM[v==="on"?"moon":v]?`<em class="skyform">${SKY_FORM[v==="on"?"moon":v]}</em>`:""}</span></label>`).join("")}</div>
+<fieldset class="pf"><legend>Heavenly Bodies</legend>
+<p class="dim">The starting Heavenly Body is chosen in the Map tab.</p>
 ${chk("omoon","Moon combat bonus","Every attack adds 1d2 at the Full Moon, and every defense adds 1d2 at the New Moon.",true)}
 ${chk("opshop","Heavenly Body shop","Any of the seven Heavenly Bodies can be bought for the sky (Astrology) for 7 + 1d3 + 1d12 mana, rolled every round. It rises at the start of the next round; then no Heavenly Body can be bought for six rounds.",true)}
 ${chk("oatk","Spells in the attack phase","Enchantments, curses, sorcery and illusions can also be cast while attacking. Necromancy, conjuring and sacrifices stay in prep.",false)}
@@ -2450,6 +2450,9 @@ ${["keep","sahel","forest","dungeon"].map(k=>`<label class="opt"><input type="ra
 <span class="optgroup">Special Maps</span>
 ${["river","none"].filter(k=>!(mode==="survival"&&k==="river")).map(k=>`<label class="opt"><input type="radio" name="omap" value="${k}" ${k==="none"?"checked":""}><span>${MAPS[k].name}${k==="none"?" (default)":""}<small>${MAPS[k].sub}</small></span></label>`).join("")}</div>
 <div class="f" id="bridgeopt" hidden><span>Bridge</span><div class="opts"><label class="opt"><input type="radio" name="obridge" value="left" checked><span>Left<small>Two tiles wide, on the left of the river.</small></span></label><label class="opt"><input type="radio" name="obridge" value="right"><span>Right<small>Two tiles wide, on the right.</small></span></label></div></div>
+</fieldset>
+<fieldset class="pf"><legend>Starting Heavenly Body</legend>
+<div class="opts skyopts">${SKY_OPTS.map(([v,nm,txt],i)=>`<label class="opt sky-${v}"><input type="radio" name="omoonon" value="${v}" ${i?"":"checked"}><span>${nm}<small>${txt}</small>${SKY_FORM[v==="on"?"moon":v]?`<em class="skyform">${SKY_FORM[v==="on"?"moon":v]}</em>`:""}</span></label>`).join("")}</div>
 </fieldset>
 <fieldset class="pf" id="sizeset"><legend>Size</legend>
 <div id="sizeduel"><p class="dim">On a phone, 5 wide is the largest size that stays easy to read.</p><div class="f"><span>Width</span><div class="opts">${[5,6,7].map(w=>`<label class="opt"><input type="radio" name="ocols" value="${w}" ${w===6?"checked":""}><span>${w} wide${w===6?" (default)":""}</span></label>`).join("")}</div></div>

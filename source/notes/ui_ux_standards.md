@@ -66,6 +66,14 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
 - **Similar menus share one pattern.** The automation tabs (Field, Ritual Dice, Lazy Hand, Grave) all look like the Field
   Automation menu. Spells Explained and Further Explanations work like Card Info. Pickers sort like the Ether. Every tab of
   Configure Automation has its own on/off switch at the top.
+- **Controls of one kind sit together (2026-10-21, a standing rule; first applied to the Menu's sliders in v65).** In
+  every menu, window or panel there is an order of operation, in the stacking (top to bottom) and in the grid: options are
+  grouped by how they look. Sliders with sliders, box options (radio tiles) with box options, drop-downs with drop-downs,
+  checkmarks with checkmarks. Never scattered in between: a slider between two drop-downs, a checkbox wedged into a row
+  of tiles. When a menu has so many kinds that one block per kind gets long, the same rule applies inside each section:
+  under each section's heading, its controls are grouped by kind. Use it to keep the automation menu compact and
+  organized. In the user's words:
+  > Remember, in menus or options of any window or kind, there should be an order of opertation at play, including in the stacking dimension and coordinate groups of different appearances of things like sliders, box options, dropdown arrows or columns, and checkmark options; as in, they shouldn't be scattered in between, but that options should be grouped with options that share the appearance within their given section, unless there are so many differing kind of options, that the same organization principle being spoken of will then apply to it's section below the heading that differentiates it between other sections, and you can use this principle for the automation menu in a compact and organized manner. It is something i already hold as a principle which i had u apply to the pause menu
 
 ### 2.3 English is a priority
 - **Concise, accurate, purposeful.** "All descriptions in the play menu and rules elsewhere should be concise, easy to read, and
@@ -301,6 +309,8 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
 - [ ] Reachable without hunting; no page scroll needed for turn essentials on a computer; no scroll traps; no sideways
       scroll.
 - [ ] Sorted by a rule; same-size tiles in a group; the same pattern as its sibling menus.
+- [ ] Controls of one kind together (sliders with sliders, tiles with tiles, drop-downs with drop-downs, checkmarks with
+      checkmarks), per section when there are many kinds; nothing scattered in between.
 - [ ] English: concise, correct capitals, no stray quotes, the game's vocabulary, no "we/I," "you" only where allowed, and in
       agreement with the rules page and tooltips.
 - [ ] Names on tiles, explanations on hover (about a 1 s delay) or tap/hold with an X; no tip covers its subject.
