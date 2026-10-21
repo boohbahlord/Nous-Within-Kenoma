@@ -1899,13 +1899,9 @@ html.th-rich .ovbox legend{color:var(--lab)}
 /* ================= v71c: Neptune ================= */
 /* v71k: Neptune's cloud is fog of war with a slight tint of its blue (the color of the fog above it turns blue; the dark
    ground under it hardly changes), breathing slowly */
-.tile .nepcloud{position:absolute;inset:0;z-index:6;pointer-events:none;background:radial-gradient(closest-side,#3f9be0,#3f9be0d0 50%,#3f9be000);mix-blend-mode:color;opacity:var(--nepb)}
-/* the board redraws its tiles after every action, so the breathing lives on the board itself (a registered property its
-   tiles inherit) and never starts over */
-@property --nepa{syntax:"<number>";inherits:true;initial-value:1}
-@property --nepb{syntax:"<number>";inherits:true;initial-value:.45}
-#board:has(.nepcloud){animation:nepcloudb 6.5s ease-in-out infinite alternate}
-@keyframes nepcloudb{from{--nepb:.32}to{--nepb:.6}}
+.tile .nepcloud{position:absolute;inset:0;z-index:6;pointer-events:none;background:radial-gradient(closest-side,#3f9be0,#3f9be0d0 50%,#3f9be000);mix-blend-mode:color;opacity:.5}
+/* v71m: while Neptune is in the sky, all its fog of war is bluish (the veil's mist turns pale blue, its shade navy) */
+html.nepup #board .fogveil{background-image:var(--c1),var(--c2),linear-gradient(#0c1d3c66,#0c1d3c66)!important;filter:sepia(.45) hue-rotate(178deg) saturate(1.9) brightness(1.04)}
 .stack.nlost{opacity:.3;filter:saturate(.5)}
 .nepmark{position:absolute;z-index:200;transform:translate(-50%,-10%);font-family:"Grenze Gotisch","Old English Text MT",serif;font-size:24px;color:#3f9be0;text-shadow:0 0 8px #3f9be0aa,0 0 2px #000;pointer-events:none;animation:nepmark 1.9s ease-out forwards}
 @keyframes nepmark{0%{opacity:0;transform:translate(-50%,10%)}20%{opacity:.95}100%{opacity:0;transform:translate(-50%,-70%)}}
@@ -1916,21 +1912,17 @@ svg.moon.neptune.nepec{filter:drop-shadow(0 0 16px #6a1fa0) brightness(1.25)}
 html.nepev #board .tile{border-color:transparent!important;box-shadow:none!important;outline:none}
 html.nepev #board .tile .coord,html.nepev #board .rl{opacity:0}
 html.nepev .pbox .meter,html.nepev .pbox p.stats,html.nepev #me .meter,html.nepev #me p.stats{visibility:hidden}
-/* v71k: the ground breathes: it fades in and out over a slow tide of Neptune's blues and violets, which shift as it breathes.
-   Only the ground: the cards on it stay as they are. */
-html.nepev #board.mapped::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
-  background:radial-gradient(ellipse 70% 60% at 28% 32%,#2f7fd0,transparent 70%),radial-gradient(ellipse 60% 55% at 74% 70%,#6a3fc0,transparent 70%),linear-gradient(160deg,#0e2c4e,#1b1042);
-  animation:nepsea 9s ease-in-out infinite alternate}
-@keyframes nepsea{from{filter:hue-rotate(-20deg) brightness(.75)}to{filter:hue-rotate(40deg) brightness(1.15)}}
-html.nepev #board{animation:nepbreath 6s ease-in-out infinite}
-html.nepev #board:has(.nepcloud){animation:nepbreath 6s ease-in-out infinite,nepcloudb 6.5s ease-in-out infinite alternate}
-@keyframes nepbreath{0%,100%{--nepa:1}50%{--nepa:.42}}
-html.nepev #board .tile{background-color:transparent}
-html.nepev #board .tart{visibility:hidden}   /* the tiles fade into one ground, which breathes as one */
-html.nepev #board .mapground{opacity:var(--nepa)}
-/* no map: the tiles themselves breathe, in color and see-through */
-html.nepev #board:not(.mapped) .tile{background-color:color-mix(in oklab,color-mix(in oklab,var(--deep) calc(var(--nepa) * 100%),#5a3fc0) calc(30% + var(--nepa) * 70%),transparent)}
-@media (prefers-reduced-motion:reduce){html.nepev #board.mapped::before,html.nepev #board,#board:has(.nepcloud){animation:none}}
+/* v71m: the ground breathes under a see-through tide of Neptune's blues and violets: two light layers over the map (the cards,
+   crystals and marks stay above them) that only fade in and out, which costs the device next to nothing. The map shows
+   through them all the while. */
+html.nepev #board::before,html.nepev #board::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;will-change:opacity}
+html.nepev #board::before{background:radial-gradient(ellipse 75% 65% at 30% 35%,#3f9be0,transparent 70%),radial-gradient(ellipse 60% 55% at 75% 72%,#2f6fd0,transparent 70%);opacity:.18;animation:neptide 7s ease-in-out infinite alternate}
+html.nepev #board::after{background:radial-gradient(ellipse 70% 60% at 68% 30%,#7a4fd0,transparent 70%),radial-gradient(ellipse 60% 55% at 22% 76%,#5a3fc0,transparent 70%);opacity:.12;animation:neptide2 7s ease-in-out infinite alternate}
+@keyframes neptide{from{opacity:.06}to{opacity:.3}}
+@keyframes neptide2{from{opacity:.26}to{opacity:.05}}
+html.nepev #board .tile>:not(.tart){z-index:2}
+html.lite.nepev #board::before,html.lite.nepev #board::after,html.still-sky.nepev #board::before,html.still-sky.nepev #board::after{animation:none}
+@media (prefers-reduced-motion:reduce){html.nepev #board::before,html.nepev #board::after{animation:none}}
 .nepword{font-family:"Grenze Gotisch","Old English Text MT",serif;font-size:17px;color:#3f9be0;opacity:.85;text-shadow:0 0 6px #3f9be088;margin-right:6px;animation:nepword 2.4s ease-in-out}
 @keyframes nepword{0%{opacity:0;letter-spacing:.3em}40%{opacity:.9}100%{opacity:.75;letter-spacing:0}}
 /* v71c-3: Neptune's eclipse */
