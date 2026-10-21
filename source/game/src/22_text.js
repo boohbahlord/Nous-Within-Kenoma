@@ -223,7 +223,7 @@ const SKY_ROWS=[
 function skyExplainHTML(){return `<details class="sub"><summary>Heavenly Bodies explained</summary><div class="skygrid">${SKY_ROWS.map(([k,n,how,what])=>`<div class="skycard"><b>${n}</b><p>${what}</p><small>${how}</small><em class="skyform">${SKY_FORM[k]}</em></div>`).join("")}</div><p class="dim">Every Heavenly Body but the Moon can be eclipsed: 5% at the start of each round. Hover or tap the sky in a game for what it means for you.</p></details>`}
 const BANK_HELP=[
  ["Where mana goes","Every mana spent on a spell goes to the Bank. The Bank can go 8 into the red, no further."],
- ["Loans","Mana now, paid out of the Bank's own mana: up to 12 (6 below zero, 5 at minus your maximum). Due in half the amount in your turns, at least 2 (12 mana: 6 turns). It grows by 1d2 every 3 of your turns. Whatever isn't repaid when it's due becomes mana debt."],
+ ["Loans","Mana now, paid out of the Bank's own mana: up to 12 (6 below zero, 5 at minus your maximum). Due in half the amount in your turns, at least 2 (12 mana: 6 turns). It grows by 1d2 every 3 of your turns. It is never taken back by itself: pay it at the Bank with Repay; left open 3 + (owed ÷ 3) of your turns, it brings the Debt Collectors. Credit (mana below zero) is the only debt that pays itself off, as mana comes in."],
  ["Loan limits","One loan at a time, one a round, and the next no sooner than 3 of your turns after the last."],
  ["Credit","Not a loan: tick Spend on credit to cast spells you can't afford. What your souls don't cover becomes mana debt at once."],
  ["Mana debt","Debt shows as mana below zero. It grows by 1d2 every 3 of your turns, and every soul you gain pays it first."],

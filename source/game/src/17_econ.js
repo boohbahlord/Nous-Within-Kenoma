@@ -96,9 +96,10 @@ function bankTurn(pl){
   if(bankOpen()){
     for(const L of P.loans||[])if(n>=L.at){const add=R(2);L.owed+=add;L.at=n+3;rpOf(pl).intL+=add;log(`Interest: ${plName(pl)}'s loan grows by ${add} (1d2) to ${L.owed}.`)}
     if(P.debt>0&&P.debtAt!=null&&n>=P.debtAt){const add=R(2);P.debt+=add;P.debtAt=n+3;rpOf(pl).intC+=add;log(`Interest: ${plName(pl)}'s mana debt grows by ${add} to −${P.debt}.`)}
-    for(const L of [...(P.loans||[])])if(n>=L.due){P.loans.splice(P.loans.indexOf(L),1);const take=payQuiet(pl,Math.min(mana(pl),L.owed));bankAdd(take);
-      if(take<L.owed){const P2=G.p[pl];P2.debt=(P2.debt||0)+L.owed-take;if(P2.debtAt==null)P2.debtAt=n+3}
-      log(`A loan comes due: ${plName(pl)} turns in ${take} of ${L.owed} mana${take<L.owed?`; the other ${L.owed-take} become mana debt (${effMana(pl)})`:""}.`,"event")}
+    // v71: a loan is never taken back by itself: when it comes due the Bank reminds you, and you pay it with Repay at the Bank.
+    // Left open too long (3 + owed ÷ 3 of your turns) it brings the Debt Collectors (debtWatch). Only credit pays itself off.
+    for(const L of P.loans||[])if(n>=L.due&&!L.told){L.told=true;log(`${plName(pl)}'s loan from the Bank is due: ${L.owed} mana, to be paid at the Bank (Repay).`,"event");
+      notify(pl,`Your loan from the Bank is due: ${L.owed} mana. Pay it at the Bank with Repay, or the Debt Collectors come.`)}
   }
   if(P.saleUntil!=null&&n>P.saleUntil){P.saleUntil=null;log(`${plName(pl)}'s Ether sale ends.`)}
   // the meteor's fire
@@ -189,14 +190,14 @@ function bankBarHTML(){if(!G.bank||survival())return "";const B=G.bank;
 function openBank(){
   const V=view(),P=G.p[V],B=G.bank,live=canAct()&&G.phase==="prep"&&G.active===V,lim=loanLimit(V),owed=owedOf(V),e=effMana(V);
   const tt=n=>`${n} turn${n===1?"":"s"}`;
-  const loans=(P.loans||[]).map(L=>`<li><b>${L.owed}</b> owed · grows in ${tt(Math.max(0,L.at-tnOf(V)))} · due in ${tt(Math.max(0,L.due-tnOf(V)))}</li>`).join("");
+  const loans=(P.loans||[]).map(L=>`<li><b>${L.owed}</b> owed · grows in ${tt(Math.max(0,L.at-tnOf(V)))} · ${L.due-tnOf(V)>0?`due in ${tt(L.due-tnOf(V))}`:"<b>due now</b>: pay it with Repay"}</li>`).join("");
   const fl=floorOf(V),gap=e-fl,debt=P.debt||0;
   const notes=[];if(B.dead)notes.push("The Banker is dead: the Bank and the Ether are closed.");if(B.angry)notes.push("The Banker is angry about the Demons holding the middle: every price +1.");
   if(B.mana<0&&!B.dead)notes.push("The Bank is in the red: everything in the Ether costs 1 less.");const up=Object.keys(B.upsell);if(up.length)notes.push(`Upsold this round: ${up.map(id=>SP(id)?SP(id).name:id).join(", ")}.`);
   if(G.inflation&&G.turnNo<=G.inflation.until)notes.push(`After the collapse, prices wobble up for ${G.inflation.until-G.turnNo+1} more turn${G.inflation.until-G.turnNo+1===1?"":"s"}.`);
   const cap=soulCap(V),pay=Math.min(mana(V),owed),why=loanWhy(V);
   const tip=t=>`data-tip="${esc(t)}" tabindex="0"`;
-  const LOAN_TIP=`A loan is mana now, paid out of the Bank's own mana. How much: up to 12 (6 if you are below zero, 5 at −${cap} or lower), and only while the Bank stays at ${BANK_FLOOR} or above. When it's due: half the amount in your turns, at least 2 (12 mana: 6 turns). It grows by 1d2 every 3 of your turns. Pay it back with Repay; whatever is left when it's due becomes mana debt. One loan at a time, one a round, and the next no sooner than ${LOAN_GAP} turns after the last.`;
+  const LOAN_TIP=`A loan is mana now, paid out of the Bank's own mana. How much: up to 12 (6 if you are below zero, 5 at −${cap} or lower), and only while the Bank stays at ${BANK_FLOOR} or above. When it's due: half the amount in your turns, at least 2 (12 mana: 6 turns). It grows by 1d2 every 3 of your turns. It is never taken back by itself: pay it with Repay. Left open too long (3 + owed ÷ 3 of your turns), it brings the Debt Collectors. One loan at a time, one a round, and the next no sooner than ${LOAN_GAP} turns after the last.`;
   const CREDIT_TIP=`Credit is not a loan: nothing is paid out up front. With it on, you can cast spells you can't afford; what your souls don't cover becomes mana debt at once. You can go down to ${fl}, and below ${fl} you lose the game. Debt grows by 1d2 every 3 of your turns, and every soul you gain pays it first. Stay at ${DEEP_DEBT} or lower for 3 turns and the Debt Collectors come every turn until the debt is paid.`;
   const nums=n=>Array.from({length:n},(_,i)=>`<option>${i+1}</option>`).join("");
   ovShow(`<div class="ovbox bank wide"><h2>The Bank</h2><div class="bankhead"><img class="bankpic" src="banker.png" width="88" height="88" alt="The Banker in his top hat behind a dungeon window, with gold behind him">
@@ -389,7 +390,7 @@ async function bankCollectors(){
 /* ---------- the computer at the Bank ---------- */
 async function aiBank(pl,W,cast1){
   const P=G.p[pl],lv=P.cpu;if(!G.bank||isHorde(pl))return;
-  if(owedOf(pl)&&mana(pl)>=owedOf(pl)+2)repay(pl,owedOf(pl));
+  if(owedOf(pl)&&(mana(pl)>=owedOf(pl)+2||(P.loans||[]).some(L=>tnOf(pl)>=L.due)&&mana(pl)>0))repay(pl,owedOf(pl));   // v71: loans are paid by choice, so the computer chooses to
   if(lv==="hard"&&effMana(pl)<0&&loanLimit(pl)>=2)takeLoan(pl,Math.min(loanLimit(pl),-effMana(pl)+1));   // borrow out of a hole before the interest bites
   if(lv!=="easy"&&soulCap(pl)<10&&mana(pl)>=8&&Math.random()<.3)await cast1("maxmana");
   if(lv==="easy"&&mana(pl)>=2&&Math.random()<.15)await cast1("gamble");
