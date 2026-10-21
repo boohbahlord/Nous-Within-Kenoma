@@ -1,11 +1,11 @@
-/* ---------------- Substances: what each one adds to the game ----------------
+/* ---------------- Emanations: what each one adds to the game ----------------
    Random, Beginner, Angel Machine, Satan, Binah, Jester Fool (and Tiphareth of Kether, plain for now).
    Lucifer & Ouroboros, The Leviathan and Yaldabaoth come in the next update. */
 
-/* Random becomes a real Substance before the game starts; fixed colors and symbols are applied */
+/* Random becomes a real Emanation before the game starts; fixed colors and symbols are applied */
 function resolveSubstances(opts){
-  const taken=new Set(skyBlocked(opts.moon));   // a Heavenly Body in the sky from the start keeps out the Substance it would serve
-  // every Substance but the Beginner is played by one player at most
+  const taken=new Set(skyBlocked(opts.moon));   // a Heavenly Body in the sky from the start keeps out the Emanation it would serve
+  // every Emanation but the Beginner is played by one player at most
   for(const p of opts.players)if(p.tribe&&TRIBES[p.tribe]&&p.tribe!=="random"&&p.tribe!=="beginner"&&p.tribe!=="plain"&&!TRIBES[p.tribe].soon)taken.add(p.tribe);
   for(const p of opts.players){
     if(p.cpu==="horde")continue;
@@ -15,7 +15,7 @@ function resolveSubstances(opts){
     }
     const T=TRIBES[p.tribe];if(T.color)p.color=T.color;if(T.solid)p.solid=T.solid;
   }
-  // v43: Random color and Random symbol take what nobody else has (after the fixed ones of the Substances)
+  // v43: Random color and Random symbol take what nobody else has (after the fixed ones of the Emanations)
   const ps=opts.players.filter(p=>p.cpu!=="horde");
   const usedC=ps.filter(p=>TRIBES[p.tribe].color||p.color&&p.color!=="random").map(p=>TRIBES[p.tribe].color||p.color);
   for(const p of ps)if(!TRIBES[p.tribe].color&&(!p.color||p.color==="random")){const free=COLORS.map(c=>c[1]).filter(c=>!usedC.some(u=>colorNear(u,c)));p.color=pick(free.length?free:COLORS.map(c=>c[1]));usedC.push(p.color)}   // v71e: nothing alike
@@ -33,7 +33,7 @@ const subOf=pl=>G.p[pl]?G.p[pl].tribe:null;
 const usedOnce=id=>!!(me().once&&me().once[id]);
 const treeOf=pl=>stacksOf(pl).find(x=>hasK(x.st,"tree"));
 
-/* the cards each Substance brings into its deck */
+/* the cards each Emanation brings into its deck */
 function substanceDecks(pls){
   for(const pl of pls){
     const P=G.p[pl];P.once={};
@@ -109,7 +109,7 @@ function addBolts(pl,n,why){
   if(P.bolts>before){log(`${plName(pl)} gains ${P.bolts-before} bolt${P.bolts-before>1?"s":""} from ${why} (${P.bolts}/3).`);
     if(P.bolts===3&&before<3)notify(pl,`${esc(P.name)}'s three bolts are charged: Lightning Strike is ready.`)}
 }
-/* where Substance cards go when they die; true when handled */
+/* where Emanation cards go when they die; true when handled */
 function buryUnit(card,r,c,owner){
   const u=card.unit,P=G.p[owner];
   if(u==="samson"){
@@ -159,7 +159,7 @@ function notify(pl,html){
   setTimeout(()=>{n.classList.add("out");setTimeout(()=>n.remove(),700)},5600);
 }
 
-/* ---------------- Substance spells ---------------- */
+/* ---------------- Emanation spells ---------------- */
 SPELLS.push(
  {id:"bolt",tribe:"angel",name:"Lightning Strike",cost:0,school:"Sorcery",text:"Free, with three bolts. Select an enemy stack: lightning immobilizes it for 1d2 + 1d2 − 1 of its turns, so it can't move or attack. Against the Leviathan it rolls nothing and simply takes one heart; with nothing selected it strikes a Leviathan on the moon. You earn a bolt for every card you lose while defending against an enemy's attack, and for every card Antony kills.",
   ok:()=>(me().bolts||0)>=3&&(selEnemy()&&!shielded(selStack().owner)||!selStack()&&!!G.moonLev&&isEnemy(G.moonLev.owner,G.active)),run:async()=>{
@@ -198,7 +198,7 @@ async function deploySlave(){
 /* a Slave that was never put down goes back to the thralls */
 function cancelPlacing(){const c=G.placing;if(!c)return;G.placing=null;if(G.selHand===c)G.selHand=null;delete c.unit;(G.p[c.owner].thralls=G.p[c.owner].thralls||[]).unshift(c)}
 
-/* ---------------- the computer playing a Substance ---------------- */
+/* ---------------- the computer playing an Emanation ---------------- */
 async function aiSubstance(pl,W){
   const P=G.p[pl],lv=P.cpu;if(G.over)return;
   const cast1=async(id,r,c)=>{const sp=SP(id);const old=G.sel;G.sel=r==null?null:{r,c,pick:new Set()};
@@ -233,7 +233,7 @@ async function aiSubstance(pl,W){
   }
 }
 
-/* ---------------- symbols for the Substance cards ---------------- */
+/* ---------------- symbols for the Emanation cards ---------------- */
 const UNIT_ICON={
  samson:`<path d="M-6,-8h12v6h-12z M-4,-6h3v2h-3z M1,-6h3v2h-3z M-8,-1h16v8h-16z M-8,7v3 M8,7v3 M-3,-2v-1 M3,-2v-1 M-11,0v5 M11,0v5"/>`,
  antony:`<path d="M0,9C-6,4 -9,0 -9,-3C-9,-7 -5,-8 -2.5,-6C-1,-5 0,-3.5 0,-3.5C0,-3.5 1,-5 2.5,-6C5,-8 9,-7 9,-3C9,0 6,4 0,9Z M-2.5,-6L-3,-10 M2.5,-6L3.5,-10 M0,-3.5V2 M-4,0L0,2L4,-1"/>`,

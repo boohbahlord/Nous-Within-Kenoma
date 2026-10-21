@@ -2,7 +2,7 @@
    - The sky changes (host setting, Rules tab): by bidding (default), never by itself, every few cycles, or every few rounds
      (a number or dice, 100 at most; by rounds, a new Heavenly Body can start at a random point of its cycle). Cycle events
      and eclipses can each be turned off.
-   - Bidding: every 3 + 1d2 − 1 completed cycles the Heavenly Body announces that it is leaving. Each player bids mana in
+   - Bidding: every 2 + 1d2 − 1 completed cycles the Heavenly Body announces that it is leaving. Each player bids mana in
      secret to keep it for one more cycle or to see it go, or passes. The highest bid wins (keeping wins a tie), and only
      the winner pays, to the Bank; a player under that Heavenly Body's Oath has their bid count half again on a 2 of 1d2.
      If nobody bids to keep it, a new Heavenly Body takes the sky. */
@@ -29,7 +29,7 @@ const skyFixed=k=>["off","eaten","fallen"].includes(k);   // no Heavenly Body th
 const cycLen=k=>k==="neptune"?10:CYCLE;   // v71c: Neptune's cycle comes every ten rounds
 const cycleDone=k=>k==="moon"?G.moon.i===4&&G.moon.round>(G.skyArr||0):G.skySince!=null&&G.moon.round>G.skySince&&(G.moon.round-G.skySince)%cycLen(k)===0;
 function skyArrive(){const o=SKYCHG(),k=sky();G._chgK=k;G.skyCyc=0;G.skyArr=G.moon.round;
-  G.skyKeepAt=o.mode==="bid"?3+R(2)-1:null;G.skyEveryN=o.mode==="cycles"||o.mode==="rounds"?skyEvery(o):null}
+  G.skyKeepAt=o.mode==="bid"?2+R(2)-1:null;G.skyEveryN=o.mode==="cycles"||o.mode==="rounds"?skyEvery(o):null}
 /* a new Heavenly Body, picked at random from those that can take the sky (not the one leaving, nothing eaten or banned) */
 function skyPick(){const old=sky(),ban=new Set(G.opts.planetBan||[]);const pool=SHOP_PL.filter(k=>k!==old&&!isEaten(k)&&!ban.has(k));return pool.length?pick(pool):null}
 function skySwap(k,why){const old=sky(),o=SKYCHG();

@@ -48,7 +48,7 @@ function compactSetup(root){
     for(const k of MAP_ORDER){const i=box.querySelector(`input[name=omap][value=${k}]`);if(i)box.appendChild(i.closest("label"))}}}
   root.querySelectorAll(".opts.subs").forEach(b=>b.classList.add("tiles"));
 }
-/* rich info for a Substance tile */
+/* rich info for an Emanation tile */
 function subTipHTML(k){const T=TRIBES[k];if(!T)return "";
   return `<div class="cin subtip"><div class="cih">${T.solid?solidSVG(T.solid,T.color||"#f3d6a6",16):""}<b>${esc(T.name)}</b></div><p class="stag">${esc(T.sub)}</p>${T.pts&&T.pts.length?`<ul>${T.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>`:""}</div>`}
 (()=>{

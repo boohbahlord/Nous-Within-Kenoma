@@ -14,13 +14,13 @@ ec_cards = '''<nav class="cards">
 </nav>'''
 MODES_HTML = """<h2 id="modes">Game Modes</h2>
 <h3>Standard</h3>
-<p>Local play: against computers, together on this device, or both. Up to four people share one device, and every other seat is a computer: you against one to three computers, friends together against computers, or friends against each other, up to eight seats in King of the Hill. Each player picks a Substance (or the host turns Substances off), a color and a symbol, which marks every card they own. With more than one person, the board turns to face whoever is playing, and the screen goes dark between turns until the next player confirms they hold the device. Everyone sees every die.</p>
+<p>Local play: against computers, together on this device, or both. Up to four people share one device, and every other seat is a computer: you against one to three computers, friends together against computers, or friends against each other, up to eight seats in King of the Hill. Each player picks an Emanation (or the host turns Emanations off), a color and a symbol, which marks every card they own. With more than one person, the board turns to face whoever is playing, and the screen goes dark between turns until the next player confirms they hold the device. Everyone sees every die.</p>
 <h3>The computers</h3>
 <p>The computers are written as plain code rather than a language model. Each turn the computer weighs offense against defense from the field and the decks. <b>Easy</b> plays loosely and makes mistakes. <b>Medium</b> is balanced and a real fight. <b>Hard</b> plays the Joker for souls, stacks Aces for the Grave Blessing, keeps its own deck full and eats away at yours.</p>
 <h3>Survival</h3>
 <p>Tower defense for one to four players. You raise your Ace and its Jack, and the Horde comes: after three rounds of grace, a new wave every 1d2 + 2 rounds from a fresh deck, each one a step stronger, with Jacks, Queens and Kings from the sixth wave and Jokers from the eleventh; from then on it brings counter cards (Battering Rams for your Walls) when you lean on something it has no answer to. The Horde has no spells, hand or grave. The moon still turns. You lose when your last card on the field falls, and the round you reach is your score.</p>
-<h3>Substances</h3>
-<p>A Substance is what you play as. Each one changes your deck, your spells or your limits. <a href="ethers-crossroads-rules.html#substances">Every Substance in full</a>.</p>
+<h3>Emanations</h3>
+<p>An Emanation is what you play as. Each one changes your deck, your spells or your limits. <a href="ethers-crossroads-rules.html#substances">Every Emanation in full</a>.</p>
 <dl class="subtags">@@SUBTAGS@@</dl>
 <h3>More players, maps and options</h3>
 <p>With three or four players the field is a 7 by 7 square by default: free-for-all, or two against two with teammates side by side, across, or sharing one end. The battle maps are the Keep, the Sahel, the Forest, the Dungeon and the River, all at night. Before a game you can set the field size, the decks, the specials, the starting mana, the sky, the Bank, Demons, crystals, fog of war and more. <a href="ethers-crossroads-rules.html#modes">Every option</a>.</p>
@@ -287,7 +287,7 @@ b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({beha
 </main>''', 1)
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
-play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=95">', ec=True) + f'''<main class="wide game">
+play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=96">', ec=True) + f'''<main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
@@ -325,8 +325,8 @@ play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="eth
 </main>
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
-<script src="ethers-crossroads-quotes.js?v=95"></script>
-<script src="ethers-crossroads.js?v=95"></script>
+<script src="ethers-crossroads-quotes.js?v=96"></script>
+<script src="ethers-crossroads.js?v=96"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 

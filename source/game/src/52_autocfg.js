@@ -30,7 +30,7 @@ const rdMine=()=>rdClean(PREF.rd);
 /* ---------- Lazy Hand settings ---------- */
 const LH_DEF={exclude:[],xextra:[],xminus:[],sminus:[],autoPlace:false,sac:false,skinds:[],sextra:[],notFull:true,surplus:0,maxSurplus:false,negOnly:false};
 const LH_RANKS=["2","3","4","5","6","7","8","9","10","J","Q","K","A","JK"];
-const LH_UNITS=["puppet","scout","healer","repair","ram","miner","claimer","archer","cannon","assassin","wall","tree","satan","carriage","samson","antony","bullgoat","goatbull","slavemaster","slave","leviathan","trafficker","debt"];   // v66: every card a Substance can hold (the Tree, Satan, the Carriage too)
+const LH_UNITS=["puppet","scout","healer","repair","ram","miner","claimer","archer","cannon","assassin","wall","tree","satan","carriage","samson","antony","bullgoat","goatbull","slavemaster","slave","leviathan","trafficker","debt"];   // v66: every card an Emanation can hold (the Tree, Satan, the Carriage too)
 let lhKeysMemo=null;
 function lhKeyList(){if(lhKeysMemo)return lhKeysMemo;
   lhKeysMemo=[...LH_RANKS.map(r=>{const k=kind(protoCard(r));return [r,r==="JK"?"Joker":/^\d+$/.test(r)?`${r} ${shortInfo(k)}`:shortInfo(k)]}),...LH_UNITS.filter(u=>INFO[u]).map(u=>[u,shortInfo(u)])];return lhKeysMemo}

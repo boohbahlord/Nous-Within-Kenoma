@@ -23,7 +23,7 @@ const TGROUP_NAMES={wildcard:"Wildcards",special:"Special",base:"Base",standard:
 /* ---------- Grave automation: the settings ---------- */
 const GR_GROUPS=["special","base","standard","support","wildcard"];
 const GR_DEF={on:false,kinds:[],extra:[],minus:[],rank:true,group:true,gorder:[...GR_GROUPS],korder:[],strong:true,askNone:true};
-/* v60: only cards that can lie in the grave (the cards of the deck and the Ether's own; never Substance cards like Samson or
+/* v60: only cards that can lie in the grave (the cards of the deck and the Ether's own; never Emanation cards like Samson or
    the Debt Collector); in the ranking, every Grunt (2 to 6) is one entry and every Infantry (7 to 10) another, the higher number
    taken first within them */
 const grGraveable=k=>k==="puppet"||!UNIT[k]||!!UNIT[k].ether||k==="slave";

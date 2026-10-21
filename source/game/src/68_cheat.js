@@ -53,7 +53,7 @@ for(const [name,get,set] of [["conjure",()=>conjure,f=>conjure=f],["conjureU",()
     if(cheatOn()&&CH().etherInf){const now=new Set(G.ether.map(c=>c.id));for(const id of before)if(!now.has(id)){const c=[...G.p.flatMap(P=>[...P.deck,...P.hand])].find(x=>x.id===id);
       if(c)G.ether.push(c.unit?mkUnit(c.unit,null):mk(c.rank,c.suit,c.color))}}
     return out})}
-/* every spell in a Cheat List: the spells of other Substances, castable */
+/* every spell in a Cheat List: the spells of other Emanations, castable */
 {const _sr=spellReady;spellReady=function(sp){if(sp&&sp.tribe&&G&&cheatList(G.active)&&G.p[G.active].tribe!==sp.tribe)return phaseOk(sp)&&!spellBlock(sp)&&sp.ok()&&canAfford(G.active,spellCost(sp));return _sr.apply(this,arguments)}}
 {const _c=cast;cast=async function(sp){const P=G&&G.p[G.active];if(sp&&sp.tribe&&P&&cheatList(G.active)&&P.tribe!==sp.tribe){const t=P.tribe;P.tribe=sp.tribe;try{return await _c.apply(this,arguments)}finally{P.tribe=t}}return _c.apply(this,arguments)}}
 {const _rs=renderSpells;renderSpells=function(live){_rs.apply(this,arguments);if(!G||!cheatOn())return;const V=view(),P=G.p[V],box=$("#spells");if(!box||!P||!cheatList(V))return;

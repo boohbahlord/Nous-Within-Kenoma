@@ -3,7 +3,7 @@
    The Firmament is above the moon's and Saturn's harms and meteors, keeps a Miner on the moon, and casts
    Blood Moon, Rain, Asteroid, Fog and Mars. */
 
-/* a Heavenly Body that starts in the sky keeps out the Substance it would serve */
+/* a Heavenly Body that starts in the sky keeps out the Emanation it would serve */
 const skyBlocked=sky=>sky==="saturn"?["yald"]:["mars","sun","venus","jupiter","mercury"].includes(sky)?["firm"]:[];
 const isFirm=pl=>!!(G.p[pl]&&G.p[pl].tribe==="firm");
 /* the Leviathan's New Moon: the real New Moon, or every eighth round while it coils on Mars */

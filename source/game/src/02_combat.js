@@ -42,8 +42,8 @@ function tray(pl,label,dice,line,quiet){
   hist(pl,{kind:"roll",name:label,dice:dice.map(d=>d.v!=null?`d${d.s}:${d.v}`:"").filter(Boolean),line:line||"",tile:G.histTile||null});
   if(!quiet&&dice.length)SND.dice(dice.length);
 }
-/* the weapon a lone Substance card fights with (Samson picks one; the rest have one) */
-const soloUnit=st=>st&&st.cards.length&&st.cards[0].unit&&UNIT[st.cards[0].unit].weapons&&st.cards.every(c=>c.unit===st.cards[0].unit)?st.cards[0]:null;   // one Substance card, or a pair of Assassins
+/* the weapon a lone Emanation card fights with (Samson picks one; the rest have one) */
+const soloUnit=st=>st&&st.cards.length&&st.cards[0].unit&&UNIT[st.cards[0].unit].weapons&&st.cards.every(c=>c.unit===st.cards[0].unit)?st.cards[0]:null;   // one Emanation card, or a pair of Assassins
 function weaponOf(st,mode){const u=soloUnit(lhInner(st));if(!u)return null;const W=UNIT[u.unit].weapons;return W.find(w=>w.id===mode)||W[0]}
 function rollStack(st,mode,enemy,fx,weapon){ // mode: "atk" | "def"
   if(st&&hasK(st,"lighthouse")){st=lhInner(st);if(!st.cards.length)return{total:0,parts:["the Lighthouse stands empty"],dice:[],kingRoll:null}}   // v70c: the stack inside fights; the tower adds nothing
@@ -301,7 +301,7 @@ function bury(card,r,c,st){
   if(card.hate)card.hate=false;
   if((card.unit==="samson"||card.unit==="antony")&&buryUnit(card,r,c,owner))return;   // Samson and Antony keep their own fates
   if(buryHook(card,r,c,st))return;                     // Traffickers, Pleasure and Joy, the Leviathan's kills
-  if(card.unit&&buryUnit(card,r,c,owner))return;       // the other Substance cards have their own fates
+  if(card.unit&&buryUnit(card,r,c,owner))return;       // the other Emanation cards have their own fates
   // a Binah Slavemaster takes the soldiers it defeats
   const F=G.fight;
   if(F&&(kind(card)==="grunt"||kind(card)==="infantry")){

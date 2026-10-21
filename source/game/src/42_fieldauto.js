@@ -12,7 +12,7 @@
 
 const FA_PRINC=[["noatk","Don't attack"],["stance","Stance"],["rush","Rush"],["lives","Lives"],["battles","Picking battles"],["formation","Formation"],["bases","Target bases"],["ambush","Ambush"]];
 const FA_CATS=[["soldiers","Soldiers","Grunts, Infantry, Puppets"],["specials","Specials","Jacks, Queens, Kings, Jokers, Assassins"],["support","Support","Scouts, Healers, Repairmen, Rams, Miners"],
-  ["ranged","Ranged","Archers and Cannons"],["wildcards","Wildcards","the Substances' own cards"]];
+  ["ranged","Ranged","Archers and Cannons"],["wildcards","Wildcards","the Emanations' own cards"]];
 const FA_KINDS=["grunt","infantry","puppet","jack","queen","king","joker","assassin","scout","healer","repair","ram","miner","archer","cannon",
   "samson","antony","satan","bullgoat","goatbull","slavemaster","slave","leviathan","trafficker","debt"];
 const FA_DEF={tgroup:true,tgorder:["wildcard","special","base","standard","support"],mode:"full",stance:"auto",rush:0,formation:"auto",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,

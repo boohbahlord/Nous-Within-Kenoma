@@ -1,7 +1,7 @@
 /* ---------------- UI pass 2 (v21): English ----------------
    Every spell's text in three short parts: what you need (n), what it does (e), and its limits (l).
    The hover box shows them like card info: price, when, needs, effect, limits. s.text keeps the joined text for the
-   Spells explained panel. Planets get their Forms; Substances get a one-line tag and a few points. */
+   Spells explained panel. Planets get their Forms; Emanations get a one-line tag and a few points. */
 
 const SPELL_TEXT={
  // Necromancy
@@ -209,7 +209,7 @@ const SKY_OPTS=[
  ["mercury","Mercury","Votes for Peace or Total War, and the Oath of Mercury. No Firmament."],
  ["jupiter","Jupiter","Ace miners bring 1d2, conjurings go on sale, cards trade at the Auction. No Firmament."],
  ["neptune","Neptune","Clouds in its blue that hide tiles and lose cards, and mana that strays or doubles."]];
-/* Substances: one tag line for the setup, and a few points for the info panels */
+/* Emanations: one tag line for the setup, and a few points for the info panels */
 for(const k in SUBST_TEXT)if(TRIBES[k]){TRIBES[k].sub=SUBST_TEXT[k].tag;TRIBES[k].pts=SUBST_TEXT[k].pts}
 
 /* "Heavenly Bodies explained" and "The Bank explained", under the table */

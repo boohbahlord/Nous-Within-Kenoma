@@ -1,12 +1,12 @@
 {
- "random":{"tag":"One of the Substances, picked when the game starts.","pts":[]},
- "beginner":{"tag":"The learning Substance: a bigger hand, an early army, and one free shield.","pts":[
+ "random":{"tag":"One of the Emanations, picked when the game starts.","pts":[]},
+ "beginner":{"tag":"The learning Emanation: a bigger hand, an early army, and one free shield.","pts":[
   "Eight starting cards, eight mana at most and an eight-card hand.",
   "A second Ace and a Joker in hand, and three Grunts already on the field.",
   "Scouts, an Assassin, Archers, a Wall, Repairmen and a Battering Ram in the deck; a Miner in the first Ace.",
   "Archers cost 1 mana, and a free Scout comes every Full Moon.",
   "Please Don't Hurt Me: once a game, none of your stacks can be attacked until your next turn.",
-  "The only Substance more than one player can pick."]},
+  "The only Emanation more than one player can pick."]},
  "angel":{"tag":"Antony's mech: Samson fights, and Antony rises from his corpse.","pts":[
   "Always Bone white with the cracked mask.",
   "Samson in the deck: two hearts, defense 12, with the Slugshot Cannon, the Arm Blade and the Mech Slam.",
