@@ -15,11 +15,11 @@
 /* ---------- the Oath of Saturn: what breaking it costs ---------- */
 function saturnBreak(pl){const P=G.p[pl];if(!P)return;
   const m=Math.max(0,mana(pl)),paid=payQuiet(pl,m);bankAdd(paid);
-  let d=0;for(let i=0;i<5&&P.deck.length;i++){toGrave(P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0],"burn");d++}
-  let h=0;for(let i=0;i<2&&P.hand.length;i++){toGrave(P.hand.splice(Math.floor(Math.random()*P.hand.length),1)[0],"burn");h++}
+  let d=0;for(const c of takeDeck(pl,5,"Saturn's price",true)){toGrave(c,"burn");d++}
+  let h=0;for(const c of takeHand(pl,2,"Saturn's price")){toGrave(c,"burn");h++}
   P.maxAdd=(P.maxAdd||0)-2;P.satPaid=0;
   log(`<b>Saturn</b> takes its price from ${plName(pl)} for the broken Oath: ${paid} mana, ${d} deck card${d===1?"":"s"}, ${h} hand card${h===1?"":"s"} and two maximum mana.`,"event")}
-const SAT_BREAK_TXT="Breaking the Oath of Saturn costs all your mana, 5 random cards from your deck, 2 random cards from your hand, and 2 maximum mana.";
+const SAT_BREAK_TXT="Breaking the Oath of Saturn costs all your mana, 5 random cards from your deck, 2 random cards from your hand (from the deck when the hand is empty), and 2 maximum mana. Cards your deck can't give cost 1 mana each.";
 async function saturnBreakOk(V){const P=G.p[V];if(!P||P.oath!=="saturn"||P.satLocked)return true;if(P.cpu)return false;
   return !!await askHuman(V,{kind:"yesno",id:"satbreak",title:"Break the Oath of Saturn?",text:SAT_BREAK_TXT,yes:"Break it",no:"Keep it"})}
 for(const [k] of OATHS){const sp=SP("oath_"+k);if(!sp)continue;const run=sp.run;
@@ -122,7 +122,7 @@ function bountyMove(pl){if(!G.p[pl].cpu)return;
     if(P.earthJoker){P.earthJoker=false;if(!dbl)notes.push("doubled odds for the enemy Joker killed");dbl=true}
     const d=R(10),ed=[{s:2,v:a},{s:2,v:b}],why=notes.length?` (the Oath of the Earth: ${notes.join("; ")})`:"";
     if(d===10||dbl&&d===9){const w=rollN(7,2),n=Math.min(sum(w),Math.max(0,G.bank.mana-BANK_FLOOR)),got=giveMana(pl,n);G.bank.mana-=got;tray(pl,"Gambling",[{s:10,v:d},...ed,...w],`+${got}`);log(`<b>Gambling</b>: ${plName(pl)} rolls ${d} and wins ${n} mana (${got} fit)${why}.`,"event")}
-    else if(d===1&&!safe){const w=rollN(7,2),n=Math.max(0,Math.min(sum(w),effMana(pl)-floorOf(pl)));P.maxAdd=(P.maxAdd||0)-1;const c=P.deck.pop();if(c){c.owner=null;G.ether.push(c)}tray(pl,"Gambling",[{s:10,v:d},...ed,...w],`−${n}`);
+    else if(d===1&&!safe){const w=rollN(7,2),n=Math.max(0,Math.min(sum(w),effMana(pl)-floorOf(pl)));P.maxAdd=(P.maxAdd||0)-1;const c=P.deck.pop();if(c){c.owner=null;G.ether.push(c)}else deckShort(pl,1,"Gambling");tray(pl,"Gambling",[{s:10,v:d},...ed,...w],`−${n}`);
       log(`<b>Gambling</b>: ${plName(pl)} rolls a 1${why}. One maximum mana is lost, ${n} mana of debt (7d2) is owed${c?", and a card leaves the deck for the Ether":""}.`,"event");addDebt(pl,n)}
     else{tray(pl,"Gambling",[{s:10,v:d},...ed],"nothing");log(`Gambling: ${plName(pl)} rolls ${d}${d===1?", and the Earth catches the fall":""}. Nothing${why}.`)}}}
 SPELLS.push({id:"gamble2",name:"Gamble II",cost:1,school:"Sorcery",text:"",ok:()=>oathNow(G.active,"earth")&&bankOpen(),run:async()=>{const pl=G.active,P=me(),dbl=!!P.earthJoker;P.earthJoker=false;const d=R(20);

@@ -111,7 +111,7 @@ function round2(){
   if(L&&levNew()&&G.moon.round>L.since){
     for(const pl of enemiesOf(L.owner)){const P=G.p[pl];if(isHorde(pl)||P.tribe==="tiph"||P.tribe==="firm"){if(!isHorde(pl))log(`${plName(pl)} is immune to the Leviathan on the moon.`);continue}
       const k=R(4)+R(4);let a=0,b=0,m=0;
-      for(let i=0;i<k&&P.deck.length;i++){toDark(P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0]);a++}
+      for(let i=0;i<k&&P.deck.length;i++){toDark(P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0]);a++}deckShort(pl,k-a,"the Leviathan's toll");
       for(let i=0;i<2&&P.hand.length;i++){toDark(P.hand.splice(Math.floor(Math.random()*P.hand.length),1)[0]);b++}
       if(P.souls.length){P.souls.sort((x,y)=>soulOf(x)-soulOf(y));toDark(P.souls.shift());m=1}
       log(`<b>The Leviathan's toll</b>: ${plName(pl)} loses ${a} deck card${a===1?"":"s"}, ${b} from the hand and ${m} mana to the Outer Darkness.`,"event");

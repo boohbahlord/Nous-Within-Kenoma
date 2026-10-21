@@ -57,19 +57,18 @@ async function pickGrave(pl,n,title){
 function moonTarget(pl){const ok=stacksOf(pl).filter(x=>!x.st.hypo&&!hasK(x.st,"ace"));
   const twos=ok.filter(x=>x.st.cards.length===2);if(twos.length){const t=pick(twos);return {kind:"stack",r:t.r,c:t.c,st:t.st,cards:[...t.st.cards]}}
   const all=ok.flatMap(x=>x.st.cards.filter(c=>!isBase(c)).map(c=>({x,c})));if(all.length){const {x,c}=pick(all);return {kind:"card",r:x.r,c:x.c,st:x.st,cards:[c]}}
-  const P=G.p[pl];if(P.deck.length){shuffle(P.deck);return {kind:"deck",cards:P.deck.slice(-3)}}
-  return null}
+  const P=G.p[pl];shuffle(P.deck);return {kind:"deck",cards:P.deck.slice(-3),short:Math.max(0,3-P.deck.length)}}   // v71: what the deck can't give costs mana
 function strongest(pl){return moonTarget(pl)}
 async function fullMoonToll(){
   for(const pl of order()){
     if(G.p[pl].tribe==="firm"){log(`${plName(pl)} owes the Full Moon nothing: the Firmament is above its toll.`);continue}
     const t=moonTarget(pl);if(!t)continue;const P=G.p[pl];
-    const what=t.kind==="deck"?`three cards from your shuffled deck (${t.cards.map(c=>esc(nameOf(c))).join(", ")})`:t.kind==="stack"?`a stack of two: <b>${t.cards.map(c=>esc(nameOf(c))).join(", ")}</b>`:`a card on your field: <b>${esc(nameOf(t.cards[0]))}</b>`;
+    const what=t.kind==="deck"?`three cards from your shuffled deck (${t.cards.length?t.cards.map(c=>esc(nameOf(c))).join(", "):"it is empty"}${t.short?`; the ${t.short} it can't give cost ${t.short} mana instead`:""})`:t.kind==="stack"?`a stack of two: <b>${t.cards.map(c=>esc(nameOf(c))).join(", ")}</b>`:`a card on your field: <b>${esc(nameOf(t.cards[0]))}</b>`;
     const yes=await ask(pl,{kind:"yesno",id:"fullmoon",target:t,title:`Full Moon: ${esc(P.name)}'s toll`,
       text:`The Full Moon asks for ${what}. Give it to your soul pile (any mana over your maximum goes to the grave), or refuse and pay 2d2 + 2 mana, even below zero.`,
       yes:"Give it",no:"Refuse",ai:()=>t.kind==="deck"||AI.value({cards:t.cards,owner:pl})<7||effMana(pl)-6<=-4});
     if(yes){let m=0;
-      if(t.kind==="deck"){for(const c of t.cards){P.deck.splice(P.deck.indexOf(c),1);if(addSoul(pl,c))m+=soulOf(c);else toGrave(c,"spent")}}
+      if(t.kind==="deck"){for(const c of t.cards){P.deck.splice(P.deck.indexOf(c),1);if(addSoul(pl,c))m+=soulOf(c);else toGrave(c,"spent")}deckShort(pl,t.short||0,"the Full Moon's toll")}
       else{const st=G.board[t.r][t.c];if(st){for(const c of t.cards){const i=st.cards.indexOf(c);if(i<0)continue;st.cards.splice(i,1);
           if(c.captured&&c.captured.length){for(const s of c.captured)toGrave(s,"death");c.captured=[]}
           if(c.unit&&buryUnit(c,t.r,t.c,pl))continue;   // Substance cards keep their own fates

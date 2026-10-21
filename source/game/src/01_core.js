@@ -330,8 +330,20 @@ function draw(pl,n,why,opening){
   for(let i=0;i<n;i++){const c=P.deck.pop();if(!c)break;
     if(P.hand.length<handCap(pl)){P.hand.push(c);got++}else{toGrave(c,"burn");burned++;if(!opening)P.od++}}
   log(`${plName(pl)} draws ${got} card${got===1?"":"s"}${why?" ("+why+")":""}${burned?`; ${burned} over the hand limit go${burned===1?"es":""} to the grave${opening?"":` (Grave Blessing −${burned}d6 max)`}`:""}${P.deck.length?"":" (deck empty)"}.`);
+  if(!opening&&got+burned<n)deckShort(pl,n-got-burned,why||"a draw");   // v71: a card the deck can't give costs 1 mana
   return{got,burned};
 }
+/* ---------- v71: an empty deck costs mana. Every card a deck can't give (a draw, a toll, a price) costs 1 mana instead, as deep
+   below zero as it goes: past the floor the player is out. A Heavenly Body asking for cards from the hand takes them from the
+   deck when the hand is empty, and then mana (an enemy's spell on your hand doesn't reach past the hand). ---------- */
+function deckShort(pl,n,why){if(!(n>0)||!G||G.over||!G.p[pl]||G.p[pl].out||isHorde(pl))return 0;addDebt(pl,n);
+  log(`${plName(pl)}'s deck can't give ${n} card${n>1?"s":""}${why?` (${why})`:""}: ${n} mana instead (now ${effMana(pl)}).`,"event");return n}
+function takeDeck(pl,n,why,rand){const P=G.p[pl],out=[];
+  for(let i=0;i<n&&P.deck.length;i++)out.push(rand?P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0]:P.deck.pop());
+  deckShort(pl,n-out.length,why);return out}
+function takeHand(pl,n,why){const P=G.p[pl],out=[];for(let i=0;i<n&&P.hand.length;i++)out.push(P.hand.splice(Math.floor(Math.random()*P.hand.length),1)[0]);
+  return out.concat(takeDeck(pl,n-out.length,why,true))}
+const shortNote=(pl,n)=>{const k=Math.max(0,n-G.p[pl].deck.length);return k?` (your deck is ${k} short: ${k} mana instead)`:""};
 const mana=pl=>G.p[pl].souls.reduce((a,c)=>a+soulOf(c),0);
 function pay(pl,n){
   const P=G.p[pl];if(mana(pl)<n)return false;

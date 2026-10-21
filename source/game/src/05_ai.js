@@ -370,6 +370,7 @@ const AI=(()=>{
   function shouldDraw(pl){
     const P=G.p[pl],lv=lvl(pl);
     if(!P.deck.length||P.hand.length>handCap(pl)-4+(lv==="easy"?1:0))return false;
+    if(P.deck.length<4&&effMana(pl)<6)return false;   // v71: a card the deck can't give costs 1 mana
     if(lv==="hard")return P.hand.length<=1||(P.hand.length<=2&&P.deck.length>P.start*.5);
     return P.hand.length<=2;
   }
