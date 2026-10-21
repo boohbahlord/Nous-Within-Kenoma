@@ -71,7 +71,7 @@ const MODES=[
  ["local","Standard","Local play: against computers, together on this device, or both. Up to four people, and computers (Easy, Medium or Hard) in any other seat. 1v1, free-for-all, two against two, or up to 8 in King of the Hill. With more than one person the board turns to whoever is playing, and the screen goes dark while you pass it."],
  ["survival","Survival","1 to 4 players hold the line against a Horde that comes in waves and grows with each one. Count the rounds you last."]];
 let startMode=null;
-const ORD=["One","Two","Three","Four"],SEATCOL=[0,3,2,5,4,7,1,8],SEATSOL=["tetra","icosa","cube","octa","dodeca","tetra","icosa","cube"];   // v57: eight seats for King of the Hill
+const ORD=["One","Two","Three","Four"],SEATCOL=["Ember","Azure","Verdigris","Rose","Violet","Moss","Gold","Frost"].map(n=>COLORS.findIndex(c=>c[0]===n)),SEATSOL=["tetra","icosa","cube","octa","dodeca","tetra","icosa","cube"];   // v57: eight seats for King of the Hill
 const LAYOUTS={
  duel:["1v1","Two players, one army at each end of the field. Needs exactly 2 players."],
  ffa:["Free-for-all","Everyone for themselves, one player to each edge of the field. Needs 3 or 4 players."],
@@ -96,8 +96,8 @@ ${S.noSubs?`<p class="dim fixednote">No Substances (the Table option): everyone 
 ${(()=>{const T=TRIBES[S.tribe]||{};
   const acc=c0=>`<div class="f"><span>Accent</span><div class="opts swatches accents">${ACCENTS.map(([v,nm])=>`<label class="sw" title="${nm}${v==="auto"?" (a light shade of the color)":""}"><input type="radio" name="ac${n}" data-seat="${i}" data-k="accent" value="${v}" ${v===(S.accent||"auto")?"checked":""}><span style="--pc:${v==="auto"?accentOf(c0&&c0!=="random"?c0:"#c9a274","auto"):v}"></span><em>${nm}</em></label>`).join("")}</div></div><p class="dim acnote">The accent is the thin frame around each of your cards, and the glow on the card you have selected.</p>`;   // v61: the frame of your cards (v71: and the selection glow)
   if(T.color)return `<p class="dim fixednote">${esc(T.name)} always plays in its own color and symbol: ${solidSVG(T.solid,T.color,20)}</p>`+acc(T.color);
-  const tc=S.takenC||{};   // v71: a color another seat holds can't be picked
-  const colors=`<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex])=>`<label class="sw${tc[hex]&&hex!==S.color?" off":""}" title="${nm}${tc[hex]&&hex!==S.color?` (taken by ${esc(tc[hex])})`:""}"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="${hex}" ${hex===S.color?"checked":""} ${tc[hex]&&hex!==S.color?"disabled":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}<label class="sw swrand" title="Random: a color nobody else has"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="random" ${S.color==="random"?"checked":""}><span>?</span><em>Random</em></label></div></div>`;
+  const tc0=S.takenC||[],tcOf=h=>{const x=tc0.find(([c])=>colorNear(c,h));return x?x[1]:null},tc=Object.fromEntries(COLORS.map(([,h])=>[h,tcOf(h)]).filter(x=>x[1]));   // v71: a color another seat holds, or one like it, can't be picked
+  const colors=`<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex])=>`<label class="sw${tc[hex]&&hex!==S.color?" off":""}" title="${nm}${tc[hex]&&hex!==S.color?` (too like ${esc(tc[hex])}'s color)`:""}"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="${hex}" ${hex===S.color?"checked":""} ${tc[hex]&&hex!==S.color?"disabled":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}<label class="sw swrand" title="Random: a color nobody else has"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="random" ${S.color==="random"?"checked":""}><span>?</span><em>Random</em></label></div></div>`;
   if(T.solid)return colors+acc(S.color)+`<p class="dim fixednote">${esc(T.name)} always bears its own symbol: ${solidSVG(T.solid,S.color,20)}</p>`;
   return colors+acc(S.color)+`<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="${k}" ${k===S.solid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}<label class="so-opt" title="Random: a symbol nobody else has"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="random" ${S.solid==="random"?"checked":""}><span><b class="sorand">?</b><em>Random</em></span></label></div></div>`;
 })()}
@@ -261,11 +261,12 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     const blk=skyBlocked(val("omoonon")),hum=humans(),ns=$("#onosubs")&&$("#onosubs").checked;
     seatsS.forEach((S,i)=>{S.you=i===0&&S.type==="human"&&hum===1&&!NET.inSetup;S.noHuman=S.type!=="human"&&hum>=4;S.noSubs=ns});   // v70d: four people on one device at most
     // v71: no two seats share a color; a Substance's own color (Satan's crimson) takes Crimson from the others, and a seat that held it moves
-    const colOf=Q=>!ns&&TRIBES[Q.tribe]&&TRIBES[Q.tribe].color||(Q.color&&Q.color!=="random"?Q.color:null),fam=c=>c===SATAN_RED?"#d7333b":c;
-    const takenBy=i=>{const t={};seatsS.slice(0,n).forEach((Q,j)=>{if(j===i)return;const c=colOf(Q);if(c)t[fam(c)]=Q.name||`P${j+1}`});return t};
+    // v71e: and no two alike (colorNear): a color too close to another seat's can't be picked
+    const colOf=Q=>!ns&&TRIBES[Q.tribe]&&TRIBES[Q.tribe].color||(Q.color&&Q.color!=="random"?Q.color:null);
+    const takenBy=i=>seatsS.slice(0,n).map((Q,j)=>j===i?null:[colOf(Q),Q.name||`P${j+1}`]).filter(x=>x&&x[0]);
     seatsS.slice(0,n).forEach((S,i)=>{if(!ns&&TRIBES[S.tribe]&&TRIBES[S.tribe].color||!S.color||S.color==="random")return;
-      const fixedBy=seatsS.slice(0,n).some((Q,j)=>j!==i&&!ns&&TRIBES[Q.tribe]&&TRIBES[Q.tribe].color&&fam(TRIBES[Q.tribe].color)===fam(S.color));
-      if(fixedBy){const t=takenBy(i),free=COLORS.map(c=>c[1]).find(c=>!t[c]);if(free)S.color=free}});
+      const fixedBy=seatsS.slice(0,n).some((Q,j)=>j!==i&&!ns&&TRIBES[Q.tribe]&&TRIBES[Q.tribe].color&&colorNear(TRIBES[Q.tribe].color,S.color));
+      if(fixedBy){const t=takenBy(i),free=COLORS.map(c=>c[1]).find(c=>!t.some(([h])=>colorNear(h,c)));if(free)S.color=free}});
     seatsS.slice(0,n).forEach((S,i)=>{S.takenC=takenBy(i)});
     $("#seats").innerHTML=seatsS.slice(0,n).map((S,i)=>seatForm(i,S,mode,L,new Set([...blk,...seatsS.slice(0,n).filter((Q,j)=>j!==i&&Q.tribe!=="random"&&Q.tribe!=="beginner").map(Q=>Q.tribe)]))).join("");
     $("#seats").querySelectorAll("details.look").forEach((d,i)=>d.addEventListener("toggle",()=>{seatsS[i].open=d.open}));   // v60: each seat's fold stays as it was left

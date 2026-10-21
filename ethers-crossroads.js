@@ -108,7 +108,18 @@ const TRIBES={
  plain:{name:"No Substance",sub:"The plain rules: no Substance's advantages or drawbacks.",hidden:true}   // v70d: only through the host's No Substances option
 };
 const PLAYABLE=Object.keys(TRIBES).filter(k=>k!=="random"&&!TRIBES[k].soon&&!TRIBES[k].hidden);
-const COLORS=[["Ember","#ee7a3c"],["Gold","#e3b944"],["Verdigris","#45b89c"],["Azure","#4c92e6"],["Violet","#a77de8"],["Rose","#e4648f"],["Crimson","#d7333b"],["Moss","#8fb33f"],["Frost","#74d7ea"]];   // Bone belongs to the Angel Machine
+/* v71e: one palette for both a player's color and their accent, in hue order. Bone stays the Angel Machine's and Onyx is too
+   dark to read names by, so neither is a player's color; both can be accents. Colors that look alike block each other. */
+const PALETTE=[["Crimson","#d7333b"],["Blood","#b3191f"],["Rose","#e4648f"],["Rose gold","#e8a598"],["Flame","#ff7a1a"],["Ember","#ee7a3c"],["Copper","#c47a3c"],["Umber","#9a6236"],
+  ["Gold","#e3b944"],["Lime","#c6df47"],["Moss","#8fb33f"],["Emerald","#2fa36b"],["Forest","#2f9150"],["Verdigris","#45b89c"],["Frost","#74d7ea"],["Ice","#9fe3f0"],
+  ["Azure","#4c92e6"],["Sapphire","#3a6fd8"],["Indigo","#5d5fe3"],["Violet","#a77de8"],["Amethyst","#9a62d8"],["Magenta","#cf4fd0"],
+  ["Slate","#8597ad"],["Ash","#7a7f88"],["Silver","#c9ccd6"],["Bone","#efe2c8"],["Onyx","#17120e"]];
+const COLORS=PALETTE.filter(([n])=>n!=="Bone"&&n!=="Onyx");
+/* how alike two colors look (CIE Lab distance under 20): such colors can't both be players' colors */
+const labOf=h=>{const f=c=>{c/=255;return c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4)},[r,g,b]=[1,3,5].map(i=>f(parseInt(h.slice(i,i+2),16)));
+  const X=(.4124*r+.3576*g+.1805*b)/.95047,Y=.2126*r+.7152*g+.0722*b,Z=(.0193*r+.1192*g+.9505*b)/1.08883,q=t=>t>.008856?Math.cbrt(t):7.787*t+16/116;
+  return [116*q(Y)-16,500*(q(X)-q(Y)),200*(q(Y)-q(Z))]};
+const colorNear=(a,b)=>{if(!a||!b||a[0]!=="#"||b[0]!=="#")return false;const A=labOf(a),B=labOf(b);return Math.hypot(A[0]-B[0],A[1]-B[1],A[2]-B[2])<20};   // Bone belongs to the Angel Machine
 const SOLIDS={tetra:"Tetrahedron",cube:"Cube",octa:"Octahedron",dodeca:"Dodecahedron",icosa:"Icosahedron"};
 const HORDE_COLOR="#97a487";
 
@@ -2351,7 +2362,7 @@ const MODES=[
  ["local","Standard","Local play: against computers, together on this device, or both. Up to four people, and computers (Easy, Medium or Hard) in any other seat. 1v1, free-for-all, two against two, or up to 8 in King of the Hill. With more than one person the board turns to whoever is playing, and the screen goes dark while you pass it."],
  ["survival","Survival","1 to 4 players hold the line against a Horde that comes in waves and grows with each one. Count the rounds you last."]];
 let startMode=null;
-const ORD=["One","Two","Three","Four"],SEATCOL=[0,3,2,5,4,7,1,8],SEATSOL=["tetra","icosa","cube","octa","dodeca","tetra","icosa","cube"];   // v57: eight seats for King of the Hill
+const ORD=["One","Two","Three","Four"],SEATCOL=["Ember","Azure","Verdigris","Rose","Violet","Moss","Gold","Frost"].map(n=>COLORS.findIndex(c=>c[0]===n)),SEATSOL=["tetra","icosa","cube","octa","dodeca","tetra","icosa","cube"];   // v57: eight seats for King of the Hill
 const LAYOUTS={
  duel:["1v1","Two players, one army at each end of the field. Needs exactly 2 players."],
  ffa:["Free-for-all","Everyone for themselves, one player to each edge of the field. Needs 3 or 4 players."],
@@ -2376,8 +2387,8 @@ ${S.noSubs?`<p class="dim fixednote">No Substances (the Table option): everyone 
 ${(()=>{const T=TRIBES[S.tribe]||{};
   const acc=c0=>`<div class="f"><span>Accent</span><div class="opts swatches accents">${ACCENTS.map(([v,nm])=>`<label class="sw" title="${nm}${v==="auto"?" (a light shade of the color)":""}"><input type="radio" name="ac${n}" data-seat="${i}" data-k="accent" value="${v}" ${v===(S.accent||"auto")?"checked":""}><span style="--pc:${v==="auto"?accentOf(c0&&c0!=="random"?c0:"#c9a274","auto"):v}"></span><em>${nm}</em></label>`).join("")}</div></div><p class="dim acnote">The accent is the thin frame around each of your cards, and the glow on the card you have selected.</p>`;   // v61: the frame of your cards (v71: and the selection glow)
   if(T.color)return `<p class="dim fixednote">${esc(T.name)} always plays in its own color and symbol: ${solidSVG(T.solid,T.color,20)}</p>`+acc(T.color);
-  const tc=S.takenC||{};   // v71: a color another seat holds can't be picked
-  const colors=`<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex])=>`<label class="sw${tc[hex]&&hex!==S.color?" off":""}" title="${nm}${tc[hex]&&hex!==S.color?` (taken by ${esc(tc[hex])})`:""}"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="${hex}" ${hex===S.color?"checked":""} ${tc[hex]&&hex!==S.color?"disabled":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}<label class="sw swrand" title="Random: a color nobody else has"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="random" ${S.color==="random"?"checked":""}><span>?</span><em>Random</em></label></div></div>`;
+  const tc0=S.takenC||[],tcOf=h=>{const x=tc0.find(([c])=>colorNear(c,h));return x?x[1]:null},tc=Object.fromEntries(COLORS.map(([,h])=>[h,tcOf(h)]).filter(x=>x[1]));   // v71: a color another seat holds, or one like it, can't be picked
+  const colors=`<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex])=>`<label class="sw${tc[hex]&&hex!==S.color?" off":""}" title="${nm}${tc[hex]&&hex!==S.color?` (too like ${esc(tc[hex])}'s color)`:""}"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="${hex}" ${hex===S.color?"checked":""} ${tc[hex]&&hex!==S.color?"disabled":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}<label class="sw swrand" title="Random: a color nobody else has"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="random" ${S.color==="random"?"checked":""}><span>?</span><em>Random</em></label></div></div>`;
   if(T.solid)return colors+acc(S.color)+`<p class="dim fixednote">${esc(T.name)} always bears its own symbol: ${solidSVG(T.solid,S.color,20)}</p>`;
   return colors+acc(S.color)+`<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="${k}" ${k===S.solid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}<label class="so-opt" title="Random: a symbol nobody else has"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="random" ${S.solid==="random"?"checked":""}><span><b class="sorand">?</b><em>Random</em></span></label></div></div>`;
 })()}
@@ -2541,11 +2552,12 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     const blk=skyBlocked(val("omoonon")),hum=humans(),ns=$("#onosubs")&&$("#onosubs").checked;
     seatsS.forEach((S,i)=>{S.you=i===0&&S.type==="human"&&hum===1&&!NET.inSetup;S.noHuman=S.type!=="human"&&hum>=4;S.noSubs=ns});   // v70d: four people on one device at most
     // v71: no two seats share a color; a Substance's own color (Satan's crimson) takes Crimson from the others, and a seat that held it moves
-    const colOf=Q=>!ns&&TRIBES[Q.tribe]&&TRIBES[Q.tribe].color||(Q.color&&Q.color!=="random"?Q.color:null),fam=c=>c===SATAN_RED?"#d7333b":c;
-    const takenBy=i=>{const t={};seatsS.slice(0,n).forEach((Q,j)=>{if(j===i)return;const c=colOf(Q);if(c)t[fam(c)]=Q.name||`P${j+1}`});return t};
+    // v71e: and no two alike (colorNear): a color too close to another seat's can't be picked
+    const colOf=Q=>!ns&&TRIBES[Q.tribe]&&TRIBES[Q.tribe].color||(Q.color&&Q.color!=="random"?Q.color:null);
+    const takenBy=i=>seatsS.slice(0,n).map((Q,j)=>j===i?null:[colOf(Q),Q.name||`P${j+1}`]).filter(x=>x&&x[0]);
     seatsS.slice(0,n).forEach((S,i)=>{if(!ns&&TRIBES[S.tribe]&&TRIBES[S.tribe].color||!S.color||S.color==="random")return;
-      const fixedBy=seatsS.slice(0,n).some((Q,j)=>j!==i&&!ns&&TRIBES[Q.tribe]&&TRIBES[Q.tribe].color&&fam(TRIBES[Q.tribe].color)===fam(S.color));
-      if(fixedBy){const t=takenBy(i),free=COLORS.map(c=>c[1]).find(c=>!t[c]);if(free)S.color=free}});
+      const fixedBy=seatsS.slice(0,n).some((Q,j)=>j!==i&&!ns&&TRIBES[Q.tribe]&&TRIBES[Q.tribe].color&&colorNear(TRIBES[Q.tribe].color,S.color));
+      if(fixedBy){const t=takenBy(i),free=COLORS.map(c=>c[1]).find(c=>!t.some(([h])=>colorNear(h,c)));if(free)S.color=free}});
     seatsS.slice(0,n).forEach((S,i)=>{S.takenC=takenBy(i)});
     $("#seats").innerHTML=seatsS.slice(0,n).map((S,i)=>seatForm(i,S,mode,L,new Set([...blk,...seatsS.slice(0,n).filter((Q,j)=>j!==i&&Q.tribe!=="random"&&Q.tribe!=="beginner").map(Q=>Q.tribe)]))).join("");
     $("#seats").querySelectorAll("details.look").forEach((d,i)=>d.addEventListener("toggle",()=>{seatsS[i].open=d.open}));   // v60: each seat's fold stays as it was left
@@ -2956,16 +2968,16 @@ function resolveSubstances(opts){
   }
   // v43: Random color and Random symbol take what nobody else has (after the fixed ones of the Substances)
   const ps=opts.players.filter(p=>p.cpu!=="horde");
-  const usedC=new Set(ps.filter(p=>TRIBES[p.tribe].color||p.color&&p.color!=="random").map(p=>TRIBES[p.tribe].color||p.color));
-  for(const p of ps)if(!TRIBES[p.tribe].color&&(!p.color||p.color==="random")){const free=COLORS.map(c=>c[1]).filter(c=>!usedC.has(c));p.color=pick(free.length?free:COLORS.map(c=>c[1]));usedC.add(p.color)}
+  const usedC=ps.filter(p=>TRIBES[p.tribe].color||p.color&&p.color!=="random").map(p=>TRIBES[p.tribe].color||p.color);
+  for(const p of ps)if(!TRIBES[p.tribe].color&&(!p.color||p.color==="random")){const free=COLORS.map(c=>c[1]).filter(c=>!usedC.some(u=>colorNear(u,c)));p.color=pick(free.length?free:COLORS.map(c=>c[1]));usedC.push(p.color)}   // v71e: nothing alike
   const usedS=new Set(ps.filter(p=>TRIBES[p.tribe].solid||p.solid&&p.solid!=="random").map(p=>TRIBES[p.tribe].solid||p.solid));
   for(const p of ps)if(!TRIBES[p.tribe].solid&&(!p.solid||p.solid==="random")){const free=Object.keys(SOLIDS).filter(k=>!usedS.has(k));p.solid=pick(free.length?free:Object.keys(SOLIDS));usedS.add(p.solid)}
-  // a fixed color can collide with a color someone picked: the one who picked moves to a free color
-  const used=new Set(opts.players.filter(p=>p.cpu!=="horde"&&TRIBES[p.tribe].color).map(p=>p.color));
+  // a fixed color can collide with (or look like) a color someone picked: the one who picked moves to a free color
+  const used=opts.players.filter(p=>p.cpu!=="horde"&&TRIBES[p.tribe].color).map(p=>p.color);
   for(const p of opts.players){
     if(p.cpu==="horde"||TRIBES[p.tribe].color)continue;
-    if(used.has(p.color))p.color=COLORS.map(c=>c[1]).find(c=>!used.has(c))||p.color;
-    used.add(p.color);
+    if(used.some(u=>colorNear(u,p.color)))p.color=COLORS.map(c=>c[1]).find(c=>!used.some(u=>colorNear(u,c)))||p.color;
+    used.push(p.color);
   }
 }
 const subOf=pl=>G.p[pl]?G.p[pl].tribe:null;
@@ -10084,7 +10096,7 @@ if(window.__EC)Object.assign(window.__EC,{seesTile:(...a)=>seesTile(...a),fogTil
    - The Display bar at the foot of the page keeps the quick settings; the rest live in the Menu. */
 
 /* ---------- accent colors ---------- */
-const ACCENTS=[["auto","Its own light"],["#efe2c8","Bone"],["#d9b552","Gold"],["#c9ccd6","Silver"],["#b3191f","Blood"],["#17120e","Onyx"],["#c47a3c","Copper"],["#2fa36b","Emerald"],["#3a6fd8","Sapphire"],["#9a62d8","Amethyst"],["#e8a598","Rose gold"],["#9fe3f0","Ice"],["#ff7a1a","Flame"],["#7a7f88","Ash"]];   // v71: more of them
+const ACCENTS=[["auto","Its own light"],...PALETTE.map(([n,h])=>[h,n])];   // v71e: the whole palette, the same as the players' colors
 const accentOf=(color,acc)=>!acc||acc==="auto"?`color-mix(in oklab,${color} 55%,#f3e7d2)`:acc;
 const pAccent=P=>P?accentOf(P.color,P.accent):"#9a8f80";
 
