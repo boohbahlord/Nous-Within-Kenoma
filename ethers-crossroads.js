@@ -1256,25 +1256,26 @@ async function jokerSuicide(r,c,st,pl){
   st.cards.splice(st.cards.indexOf(j),1);if(!st.cards.length){G.board[r][c]=null;if(G.sel&&G.sel.r===r&&G.sel.c===c)G.sel=null}
   else if(G.sel)G.sel.pick.delete(j.id);
   const souls=j.captured||[];j.captured=[];
-  SND.gun();
+  SND.gun();if(!G.opts.fast)await sleep(550);   // v71: the word comes once the gunshot has rung out
   if(isHorde(pl)){ // survival: the player's captured souls go to the Outer Darkness, and the player loses 1 mana
     for(const s of souls)toDark(s);j.owner=pl;
     const victims=[...new Set(souls.map(x=>x.darkOwner).filter(v=>v!=null&&!isHorde(v)))];
     for(const v of victims){const P=G.p[v];if(mana(v)>=1)pay(v,1);else if(P.souls.length)toGrave(P.souls.shift(),"spent")}
     log(`A Horde Joker shoots itself: ${souls.length} captured soul${souls.length===1?"":"s"} fall into the Outer Darkness${victims.length?`; ${victims.map(plName).join(" and ")} lose${victims.length===1?"s":""} 1 mana`:""}.`,"event");
-    flash("A Horde Joker shoots itself.");checkWin();return;
+    flash("A Horde Joker shoots itself.");notify(pl,"A Horde Joker commits Sacrificial Suicide.");checkWin();return;
   }
   const m=G.moon;
   if(m.blood){
     toDark(j);for(const s of souls)toDark(s);
-    log(`Sacrificial Suicide under the Blood Moon: the Joker and its ${souls.length} soul${souls.length===1?"":"s"} fall into the Outer Darkness.`,"event");
+    log(`Sacrificial Suicide under the Blood Moon: ${plName(pl)}'s Joker and its ${souls.length} soul${souls.length===1?"":"s"} fall into the Outer Darkness.`,"event");
   }else{
     let moved=0,lost=0;
     for(const s of souls){if(addSoul(pl,s))moved++;else{toGrave(s,"spent");lost++}}
     if(G.p[pl].tribe==="jester"&&G.moon.gone==="jupiter"){const v=R(2)-1;if(v){giveMana(pl,v);log(`Jupiter adds ${v} mana to the Jester's Sacrificial Suicide.`)}}
     toGrave(j,"death");
-    log(`Sacrificial Suicide: the Joker goes to the grave; ${moved} soul${moved===1?"":"s"} join the soul pile${lost?`, ${lost} surplus to the grave`:""}.`);
+    log(`Sacrificial Suicide: ${plName(pl)}'s Joker goes to the grave; ${moved} soul${moved===1?"":"s"} join the soul pile${lost?`, ${lost} surplus to the grave`:""}.`,"event");
   }
+  notify(pl,`${plName(pl)}'s Joker commits Sacrificial Suicide.`);
   render();
   checkWin();
 }
@@ -2365,9 +2366,10 @@ function seatForm(i,S,mode,L,taken){taken=taken||new Set();
 ${tm?`<div class="f"><span>Team</span><div class="opts">${[0,1].map(t=>`<label class="opt"><input type="radio" name="tm${n}" data-seat="${i}" data-k="team" value="${t}" ${S.team===t?"checked":""}><span>${t?"Side B":"Side A"}<small>${t?"Plays against Side A.":"Plays against Side B."} ${L==="koth"?"Each side needs at least one player.":"Each side needs two players."}</small></span></label>`).join("")}</div></div>`:""}
 ${S.noSubs?`<p class="dim fixednote">No Substances (the Table option): everyone plays by the plain rules.</p>`:`<div class="f"><span>Substance</span><div class="opts subs">${Object.entries(TRIBES).filter(([k,t])=>!t.hidden).map(([k,t])=>{const off=t.soon||taken.has(k)&&k!==S.tribe;return `<label class="opt${off?" off":""}"><input type="radio" name="tr${n}" data-seat="${i}" data-k="tribe" value="${k}" ${k===S.tribe?"checked":""} ${off?"disabled":""}><span>${t.solid?`<i class="subsym">${solidSVG(t.solid,t.color||"#f3d6a6",18)}</i>`:""}${t.name}<small>${taken.has(k)&&k!==S.tribe?"Another player has it: only the Beginner can be played by more than one player.":t.sub}</small></span></label>`}).join("")}</div></div>`}
 ${(()=>{const T=TRIBES[S.tribe]||{};
-  const acc=c0=>`<div class="f"><span>Accent</span><div class="opts swatches accents">${ACCENTS.map(([v,nm])=>`<label class="sw" title="${nm}${v==="auto"?" (a light shade of the color)":""}"><input type="radio" name="ac${n}" data-seat="${i}" data-k="accent" value="${v}" ${v===(S.accent||"auto")?"checked":""}><span style="--pc:${v==="auto"?accentOf(c0&&c0!=="random"?c0:"#c9a274","auto"):v}"></span><em>${nm}</em></label>`).join("")}</div></div>`;   // v61: the frame of your cards
+  const acc=c0=>`<div class="f"><span>Accent</span><div class="opts swatches accents">${ACCENTS.map(([v,nm])=>`<label class="sw" title="${nm}${v==="auto"?" (a light shade of the color)":""}"><input type="radio" name="ac${n}" data-seat="${i}" data-k="accent" value="${v}" ${v===(S.accent||"auto")?"checked":""}><span style="--pc:${v==="auto"?accentOf(c0&&c0!=="random"?c0:"#c9a274","auto"):v}"></span><em>${nm}</em></label>`).join("")}</div></div><p class="dim acnote">The accent is the thin frame around each of your cards, and the glow on the card you have selected.</p>`;   // v61: the frame of your cards (v71: and the selection glow)
   if(T.color)return `<p class="dim fixednote">${esc(T.name)} always plays in its own color and symbol: ${solidSVG(T.solid,T.color,20)}</p>`+acc(T.color);
-  const colors=`<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex])=>`<label class="sw" title="${nm}"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="${hex}" ${hex===S.color?"checked":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}<label class="sw swrand" title="Random: a color nobody else has"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="random" ${S.color==="random"?"checked":""}><span>?</span><em>Random</em></label></div></div>`;
+  const tc=S.takenC||{};   // v71: a color another seat holds can't be picked
+  const colors=`<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex])=>`<label class="sw${tc[hex]&&hex!==S.color?" off":""}" title="${nm}${tc[hex]&&hex!==S.color?` (taken by ${esc(tc[hex])})`:""}"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="${hex}" ${hex===S.color?"checked":""} ${tc[hex]&&hex!==S.color?"disabled":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}<label class="sw swrand" title="Random: a color nobody else has"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="random" ${S.color==="random"?"checked":""}><span>?</span><em>Random</em></label></div></div>`;
   if(T.solid)return colors+acc(S.color)+`<p class="dim fixednote">${esc(T.name)} always bears its own symbol: ${solidSVG(T.solid,S.color,20)}</p>`;
   return colors+acc(S.color)+`<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="${k}" ${k===S.solid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}<label class="so-opt" title="Random: a symbol nobody else has"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="random" ${S.solid==="random"?"checked":""}><span><b class="sorand">?</b><em>Random</em></span></label></div></div>`;
 })()}
@@ -2530,6 +2532,13 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     $("#laynote").textContent=mode==="survival"?(n===1?"One survivor on the usual field.":`${n} survivors share the bottom of the field, and the Horde spawns once for each of you. Any seat can be a computer; people take their turns one after another on this device, and the Horde moves first each round.`):"";
     const blk=skyBlocked(val("omoonon")),hum=humans(),ns=$("#onosubs")&&$("#onosubs").checked;
     seatsS.forEach((S,i)=>{S.you=i===0&&S.type==="human"&&hum===1&&!NET.inSetup;S.noHuman=S.type!=="human"&&hum>=4;S.noSubs=ns});   // v70d: four people on one device at most
+    // v71: no two seats share a color; a Substance's own color (Satan's crimson) takes Crimson from the others, and a seat that held it moves
+    const colOf=Q=>!ns&&TRIBES[Q.tribe]&&TRIBES[Q.tribe].color||(Q.color&&Q.color!=="random"?Q.color:null),fam=c=>c===SATAN_RED?"#d7333b":c;
+    const takenBy=i=>{const t={};seatsS.slice(0,n).forEach((Q,j)=>{if(j===i)return;const c=colOf(Q);if(c)t[fam(c)]=Q.name||`P${j+1}`});return t};
+    seatsS.slice(0,n).forEach((S,i)=>{if(!ns&&TRIBES[S.tribe]&&TRIBES[S.tribe].color||!S.color||S.color==="random")return;
+      const fixedBy=seatsS.slice(0,n).some((Q,j)=>j!==i&&!ns&&TRIBES[Q.tribe]&&TRIBES[Q.tribe].color&&fam(TRIBES[Q.tribe].color)===fam(S.color));
+      if(fixedBy){const t=takenBy(i),free=COLORS.map(c=>c[1]).find(c=>!t[c]);if(free)S.color=free}});
+    seatsS.slice(0,n).forEach((S,i)=>{S.takenC=takenBy(i)});
     $("#seats").innerHTML=seatsS.slice(0,n).map((S,i)=>seatForm(i,S,mode,L,new Set([...blk,...seatsS.slice(0,n).filter((Q,j)=>j!==i&&Q.tribe!=="random"&&Q.tribe!=="beginner").map(Q=>Q.tribe)]))).join("");
     $("#seats").querySelectorAll("details.look").forEach((d,i)=>d.addEventListener("toggle",()=>{seatsS[i].open=d.open}));   // v60: each seat's fold stays as it was left
     $("#seats").querySelectorAll("[data-seat]").forEach(el=>el.addEventListener(el.tagName==="INPUT"&&el.type==="text"?"input":"change",()=>{
@@ -8392,7 +8401,7 @@ const lazyOn=()=>lazyArmed||lazyAuto();
 const lazyCan=()=>!!G&&!G.over&&canAct()&&G.active===view()&&!G.placing&&(G.phase==="prep"||G.phase==="setup"&&G.setupStep==="more");
 function lazySpot(pl,card){const ctx=typeof faOn==="function"&&faOn(pl)?faCtx(pl):null;return AI.bestSpot(pl,card,ctx)}
 function lazyPlace(card){const pl=G.active,t=lazySpot(pl,card);
-  if(!t){flash(`Lazy Hand finds no place for ${nameOf(card)}.`);return false}
+  if(!t){flash(`Lazy Hand finds no place for ${nameOf(card)}: place it yourself.`);return false}   // v71: the click falls through and picks the card up
   G.selHand=card;G.mode=null;place(card,t[0],t[1]);G.selHand=null;if(!lazyAuto())lazyArmed=false;render();return true}
 function lazyHTML(live){const ok=live&&lazyCan(),on=lazyAuto();
   return `<div class="spellrow lazyrow"><button type="button" class="autotog cfgtog${lhMine().autoPlace||lhMine().sac?" on":""}" id="lhCfg" aria-label="Lazy Hand automation" data-tip="Lazy Hand automation: what it never places, and sacrifices from your hand.">⚙</button><button type="button" class="autotog${on?" on":""}" id="autoLazy" aria-pressed="${on}" data-tip="Keep Lazy Hand on: every card you click in your hand is placed for you.">auto</button><button type="button" class="spell lazy ${ok?"":"off"} ${lazyOn()?"armed":""}" id="lazyBtn" aria-pressed="${lazyOn()}" data-tip="Lazy Hand: click it, then a card in your hand, and the computer places that card for you. With Field Automation on, it follows those settings. Free, as often as you like."><span class="sn">${HAND_ICON}Lazy Hand</span><em>${lazyOn()?"on":"free"}</em></button></div>`}
@@ -8406,7 +8415,7 @@ function lazyHTML(live){const ok=live&&lazyCan(),on=lazyAuto();
 {const _r=render;render=function(){_r.apply(this,arguments);const h=$("#hand");if(!h||!G)return;const on=lazyOn()&&lazyCan();h.classList.toggle("lazy",on);if(!on)return;
   h.querySelectorAll("[data-h]").forEach(b=>{const orig=b.onclick;b.onclick=e=>{if(!lazyOn()||!lazyCan())return orig&&orig.call(b,e);
     const c=G.p[view()].hand[+b.dataset.h];if(c&&lhExcluded(c,lhMine()))return orig&&orig.call(b,e);   // v47: kinds Lazy Hand leaves to you
-    if(c)lazyPlace(c)}})}}
+    if(c&&!lazyPlace(c))return orig&&orig.call(b,e)}})}}
 if(window.__EC)Object.assign(window.__EC,{lazySpot,lazyPlace,lazyOn});
 
 /* ---------------- v45: "What you must know", the start-of-game toast and the Help title ----------------
@@ -10032,7 +10041,7 @@ if(window.__EC)Object.assign(window.__EC,{seesTile:(...a)=>seesTile(...a),fogTil
    - The Display bar at the foot of the page keeps the quick settings; the rest live in the Menu. */
 
 /* ---------- accent colors ---------- */
-const ACCENTS=[["auto","Its own light"],["#efe2c8","Bone"],["#d9b552","Gold"],["#c9ccd6","Silver"],["#b3191f","Blood"],["#17120e","Onyx"]];
+const ACCENTS=[["auto","Its own light"],["#efe2c8","Bone"],["#d9b552","Gold"],["#c9ccd6","Silver"],["#b3191f","Blood"],["#17120e","Onyx"],["#c47a3c","Copper"],["#2fa36b","Emerald"],["#3a6fd8","Sapphire"],["#9a62d8","Amethyst"],["#e8a598","Rose gold"],["#9fe3f0","Ice"],["#ff7a1a","Flame"],["#7a7f88","Ash"]];   // v71: more of them
 const accentOf=(color,acc)=>!acc||acc==="auto"?`color-mix(in oklab,${color} 55%,#f3e7d2)`:acc;
 const pAccent=P=>P?accentOf(P.color,P.accent):"#9a8f80";
 

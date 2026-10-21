@@ -102,25 +102,26 @@ async function jokerSuicide(r,c,st,pl){
   st.cards.splice(st.cards.indexOf(j),1);if(!st.cards.length){G.board[r][c]=null;if(G.sel&&G.sel.r===r&&G.sel.c===c)G.sel=null}
   else if(G.sel)G.sel.pick.delete(j.id);
   const souls=j.captured||[];j.captured=[];
-  SND.gun();
+  SND.gun();if(!G.opts.fast)await sleep(550);   // v71: the word comes once the gunshot has rung out
   if(isHorde(pl)){ // survival: the player's captured souls go to the Outer Darkness, and the player loses 1 mana
     for(const s of souls)toDark(s);j.owner=pl;
     const victims=[...new Set(souls.map(x=>x.darkOwner).filter(v=>v!=null&&!isHorde(v)))];
     for(const v of victims){const P=G.p[v];if(mana(v)>=1)pay(v,1);else if(P.souls.length)toGrave(P.souls.shift(),"spent")}
     log(`A Horde Joker shoots itself: ${souls.length} captured soul${souls.length===1?"":"s"} fall into the Outer Darkness${victims.length?`; ${victims.map(plName).join(" and ")} lose${victims.length===1?"s":""} 1 mana`:""}.`,"event");
-    flash("A Horde Joker shoots itself.");checkWin();return;
+    flash("A Horde Joker shoots itself.");notify(pl,"A Horde Joker commits Sacrificial Suicide.");checkWin();return;
   }
   const m=G.moon;
   if(m.blood){
     toDark(j);for(const s of souls)toDark(s);
-    log(`Sacrificial Suicide under the Blood Moon: the Joker and its ${souls.length} soul${souls.length===1?"":"s"} fall into the Outer Darkness.`,"event");
+    log(`Sacrificial Suicide under the Blood Moon: ${plName(pl)}'s Joker and its ${souls.length} soul${souls.length===1?"":"s"} fall into the Outer Darkness.`,"event");
   }else{
     let moved=0,lost=0;
     for(const s of souls){if(addSoul(pl,s))moved++;else{toGrave(s,"spent");lost++}}
     if(G.p[pl].tribe==="jester"&&G.moon.gone==="jupiter"){const v=R(2)-1;if(v){giveMana(pl,v);log(`Jupiter adds ${v} mana to the Jester's Sacrificial Suicide.`)}}
     toGrave(j,"death");
-    log(`Sacrificial Suicide: the Joker goes to the grave; ${moved} soul${moved===1?"":"s"} join the soul pile${lost?`, ${lost} surplus to the grave`:""}.`);
+    log(`Sacrificial Suicide: ${plName(pl)}'s Joker goes to the grave; ${moved} soul${moved===1?"":"s"} join the soul pile${lost?`, ${lost} surplus to the grave`:""}.`,"event");
   }
+  notify(pl,`${plName(pl)}'s Joker commits Sacrificial Suicide.`);
   render();
   checkWin();
 }
