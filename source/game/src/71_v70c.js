@@ -77,3 +77,47 @@ const manaShown=pl=>{const P=G.p[pl],x=illOf("manaDel",pl),real=mana(pl)-(P.debt
 {const _ca=canAfford;canAfford=function(pl,n){if(!illOf("manaDel",pl)||pl!==G.active)return _ca.apply(this,arguments);
   return manaShown(pl)>=n&&(mana(pl)>=n||!!(G.bank&&!G.bank.dead))}}   // what the bar shows decides; without a Bank there is no credit to fall into
 if(window.__EC)Object.assign(window.__EC,{illOf:(...a)=>illOf(...a),manaShown:pl=>manaShown(pl),canAffordW2:(...a)=>canAfford(...a),beginTurnW:(...a)=>beginTurn(...a),endTurnW:(...a)=>endTurn(...a)});
+
+/* ---------- Always leave Field Automation on (on by default): at the top of Configure field automation. While it is on,
+   Field Automation turns itself on wherever it is available, and turning it off asks first; a Yes keeps it off for that game. */
+const faAlways=()=>PREF.faAlways!==false;
+function faAskOff(yes){let box=$("#faask");if(!box){box=document.createElement("div");box.id="faask";box.className="faov";document.body.appendChild(box)}
+  box.innerHTML=`<div class="ovbox" role="alertdialog" aria-labelledby="faoq"><button type="button" class="xclose" id="faX" aria-label="Close: no">×</button>
+<h2 id="faoq">Turn Field Automation off?</h2><p>Your field will wait for your own moves and attacks until you turn it back on.</p><p class="dim">"Always leave Field Automation on" is set (at the top of Configure field automation).</p>
+<p class="acts"><button type="button" class="btn" id="faY">Yes</button> <button type="button" class="btn ghost" id="faN">No</button></p></div>`;
+  box.hidden=false;const close=()=>{box.hidden=true};$("#faY").onclick=()=>{close();yes()};$("#faN").onclick=close;$("#faX").onclick=close;$("#faN").focus()}
+{const _ft=faToggle;faToggle=function(){const V=view(),s=faState(V);if(s&&s.on&&faAlways()){faAskOff(()=>{G.p[V].faUserOff=true;_ft()});return}return _ft.apply(this,arguments)}}
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!faAlways()||G.over||G.phase==="setup"||!faAllowed())return;const V=view(),P=G.p[V];
+  if(!P||P.cpu||isNPC(V)||P.faUserOff||faOn(V)||(NET.role==="guest"&&NET.watch)||NET.ctx!=null&&NET.ctx!==V)return;
+  const c=faMine();c.under=true;PREF.fa=c;savePrefs();setFieldAuto(V,true,c)}}
+{const _p=paintFA;paintFA=function(){_p.apply(this,arguments);const w=$("#facfg"),b=w&&!w.hidden&&w.querySelector(".fabody");if(!b||b.querySelector("#faAlways"))return;
+  b.insertAdjacentHTML("afterbegin",`<label class="farow faalways"><span class="fal"><b>Always leave Field Automation on</b><small>It turns itself on in every game where it can, and asks before you turn it off.</small></span><input type="checkbox" id="faAlways" ${faAlways()?"checked":""}></label>`);
+  $("#faAlways").onchange=e=>{PREF.faAlways=e.target.checked;savePrefs();if(G)render()}}}
+
+/* ---------- What you must know, shorter: the gist, the one thing to know, where the Help is; "Tell me more here now" opens the
+   rest; "Never show again" sits in its own row at the bottom, and only then does the Menu (or Settings) offer to bring it back */
+const MK_KEY=`Hover (or press and hold) any card, tile, spell or word to see exactly what it does.`;
+openMustKnow=function(){
+  ovShow(`<div class="ovbox wide mkbox" role="dialog" aria-labelledby="mkh"><button type="button" class="xclose" id="mkX" aria-label="Close">×</button>
+<h2 id="mkh">What you must know</h2>
+<p class="mktldr">${MK_TLDR}</p>
+<p class="mkkey"><b>${MK_KEY}</b></p>
+<p class="mkpoint">Everything else is in the <b>Help</b> index at the bottom of the page: the basics, every card, every spell, the sky and the Bank, always there while you play.</p>
+<div id="mkMore" hidden><div class="mkbody">${MK_BODY}</div>${MK_MORE.replace(/<p class="mkpoint">[\s\S]*?<\/p>/,"")}</div>
+<p class="acts"><button type="button" class="btn" id="mkMoreBtn">Tell me more here now</button> <button type="button" class="btn ghost" id="mkHelp">Show me the Help index</button> <button type="button" class="btn ghost" id="mkClose">Close</button></p>
+<p class="mknever"><button type="button" class="btn ghost sm" id="mkNever">Never show again</button></p></div>`);
+  $("#mkX").onclick=$("#mkClose").onclick=ovHide;
+  $("#mkMoreBtn").onclick=()=>{const m=$("#mkMore");m.hidden=false;$("#mkMoreBtn").hidden=true;m.scrollIntoView({block:"start",behavior:"smooth"})};
+  $("#mkHelp").onclick=()=>{ovHide();goHelp()};$("#mkNever").onclick=askNever};
+askNever=function(){
+  ovShow(`<div class="ovbox mkask" role="dialog" aria-labelledby="mkq"><h2 id="mkq">Never show "What you must know" again?</h2><p class="dim">You can bring it back from the Menu during a game, or from Settings on the game's front page.</p>
+<p class="acts"><button type="button" class="btn" id="mkYes">Yes</button> <button type="button" class="btn ghost" id="mkNo">No</button> <button type="button" class="btn ghost" id="mkNext">Remind me at the start of the next game</button></p></div>`);
+  $("#mkYes").onclick=()=>{PREF.mkHide="never";savePrefs();ovHide();paintMustKnow()};
+  $("#mkNext").onclick=()=>{PREF.mkHide="next";savePrefs();ovHide();paintMustKnow()};
+  $("#mkNo").onclick=openMustKnow};
+if($("#mkBtn"))$("#mkBtn").onclick=openMustKnow;if($("#helpMk"))$("#helpMk").onclick=openMustKnow;
+{const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu"),acts=m&&m.querySelector(".acts");if(!acts||PREF.mkHide!=="never"||m.querySelector("#mMk"))return;
+  acts.insertAdjacentHTML("beforebegin",`<p><button type="button" class="btn ghost" id="mMk">Show "What you must know" again</button></p>`);
+  $("#mMk").onclick=()=>{PREF.mkHide=null;savePrefs();paintMustKnow();$("#mMk").parentNode.remove();if(typeof flash==="function"&&G)flash('"What you must know" is back at the top of the page.')}}}
+/* Settings on the game's front page opens this same menu here, before any game */
+if(location.hash==="#settings")setTimeout(()=>{openMenu();history.replaceState(null,"",location.pathname+location.search)},250);

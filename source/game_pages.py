@@ -8,8 +8,9 @@ open(f'{OUT}/ethers-crossroads.js', 'w').write(
     + "\n".join(open('game/src/' + f).read() for f in _parts) + "\n})();\n")
 EC = "Ether's Crossroads"
 ec_cards = '''<nav class="cards">
-  <a class="card" href="ethers-crossroads-rules.html">All Rules<span>Every rule, spell, moon phase and event</span></a>
   <a class="card" href="ethers-crossroads-play.html">Play Game<span>Local, Versus Computer, or Survival, for 1 to 4 players</span></a>
+  <a class="card" href="ethers-crossroads-play.html#settings">Settings<span>The game's look, sound and animations: the same as the Menu in a game</span></a>
+  <a class="card" href="ethers-crossroads-rules.html">All Rules<span>Every rule, spell, moon phase and event</span></a>
 </nav>'''
 MODES_HTML = """<h2 id="modes">Game Modes</h2>
 <h3>Local</h3>
@@ -286,7 +287,7 @@ b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({beha
 </main>''', 1)
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
-play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=78">', ec=True) + f'''<main class="wide game">
+play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=79">', ec=True) + f'''<main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
@@ -324,8 +325,8 @@ play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="eth
 </main>
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
-<script src="ethers-crossroads-quotes.js?v=78"></script>
-<script src="ethers-crossroads.js?v=78"></script>
+<script src="ethers-crossroads-quotes.js?v=79"></script>
+<script src="ethers-crossroads.js?v=79"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 

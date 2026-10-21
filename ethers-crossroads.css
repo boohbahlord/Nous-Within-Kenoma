@@ -1829,3 +1829,9 @@ html.cardsym .cf.v61 .hearts,html.cardsym .stack.v61 .bhp{top:calc(24px * var(--
 .cf.blank b{font:700 26px/1 var(--bl,serif);color:#6b5d48;opacity:.55}
 .meter.mana.deluded .manabar{filter:hue-rotate(140deg) saturate(.75)}
 .meter.mana.deluded .mv{font-style:italic}
+/* v70c: What you must know, shorter; Never show again in its own row at the bottom */
+.ovbox.mkbox .mktldr{border-left:3px solid var(--amber)}
+.ovbox.mkbox .mkkey{margin:0 0 10px}
+.ovbox.mkbox .mknever{margin:10px 0 0;padding:8px 0 0;border-top:1px solid var(--rule);text-align:left}
+.farow.faalways{margin:0 0 10px;padding:8px 10px;border:1px solid var(--rule);background:#00000025}
+.farow.faalways small{display:block;color:var(--dim);font-weight:400}
