@@ -111,7 +111,7 @@ function spellTipHTML(s){
 }
 
 /* ---------- the sky: names, Forms and a compact info box ---------- */
-const SKY_FORM={moon:"Form of Fate",saturn:"Form of Limitation",mars:"Form of Strife",sun:"Form of Judgement",blacksun:"Form of Judgement",venus:"Form of Harmony",mercury:"Form of Guile",jupiter:"Form of Abundance"};
+const SKY_FORM={moon:"Form of Fate",saturn:"Form of Limitation",mars:"Form of Strife",sun:"Form of Judgement",blacksun:"Form of Judgement",venus:"Form of Harmony",mercury:"Form of Guile",jupiter:"Form of Abundance",neptune:"Form of Dissolve"};
 for(const k in PLANETS)PLANETS[k].word=(SKY_FORM[k]||"").replace("Form of ","");
 for(const k in SKY_NAME)SKY_NAME[k]=(SKY_FORM[k]||"").replace("Form of ","");
 /* both sky boxes share one shape: the name, its state, short lines, and the Form at the bottom */
@@ -128,7 +128,7 @@ function skyCommon(L){
 }
 moonInfoHTML=function(){
   const m=G.moon,V=view(),P=G.p[V],L=[];
-  if(["sun","blacksun","venus","jupiter","mercury","fallen"].includes(m.gone))return planetInfoHTML(m.gone);
+  if(["sun","blacksun","venus","jupiter","mercury","fallen","neptune"].includes(m.gone))return planetInfoHTML(m.gone);
   if(m.gone==="off"){L.push("No starting Heavenly Body in this game: no phases, no gifts, no tolls.");return skyBox("No starting Heavenly Body","",L,"")}
   if(m.gone==="eaten"){L.push("Yaldabaoth ate the moon. No phases, no gifts, no tolls, no Blood Moon.");skyCommon(L);return skyBox("The empty sky","",L,"")}
   if(m.gone==="mars"){L.push("Each turn, every stack of only Grunts, Infantry or Puppets gets advantage on its next attack on 1–5 of 1d8.","The moon's phases are stopped.");
@@ -207,7 +207,8 @@ const SKY_OPTS=[
  ["sun","The Second Sun","No fog of war; every 2d2 turns each player pays the Bank or goes blind for a turn. No Firmament."],
  ["venus","Venus","The Oath of Venus rewards turns without attacking a player. No Firmament."],
  ["mercury","Mercury","Votes for Peace or Total War, and the Oath of Mercury. No Firmament."],
- ["jupiter","Jupiter","Ace miners bring 1d2, conjurings go on sale, cards trade at the Auction. No Firmament."]];
+ ["jupiter","Jupiter","Ace miners bring 1d2, conjurings go on sale, cards trade at the Auction. No Firmament."],
+ ["neptune","Neptune","Clouds in its blue that hide tiles and lose cards, and mana that strays or doubles."]];
 /* Substances: one tag line for the setup, and a few points for the info panels */
 for(const k in SUBST_TEXT)if(TRIBES[k]){TRIBES[k].sub=SUBST_TEXT[k].tag;TRIBES[k].pts=SUBST_TEXT[k].pts}
 
@@ -219,7 +220,8 @@ const SKY_ROWS=[
  ["sun","The Second Sun","The Firmament, with a Joker that shoots itself; or the sky from the start.","No fog of war. Every 2d2 turns it judges each other player: 1d6 mana to the Bank, 1d2 damage to their stacks or 1d2 + 1d3 deck cards, or 1d3 blind turns. Three cries from Yaldabaoth make it the Black Sun."],
  ["venus","Venus","The Firmament; or the sky from the start.","+2 mana a turn and +2 maximum for the caster or a teammate, or +1 a turn while every enemy gets +2 maximum."],
  ["mercury","Mercury","The Firmament; or the sky from the start.","Votes for Peace or Total War, bought Peace, and under its Oath Betrayal, Declare War and Bribe the Banker."],
- ["jupiter","Jupiter","The Firmament; or the sky from the start.","Ace miners bring 1d2, two conjurings on sale each round, trades at the Auction."]];
+ ["jupiter","Jupiter","The Firmament; or the sky from the start.","Ace miners bring 1d2, two conjurings on sale each round, trades at the Auction."],
+ ["neptune","Neptune","The Heavenly Body shop, or a change of sky; or the sky from the start.","Every 4d2 turns a cloud in Neptune's blue settles around the cards for 2d4 turns: its tiles go into fog for everyone, and on a 1 of 1d20 a player loses a stack in it for 1d3 + 1d2 − 1 of their turns. The first mana a player earns or spends each round may stray to another player (a 1 on 1d20) or double (a 20)."]];
 function skyExplainHTML(){return `<details class="sub"><summary>Heavenly Bodies explained</summary><div class="skygrid">${SKY_ROWS.map(([k,n,how,what])=>`<div class="skycard"><b>${n}</b><p>${what}</p><small>${how}</small><em class="skyform">${SKY_FORM[k]}</em></div>`).join("")}</div><p class="dim">Every Heavenly Body but the Moon can be eclipsed: 5% at the start of each round. Hover or tap the sky in a game for what it means for you.</p></details>`}
 const BANK_HELP=[
  ["Where mana goes","Every mana spent on a spell goes to the Bank. The Bank can go 8 into the red, no further."],

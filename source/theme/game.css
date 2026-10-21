@@ -1896,3 +1896,12 @@ html.th-rich .ovbox legend{color:var(--lab)}
 /* v71: every field sits in the middle of its frame; a large one still scrolls and zooms (auto margins fall to 0 once it is wider) */
 #board{margin-left:auto;margin-right:auto}
 .camwrap.on #board.large{margin:10px auto}
+/* ================= v71c: Neptune ================= */
+.tile .nepcloud{position:absolute;inset:0;z-index:4;pointer-events:none;background:radial-gradient(ellipse at 40% 45%,#6fbaf0b0,#2a63b870 55%,#0a18465a);animation:nepdrift 5.5s ease-in-out infinite alternate}
+@keyframes nepdrift{from{opacity:.7}to{opacity:1}}
+.stack.nlost{opacity:.3;filter:saturate(.5)}
+.nepmark{position:absolute;z-index:200;transform:translate(-50%,-10%);font-family:"Grenze Gotisch","Old English Text MT",serif;font-size:24px;color:#3f9be0;text-shadow:0 0 8px #3f9be0aa,0 0 2px #000;pointer-events:none;animation:nepmark 1.9s ease-out forwards}
+@keyframes nepmark{0%{opacity:0;transform:translate(-50%,10%)}20%{opacity:.95}100%{opacity:0;transform:translate(-50%,-70%)}}
+svg.moon.neptune{filter:drop-shadow(0 0 5px #3f9be088)}
+svg.moon.neptune.nepev{filter:drop-shadow(0 0 12px #3f9be0) brightness(1.15)}
+svg.moon.neptune.nepec{filter:drop-shadow(0 0 16px #6a1fa0) brightness(1.25)}

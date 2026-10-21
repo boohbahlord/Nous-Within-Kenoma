@@ -29,7 +29,7 @@ function deluSees(V,r,c){   // the Delusion's own rule: only what your cards can
   for(const {r:a,c:b} of stacksOf(V)){const dr=Math.abs(a-r),dc=Math.abs(b-c);if(dr<=1&&dc<=1||dr===0&&dc===2||dc===0&&dr===2)return true}
   return false;
 }
-const hiddenFrom=(V,r,c)=>{const st=G.board[r][c];return !!(st&&(totalBlind(V)||isEnemy(st.owner,V)&&!seesTile(V,r,c)))};   // the blind see nothing, their own cards too
+const hiddenFrom=(V,r,c)=>{const st=G.board[r][c];return !!(st&&(totalBlind(V)||isEnemy(st.owner,V)&&!seesTile(V,r,c)||nepHidden(V,st,r,c)))};   // v71c: a stack lost in Neptune's cloud is hidden from its owner   // the blind see nothing, their own cards too
 function applyDelusion(t,by){
   const d=rollN(2,2),n=sum(d);G.p[t].delu={turns:n,maxCut:0,diceCut:0,by};
   tray(by,by===t?"Delusion of Ouroboros":"Delusion of Lucifer",d,`${n} turns`);
