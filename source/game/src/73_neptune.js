@@ -102,6 +102,11 @@ SKY_PARA.neptune="Neptune, the Form of Dissolve, stops the Moon's phases. Every 
    player at its start: give up 1d6 deck cards for a free Clairvoyance, or for 2d6 + 1d2 mana. Once a round, on a 1 of 1d8,
    a player may sacrifice up to three cards from the grave for their soul worth. Cycle events off: none of it. */
 const nepEvOn=()=>nepUp()&&(!!G.nepEv&&G.moon.round<=G.nepEv.until||nepEcOn());   // its eclipse brings every effect of its cycle too
+/* v71d: Lostness puts one player under Neptune's cycle (I) or eclipse (II) whatever is in the sky: these ask for one player */
+const nepSelf=pl=>{const s=G&&pl!=null&&G.nepSelf&&G.nepSelf[pl];return s&&G.moon.round<=s.until?s:null};
+const nepEvFor=pl=>nepEvOn()||!!nepSelf(pl);
+const nepEcFor=pl=>nepEcOn()||!!(nepSelf(pl)&&nepSelf(pl).k==="ec");
+const nepEcState=pl=>nepEcOn()?G.nepEc:nepSelf(pl)&&nepSelf(pl).k==="ec"?nepSelf(pl).st:null;
 const nepRealPl=()=>G.p.filter(P=>!P.out&&!isNPC(P.i)&&!isHorde(P.i)).map(P=>P.i);
 async function nepEventRound(){if(!nepUp()){G.nepEv=null;return}
   const r=G.moon.round;
@@ -133,19 +138,19 @@ async function nepGraveSac(pl){let n=0;
     log(`Neptune lets ${plName(pl)} sacrifice ${esc(nameOf(c))} from the grave: +${got} mana.`,"event");render()}}
 /* a sacrifice's mana strays to another player on a 1 of 1d8 */
 let nepSacking=false;
-{const _s=sacrifice;sacrifice=function(card,from){nepSacking=nepEvOn();try{return _s.apply(this,arguments)}finally{nepSacking=false}}}
+{const _s=sacrifice;sacrifice=function(card,from){nepSacking=nepEvFor(G.active);try{return _s.apply(this,arguments)}finally{nepSacking=false}}}
 {const _as=addSoul;addSoul=function(pl,c){if(nepSacking&&R(8)===1){nepSacking=false;const o=nepRealPl().filter(i=>i!==pl);if(o.length){const q=pick(o);
     const ok=_as(q,c);log(`<b>Neptune</b>: the soul ${plName(pl)} sacrifices drifts to ${plName(q)} (a 1 on 1d8).`,"event");notify(null,`Neptune: ${esc(G.p[pl].name)}'s sacrifice drifts to ${esc(G.p[q].name)}.`);return ok}}
   return _as.apply(this,arguments)}}
 /* the Bank's takings from a purchase go to a random player on a 1 of 1d10 (not in Survival) */
-let nepBuying=false;
-{const _sp=spend;spend=function(pl,n){nepBuying=true;try{return _sp.apply(this,arguments)}finally{nepBuying=false}}}
-{const _ba=bankAdd;bankAdd=function(n){if(nepBuying&&n>0&&nepEvOn()&&!survival()&&!nepIn&&R(10)===1){nepBuying=false;const ps=nepRealPl();if(ps.length){const q=pick(ps);nepIn=true;let got=0;try{got=giveMana(q,n)}finally{nepIn=false}
+let nepBuying=null;
+{const _sp=spend;spend=function(pl,n){nepBuying=pl;try{return _sp.apply(this,arguments)}finally{nepBuying=null}}}
+{const _ba=bankAdd;bankAdd=function(n){if(nepBuying!=null&&n>0&&nepEvFor(nepBuying)&&!survival()&&!nepIn&&R(10)===1){nepBuying=null;const ps=nepRealPl();if(ps.length){const q=pick(ps);nepIn=true;let got=0;try{got=giveMana(q,n)}finally{nepIn=false}
     log(`<b>Neptune</b>: the ${n} mana the Bank takes for a purchase drifts to ${plName(q)} (a 1 on 1d10).`,"event");notify(null,`Neptune: ${n} of the Bank's mana drifts to ${esc(G.p[q].name)}.`);return}}
   return _ba.apply(this,arguments)}}
 /* drawn cards lost in the sea, found 1d10 turns later by anyone */
 {const _d=draw;draw=function(pl,n,why,opening){const P=G.p[pl],before=new Set(P.hand),out=_d.apply(this,arguments);
-  if(opening||!nepEvOn()||isNPC(pl)||isHorde(pl))return out;
+  if(opening||!nepEvFor(pl)||isNPC(pl)||isHorde(pl))return out;
   const drawn=P.hand.filter(c=>!before.has(c));let lost=[];
   for(const c of drawn){if(lost.length?R(3)===1:R(20)===1)lost.push(c)}
   if(lost.length){for(const c of lost)P.hand.splice(P.hand.indexOf(c),1);(G.nepLost=G.nepLost||[]).push({cards:lost,from:pl,at:G.turnNo+R(10)});
@@ -159,11 +164,11 @@ let nepBuying=false;
     popup("Found at sea",`<p><b>${esc(Q.name)}</b> found the ${L.cards.length} card${L.cards.length>1?"s":""} ${esc(G.p[L.from].name)} lost${q===L.from?": they come home":""}.</p>`)}
   return out}}
 /* the dead may sink: on a 1 of 1d4, to the Outer Darkness (1 on 1d2) or the Ether (2) */
-{const _tg=toGrave;toGrave=function(c,cause){if(c&&cause==="death"&&nepEvOn()&&R(4)===1){const dark=R(2)===1||c.unit&&!(UNIT[c.unit]&&UNIT[c.unit].ether);
+{const _tg=toGrave;toGrave=function(c,cause){if(c&&cause==="death"&&(nepEvOn()||c.owner!=null&&nepSelf(c.owner))&&R(4)===1){const dark=R(2)===1||c.unit&&!(UNIT[c.unit]&&UNIT[c.unit].ether);
     if(dark)toDark(c);else{if(c.captured&&c.captured.length){for(const s of c.captured)toGrave(s,"death");c.captured=[]}c.owner=null;if(c.hp!=null)c.hp=c.maxHp;G.ether.push(c)}
     log(`<b>Neptune</b>: ${esc(nameOf(c))} sinks into ${dark?"the Outer Darkness":"the Ether, for sale"}.`);notify(null,`<span class="nepword">♆ ${dark?"Darkness":"Ether"}</span> ${esc(nameOf(c))} sinks into ${dark?"the Outer Darkness":"the Ether"}.`);return}
   return _tg.apply(this,arguments)}}
-{const _r=render;render=function(){_r.apply(this,arguments);document.documentElement.classList.toggle("nepev",!!G&&nepEvOn())}}
+{const _r=render;render=function(){_r.apply(this,arguments);const V=G?view():null;document.documentElement.classList.toggle("nepev",!!G&&(nepEvFor(V)||G.p.some(P=>P.i!==V&&nepSelf(P.i)&&V!=null&&!isEnemy(P.i,V))))}}   // a teammate under Lostness clouds your view too
 /* G.nepEv drives the glow in the picture too (planetSVG above) */
 
 /* ---------- v71c-3: Neptune's eclipse: 5% a round like the others (or Eclipse mode; never with eclipses off), as long as
@@ -176,7 +181,7 @@ let nepBuying=false;
    On, crossed out in Neptune's blue, and wait for it to end. The field may turn around. The music sinks an octave and a
    half step, muffled. ---------- */
 const nepEcOn=()=>nepUp()&&!!G.eclipse&&G.eclipse.k==="neptune";
-function nepEcPause(pl){return !!G&&nepEcOn()}   // used by blindPause (70_v65)
+function nepEcPause(pl){return !!G&&nepEcFor(pl)}   // used by blindPause (70_v65)
 const NEP_SIGNS="☉☽☿♀♂♃♄♅♆♇♈♉♊♋♌♍♎♏♐♑♒♓☊☋☌☍";
 const nepHash=s=>{let h=2166136261;for(const ch of String(s))h=Math.imul(h^ch.charCodeAt(0),16777619);return h>>>0};
 {const _e=eclipse;eclipse=async function(k){if(k!=="neptune")return _e.apply(this,arguments);if(typeof eclipsesOff==="function"&&eclipsesOff())return;
@@ -193,28 +198,28 @@ const nepHash=s=>{let h=2166136261;for(const ch of String(s))h=Math.imul(h^ch.ch
 /* acting with a stranger's stack */
 function nepFoePenalty(V){const lost=takeDeck(V,R(2),"Neptune's eclipse");for(const x of lost)toGrave(x,"burn");
   log(`Neptune's eclipse: that stack wasn't ${plName(V)}'s, and it costs ${lost.length} deck card${lost.length===1?"":"s"} (1d2).`,"event");flash(`That stack wasn't yours: Neptune takes ${lost.length} card${lost.length===1?"":"s"} from your deck.`)}
-{const _tc=tileClick;tileClick=function(r,c){if(!G||!nepEcOn())return _tc.apply(this,arguments);
+{const _tc=tileClick;tileClick=function(r,c){if(!G||!nepEcFor(view()))return _tc.apply(this,arguments);
   const V=view(),st=G.board[r][c],S=G.sel;
   if(S&&S.nepFoe){G.sel=null;if(S.r===r&&S.c===c){render();return}
-    const E=G.nepEc,k=V+"|"+G.moon.round,fs=G.board[S.r][S.c];
+    const E=nepEcState(V)||{foe:{}},k=V+"|"+G.moon.round,fs=G.board[S.r][S.c];
     if(fs&&!E.foe[k]&&!G.board[r][c]&&!isVoid(r,c)&&Math.abs(r-S.r)+Math.abs(c-S.c)===1&&R(6)===1){E.foe[k]=1;G.board[r][c]=fs;G.board[S.r][S.c]=null;G._vis=null;
       log(`Neptune's eclipse: ${plName(V)} moves a stranger's stack by accident, to ${coord(r,c)} (a 1 on 1d6).`,"event");render();return}
     nepFoePenalty(V);render();return}
   if(st&&isEnemy(st.owner,V)&&G.active===V&&(G.phase==="prep"||G.phase==="attack")&&!G.mode&&!G.selHand&&canAct()&&stFights(st)){G.sel={r,c,pick:new Set(st.cards.filter(x=>!isBase(x)).map(x=>x.id)),nepFoe:true};render();return}
   return _tc.apply(this,arguments)}}
-document.addEventListener("click",e=>{if(!G||!nepEcOn()||!G.sel||!G.sel.nepFoe)return;const b=e.target.closest&&e.target.closest("#selbox button");if(!b)return;
+document.addEventListener("click",e=>{if(!G||!G.sel||!G.sel.nepFoe||!nepEcFor(view()))return;const b=e.target.closest&&e.target.closest("#selbox button");if(!b)return;
   e.preventDefault();e.stopPropagation();G.sel=null;nepFoePenalty(view());render()},true);   // the Selected box's buttons count as acting with it
 /* twice a round at most, a 1 of 1d20 sends a move or an attack astray */
-const nepAstray=pl=>{const E=G.nepEc;if(!E)return false;const k=pl+"|"+G.moon.round;if((E.mis[k]||0)>=2||R(20)!==1)return false;E.mis[k]=(E.mis[k]||0)+1;return true};
-{const _dm=doMove;doMove=function(r,c){if(nepEcOn()&&G.sel&&!G.sel.nepFoe&&nepAstray(G.active)){const alt=moveTargets().filter(([a,b])=>a!==r||b!==c);
+const nepAstray=pl=>{const E=nepEcState(pl);if(!E)return false;const k=pl+"|"+G.moon.round;if((E.mis[k]||0)>=2||R(20)!==1)return false;E.mis[k]=(E.mis[k]||0)+1;return true};
+{const _dm=doMove;doMove=function(r,c){if(nepEcFor(G.active)&&G.sel&&!G.sel.nepFoe&&nepAstray(G.active)){const alt=moveTargets().filter(([a,b])=>a!==r||b!==c);
     if(alt.length){const [a,b]=pick(alt);log(`Neptune's eclipse: ${plName(G.active)}'s stack wanders astray, to ${coord(a,b)} (a 1 on 1d20).`,"event");return _dm.call(this,a,b)}}
   return _dm.apply(this,arguments)}}
-{const _at=attack;attack=function(r1,c1,r2,c2,mode){if(nepEcOn()&&nepAstray(G.active)){const alt=attackOptions(r1,c1).filter(o=>(o.r!==r2||o.c!==c2)&&(o.mode||null)===(mode||null));
+{const _at=attack;attack=function(r1,c1,r2,c2,mode){if(nepEcFor(G.active)&&nepAstray(G.active)){const alt=attackOptions(r1,c1).filter(o=>(o.r!==r2||o.c!==c2)&&(o.mode||null)===(mode||null));
     if(alt.length){const o=pick(alt);log(`Neptune's eclipse: ${plName(G.active)}'s attack goes astray, at ${coord(o.r,o.c)} (a 1 on 1d20).`,"event");return _at.call(this,r1,c1,o.r,o.c,mode)}}
   return _at.apply(this,arguments)}}
 /* what the eclipse does to the screen */
 let nepMusicOn=false;
-{const _r=render;render=function(){_r.apply(this,arguments);const E=G&&nepEcOn()?G.nepEc:null,h=document.documentElement;
+{const _r=render;render=function(){_r.apply(this,arguments);const V=G?view():null,E=G?nepEcState(V):null,h=document.documentElement;
   h.classList.toggle("nepec",!!E);h.classList.toggle("nepflip",!!(E&&E.flip));
   if(!!E!==nepMusicOn){nepMusicOn=!!E;try{window.ECMusic&&ECMusic.nep&&ECMusic.nep(nepMusicOn)}catch(e){}}
   if(!E)return;

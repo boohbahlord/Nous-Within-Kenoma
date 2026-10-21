@@ -10,7 +10,7 @@ let COLS=5;const SOUL_CAP=6, HAND_CAP=6;   // COLS is set by the map for each ga
 /* a Substance can raise a player's own limits. Mana can go up to three times the maximum for a round (the surplus);
    anything over the maximum fades at the start of the next round */
 const surCap=pl=>G&&G.satStrict&&!oathNow(pl,"saturn")&&!(G.satStrictSafe||[]).includes(pl)?soulCap(pl):Math.min(54,soulCap(pl)*3);   // a strict Saturn (its eclipse) allows no surplus
-const handCap=pl=>G&&G.p[pl]?({jester:7,beginner:8}[G.p[pl].tribe]||HAND_CAP):HAND_CAP;
+const handCap=pl=>G&&G.p[pl]?({jester:7,beginner:8}[G.p[pl].tribe]||HAND_CAP)*(nepGlow(pl)?3:1):HAND_CAP;   // v71d: Neptune's Afterglow triples it
 function soulCap(pl){
   if(!G||!G.p[pl])return SOUL_CAP;const P=G.p[pl];
   let cap={jester:7,beginner:8}[P.tribe]||SOUL_CAP;
