@@ -41,7 +41,18 @@ const TRIBES={
  plain:{name:"No Substance",sub:"The plain rules: no Substance's advantages or drawbacks.",hidden:true}   // v70d: only through the host's No Substances option
 };
 const PLAYABLE=Object.keys(TRIBES).filter(k=>k!=="random"&&!TRIBES[k].soon&&!TRIBES[k].hidden);
-const COLORS=[["Ember","#ee7a3c"],["Gold","#e3b944"],["Verdigris","#45b89c"],["Azure","#4c92e6"],["Violet","#a77de8"],["Rose","#e4648f"],["Crimson","#d7333b"],["Moss","#8fb33f"],["Frost","#74d7ea"]];   // Bone belongs to the Angel Machine
+/* v71e: one palette for both a player's color and their accent, in hue order. Bone stays the Angel Machine's and Onyx is too
+   dark to read names by, so neither is a player's color; both can be accents. Colors that look alike block each other. */
+const PALETTE=[["Crimson","#d7333b"],["Blood","#b3191f"],["Rose","#e4648f"],["Rose gold","#e8a598"],["Flame","#ff7a1a"],["Ember","#ee7a3c"],["Copper","#c47a3c"],["Umber","#9a6236"],
+  ["Gold","#e3b944"],["Lime","#c6df47"],["Moss","#8fb33f"],["Emerald","#2fa36b"],["Forest","#2f9150"],["Verdigris","#45b89c"],["Frost","#74d7ea"],["Ice","#9fe3f0"],
+  ["Azure","#4c92e6"],["Sapphire","#3a6fd8"],["Indigo","#5d5fe3"],["Violet","#a77de8"],["Amethyst","#9a62d8"],["Magenta","#cf4fd0"],
+  ["Slate","#8597ad"],["Ash","#7a7f88"],["Silver","#c9ccd6"],["Bone","#efe2c8"],["Onyx","#17120e"]];
+const COLORS=PALETTE.filter(([n])=>n!=="Bone"&&n!=="Onyx");
+/* how alike two colors look (CIE Lab distance under 20): such colors can't both be players' colors */
+const labOf=h=>{const f=c=>{c/=255;return c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4)},[r,g,b]=[1,3,5].map(i=>f(parseInt(h.slice(i,i+2),16)));
+  const X=(.4124*r+.3576*g+.1805*b)/.95047,Y=.2126*r+.7152*g+.0722*b,Z=(.0193*r+.1192*g+.9505*b)/1.08883,q=t=>t>.008856?Math.cbrt(t):7.787*t+16/116;
+  return [116*q(Y)-16,500*(q(X)-q(Y)),200*(q(Y)-q(Z))]};
+const colorNear=(a,b)=>{if(!a||!b||a[0]!=="#"||b[0]!=="#")return false;const A=labOf(a),B=labOf(b);return Math.hypot(A[0]-B[0],A[1]-B[1],A[2]-B[2])<20};   // Bone belongs to the Angel Machine
 const SOLIDS={tetra:"Tetrahedron",cube:"Cube",octa:"Octahedron",dodeca:"Dodecahedron",icosa:"Icosahedron"};
 const HORDE_COLOR="#97a487";
 

@@ -17,16 +17,16 @@ function resolveSubstances(opts){
   }
   // v43: Random color and Random symbol take what nobody else has (after the fixed ones of the Substances)
   const ps=opts.players.filter(p=>p.cpu!=="horde");
-  const usedC=new Set(ps.filter(p=>TRIBES[p.tribe].color||p.color&&p.color!=="random").map(p=>TRIBES[p.tribe].color||p.color));
-  for(const p of ps)if(!TRIBES[p.tribe].color&&(!p.color||p.color==="random")){const free=COLORS.map(c=>c[1]).filter(c=>!usedC.has(c));p.color=pick(free.length?free:COLORS.map(c=>c[1]));usedC.add(p.color)}
+  const usedC=ps.filter(p=>TRIBES[p.tribe].color||p.color&&p.color!=="random").map(p=>TRIBES[p.tribe].color||p.color);
+  for(const p of ps)if(!TRIBES[p.tribe].color&&(!p.color||p.color==="random")){const free=COLORS.map(c=>c[1]).filter(c=>!usedC.some(u=>colorNear(u,c)));p.color=pick(free.length?free:COLORS.map(c=>c[1]));usedC.push(p.color)}   // v71e: nothing alike
   const usedS=new Set(ps.filter(p=>TRIBES[p.tribe].solid||p.solid&&p.solid!=="random").map(p=>TRIBES[p.tribe].solid||p.solid));
   for(const p of ps)if(!TRIBES[p.tribe].solid&&(!p.solid||p.solid==="random")){const free=Object.keys(SOLIDS).filter(k=>!usedS.has(k));p.solid=pick(free.length?free:Object.keys(SOLIDS));usedS.add(p.solid)}
-  // a fixed color can collide with a color someone picked: the one who picked moves to a free color
-  const used=new Set(opts.players.filter(p=>p.cpu!=="horde"&&TRIBES[p.tribe].color).map(p=>p.color));
+  // a fixed color can collide with (or look like) a color someone picked: the one who picked moves to a free color
+  const used=opts.players.filter(p=>p.cpu!=="horde"&&TRIBES[p.tribe].color).map(p=>p.color);
   for(const p of opts.players){
     if(p.cpu==="horde"||TRIBES[p.tribe].color)continue;
-    if(used.has(p.color))p.color=COLORS.map(c=>c[1]).find(c=>!used.has(c))||p.color;
-    used.add(p.color);
+    if(used.some(u=>colorNear(u,p.color)))p.color=COLORS.map(c=>c[1]).find(c=>!used.some(u=>colorNear(u,c)))||p.color;
+    used.push(p.color);
   }
 }
 const subOf=pl=>G.p[pl]?G.p[pl].tribe:null;
