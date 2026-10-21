@@ -89,7 +89,7 @@ const UNIT={
  repair:{name:"Repairman",short:"Repairman",word:"Repairman",nat:0,soul:1,cost:2,noDef:true,noAtk:true,sup:true,attach:true,kind:"Support",ether:true,desc:"repairs Walls, Aces and the Tree"},
  ram:{name:"Battering Ram",short:"Ram",word:"Ram",nat:0,soul:1,cost:3,noDef:true,noAtk:true,sup:true,kind:"Support",ether:true,desc:"two damage to a Wall, worked by one or two soldiers"},
  miner:{name:"Miner",word:"Miner",nat:0,soul:1,cost:2,noDef:true,noAtk:true,sup:true,attach:true,kind:"Support",ether:true,desc:"mana from an Ace's miner slot, or from a crystal"},
- wall:{name:"Wall",word:"Wall",hp:5,nat:10,base:true,soul:3,cost:4,kind:"Base",ether:true,desc:"five hearts, defense 10; holds six cards; only ranged cards fire from it"},
+ wall:{name:"Wall",word:"Wall",hp:5,nat:10,base:true,soul:3,cost:4,kind:"Base",ether:true,desc:"five hearts, defense 10; holds one stack; only ranged cards fire from it"},
  /* v70c: the Lighthouse: a base that holds one stack, which fights from inside it and takes the blows first */
  lighthouse:{name:"Lighthouse",word:"Lighthouse",hp:3,nat:0,base:true,soul:2,cost:3,noDef:true,noAtk:true,kind:"Base",ether:true,desc:"three hearts; holds one stack, which fights from inside it and takes the blows first; lights a circle seven tiles across"}
 };
@@ -146,9 +146,9 @@ function stackLegal(cards){
     const inside=cards.filter(c=>!isBase(c));
     if(inside.length>6)return false;
     if(kind(aces[0])==="tree"&&inside.some(c=>kind(c)==="king"||c.rank==="10"))return false;   // the Jester doesn't like how Kings and tens taste
-    if(kind(aces[0])==="lighthouse")return !inside.length||stackLegal(inside);   // v70c: the Lighthouse holds one stack, as it would stand on the field
     if(kind(aces[0])==="ace"&&G&&G.opts.aceLock&&inside.some(c=>c.color!==aces[0].color))return false;
-    return true;
+    const crew=inside.filter(c=>c.unit!=="scout");   // v70c: every base holds one stack, as it could stand on the field; Scouts (and support cards) ride along
+    return !crew.length||stackLegal(crew);
   }
   if(cards.some(isHero))return cards.length===1;   // Samson and Antony stack with nothing but an Ace
   if(cards.some(c=>c.unit==="assassin"))return cards.length<=2&&cards.every(c=>c.unit==="assassin");   // two Assassins at most, and nothing else

@@ -289,7 +289,7 @@ function moveTargets(){
   if(!grp.length||st.moved||st.stun||st.pin||grp.some(isBase)||choked(st.owner))return[];
   if(grp.every(c=>c.unit==="ram"))return[];   // a Battering Ram doesn't move without soldiers to push it
   const rest=st.cards.filter(c=>!s.pick.has(c.id));
-  if(rest.length&&!stackLegal(rest))return[];
+  if(rest.length&&!stackLegal(rest)&&stackLegal(st.cards))return[];   // a stack already too full (an old base) can always be emptied
   if(!stackLegal(grp))return[];
   const out=[];const jack=grp.every(c=>kind(c)==="jack");const fwd=seat(st.owner).fwd;
   const d2=grp.length===1&&grp[0].unit&&UNIT[grp[0].unit].diag2;   // Samson and Antony: one straight, or one or two diagonal

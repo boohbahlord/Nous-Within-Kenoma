@@ -33,3 +33,9 @@ const lhSpot=(pl,r,c)=>!isVoid(r,c)&&!G.board[r][c]&&stacksOf(pl).some(x=>!hasBa
   return _as.apply(this,arguments)}}
 
 if(window.__EC)Object.assign(window.__EC,{lhSpot:(...a)=>lhSpot(...a),canPlaceW:(...a)=>canPlace(...a),damageW:(...a)=>damage(...a),stackLegalW:(...a)=>stackLegal(...a),fogTileW:(...a)=>fogTile(...a),rollStackW:(...a)=>rollStack(...a)});
+
+/* ---------- every player's first Ace (the opening one) comes with a Miner already in a miner slot, mining from round 1 ---------- */
+{const _po=placeOpening;placeOpening=function(pl,r,c){const first=!!(G.p[pl]&&G.p[pl].opening&&G.p[pl].opening.length);const out=_po.apply(this,arguments);
+  const st=G.board[r][c];if(first&&st&&!isHorde(pl)&&!isNPC(pl)&&!st.cards.some(x=>x.unit==="miner")){const j=G.ether.findIndex(x=>x.unit==="miner");
+    const m=j>=0?G.ether.splice(j,1)[0]:mkUnit("miner",pl);m.owner=pl;m.inSlot=0;st.cards.push(m);log(`A Miner takes ${plName(pl)}'s first miner slot.`)}
+  return out}}
