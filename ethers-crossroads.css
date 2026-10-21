@@ -11,7 +11,7 @@
 .ph-c em{font-style:normal;font-size:11px;letter-spacing:.02em}
 .ph-c.on b{color:var(--amber-hi);border-bottom:1px solid var(--amber)}
 .ph-c.on em{color:var(--text)}
-.ph-c.skip{opacity:.45}
+.ph-c.skip{opacity:.62}
 #who{font-size:13.5px;color:var(--dim);margin-top:4px}
 #round{text-align:center;line-height:1}
 #round .label{display:block;font-size:10.5px}
@@ -24,7 +24,7 @@
 .btn.ghost:hover{color:var(--amber-hi);border-color:var(--amber-hi)}
 .btn.sm{font-size:12px;padding:5px 10px}
 .btn.on{background:var(--amber-hi);color:#000}
-.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn:disabled{opacity:.6;cursor:not-allowed}
 button.link{all:unset;cursor:pointer;color:var(--amber);border-bottom:1px solid var(--rule)}
 button.link:hover,button.link:focus-visible{color:var(--amber-hi);border-color:var(--amber-hi)}
 .glayout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:22px;align-items:start}
@@ -69,7 +69,7 @@ button.link:hover,button.link:focus-visible{color:var(--amber-hi);border-color:v
 .spell{display:flex;justify-content:space-between;gap:8px;width:100%;text-align:left;font-family:var(--mono);font-weight:200;font-size:13px;color:var(--text);background:var(--well);border:1px solid var(--rule);padding:5px 8px;margin:0 0 4px;cursor:pointer}
 .spell em{font-style:normal;color:var(--amber);white-space:nowrap}
 .spell:hover{border-color:var(--amber)}
-.spell.off{opacity:.42}
+.spell.off{opacity:.72}
 .spell.armed{border-color:#c9b3ff}
 .spell.moon-dark{background:#262626;border-color:#3d3d3d;color:#9a9a9a}.spell.moon-dark em{color:#b5b5b5}
 .spell.moon-bright{background:#dcdcdc;border-color:#f4f4f4;color:#111}.spell.moon-bright em{color:#222}
@@ -389,7 +389,7 @@ button.tray:hover,button.tray:focus-visible{border-color:var(--pc,var(--amber));
 .tile .coord{position:absolute;left:3px;top:2px;z-index:3;font-size:9px;line-height:1;letter-spacing:.04em;color:#f3e6cf;text-shadow:0 0 3px #000,0 1px 2px #000;pointer-events:none;opacity:.85}
 body.fullw .game.wide{max-width:none;padding-left:clamp(12px,2vw,32px);padding-right:clamp(12px,2vw,32px)}
 @media (max-width:900px){.pc-only{display:none}}
-.opt.off{opacity:.38;cursor:not-allowed;filter:grayscale(.4)}
+.opt.off{opacity:.62;cursor:not-allowed;filter:grayscale(.4)}
 .opt.off:hover{border-color:var(--rule)}
 .optgroup{flex:1 0 100%;margin:8px 0 0;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
 .sizesel{display:flex;flex-wrap:wrap;gap:6px 18px}
@@ -701,7 +701,7 @@ html.mirage #board .mapbg{filter:brightness(.7) hue-rotate(-12deg)}
 body:has(.game){padding-bottom:52px}
 /* the Bank: wider, and its pickers fade when there is nothing to pick */
 .ovbox.bank.wide{max-width:min(1000px,calc(96vw / var(--uiz,1)))}
-.ovbox.bank .bacts label.off{opacity:.42}
+.ovbox.bank .bacts label.off{opacity:.64}
 .ovbox.bank select:disabled{opacity:.6;cursor:not-allowed}
 .ovbox.bank .bacts p{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
 /* big text: grids of label and value stack instead of squeezing */
@@ -1264,6 +1264,7 @@ html.th-darkfantasy .ovbox,html.th-darkfantasy .pbox,html.th-darkfantasy .cinfo,
 html.th-darkfantasy .label,html.th-darkfantasy h3{color:#c4c2cc;letter-spacing:.2em}
 html.th-darkfantasy #log li{border-bottom-color:#5b283055}
 html.th-earth .btn{color:#0e130d}
+html.th-earth .btn.ghost{color:var(--amber)}html.th-earth .btn.ghost:hover{color:var(--amber-hi)}   /* v71: outline buttons keep light text */
 html.th-earth .game h1{color:#cfe08c;text-shadow:0 0 14px #9bbf5e40}
 html.th-officedark .btn{color:#fff}
 #pMusic[hidden]{display:none}
@@ -1409,7 +1410,7 @@ html.th-office #helptoast{background:#eceef1f2}
 .ecount.priced{display:inline-flex;flex-direction:column;align-items:center;gap:2px}
 .pkprice{font-size:11px;color:var(--amber-hi);white-space:nowrap}
 .pkprice.off{color:var(--dim);text-decoration:line-through}
-.pk:disabled{opacity:.45;cursor:not-allowed}
+.pk:disabled{opacity:.62;cursor:not-allowed}
 .ovbox .ecount>b{top:auto;bottom:-5px;right:-4px}
 .ovbox .ecount.priced>b{bottom:14px}
 /* ================= v47 · the spell list: Grave Blessing and Ritual Dice in dark purple; spell names in blackletter ================= */
@@ -1429,12 +1430,12 @@ body.spbl .spell .sn small,body.spbl .spell .sn i,body.spbl .spell .sn .bolts,bo
 .farow .fal b{font-weight:400;color:var(--text);font-size:13px}
 .farow .fal small{display:block;color:var(--dim);font-size:11.5px;line-height:1.35}
 .farow input[type=checkbox]{width:16px;height:16px;margin:0;accent-color:var(--amber);justify-self:end}
-.farow.off{opacity:.42;cursor:not-allowed}
+.farow.off{opacity:.64;cursor:not-allowed}
 .farow .faspin{justify-self:end;gap:5px}
 .farow .faspin .btn{padding:1px 7px;font-size:11px;line-height:1.4}
 .farow .faspin b{font-weight:400;color:var(--amber-hi)}
 .farow .faspin small{color:var(--dim);font-size:11.5px}
-.faopts.off,.fakinds.off{opacity:.42;pointer-events:none}
+.faopts.off,.fakinds.off{opacity:.64;pointer-events:none}
 .fanote2{margin:4px 0 0;font-size:11.5px;color:var(--dim);font-style:italic}
 .fawarn{margin:6px 0 8px;padding:6px 10px;border-left:3px solid #c0392b;background:#4c080b55;color:#ffd2cd;font-size:12.5px}
 html.th-office .fawarn{background:#fbe3e1;color:#7a1d16}
@@ -1505,7 +1506,7 @@ html.still-blood.bloodglitch .game #board,html.still-blood.bloodglitch .game h1,
 .pmchip.plus{border-color:#5fbf6f;color:var(--text)}.pmchip.plus i{background:#2c5a1e;color:#d8f5d0}
 .pmchip.minus{border-color:#c0392b;color:var(--text)}.pmchip.minus i{background:#6a1a14;color:#ffd2cd}
 .pmchip:focus-visible{outline:1px solid var(--amber)}
-.pmchips.off{opacity:.42;pointer-events:none}
+.pmchips.off{opacity:.64;pointer-events:none}
 .pmhelp{font-size:11px!important}
 #turnctr{display:flex;align-items:baseline;gap:6px;margin-left:auto;font-family:"Grenze Gotisch","Old English Text MT",serif;font-weight:500;color:var(--amber-hi)}
 #turnctr span{font-size:18px}#turnctr b{font-weight:500;font-size:26px;color:#e0505b;text-shadow:0 0 10px #8e162266}
@@ -1850,5 +1851,29 @@ html.cardsym .cf.v61 .hearts,html.cardsym .stack.v61 .bhp{top:calc(24px * var(--
 /* the front page's Settings: the menu alone, nothing of the play page behind it */
 .settingsonly main.game>:not(nav.crumbs){visibility:hidden}
 .ovbox.setup>.xclose{position:absolute;top:10px;right:12px;z-index:2}
-/* v71b in progress: the sky-change settings show once their rules are in */
-#skychg,label.chk:has(#ocycev),label.chk:has(#oeclipse){display:none}
+/* v71: the sky's bid */
+.ovbox.bidbox .bidside{margin:10px 0}
+.ovbox.bidbox .bidamt{font-size:16px}
+.ovbox.bidbox .bidamt b{display:inline-block;min-width:2.2em;text-align:center;color:var(--amber-hi)}
+#skychg .skynum b{display:inline-block;min-width:2em;text-align:center;color:var(--amber-hi)}
+.skychgl{margin:4px 0 0;font-size:11.5px;color:var(--dim);letter-spacing:.02em}
+/* ================= v71: every theme's words readable ================= */
+#phases i,#who .sl-sep{color:var(--dim)}
+#who .sl-chip{color:var(--ground)}
+html.th-officedark .btn:not(.ghost){background:#2f6fc4;border-color:#2f6fc4}
+html.th-officedark .btn:not(.ghost):hover,html.th-officedark .btn:not(.ghost):focus-visible{background:#3d80dc;border-color:#3d80dc}
+/* Office: words drawn for the dark drawers and links get dark ink on the light ones */
+html.th-office #etherpanel h2,html.th-office #etherpanel .xclose,html.th-office #etherpanel .dfoot .link,html.th-office .spell.ether em{color:#2a3790}
+html.th-office #etherpanel .dnote,html.th-office #etherpanel h3,html.th-office #etherpanel .spell small.left{color:#4c527c}
+html.th-office #etherpanel .spell em,html.th-office #skypanel .spell em{color:#7a5600}
+html.th-office #skypanel h2,html.th-office #skypanel .xclose,html.th-office #skypanel .otag,html.th-office #skypanel .btn.ghost,html.th-office #skypanel .otop b,html.th-office .spell.drawerbtn em{color:#0d5f57}
+html.th-office #skypanel .dnote,html.th-office #skypanel .oneed,html.th-office #skypanel .spell small.left{color:#3a6662}
+html.th-office #skypanel .orow p{color:#1d3d3a}
+html.th-office #shared .auct-l,html.th-office .skyword,html.th-office .skyform{color:#7a5600}
+html.th-office #shared .limbo-l{color:#4f3f8f}html.th-office #shared .dark-l{color:#a3202a}
+html.th-office .bankbar small{color:#6a4f00}
+html.th-office #turnctr b{color:#a3202a}
+html.th-office .btn:disabled{opacity:1;background:#c3c6cc;border-color:#b3b6bb;color:#4a4e55}
+html.th-office .spell.off{opacity:.82;filter:grayscale(.5)}
+html.th-office .ovbox.bank .bstat>div,html.th-office .ovbox.bank details.bankhelp{background:#0000000d}
+html.th-office #cinfo,html.th-office #tipbox{--text:#e3e5e8;--dim:#a6aab1;--amber:#6aa5f2;--amber-hi:#9cc3ff;--rule:#3a3d43;color:var(--text)}   /* the info box stays dark: the Office Dark ink inside it */

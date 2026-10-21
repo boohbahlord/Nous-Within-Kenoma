@@ -16,7 +16,7 @@ const fullDrawbacks=()=>G.moon.i===4&&!G.moon.blood;
 /* the moon turns once every round: after every player has taken a turn */
 async function moonStart(){
   const m=G.moon;m.blood=false;
-  if(G.turnNo===1&&G.opts.bloodStart){m.i=4;m.blood=true;log("The game opens under a <b>Blood Moon</b>.","event")}
+  if(G.moon.round===1&&G.opts.bloodStart){m.i=4;m.blood=true;log("The game opens under a <b>Blood Moon</b>.","event")}
   else if(m.i===4){
     const p=G.forceMoon!=null?G.forceMoon:.05;G.forceMoon=null;
     if(Math.random()<p){m.blood=true;log("The Full Moon turns red: a <b>Blood Moon</b>. Every card killed this round falls into the Outer Darkness.","event")}
