@@ -1893,3 +1893,6 @@ html.th-rich .ovbox legend{color:var(--lab)}
 /* v71: the selected card breathes, never fading out, and glows in its owner's accent */
 @keyframes selbreath{0%,100%{opacity:1}50%{opacity:.5}}
 .cardbtn.on .cf,.tile.sel .stack{animation:selbreath 2.4s ease-in-out infinite;filter:drop-shadow(0 0 6px var(--ca,var(--amber-hi))) drop-shadow(0 0 2px var(--ca,var(--amber-hi)))}
+/* v71: every field sits in the middle of its frame; a large one still scrolls and zooms (auto margins fall to 0 once it is wider) */
+#board{margin-left:auto;margin-right:auto}
+.camwrap.on #board.large{margin:10px auto}
