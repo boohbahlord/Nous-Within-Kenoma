@@ -6,7 +6,7 @@
 function resolveSubstances(opts){
   const taken=new Set(skyBlocked(opts.moon));   // a Heavenly Body in the sky from the start keeps out the Substance it would serve
   // every Substance but the Beginner is played by one player at most
-  for(const p of opts.players)if(p.tribe&&TRIBES[p.tribe]&&p.tribe!=="random"&&p.tribe!=="beginner"&&!TRIBES[p.tribe].soon)taken.add(p.tribe);
+  for(const p of opts.players)if(p.tribe&&TRIBES[p.tribe]&&p.tribe!=="random"&&p.tribe!=="beginner"&&p.tribe!=="plain"&&!TRIBES[p.tribe].soon)taken.add(p.tribe);
   for(const p of opts.players){
     if(p.cpu==="horde")continue;
     if(!p.tribe||!TRIBES[p.tribe]||p.tribe==="random"||TRIBES[p.tribe].soon){

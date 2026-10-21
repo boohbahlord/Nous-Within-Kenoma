@@ -11,7 +11,7 @@ const MK_BODY=`<p><b>Cards are life and money at once.</b> Every card you draw, 
 <p><b>The dead come back.</b> Fallen cards go to the grave. Grave Blessing (free, once a turn) rolls dice, and every 6 raises a card from the grave into your hand.</p>`;
 const MK_MORE=`<h3>Tell me more</h3><ul class="mklist">
 <li><b>How you win:</b> the last player (or side) with anything on the field and a deck, hand or mana left wins. A player whose mana sinks below −8 is out.</li>
-<li><b>A turn:</b> draw (roll a d4 and draw that many, or skip), prep (place, move one step, sacrifice, cast) and attack (each stack may attack a neighbor once).</li>
+<li><b>A turn:</b> prep, which starts with drawing (roll a d4 and draw that many, as often as you like, then press Done drawing), then place, move one step, sacrifice and cast; then attack (each stack may attack a neighbor once).</li>
 <li><b>Fights:</b> the attacker's best card plus its die against the defender's best card. The loser takes a damage, which removes its lowest card. Kings with Queens, Aces and Walls defend well.</li>
 <li><b>Drawing too much hurts:</b> cards past your hand limit go to the grave, and each one takes 1d6 off this round's Grave Blessing.</li>
 <li><b>The Ether</b> (top of the spells) sells new cards: Scouts, Miners, Repairmen, Archers, Aces and more. Conjured cards go into your deck.</li>

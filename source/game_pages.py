@@ -8,15 +8,15 @@ open(f'{OUT}/ethers-crossroads.js', 'w').write(
     + "\n".join(open('game/src/' + f).read() for f in _parts) + "\n})();\n")
 EC = "Ether's Crossroads"
 ec_cards = '''<nav class="cards">
-  <a class="card" href="ethers-crossroads-play.html">Play Game<span>Local, Versus Computer, or Survival, for 1 to 4 players</span></a>
+  <a class="card" href="ethers-crossroads-play.html">Play Game<span>Local (people and computers), Survival or Online</span></a>
   <a class="card" href="ethers-crossroads-play.html#settings">Settings<span>The game's look, sound and animations: the same as the Menu in a game</span></a>
   <a class="card" href="ethers-crossroads-rules.html">All Rules<span>Every rule, spell, moon phase and event</span></a>
 </nav>'''
 MODES_HTML = """<h2 id="modes">Game Modes</h2>
 <h3>Local</h3>
-<p>Two to four players share one device, and any seat can be a computer. Each player picks a Substance, a color and a symbol, which marks every card they own. The board turns to face whoever is playing, and the screen goes dark between turns until the next player confirms they hold the device. Everyone sees every die.</p>
-<h3>Versus Computer</h3>
-<p>You against one to three computers, written as plain code rather than a language model. Each turn the computer weighs offense against defense from the field and the decks. <b>Easy</b> plays loosely and makes mistakes. <b>Medium</b> is balanced and a real fight. <b>Hard</b> plays the Joker for souls, stacks Aces for the Grave Blessing, keeps its own deck full and eats away at yours.</p>
+<p>Up to four people share one device, and every other seat is a computer: you against one to three computers, friends together against computers, or friends against each other, up to eight seats in King of the Hill. Each player picks a Substance (or the host turns Substances off), a color and a symbol, which marks every card they own. With more than one person, the board turns to face whoever is playing, and the screen goes dark between turns until the next player confirms they hold the device. Everyone sees every die.</p>
+<h3>The computers</h3>
+<p>The computers are written as plain code rather than a language model. Each turn the computer weighs offense against defense from the field and the decks. <b>Easy</b> plays loosely and makes mistakes. <b>Medium</b> is balanced and a real fight. <b>Hard</b> plays the Joker for souls, stacks Aces for the Grave Blessing, keeps its own deck full and eats away at yours.</p>
 <h3>Survival</h3>
 <p>Tower defense for one to four players. You raise your Ace and its Jack, and the Horde comes: after three rounds of grace, a new wave every 1d2 + 2 rounds from a fresh deck, each one a step stronger, with Jacks, Queens and Kings from the sixth wave and Jokers from the eleventh; from then on it brings counter cards (Battering Rams for your Walls) when you lean on something it has no answer to. The Horde has no spells, hand or grave. The moon still turns. You lose when your last card on the field falls, and the round you reach is your score.</p>
 <h3>Substances</h3>
@@ -39,7 +39,7 @@ land = head(EC + ' · Nous Within Kenoma', extra='<style>' + open('game/text/rul
 <li><b>Raise your Ace.</b> Each player takes one Ace and one Jack from their own deck (or from the Ether, when the specials are set to wait there). The Ace goes on any tile of your backline you choose, with the Jack inside it.</li>
 <li><b>Draw.</b> Each player draws 2d4 cards from their own shuffled deck. A hand holds six cards at most.</li>
 <li><b>Roll for the opening.</b> Both players roll. The highest roll sets up first, placing any opening cards on their own two lines, then the other player sets up. The highest roller also takes the first turn.</li>
-<li><b>Take turns.</b> Every turn runs <span class="flow">Optional Draw → Prep → Attack</span>. In the draw phase, roll a d4 as many times as you like and draw that many cards. In the prep phase, place, move and sacrifice cards and cast spells. In the attack phase, each of your stacks may attack once. The very first turn of the game has no draw phase.</li>
+<li><b>Take turns.</b> Every turn runs <span class="flow">Prep → Attack</span>. The prep phase starts with drawing: roll a d4 as many times as you like and draw that many cards. Then place, move and sacrifice cards and cast spells. In the attack phase, each of your stacks may attack once. The very first turn of the game has no draw phase.</li>
 <li><b>Fight with dice.</b> A stack fights with the score of its best card: the card's value plus its die. Stacking cards does not add their scores together, but every card in a stack is another hit it can take.</li>
 <li><b>Gather souls.</b> Sacrificed cards become your soul pile, worth up to six mana (a card from your hand is worth its Ether price − 1d2 + 1, rolled as you sacrifice it, but a card that costs 1 is always worth 1; a card on the field is worth its soul), which pays for spells such as Divine Odds, Clairvoyance or a King Conjure. Once a turn, the free Grave Blessing lets you roll for the dead.</li>
 <li><b>Watch the moon.</b> The New Moon gives back cards from the grave; the Full Moon takes a stack of two or a card, or 2d2 + 2 mana. Rarely, the Full Moon turns to a Blood Moon.</li>
@@ -69,7 +69,7 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 <li>Last is the final phase of the turn, and no actions from the prep phase can be taken during it: the <b>attack phase</b>. Each card can only attack once.</li>
 </ul>
 <p>The players should use this pattern each turn:</p>
-<p class="formula flow">Optional Draw Card Phase → Prep Phase → Attack Phase</p>
+<p class="formula flow">Prep Phase (optional drawing first) → Attack Phase</p>
 <ul>
 <li>As many times as desired, roll four-sided dice to optionally draw cards.</li>
 <li>Move cards. Place cards. Sacrifice cards.</li>
@@ -287,7 +287,7 @@ b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({beha
 </main>''', 1)
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
-play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=80">', ec=True) + f'''<main class="wide game">
+play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=81">', ec=True) + f'''<main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
@@ -325,8 +325,8 @@ play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="eth
 </main>
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
-<script src="ethers-crossroads-quotes.js?v=80"></script>
-<script src="ethers-crossroads.js?v=80"></script>
+<script src="ethers-crossroads-quotes.js?v=81"></script>
+<script src="ethers-crossroads.js?v=81"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 

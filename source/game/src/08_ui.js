@@ -6,7 +6,7 @@ function ovHide(){const o=$("#ov");o.hidden=true;o.className="";o.innerHTML=""}
 const BOXNAME={limbo:"limbo",outer:"outer",ether:"etherbox",plain:""};
 function askHuman(pl,spec){
   return new Promise(res=>{
-    const who=G.opts.mode==="local"&&!G.opts.online?`<p class="dim">${esc(G.p[pl].name)} chooses.</p>`:"";
+    const who=G.p.filter(P=>!P.cpu).length>1&&!G.opts.online?`<p class="dim">${esc(G.p[pl].name)} chooses.</p>`:"";
     if(spec.kind==="yesno"){
       ovShow(`<div class="ovbox"><h2>${spec.title}</h2>${who}<p>${spec.text}</p><p class="acts"><button class="btn" id="qy">${esc(spec.yes)}</button> <button class="btn ghost" id="qn">${esc(spec.no)}</button></p></div>`);
       $("#qy").onclick=()=>{ovHide();res(true)};$("#qn").onclick=()=>{ovHide();res(false)};return;
@@ -61,7 +61,7 @@ function end(w,why){
   const hs=G.p.filter(P=>!P.cpu);const title=hs.length===1?(team.includes(hs[0].i)?(team.length>1?"Your side wins":"You win"):"The computer wins"):`${names} win${team.length>1?"":"s"}`;
   ovShow(`<div class="ovbox"><h2>${title}</h2><p>${why}.</p><p><button class="btn" id="again">New game</button></p></div>`);$("#again").onclick=showStart;
 }
-const PHASES=[["draw","Draw","roll d4s to draw, or skip"],["prep","Prep","sacrifice, cast, place, move"],["attack","Attack","each stack may attack once"]];
+const PHASES=[["prep","Prep","draw first, then sacrifice, cast, place, move"],["attack","Attack","each stack may attack once"]];   // v70d: drawing is the first part of prep
 function canAct(){return G&&!G.over&&!G.busy&&!G.passing&&!me().cpu&&!me().out&&G.active===view()}
 function bars(P){
   const N=Math.max(1,P.start||P.deck.length||1),n=P.deck.length,fill=Math.min(n,N),extra=Math.max(0,n-N);
@@ -120,7 +120,7 @@ function render(){
   // phases
   if(G.phase==="setup")$("#phases").innerHTML=`<span class="ph-c on"><b>Setup</b><em>${G.setupStep==="ace"?(hq()&&!G.p[G.active].opening.length?"click a backline tile for your second base Ace":"click a backline tile for your Ace and Jack"):"place any opening cards, then press Done"}</em></span>`;
   else if(G.phase==="moon")$("#phases").innerHTML=`<span class="ph-c on"><b>Moon</b><em>${m.i<0?"no moon turns":"the "+MOON[m.i]+" takes effect"}</em></span>`;
-  else $("#phases").innerHTML=PHASES.map(([id,n,help])=>`<span class="ph-c ${G.phase===id?"on":""}${id==="draw"&&(G.turnNo===1||G.noDraw)?" skip":""}"><b>${n}</b><em>${help}</em></span>`).join('<i>→</i>');
+  else $("#phases").innerHTML=PHASES.map(([id,n,help])=>{const draw=id==="prep"&&G.phase==="draw";return `<span class="ph-c ${G.phase===id||draw?"on":""}"><b>${n}</b><em>${draw?"drawing first: roll d4s, then Done drawing":help}</em></span>`}).join('<i>→</i>');
   const who=me();
   $("#who").innerHTML=whoHTML();
   // board: turned so the viewer's side is at the bottom
@@ -141,7 +141,7 @@ function render(){
     let lineName="",nm="";
     if(duel){
       lineName=r0===backRow(V)?"your backline":r0===frontRow(V)?"your frontline":r0===backRow(T)?"enemy backline":r0===frontRow(T)?"enemy frontline":river?"river":"midline";
-      nm=G.opts.mode==="cpu"||survival()?lineName.replace("enemy",survival()?"Horde":"computer's"):lineName;
+      nm=survival()||G.p[T]&&G.p[T].cpu?lineName.replace("enemy",survival()?"Horde":"computer's"):lineName;
       if(river&&lineName==="river")nm=`river · bridge on the ${G.map.bridge}`;
     }
     return `<div class="row ${lineName.replace(/\s/g,"-")}">${duel?`<span class="rl">${nm}</span>`:""}`+[...Array(DC).keys()].map(j=>{
@@ -204,7 +204,7 @@ function render(){
   if(live&&G.phase!=="moon")ctl.push(`<button class="btn ghost" id="next">${G.phase==="setup"?"Done setting up":G.nextLabel||"Next →"}</button>`);
   if(+G.opts.timer&&!G.over)ctl.push(`<span id="timer" class="timer" aria-live="off" title="time left in this phase">${G.deadline?Math.max(0,Math.ceil((G.deadline-Date.now())/1000))+"s":""}</span>`);
   $("#controls").innerHTML=ctl.join("");
-  const ap=$("#actph");if(ap)ap.innerHTML=G.over?"Game over":G.passing?"":me().cpu?`${esc(me().name)} is playing…`:G.phase==="setup"?"<b>Setup</b>":G.phase==="moon"?"<b>Moon</b>":`<b>${({draw:"Draw",prep:"Prep",attack:"Attack"})[G.phase]||""}</b> · ${esc(me().name)}`;
+  const ap=$("#actph");if(ap)ap.innerHTML=G.over?"Game over":G.passing?"":me().cpu?`${esc(me().name)} is playing…`:G.phase==="setup"?"<b>Setup</b>":G.phase==="moon"?"<b>Moon</b>":`<b>${({draw:"Prep · drawing",prep:"Prep",attack:"Attack"})[G.phase]||""}</b> · ${esc(me().name)}`;
   if($("#d4"))$("#d4").onclick=()=>{if(!canAct())return;rollDraw();render()};
   if($("#next"))$("#next").onclick=nextPhase;
   paintSndTop();

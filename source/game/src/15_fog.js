@@ -108,8 +108,9 @@ function ambushCheck(r,c){
 }
 
 /* ---------- Scouts and Assassins in the decks and the Ether ---------- */
-function deckCount(){const o=G.opts,L=o.layout||"duel",n=G.p.filter(P=>!isHorde(P.i)).length;
-  if(L==="duel")return o.decks||2;if(L.startsWith("team"))return 2;return o.ffaDeck==="half"?Math.ceil(n/2):n}
+/* v70d: the Ether's decks: as many as the players hold (the default) or its own number per player; 1v1-sized at least in 1v1 */
+function deckCount(){const o=G.opts,L=o.layout||"duel",n=G.p.filter(P=>!isHorde(P.i)).length,e=o.etherPer&&o.etherPer!=="same"?String(o.etherPer):deckPer(o);
+  const f=e==="half"?.5:Math.max(.5,+e||1);return Math.max(1,Math.round(f*Math.max(n,L==="duel"?2:1)))}
 function fogDecks(pls){
   const n=deckCount();let scouts=8*n,ass=4*n;
   for(const pl of pls){const P=G.p[pl],k=2,a=P.tribe==="beginner"?1:0;   // v44: two Scouts in every deck, the Beginner's too

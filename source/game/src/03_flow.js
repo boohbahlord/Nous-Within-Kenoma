@@ -130,7 +130,7 @@ function endTurn(pl){
   const P=G.p[pl];P.od=Math.max(0,P.od-6);
   for(const Q of G.p)if(Q.shownBy===pl){Q.shownUntil=0;Q.shownBy=null}
 }
-const PHASE_LABEL={draw:"To prep phase →",prep:"To attack phase →",attack:"End turn →"};
+const PHASE_LABEL={draw:"Done drawing →",prep:"To attack phase →",attack:"End turn →"};   // v70d: drawing is the first part of prep
 async function playerTurn(pl,phases,continuing){
   const g=G;
   if(!continuing)beginTurn(pl);else setActive(pl);
@@ -144,19 +144,27 @@ async function playerTurn(pl,phases,continuing){
   }
   if(phases.includes("attack"))endTurn(pl);
 }
+/* v70d: a phase played together. Drawing is the first part of prep: everyone draws together (the people first, then the
+   computers, while "Waiting for players to draw" shows), and the rest of prep starts only when everyone is done drawing. */
 async function together(players,phases){
   const g=G;players=players.filter(pl=>!G.p[pl].out);
   for(const pl of players)beginTurn(pl);
   for(const pl of players){setActive(pl);await turnAsync(pl);if(G!==g||G.over)return}
   log(`— ${players.map(plName).join(", ")} play ${phases.includes("attack")?"the whole turn":"draw and prep"} together —`,"turn");
   for(let k=0;k<phases.length;k++){
-    const ph=phases[k];G.phase=ph;
+    const ph=phases[k];G.phase=ph;G.shared=true;
     const cpus=players.filter(pl=>G.p[pl].cpu&&!G.p[pl].out),hs=players.filter(pl=>!G.p[pl].cpu&&!G.p[pl].out);
+    if(ph==="draw"){
+      for(const pl of hs){setActive(pl);if(G.noDraw)continue;G.nextLabel=PHASE_LABEL.draw;await actPhase(pl,ph);if(G!==g||G.over)return}
+      G.drawWait=true;G.speedMul=.5;
+      for(const pl of cpus){setActive(pl);if(G.noDraw)continue;await actPhase(pl,ph);if(G!==g||G.over){G.drawWait=false;return}}
+      G.speedMul=1;G.drawWait=false;continue}
     G.speedMul=.5;
-    for(const pl of cpus){setActive(pl);if(ph==="draw"&&G.noDraw)continue;await actPhase(pl,ph);if(G!==g||G.over)return}
+    for(const pl of cpus){setActive(pl);await actPhase(pl,ph);if(G!==g||G.over)return}
     G.speedMul=1;
-    for(const pl of hs){setActive(pl);if(ph==="draw"&&G.noDraw)continue;G.nextLabel="Ready →";await actPhase(pl,ph);if(G!==g||G.over)return}
+    for(const pl of hs){setActive(pl);G.nextLabel=ph==="prep"?PHASE_LABEL.prep:PHASE_LABEL.attack;await actPhase(pl,ph);if(G!==g||G.over)return}
   }
+  G.shared=false;
   if(phases.includes("attack"))for(const pl of players)endTurn(pl);
 }
 /* one player plays one phase: the computer in code, a person until they press the button (or the timer runs out) */
