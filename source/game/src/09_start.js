@@ -33,7 +33,7 @@ function infoHTML(){
   const tabs=Object.keys(INFO).map((k,i)=>`<button class="itab ${i===0?"on":""}" data-k="${k}">${INFO[k][0]}</button>`).join("");
   const spells=SCHOOLS.map(sc=>`<h4>${sc}</h4><dl>`+SPELLS.filter(s=>s.school===sc).sort((a,b)=>(a.tribe?1:0)-(b.tribe?1:0)||(a.cost||0)-(b.cost||0)||a.name.localeCompare(b.name)).map(s=>{const t=SPELL_TEXT[s.id]||{e:s.text};
     return `<dt>${esc(s.name)} <span>${s.id==="hypo"?"3 + 1 per extra card":s.dice?s.dice+", rolled each round":s.cost?s.cost+" mana":"free"}${s.tribe&&TRIBES[s.tribe]?` · ${esc(TRIBES[s.tribe].name)}`:""}</span></dt><dd>${t.n?`<i>${esc(t.n)}</i> `:""}${esc(t.e)}${t.l?` <small>${esc(t.l)}</small>`:""}</dd>`}).join("")+"</dl>").join("");
-  const subs=Object.entries(TRIBES).filter(([k])=>k!=="random").map(([k,t])=>`<dt>${esc(t.name)}</dt><dd>${esc(t.sub)}${t.pts&&t.pts.length?`<ul>${t.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>`:""}</dd>`).join("");
+  const subs=Object.entries(TRIBES).filter(([k,t])=>k!=="random"&&!t.hidden).map(([k,t])=>`<dt>${esc(t.name)}</dt><dd>${esc(t.sub)}${t.pts&&t.pts.length?`<ul>${t.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>`:""}</dd>`).join("");
   return `<details class="cinfo basics"><summary>Basics explained</summary>
 <details class="sub"><summary>What am I doing?</summary><p>You command an army of cards on a small field. Each of your turns has three phases: <b>draw</b> (roll a d4 and draw that many, or skip), <b>prep</b> (place cards from your hand on your own spawn lines, move each stack one step, sacrifice cards for mana, cast spells) and <b>attack</b> (each of your stacks may attack an enemy stack next to it once). A fight compares two scores: the attacker's best card plus its die against the defender's best card. The loser takes a damage, which removes its lowest card. You win when the enemy has nothing left on the field, or no deck, hand or mana at all.</p><p>Your Ace starts on your back line with a Jack inside it. Aces are bases: they can't move or attack, they hold one stack (up to six cards that could stand together on the field), and they have two hearts. When an Ace falls, everything in it falls too.</p></details>
 <details class="sub"><summary>What matters on the screen?</summary><ul>
@@ -68,8 +68,7 @@ function mountInfo(){
 
 /* ---------------- start screen ---------------- */
 const MODES=[
- ["local","Local","2 to 4 players (up to 8 in King of the Hill) on one device, taking turns. The board turns to whoever is playing, and the screen goes dark while you pass it. Any seat can be a computer."],
- ["cpu","Versus Computer","You against 1 to 3 computers at Easy, Medium or Hard: 1v1, free-for-all, or two against two with a computer at your side; up to 7 in King of the Hill."],
+ ["local","Local","On this device: up to four people, and computers (Easy, Medium or Hard) in any other seat. 1v1, free-for-all, two against two, or up to 8 in King of the Hill. With more than one person the board turns to whoever is playing, and the screen goes dark while you pass it."],
  ["survival","Survival","1 to 4 players hold the line against a Horde that comes in waves and grows with each one. Count the rounds you last."]];
 let startMode=null;
 const ORD=["One","Two","Three","Four"],SEATCOL=[0,3,2,5,4,7,1,8],SEATSOL=["tetra","icosa","cube","octa","dodeca","tetra","icosa","cube"];   // v57: eight seats for King of the Hill
@@ -84,18 +83,16 @@ const LAYNEED={duel:[2],ffa:[3,4],"team-side":[4],"team-across":[4],"team-same":
 const LAYDEF={2:"duel",3:"ffa",4:"ffa",5:"koth",6:"koth",7:"koth",8:"koth"};
 function seatForm(i,S,mode,L,taken){taken=taken||new Set();
   const n=i+1,tm=L.startsWith("team")||L==="koth"&&SEAT_KOTH_TEAM,team=tm?`<span class="sidetag s${S.team}">${S.team?"Side B":"Side A"}</span>`:"";
-  let type;
-  const you=mode==="cpu"&&i===0;   // v60: "You" is a tag in your own color beside your seat's name
-  if(you)type="";else if(mode==="survival")type=`<span class="dim">Human</span>`;
-  else type=`<label class="f">Plays as <select data-seat="${i}" data-k="type">${(mode==="cpu"?[]:[["human","Human"]]).concat([["easy","Computer · Easy"],["medium","Computer · Medium"],["hard","Computer · Hard"]]).map(([v,t])=>`<option value="${v}" ${S.type===v?"selected":""}>${t}</option>`).join("")}</select></label>`+(S.type&&S.type!=="human"?`<label class="f">Style <select data-seat="${i}" data-k="arch" title="${esc(AI.ARCH[S.arch]?AI.ARCH[S.arch].sub:"Each computer gets one of the styles at random.")}">${[["random","Random (default)"],...Object.entries(AI.ARCH).map(([k,a])=>[k,a.name])].map(([v,t])=>`<option value="${v}" ${(S.arch||"random")===v?"selected":""}>${t}</option>`).join("")}</select></label>`:"");   // v69: the computer's playstyle
+  const you=!!S.you;   // v60: "You" is a tag in your own color beside your seat's name (v70d: when you are the only person at the table)
+  const type=`<label class="f">Plays as <select data-seat="${i}" data-k="type">${[["human",S.noHuman?"Human (four on this device already)":"Human"],["easy","Computer · Easy"],["medium","Computer · Medium"],["hard","Computer · Hard"]].map(([v,t])=>`<option value="${v}" ${S.type===v?"selected":""} ${v==="human"&&S.noHuman?"disabled":""}>${t}</option>`).join("")}</select></label>`+(S.type&&S.type!=="human"?`<label class="f">Style <select data-seat="${i}" data-k="arch" title="${esc(AI.ARCH[S.arch]?AI.ARCH[S.arch].sub:"Each computer gets one of the styles at random.")}">${[["random","Random (default)"],...Object.entries(AI.ARCH).map(([k,a])=>[k,a.name])].map(([v,t])=>`<option value="${v}" ${(S.arch||"random")===v?"selected":""}>${t}</option>`).join("")}</select></label>`:"");   // v69: the computer's playstyle
   const pcol=TRIBES[S.tribe]&&TRIBES[S.tribe].color||(S.color==="random"?"#c9a274":S.color);
   const T0=TRIBES[S.tribe]||{},scol=T0.color||S.color,ssol=T0.solid||S.solid,
-    lsum=`<span class="dim lsum">· ${esc(T0.name||"Random")} ${scol&&scol!=="random"?`<i class="lsw" style="background:${scol}"></i>`:`<i class="lsw rnd">?</i>`}${ssol&&ssol!=="random"&&SOLIDS[ssol]?`<i class="lso">${solidSVG(ssol,scol&&scol!=="random"?scol:"#f3d6a6",14)}</i>`:""}</span>`;
+    lsum=`<span class="dim lsum">· ${esc(S.noSubs?"No Substance":T0.name||"Random")} ${scol&&scol!=="random"?`<i class="lsw" style="background:${scol}"></i>`:`<i class="lsw rnd">?</i>`}${ssol&&ssol!=="random"&&SOLIDS[ssol]?`<i class="lso">${solidSVG(ssol,scol&&scol!=="random"?scol:"#f3d6a6",14)}</i>`:""}</span>`;
   return `<fieldset class="pf seat${you?" isyou":""}" style="--pc:${pcol}"><legend>P${i+1}${you?' <b class="youtag">You</b>':""} ${team}</legend>
 <div class="srow"><label class="f">Name <input data-seat="${i}" data-k="name" value="${esc(S.name)}" maxlength="20"></label>${type}</div>
 <details class="look" ${S.open?"open":""}><summary>${tm?"Team, Substance, color and symbol":"Substance, color and symbol"} ${lsum}</summary>
 ${tm?`<div class="f"><span>Team</span><div class="opts">${[0,1].map(t=>`<label class="opt"><input type="radio" name="tm${n}" data-seat="${i}" data-k="team" value="${t}" ${S.team===t?"checked":""}><span>${t?"Side B":"Side A"}<small>${t?"Plays against Side A.":"Plays against Side B."} ${L==="koth"?"Each side needs at least one player.":"Each side needs two players."}</small></span></label>`).join("")}</div></div>`:""}
-<div class="f"><span>Substance</span><div class="opts subs">${Object.entries(TRIBES).map(([k,t])=>{const off=t.soon||taken.has(k)&&k!==S.tribe;return `<label class="opt${off?" off":""}"><input type="radio" name="tr${n}" data-seat="${i}" data-k="tribe" value="${k}" ${k===S.tribe?"checked":""} ${off?"disabled":""}><span>${t.solid?`<i class="subsym">${solidSVG(t.solid,t.color||"#f3d6a6",18)}</i>`:""}${t.name}<small>${taken.has(k)&&k!==S.tribe?"Another player has it: only the Beginner can be played by more than one player.":t.sub}</small></span></label>`}).join("")}</div></div>
+${S.noSubs?`<p class="dim fixednote">No Substances (the Table option): everyone plays by the plain rules.</p>`:`<div class="f"><span>Substance</span><div class="opts subs">${Object.entries(TRIBES).filter(([k,t])=>!t.hidden).map(([k,t])=>{const off=t.soon||taken.has(k)&&k!==S.tribe;return `<label class="opt${off?" off":""}"><input type="radio" name="tr${n}" data-seat="${i}" data-k="tribe" value="${k}" ${k===S.tribe?"checked":""} ${off?"disabled":""}><span>${t.solid?`<i class="subsym">${solidSVG(t.solid,t.color||"#f3d6a6",18)}</i>`:""}${t.name}<small>${taken.has(k)&&k!==S.tribe?"Another player has it: only the Beginner can be played by more than one player.":t.sub}</small></span></label>`}).join("")}</div></div>`}
 ${(()=>{const T=TRIBES[S.tribe]||{};
   const acc=c0=>`<div class="f"><span>Accent</span><div class="opts swatches accents">${ACCENTS.map(([v,nm])=>`<label class="sw" title="${nm}${v==="auto"?" (a light shade of the color)":""}"><input type="radio" name="ac${n}" data-seat="${i}" data-k="accent" value="${v}" ${v===(S.accent||"auto")?"checked":""}><span style="--pc:${v==="auto"?accentOf(c0&&c0!=="random"?c0:"#c9a274","auto"):v}"></span><em>${nm}</em></label>`).join("")}</div></div>`;   // v61: the frame of your cards
   if(T.color)return `<p class="dim fixednote">${esc(T.name)} always plays in its own color and symbol: ${solidSVG(T.solid,T.color,20)}</p>`+acc(T.color);
@@ -110,21 +107,22 @@ const chk=(id,label,sub,on)=>`<label class="chk"><input type="checkbox" id="${id
 function showStart(){
   if(G)G.over=true;
   applyMoonTheme();
-  const q=new URLSearchParams(location.search).get("mode");
+  const q0=new URLSearchParams(location.search).get("mode"),q=q0==="cpu"?"local":q0;
   if(!startMode&&MODES.some(m=>m[0]===q))startMode=q;
   if(!startMode){
     ovShow(`<div class="ovbox setup"><div class="shead"><h2>New game</h2><p class="dim">Choose how to play.</p></div><div class="modes">${MODES.map(([k,t,s])=>`<button class="mode" data-m="${k}"><b>${t}</b><span>${s}</span></button>`).join("")}</div></div>`);
     document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{startMode=b.dataset.m;showStart()});return;
   }
   const mode=startMode,M=MODES.find(m=>m[0]===mode);
-  const seatsS=[0,1,2,3,4,5,6,7].map(i=>({name:mode==="survival"&&i===0?"Survivor":`P${i+1}`,type:mode==="survival"||i===0?"human":mode==="cpu"?"medium":"human",
-    tribe:mode==="cpu"&&i>0?"random":"beginner",color:mode==="cpu"&&i>0?"random":COLORS[SEATCOL[i]][1],solid:mode==="cpu"&&i>0?"random":SEATSOL[i],team:i%2,named:false}));
+  const seatsS=[0,1,2,3,4,5,6,7].map(i=>({name:mode==="survival"&&i===0?"Survivor":`P${i+1}`,type:i===0?"human":"medium",
+    tribe:i>0?"random":"beginner",color:i>0?"random":COLORS[SEATCOL[i]][1],solid:i>0?"random":SEATSOL[i],team:i%2,named:false}));
   let curLayout=null;
   const counts=mode==="survival"?[1,2,3,4]:mode==="online"?[2,3,4]:[2,3,4,5,6,7,8];
   const forms=`<fieldset class="pf"><legend>Table</legend>
 <label class="f">${mode==="survival"?"Players against the Horde":"Players"} <select id="pcount">${counts.map(c=>`<option value="${c}" ${c===counts[0]?"selected":""}>${c}</option>`).join("")}</select></label>
 <div class="f" id="layoutf" ${mode==="survival"?"hidden":""}><span>Layout</span><div class="opts">${Object.entries(LAYOUTS).map(([k,[t,d]],i)=>`<label class="opt" data-lay="${k}"><input type="radio" name="olayout" value="${k}" ${i===0?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
 <p class="dim" id="laynote"></p>
+${chk("onosubs","No Substances","Every player plays by the plain rules, with no Substance's advantages or drawbacks. On by default in Survival.",mode==="survival")}
 <div id="kothopts" hidden><div class="f"><span>King of the Hill</span><div class="opts">
 ${chk("okteam","Team mode","Players form two sides, Side A and Side B (not necessarily even). Off: everyone for themselves.",true)}
 ${chk("oktug","Tug of war","Team mode only. One shared bar from −25 to +25: holding the Hill pulls it your side's way; when both sides hold it, it stops. Pull it all the way to win.",false)}
@@ -194,17 +192,17 @@ ${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the 
 <label class="opt"><input type="radio" name="dlines" value="0" ${PREF.lines===false?"checked":""}><span>Off<small>A plain background, on every page of the site.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Brightness</legend><label class="f">Brightness <select id="dbright">${[.7,.8,.9,1,1.1,1.2,1.3].map(v=>`<option value="${v}" ${Math.abs((PREF.bright||1)-v)<.01?"selected":""}>${Math.round(v*100)}%${v===1?" (default)":""}</option>`).join("")}</select></label><p class="dim">For the whole site. Also in the Display bar at the bottom of the game.</p></fieldset>
 <fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({darkfantasy:"The default: an old dungeon in grey and crimson, gold and silver, with music.","":"The burnt amber of the rest of the site.",dull:"The burnt amber, duller and less orange, with a faint yellow tint.",office:"Soft grey pages and panels with a blue accent, like an office suite; easy on the eyes.",officedark:"The Office theme in charcoal, for the night.",earth:"A night druid\u2019s grove: dark soil, moss and lichen gold.",jester:"Black, after chapter 26.",ten:"White on indigo, after chapters 1–4.",satan:"Crimson, after chapter 23."})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, text size, hand position, tile names, page width and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
-  const suitSel=`<div id="suitpick" hidden><p class="dim">${mode==="local"?"P1 picks; P2 gets the other two suits.":mode==="cpu"?"You pick; the computer gets the other two suits.":"You pick; the other two suits wait in the Ether."}</p>
+  const suitSel=`<div id="suitpick" hidden><p class="dim">${mode==="survival"?"You pick; the other two suits wait in the Ether.":"P1 picks; P2 gets the other two suits."}</p>
 <label class="f">Red suit <select id="osuitR"><option value="H">♥ Hearts</option><option value="D">♦ Diamonds</option></select></label>
 <label class="f">Black suit <select id="osuitB"><option value="S">♠ Spades</option><option value="C">♣ Clubs</option></select></label></div>`;
-  const deckTab=`<fieldset class="pf" id="ffadecks" hidden><legend>Decks</legend><div class="opts">
-<label class="opt"><input type="radio" name="offa" value="full" checked><span>A whole deck each (default)<small>Every player has all four suits.</small></span></label>
-<label class="opt"><input type="radio" name="offa" value="half"><span>Half a deck each<small>One red and one black suit each; the rest wait in the Ether.</small></span></label></div></fieldset>
-<fieldset class="pf" id="teamdecks" hidden><legend>Decks</legend><p class="dim">Each team has one deck: every teammate takes one red and one black suit of it, and one of its Jokers.</p>
-${chk("oshare","Shared team deck","Teammates draw from one deck and spend from one soul pile, but keep their own hands.",false)}</fieldset>
-<fieldset class="pf" id="dueldecks"><legend>Decks</legend><div class="opts">
-${[["1","One deck",mode==="survival"?"You take one red and one black suit; the other half of the deck waits in the Ether.":"Both players split one deck: each takes one red and one black suit."],["2","Two decks (default)","Each player has a full deck of all four suits."],["3","Three decks","A full deck each, and a whole third deck waits in the Ether."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="odecks" value="${v}" ${v==="2"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
-<div class="f" id="suitmode" hidden><span>Suits (one deck)</span><div class="opts"><label class="opt"><input type="radio" name="osuitmode" value="random" checked><span>Random (default)<small>Each player is dealt one red and one black suit at random.</small></span></label><label class="opt"><input type="radio" name="osuitmode" value="choose"><span>Choose<small>Pick the two suits below.</small></span></label></div>${suitSel}</div>
+  const deckTab=`<fieldset class="pf" id="decksset"><legend>Decks</legend>
+<div class="f"><span>Decks per player</span><div class="opts">
+${[["half","Half a deck","One red and one black suit and one Joker. In 1v1 the two players split one deck; in 2v2 each team splits one (the default there)."],["1","One deck (default)","All four suits and both Jokers."],["2","Two decks","Two of every card. Set Specials and Aces to Half below."],["3","Three decks","Three of every card. Specials and Aces at Half suits it too."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="odeckper" value="${v}" ${v==="1"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
+<div class="f" id="suitmode" hidden><span>Suits (half a deck, 1v1)</span><div class="opts"><label class="opt"><input type="radio" name="osuitmode" value="random" checked><span>Random (default)<small>Each player is dealt one red and one black suit at random.</small></span></label><label class="opt"><input type="radio" name="osuitmode" value="choose"><span>Choose<small>Pick the two suits below.</small></span></label></div>${suitSel}</div>
+<div class="f"><span>Ether decks per player</span><div class="opts">
+${[["same","Same as the players (default)","As many decks' worth of Scouts, Assassins, Archers, Healers, Repairmen, Walls, Rams, Miners and Cannons as the players hold decks."],["half","Half a deck each",""],["1","One deck each",""],["2","Two decks each",""],["3","Three decks each",""]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="oetherper" value="${v}" ${v==="same"?"checked":""}><span>${t}${d?`<small>${d}</small>`:""}</span></label>`).join("")}</div></div>
+<p class="dim">With two decks per player (or three), set Specials and Aces to Half: everyone then starts with half the specials and bases, and the rest wait in the Ether.</p>
+<div id="teamdecks" hidden>${chk("oshare","Shared team deck","2v2 only. Teammates draw from one deck and spend from one soul pile, but keep their own hands.",false)}</div>
 </fieldset>
 <fieldset class="pf"><legend>Specials and Aces (Jacks, Queens, Kings, Jokers and Aces)</legend><div class="opts">
 ${[["none","None (default)","Only your opening Ace and its Jack. Every other special waits in the Ether to be conjured."],["half","Half","The specials of half your suits; the rest wait in the Ether."],["all","All","Every special of your suits is in your deck."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="ospecials" value="${v}" ${v==="none"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
@@ -239,23 +237,25 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
   document.querySelectorAll(".stab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".stab").forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-selected",x===b)});document.querySelectorAll(".spanel").forEach(p=>p.hidden=p.dataset.p!==b.dataset.t)});
   const count=()=>+$("#pcount").value;
   const layout=()=>{const n=count();if(mode==="survival")return n===1?"duel":"coop";const v=val("olayout");return v&&LAYNEED[v].includes(n)?v:LAYDEF[n]};
-  const humans=()=>mode==="survival"?count():seatsS.slice(0,count()).filter(S=>S.type==="human").length;
+  const humans=()=>seatsS.slice(0,count()).filter(S=>S.type==="human").length;
   const drawSeats=()=>{
     const n=count(),L=layout();
     if(mode!=="survival"){
       document.querySelectorAll("#layoutf [data-lay]").forEach(o=>{const ok=LAYNEED[o.dataset.lay].includes(n);o.classList.toggle("off",!ok);const inp=o.querySelector("input");inp.disabled=!ok;inp.checked=o.dataset.lay===L})}
     const key=L+(L==="coop"?n:"");if(key!==curLayout){curLayout=key;sizeUp()}
     if($("#kothopts")){$("#kothopts").hidden=L!=="koth";SEAT_KOTH_TEAM=$("#okteam").checked;$("#oktug").disabled=!SEAT_KOTH_TEAM;kothMapUp(L)}
-    $("#laynote").textContent=mode==="survival"?(n===1?"One survivor on the usual field.":`${n} survivors share the bottom of the field, and the Horde spawns once for each of you. You take your turns one after another on this device, and the Horde moves first each round.`):"";
-    const blk=skyBlocked(val("omoonon"));
+    $("#laynote").textContent=mode==="survival"?(n===1?"One survivor on the usual field.":`${n} survivors share the bottom of the field, and the Horde spawns once for each of you. Any seat can be a computer; people take their turns one after another on this device, and the Horde moves first each round.`):"";
+    const blk=skyBlocked(val("omoonon")),hum=humans(),ns=$("#onosubs")&&$("#onosubs").checked;
+    seatsS.forEach((S,i)=>{S.you=i===0&&S.type==="human"&&hum===1&&!NET.inSetup;S.noHuman=S.type!=="human"&&hum>=4;S.noSubs=ns});   // v70d: four people on one device at most
     $("#seats").innerHTML=seatsS.slice(0,n).map((S,i)=>seatForm(i,S,mode,L,new Set([...blk,...seatsS.slice(0,n).filter((Q,j)=>j!==i&&Q.tribe!=="random"&&Q.tribe!=="beginner").map(Q=>Q.tribe)]))).join("");
     $("#seats").querySelectorAll("details.look").forEach((d,i)=>d.addEventListener("toggle",()=>{seatsS[i].open=d.open}));   // v60: each seat's fold stays as it was left
     $("#seats").querySelectorAll("[data-seat]").forEach(el=>el.addEventListener(el.tagName==="INPUT"&&el.type==="text"?"input":"change",()=>{
       const S=seatsS[+el.dataset.seat],k=el.dataset.k;S[k]=el.value;if(k==="name")S.named=true;
       if(k==="color"){S.lookSet=true;el.closest(".seat").style.setProperty("--pc",el.value);drawSeats();return}   // v61: the accents follow the color
       if(k==="tribe"||k==="color"||k==="solid")S.lookSet=true;
-      if(k==="type"){if(!S.lookSet){const i2=+el.dataset.seat,cpu=el.value!=="human";S.tribe=cpu?"random":"beginner";S.color=cpu?"random":COLORS[SEATCOL[i2]][1];S.solid=cpu?"random":SEATSOL[i2];drawSeats();return}
-        turnUp()}
+      if(k==="type"){if(el.value==="human"&&humans()>4){S.type="medium";flash("Four people can play on one device at most.");drawSeats();return}
+        if(!S.lookSet){const i2=+el.dataset.seat,cpu=el.value!=="human";S.tribe=cpu?"random":"beginner";S.color=cpu?"random":COLORS[SEATCOL[i2]][1];S.solid=cpu?"random":SEATSOL[i2]}
+        drawSeats();return}
       if(k==="team"){S.team=+el.value;drawSeats()}
       if(k==="tribe"){S.open=true;drawSeats()}
     }));
@@ -265,15 +265,16 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     $("#ocorners").disabled=L==="coop";
     document.querySelectorAll('input[name=obig]').forEach(i=>{const no=L==="coop"||i.value==="long"&&!(L==="duel"||L==="team-same");i.disabled=no;i.closest(".opt").classList.toggle("off",no);if(no&&i.checked)document.querySelector('input[name=obig][value=""]').checked=true});
     document.querySelectorAll('input[name=omap][value=river]').forEach(i=>{i.disabled=L!=="duel";i.closest(".opt").classList.toggle("off",i.disabled);if(i.disabled&&i.checked)document.querySelector('input[name=omap][value=none]').checked=true});
-    $("#dueldecks").hidden=L!=="duel";$("#ffadecks").hidden=!(L==="ffa"||L==="coop");$("#teamdecks").hidden=!L.startsWith("team");
+    $("#teamdecks").hidden=!L.startsWith("team");
+    if(!$("#decksset").dataset.touched){const d=L.startsWith("team")?"half":"1";document.querySelectorAll('input[name=odeckper]').forEach(i=>i.checked=i.value===d)}   // v70d: one deck each, half a deck each in 2v2
     $("#elimset").hidden=(mode==="survival"?n:n)<(mode==="survival"?2:3);
     turnUp();mapUp&&mapUp();sumUp();
   };
   const turnUp=()=>{
     const t=$("#oturns"),many=humans()>1;
     if(many){t.value="classic";t.disabled=true;$("#turnnote").textContent="With more than one person on this device, play is always turn by turn."}
-    else{t.disabled=false;if(!t.dataset.touched)t.value=mode==="local"?"classic":"prep";
-      $("#turnnote").textContent=t.value==="classic"?"Each player takes the draw, prep and attack phases before the next player goes.":t.value==="prep"?"Everyone draws and preps at once; a shared phase ends when every player is Ready. Then each player attacks in turn.":"Every phase is played at once; each phase ends when every player is Ready."}
+    else{t.disabled=false;if(!t.dataset.touched)t.value="prep";
+      $("#turnnote").textContent=t.value==="classic"?"Each player draws, preps and attacks before the next player goes.":t.value==="prep"?"Everyone draws together (press Done drawing), then preps; when everyone is done, each player attacks in turn.":"Every phase is played together; each goes on when everyone is done."}
   };
   $("#oturns").addEventListener("change",()=>{$("#oturns").dataset.touched=1;turnUp()});
   $("#ocorners").addEventListener("change",()=>$("#ocorners").dataset.touched=1);
@@ -289,19 +290,18 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     else{const h=n,dc=h===2?6:h===3?9:8,dr=h===2?5:6;box.innerHTML=sel("ocols2","Width",rng(Math.max(5,h*2),9),dc)+sel("orows2","Height",[5,6],dr)+'<p class="dim">The survivors split the bottom two lines; the Horde holds the top two.</p>'}
   }
   const sumUp=()=>{
-    const d=+val("odecks"),sp=val("ospecials"),js=$("#ojoker").checked,np=mode==="survival"?1:2;
-    if(layout()!=="duel"){$("#decksum").textContent="";return}
-    if(!$("#oeach").dataset.touched)$("#oeach").checked=d===1;
-    $("#suitmode").hidden=d!==1;$("#suitpick").hidden=d!==1||val("osuitmode")!=="choose";
-    const s=d===1?2:4,j=d===1?1:2,keptSp=sp==="all"?4*s+j:sp==="half"?4*s/2+Math.floor(j/2):0;
-    const keptJ=sp==="all"?j:sp==="half"?Math.floor(j/2):0;
-    const deck=9*s+keptSp-(keptSp?2:0)+(js&&!keptJ?1:0);
-    const outPer=4*s+j-keptSp-(keptSp?0:2)-(js&&!keptJ?1:0);
-    const ether=outPer*np+(d===3?54:0)+(d===1&&np===1?26:0);
-    $("#decksum").textContent=`Each deck starts with ${deck} cards, plus the opening Ace and Jack on the field. The Ether starts with ${ether} souls to conjure.`;
+    const per=val("odeckper")||"1",half=per==="half",m=half?0:+per,sp=val("ospecials"),js=$("#ojoker").checked,L=layout(),N=Math.max(1,count());
+    if(!$("#oeach").dataset.touched)$("#oeach").checked=half;
+    $("#suitmode").hidden=!(half&&L==="duel");$("#suitpick").hidden=$("#suitmode").hidden||val("osuitmode")!=="choose";
+    const s=half?2:4*m,j=half?1:2*m,keptSp=sp==="all"?4*s+j:sp==="half"?4*s/2+Math.floor(j/2):0,keptJ=sp==="all"?j:sp==="half"?Math.floor(j/2):0;
+    const deck=9*s+keptSp-(keptSp?2:0)+(js&&!keptJ?1:0),outPer=4*s+j-keptSp-(keptSp?0:2)-(js&&!keptJ?1:0);
+    const ep=val("oetherper")||"same",ef=ep==="same"?(half?.5:m):ep==="half"?.5:+ep,ne=Math.max(1,Math.round(ef*Math.max(N,L==="duel"?2:1)));
+    const ether=outPer*N+41*ne-2*N+(half&&mode==="survival"&&N===1?26:0);
+    $("#decksum").textContent=`Each player's deck starts with ${deck} cards, plus the opening Ace and Jack on the field. The Ether starts with about ${ether} souls to conjure.`;
   };
   $("#oeach").addEventListener("change",()=>$("#oeach").dataset.touched=1);
-  document.querySelectorAll('input[name=odecks],input[name=ospecials],input[name=osuitmode],#ojoker').forEach(i=>i.addEventListener("change",sumUp));sumUp();
+  document.querySelectorAll('input[name=odeckper],input[name=oetherper],input[name=ospecials],input[name=osuitmode],#ojoker').forEach(i=>i.addEventListener("change",()=>{if(i.name==="odeckper")$("#decksset").dataset.touched=1;sumUp()}));sumUp();
+  $("#onosubs").addEventListener("change",drawSeats);
   mapUp=()=>{const rv=val("omap")==="river";$("#bridgeopt").hidden=!rv;$("#rivernote").hidden=!rv;
     document.querySelectorAll('#sizeduel input').forEach(i=>i.disabled=rv);};
   document.querySelectorAll('input[name=omap]').forEach(i=>i.addEventListener("change",mapUp));
@@ -316,7 +316,8 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
       return{name,tribe:S.tribe,color:S.color,solid:S.solid,accent:S.accent||"auto",cpu,arch:cpu&&cpu!=="horde"?S.arch||"random":null};
     });
     const blk=skyBlocked(val("omoonon")),bad=players.find(p=>blk.includes(p.tribe));if(bad){flash(`${TRIBES[bad.tribe].name} can't be played with that Heavenly Body in the sky.`);return}
-    for(const t of Object.keys(TRIBES))if(t!=="random"&&t!=="beginner"&&players.filter(p=>p.tribe===t).length>1){flash(`Only one player can be ${TRIBES[t].name}. The Beginner is the only Substance more than one player can share.`);return}
+    if($("#onosubs").checked)players.forEach(p=>{p.tribe="plain"});   // v70d: No Substances: everyone plays by the plain rules
+    for(const t of Object.keys(TRIBES))if(t!=="random"&&t!=="beginner"&&t!=="plain"&&players.filter(p=>p.tribe===t).length>1){flash(`Only one player can be ${TRIBES[t].name}. The Beginner is the only Substance more than one player can share.`);return}
     {const picked=players.filter(p=>!TRIBES[p.tribe].color&&p.color!=="random");if(new Set(picked.map(p=>p.color)).size<picked.length){flash("Every player needs a different color.");return}}   // Random finds a free color at the start
     if(L==="koth"&&$("#okteam").checked){players.forEach((p,i)=>p.team=seatsS[i].team?1:0);if(!players.some(p=>p.team===0)||!players.some(p=>p.team===1)){flash("Each side needs at least one player.");return}}
     if(L.startsWith("team")){ // seats alternate sides: A, B, A, B
@@ -328,9 +329,9 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     PREF.hand=val("dhand")||PREF.hand;PREF.sel=val("dsel")||PREF.sel;PREF.ctl=val("dctl")||PREF.ctl;PREF.theme=val("dtheme")??PREF.theme;PREF.coords=val("dcoord")==="1";PREF.full=val("dfull")==="1";PREF.lines=val("dlines")!=="0";if($("#danimc")){PREF.fxCards=$("#danimc").checked;PREF.fxMagic=$("#danimm").checked}PREF.bright=+($("#dbright")||{}).value||1;savePrefs();applyPrefs();
     startGame({mode,players,mid:mode==="survival"||(val("orowsd")?+val("orowsd")>4:true),aceLock:$("#olock").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,cheat:!!($("#ocheat")&&$("#ocheat").checked),hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off","saturn"].includes(val("omoonon")||"on"),
       map:L==="koth"?"hill":val("omap"),big:L==="koth"?"":val("obig")||"",koth:L==="koth"?{team:$("#okteam").checked,tug:$("#okteam").checked&&$("#oktug").checked,double:$("#okdouble").checked,contest:$("#okcontest").checked,target:+val("oktarget")||50,near:val("oknear")==="near",cpu:val("okcpu")||"each"}:null,cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:L==="duel"&&val("orowsd")?+val("orowsd"):undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
-      decks:+val("odecks"),specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:+val("odecks")===1&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
+      deckPer:val("odeckper")||"1",etherPer:val("oetherper")||"same",noSubs:$("#onosubs").checked,specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:val("odeckper")==="half"&&L==="duel"&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
       startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",atkSpells:$("#oatk").checked,pshop:$("#opshop")?$("#opshop").checked:true,
-      layout:L,turns:$("#oturns").value,timer:+$("#otimer").value,cpuSpeed:$("#ospeed").value,elimDark:val("oelim")==="dark",ffaDeck:val("offa"),shareDeck:$("#oshare").checked});
+      layout:L,turns:$("#oturns").value,timer:+$("#otimer").value,cpuSpeed:$("#ospeed").value,elimDark:val("oelim")==="dark",shareDeck:$("#oshare").checked});
   };
 }
 function startGame(opts){

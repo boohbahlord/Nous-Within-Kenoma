@@ -37,9 +37,10 @@ const TRIBES={
  lucifer:{name:"Lucifer & Ouroboros",sub:"Always the ink and scroll. The Delusions of Ouroboros and of Lucifer, Deconjured, and Pleasure and Joy.",solid:"scroll"},
  leviathan:{name:"The Leviathan",sub:"The black serpent in the deck: three hearts, 6d4 + 1d2 + 6. On a New Moon it can rise onto the moon and tax every New Moon after. Its Jokers can exile souls to the Outer Darkness."},
  firm:{name:"The Firmament",sub:"Always the six-pointed star. Untouched by the Moon's and Saturn's harms and by meteors; a Miner on the moon; Blood Moon, Rain, Asteroid, Fog, and Mars in the sky.",solid:"hexa"},
- yald:{name:"Yaldabaoth",sub:"Always the symbol of Saturn. Night's Judgement eats the moon, God Hunger eats cards, and seven eaten bring Saturn and its Debt Collectors.",solid:"saturn"}
+ yald:{name:"Yaldabaoth",sub:"Always the symbol of Saturn. Night's Judgement eats the moon, God Hunger eats cards, and seven eaten bring Saturn and its Debt Collectors.",solid:"saturn"},
+ plain:{name:"No Substance",sub:"The plain rules: no Substance's advantages or drawbacks.",hidden:true}   // v70d: only through the host's No Substances option
 };
-const PLAYABLE=Object.keys(TRIBES).filter(k=>k!=="random"&&!TRIBES[k].soon);
+const PLAYABLE=Object.keys(TRIBES).filter(k=>k!=="random"&&!TRIBES[k].soon&&!TRIBES[k].hidden);
 const COLORS=[["Ember","#ee7a3c"],["Gold","#e3b944"],["Verdigris","#45b89c"],["Azure","#4c92e6"],["Violet","#a77de8"],["Rose","#e4648f"],["Crimson","#d7333b"],["Moss","#8fb33f"],["Frost","#74d7ea"]];   // Bone belongs to the Angel Machine
 const SOLIDS={tetra:"Tetrahedron",cube:"Cube",octa:"Octahedron",dodeca:"Dodecahedron",icosa:"Icosahedron"};
 const HORDE_COLOR="#97a487";
@@ -194,26 +195,28 @@ function newGame(opts){
 const RED=["H","D"],BLACK=["S","C"],RANKS=["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
 const isSpecial=c=>["jack","queen","king","ace","joker"].includes(kind(c));
 const ALL4=["S","H","D","C"];
+/* v70d: decks per player: half a deck (one red and one black suit and a Joker: in 1v1 the two split one deck, in 2v2 each team
+   splits one), one deck (all four suits, both Jokers), two or three decks. Older games and the tools still pass decks and ffaDeck. */
+function deckPer(o){if(o.deckPer)return String(o.deckPer);const L=o.layout||"duel";
+  if(L==="duel")return o.decks===1?"half":"1";if(L.startsWith("team"))return "half";return o.ffaDeck==="half"?"half":"1"}
 function deckPlan(o,pls){
-  const L=o.layout||"duel",n=o.decks||2,N=pls.length;
-  const half=()=>[pick(RED),pick(BLACK)];
-  if(L==="duel"){
+  const L=o.layout||"duel",per=deckPer(o),N=pls.length,half=per==="half",m=half?1:Math.max(1,Math.min(3,+per||1));
+  if(half&&L==="duel"){
     let suits;
-    if(n===1){
-      if(o.suits&&o.suits.length===2){const a=o.suits,b=[RED.find(s=>!a.includes(s)),BLACK.find(s=>!a.includes(s))];suits=[a,b]}
-      else{const r=shuffle([...RED]),b=shuffle([...BLACK]);suits=[[r[0],b[0]],[r[1],b[1]]]}
-    }else suits=[ALL4,ALL4];
-    return{n,suits:suits.slice(0,N),jokers:n===1?shuffle(["red","black"]).map(c=>[c]):[["red","black"],["red","black"]],spare:n===1&&N<2?suits[1]:null};
+    if(o.suits&&o.suits.length===2){const a=o.suits,b=[RED.find(s=>!a.includes(s)),BLACK.find(s=>!a.includes(s))];suits=[a,b]}
+    else{const r=shuffle([...RED]),b=shuffle([...BLACK]);suits=[[r[0],b[0]],[r[1],b[1]]]}
+    return{n:1,suits:suits.slice(0,N),jokers:shuffle(["red","black"]).map(c=>[c]),spare:N<2?suits[1]:null};
   }
-  if(L.startsWith("team")){ // one deck per team: each teammate gets one red and one black suit
+  if(half&&L.startsWith("team")){ // one deck per team: each teammate gets one red and one black suit
     const suits=[],jokers=[];const byTeam={};
     pls.forEach(pl=>{const t=G.p[pl].team;(byTeam[t]=byTeam[t]||[]).push(pl)});
     const map={};for(const t in byTeam){const r=shuffle([...RED]),b=shuffle([...BLACK]),j=shuffle(["red","black"]);byTeam[t].forEach((pl,k)=>{map[pl]=[[r[k%2],b[k%2]],[j[k%2]]]})}
     pls.forEach(pl=>{suits.push(map[pl][0]);jokers.push(map[pl][1])});
-    return{n,suits,jokers,spare:null};
+    return{n:1,suits,jokers,spare:null};
   }
-  const full=o.ffaDeck!=="half";   // free-for-all and co-op Survival
-  return{n,suits:pls.map(()=>full?ALL4:half()),jokers:pls.map(()=>full?["red","black"]:[pick(["red","black"])]),spare:null};
+  if(half)return{n:1,suits:pls.map(()=>[pick(RED),pick(BLACK)]),jokers:pls.map(()=>[pick(["red","black"])]),spare:null};
+  const suits=Array.from({length:m},()=>ALL4).flat(),jokers=Array.from({length:m},()=>["red","black"]).flat();
+  return{n:m,suits:pls.map(()=>suits),jokers:pls.map(()=>jokers),spare:null};
 }
 function buildDecks(){
   const o=G.opts,pls=G.p.map((P,i)=>i).filter(i=>!isHorde(i)),plan=deckPlan(o,pls),sp=o.specials||"none";
@@ -222,7 +225,7 @@ function buildDecks(){
     const P=G.p[pl],mySuits=plan.suits[k];
     let cards=[];for(const s of mySuits)for(const r of RANKS)cards.push(mk(r,s));
     for(const col of plan.jokers[k])cards.push(mk("JK",null,col));
-    let keepSuits=sp==="all"?mySuits:sp==="half"?(mySuits.length===4?[pick(RED),pick(BLACK)]:[pick(mySuits)]):[];
+    const kinds=[...new Set(mySuits)];let keepSuits=sp==="all"?kinds:sp==="half"?(kinds.length===4?[pick(RED),pick(BLACK)]:[pick(kinds)]):[];
     const keepJokers=sp==="all"?9:sp==="half"?Math.floor(plan.jokers[k].length/2):0;let jk=0;
     const deck=[],out=[];
     for(const c of cards){
@@ -245,7 +248,6 @@ function buildDecks(){
     for(const t in byTeam){const m=byTeam[t];const d=shuffle(m.flatMap(pl=>G.p[pl].deck)),sl=[];for(const pl of m){G.p[pl].deck=d;G.p[pl].souls=sl}}
   }
   if(plan.spare)for(const s of plan.spare)for(const r of RANKS)G.ether.push(mk(r,s));   // one deck in Survival: the other half waits in the Ether
-  if(plan.n===3)G.ether.push(...freshDeck());
   substanceDecks(pls);fogDecks(pls);siegeDecks(pls);
   for(const c of G.ether)c.owner=null;
   shuffle(G.ether);

@@ -1843,3 +1843,7 @@ html.cardsym .cf.v61 .hearts,html.cardsym .stack.v61 .bhp{top:calc(24px * var(--
 #roundban.go{animation:roundban 4.6s ease-in-out forwards}
 @keyframes roundban{0%{opacity:0}28%{opacity:1}68%{opacity:1}100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){#roundban.go{animation:roundbanR 3.6s steps(1,end) forwards}@keyframes roundbanR{0%{opacity:1}100%{opacity:0}}}
+/* v70d: waiting for the others to draw */
+#controls .drawwait{align-self:center;color:var(--amber-hi);font-size:13px;letter-spacing:.04em;animation:drawwait 1.6s ease-in-out infinite}
+@keyframes drawwait{50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){#controls .drawwait{animation:none}}
