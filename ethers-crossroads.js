@@ -3727,10 +3727,10 @@ function wireStatus(){
 
 /* ---------- the menu (it pauses the game) ---------- */
 function openMenu(){
-  if(!G)return;G.paused=true;
+  if(G)G.paused=true;   // v70c: it also opens before any game, from Settings on the front page
   let m=$("#menu");if(!m){m=document.createElement("div");m.id="menu";document.body.appendChild(m)}
   const sel=(id,label,opts,cur)=>`<label class="f">${label} <select id="${id}">${opts.map(([v,t])=>`<option value="${v}" ${v===cur?"selected":""}>${t}</option>`).join("")}</select></label>`;
-  m.innerHTML=`<div class="ovbox"><button type="button" class="xclose" id="mX" aria-label="Resume">×</button><h2>Paused</h2><p class="dim">The game waits while this menu is open. These settings change how the table looks, not the rules.</p>
+  m.innerHTML=`<div class="ovbox"><button type="button" class="xclose" id="mX" aria-label="Resume">×</button>${G?`<h2>Paused</h2><p class="dim">The game waits while this menu is open. These settings change how the table looks, not the rules.</p>`:`<h2>Settings</h2><p class="dim">The same settings as the pause menu in a game, kept on this device: they change how the table looks, not the rules.</p>`}
 <div class="mgrid">
 ${sel("mTheme","Page theme",Object.entries(THEMES).map(([k,[n]])=>[k,n]),PREF.theme)}
 ${sel("mHand","Your hand",[["below","Under your deck and mana"],["side","Beside the field"]],PREF.hand)}
@@ -3743,19 +3743,19 @@ ${sel("mLines","Background lines",[["1","On"],["0","Off"]],PREF.lines===false?"0
 ${sel("mSpellBL","Spell names",[["1","Old English (default)"],["0","Plain"]],PREF.spellBL===false?"0":"1")}
 ${sel("mAnimC","Card animations",[["1","On"],["0","Off"]],PREF.fxCards===false?"0":"1")}
 ${sel("mAnimM","Magic animations",[["1","On"],["0","Off"]],PREF.fxMagic===false?"0":"1")}
-${sel("mSpeed","Computer speed",[["slow","Slow"],["normal","Normal"],["fast","Fast"]],G.opts.cpuSpeed||"normal")}
+${G?sel("mSpeed","Computer speed",[["slow","Slow"],["normal","Normal"],["fast","Fast"]],G.opts.cpuSpeed||"normal"):""}
 <label class="f mslide">Sound effects <input type="range" id="mSfx" min="0" max="150" step="5" value="${SND.on?Math.round(sfxV()*100):0}"><b id="mSfxV"></b></label>
 <label class="f mslide">Music <input type="range" id="mMus" min="0" max="150" step="5" value="${SND.on&&PREF.music!==false?Math.round((PREF.musicVol==null?1:PREF.musicVol)*100):0}"><b id="mMusV"></b></label>
 </div>
 <div class="mgrid">${[["ci","Card icons",.8,1.8],["ui","Interface size",.8,1.4],["tz","Text size",.8,1.8],["bright","Brightness",.7,1.3]].map(([k,n])=>`<span class="gctl">${n} <button type="button" data-mz="${k}" data-d="-1">−</button><b id="mz${k}">${Math.round(PREF[k]*100)}%</b><button type="button" data-mz="${k}" data-d="1">+</button></span>`).join("")}</div>
-${+G.opts.timer?`<p><button class="btn ghost" id="mTimer">Turn the phase timer off for this game</button></p>`:""}
-<p class="acts"><button class="btn" id="mResume">Resume</button></p></div>`;
+${G&&+G.opts.timer?`<p><button class="btn ghost" id="mTimer">Turn the phase timer off for this game</button></p>`:""}
+<p class="acts"><button class="btn" id="mResume">${G?"Resume":"Done"}</button></p></div>`;
   m.hidden=false;
   const upd=()=>{savePrefs();applyPrefs();render()};
   $("#mTheme").onchange=e=>{PREF.theme=e.target.value;upd()};$("#mHand").onchange=e=>{PREF.hand=e.target.value;upd()};
   $("#mSel").onchange=e=>{PREF.sel=e.target.value;upd()};$("#mCtl").onchange=e=>{PREF.ctl=e.target.value;upd()};
   $("#mCoord").onchange=e=>{PREF.coords=e.target.value==="1";upd()};$("#mLines").onchange=e=>{PREF.lines=e.target.value==="1";upd()};if($("#mSpellBL"))$("#mSpellBL").onchange=e=>{PREF.spellBL=e.target.value==="1";upd()};$("#mAnimC").onchange=e=>{PREF.fxCards=e.target.value==="1";upd()};$("#mAnimM").onchange=e=>{PREF.fxMagic=e.target.value==="1";upd()};$("#mFull").onchange=e=>{PREF.full=e.target.value==="1";upd()};
-  $("#mSpeed").onchange=e=>{G.opts.cpuSpeed=e.target.value};wireAudioSliders();
+  if($("#mSpeed"))$("#mSpeed").onchange=e=>{G.opts.cpuSpeed=e.target.value};wireAudioSliders();
   m.querySelectorAll("[data-mz]").forEach(b=>b.onclick=()=>{const k=b.dataset.mz,lim=k==="ui"?[.8,1.4]:k==="bright"?[.7,1.3]:[.8,1.8];PREF[k]=Math.round(Math.min(lim[1],Math.max(lim[0],PREF[k]+ +b.dataset.d*.1))*10)/10;$("#mz"+k).textContent=Math.round(PREF[k]*100)+"%";upd()});
   if($("#mTimer"))$("#mTimer").onclick=()=>{G.opts.timer=0;stopTimer();log("The phase timer is switched off for the rest of the game.","event");$("#mTimer").remove()};
   $("#mResume").onclick=closeMenu;$("#mX").onclick=closeMenu;
@@ -8369,7 +8369,7 @@ if(window.__EC)Object.assign(window.__EC,{lazySpot,lazyPlace,lazyOn});
 const MK_TLDR=`Your deck is your life and your souls are your mana: you are out when you have nothing left on the field, or no deck, hand and mana at all. Keep your Ace safe on your back line, get Miners working for steady mana, and only fight battles your best card can win.`;
 const MK_BODY=`<p><b>Cards are life and money at once.</b> Every card you draw, place or lose comes out of your deck; every card you sacrifice becomes mana (its soul's worth), but it is one soldier less. You can sacrifice cards from your hand, too: a quick way to pay for a spell.</p>
 <p><b>Mana grows slowly unless you build for it.</b> Miners are the steady income: two can sit in each of your Aces (1d2 − 1 mana every turn), and one on a crystal tile digs up to 12 mana over time. Spells you pay for go to the Bank, which lends mana, sells you cards' worth, and lets you spend on credit, at a price.</p>
-<p><b>Bases hold the line.</b> Aces, Walls and the Tree are bases: they don't walk or attack, they have hearts, and cards inside them are protected. When an Ace falls, everything inside falls with it.</p>
+<p><b>Bases hold the line.</b> Aces, Walls, the Tree and Lighthouses are bases: they don't walk, they have hearts, and each holds one stack. Cards inside an Ace, a Wall or the Tree are protected until it falls, and then they fall with it; a Lighthouse's stack fights from inside it and takes the blows first.</p>
 <p><b>The sky changes the rules.</b> The Moon turns once a round and moves prices up and down (the Full and New Moons most of all). Heavenly Bodies can take its place, each with its own cycle, and now and then a rare eclipse brings a strange effect.</p>
 <p><b>The dead come back.</b> Fallen cards go to the grave. Grave Blessing (free, once a turn) rolls dice, and every 6 raises a card from the grave into your hand.</p>`;
 const MK_MORE=`<h3>Tell me more</h3><ul class="mklist">
@@ -10500,5 +10500,49 @@ const manaShown=pl=>{const P=G.p[pl],x=illOf("manaDel",pl),real=mana(pl)-(P.debt
 {const _ca=canAfford;canAfford=function(pl,n){if(!illOf("manaDel",pl)||pl!==G.active)return _ca.apply(this,arguments);
   return manaShown(pl)>=n&&(mana(pl)>=n||!!(G.bank&&!G.bank.dead))}}   // what the bar shows decides; without a Bank there is no credit to fall into
 if(window.__EC)Object.assign(window.__EC,{illOf:(...a)=>illOf(...a),manaShown:pl=>manaShown(pl),canAffordW2:(...a)=>canAfford(...a),beginTurnW:(...a)=>beginTurn(...a),endTurnW:(...a)=>endTurn(...a)});
+
+/* ---------- Always leave Field Automation on (on by default): at the top of Configure field automation. While it is on,
+   Field Automation turns itself on wherever it is available, and turning it off asks first; a Yes keeps it off for that game. */
+const faAlways=()=>PREF.faAlways!==false;
+function faAskOff(yes){let box=$("#faask");if(!box){box=document.createElement("div");box.id="faask";box.className="faov";document.body.appendChild(box)}
+  box.innerHTML=`<div class="ovbox" role="alertdialog" aria-labelledby="faoq"><button type="button" class="xclose" id="faX" aria-label="Close: no">×</button>
+<h2 id="faoq">Turn Field Automation off?</h2><p>Your field will wait for your own moves and attacks until you turn it back on.</p><p class="dim">"Always leave Field Automation on" is set (at the top of Configure field automation).</p>
+<p class="acts"><button type="button" class="btn" id="faY">Yes</button> <button type="button" class="btn ghost" id="faN">No</button></p></div>`;
+  box.hidden=false;const close=()=>{box.hidden=true};$("#faY").onclick=()=>{close();yes()};$("#faN").onclick=close;$("#faX").onclick=close;$("#faN").focus()}
+{const _ft=faToggle;faToggle=function(){const V=view(),s=faState(V);if(s&&s.on&&faAlways()){faAskOff(()=>{G.p[V].faUserOff=true;_ft()});return}return _ft.apply(this,arguments)}}
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!faAlways()||G.over||G.phase==="setup"||!faAllowed())return;const V=view(),P=G.p[V];
+  if(!P||P.cpu||isNPC(V)||P.faUserOff||faOn(V)||(NET.role==="guest"&&NET.watch)||NET.ctx!=null&&NET.ctx!==V)return;
+  const c=faMine();c.under=true;PREF.fa=c;savePrefs();setFieldAuto(V,true,c)}}
+{const _p=paintFA;paintFA=function(){_p.apply(this,arguments);const w=$("#facfg"),b=w&&!w.hidden&&w.querySelector(".fabody");if(!b||b.querySelector("#faAlways"))return;
+  b.insertAdjacentHTML("afterbegin",`<label class="farow faalways"><span class="fal"><b>Always leave Field Automation on</b><small>It turns itself on in every game where it can, and asks before you turn it off.</small></span><input type="checkbox" id="faAlways" ${faAlways()?"checked":""}></label>`);
+  $("#faAlways").onchange=e=>{PREF.faAlways=e.target.checked;savePrefs();if(G)render()}}}
+
+/* ---------- What you must know, shorter: the gist, the one thing to know, where the Help is; "Tell me more here now" opens the
+   rest; "Never show again" sits in its own row at the bottom, and only then does the Menu (or Settings) offer to bring it back */
+const MK_KEY=`Hover (or press and hold) any card, tile, spell or word to see exactly what it does.`;
+openMustKnow=function(){
+  ovShow(`<div class="ovbox wide mkbox" role="dialog" aria-labelledby="mkh"><button type="button" class="xclose" id="mkX" aria-label="Close">×</button>
+<h2 id="mkh">What you must know</h2>
+<p class="mktldr">${MK_TLDR}</p>
+<p class="mkkey"><b>${MK_KEY}</b></p>
+<p class="mkpoint">Everything else is in the <b>Help</b> index at the bottom of the page: the basics, every card, every spell, the sky and the Bank, always there while you play.</p>
+<div id="mkMore" hidden><div class="mkbody">${MK_BODY}</div>${MK_MORE.replace(/<p class="mkpoint">[\s\S]*?<\/p>/,"")}</div>
+<p class="acts"><button type="button" class="btn" id="mkMoreBtn">Tell me more here now</button> <button type="button" class="btn ghost" id="mkHelp">Show me the Help index</button> <button type="button" class="btn ghost" id="mkClose">Close</button></p>
+<p class="mknever"><button type="button" class="btn ghost sm" id="mkNever">Never show again</button></p></div>`);
+  $("#mkX").onclick=$("#mkClose").onclick=ovHide;
+  $("#mkMoreBtn").onclick=()=>{const m=$("#mkMore");m.hidden=false;$("#mkMoreBtn").hidden=true;m.scrollIntoView({block:"start",behavior:"smooth"})};
+  $("#mkHelp").onclick=()=>{ovHide();goHelp()};$("#mkNever").onclick=askNever};
+askNever=function(){
+  ovShow(`<div class="ovbox mkask" role="dialog" aria-labelledby="mkq"><h2 id="mkq">Never show "What you must know" again?</h2><p class="dim">You can bring it back from the Menu during a game, or from Settings on the game's front page.</p>
+<p class="acts"><button type="button" class="btn" id="mkYes">Yes</button> <button type="button" class="btn ghost" id="mkNo">No</button> <button type="button" class="btn ghost" id="mkNext">Remind me at the start of the next game</button></p></div>`);
+  $("#mkYes").onclick=()=>{PREF.mkHide="never";savePrefs();ovHide();paintMustKnow()};
+  $("#mkNext").onclick=()=>{PREF.mkHide="next";savePrefs();ovHide();paintMustKnow()};
+  $("#mkNo").onclick=openMustKnow};
+if($("#mkBtn"))$("#mkBtn").onclick=openMustKnow;if($("#helpMk"))$("#helpMk").onclick=openMustKnow;
+{const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu"),acts=m&&m.querySelector(".acts");if(!acts||PREF.mkHide!=="never"||m.querySelector("#mMk"))return;
+  acts.insertAdjacentHTML("beforebegin",`<p><button type="button" class="btn ghost" id="mMk">Show "What you must know" again</button></p>`);
+  $("#mMk").onclick=()=>{PREF.mkHide=null;savePrefs();paintMustKnow();$("#mMk").parentNode.remove();if(typeof flash==="function"&&G)flash('"What you must know" is back at the top of the page.')}}}
+/* Settings on the game's front page opens this same menu here, before any game */
+if(location.hash==="#settings")setTimeout(()=>{openMenu();history.replaceState(null,"",location.pathname+location.search)},250);
 
 })();

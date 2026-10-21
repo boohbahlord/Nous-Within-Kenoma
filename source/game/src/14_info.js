@@ -236,10 +236,10 @@ function wireStatus(){
 
 /* ---------- the menu (it pauses the game) ---------- */
 function openMenu(){
-  if(!G)return;G.paused=true;
+  if(G)G.paused=true;   // v70c: it also opens before any game, from Settings on the front page
   let m=$("#menu");if(!m){m=document.createElement("div");m.id="menu";document.body.appendChild(m)}
   const sel=(id,label,opts,cur)=>`<label class="f">${label} <select id="${id}">${opts.map(([v,t])=>`<option value="${v}" ${v===cur?"selected":""}>${t}</option>`).join("")}</select></label>`;
-  m.innerHTML=`<div class="ovbox"><button type="button" class="xclose" id="mX" aria-label="Resume">×</button><h2>Paused</h2><p class="dim">The game waits while this menu is open. These settings change how the table looks, not the rules.</p>
+  m.innerHTML=`<div class="ovbox"><button type="button" class="xclose" id="mX" aria-label="Resume">×</button>${G?`<h2>Paused</h2><p class="dim">The game waits while this menu is open. These settings change how the table looks, not the rules.</p>`:`<h2>Settings</h2><p class="dim">The same settings as the pause menu in a game, kept on this device: they change how the table looks, not the rules.</p>`}
 <div class="mgrid">
 ${sel("mTheme","Page theme",Object.entries(THEMES).map(([k,[n]])=>[k,n]),PREF.theme)}
 ${sel("mHand","Your hand",[["below","Under your deck and mana"],["side","Beside the field"]],PREF.hand)}
@@ -252,19 +252,19 @@ ${sel("mLines","Background lines",[["1","On"],["0","Off"]],PREF.lines===false?"0
 ${sel("mSpellBL","Spell names",[["1","Old English (default)"],["0","Plain"]],PREF.spellBL===false?"0":"1")}
 ${sel("mAnimC","Card animations",[["1","On"],["0","Off"]],PREF.fxCards===false?"0":"1")}
 ${sel("mAnimM","Magic animations",[["1","On"],["0","Off"]],PREF.fxMagic===false?"0":"1")}
-${sel("mSpeed","Computer speed",[["slow","Slow"],["normal","Normal"],["fast","Fast"]],G.opts.cpuSpeed||"normal")}
+${G?sel("mSpeed","Computer speed",[["slow","Slow"],["normal","Normal"],["fast","Fast"]],G.opts.cpuSpeed||"normal"):""}
 <label class="f mslide">Sound effects <input type="range" id="mSfx" min="0" max="150" step="5" value="${SND.on?Math.round(sfxV()*100):0}"><b id="mSfxV"></b></label>
 <label class="f mslide">Music <input type="range" id="mMus" min="0" max="150" step="5" value="${SND.on&&PREF.music!==false?Math.round((PREF.musicVol==null?1:PREF.musicVol)*100):0}"><b id="mMusV"></b></label>
 </div>
 <div class="mgrid">${[["ci","Card icons",.8,1.8],["ui","Interface size",.8,1.4],["tz","Text size",.8,1.8],["bright","Brightness",.7,1.3]].map(([k,n])=>`<span class="gctl">${n} <button type="button" data-mz="${k}" data-d="-1">−</button><b id="mz${k}">${Math.round(PREF[k]*100)}%</b><button type="button" data-mz="${k}" data-d="1">+</button></span>`).join("")}</div>
-${+G.opts.timer?`<p><button class="btn ghost" id="mTimer">Turn the phase timer off for this game</button></p>`:""}
-<p class="acts"><button class="btn" id="mResume">Resume</button></p></div>`;
+${G&&+G.opts.timer?`<p><button class="btn ghost" id="mTimer">Turn the phase timer off for this game</button></p>`:""}
+<p class="acts"><button class="btn" id="mResume">${G?"Resume":"Done"}</button></p></div>`;
   m.hidden=false;
   const upd=()=>{savePrefs();applyPrefs();render()};
   $("#mTheme").onchange=e=>{PREF.theme=e.target.value;upd()};$("#mHand").onchange=e=>{PREF.hand=e.target.value;upd()};
   $("#mSel").onchange=e=>{PREF.sel=e.target.value;upd()};$("#mCtl").onchange=e=>{PREF.ctl=e.target.value;upd()};
   $("#mCoord").onchange=e=>{PREF.coords=e.target.value==="1";upd()};$("#mLines").onchange=e=>{PREF.lines=e.target.value==="1";upd()};if($("#mSpellBL"))$("#mSpellBL").onchange=e=>{PREF.spellBL=e.target.value==="1";upd()};$("#mAnimC").onchange=e=>{PREF.fxCards=e.target.value==="1";upd()};$("#mAnimM").onchange=e=>{PREF.fxMagic=e.target.value==="1";upd()};$("#mFull").onchange=e=>{PREF.full=e.target.value==="1";upd()};
-  $("#mSpeed").onchange=e=>{G.opts.cpuSpeed=e.target.value};wireAudioSliders();
+  if($("#mSpeed"))$("#mSpeed").onchange=e=>{G.opts.cpuSpeed=e.target.value};wireAudioSliders();
   m.querySelectorAll("[data-mz]").forEach(b=>b.onclick=()=>{const k=b.dataset.mz,lim=k==="ui"?[.8,1.4]:k==="bright"?[.7,1.3]:[.8,1.8];PREF[k]=Math.round(Math.min(lim[1],Math.max(lim[0],PREF[k]+ +b.dataset.d*.1))*10)/10;$("#mz"+k).textContent=Math.round(PREF[k]*100)+"%";upd()});
   if($("#mTimer"))$("#mTimer").onclick=()=>{G.opts.timer=0;stopTimer();log("The phase timer is switched off for the rest of the game.","event");$("#mTimer").remove()};
   $("#mResume").onclick=closeMenu;$("#mX").onclick=closeMenu;
