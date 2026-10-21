@@ -121,3 +121,25 @@ if($("#mkBtn"))$("#mkBtn").onclick=openMustKnow;if($("#helpMk"))$("#helpMk").onc
   $("#mMk").onclick=()=>{PREF.mkHide=null;savePrefs();paintMustKnow();$("#mMk").parentNode.remove();if(typeof flash==="function"&&G)flash('"What you must know" is back at the top of the page.')}}}
 /* Settings on the game's front page opens this same menu here, before any game */
 if(location.hash==="#settings")setTimeout(()=>{openMenu();history.replaceState(null,"",location.pathname+location.search)},250);
+
+/* ---------- Survival: counter cards (v70d). From the eleventh wave, when the players lean on something the Horde has no answer
+   to, a wave brings two counter cards with it, never wildcards: Battering Rams against Walls, Archers against bases packed
+   with cards, now and then a Healer. No more than six counter cards on the field at once; two come only while both fit. ---------- */
+function hordeCounters(){if(!survival()||(G.hordeWave||0)<11)return;const pl=hordeIx();if(pl<0)return;
+  const foes=enemiesOf(pl).flatMap(stacksOf),mine=stacksOf(pl);
+  const onField=mine.reduce((a,x)=>a+x.st.cards.filter(c=>c.counter).length,0);if(onField+2>6)return;
+  const walls=foes.filter(x=>hasK(x.st,"wall")).length,packed=foes.filter(x=>hasBase(x.st)&&x.st.cards.length>=4).length;
+  let want=walls?["ram","ram"]:packed?["archer","archer"]:null;if(!want)return;
+  if(Math.random()<.15)want[1]="healer";   // rarely a Healer, to keep the wave alive longer
+  const got=[];for(const u of want){const c=mkUnit(u,pl);c.counter=true;if(hordePlace(c))got.push(u)}
+  if(got.length)log(`<b>The Horde answers</b>: ${got.map(u=>UNIT[u].name).join(" and ")} come${got.length>1?"":"s"} with wave ${roman(G.hordeWave)}${walls?", against your Walls":packed?", against your packed bases":""}.`,"event")}
+
+/* ---------- every round opens with its number, large and faint in the middle of the screen (survival for now); a subtitle
+   tells of the grace when no Horde stands on the field and none comes this round ---------- */
+function roundBanner(n,sub){let el=$("#roundban");if(!el){el=document.createElement("div");el.id="roundban";el.setAttribute("aria-hidden","true");document.body.appendChild(el)}
+  el.innerHTML=`<span class="rbr">Round</span><span class="rbn">${roman(n)}</span>${sub?`<span class="rbs">${sub}</span>`:""}`;el.classList.remove("go");void el.offsetWidth;el.classList.add("go")}
+{const _nr=newRound;newRound=async function(){const out=await _nr.apply(this,arguments);
+  if(G&&!G.over&&survival()){const H=hordeIx(),none=H<0||!stacksOf(H).length,coming=G.round>=(G.hordeNextR==null?4:G.hordeNextR);
+    roundBanner(G.round,none&&!coming?(G.round<=3?"Grace period · the Horde gathers":"Grace · no Horde this round"):"")}
+  return out}}
+if(window.__EC)Object.assign(window.__EC,{hordeCounters:()=>hordeCounters(),roundBanner:(...a)=>roundBanner(...a),hordeSpawnW:()=>hordeSpawn()});

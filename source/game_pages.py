@@ -18,7 +18,7 @@ MODES_HTML = """<h2 id="modes">Game Modes</h2>
 <h3>Versus Computer</h3>
 <p>You against one to three computers, written as plain code rather than a language model. Each turn the computer weighs offense against defense from the field and the decks. <b>Easy</b> plays loosely and makes mistakes. <b>Medium</b> is balanced and a real fight. <b>Hard</b> plays the Joker for souls, stacks Aces for the Grave Blessing, keeps its own deck full and eats away at yours.</p>
 <h3>Survival</h3>
-<p>Tower defense for one to four players. You raise your Ace and its Jack, and the Horde comes: a new group every round from a fresh deck, growing in number every round and in strength every five, with Jacks, Queens and Kings from round six and Jokers from round eleven. The Horde has no spells, hand or grave. The moon still turns. You lose when your last card on the field falls, and the round you reach is your score.</p>
+<p>Tower defense for one to four players. You raise your Ace and its Jack, and the Horde comes: after three rounds of grace, a new wave every 1d2 + 2 rounds from a fresh deck, each one a step stronger, with Jacks, Queens and Kings from the sixth wave and Jokers from the eleventh; from then on it brings counter cards (Battering Rams for your Walls) when you lean on something it has no answer to. The Horde has no spells, hand or grave. The moon still turns. You lose when your last card on the field falls, and the round you reach is your score.</p>
 <h3>Substances</h3>
 <p>A Substance is what you play as. Each one changes your deck, your spells or your limits. <a href="ethers-crossroads-rules.html#substances">Every Substance in full</a>.</p>
 <dl class="subtags">@@SUBTAGS@@</dl>
@@ -287,7 +287,7 @@ b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({beha
 </main>''', 1)
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
-play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=79">', ec=True) + f'''<main class="wide game">
+play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=80">', ec=True) + f'''<main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
@@ -325,8 +325,8 @@ play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="eth
 </main>
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
-<script src="ethers-crossroads-quotes.js?v=79"></script>
-<script src="ethers-crossroads.js?v=79"></script>
+<script src="ethers-crossroads-quotes.js?v=80"></script>
+<script src="ethers-crossroads.js?v=80"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 

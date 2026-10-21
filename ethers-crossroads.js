@@ -1795,9 +1795,12 @@ const AI=(()=>{
 function roman(n){if(n<=0)return "0";const T=[[1000,"M"],[900,"CM"],[500,"D"],[400,"CD"],[100,"C"],[90,"XC"],[50,"L"],[40,"XL"],[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]];let s="";for(const [v,l] of T)while(n>=v){s+=l;n-=v}return s}
 const spawnRank=c=>({joker:100,king:90,jack:80,queen:70}[kind(c)]||num(c));
 /* the Horde spawns once for every player still standing */
-function hordeSpawn(){const n=Math.max(1,G.p.filter(P=>!P.out&&!isHorde(P.i)).length);for(let k=0;k<n;k++)hordeSpawnOne(k,n)}
+/* v70d: three rounds of grace, then a wave every 1d2 + 2 rounds; each wave is one step of strength (what a round used to bring) */
+function hordeSpawn(){if(G.hordeNextR==null)G.hordeNextR=4;if(G.round<G.hordeNextR)return;
+  G.hordeWave=(G.hordeWave||0)+1;G.hordeNextR=G.round+R(2)+2;
+  const n=Math.max(1,G.p.filter(P=>!P.out&&!isHorde(P.i)).length);for(let k=0;k<n;k++)hordeSpawnOne(k,n);hordeCounters()}
 function hordeSpawnOne(k,n){
-  const r=G.round,pl=hordeIx(),dice=[];
+  const r=G.hordeWave||G.round,pl=hordeIx(),dice=[];
   const roll=(n,s)=>{let t=0;for(let i=0;i<n;i++){const v=R(s);dice.push({s,v});t+=v}return t};
   let g=0,inf=0,sp=0,cap=0,jk=0;
   if(r<=5){g=roll(1,4)+r;inf=Math.max(0,roll(1,2)-2+r);cap=Math.min(4,Math.ceil(r/2))}
@@ -1811,8 +1814,8 @@ function hordeSpawnOne(k,n){
   const chosen=pool.slice(0,cap);chosen.forEach(c=>c.owner=pl);
   let placed=0,lost=0;
   for(const c of chosen){if(hordePlace(c))placed++;else lost++}
-  tray(pl,`Round ${roman(r)} spawn${n>1?` ${k+1}/${n}`:""}`,dice,`${placed} spawn${placed===1?"":"s"}`);
-  log(`Round ${roman(r)}${n>1?`, spawn ${k+1} of ${n}`:""}: the Horde rolls ${dice.map(x=>"d"+x.s+":"+x.v).join(" ")}; ${g} grunts, ${inf} infantry${sp?`, ${sp} royals`:""}${jk?`, ${jk} Joker${jk>1?"s":""}`:""}, cap ${cap}. ${placed} spawn${lost?`, ${lost} find no room`:""}.`,"event");
+  tray(pl,`Wave ${roman(r)}${n>1?` ${k+1}/${n}`:""}`,dice,`${placed} spawn${placed===1?"":"s"}`);
+  log(`Wave ${roman(r)} (round ${roman(G.round)})${n>1?`, spawn ${k+1} of ${n}`:""}: the Horde rolls ${dice.map(x=>"d"+x.s+":"+x.v).join(" ")}; ${g} grunts, ${inf} infantry${sp?`, ${sp} royals`:""}${jk?`, ${jk} Joker${jk>1?"s":""}`:""}, cap ${cap}. ${placed} spawn${lost?`, ${lost} find no room`:""}.`,"event");
 }
 function hordePlace(c){
   const pl=hordeIx(),zone=zoneTiles(pl),front=zone.filter(([r,cc])=>!isBack(pl,r,cc)),back=zone.filter(([r,cc])=>isBack(pl,r,cc));
@@ -2316,7 +2319,7 @@ function mountInfo(){
 const MODES=[
  ["local","Local","2 to 4 players (up to 8 in King of the Hill) on one device, taking turns. The board turns to whoever is playing, and the screen goes dark while you pass it. Any seat can be a computer."],
  ["cpu","Versus Computer","You against 1 to 3 computers at Easy, Medium or Hard: 1v1, free-for-all, or two against two with a computer at your side; up to 7 in King of the Hill."],
- ["survival","Survival","1 to 4 players hold the line against a Horde that grows every round. Count the rounds you last."]];
+ ["survival","Survival","1 to 4 players hold the line against a Horde that comes in waves and grows with each one. Count the rounds you last."]];
 let startMode=null;
 const ORD=["One","Two","Three","Four"],SEATCOL=[0,3,2,5,4,7,1,8],SEATSOL=["tetra","icosa","cube","octa","dodeca","tetra","icosa","cube"];   // v57: eight seats for King of the Hill
 const LAYOUTS={
@@ -10544,5 +10547,27 @@ if($("#mkBtn"))$("#mkBtn").onclick=openMustKnow;if($("#helpMk"))$("#helpMk").onc
   $("#mMk").onclick=()=>{PREF.mkHide=null;savePrefs();paintMustKnow();$("#mMk").parentNode.remove();if(typeof flash==="function"&&G)flash('"What you must know" is back at the top of the page.')}}}
 /* Settings on the game's front page opens this same menu here, before any game */
 if(location.hash==="#settings")setTimeout(()=>{openMenu();history.replaceState(null,"",location.pathname+location.search)},250);
+
+/* ---------- Survival: counter cards (v70d). From the eleventh wave, when the players lean on something the Horde has no answer
+   to, a wave brings two counter cards with it, never wildcards: Battering Rams against Walls, Archers against bases packed
+   with cards, now and then a Healer. No more than six counter cards on the field at once; two come only while both fit. ---------- */
+function hordeCounters(){if(!survival()||(G.hordeWave||0)<11)return;const pl=hordeIx();if(pl<0)return;
+  const foes=enemiesOf(pl).flatMap(stacksOf),mine=stacksOf(pl);
+  const onField=mine.reduce((a,x)=>a+x.st.cards.filter(c=>c.counter).length,0);if(onField+2>6)return;
+  const walls=foes.filter(x=>hasK(x.st,"wall")).length,packed=foes.filter(x=>hasBase(x.st)&&x.st.cards.length>=4).length;
+  let want=walls?["ram","ram"]:packed?["archer","archer"]:null;if(!want)return;
+  if(Math.random()<.15)want[1]="healer";   // rarely a Healer, to keep the wave alive longer
+  const got=[];for(const u of want){const c=mkUnit(u,pl);c.counter=true;if(hordePlace(c))got.push(u)}
+  if(got.length)log(`<b>The Horde answers</b>: ${got.map(u=>UNIT[u].name).join(" and ")} come${got.length>1?"":"s"} with wave ${roman(G.hordeWave)}${walls?", against your Walls":packed?", against your packed bases":""}.`,"event")}
+
+/* ---------- every round opens with its number, large and faint in the middle of the screen (survival for now); a subtitle
+   tells of the grace when no Horde stands on the field and none comes this round ---------- */
+function roundBanner(n,sub){let el=$("#roundban");if(!el){el=document.createElement("div");el.id="roundban";el.setAttribute("aria-hidden","true");document.body.appendChild(el)}
+  el.innerHTML=`<span class="rbr">Round</span><span class="rbn">${roman(n)}</span>${sub?`<span class="rbs">${sub}</span>`:""}`;el.classList.remove("go");void el.offsetWidth;el.classList.add("go")}
+{const _nr=newRound;newRound=async function(){const out=await _nr.apply(this,arguments);
+  if(G&&!G.over&&survival()){const H=hordeIx(),none=H<0||!stacksOf(H).length,coming=G.round>=(G.hordeNextR==null?4:G.hordeNextR);
+    roundBanner(G.round,none&&!coming?(G.round<=3?"Grace period · the Horde gathers":"Grace · no Horde this round"):"")}
+  return out}}
+if(window.__EC)Object.assign(window.__EC,{hordeCounters:()=>hordeCounters(),roundBanner:(...a)=>roundBanner(...a),hordeSpawnW:()=>hordeSpawn()});
 
 })();

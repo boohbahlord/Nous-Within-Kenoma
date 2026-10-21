@@ -70,7 +70,7 @@ function mountInfo(){
 const MODES=[
  ["local","Local","2 to 4 players (up to 8 in King of the Hill) on one device, taking turns. The board turns to whoever is playing, and the screen goes dark while you pass it. Any seat can be a computer."],
  ["cpu","Versus Computer","You against 1 to 3 computers at Easy, Medium or Hard: 1v1, free-for-all, or two against two with a computer at your side; up to 7 in King of the Hill."],
- ["survival","Survival","1 to 4 players hold the line against a Horde that grows every round. Count the rounds you last."]];
+ ["survival","Survival","1 to 4 players hold the line against a Horde that comes in waves and grows with each one. Count the rounds you last."]];
 let startMode=null;
 const ORD=["One","Two","Three","Four"],SEATCOL=[0,3,2,5,4,7,1,8],SEATSOL=["tetra","icosa","cube","octa","dodeca","tetra","icosa","cube"];   // v57: eight seats for King of the Hill
 const LAYOUTS={
