@@ -104,5 +104,7 @@ function mountQuotes(){
   let last=-1;
   const show=()=>{let i;do{i=Math.floor(Math.random()*Q.length)}while(Q.length>1&&i===last);last=i;const q=Q[i];
     $("#qtext").textContent=q.t;$("#qsrc").textContent=`Chapter ${q.n} · ${q.title}`;$("#qtext").parentNode.scrollTop=0};
-  $("#qnext").onclick=show;show();setInterval(()=>{if(!document.hidden)show()},75000);
+  $("#qnext").onclick=show;show();setInterval(()=>{if(!document.hidden&&!PREF.qPaused)show()},75000);
+  const pb=$("#qpause");if(pb){const paint=()=>{pb.textContent=PREF.qPaused?"Resume":"Pause";pb.setAttribute("aria-pressed",!!PREF.qPaused);pb.title=PREF.qPaused?"The passage stays until you go on.":"Hold this passage: it won't change by itself."};
+    paint();pb.onclick=()=>{PREF.qPaused=!PREF.qPaused;savePrefs();paint()}}   // v70: hold a passage to read it carefully
 }

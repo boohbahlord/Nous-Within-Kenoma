@@ -103,10 +103,13 @@ if(window.__EC)Object.assign(window.__EC,{skyAsyncW:(...a)=>skyAsync(...a),total
 
 /* ---------- v66: the Puppet's picture: a round head in the middle of the card, like a puppet toy or a dummy doll: dot eyes, a
    small nose, a smile and a boy's hair. It stays clear of the count in the corner (the old hanging puppet ran into it). ---------- */
-UNIT_ICON.puppet=`<g transform="scale(1.15)">`+`<path d="M6.4,1.4a6.4,6.4 0 1,1 -12.8,0a6.4,6.4 0 1,1 12.8,0Z"/>`+   // the head
-  `<path d="M-6.2,-0.4C-6.4,-4.6 -3.4,-6.9 0.2,-6.9C3.4,-6.9 6.2,-4.9 6.3,-0.6 M-5.6,-2.2L-3.6,-4.9 M-3.3,-1.9L-1.4,-5.4 M-0.8,-1.8L0.9,-5.6 M1.7,-2L3.3,-5.2 M0.4,-6.9C0.8,-8.6 2.4,-9.2 3.3,-8.3"/>`+   // a boy's fringe and a tuft
-  `<circle cx="-2.3" cy="0.9" r="0.95" fill="@" stroke="none"/><circle cx="2.3" cy="0.9" r="0.95" fill="@" stroke="none"/>`+   // dot eyes
-  `<path d="M0,2.2V3.1"/><path d="M-2.7,4.6Q0,6.6 2.7,4.6"/></g>`;   // a small nose and a smile
+UNIT_ICON.puppet=`<g transform="translate(0,.6)">`+
+  `<path d="M-6.9,1.6a6.9,7.2 0 1,0 13.8,0a6.9,7.2 0 1,0 -13.8,0Z"/>`+   // the head
+  `<path d="M-7.1,1.3C-7.5,-5.4 -3.4,-8.9 0.3,-8.7C4.6,-8.5 7.6,-5.3 7.1,0.9L5.6,-1.9L4,-0.2L2.5,-2.5L0.7,-0.5L-1,-2.8L-2.8,-0.6L-4.4,-2.6L-5.9,-0.4Z" fill="@" stroke-width="1.1"/>`+   // a boy's hair, a cap with a jagged fringe
+  `<path d="M-6.9,1.4c-1.6,-.2 -1.9,2.6 -.3,3 M6.9,1.4c1.6,-.2 1.9,2.6 .3,3" stroke-width="1.2"/>`+   // the ears
+  `<circle cx="-2.6" cy="2.4" r="1.15" fill="@" stroke="none"/><circle cx="2.6" cy="2.4" r="1.15" fill="@" stroke="none"/>`+   // dot eyes
+  `<circle cx="0" cy="4.5" r=".6" fill="@" stroke="none"/>`+   // a small nose
+  `<path d="M-3,5.9Q0,8.8 3,5.9" stroke-width="1.5"/></g>`;   // a smile   // a small nose and a smile
 
 /* ---------- v66: hearts down the left edge of the card, top to bottom; smaller when there are many ---------- */
 const heartN=h=>h.replace(/<span class="hearts" aria-label="(\d+) of (\d+) hearts"/g,(m,a,b)=>`${m} style="--hn:${Math.max(3,+b)}"`);
@@ -135,3 +138,42 @@ if(!PREF.coordsOn68){PREF.coordsOn68=true;PREF.coords=true;try{savePrefs();apply
 
 /* ---------- v69: each computer's playstyle (an archetype; Random picks one for the game) ---------- */
 {const _m=mkPlayer;mkPlayer=function(i,o){const P=_m.apply(this,arguments);if(P.cpu&&P.cpu!=="horde"&&!P.npc&&!(o&&o.npc)){const ks=Object.keys(AI.ARCH);P.arch=ks.includes(o&&o.arch)?o.arch:pick(ks)}return P}}
+
+/* ---------- v70: no more crystals on the field than there are players (not in King of the Hill) ---------- */
+{const _sc=spawnCrystal;spawnCrystal=function(){if(G&&!kothOn()){const n=G.p.filter(P=>!isNPC(P.i)&&!isHorde(P.i)).length;if((G.crystals||[]).length>=n)return false}return _sc.apply(this,arguments)}}
+
+/* ---------- v70: Aces and Walls are unlimited in the Ether (an empty Ether makes a new one) ---------- */
+UNLIMITED.add("wall");
+{const sp=SP("ca");if(sp)sp.ok=()=>true}
+{const _c=conjure;conjure=async function(k){if(k==="ace"&&!G.ether.some(c=>kind(c)==="ace")){const c=mk("A",pick(["S","H","D","C"]));c.owner=G.active;me().deck.push(c);shuffle(me().deck);
+  log(`An Ace's soul materializes from the Ether into ${plName(G.active)}'s deck.`);return}return _c.apply(this,arguments)}}
+
+/* ---------- v70: while an eclipse's, the Blood Moon's or the Moon's event sound plays, the music fades out slowly to make room ---------- */
+{const _sa=AUD.setAmb;if(typeof _sa==="function")AUD.setAmb=function(k){const out=_sa.apply(this,arguments);try{window.ECMusic&&ECMusic.hold&&ECMusic.hold(!!k)}catch(e){}return out}}
+
+/* ---------- v70: a planet's own magic shows its own sign, in its own color: when the sky acts by itself (not a player's
+   spell), its astrological sign rises over the tile it touches, or over the field ---------- */
+const PLANET_SIGN={
+  moon:["#ece6d2",`<path d="M15.5 3.6a8.6 8.6 0 1 0 0 16.8a7 7 0 1 1 0-16.8z"/>`],
+  blood:["#e0303c",`<path d="M15.5 3.6a8.6 8.6 0 1 0 0 16.8a7 7 0 1 1 0-16.8z"/>`],
+  sun:["#9a82ff",SIGN.Sorcery],
+  blacksun:["#8a78b0",`<circle cx="12" cy="12" r="5.6" fill="currentColor"/><path d="M12 2.2v2.6M12 19.2v2.6M2.2 12h2.6M19.2 12h2.6M5.1 5.1l1.8 1.8M17.1 17.1l1.8 1.8M5.1 18.9l1.8-1.8M17.1 6.9l1.8-1.8"/>`],
+  mars:["#e0503a",SIGN.Curse],
+  venus:["#f4dca6",`<circle cx="12" cy="8.6" r="5.2"/><path d="M12 13.8v8 M8.4 18.2h7.2"/>`],
+  jupiter:["#e2b882",SIGN.Enchantment],
+  mercury:["#d4cec6",`<path d="M8 2.6c0 2.6 1.8 4 4 4s4-1.4 4-4"/><circle cx="12" cy="11" r="4.2"/><path d="M12 15.2v6.6 M9 18.8h6"/>`],
+  saturn:["#d4ac52",SIGN.Necromancy],
+  neptune:["#3f9be0",SIGN.Illusion]};
+function planetFX(k,r,c){if(!FX.on()||!PLANET_SIGN[k])return;const [col,path]=PLANET_SIGN[k];
+  const rect=r!=null?FX.tile(r,c):(()=>{const b=$("#board");return b?b.getBoundingClientRect():null})();if(!rect)return;
+  const s=r!=null?Math.max(44,rect.height*.8):Math.min(150,Math.max(90,rect.width*.22));
+  const e=FX.make("sign planetsign",rect,{w:s,h:s,col,html:`<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`});if(!e)return;
+  e.style.color=col;e.style.filter=`drop-shadow(0 0 6px ${col})`;
+  FX.play(e,[{transform:"translateY(8px) scale(.55)",opacity:0},{transform:"translateY(-4px) scale(1)",opacity:.95,offset:.3},{transform:`translateY(${r!=null?-26:-40}px) scale(1.15)`,opacity:0}],r!=null?1300:1700)}
+const skySignK=()=>{const m=G.moon;return m.gone?(m.gone==="off"?null:m.gone):m.blood?"blood":"moon"};
+{const _e=eclipse;eclipse=async function(k){later(()=>planetFX(k==="sun"&&G.moon.gone==="blacksun"?"blacksun":k));return _e.apply(this,arguments)}}
+{const _v=venusCycle;venusCycle=function(){later(()=>planetFX("venus"));return _v.apply(this,arguments)}}
+{const _m=mercuryCycle;mercuryCycle=async function(){later(()=>planetFX("mercury"));return _m.apply(this,arguments)}}
+{const _f=fullMoonToll;fullMoonToll=async function(){later(()=>planetFX(G.moon.blood?"blood":"moon"));return _f.apply(this,arguments)}}
+{const _d=damage;damage=function(r,c){if(G&&G.sunHurt)later(()=>planetFX("sun",r,c));return _d.apply(this,arguments)}}
+{const _ms=moonStart;moonStart=async function(){const was=G.moon.blood;const out=await _ms.apply(this,arguments);if(G.moon.blood&&!was)later(()=>planetFX("blood"));return out}}

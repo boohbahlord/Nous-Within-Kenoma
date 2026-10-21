@@ -147,7 +147,7 @@ moonInfoHTML=function(){
   else if(m.i===0)L.push("Everyone raises 1d2 cards from the grave.","Clairvoyance and Naked Hand cost 6.",bonus?"Every defense adds 1d2.":"");
   else if(m.i===4)L.push("The toll is paid and decks are shuffled.","No drawing and no necromancy.","Clairvoyance costs 2; Naked Hand is free.",bonus?"Every attack adds 1d2.":"");
   else L.push(`No effect this phase. Next: ${MOON[(m.i+1)%8]}.`);
-  L.push("Turns one phase a round, after every player has had a turn.");
+  L.push("Turns one phase a round, after every player has had a turn. Its cycle is complete at the Full Moon.");
   if(P.oath!=="moon")L.push("You can swear the Oath of the Moon (Astrology).");
   if(G.moonLev){const h=G.moonLev.card.hp;L.push(`The Leviathan lies on the moon (${h} heart${h===1?"":"s"}). ${G.moonLev.owner===V?"Your maximum mana rises with the Outer Darkness.":P.tribe==="tiph"?"You are immune to its toll.":"Its toll each New Moon: 2d4 deck cards, 2 hand cards and 1 mana."} It can be attacked only at the New Moon.`)}
   skyCommon(L);

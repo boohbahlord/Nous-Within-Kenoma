@@ -286,7 +286,7 @@ b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({beha
 </main>''', 1)
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
-play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=72">', ec=True) + f'''<main class="wide game">
+play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=73">', ec=True) + f'''<main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
@@ -319,13 +319,13 @@ play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="eth
 <section id="quotes" aria-label="Passages from the book">
   <h3 class="label">From the book</h3>
   <div class="qbox" tabindex="0"><p id="qtext"></p><p id="qsrc" class="dim"></p></div>
-  <button class="btn ghost sm" id="qnext" type="button">Another passage</button>
+  <p class="qacts"><button class="btn ghost sm" id="qnext" type="button">Another passage</button> <button class="btn ghost sm" id="qpause" type="button" aria-pressed="false">Pause</button></p>
 </section>
 </main>
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
-<script src="ethers-crossroads-quotes.js?v=4"></script>
-<script src="ethers-crossroads.js?v=72"></script>
+<script src="ethers-crossroads-quotes.js?v=73"></script>
+<script src="ethers-crossroads.js?v=73"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 
@@ -352,7 +352,7 @@ def _quotes():
         pool.append((n, title, good))
     total = sum(len(g) for _, _, g in pool)
     rng = _rnd.Random(26)
-    want = {n: (min(len(g), max(1, round(100 * len(g) / total))) if g else 0) for n, _, g in pool}
+    want = {n: (min(len(g), max(2, round(100 * len(g) / total))) if g else 0) for n, _, g in pool}   # every chapter at least two passages where it has them
     while sum(want.values()) > 100:
         k = max(want, key=lambda n: want[n]); want[k] -= 1
     while sum(want.values()) < 100:

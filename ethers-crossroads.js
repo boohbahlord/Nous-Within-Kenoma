@@ -2685,7 +2685,9 @@ function mountQuotes(){
   let last=-1;
   const show=()=>{let i;do{i=Math.floor(Math.random()*Q.length)}while(Q.length>1&&i===last);last=i;const q=Q[i];
     $("#qtext").textContent=q.t;$("#qsrc").textContent=`Chapter ${q.n} · ${q.title}`;$("#qtext").parentNode.scrollTop=0};
-  $("#qnext").onclick=show;show();setInterval(()=>{if(!document.hidden)show()},75000);
+  $("#qnext").onclick=show;show();setInterval(()=>{if(!document.hidden&&!PREF.qPaused)show()},75000);
+  const pb=$("#qpause");if(pb){const paint=()=>{pb.textContent=PREF.qPaused?"Resume":"Pause";pb.setAttribute("aria-pressed",!!PREF.qPaused);pb.title=PREF.qPaused?"The passage stays until you go on.":"Hold this passage: it won't change by itself."};
+    paint();pb.onclick=()=>{PREF.qPaused=!PREF.qPaused;savePrefs();paint()}}   // v70: hold a passage to read it carefully
 }
 
 /* ---------------- maps: size, shape and battle-map art (all drawn in code, all at night) ---------------- */
@@ -2729,7 +2731,9 @@ function mapPlan(o){
     for(let k=0;k<lines;k++)for(const c of cs){const r=side==="bottom"?rows-1-k:k;(k===0?back:zone).push([r,c]);zone.push([r,c])}
     return{side,rot:S.rot,fwd:S.fwd,back,zone:[...new Map(zone.map(t=>[t.join(),t])).values()]}};
   const allc=[...Array(cols).keys()];
-  const lines=cols<=5&&rows<=5?1:2;
+  const lines=cols<=6&&rows<=6?1:2,coopLines=cols<=5&&rows<=5?1:2;   // v70: 6 by 6 and smaller have one spawn line a side (survival keeps its own)
+  // v70: with three or more players on a field 7 by 7 or larger, each spawn line is the five tiles in the middle of its edge
+  const five=t=>{const ok=t.filter(([r,c])=>!V[r][c]);if(n<3||cols<7||rows<7||ok.length<=5)return ok;const m=Math.floor((ok.length-5)/2);return ok.slice(m,m+5)};
   if(big&&(o.big==="plus"||o.big==="round"))allc.splice(0,allc.length,3,4,5,6);   // the plus: spawn at the ends of the arms   // v53: a field 5 by 5 or smaller has one spawn line a side, the backline
   if(L==="duel"){seats.push(mk2("bottom",allc,lines),mk2("top",allc,lines));teams.push(0,1)}
   else if(L==="ffa"||L==="team-side"||L==="team-across"){
@@ -2737,15 +2741,14 @@ function mapPlan(o){
     const bigEdge=sd=>{const len=sd==="left"||sd==="right"?rows:cols,lo=o.big==="plus"||o.big==="round"?3:2,hi=len-1-lo,back=[],zone=[];
       for(let d=0;d<2;d++)for(let a=lo;a<=hi;a++){const r=sd==="bottom"?rows-1-d:sd==="top"?d:a,c=sd==="left"?d:sd==="right"?cols-1-d:a;if(V[r][c])continue;zone.push([r,c]);if(!d)back.push([r,c])}
       return {back,zone}};
-    sides.slice(0,n).forEach((sd,i)=>{if(big){const z=bigEdge(sd);seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:z.back,zone:z.zone})}
-      else{const t=edgeTiles(sd,rows,cols);seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:t,zone:t})}teams.push(L==="ffa"?i:i%2)});
+    sides.slice(0,n).forEach((sd,i)=>{const t=five(big?bigEdge(sd).back:edgeTiles(sd,rows,cols));seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:t,zone:t});teams.push(L==="ffa"?i:i%2)});
   }else if(L==="team-same"){
-    const half=Math.floor(allc.length/2),lo=allc.slice(0,half),hi=allc.slice(half);
-    seats.push(mk2("bottom",lo,lines),mk2("top",hi,lines),mk2("bottom",hi,lines),mk2("top",lo,lines));teams.push(0,1,0,1);
+    // v70: teammates on the same side share both spawn rows, the full width of the field
+    seats.push(mk2("bottom",allc,2),mk2("top",allc,2),mk2("bottom",allc,2),mk2("top",allc,2));teams.push(0,1,0,1);
   }else if(L==="coop"){
     const h=n-1,w=Math.floor(cols/h);
-    for(let i=0;i<h;i++){seats.push(mk2("bottom",allc.slice(i*w,i===h-1?cols:(i+1)*w),lines));teams.push(0)}
-    seats.push(mk2("top",allc,lines));teams.push(1);
+    for(let i=0;i<h;i++){seats.push(mk2("bottom",allc.slice(i*w,i===h-1?cols:(i+1)*w),coopLines));teams.push(0)}
+    seats.push(mk2("top",allc,coopLines));teams.push(1);
   }
   // the hole in the middle (off by default; never with the river): one or two tiles each way, doubled or tripled where there's room
   const hole=+o.hole||0;
@@ -4759,8 +4762,9 @@ async function skyAsync(pl){
     opts.push({id:"no",label:`Blindness for ${nB} turn${nB>1?"s":""}`,sub:"1d3: you can't see even what is beside you."});
     const ch=opts.length===1?"no":await ask(pl,{kind:"choice",id:"sunjudge",title:`The Second Sun judges ${esc(P.name)}`,options:opts,
       ai:()=>mana(pl)>=nM+2?"mana":P.deck.length>8+nD?"deck":stacksOf(pl).length>3&&opts.some(o=>o.id==="hurt")?"hurt":opts.some(o=>o.id==="mana")?"mana":opts[0].id});
+    if(ch!=="hurt"&&typeof planetFX==="function")planetFX("sun");   // v70: the Sun's own sign
     if(ch==="mana"){payQuiet(pl,nM);bankAdd(nM);log(`${plName(pl)} worships the Earth before the Second Sun: ${nM} mana to the Bank.`);sunPayback(pl,nM)}
-    else if(ch==="hurt"){const hit=[];for(let i=0;i<nH;i++){const L=stacksOf(pl);if(!L.length)break;const x=pick(L);hit.push(coord(x.r,x.c));damage(x.r,x.c,1,false)}
+    else if(ch==="hurt"){const hit=[];G.sunHurt=true;try{for(let i=0;i<nH;i++){const L=stacksOf(pl);if(!L.length)break;const x=pick(L);hit.push(coord(x.r,x.c));damage(x.r,x.c,1,false)}}finally{G.sunHurt=false}
       log(`${plName(pl)} offers the Second Sun ${nH} wound${nH>1?"s":""} (${hit.join(", ")}).`);sunPayback(pl,nH)}
     else if(ch==="deck"){let w=0,k=0;for(let i=0;i<nD&&P.deck.length;i++){const c=P.deck.pop();w+=soulOf(c);toGrave(c,"burn");k++}log(`${plName(pl)} burns ${k} deck card${k>1?"s":""} in the Second Sun.`);sunPayback(pl,w)}
     else{P.sunBlind=tnOf(pl);P.sunBlindTo=tnOf(pl)+nB-1;G._vis=null;log(`<b>The Second Sun</b> blinds ${plName(pl)} for ${nB} turn${nB>1?"s":""}.`,"event");notify(pl,`${esc(P.name)} is blinded by the Sun for ${nB} turn${nB>1?"s":""}.`)}
@@ -5171,7 +5175,7 @@ const ETHER_KIND={cs:"soldier",carch:"archer",ccan:"cannon",cj:"jack",cq:"queen"
    (the Carriage outside King of the Hill) closes only that spell. The Carriage isn't listed outside King of the Hill. */
 const etherShown=id=>id!=="ccar"||kothOn();
 function etherBlock(){const b=SPELLS.filter(s=>ETHER_IDS.has(s.id)&&etherShown(s.id)).map(spellBlock);return b.length&&b.every(Boolean)?b[0]:""}
-const etherLeft=id=>{const k=ETHER_KIND[id];if(k==="miner"||k==="repair"||k==="puppet"||k==="carriage")return Infinity;return G.ether.filter(c=>k==="soldier"?/^\d+$/.test(c.rank):c.unit?c.unit===k:kind(c)===k).length};
+const etherLeft=id=>{const k=ETHER_KIND[id];if(k==="miner"||k==="repair"||k==="puppet"||k==="carriage"||k==="ace"||k==="wall"||k==="lighthouse")return Infinity;   /* v70: Aces and Walls are unlimited too */return G.ether.filter(c=>k==="soldier"?/^\d+$/.test(c.rank):c.unit?c.unit===k:kind(c)===k).length};
 SP("maxmana").name="Increase Max Mana";
 
 function spellRow(s,live){
@@ -5456,7 +5460,7 @@ moonInfoHTML=function(){
   else if(m.i===0)L.push("Everyone raises 1d2 cards from the grave.","Clairvoyance and Naked Hand cost 6.",bonus?"Every defense adds 1d2.":"");
   else if(m.i===4)L.push("The toll is paid and decks are shuffled.","No drawing and no necromancy.","Clairvoyance costs 2; Naked Hand is free.",bonus?"Every attack adds 1d2.":"");
   else L.push(`No effect this phase. Next: ${MOON[(m.i+1)%8]}.`);
-  L.push("Turns one phase a round, after every player has had a turn.");
+  L.push("Turns one phase a round, after every player has had a turn. Its cycle is complete at the Full Moon.");
   if(P.oath!=="moon")L.push("You can swear the Oath of the Moon (Astrology).");
   if(G.moonLev){const h=G.moonLev.card.hp;L.push(`The Leviathan lies on the moon (${h} heart${h===1?"":"s"}). ${G.moonLev.owner===V?"Your maximum mana rises with the Outer Darkness.":P.tribe==="tiph"?"You are immune to its toll.":"Its toll each New Moon: 2d4 deck cards, 2 hand cards and 1 mana."} It can be attacked only at the New Moon.`)}
   skyCommon(L);
@@ -6564,7 +6568,7 @@ function skyLit(){const m=G.moon,k=sky();
 
 /* ---------- clicking the sky: the whole story in a paragraph ---------- */
 const SKY_PARA={
- moon:"The Moon turns one phase every round, after everyone has played, through eight phases; two of them do something. At the New Moon everyone raises 1d2 cards from the grave, Clairvoyance and Naked Hand cost 6, and every defense adds 1d2. At the Full Moon everyone pays its toll (a random stack of two, or else one card from the field, or else three cards from the shuffled deck; refusing costs 2d2 + 2 mana, even below zero), every deck is shuffled, nobody draws or casts necromancy, Clairvoyance costs 2 and Naked Hand is free, and every attack adds 1d2. One Full Moon in twenty turns red: a Blood Moon gives New Moon gifts at Full Moon prices, and every card killed falls into the Outer Darkness. Anyone can swear the Oath of the Moon.",
+ moon:"The Moon turns one phase every round, after everyone has played, through eight phases; two of them do something. Its cycle is complete at the Full Moon (not the New Moon). At the New Moon everyone raises 1d2 cards from the grave, Clairvoyance and Naked Hand cost 6, and every defense adds 1d2. At the Full Moon everyone pays its toll (a random stack of two, or else one card from the field, or else three cards from the shuffled deck; refusing costs 2d2 + 2 mana, even below zero), every deck is shuffled, nobody draws or casts necromancy, Clairvoyance costs 2 and Naked Hand is free, and every attack adds 1d2. One Full Moon in twenty turns red: a Blood Moon gives New Moon gifts at Full Moon prices, and every card killed falls into the Outer Darkness. Anyone can swear the Oath of the Moon.",
  saturn:"Saturn hangs in the Moon's place and stops its phases. At the start of each of their turns, everyone who owes it (every enemy of whoever raised it, or everyone if nobody did; never Binah or the Firmament) pays 1: a hand card, the top deck card or 1 mana. Whoever refuses gets a Debt Collector, and every Debt Collector still standing at the start of a round raises the price by one. Those who pay can swear the Oath of Saturn: Puppets fight for them after the 1st, 3rd, 6th and 9th toll, but one missed toll is a betrayal that locks the Oath and sends Saturn's own Puppets after them. Saturn has an eclipse (5% a round) with seven possible outcomes.",
  mars:"Mars, the Form of Strife, stops the Moon's phases. At the start of each turn, every stack made only of Grunts, Infantry or Puppets has a 5 in 8 chance (1 to 5 on 1d8) of advantage on its next attack. A Leviathan can coil on Mars; its toll and its weak spot come every eighth round. Yaldabaoth can eat Mars, and then it never comes back. Like every Heavenly Body but the Moon, it can be eclipsed (5% a round).",
  sun:"The Second Sun burns the fog of war away (Delusions still blind). Every 2d2 of your turns it judges you: pay 1 mana, take a wound on one of your stacks, or burn two deck cards; refuse and you are blind for that turn. What it takes goes to whoever raised it, or to the Bank. It never judges the Firmament. Yaldabaoth can make it cry; three times and it goes out as the Black Sun. Anyone else can swear the Oath of the Second Sun for fire mana, Scorched Earth and Blindness. The Leviathan can't lie on it.",
@@ -10322,10 +10326,13 @@ if(window.__EC)Object.assign(window.__EC,{skyAsyncW:(...a)=>skyAsync(...a),total
 
 /* ---------- v66: the Puppet's picture: a round head in the middle of the card, like a puppet toy or a dummy doll: dot eyes, a
    small nose, a smile and a boy's hair. It stays clear of the count in the corner (the old hanging puppet ran into it). ---------- */
-UNIT_ICON.puppet=`<g transform="scale(1.15)">`+`<path d="M6.4,1.4a6.4,6.4 0 1,1 -12.8,0a6.4,6.4 0 1,1 12.8,0Z"/>`+   // the head
-  `<path d="M-6.2,-0.4C-6.4,-4.6 -3.4,-6.9 0.2,-6.9C3.4,-6.9 6.2,-4.9 6.3,-0.6 M-5.6,-2.2L-3.6,-4.9 M-3.3,-1.9L-1.4,-5.4 M-0.8,-1.8L0.9,-5.6 M1.7,-2L3.3,-5.2 M0.4,-6.9C0.8,-8.6 2.4,-9.2 3.3,-8.3"/>`+   // a boy's fringe and a tuft
-  `<circle cx="-2.3" cy="0.9" r="0.95" fill="@" stroke="none"/><circle cx="2.3" cy="0.9" r="0.95" fill="@" stroke="none"/>`+   // dot eyes
-  `<path d="M0,2.2V3.1"/><path d="M-2.7,4.6Q0,6.6 2.7,4.6"/></g>`;   // a small nose and a smile
+UNIT_ICON.puppet=`<g transform="translate(0,.6)">`+
+  `<path d="M-6.9,1.6a6.9,7.2 0 1,0 13.8,0a6.9,7.2 0 1,0 -13.8,0Z"/>`+   // the head
+  `<path d="M-7.1,1.3C-7.5,-5.4 -3.4,-8.9 0.3,-8.7C4.6,-8.5 7.6,-5.3 7.1,0.9L5.6,-1.9L4,-0.2L2.5,-2.5L0.7,-0.5L-1,-2.8L-2.8,-0.6L-4.4,-2.6L-5.9,-0.4Z" fill="@" stroke-width="1.1"/>`+   // a boy's hair, a cap with a jagged fringe
+  `<path d="M-6.9,1.4c-1.6,-.2 -1.9,2.6 -.3,3 M6.9,1.4c1.6,-.2 1.9,2.6 .3,3" stroke-width="1.2"/>`+   // the ears
+  `<circle cx="-2.6" cy="2.4" r="1.15" fill="@" stroke="none"/><circle cx="2.6" cy="2.4" r="1.15" fill="@" stroke="none"/>`+   // dot eyes
+  `<circle cx="0" cy="4.5" r=".6" fill="@" stroke="none"/>`+   // a small nose
+  `<path d="M-3,5.9Q0,8.8 3,5.9" stroke-width="1.5"/></g>`;   // a smile   // a small nose and a smile
 
 /* ---------- v66: hearts down the left edge of the card, top to bottom; smaller when there are many ---------- */
 const heartN=h=>h.replace(/<span class="hearts" aria-label="(\d+) of (\d+) hearts"/g,(m,a,b)=>`${m} style="--hn:${Math.max(3,+b)}"`);
@@ -10354,5 +10361,44 @@ if(!PREF.coordsOn68){PREF.coordsOn68=true;PREF.coords=true;try{savePrefs();apply
 
 /* ---------- v69: each computer's playstyle (an archetype; Random picks one for the game) ---------- */
 {const _m=mkPlayer;mkPlayer=function(i,o){const P=_m.apply(this,arguments);if(P.cpu&&P.cpu!=="horde"&&!P.npc&&!(o&&o.npc)){const ks=Object.keys(AI.ARCH);P.arch=ks.includes(o&&o.arch)?o.arch:pick(ks)}return P}}
+
+/* ---------- v70: no more crystals on the field than there are players (not in King of the Hill) ---------- */
+{const _sc=spawnCrystal;spawnCrystal=function(){if(G&&!kothOn()){const n=G.p.filter(P=>!isNPC(P.i)&&!isHorde(P.i)).length;if((G.crystals||[]).length>=n)return false}return _sc.apply(this,arguments)}}
+
+/* ---------- v70: Aces and Walls are unlimited in the Ether (an empty Ether makes a new one) ---------- */
+UNLIMITED.add("wall");
+{const sp=SP("ca");if(sp)sp.ok=()=>true}
+{const _c=conjure;conjure=async function(k){if(k==="ace"&&!G.ether.some(c=>kind(c)==="ace")){const c=mk("A",pick(["S","H","D","C"]));c.owner=G.active;me().deck.push(c);shuffle(me().deck);
+  log(`An Ace's soul materializes from the Ether into ${plName(G.active)}'s deck.`);return}return _c.apply(this,arguments)}}
+
+/* ---------- v70: while an eclipse's, the Blood Moon's or the Moon's event sound plays, the music fades out slowly to make room ---------- */
+{const _sa=AUD.setAmb;if(typeof _sa==="function")AUD.setAmb=function(k){const out=_sa.apply(this,arguments);try{window.ECMusic&&ECMusic.hold&&ECMusic.hold(!!k)}catch(e){}return out}}
+
+/* ---------- v70: a planet's own magic shows its own sign, in its own color: when the sky acts by itself (not a player's
+   spell), its astrological sign rises over the tile it touches, or over the field ---------- */
+const PLANET_SIGN={
+  moon:["#ece6d2",`<path d="M15.5 3.6a8.6 8.6 0 1 0 0 16.8a7 7 0 1 1 0-16.8z"/>`],
+  blood:["#e0303c",`<path d="M15.5 3.6a8.6 8.6 0 1 0 0 16.8a7 7 0 1 1 0-16.8z"/>`],
+  sun:["#9a82ff",SIGN.Sorcery],
+  blacksun:["#8a78b0",`<circle cx="12" cy="12" r="5.6" fill="currentColor"/><path d="M12 2.2v2.6M12 19.2v2.6M2.2 12h2.6M19.2 12h2.6M5.1 5.1l1.8 1.8M17.1 17.1l1.8 1.8M5.1 18.9l1.8-1.8M17.1 6.9l1.8-1.8"/>`],
+  mars:["#e0503a",SIGN.Curse],
+  venus:["#f4dca6",`<circle cx="12" cy="8.6" r="5.2"/><path d="M12 13.8v8 M8.4 18.2h7.2"/>`],
+  jupiter:["#e2b882",SIGN.Enchantment],
+  mercury:["#d4cec6",`<path d="M8 2.6c0 2.6 1.8 4 4 4s4-1.4 4-4"/><circle cx="12" cy="11" r="4.2"/><path d="M12 15.2v6.6 M9 18.8h6"/>`],
+  saturn:["#d4ac52",SIGN.Necromancy],
+  neptune:["#3f9be0",SIGN.Illusion]};
+function planetFX(k,r,c){if(!FX.on()||!PLANET_SIGN[k])return;const [col,path]=PLANET_SIGN[k];
+  const rect=r!=null?FX.tile(r,c):(()=>{const b=$("#board");return b?b.getBoundingClientRect():null})();if(!rect)return;
+  const s=r!=null?Math.max(44,rect.height*.8):Math.min(150,Math.max(90,rect.width*.22));
+  const e=FX.make("sign planetsign",rect,{w:s,h:s,col,html:`<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`});if(!e)return;
+  e.style.color=col;e.style.filter=`drop-shadow(0 0 6px ${col})`;
+  FX.play(e,[{transform:"translateY(8px) scale(.55)",opacity:0},{transform:"translateY(-4px) scale(1)",opacity:.95,offset:.3},{transform:`translateY(${r!=null?-26:-40}px) scale(1.15)`,opacity:0}],r!=null?1300:1700)}
+const skySignK=()=>{const m=G.moon;return m.gone?(m.gone==="off"?null:m.gone):m.blood?"blood":"moon"};
+{const _e=eclipse;eclipse=async function(k){later(()=>planetFX(k==="sun"&&G.moon.gone==="blacksun"?"blacksun":k));return _e.apply(this,arguments)}}
+{const _v=venusCycle;venusCycle=function(){later(()=>planetFX("venus"));return _v.apply(this,arguments)}}
+{const _m=mercuryCycle;mercuryCycle=async function(){later(()=>planetFX("mercury"));return _m.apply(this,arguments)}}
+{const _f=fullMoonToll;fullMoonToll=async function(){later(()=>planetFX(G.moon.blood?"blood":"moon"));return _f.apply(this,arguments)}}
+{const _d=damage;damage=function(r,c){if(G&&G.sunHurt)later(()=>planetFX("sun",r,c));return _d.apply(this,arguments)}}
+{const _ms=moonStart;moonStart=async function(){const was=G.moon.blood;const out=await _ms.apply(this,arguments);if(G.moon.blood&&!was)later(()=>planetFX("blood"));return out}}
 
 })();
