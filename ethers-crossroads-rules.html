@@ -5,8 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>All Rules · Ether&#x27;s Crossroads</title>
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="preload" href="cascadia-code-latin-200-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="site.css?v=56"><style>/* rules page, v21: substances as blocks, the sky as a table, a short contents line */
+<link rel="stylesheet" href="site.css?v=57"><style>/* rules page, v21: substances as blocks, the sky as a table, a short contents line */
 .rules .toc{font-size:13.5px;color:var(--dim);line-height:1.9}
 .rules h4{font-size:14px;color:var(--amber-hi);margin:16px 0 4px;font-weight:400}
 .rules .substs{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:14px;margin:10px 0 14px}
@@ -39,9 +38,16 @@ a.totop[hidden]{display:none}
 @media (max-width:700px){.rules table{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}}
 </style><script>try{var P=JSON.parse(localStorage.getItem("ec-prefs2")||"{}"),t=P.theme==null||(!P.v43t&&P.theme==="")?"darkfantasy":P.theme,
 M={darkfantasy:["th-darkfantasy"],"":["th-rich"],dull:["th-dull","th-rich"],office:["th-office","th-rich"],officedark:["th-officedark","th-rich"],earth:["th-earth","th-rich"],jester:["th-black","th-jester","th-rich"],ten:["th-indigo","th-blue","th-rich"],satan:["th-crimson","th-rich"]};
-(M[t]||[]).forEach(function(c){document.documentElement.classList.add(c)});document.documentElement.classList.add("ecpage")}catch(e){}</script>
-<script src="ec-music.js?v=56" defer></script>
-<script src="site.js?v=56" defer></script>
+(M[t]||[]).forEach(function(c){document.documentElement.classList.add(c)});document.documentElement.classList.add("ecpage")}catch(e){}
+/* v71j: Data saving (1) and Poor connection (2) fetch nothing the page can do without: no fonts (the blackletter becomes the
+   device's own serif), no music. Otherwise the fonts are preloaded and the music comes, as before. */
+try{var N=+(P&&P.net)||0,D=document.documentElement,H=document.head;
+if(N>0){D.classList.add("lite");if(N>1)D.classList.add("poor");var y=document.createElement("style");y.id="litefonts";
+y.textContent='@font-face{font-family:"Grenze Gotisch";font-style:normal;font-weight:500;src:local("Old English Text MT"),local("Times New Roman"),local("Georgia"),local("Noto Serif"),local("DejaVu Serif"),local("Liberation Serif")}';H.appendChild(y)}
+else{var F=function(u){var l=document.createElement("link");l.rel="preload";l.as="font";l.type="font/woff2";l.crossOrigin="anonymous";l.href=u;H.appendChild(l)};
+F("cascadia-code-latin-200-normal.woff2");if(window.EC_BL)F("grenze-gotisch-latin-500-normal.woff2");
+var m=document.createElement("script");m.src="ec-music.js?v=57";H.appendChild(m)}}catch(e){}</script>
+<script src="site.js?v=57" defer></script>
 </head>
 <body data-static="1" data-fx="strings bars">
 <main class="wrap rules">
@@ -360,7 +366,6 @@ M={darkfantasy:["th-darkfantasy"],"":["th-rich"],dull:["th-dull","th-rich"],offi
 <li><b>Loans</b>: mana now, paid out of the Bank's own mana (the Bank can go 8 into the red, no further). Up to 12, 6 if you are below zero, 5 at minus your maximum. Due in half the amount in your turns, at least 2 (12 mana: 6 turns). A loan grows by 1d2 every 3 of your turns. It is never taken back by itself: when it comes due the Bank reminds you, and you pay it at the Bank with Repay; left open for 3 + (owed ÷ 3) of your turns, it brings the Debt Collectors. Only credit (mana below zero, <b>mana debt</b>) pays itself off, as mana comes in. One loan at a time, one a round, and the next no sooner than 3 of your turns after the last.</li>
 <li><b>Credit</b>: With <b>Spend on credit</b> ticked, spells you can't afford go on your debt, with no other limit. Mana debt grows by 1d2 every 3 of your turns, and every soul you gain pays it first.</li>
 <li><b>The floor</b>: You can go down to −8 mana. Below −8 you lose at once.</li>
-<li><b>Selling</b>: Sell cards from your hand or deck for their soul worth, or 1 less (rolled at the sale); a standard card worth only 1 can't be sold. They go to the Ether and your deck is reshuffled. Binah can sell thralls for 1 mana each.</li>
 <li><b>Upselling</b>: A spell bought more than twice in each of two rounds in a row costs 1d2 − 1 more.</li>
 <li><b>A Bank in the red</b>: The Ether goes on sale (1 less), and the Bank asks the richest player for a loan, which it owes back with 20% more every 1d2 turns.</li>
 <li><b>Debt Collectors</b> (tax collectors): Stay below zero for 3 of your turns, or leave a Bank loan open for 3 + (owed ÷ 3) of your turns, and you are in default. From then on, at the start of each of your turns the Bank sends 1d2 Debt Collectors (half as many again after six turns in default; six at most on the field) after whoever in default owes the most, and they strike every turn until it is paid off. Only a player who owes the Bank can strike a Debt Collector, so teammates can't fight them off for you. They wear the Bank's top hat. Whatever they kill goes to the Ether, and its soul worth pays off the victim's debt. On a 4 of 1d4 a good card they kill (not a 2 to 10, never an Emanation card) turns up at the <b>Auction</b> instead, sold by the Bank for less than the Ether asks, to anyone who pays.</li>

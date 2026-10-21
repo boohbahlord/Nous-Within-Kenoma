@@ -202,6 +202,8 @@ ${chk("oskyrand","A random start","Every few rounds only. Each new Heavenly Body
 <p class="dim">Turning animations off helps slower phones. Also in the Display bar at the bottom of the game.</p></fieldset>
 <fieldset class="pf"><legend>Colors</legend><div class="opts">
 <label class="opt"><input type="checkbox" id="dcb" ${PREF.cb?"checked":""}><span>Colorblind-safe colors (off by default)<small>Every player shows in a color that red-green and blue-yellow colorblind eyes can tell apart, the nearest to the one they picked. Their cards and stacks carry a faint pattern of their own and always show their symbol. Only on this device.</small></span></label></div></fieldset>
+<fieldset class="pf"><legend>Connection</legend><div class="opts">${NET_NAMES.map((t,i)=>`<label class="opt"><input type="radio" name="dnet" value="${i}" ${netLvl()===i?"checked":""}><span>${t}${i?"":" (default)"}<small>${NET_SUBS[i]}</small></span></label>`).join("")}</div>
+<p class="dim">How much the game loads and sends, on this device. Also in the Menu and the Display bar.</p></fieldset>
 <fieldset class="pf"><legend>Background lines</legend><div class="opts">
 <label class="opt"><input type="radio" name="dlines" value="1" ${PREF.lines!==false?"checked":""}><span>On (default)<small>Thin black lines across the page behind everything, and now and then a black bar.</small></span></label>
 <label class="opt"><input type="radio" name="dlines" value="0" ${PREF.lines===false?"checked":""}><span>Off<small>A plain background, on every page of the site.</small></span></label></div></fieldset>
