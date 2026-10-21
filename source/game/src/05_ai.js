@@ -102,7 +102,7 @@ const AI=(()=>{
   function stackAdj(pl,n){const how=hillHow(pl),g=FAX&&FAX.pl===pl?FAX.grp:null;let s=0;
     if(how==="groups")s+=n<=grpMax(pl)?.3:-1.4;
     if(how==="army"&&!armyGo(pl))s+=.8;
-    if(g==="big")s+=.6;else if(g==="small")s+=n<=2?.1:-1;
+    if(FAX&&FAX.pl===pl&&FAX.form==="wide")s+=n>3?-.9:n>2?-.35:0;   // v71: Wide spreads its cards over more tiles
     return s}
   /* nothing in sight (fog of war): head for the enemy's ground (the Horde and offense push toward the enemy's back line too) */
   function farNear(pl,r,c){let d=99;for(const e of enemiesOf(pl))for(const [er,ec] of zoneTiles(e))d=Math.min(d,walk(r,c,er,ec));return d===99?0:d*.8}
@@ -134,7 +134,7 @@ const AI=(()=>{
       const E=e.st,d=walk(r,c,e.r,e.c);near=Math.min(near,d);
       if(hits&&!E.hypo&&!shielded(E.owner)&&inReach(e.r,e.c)){
         const p=winP(SA,E,n);let sc=shot?p*gain(E):p*gain(E)-(1-p)*loss(S);
-        const ring=stacksOf(pl).filter(x=>x.st!==S&&adjacent(x.r,x.c,e.r,e.c,false)).length;sc+=ring*.3;
+        const ring=stacksOf(pl).filter(x=>x.st!==S&&adjacent(x.r,x.c,e.r,e.c,false)).length;sc+=ring*(FAX&&FAX.pl===pl&&FAX.ring!=null?FAX.ring:.3);
         if(sc>opp)opp=sc;
       }
       const esh=E.cards.find(isShooter),reach=esh?(esh.unit==="cannon"?4:3):jackOnly(E)||soloUnit(E)?3:2;
@@ -145,8 +145,18 @@ const AI=(()=>{
     for(const x of stacksOf(pl))if(x.st!==S&&dist(x.r,x.c,r,c)===1)allies++;
     if(near===99)near=farNear(pl,r,c);
     const M=FAX&&FAX.pl===pl&&FAX.wMul||{};   // v69: the archetype's weights
-    return W.atk*(M.atk||1)*opp-W.def*(M.def||1)*risk+W.ally*(M.ally||1)*allies+rallyScore(pl,S,r,c)-pullOf(pl,S,r,c,W,near);
+    return W.atk*(M.atk||1)*opp-W.def*(M.def||1)*risk+W.ally*(M.ally||1)*allies+rallyScore(pl,S,r,c)-pullOf(pl,S,r,c,W,near)+groupScore(pl,S,r,c);
   }
+  /* v71 · Field Automation's attack groups are clusters of stacks across tiles, whatever their height:
+     Big keeps one army together (no stack runs off ahead or straggles behind); Small keeps clusters of two or three stacks,
+     spread over the field rather than piled in one place. Neither changes where the stance sends them. */
+  function groupScore(pl,S,r,c){const g=FAX&&FAX.pl===pl?FAX.grp:null;if(g!=="big"&&g!=="small")return 0;
+    const ids=new Set(S.cards.map(x=>x.id)),mates=stacksOf(pl).filter(x=>!x.st.cards.some(y=>ids.has(y.id))&&fighters(x.st)>0&&!(hasBase(x.st)&&fighters(x.st)===0));
+    if(!mates.length)return 0;const d=mates.map(x=>dist(x.r,x.c,r,c));
+    if(g==="big"){const near=Math.min(...d),S0=seat(pl),f=S0.fwd,b=S0.back[0],depth=(rr,cc)=>(rr-b[0])*f[0]+(cc-b[1])*f[1];
+      const lead=Math.max(...mates.map(x=>depth(x.r,x.c))),mine=depth(r,c);
+      return -.45*Math.max(0,near-1)-.5*Math.max(0,mine-lead-1)}
+    const k=d.filter(x=>x<=2).length;return k===0?-.25:k<=2?.3:-.25*(k-2)}
   /* v44 · Field Automation: support cards (Scouts, Healers, Repairmen) serve the stacks they support instead of chasing fights.
      A Healer keeps beside or inside a hurt or strong stack, a Repairman beside a damaged base, a Scout a step or two from its own
      stacks and two or three from the enemy, where it sees without being caught. */
@@ -234,8 +244,6 @@ const AI=(()=>{
       if(FAX&&!FAX.ok(grp))continue;   // Field Automation: a stack it doesn't control stays where the player put it
       if(!stackLegal(grp)){ // too many to leave together (a full Ace): send out the strongest group that can stand on its own
         const g2=[];for(const c of [...grp].sort((a,b)=>rate(b)-rate(a)))if(stackLegal([...g2,c]))g2.push(c);grp=g2;if(!grp.length)continue}
-      if(FAX&&FAX.pl===pl&&FAX.grp==="small"&&grp.length>2&&!hasBase(st)){   // small groups: two set out, the rest stay
-        const g2=[];for(const c of [...grp].sort((a,b)=>rate(b)-rate(a)))if(g2.length<2&&stackLegal([...g2,c]))g2.push(c);const rest=grp.filter(c=>!g2.includes(c));if(g2.length&&stackLegal(rest))grp=g2}
       const inAce=hasBase(st);const S={cards:grp,owner:pl,hypo:st.hypo};
       if(FAX&&FAX.flee&&!inAce&&(st.peak||0)>=2&&grp.length<=Math.floor(st.peak/2)){   // v47: Flee when low: pull back, toward friends
         const W2={atk:0,def:2.2,dist:-.5,ally:.6},tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets),stay=tileScore(pl,S,o.r,o.c,W2,false);let best=null;
@@ -275,7 +283,7 @@ const AI=(()=>{
         let sc=(p*gain(E)*(o.mode==="stomp"?.6:1)-(1-p)*loss(st))*jit(pl);
         const onHill=hillHow(pl)&&isHill(r2,c2);if(onHill)sc+=1.2*p;   // v64: knocking an enemy off the Hill is worth more
         const g=FAX&&FAX.pl===pl?FAX.grp:null,n=fighters(st);
-        if(g==="big"){if(n<=1&&p<.75&&!onHill)continue;sc*=1+.12*(n-1)}else if(g==="small")sc*=n<=2?1.15:.9;
+        if(g==="big"){const ring=stacksOf(pl).filter(x=>x.st!==st&&fighters(x.st)>0&&dist(x.r,x.c,r2,c2)===1).length;if(!ring&&p<.7&&!onHill)continue;sc*=1+.15*ring}   // v71: the army strikes together
         const late=isHorde(pl)?0:G.turnNo>90?Math.min(.25,.1+(G.turnNo-90)/200):!G.p[pl].deck.length?.1:0;
   
         const go=p>=(lv.thr-late-(onHill?.08:0)+(FAX?FAX.thrAdj:0))*(lvl(pl)==="easy"?(.7+Math.random()*.6):1)||(lvl(pl)!=="easy"&&sc>.4)||isHorde(pl);   // the Horde never holds back: whatever it can reach, it hits

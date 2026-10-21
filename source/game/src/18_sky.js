@@ -56,7 +56,7 @@ SPELLS.push(
    log(`<b>Blood Moon</b>: ${plName(G.active)} calls the blood onto the next Full Moon.`,"event");notify(null,"The next Full Moon will be a Blood Moon.")}},
  {id:"rain",tribe:"firm",dice:"1d2+1",name:"Rain",cost:2,school:"Sorcery",text:"Until your next turn begins, every card anyone sacrifices gives one more mana, and every sacrifice by another player also gives you one mana.",
   ok:()=>!G.rain,run:async()=>{G.rain={by:G.active};log(`<b>Rain</b> falls over the field: sacrifices are worth one more until ${plName(G.active)}'s next turn, and every sacrifice feeds the Firmament.`,"event")}},
- {id:"asteroid",tribe:"firm",dice:"3d2",name:"Asteroid",cost:4,school:"Sorcery",text:"Select a stack: an asteroid falls on it. One damage there, one damage on a 4 of 1d4 on every tile around it (Walls take 1d2 + 1), and fire over the area for two rounds. The Firmament is immune.",
+ {id:"asteroid",tribe:"firm",dice:"3d2",name:"Asteroid",cost:4,school:"Sorcery",text:"Select a stack: an asteroid falls on it. One damage there, one damage on a 4 of 1d4 on every tile around it (Walls take 1d2 + 1), and fire over the area for two turns. The Firmament is immune.",
   ok:()=>!!selStack()&&!isFirm(selStack().owner),run:async()=>{const {r,c}=G.sel;SND.gun();
    log(`<b>Asteroid</b>: ${plName(G.active)} brings a rock down on ${coord(r,c)}.`,"event");skyStrike(r,c,"The asteroid");if(G.sel&&!G.board[G.sel.r][G.sel.c])G.sel=null}},
  {id:"ffog",tribe:"firm",dice:"2d2",name:"Fog",cost:4,school:"Illusion",text:"For 1d2 of your turns your enemies see only what is right beside their cards, and their Scouts one tile less. Not under the Full Moon; at the New Moon it blinds them completely, while your own cards see one tile. Once every three turns.",

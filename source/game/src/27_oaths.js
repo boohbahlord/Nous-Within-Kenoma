@@ -81,11 +81,11 @@ async function scorchedEarth(pl){
     return best&&best.s>0?[best.r,best.c]:null});
   if(!t){giveFire(pl,0);log(`${plName(pl)} lets the fire go out before it starts.`);return}
   const n=payFire(pl,sp),turns=R(3),[r,c]=t,area=circle2(r,c);
-  G.fires=G.fires||[];for(const [rr,cc] of area)G.fires.push({r:rr,c:cc,until:G.moon.round+turns,scorch:true,by:pl,turns});
+  G.fires=G.fires||[];for(const [rr,cc] of area)G.fires.push({r:rr,c:cc,untilT:G.turnNo+turns,scorch:true,by:pl,turns});   // v71: 1d3 turns, as the rule was written
   log(`<b>Scorched Earth</b>: ${plName(pl)} pays ${n} fire mana and the ground burns around ${coord(r,c)} for ${turns} turn${turns>1?"s":""} (${area.length} tiles).`,"event");
   notify(null,`Scorched Earth: the ground burns around ${coord(r,c)}.`);
 }
-const scorchAt=(r,c)=>(G.fires||[]).some(f=>f.scorch&&f.r===r&&f.c===c&&f.until>=G.moon.round);
+const scorchAt=(r,c)=>(G.fires||[]).some(f=>f.scorch&&f.r===r&&f.c===c&&(f.untilT!=null?f.untilT>=G.turnNo:f.until>=G.moon.round));
 /* at the start of a player's turn: each of their stacks in the scorched ground takes one damage on a 4 of 1d4 */
 function scorchTurn(pl){
   for(const {st,r,c} of stacksOf(pl)){if(!scorchAt(r,c)||R(4)!==4)continue;

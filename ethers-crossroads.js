@@ -1425,7 +1425,7 @@ const AI=(()=>{
   function stackAdj(pl,n){const how=hillHow(pl),g=FAX&&FAX.pl===pl?FAX.grp:null;let s=0;
     if(how==="groups")s+=n<=grpMax(pl)?.3:-1.4;
     if(how==="army"&&!armyGo(pl))s+=.8;
-    if(g==="big")s+=.6;else if(g==="small")s+=n<=2?.1:-1;
+    if(FAX&&FAX.pl===pl&&FAX.form==="wide")s+=n>3?-.9:n>2?-.35:0;   // v71: Wide spreads its cards over more tiles
     return s}
   /* nothing in sight (fog of war): head for the enemy's ground (the Horde and offense push toward the enemy's back line too) */
   function farNear(pl,r,c){let d=99;for(const e of enemiesOf(pl))for(const [er,ec] of zoneTiles(e))d=Math.min(d,walk(r,c,er,ec));return d===99?0:d*.8}
@@ -1457,7 +1457,7 @@ const AI=(()=>{
       const E=e.st,d=walk(r,c,e.r,e.c);near=Math.min(near,d);
       if(hits&&!E.hypo&&!shielded(E.owner)&&inReach(e.r,e.c)){
         const p=winP(SA,E,n);let sc=shot?p*gain(E):p*gain(E)-(1-p)*loss(S);
-        const ring=stacksOf(pl).filter(x=>x.st!==S&&adjacent(x.r,x.c,e.r,e.c,false)).length;sc+=ring*.3;
+        const ring=stacksOf(pl).filter(x=>x.st!==S&&adjacent(x.r,x.c,e.r,e.c,false)).length;sc+=ring*(FAX&&FAX.pl===pl&&FAX.ring!=null?FAX.ring:.3);
         if(sc>opp)opp=sc;
       }
       const esh=E.cards.find(isShooter),reach=esh?(esh.unit==="cannon"?4:3):jackOnly(E)||soloUnit(E)?3:2;
@@ -1468,8 +1468,18 @@ const AI=(()=>{
     for(const x of stacksOf(pl))if(x.st!==S&&dist(x.r,x.c,r,c)===1)allies++;
     if(near===99)near=farNear(pl,r,c);
     const M=FAX&&FAX.pl===pl&&FAX.wMul||{};   // v69: the archetype's weights
-    return W.atk*(M.atk||1)*opp-W.def*(M.def||1)*risk+W.ally*(M.ally||1)*allies+rallyScore(pl,S,r,c)-pullOf(pl,S,r,c,W,near);
+    return W.atk*(M.atk||1)*opp-W.def*(M.def||1)*risk+W.ally*(M.ally||1)*allies+rallyScore(pl,S,r,c)-pullOf(pl,S,r,c,W,near)+groupScore(pl,S,r,c);
   }
+  /* v71 · Field Automation's attack groups are clusters of stacks across tiles, whatever their height:
+     Big keeps one army together (no stack runs off ahead or straggles behind); Small keeps clusters of two or three stacks,
+     spread over the field rather than piled in one place. Neither changes where the stance sends them. */
+  function groupScore(pl,S,r,c){const g=FAX&&FAX.pl===pl?FAX.grp:null;if(g!=="big"&&g!=="small")return 0;
+    const ids=new Set(S.cards.map(x=>x.id)),mates=stacksOf(pl).filter(x=>!x.st.cards.some(y=>ids.has(y.id))&&fighters(x.st)>0&&!(hasBase(x.st)&&fighters(x.st)===0));
+    if(!mates.length)return 0;const d=mates.map(x=>dist(x.r,x.c,r,c));
+    if(g==="big"){const near=Math.min(...d),S0=seat(pl),f=S0.fwd,b=S0.back[0],depth=(rr,cc)=>(rr-b[0])*f[0]+(cc-b[1])*f[1];
+      const lead=Math.max(...mates.map(x=>depth(x.r,x.c))),mine=depth(r,c);
+      return -.45*Math.max(0,near-1)-.5*Math.max(0,mine-lead-1)}
+    const k=d.filter(x=>x<=2).length;return k===0?-.25:k<=2?.3:-.25*(k-2)}
   /* v44 · Field Automation: support cards (Scouts, Healers, Repairmen) serve the stacks they support instead of chasing fights.
      A Healer keeps beside or inside a hurt or strong stack, a Repairman beside a damaged base, a Scout a step or two from its own
      stacks and two or three from the enemy, where it sees without being caught. */
@@ -1557,8 +1567,6 @@ const AI=(()=>{
       if(FAX&&!FAX.ok(grp))continue;   // Field Automation: a stack it doesn't control stays where the player put it
       if(!stackLegal(grp)){ // too many to leave together (a full Ace): send out the strongest group that can stand on its own
         const g2=[];for(const c of [...grp].sort((a,b)=>rate(b)-rate(a)))if(stackLegal([...g2,c]))g2.push(c);grp=g2;if(!grp.length)continue}
-      if(FAX&&FAX.pl===pl&&FAX.grp==="small"&&grp.length>2&&!hasBase(st)){   // small groups: two set out, the rest stay
-        const g2=[];for(const c of [...grp].sort((a,b)=>rate(b)-rate(a)))if(g2.length<2&&stackLegal([...g2,c]))g2.push(c);const rest=grp.filter(c=>!g2.includes(c));if(g2.length&&stackLegal(rest))grp=g2}
       const inAce=hasBase(st);const S={cards:grp,owner:pl,hypo:st.hypo};
       if(FAX&&FAX.flee&&!inAce&&(st.peak||0)>=2&&grp.length<=Math.floor(st.peak/2)){   // v47: Flee when low: pull back, toward friends
         const W2={atk:0,def:2.2,dist:-.5,ally:.6},tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets),stay=tileScore(pl,S,o.r,o.c,W2,false);let best=null;
@@ -1598,7 +1606,7 @@ const AI=(()=>{
         let sc=(p*gain(E)*(o.mode==="stomp"?.6:1)-(1-p)*loss(st))*jit(pl);
         const onHill=hillHow(pl)&&isHill(r2,c2);if(onHill)sc+=1.2*p;   // v64: knocking an enemy off the Hill is worth more
         const g=FAX&&FAX.pl===pl?FAX.grp:null,n=fighters(st);
-        if(g==="big"){if(n<=1&&p<.75&&!onHill)continue;sc*=1+.12*(n-1)}else if(g==="small")sc*=n<=2?1.15:.9;
+        if(g==="big"){const ring=stacksOf(pl).filter(x=>x.st!==st&&fighters(x.st)>0&&dist(x.r,x.c,r2,c2)===1).length;if(!ring&&p<.7&&!onHill)continue;sc*=1+.15*ring}   // v71: the army strikes together
         const late=isHorde(pl)?0:G.turnNo>90?Math.min(.25,.1+(G.turnNo-90)/200):!G.p[pl].deck.length?.1:0;
   
         const go=p>=(lv.thr-late-(onHill?.08:0)+(FAX?FAX.thrAdj:0))*(lvl(pl)==="easy"?(.7+Math.random()*.6):1)||(lvl(pl)!=="easy"&&sc>.4)||isHorde(pl);   // the Horde never holds back: whatever it can reach, it hits
@@ -4400,7 +4408,7 @@ function bankTurn(pl){
   }
   if(P.saleUntil!=null&&n>P.saleUntil){P.saleUntil=null;log(`${plName(pl)}'s Ether sale ends.`)}
   // the meteor's fire
-  if(P.tribe!=="firm")for(const {st,r,c} of stacksOf(pl))if(fireAt(r,c)&&R(20)===20){log(`The meteor's fire on ${coord(r,c)} burns ${plName(pl)}'s stack.`,"event");damage(r,c,1,false)}
+  if(P.tribe!=="firm")for(const {st,r,c} of stacksOf(pl))if(meteorFireAt(r,c)&&R(20)===20){log(`The meteor's fire on ${coord(r,c)} burns ${plName(pl)}'s stack.`,"event");damage(r,c,1,false)}
   checkDebt(pl);
 }
 
@@ -4416,7 +4424,7 @@ async function econRound(){
   for(const id in a)if(a[id]>2&&(b[id]||0)>2){const v=R(2)-1;if(v){B.upsell[id]=v;const sp=SP(id);if(sp)ups.push(sp.name)}}
   if(ups.length)log(`<b>The Bank upsells</b> what everyone keeps buying: ${ups.join(", ")} cost 1 more this round.`,"event");
   // fire burns out; the meteor, one chance in a hundred
-  G.fires=(G.fires||[]).filter(f=>f.until>=r);
+  G.fires=(G.fires||[]).filter(f=>f.untilT!=null?f.untilT>=G.turnNo:f.until>=r);
   if(r>1&&Math.random()<(G.forceMeteor?1:.01)){G.forceMeteor=false;meteor()}
   if(G.over)return;
   // a Blood Moon brings the Demons
@@ -4424,14 +4432,14 @@ async function econRound(){
   // Saturn taxes the Bank too
   if(G.moon.gone==="saturn"&&G.saturnBy!=null&&!G.p[G.saturnBy].out&&!B.dead){const n=Math.min(1+(G.saturnDebt||0),Math.max(0,B.mana-BANK_FLOOR));B.mana-=n;const got=giveMana(G.saturnBy,n);log(`The Bank pays Saturn's tax: ${n} mana (${plName(G.saturnBy)} gets ${got}).`)}
   // the Bank pays back what it borrowed, with interest
-  for(const o of [...B.owes]){if(r>=o.at){o.owed=Math.ceil(o.owed*1.2);o.at=r+2}
+  for(const o of [...B.owes]){if(o.atT==null)o.atT=G.turnNo+R(2);   // v71: its interest comes every 1d2 turns (see beginTurn), as the rule was written
     if(B.mana>=o.owed&&!G.p[o.to].out){B.mana-=o.owed;const got=giveMana(o.to,o.owed);B.owes.splice(B.owes.indexOf(o),1);log(`The Bank pays ${plName(o.to)} back ${o.owed} mana (${got} fit in the soul pile).`,"event")}}
   // a broke Bank asks the richest player for a loan
   if(B.mana<0&&!B.dead&&!B.owes.length){
     const need=-B.mana+R(3);
     for(const pl of alive().filter(i=>!isHorde(i)&&mana(i)>=need).sort((x,y)=>mana(y)-mana(x))){
-      const yes=await ask(pl,{kind:"yesno",id:"bankloan",title:`The Bank asks ${esc(G.p[pl].name)} for a loan`,text:`The Bank is ${-B.mana} mana in the red and the Ether is on sale. Lend it ${need} mana? It pays back 20% more every two rounds until it can pay, but if the Bank collapses the mana is gone.`,yes:`Lend ${need}`,no:"Refuse",ai:()=>mana(pl)>=need+4&&Math.random()<.6});
-      if(yes){const paid=payQuiet(pl,need);B.mana+=paid;B.owes.push({to:pl,owed:paid,at:r+2});log(`${plName(pl)} lends the Bank ${paid} mana.`,"event");break}
+      const yes=await ask(pl,{kind:"yesno",id:"bankloan",title:`The Bank asks ${esc(G.p[pl].name)} for a loan`,text:`The Bank is ${-B.mana} mana in the red and the Ether is on sale. Lend it ${need} mana? Its debt grows 20% every 1d2 turns until it can pay, but if the Bank collapses the mana is gone.`,yes:`Lend ${need}`,no:"Refuse",ai:()=>mana(pl)>=need+4&&Math.random()<.6});
+      if(yes){const paid=payQuiet(pl,need);B.mana+=paid;B.owes.push({to:pl,owed:paid,atT:G.turnNo+R(2)});log(`${plName(pl)} lends the Bank ${paid} mana.`,"event");break}
     }
   }
   await bankCollectors();if(G.over)return;
@@ -4544,22 +4552,24 @@ function econTags(P){const t=[];if(!G.bank||isHorde(P.i))return t;
   return t}
 
 /* ---------- the meteor and its fire ---------- */
-const fireAt=(r,c)=>!!(G.fires||[]).some(f=>f.r===r&&f.c===c);
+const fireLive=f=>f.untilT!=null?f.untilT>=G.turnNo:true;   // v71: fire counts turns, as the rule was written
+const fireAt=(r,c)=>!!(G.fires||[]).some(f=>f.r===r&&f.c===c&&fireLive(f));
+const meteorFireAt=(r,c)=>!!(G.fires||[]).some(f=>f.r===r&&f.c===c&&!f.scorch&&fireLive(f));   // Scorched Earth has its own burn
 function meteor(){
   const t=[];for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(!isVoid(r,c))t.push([r,c]);if(!t.length)return;
   const [r,c]=pick(t);
-  log(`<b>A meteor</b> crashes onto ${coord(r,c)}! Everything around it may burn for two rounds.`,"event");
-  popup("A meteor",`<p>A meteor falls out of the sky onto ${coord(r,c)}. The tile takes one damage, every tile around it one damage on a 4 of 1d4, and Walls 1d2 + 1. Fire burns the whole area for two rounds: a stack standing in it takes one damage on a natural 20 at the start of its turn. The Firmament is immune.</p>`);
+  log(`<b>A meteor</b> crashes onto ${coord(r,c)}! Everything around it may burn for two turns.`,"event");
+  popup("A meteor",`<p>A meteor falls out of the sky onto ${coord(r,c)}. The tile takes one damage, every tile around it one damage on a 4 of 1d4, and Walls 1d2 + 1. Fire burns the whole area for two turns: a stack standing in it takes one damage on a natural 20 at the start of its turn. The Firmament is immune.</p>`);
   skyStrike(r,c,"The meteor");
 }
-/* a meteor or the Firmament's Asteroid: one damage where it lands, 1d4 = 4 for each tile around, fire for two rounds; the Firmament takes nothing */
+/* a meteor or the Firmament's Asteroid: one damage where it lands, 1d4 = 4 for each tile around, fire for two turns; the Firmament takes nothing */
 function skyStrike(r,c,why){
   const hit=(rr,cc)=>{const st=G.board[rr][cc];if(!st)return;if(G.p[st.owner]&&G.p[st.owner].tribe==="firm"){log(`${why} can't touch the Firmament on ${coord(rr,cc)}.`);return}
     if(hasK(st,"wall"))wallHit(rr,cc,1+R(2),why);else damage(rr,cc,1,false)};
   G.fires=G.fires||[];hit(r,c);
   for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){if(!dr&&!dc)continue;const rr=r+dr,cc=c+dc;if(rr<0||cc<0||rr>=G.rows||cc>=COLS||isVoid(rr,cc))continue;if(R(4)===4)hit(rr,cc);
-    G.fires.push({r:rr,c:cc,until:G.moon.round+1})}
-  G.fires.push({r,c,until:G.moon.round+1});
+    G.fires.push({r:rr,c:cc,untilT:G.turnNo+2})}
+  G.fires.push({r,c,untilT:G.turnNo+2});
   checkWin();
 }
 
@@ -4759,7 +4769,7 @@ SPELLS.push(
    log(`<b>Blood Moon</b>: ${plName(G.active)} calls the blood onto the next Full Moon.`,"event");notify(null,"The next Full Moon will be a Blood Moon.")}},
  {id:"rain",tribe:"firm",dice:"1d2+1",name:"Rain",cost:2,school:"Sorcery",text:"Until your next turn begins, every card anyone sacrifices gives one more mana, and every sacrifice by another player also gives you one mana.",
   ok:()=>!G.rain,run:async()=>{G.rain={by:G.active};log(`<b>Rain</b> falls over the field: sacrifices are worth one more until ${plName(G.active)}'s next turn, and every sacrifice feeds the Firmament.`,"event")}},
- {id:"asteroid",tribe:"firm",dice:"3d2",name:"Asteroid",cost:4,school:"Sorcery",text:"Select a stack: an asteroid falls on it. One damage there, one damage on a 4 of 1d4 on every tile around it (Walls take 1d2 + 1), and fire over the area for two rounds. The Firmament is immune.",
+ {id:"asteroid",tribe:"firm",dice:"3d2",name:"Asteroid",cost:4,school:"Sorcery",text:"Select a stack: an asteroid falls on it. One damage there, one damage on a 4 of 1d4 on every tile around it (Walls take 1d2 + 1), and fire over the area for two turns. The Firmament is immune.",
   ok:()=>!!selStack()&&!isFirm(selStack().owner),run:async()=>{const {r,c}=G.sel;SND.gun();
    log(`<b>Asteroid</b>: ${plName(G.active)} brings a rock down on ${coord(r,c)}.`,"event");skyStrike(r,c,"The asteroid");if(G.sel&&!G.board[G.sel.r][G.sel.c])G.sel=null}},
  {id:"ffog",tribe:"firm",dice:"2d2",name:"Fog",cost:4,school:"Illusion",text:"For 1d2 of your turns your enemies see only what is right beside their cards, and their Scouts one tile less. Not under the Full Moon; at the New Moon it blinds them completely, while your own cards see one tile. Once every three turns.",
@@ -5433,7 +5443,7 @@ const SPELL_TEXT={
  cry:{n:"The Second Sun in the sky.",e:"Yaldabaoth makes the Sun weep. On the third time its flames go out and it becomes the Black Sun.",l:"Once every 1d3 turns. After that, the Firmament that raised it pays you 1d2 mana or 1d2 deck cards every 1d2 of its turns."},
  bloodcall:{e:"The next Full Moon becomes a Blood Moon.",l:"Its harms don't touch you: your dead still go to the grave."},
  rain:{e:"Until your next turn, every sacrifice gives one more mana, and every sacrifice by another player also gives you one."},
- asteroid:{n:"Select a stack.",e:"One damage there. Every tile around it takes one damage on a 4 of 1d4 (Walls take 1d2 + 1). The area burns for two rounds.",l:"The Firmament is immune."},
+ asteroid:{n:"Select a stack.",e:"One damage there. Every tile around it takes one damage on a 4 of 1d4 (Walls take 1d2 + 1). The area burns for two turns.",l:"The Firmament is immune."},
  // Illusion
  quiet:{e:"For 1d2 + 1 rounds, enemies without a Scout on the field see only what stands right beside their own units.",l:"2 mana now and 2 at the start of each round it lasts. It ends when you can't pay. Scouts see through it."},
  ouro:{e:"For 2d2 of your turns you and your teammates can't see enemy cards past your own cards' reach. Meanwhile your mana can rise to nine, and you get 3d2 free mana at the start of each turn.",l:"Cast on yourself. It makes the Delusion of Lucifer free this round."},
@@ -5631,7 +5641,7 @@ const BANK_HELP=[
  ["Collapse","If the Bank and every player are 3 or more below zero, the Bank collapses: mana and debts go to zero, every maximum falls to three, cards leave the decks for the Ether, and prices wobble up for a while."]];
 function bankExplainHTML(){return `<details class="sub"><summary>The Bank, Demons and meteors explained</summary><dl class="spellinfo">${BANK_HELP.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}
 <dt>Demons</dt><dd>A crimson band takes the middle every 4 + 1d12 rounds (never while one still stands) and with every Blood Moon, and fights anyone beside it. The player who kills the most of a band gets an Ether sale; breaking a big band can earn debt forgiveness.</dd>
-<dt>Meteor</dt><dd>One round in a hundred: damage where it lands and maybe around it, then fire for two rounds.</dd>
+<dt>Meteor</dt><dd>One round in a hundred: damage where it lands and maybe around it, then fire for two turns.</dd>
 <dt>Gambling, Increase Max Mana, Mystery Generation</dt><dd>Gambling (Sorcery, 1 mana): a 10 on 1d10 wins 7d2; a 1 costs a maximum mana, 7d2 of debt and a deck card. Increase Max Mana (Conjuring, 4): +1, eighteen at most. Mystery Generation (in the Auction, 3 to 8 mana): three brand-new cards of any rarity, wildcards included.</dd></dl></details>`}
 
 /* ---------------- UI pass 3 (v22): the setup menu ----------------
@@ -5992,11 +6002,11 @@ async function scorchedEarth(pl){
     return best&&best.s>0?[best.r,best.c]:null});
   if(!t){giveFire(pl,0);log(`${plName(pl)} lets the fire go out before it starts.`);return}
   const n=payFire(pl,sp),turns=R(3),[r,c]=t,area=circle2(r,c);
-  G.fires=G.fires||[];for(const [rr,cc] of area)G.fires.push({r:rr,c:cc,until:G.moon.round+turns,scorch:true,by:pl,turns});
+  G.fires=G.fires||[];for(const [rr,cc] of area)G.fires.push({r:rr,c:cc,untilT:G.turnNo+turns,scorch:true,by:pl,turns});   // v71: 1d3 turns, as the rule was written
   log(`<b>Scorched Earth</b>: ${plName(pl)} pays ${n} fire mana and the ground burns around ${coord(r,c)} for ${turns} turn${turns>1?"s":""} (${area.length} tiles).`,"event");
   notify(null,`Scorched Earth: the ground burns around ${coord(r,c)}.`);
 }
-const scorchAt=(r,c)=>(G.fires||[]).some(f=>f.scorch&&f.r===r&&f.c===c&&f.until>=G.moon.round);
+const scorchAt=(r,c)=>(G.fires||[]).some(f=>f.scorch&&f.r===r&&f.c===c&&(f.untilT!=null?f.untilT>=G.turnNo:f.until>=G.moon.round));
 /* at the start of a player's turn: each of their stacks in the scorched ground takes one damage on a 4 of 1d4 */
 function scorchTurn(pl){
   for(const {st,r,c} of stacksOf(pl)){if(!scorchAt(r,c)||R(4)!==4)continue;
@@ -8061,7 +8071,8 @@ function faScales(c,pl){const sc={};for(const [k] of FA_PRINC)sc[k]=1;if(!c.hier
   for(const [a,b] of c.eq){const da=FA_AGGR[a](c),db=FA_AGGR[b](c);if(da===db)continue;const lead=(behind?da<db:da>db)?a:b;sc[lead]=Math.min(1,sc[lead]+.1)}
   return sc}
 const faMix=(a,b,t)=>{const o={...a};for(const k of ["atk","def","dist","ally","ctr"])o[k]=(a[k]||0)*(1-t)+(b[k]||0)*t;if(t>=.5&&b.k)o.k=b.k;return o};   // the stronger side names the stance
-const FA_CENTER={atk:1,def:.8,dist:.04,ally:.3,ctr:1,k:"center"};   // v70c: it goes for the middle and holds it, striking what comes in reach
+const FA_CENTER={atk:1,def:.8,dist:.04,ally:.3,ctr:1,k:"center"};
+const FA_OFF={atk:1.45,def:.45,dist:.85,ally:.1,k:"off"};   // v71: Offensive goes forward and fights; the computers keep their own, warier OFF   // v70c: it goes for the middle and holds it, striking what comes in reach
 const faRushing=pl=>{const s=faState(pl);return !!(s&&s.cfg&&s.cfg.rush>0&&s.rushUntil!=null&&G.moon.round<=s.rushUntil)};
 /* a Wall matters only when it stands between your field and an enemy base */
 function faWallBlocks(pl,wr,wc){const bases=AI.enemyStacks(pl).filter(e=>hasBase(e.st)&&!hasK(e.st,"wall"));const mine=stacksOf(pl);
@@ -8081,16 +8092,17 @@ function faTargetFactor(cfg){if(!cfg.tprio)return ()=>1;
 function faCtx(pl){
   const s=faState(pl),c=faEff(s&&s.cfg),sc=faScales(c,pl);
   let W={...AI.stance(pl)};
-  const fixed={offensive:AI.W.OFF,defensive:AI.W.DEF,center:FA_CENTER}[c.stance];if(fixed)W=faMix(W,fixed,sc.stance);
+  const fixed={offensive:FA_OFF,defensive:AI.W.DEF,center:FA_CENTER}[c.stance];if(fixed)W=faMix(W,fixed,sc.stance);
   if(faRushing(pl))W=faMix(W,AI.W.PUSH,sc.rush);
-  W.ally=(W.ally||0)+({wide:.5,deep:-.15}[c.formation]||0)*sc.formation;W.stack=({deep:.8,wide:-.1}[c.formation]||0)*sc.formation;
+  W.ally=(W.ally||0)+({wide:.1,deep:-.1}[c.formation]||0)*sc.formation;W.stack=({deep:.8,wide:-.3}[c.formation]||0)*sc.formation;   // v71: Wide surrounds (below), Tall stacks
   const lv={preserve:1,balanced:0,throw:-1}[c.lives]||0;W.def=(W.def||0)*(1+.4*lv*sc.lives);
   const thrAdj=(lv>0?.12:lv<0?-.15:0)*sc.lives+({careful:.08,reckless:-.1}[c.battles]||0)*sc.battles;
   const ok=grp=>grp.length>0&&grp.every(x=>faControls(x,c));
   // Don't attack: on top it stops every attack; Rush or Target bases ranked above it still get their way
   const rk=faRanks(c),above=k=>c.hier&&rk[k]<rk.noatk,rushes=faRushing(pl)&&above("rush"),basesOnly=c.noAttack&&!rushes&&c.bases&&above("bases"),noAtk=c.noAttack&&!rushes&&!basesOnly;
   const tf=faTargetFactor(c);
-  return {level:faLevel(),W,thrAdj,lossMul:1+.5*lv*sc.lives,moves:c.mode!=="attacks",ambushP:c.ambush?.7*sc.ambush:0,ok,flee:c.formation==="deep"&&c.flee,
+  const ring=.3+({wide:.6,deep:-.15}[c.formation]||0)*sc.formation;   // v71: a stack of mine already beside the target counts for this much more
+  return {level:faLevel(),W,thrAdj,form:c.formation,ring,lossMul:1+.5*lv*sc.lives,moves:c.mode!=="attacks",ambushP:c.ambush?.7*sc.ambush:0,ok,flee:c.formation==="deep"&&c.flee,
     okAtk:(st,o)=>{if(noAtk)return false;const E=G.board[o.r]&&G.board[o.r][o.c];if(basesOnly&&!(E&&hasBase(E)))return false;return o.card?faControls(o.card,c):ok(st.cards.filter(x=>!isBase(x)))},
     gainMul:E=>{let m=tf(E);if(c.bases&&hasBase(E)&&!hasK(E,"wall"))m*=1+sc.bases;
       if(c.walls&&hasK(E,"wall")){const at=AI.enemyStacks(pl).find(e=>e.st===E);if(at&&!faWallBlocks(pl,at.r,at.c))m*=1-.7*sc.bases}return m}}}
@@ -8156,7 +8168,7 @@ function faPanelHTML(c,pl,pfx){
   if(custom){
     h+=sec("Rush the enemy",row("rushon",c.rush>0,"Rush","Everything it controls goes for the enemy, whatever the stance.")+spin("For how long",left!=null?`${left?left+" left":"over"}`:"",Math.max(1,c.rush),"rush",`round${Math.max(1,c.rush)>1?"s":""}`,!c.rush));
     h+=sec("Formation",radio("formation",c.formation,[["auto","Automatic",""],["wide","Wide","Spread out, surround, take the advantage"],["deep","Tall","Columns: stack strength, even with fewer to stack with"]])+row("fLink",c.fLink,"Formation shapes the groups","Wide attacks in small groups, Tall in big ones, while Attack groups is Normal."));
-    h+=sec("Attack groups",radio("grp",c.grp,[["normal","Normal","Each stack as the odds say (the default)"],["big","Big","Stacks join up and attack in force; a lone card rarely attacks"],["small","Small","Twos and singles spread out and strike from many sides"]]));
+    h+=sec("Attack groups",radio("grp",c.grp,[["normal","Normal","Each stack as the odds say (the default)"],["big","Big","One army: the stacks keep together, move as one and strike together"],["small","Small","Several small clusters of two or three stacks, spread over the field"]]));
     h+=sec("Lives",radio("lives",c.lives,[["preserve","Preserve","Keep cards alive first"],["balanced","Balanced","The default"],["throw","Throw them in","Trade cards freely to hurt the enemy"]])+(c.formation==="deep"?row("flee",c.flee,"Flee when low","A stack that has lost half its cards pulls back from the enemy."):""),"","",
       "Lives is about your cards: how many it is willing to lose.");
     h+=sec("Picking battles",radio("battles",c.battles,[["careful","Careful","Fights only with good odds"],["normal","Normal",""],["reckless","Reckless","Takes long shots"]]),"","Lives ranks above this unless you change the order in Hierarchical control.",
@@ -10744,6 +10756,11 @@ function skyChgLine(){if(!G||!G.moon)return "";const o=SKYCHG(),k=sky();if(skyFi
   const target=o.mode==="bid"?G.skyKeepAt:G.skyEveryN,leftC=Math.max(0,target-(G.skyCyc||0));
   return o.mode==="bid"?`Leaves after ${leftC===0?"this":leftC===1?"its next":`${leftC} more`} cycle${leftC>1?"s":""}, unless bids keep it (${G.skyCyc||0} of ${target} cycles done).`:`Leaves after ${leftC} more cycle${leftC===1?"":"s"} (${G.skyCyc||0} of ${target} done).`}
 {const _ms=moonStrip;moonStrip=function(){const h=_ms.apply(this,arguments),l=skyChgLine();return l?h+`<p class="skychgl">${esc(l)}</p>`:h}}
+/* ---------- v71: things the rules count in turns ---------- */
+{const _bt=beginTurn;beginTurn=function(pl){const out=_bt.apply(this,arguments);
+  if(G.fires)G.fires=G.fires.filter(f=>f.untilT==null||f.untilT>=G.turnNo);   // fire burns out after its turns
+  const B=G.bank;if(B&&B.owes)for(const o of B.owes)if(o.atT!=null&&G.turnNo>=o.atT){o.owed=Math.ceil(o.owed*1.2);o.atT=G.turnNo+R(2)}   // what the Bank owes grows 20% every 1d2 turns
+  return out}}
 if(window.__EC)Object.assign(window.__EC,{eclipseW:k=>eclipse(k),venusCycleW:()=>venusCycle(),fullMoonTollW:()=>fullMoonToll(),skyChangeRound:()=>skyChangeRound(),skySwap:(...a)=>skySwap(...a),skyAuction:()=>skyAuction(),skyArrive:()=>skyArrive(),skyChgLine:()=>skyChgLine(),cycleRoundW:()=>cycleRound()});
 
 })();
