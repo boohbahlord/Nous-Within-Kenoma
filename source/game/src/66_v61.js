@@ -9,7 +9,7 @@
    - The Display bar at the foot of the page keeps the quick settings; the rest live in the Menu. */
 
 /* ---------- accent colors ---------- */
-const ACCENTS=[["auto","Its own light"],["#efe2c8","Bone"],["#d9b552","Gold"],["#c9ccd6","Silver"],["#b3191f","Blood"],["#17120e","Onyx"]];
+const ACCENTS=[["auto","Its own light"],["#efe2c8","Bone"],["#d9b552","Gold"],["#c9ccd6","Silver"],["#b3191f","Blood"],["#17120e","Onyx"],["#c47a3c","Copper"],["#2fa36b","Emerald"],["#3a6fd8","Sapphire"],["#9a62d8","Amethyst"],["#e8a598","Rose gold"],["#9fe3f0","Ice"],["#ff7a1a","Flame"],["#7a7f88","Ash"]];   // v71: more of them
 const accentOf=(color,acc)=>!acc||acc==="auto"?`color-mix(in oklab,${color} 55%,#f3e7d2)`:acc;
 const pAccent=P=>P?accentOf(P.color,P.accent):"#9a8f80";
 

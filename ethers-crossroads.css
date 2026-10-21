@@ -1887,3 +1887,9 @@ html.th-rich .ovbox,html.th-rich .pbox,html.th-rich .cinfo,html.th-rich .gbar{bo
 html.th-rich .label,html.th-rich h3{color:var(--lab)}
 html.th-rich .game h1,html.th-rich .ovbox:not(.etherbox):not(.outer):not(.limbo):not(.womanbox) h2{color:var(--h1);text-shadow:0 0 12px var(--h1g)}
 html.th-rich .ovbox legend{color:var(--lab)}
+/* v71: a color another seat holds is shown but can't be picked */
+.sw.off{cursor:not-allowed;opacity:.62}.sw.off span{background:repeating-linear-gradient(45deg,var(--pc) 0 5px,#0009 5px 7px)}
+.ovbox.setup .acnote{margin:2px 0 8px;font-size:12px}
+/* v71: the selected card breathes, never fading out, and glows in its owner's accent */
+@keyframes selbreath{0%,100%{opacity:1}50%{opacity:.5}}
+.cardbtn.on .cf,.tile.sel .stack{animation:selbreath 2.4s ease-in-out infinite;filter:drop-shadow(0 0 6px var(--ca,var(--amber-hi))) drop-shadow(0 0 2px var(--ca,var(--amber-hi)))}
