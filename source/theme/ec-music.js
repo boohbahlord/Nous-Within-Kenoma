@@ -108,7 +108,7 @@
   let HOLD=false;const LV=()=>BASE*vol(prefs())*(HOLD?.18:1);   // v70: the music's level, lower while an event's sound is held
   const prefs=()=>{try{return JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){return {}}};
   const soundOn=()=>{try{return localStorage.getItem("ec-sound")!=="off"}catch(e){return true}};
-  const themeOn=P=>(P.theme==null?"darkfantasy":P.theme)==="darkfantasy";
+  const themeOn=P=>true;   // v71: the music plays in every theme
   const vol=P=>Math.max(0,Math.min(1.5,P.musicVol==null?1:+P.musicVol));
   const inGame=()=>/ethers-crossroads-play/.test(location.pathname);
   const hz=m=>440*Math.pow(2,(m-69)/12);

@@ -59,7 +59,8 @@ function kothFillEther(decks){const per=kothDeckCounts(),have={};for(const c of 
   return added}
 {const _sg=startGame;startGame=function(opts){const out=_sg.apply(this,arguments);if(kothOn()){kothFillEther(3);G.kothDecks=3}return out}}
 {const _st=substanceTurn;substanceTurn=function(pl){_st.apply(this,arguments);if(!kothOn()||G.over)return;
-  if(G.moon.round>1&&G.moon.round%10===0&&G.kothEtherR!==G.moon.round){G.kothEtherR=G.moon.round;const n=kothFillEther(Math.min(4,(G.kothDecks||3)+1));G.kothDecks=Math.min(4,(G.kothDecks||3)+1);if(n)log(`<b>The Ether</b> fills up: ${n} souls come in (never more than four decks' worth of a kind).`,"event")}
+  if(G.turnNo>0&&G.turnNo%10===0&&G.kothEtherAt!==G.turnNo){G.kothEtherAt=G.turnNo;   // v71: every 10 turns again, as the rule was written
+    const n=kothFillEther(Math.min(4,(G.kothDecks||3)+1));G.kothDecks=Math.min(4,(G.kothDecks||3)+1);if(n)log(`<b>The Ether</b> fills up: ${n} souls come in (never more than four decks' worth of a kind).`,"event")}
   if(!G.kothBankDone&&G.phase!=="setup"){G.kothBankDone=true;kothBank();render()}   // the Bank exists once the game is under way
   kothMercs(pl);kothCarriages()}}
 

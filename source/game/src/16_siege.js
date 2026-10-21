@@ -113,9 +113,9 @@ function spawnCrystal(){const free=centerTiles().filter(([r,c])=>!crystalAt(r,c)
   log(`<b>A crystal cluster</b> rises on ${coord(r,c)}: 12 mana for a Miner to dig.`,"event");notify(null,`A crystal rises on ${coord(r,c)}.`);return true}
 function crystalTick(){
   if(G.opts.crystals===false||G.phase==="setup")return;G.crystals=G.crystals||[];
-  if(!G.crystalInit){G.crystalInit=true;if(hq())spawnCrystal();G.crystalNextR=G.moon.round+R(6)+4;return}   // Headquarters opens with a crystal in the middle
-  if(G.crystalNextR==null)G.crystalNextR=G.moon.round+R(6)+4;
-  if(G.moon.round>=G.crystalNextR){spawnCrystal();G.crystalNextR=G.moon.round+R(6)+4}   // then one every 1d6 + 4 rounds (v70c: it counted every player's turn)
+  if(!G.crystalInit){G.crystalInit=true;if(hq())spawnCrystal();G.crystalNext=G.turnNo+R(6)+4;return}   // Headquarters opens with a crystal in the middle
+  if(G.crystalNext==null)G.crystalNext=G.turnNo+R(6)+4;
+  if(G.turnNo>=G.crystalNext){spawnCrystal();G.crystalNext=G.turnNo+R(6)+4}   // then one every 1d6 + 4 turns (v71: turns again, as the rule was written)
 }
 /* the start of a player's turn: crystals, then Miners */
 function siegeTurn(pl){

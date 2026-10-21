@@ -6,8 +6,8 @@
    Taxes, taken only on that day: 1d2 for a base standing in the middle of the field (ground that is nobody's home rows); and for
    every other Ace or Tree a 1 in 3 chance (1 in 2 in bad standing) of 1d2. They can't be paid on credit: with no mana they go
    unpaid, and the standing turns bad.
-   Land in the middle: 2 mana at the Bank buys a spawn point on a free tile of the middle ground until the next Report (one at a
-   time). Any card but a Wall can come down there; a card that comes down without a base on the tile costs 1d2 − 1. A base there
+   Land in the middle: 2 mana at the Bank buys a spawn point on a free tile of the middle ground for 8 of the buyer's turns (v71;
+   before, until the next Report), on the buyer's side of the midline, never in King of the Hill (one at a time). Any card but a Wall can come down there; a card that comes down without a base on the tile costs 1d2 − 1. A base there
    stays a spawn point after the land is gone, until it falls.
    Between players: a lender can forgive a loan, and anyone can give mana or a card from the hand to another player.
    Debt Collectors can only be attacked by a player who owes the Bank something. */
@@ -35,18 +35,28 @@ function bankReport(){if(!G.bank||survival())return;
     P.rp=null;rpOf(pl);
     log(`<b>The Bank's Report</b> for ${plName(pl)} (turns ${paper.from}–${paper.to}): ${good?"good standing":"bad standing"}${due?`; taxes ${paid} of ${due} paid`:""}.`,"event");
     if(!good)notify(pl,`The Bank's Report: ${esc(P.name)} is in bad standing.`)}
-  // the land in the middle runs out
-  if((G.lands||[]).length){G.lands=[];log("The Bank's land in the middle goes back to the Bank (a base on it stays a spawn point until it falls).")}}
+}
 {const _cr=cycleRound;cycleRound=async function(){const out=await _cr.apply(this,arguments);if(G.over)return out;if(G.moon.round>1&&payDay())bankReport();render();return out}}
 
 /* ---------- land in the middle ---------- */
 const landAt=(r,c)=>(G.lands||[]).find(l=>l.r===r&&l.c===c&&G.p[l.owner]&&!G.p[l.owner].out);
-const landFree=()=>{const t=[];for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(midTile(r,c)&&!G.board[r][c]&&!landAt(r,c)&&!(typeof flagAt==="function"&&flagAt(r,c)))t.push([r,c]);return t};
+/* v71: land lasts 8 of its owner's turns (this one counts), never lies past the midline from the buyer's side, and King of the Hill has none */
+const LAND_TURNS=8;
+const landLeft=l=>Math.max(0,l.untilT-tnOf(l.owner));
+function landOwnSide(pl,r,c){const S=seat(pl);if(!S||!S.back||!S.back.length)return true;const [br,bc]=S.back[0],[fr,fc]=S.fwd;
+  const depth=(r-br)*fr+(c-bc)*fc,full=(fr?(fr>0?G.rows-1-br:br):0)+(fc?(fc>0?COLS-1-bc:bc):0);   // how far forward, out of the whole field
+  return depth<=Math.ceil(full/2)}
+const landFree=pl=>{const t=[];if(typeof kothOn==="function"&&kothOn())return t;
+  for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(midTile(r,c)&&!G.board[r][c]&&!landAt(r,c)&&!(typeof flagAt==="function"&&flagAt(r,c))&&(pl==null||landOwnSide(pl,r,c)))t.push([r,c]);return t};
+{const _bt=beginTurn;beginTurn=function(pl){const out=_bt.apply(this,arguments);
+  for(const l of [...(G.lands||[])])if(l.owner===pl&&l.untilT!=null&&tnOf(pl)>=l.untilT){G.lands.splice(G.lands.indexOf(l),1);
+    log(`${plName(pl)}'s land on ${coord(l.r,l.c)} goes back to the Bank after ${LAND_TURNS} turns (a base on it stays a spawn point until it falls).`)}
+  return out}}
 function buyLand(pl,r,c){const P=G.p[pl];if(!bankOpen()||G.phase!=="prep"||G.active!==pl)return false;
   if((G.lands||[]).some(l=>l.owner===pl)){if(!P.cpu)flash("You already hold land in the middle.");return false}
-  if(!landFree().some(([a,b])=>a===r&&b===c))return false;if(!canAfford(pl,2)){if(!P.cpu)flash("Land costs 2 mana.");return false}
-  spend(pl,2);(G.lands=G.lands||[]).push({r,c,owner:pl});
-  log(`${plName(pl)} buys land from the Bank on ${coord(r,c)}: a spawn point until the next Report.`,"event");return true}
+  if(!landFree(pl).some(([a,b])=>a===r&&b===c))return false;if(!canAfford(pl,2)){if(!P.cpu)flash("Land costs 2 mana.");return false}
+  spend(pl,2);(G.lands=G.lands||[]).push({r,c,owner:pl,untilT:tnOf(pl)+LAND_TURNS});
+  log(`${plName(pl)} buys land from the Bank on ${coord(r,c)}: a spawn point for ${LAND_TURNS} of their turns.`,"event");return true}
 {NETFN.buyLand={get:()=>buyLand,set:f=>buyLand=f};const orig=buyLand;buyLand=function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:"buyLand",args:netClean(a),ui:uiSnap(),rid})}}
 {const _cp=canPlace;canPlace=function(card,r,c){if(_cp(card,r,c))return true;if(!G||G.phase==="setup"||isVoid(r,c))return false;
   const l=landAt(r,c);if(!l||l.owner!==G.active||kind(card)==="wall")return false;const st=G.board[r][c];
@@ -57,7 +67,7 @@ function buyLand(pl,r,c){const P=G.p[pl];if(!bankOpen()||G.phase!=="prep"||G.act
   const st=G.board[r][c];if(l&&l.owner===pl&&st&&!st.cards.some(isBase)){const fee=R(2)-1;if(fee){spend(pl,fee);log(`The Bank charges ${plName(pl)} ${fee} mana for a card on its land.`)}}
   return out}}
 function landHTML_(r,c,under){const l=landAt(r,c);if(!l)return "";const P=G.p[l.owner];
-  return `<span class="landmk${under?" under":""}" style="--fc:${P.color}" data-tip="${esc(P.name)}'s land from the Bank: a spawn point for any card but a Wall until the next Report. A card without a base here costs 1d2 − 1.">$</span>`}
+  return `<span class="landmk${under?" under":""}" style="--fc:${P.color}" data-tip="${esc(P.name)}'s land from the Bank: a spawn point for any card but a Wall, ${landLeft(l)} more of ${esc(P.name)}'s turns (counting the current one). A card without a base here costs 1d2 − 1.">$</span>`}
 {const _ch=crystalHTML;crystalHTML=function(r,c,under){return _ch(r,c,under)+landHTML_(r,c,under)}}
 
 /* ---------- Debt Collectors: only someone who owes the Bank can strike them ---------- */
@@ -96,8 +106,8 @@ ${paper({...rp},true)}${R0?paper(R0,false):`<p class="dim">No Report yet.</p>`}$
     const show=t=>{tabs.querySelectorAll("[data-bt]").forEach(b=>{const on=b.dataset.bt===t;b.classList.toggle("on",on);b.setAttribute("aria-selected",on)});box.querySelectorAll(".btab").forEach(p=>p.hidden=p.dataset.t!==t);bankTab=t};
     tabs.querySelectorAll("[data-bt]").forEach(b=>b.onclick=()=>show(b.dataset.bt));if(bankTab==="report")show("report")}
   // land on the front tab
-  const acts=box.querySelector(".bacts");if(acts&&live&&bankOpen()){const mine=(G.lands||[]).find(l=>l.owner===V),free=landFree();
-    acts.insertAdjacentHTML("beforeend",`<p class="brow landrow"><span class="bkey" data-tip="A spawn point on the middle ground until the next Report: any card but a Wall can come down there; a card without a base on it costs 1d2 − 1. A base on it stays a spawn point after that, until it falls." tabindex="0">Land <i class="q">?</i></span>${mine?`<small class="dim">You hold land on ${coord(mine.r,mine.c)} until the next Report.</small>`:`<label class="${free.length?"":"off"}"><select id="bLandAt" aria-label="Where" ${free.length?"":"disabled"}>${free.length?free.map(([r,c])=>`<option value="${r},${c}">${coord(r,c)}</option>`).join(""):"<option>—</option>"}</select></label><button class="btn sm" id="bLandBtn" ${free.length&&canAfford(V,2)?"":"disabled"}>Buy for 2 mana</button><small class="dim">A spawn point in the middle until the next Report.</small>`}</p>`);
+  const acts=box.querySelector(".bacts");if(acts&&live&&bankOpen()){const mine=(G.lands||[]).find(l=>l.owner===V),free=landFree(V);
+    acts.insertAdjacentHTML("beforeend",`<p class="brow landrow"><span class="bkey" data-tip="A spawn point on the middle ground for 8 of your turns (this one counts), on your side of the midline (none in King of the Hill): any card but a Wall can come down there; a card without a base on it costs 1d2 − 1. A base on it stays a spawn point after that, until it falls." tabindex="0">Land <i class="q">?</i></span>${mine?`<small class="dim">You hold land on ${coord(mine.r,mine.c)}: ${landLeft(mine)} of your turns left, this one counted.</small>`:`<label class="${free.length?"":"off"}"><select id="bLandAt" aria-label="Where" ${free.length?"":"disabled"}>${free.length?free.map(([r,c])=>`<option value="${r},${c}">${coord(r,c)}</option>`).join(""):"<option>—</option>"}</select></label><button class="btn sm" id="bLandBtn" ${free.length&&canAfford(V,2)?"":"disabled"}>Buy for 2 mana</button><small class="dim">A spawn point in the middle, on your side of the midline, for 8 of your turns.</small>`}</p>`);
     const b=$("#bLandBtn");if(b)b.onclick=()=>{const [r,c]=$("#bLandAt").value.split(",").map(Number);buyLand(V,r,c);render();openBank()}}
   // between players: forgive, give
   const p2p=box.querySelector(".btab.p2p");if(p2p){
@@ -117,7 +127,7 @@ ${paper({...rp},true)}${R0?paper(R0,false):`<p class="dim">No Report yet.</p>`}$
 {const _et=econTags;econTags=function(P){const t=_et(P);if(!G.bank||isHorde(P.i)||isNPC(P.i))return t;
   if(P.guilty)t.unshift(`<span class="debttag" data-tip="In default with the Bank: Debt Collectors come every turn until the debt is paid off.">In default</span>`);
   else if(P.rp&&P.rp.bad)t.unshift(`<span class="debttag" data-tip="Bad standing with the Bank this period (default, an unpaid tax or a robbery). It shows on the next Report.">Bad standing</span>`);
-  const l=(G.lands||[]).find(x=>x.owner===P.i);if(l)t.push(`<span class="saletag" data-tip="Land from the Bank on ${coord(l.r,l.c)}: a spawn point until the next Report.">Land ${coord(l.r,l.c)}</span>`);
+  const l=(G.lands||[]).find(x=>x.owner===P.i);if(l)t.push(`<span class="saletag" data-tip="Land from the Bank on ${coord(l.r,l.c)}: a spawn point for ${landLeft(l)} more of ${esc(P.name)}'s turns, this one counted.">Land ${coord(l.r,l.c)} · ${landLeft(l)}</span>`);
   if(P.shield)t.push(`<span class="saletag" data-tip="Please Don't Hurt Me: none of this player's stacks can be attacked until their next turn.">Untouchable</span>`);
   if(P.noLoans)t.push(`<span class="debttag" data-tip="Tried to rob the Bank: no loans or credit, ever.">No loans</span>`);
   return t}}
@@ -126,3 +136,4 @@ const TAG_TIPS=[[/^Debt −/,"Mana debt: shows as mana below zero. Every soul ga
 {const _et=econTags;econTags=function(P){return _et(P).map(h=>{if(/data-tip=/.test(h))return h;const m=/^<span([^>]*)>([^<]*)</.exec(h);if(!m)return h;const tip=TAG_TIPS.find(([re])=>re.test(m[2]));
   return tip?h.replace("<span",`<span data-tip="${esc(tip[1])}"`):h})}}
 if(window.__EC)Object.assign(window.__EC,{bankReport,buyLand,landFree,forgiveLoan,giftMana,giftCard,rpOf,attackOptions:(...a)=>attackOptions(...a)});
+if(window.__EC)Object.assign(window.__EC,{landFreeW:pl=>landFree(pl),buyLandW:(...a)=>buyLand(...a),landLeftW:l=>landLeft(l),midTileW:(r,c)=>midTile(r,c)});

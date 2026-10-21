@@ -2,7 +2,7 @@
 import json, html, os, re, shutil
 
 OUT = 'site'
-SITE_V = '54'   # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+SITE_V = '55'   # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 os.makedirs(OUT, exist_ok=True)
 shutil.copy('theme/site.js', f'{OUT}/site.js')
 shutil.copy('theme/ec-music.js', f'{OUT}/ec-music.js')
@@ -14,7 +14,7 @@ esc = lambda s: html.escape(str(s), quote=True)
 
 # v43: the Ether's Crossroads pages wear the theme chosen in the game (by default the Ether's Crossroads theme), from the first paint
 EC_THEME = '''<script>try{var P=JSON.parse(localStorage.getItem("ec-prefs2")||"{}"),t=P.theme==null||(!P.v43t&&P.theme==="")?"darkfantasy":P.theme,
-M={darkfantasy:["th-darkfantasy"],dull:["th-dull"],office:["th-office"],officedark:["th-officedark"],earth:["th-earth"],jester:["th-black","th-jester"],ten:["th-indigo","th-blue"],satan:["th-crimson"]};
+M={darkfantasy:["th-darkfantasy"],"":["th-rich"],dull:["th-dull","th-rich"],office:["th-office","th-rich"],officedark:["th-officedark","th-rich"],earth:["th-earth","th-rich"],jester:["th-black","th-jester","th-rich"],ten:["th-indigo","th-blue","th-rich"],satan:["th-crimson","th-rich"]};
 (M[t]||[]).forEach(function(c){document.documentElement.classList.add(c)});document.documentElement.classList.add("ecpage")}catch(e){}</script>'''
 def head(title, extra='', static=1, fx='strings bars', theme='', ec=False):
     cls = f' class="{theme}"' if theme else ''

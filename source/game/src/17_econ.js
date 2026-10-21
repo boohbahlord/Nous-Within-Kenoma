@@ -47,7 +47,7 @@ function noteBuy(id){const B=G.bank;if(!B)return;const r=G.moon.round;(B.buys[r]
 function saleCut(sp){const D=G.saleD||(G.saleD={});if(D[sp.id]==null)D[sp.id]=R(2)-1;return D[sp.id]}
 function spellCost(sp){
   let c=baseCost(sp);const B=G.bank;if(!B)return c;
-  if(c>0){c+=(B.upsell[sp.id]||0)+(B.angry?1:0);if(G.inflation&&G.moon.round<=G.inflation.untilR)c+=G.inflation.add||0}
+  if(c>0){c+=(B.upsell[sp.id]||0)+(B.angry?1:0);if(G.inflation&&G.turnNo<=G.inflation.until)c+=G.inflation.add||0}
   c=jupiterCost(sp,c);c=mercuryCost(sp,c);
   if(sp.school==="Conjuring"&&c>0){
     if(B.mana<0&&!B.dead)c=Math.max(1,c-1);   // the Bank is broke: the Ether goes on sale
@@ -155,8 +155,8 @@ function collapse(){
     if(!gone){for(let i=0;i<2;i++){const all=stacksOf(pl).flatMap(x=>x.st.cards.filter(c=>!isBase(c)).map(c=>({c,x})));if(!all.length)break;const {c,x}=pick(all);x.st.cards.splice(x.st.cards.indexOf(c),1);if(!x.st.cards.length)G.board[x.r][x.c]=null;c.owner=null;G.ether.push(c)}}
     const a=stacksOf(pl).find(x=>hasK(x.st,"ace"));if(a){const ace=a.st.cards.find(c=>kind(c)==="ace");a.st.cards.splice(a.st.cards.indexOf(ace),1);if(!a.st.cards.length)G.board[a.r][a.c]=null;ace.owner=null;ace.hp=ace.maxHp=2;G.ether.push(ace)}
   }
-  B.mana=0;B.owes=[];G.inflation={untilR:G.moon.round+sum(rollN(4,2)),add:0};
-  popup("The Bank collapses",`<p>The Bank and every player were 3 or more below zero. It all comes down.</p><p>Everyone's mana and debts are wiped to zero, every maximum falls to three, five random cards leave each deck (two from the field if the deck is empty) and each player's Ace on the field goes back into the Ether. For 4d2 rounds every price wobbles up by 1d2 − 1 a turn.</p>`);
+  B.mana=0;B.owes=[];G.inflation={until:G.turnNo+sum(rollN(4,2)),add:0};
+  popup("The Bank collapses",`<p>The Bank and every player were 3 or more below zero. It all comes down.</p><p>Everyone's mana and debts are wiped to zero, every maximum falls to three, five random cards leave each deck (two from the field if the deck is empty) and each player's Ace on the field goes back into the Ether. For 4d2 turns every price wobbles up by 1d2 − 1 a turn.</p>`);
   checkWin();
 }
 
@@ -193,7 +193,7 @@ function openBank(){
   const fl=floorOf(V),gap=e-fl,debt=P.debt||0;
   const notes=[];if(B.dead)notes.push("The Banker is dead: the Bank and the Ether are closed.");if(B.angry)notes.push("The Banker is angry about the Demons holding the middle: every price +1.");
   if(B.mana<0&&!B.dead)notes.push("The Bank is in the red: everything in the Ether costs 1 less.");const up=Object.keys(B.upsell);if(up.length)notes.push(`Upsold this round: ${up.map(id=>SP(id)?SP(id).name:id).join(", ")}.`);
-  if(G.inflation&&G.moon.round<=G.inflation.untilR)notes.push(`After the collapse, prices wobble up until round ${G.inflation.untilR}.`);
+  if(G.inflation&&G.turnNo<=G.inflation.until)notes.push(`After the collapse, prices wobble up for ${G.inflation.until-G.turnNo+1} more turn${G.inflation.until-G.turnNo+1===1?"":"s"}.`);
   const cap=soulCap(V),pay=Math.min(mana(V),owed),why=loanWhy(V);
   const tip=t=>`data-tip="${esc(t)}" tabindex="0"`;
   const LOAN_TIP=`A loan is mana now, paid out of the Bank's own mana. How much: up to 12 (6 if you are below zero, 5 at −${cap} or lower), and only while the Bank stays at ${BANK_FLOOR} or above. When it's due: half the amount in your turns, at least 2 (12 mana: 6 turns). It grows by 1d2 every 3 of your turns. Pay it back with Repay; whatever is left when it's due becomes mana debt. One loan at a time, one a round, and the next no sooner than ${LOAN_GAP} turns after the last.`;
@@ -272,13 +272,13 @@ function barbTick(){
   // a new band waits while the last one still stands
   const rd=G.moon.round;if(G.barbNextR==null){G.barbNextR=rd+4+R(12);return}
   if(rd>=G.barbNextR){if(stacksOf(B).length)G.barbNextR=rd+1+R(3);else{G.barbNextR=rd+4+R(12);spawnBarbarians()}}
-  // the middle held for 7d2 rounds angers the Banker
+  // the middle held for 7d2 turns angers the Banker (v71: turns again, as the rule was written)
   const held=stacksOf(B).some(x=>centerArea().some(([r,c])=>r===x.r&&c===x.c));
-  if(held){if(G.barbHeldR==null){G.barbHeldR=G.moon.round;G.barbNeed=sum(rollN(7,2))}
-    else if(G.bank&&!G.bank.angry&&!G.bank.dead&&G.moon.round-G.barbHeldR>=G.barbNeed){G.bank.angry=true;
-      log(`<b>The Banker is angry.</b> The Demons have held the middle for ${G.barbNeed} rounds: every price goes up by 1 until they are gone.`,"event");
-      popup("The Banker's justification",`<p>"Trade can't cross the middle of the field while those savages sit on it. Every caravan pays for guards, every guard wants his wage, and somebody has to pay the wage."</p><p>The Demons have held the middle for ${G.barbNeed} rounds (7d2). Every spell costs 1 more until no Demon is left in the middle.</p>`)}}
-  else{G.barbHeldR=null;if(G.bank&&G.bank.angry){G.bank.angry=false;log("The middle is clear of Demons: the Banker calms down and prices go back.","event")}}
+  if(held){if(G.barbHeld==null){G.barbHeld=G.turnNo;G.barbNeed=sum(rollN(7,2))}
+    else if(G.bank&&!G.bank.angry&&!G.bank.dead&&G.turnNo-G.barbHeld>=G.barbNeed){G.bank.angry=true;
+      log(`<b>The Banker is angry.</b> The Demons have held the middle for ${G.barbNeed} turns: every price goes up by 1 until they are gone.`,"event");
+      popup("The Banker's justification",`<p>"Trade can't cross the middle of the field while those savages sit on it. Every caravan pays for guards, every guard wants his wage, and somebody has to pay the wage."</p><p>The Demons have held the middle for ${G.barbNeed} turns (7d2). Every spell costs 1 more until no Demon is left in the middle.</p>`)}}
+  else{G.barbHeld=null;if(G.bank&&G.bank.angry){G.bank.angry=false;log("The middle is clear of Demons: the Banker calms down and prices go back.","event")}}
 }
 function centerArea(){const c0=centerTiles(),out=[];for(const [r,c] of c0)for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const rr=r+dr,cc=c+dc;if(rr>=0&&cc>=0&&rr<G.rows&&cc<COLS&&!out.some(t=>t[0]===rr&&t[1]===cc))out.push([rr,cc])}return out}
 function spawnBarbarians(blood){
