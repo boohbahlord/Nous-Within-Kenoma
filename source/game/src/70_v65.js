@@ -21,7 +21,7 @@ function groupMenuSliders(){const m=$("#menu"),box=m&&m.querySelector(".ovbox");
 /* ---------- cards in the players' colors, further apart: each color has its own card tone (U3). Crimson and Ember used to
    come out the same muddy red-brown; now Crimson is a deep red and Ember a burnt orange. Light lettering reads on every one. */
 const CARD_TONE={"#ee7a3c":"#8f4a0e","#e3b944":"#6f5a0c","#45b89c":"#14604f","#4c92e6":"#1f4c8c","#a77de8":"#55348f","#e4648f":"#8a2457","#d7333b":"#7e0d16","#8fb33f":"#46661a","#74d7ea":"#16687a"};
-const toneOf=col=>CARD_TONE[String(col||"").toLowerCase()]||null;
+const toneOf=col=>PREF.cb?null:CARD_TONE[String(col||"").toLowerCase()]||null;   // v71h: colorblind-safe colors mix their own tone
 const addTone=h=>h.replace(/style="--pc:([^";]*)/,(m,col)=>{const t=toneOf(col);return t?`style="--pc:${col};--pcb:${t}`:m});
 {const _f=face;face=function(){return addTone(_f.apply(this,arguments))}}
 {const _sd=siegeDecor;siegeDecor=function(){const h=_sd.apply(this,arguments);return h.replace(/(<div class="stack[^"]*v61[^"]*") style="--pc:([^";]*)/,(m,a,col)=>{const t=toneOf(col);return t?`${a} style="--pc:${col};--pcb:${t}`:m})}}

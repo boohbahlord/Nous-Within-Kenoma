@@ -11,7 +11,7 @@
 /* ---------- accent colors ---------- */
 const ACCENTS=[["auto","Its own light"],...PALETTE.map(([n,h])=>[h,n])];   // v71e: the whole palette, the same as the players' colors
 const accentOf=(color,acc)=>!acc||acc==="auto"?`color-mix(in oklab,${color} 55%,#f3e7d2)`:acc;
-const pAccent=P=>P?accentOf(P.color,P.accent):"#9a8f80";
+const pAccent=P=>P?accentOf(P.color,PREF.cb?"auto":P.accent):"#9a8f80";   // v71h: colorblind-safe colors use the color's own light
 
 /* ---------- the card face ---------- */
 {const _i=inkSVG;inkSVG=function(u,color,size){   // the art takes the card's lettering color, and its paper is the card itself

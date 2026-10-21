@@ -83,7 +83,7 @@ function kothWin(g,why){if(G.over)return;const w=g[0]==="t"?alive().find(i=>!isN
   if(!kothOn()){if(bar)bar.remove();return}
   const K=G.opts.koth,S=G.koth||(G.koth={score:{},tug:0,last:null}),hold=new Map();
   for(let r=HILL[0];r<=HILL[1];r++)for(let c=HILL[0];c<=HILL[1];c++){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(!t)continue;t.classList.add("hilltile");
-    const st=G.board[r][c];if(st&&!isNPC(st.owner)&&G.p[st.owner]){t.style.setProperty("--hc",kothGroupColor(kothGroup(st.owner)));t.style.setProperty("--ho",G.p[st.owner].color);t.classList.add("held")}}
+    const st=G.board[r][c];if(st&&!isNPC(st.owner)&&G.p[st.owner]){t.style.setProperty("--hc",cbMap(kothGroupColor(kothGroup(st.owner))));t.style.setProperty("--ho",cbMap(G.p[st.owner].color));t.classList.add("held")}}
   for(const [g] of kothHolders())hold.set(g,true);
   if(!bar){bar=document.createElement("div");bar.id="kothbar";const w=$(".camwrap")||$("#board");w.parentNode.insertBefore(bar,w)}
   const groups=K.team?["t0","t1"]:alive().filter(i=>!isNPC(i)&&!isHorde(i)).map(i=>"p"+i);
