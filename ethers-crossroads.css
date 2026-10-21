@@ -772,7 +772,8 @@ body.bigtext .ovbox.bank details.bankhelp dd{margin:0 0 6px}
 @media (min-width:901px){
   .ovbox.setup{width:min(1480px,calc(96vw / var(--uiz,1)));max-width:none}
   .ovbox.setup:has(.stabs){height:calc(94vh / var(--uiz,1));max-height:none}
-  .ovbox.setup .spanel:not([data-p=players]){columns:2 420px;column-gap:20px}
+  /* the columns sit on a wrapper inside the scrolling panel: its height is free, so whatever doesn't fit goes down, never off to the side */
+  .ovbox.setup .spanel:not([data-p=players])>.scols{columns:2 420px;column-gap:20px}
   .ovbox.setup .spanel fieldset.pf{break-inside:avoid;display:block}
   #seats{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:0 16px;align-items:start}
 }
@@ -1202,7 +1203,7 @@ body.phone .itab{padding:8px 12px;font-size:13.5px}
 .glob .mgrid .f{display:flex;flex-direction:column;gap:4px}
 .glob .mgrid select{font:inherit;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:5px 6px}
 .glob .spanel{padding-top:10px}
-.ovbox.setup.glob .spanel{columns:auto!important}
+.ovbox.setup.glob .spanel,.ovbox.setup.glob .spanel>.scols{columns:auto!important}
 /* ================= v41: Field Automation ================= */
 .fabar{display:inline-flex;gap:3px;align-items:center}
 .fabar .fatog{white-space:nowrap}
