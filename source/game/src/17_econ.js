@@ -102,7 +102,7 @@ function bankTurn(pl){
   }
   if(P.saleUntil!=null&&n>P.saleUntil){P.saleUntil=null;log(`${plName(pl)}'s Ether sale ends.`)}
   // the meteor's fire
-  if(P.tribe!=="firm")for(const {st,r,c} of stacksOf(pl))if(fireAt(r,c)&&R(20)===20){log(`The meteor's fire on ${coord(r,c)} burns ${plName(pl)}'s stack.`,"event");damage(r,c,1,false)}
+  if(P.tribe!=="firm")for(const {st,r,c} of stacksOf(pl))if(meteorFireAt(r,c)&&R(20)===20){log(`The meteor's fire on ${coord(r,c)} burns ${plName(pl)}'s stack.`,"event");damage(r,c,1,false)}
   checkDebt(pl);
 }
 
@@ -118,7 +118,7 @@ async function econRound(){
   for(const id in a)if(a[id]>2&&(b[id]||0)>2){const v=R(2)-1;if(v){B.upsell[id]=v;const sp=SP(id);if(sp)ups.push(sp.name)}}
   if(ups.length)log(`<b>The Bank upsells</b> what everyone keeps buying: ${ups.join(", ")} cost 1 more this round.`,"event");
   // fire burns out; the meteor, one chance in a hundred
-  G.fires=(G.fires||[]).filter(f=>f.until>=r);
+  G.fires=(G.fires||[]).filter(f=>f.untilT!=null?f.untilT>=G.turnNo:f.until>=r);
   if(r>1&&Math.random()<(G.forceMeteor?1:.01)){G.forceMeteor=false;meteor()}
   if(G.over)return;
   // a Blood Moon brings the Demons
@@ -126,14 +126,14 @@ async function econRound(){
   // Saturn taxes the Bank too
   if(G.moon.gone==="saturn"&&G.saturnBy!=null&&!G.p[G.saturnBy].out&&!B.dead){const n=Math.min(1+(G.saturnDebt||0),Math.max(0,B.mana-BANK_FLOOR));B.mana-=n;const got=giveMana(G.saturnBy,n);log(`The Bank pays Saturn's tax: ${n} mana (${plName(G.saturnBy)} gets ${got}).`)}
   // the Bank pays back what it borrowed, with interest
-  for(const o of [...B.owes]){if(r>=o.at){o.owed=Math.ceil(o.owed*1.2);o.at=r+2}
+  for(const o of [...B.owes]){if(o.atT==null)o.atT=G.turnNo+R(2);   // v71: its interest comes every 1d2 turns (see beginTurn), as the rule was written
     if(B.mana>=o.owed&&!G.p[o.to].out){B.mana-=o.owed;const got=giveMana(o.to,o.owed);B.owes.splice(B.owes.indexOf(o),1);log(`The Bank pays ${plName(o.to)} back ${o.owed} mana (${got} fit in the soul pile).`,"event")}}
   // a broke Bank asks the richest player for a loan
   if(B.mana<0&&!B.dead&&!B.owes.length){
     const need=-B.mana+R(3);
     for(const pl of alive().filter(i=>!isHorde(i)&&mana(i)>=need).sort((x,y)=>mana(y)-mana(x))){
-      const yes=await ask(pl,{kind:"yesno",id:"bankloan",title:`The Bank asks ${esc(G.p[pl].name)} for a loan`,text:`The Bank is ${-B.mana} mana in the red and the Ether is on sale. Lend it ${need} mana? It pays back 20% more every two rounds until it can pay, but if the Bank collapses the mana is gone.`,yes:`Lend ${need}`,no:"Refuse",ai:()=>mana(pl)>=need+4&&Math.random()<.6});
-      if(yes){const paid=payQuiet(pl,need);B.mana+=paid;B.owes.push({to:pl,owed:paid,at:r+2});log(`${plName(pl)} lends the Bank ${paid} mana.`,"event");break}
+      const yes=await ask(pl,{kind:"yesno",id:"bankloan",title:`The Bank asks ${esc(G.p[pl].name)} for a loan`,text:`The Bank is ${-B.mana} mana in the red and the Ether is on sale. Lend it ${need} mana? Its debt grows 20% every 1d2 turns until it can pay, but if the Bank collapses the mana is gone.`,yes:`Lend ${need}`,no:"Refuse",ai:()=>mana(pl)>=need+4&&Math.random()<.6});
+      if(yes){const paid=payQuiet(pl,need);B.mana+=paid;B.owes.push({to:pl,owed:paid,atT:G.turnNo+R(2)});log(`${plName(pl)} lends the Bank ${paid} mana.`,"event");break}
     }
   }
   await bankCollectors();if(G.over)return;
@@ -246,22 +246,24 @@ function econTags(P){const t=[];if(!G.bank||isHorde(P.i))return t;
   return t}
 
 /* ---------- the meteor and its fire ---------- */
-const fireAt=(r,c)=>!!(G.fires||[]).some(f=>f.r===r&&f.c===c);
+const fireLive=f=>f.untilT!=null?f.untilT>=G.turnNo:true;   // v71: fire counts turns, as the rule was written
+const fireAt=(r,c)=>!!(G.fires||[]).some(f=>f.r===r&&f.c===c&&fireLive(f));
+const meteorFireAt=(r,c)=>!!(G.fires||[]).some(f=>f.r===r&&f.c===c&&!f.scorch&&fireLive(f));   // Scorched Earth has its own burn
 function meteor(){
   const t=[];for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(!isVoid(r,c))t.push([r,c]);if(!t.length)return;
   const [r,c]=pick(t);
-  log(`<b>A meteor</b> crashes onto ${coord(r,c)}! Everything around it may burn for two rounds.`,"event");
-  popup("A meteor",`<p>A meteor falls out of the sky onto ${coord(r,c)}. The tile takes one damage, every tile around it one damage on a 4 of 1d4, and Walls 1d2 + 1. Fire burns the whole area for two rounds: a stack standing in it takes one damage on a natural 20 at the start of its turn. The Firmament is immune.</p>`);
+  log(`<b>A meteor</b> crashes onto ${coord(r,c)}! Everything around it may burn for two turns.`,"event");
+  popup("A meteor",`<p>A meteor falls out of the sky onto ${coord(r,c)}. The tile takes one damage, every tile around it one damage on a 4 of 1d4, and Walls 1d2 + 1. Fire burns the whole area for two turns: a stack standing in it takes one damage on a natural 20 at the start of its turn. The Firmament is immune.</p>`);
   skyStrike(r,c,"The meteor");
 }
-/* a meteor or the Firmament's Asteroid: one damage where it lands, 1d4 = 4 for each tile around, fire for two rounds; the Firmament takes nothing */
+/* a meteor or the Firmament's Asteroid: one damage where it lands, 1d4 = 4 for each tile around, fire for two turns; the Firmament takes nothing */
 function skyStrike(r,c,why){
   const hit=(rr,cc)=>{const st=G.board[rr][cc];if(!st)return;if(G.p[st.owner]&&G.p[st.owner].tribe==="firm"){log(`${why} can't touch the Firmament on ${coord(rr,cc)}.`);return}
     if(hasK(st,"wall"))wallHit(rr,cc,1+R(2),why);else damage(rr,cc,1,false)};
   G.fires=G.fires||[];hit(r,c);
   for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){if(!dr&&!dc)continue;const rr=r+dr,cc=c+dc;if(rr<0||cc<0||rr>=G.rows||cc>=COLS||isVoid(rr,cc))continue;if(R(4)===4)hit(rr,cc);
-    G.fires.push({r:rr,c:cc,until:G.moon.round+1})}
-  G.fires.push({r,c,until:G.moon.round+1});
+    G.fires.push({r:rr,c:cc,untilT:G.turnNo+2})}
+  G.fires.push({r,c,untilT:G.turnNo+2});
   checkWin();
 }
 

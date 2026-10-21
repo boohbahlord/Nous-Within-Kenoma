@@ -97,4 +97,9 @@ function skyChgLine(){if(!G||!G.moon)return "";const o=SKYCHG(),k=sky();if(skyFi
   const target=o.mode==="bid"?G.skyKeepAt:G.skyEveryN,leftC=Math.max(0,target-(G.skyCyc||0));
   return o.mode==="bid"?`Leaves after ${leftC===0?"this":leftC===1?"its next":`${leftC} more`} cycle${leftC>1?"s":""}, unless bids keep it (${G.skyCyc||0} of ${target} cycles done).`:`Leaves after ${leftC} more cycle${leftC===1?"":"s"} (${G.skyCyc||0} of ${target} done).`}
 {const _ms=moonStrip;moonStrip=function(){const h=_ms.apply(this,arguments),l=skyChgLine();return l?h+`<p class="skychgl">${esc(l)}</p>`:h}}
+/* ---------- v71: things the rules count in turns ---------- */
+{const _bt=beginTurn;beginTurn=function(pl){const out=_bt.apply(this,arguments);
+  if(G.fires)G.fires=G.fires.filter(f=>f.untilT==null||f.untilT>=G.turnNo);   // fire burns out after its turns
+  const B=G.bank;if(B&&B.owes)for(const o of B.owes)if(o.atT!=null&&G.turnNo>=o.atT){o.owed=Math.ceil(o.owed*1.2);o.atT=G.turnNo+R(2)}   // what the Bank owes grows 20% every 1d2 turns
+  return out}}
 if(window.__EC)Object.assign(window.__EC,{eclipseW:k=>eclipse(k),venusCycleW:()=>venusCycle(),fullMoonTollW:()=>fullMoonToll(),skyChangeRound:()=>skyChangeRound(),skySwap:(...a)=>skySwap(...a),skyAuction:()=>skyAuction(),skyArrive:()=>skyArrive(),skyChgLine:()=>skyChgLine(),cycleRoundW:()=>cycleRound()});

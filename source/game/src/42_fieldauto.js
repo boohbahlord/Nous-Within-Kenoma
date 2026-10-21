@@ -62,7 +62,8 @@ function faScales(c,pl){const sc={};for(const [k] of FA_PRINC)sc[k]=1;if(!c.hier
   for(const [a,b] of c.eq){const da=FA_AGGR[a](c),db=FA_AGGR[b](c);if(da===db)continue;const lead=(behind?da<db:da>db)?a:b;sc[lead]=Math.min(1,sc[lead]+.1)}
   return sc}
 const faMix=(a,b,t)=>{const o={...a};for(const k of ["atk","def","dist","ally","ctr"])o[k]=(a[k]||0)*(1-t)+(b[k]||0)*t;if(t>=.5&&b.k)o.k=b.k;return o};   // the stronger side names the stance
-const FA_CENTER={atk:1,def:.8,dist:.04,ally:.3,ctr:1,k:"center"};   // v70c: it goes for the middle and holds it, striking what comes in reach
+const FA_CENTER={atk:1,def:.8,dist:.04,ally:.3,ctr:1,k:"center"};
+const FA_OFF={atk:1.45,def:.45,dist:.85,ally:.1,k:"off"};   // v71: Offensive goes forward and fights; the computers keep their own, warier OFF   // v70c: it goes for the middle and holds it, striking what comes in reach
 const faRushing=pl=>{const s=faState(pl);return !!(s&&s.cfg&&s.cfg.rush>0&&s.rushUntil!=null&&G.moon.round<=s.rushUntil)};
 /* a Wall matters only when it stands between your field and an enemy base */
 function faWallBlocks(pl,wr,wc){const bases=AI.enemyStacks(pl).filter(e=>hasBase(e.st)&&!hasK(e.st,"wall"));const mine=stacksOf(pl);
@@ -82,16 +83,17 @@ function faTargetFactor(cfg){if(!cfg.tprio)return ()=>1;
 function faCtx(pl){
   const s=faState(pl),c=faEff(s&&s.cfg),sc=faScales(c,pl);
   let W={...AI.stance(pl)};
-  const fixed={offensive:AI.W.OFF,defensive:AI.W.DEF,center:FA_CENTER}[c.stance];if(fixed)W=faMix(W,fixed,sc.stance);
+  const fixed={offensive:FA_OFF,defensive:AI.W.DEF,center:FA_CENTER}[c.stance];if(fixed)W=faMix(W,fixed,sc.stance);
   if(faRushing(pl))W=faMix(W,AI.W.PUSH,sc.rush);
-  W.ally=(W.ally||0)+({wide:.5,deep:-.15}[c.formation]||0)*sc.formation;W.stack=({deep:.8,wide:-.1}[c.formation]||0)*sc.formation;
+  W.ally=(W.ally||0)+({wide:.1,deep:-.1}[c.formation]||0)*sc.formation;W.stack=({deep:.8,wide:-.3}[c.formation]||0)*sc.formation;   // v71: Wide surrounds (below), Tall stacks
   const lv={preserve:1,balanced:0,throw:-1}[c.lives]||0;W.def=(W.def||0)*(1+.4*lv*sc.lives);
   const thrAdj=(lv>0?.12:lv<0?-.15:0)*sc.lives+({careful:.08,reckless:-.1}[c.battles]||0)*sc.battles;
   const ok=grp=>grp.length>0&&grp.every(x=>faControls(x,c));
   // Don't attack: on top it stops every attack; Rush or Target bases ranked above it still get their way
   const rk=faRanks(c),above=k=>c.hier&&rk[k]<rk.noatk,rushes=faRushing(pl)&&above("rush"),basesOnly=c.noAttack&&!rushes&&c.bases&&above("bases"),noAtk=c.noAttack&&!rushes&&!basesOnly;
   const tf=faTargetFactor(c);
-  return {level:faLevel(),W,thrAdj,lossMul:1+.5*lv*sc.lives,moves:c.mode!=="attacks",ambushP:c.ambush?.7*sc.ambush:0,ok,flee:c.formation==="deep"&&c.flee,
+  const ring=.3+({wide:.6,deep:-.15}[c.formation]||0)*sc.formation;   // v71: a stack of mine already beside the target counts for this much more
+  return {level:faLevel(),W,thrAdj,form:c.formation,ring,lossMul:1+.5*lv*sc.lives,moves:c.mode!=="attacks",ambushP:c.ambush?.7*sc.ambush:0,ok,flee:c.formation==="deep"&&c.flee,
     okAtk:(st,o)=>{if(noAtk)return false;const E=G.board[o.r]&&G.board[o.r][o.c];if(basesOnly&&!(E&&hasBase(E)))return false;return o.card?faControls(o.card,c):ok(st.cards.filter(x=>!isBase(x)))},
     gainMul:E=>{let m=tf(E);if(c.bases&&hasBase(E)&&!hasK(E,"wall"))m*=1+sc.bases;
       if(c.walls&&hasK(E,"wall")){const at=AI.enemyStacks(pl).find(e=>e.st===E);if(at&&!faWallBlocks(pl,at.r,at.c))m*=1-.7*sc.bases}return m}}}
@@ -157,7 +159,7 @@ function faPanelHTML(c,pl,pfx){
   if(custom){
     h+=sec("Rush the enemy",row("rushon",c.rush>0,"Rush","Everything it controls goes for the enemy, whatever the stance.")+spin("For how long",left!=null?`${left?left+" left":"over"}`:"",Math.max(1,c.rush),"rush",`round${Math.max(1,c.rush)>1?"s":""}`,!c.rush));
     h+=sec("Formation",radio("formation",c.formation,[["auto","Automatic",""],["wide","Wide","Spread out, surround, take the advantage"],["deep","Tall","Columns: stack strength, even with fewer to stack with"]])+row("fLink",c.fLink,"Formation shapes the groups","Wide attacks in small groups, Tall in big ones, while Attack groups is Normal."));
-    h+=sec("Attack groups",radio("grp",c.grp,[["normal","Normal","Each stack as the odds say (the default)"],["big","Big","Stacks join up and attack in force; a lone card rarely attacks"],["small","Small","Twos and singles spread out and strike from many sides"]]));
+    h+=sec("Attack groups",radio("grp",c.grp,[["normal","Normal","Each stack as the odds say (the default)"],["big","Big","One army: the stacks keep together, move as one and strike together"],["small","Small","Several small clusters of two or three stacks, spread over the field"]]));
     h+=sec("Lives",radio("lives",c.lives,[["preserve","Preserve","Keep cards alive first"],["balanced","Balanced","The default"],["throw","Throw them in","Trade cards freely to hurt the enemy"]])+(c.formation==="deep"?row("flee",c.flee,"Flee when low","A stack that has lost half its cards pulls back from the enemy."):""),"","",
       "Lives is about your cards: how many it is willing to lose.");
     h+=sec("Picking battles",radio("battles",c.battles,[["careful","Careful","Fights only with good odds"],["normal","Normal",""],["reckless","Reckless","Takes long shots"]]),"","Lives ranks above this unless you change the order in Hierarchical control.",

@@ -42,7 +42,7 @@ const SPELL_TEXT={
  cry:{n:"The Second Sun in the sky.",e:"Yaldabaoth makes the Sun weep. On the third time its flames go out and it becomes the Black Sun.",l:"Once every 1d3 turns. After that, the Firmament that raised it pays you 1d2 mana or 1d2 deck cards every 1d2 of its turns."},
  bloodcall:{e:"The next Full Moon becomes a Blood Moon.",l:"Its harms don't touch you: your dead still go to the grave."},
  rain:{e:"Until your next turn, every sacrifice gives one more mana, and every sacrifice by another player also gives you one."},
- asteroid:{n:"Select a stack.",e:"One damage there. Every tile around it takes one damage on a 4 of 1d4 (Walls take 1d2 + 1). The area burns for two rounds.",l:"The Firmament is immune."},
+ asteroid:{n:"Select a stack.",e:"One damage there. Every tile around it takes one damage on a 4 of 1d4 (Walls take 1d2 + 1). The area burns for two turns.",l:"The Firmament is immune."},
  // Illusion
  quiet:{e:"For 1d2 + 1 rounds, enemies without a Scout on the field see only what stands right beside their own units.",l:"2 mana now and 2 at the start of each round it lasts. It ends when you can't pay. Scouts see through it."},
  ouro:{e:"For 2d2 of your turns you and your teammates can't see enemy cards past your own cards' reach. Meanwhile your mana can rise to nine, and you get 3d2 free mana at the start of each turn.",l:"Cast on yourself. It makes the Delusion of Lucifer free this round."},
@@ -240,5 +240,5 @@ const BANK_HELP=[
  ["Collapse","If the Bank and every player are 3 or more below zero, the Bank collapses: mana and debts go to zero, every maximum falls to three, cards leave the decks for the Ether, and prices wobble up for a while."]];
 function bankExplainHTML(){return `<details class="sub"><summary>The Bank, Demons and meteors explained</summary><dl class="spellinfo">${BANK_HELP.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}
 <dt>Demons</dt><dd>A crimson band takes the middle every 4 + 1d12 rounds (never while one still stands) and with every Blood Moon, and fights anyone beside it. The player who kills the most of a band gets an Ether sale; breaking a big band can earn debt forgiveness.</dd>
-<dt>Meteor</dt><dd>One round in a hundred: damage where it lands and maybe around it, then fire for two rounds.</dd>
+<dt>Meteor</dt><dd>One round in a hundred: damage where it lands and maybe around it, then fire for two turns.</dd>
 <dt>Gambling, Increase Max Mana, Mystery Generation</dt><dd>Gambling (Sorcery, 1 mana): a 10 on 1d10 wins 7d2; a 1 costs a maximum mana, 7d2 of debt and a deck card. Increase Max Mana (Conjuring, 4): +1, eighteen at most. Mystery Generation (in the Auction, 3 to 8 mana): three brand-new cards of any rarity, wildcards included.</dd></dl></details>`}
