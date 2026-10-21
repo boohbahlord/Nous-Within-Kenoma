@@ -39,7 +39,9 @@ function mapPlan(o){
     for(let k=0;k<lines;k++)for(const c of cs){const r=side==="bottom"?rows-1-k:k;(k===0?back:zone).push([r,c]);zone.push([r,c])}
     return{side,rot:S.rot,fwd:S.fwd,back,zone:[...new Map(zone.map(t=>[t.join(),t])).values()]}};
   const allc=[...Array(cols).keys()];
-  const lines=cols<=5&&rows<=5?1:2;
+  const lines=cols<=6&&rows<=6?1:2,coopLines=cols<=5&&rows<=5?1:2;   // v70: 6 by 6 and smaller have one spawn line a side (survival keeps its own)
+  // v70: with three or more players on a field 7 by 7 or larger, each spawn line is the five tiles in the middle of its edge
+  const five=t=>{const ok=t.filter(([r,c])=>!V[r][c]);if(n<3||cols<7||rows<7||ok.length<=5)return ok;const m=Math.floor((ok.length-5)/2);return ok.slice(m,m+5)};
   if(big&&(o.big==="plus"||o.big==="round"))allc.splice(0,allc.length,3,4,5,6);   // the plus: spawn at the ends of the arms   // v53: a field 5 by 5 or smaller has one spawn line a side, the backline
   if(L==="duel"){seats.push(mk2("bottom",allc,lines),mk2("top",allc,lines));teams.push(0,1)}
   else if(L==="ffa"||L==="team-side"||L==="team-across"){
@@ -47,15 +49,14 @@ function mapPlan(o){
     const bigEdge=sd=>{const len=sd==="left"||sd==="right"?rows:cols,lo=o.big==="plus"||o.big==="round"?3:2,hi=len-1-lo,back=[],zone=[];
       for(let d=0;d<2;d++)for(let a=lo;a<=hi;a++){const r=sd==="bottom"?rows-1-d:sd==="top"?d:a,c=sd==="left"?d:sd==="right"?cols-1-d:a;if(V[r][c])continue;zone.push([r,c]);if(!d)back.push([r,c])}
       return {back,zone}};
-    sides.slice(0,n).forEach((sd,i)=>{if(big){const z=bigEdge(sd);seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:z.back,zone:z.zone})}
-      else{const t=edgeTiles(sd,rows,cols);seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:t,zone:t})}teams.push(L==="ffa"?i:i%2)});
+    sides.slice(0,n).forEach((sd,i)=>{const t=five(big?bigEdge(sd).back:edgeTiles(sd,rows,cols));seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:t,zone:t});teams.push(L==="ffa"?i:i%2)});
   }else if(L==="team-same"){
-    const half=Math.floor(allc.length/2),lo=allc.slice(0,half),hi=allc.slice(half);
-    seats.push(mk2("bottom",lo,lines),mk2("top",hi,lines),mk2("bottom",hi,lines),mk2("top",lo,lines));teams.push(0,1,0,1);
+    // v70: teammates on the same side share both spawn rows, the full width of the field
+    seats.push(mk2("bottom",allc,2),mk2("top",allc,2),mk2("bottom",allc,2),mk2("top",allc,2));teams.push(0,1,0,1);
   }else if(L==="coop"){
     const h=n-1,w=Math.floor(cols/h);
-    for(let i=0;i<h;i++){seats.push(mk2("bottom",allc.slice(i*w,i===h-1?cols:(i+1)*w),lines));teams.push(0)}
-    seats.push(mk2("top",allc,lines));teams.push(1);
+    for(let i=0;i<h;i++){seats.push(mk2("bottom",allc.slice(i*w,i===h-1?cols:(i+1)*w),coopLines));teams.push(0)}
+    seats.push(mk2("top",allc,coopLines));teams.push(1);
   }
   // the hole in the middle (off by default; never with the river): one or two tiles each way, doubled or tripled where there's room
   const hole=+o.hole||0;

@@ -14,7 +14,7 @@ const ETHER_KIND={cs:"soldier",carch:"archer",ccan:"cannon",cj:"jack",cq:"queen"
    (the Carriage outside King of the Hill) closes only that spell. The Carriage isn't listed outside King of the Hill. */
 const etherShown=id=>id!=="ccar"||kothOn();
 function etherBlock(){const b=SPELLS.filter(s=>ETHER_IDS.has(s.id)&&etherShown(s.id)).map(spellBlock);return b.length&&b.every(Boolean)?b[0]:""}
-const etherLeft=id=>{const k=ETHER_KIND[id];if(k==="miner"||k==="repair"||k==="puppet"||k==="carriage")return Infinity;return G.ether.filter(c=>k==="soldier"?/^\d+$/.test(c.rank):c.unit?c.unit===k:kind(c)===k).length};
+const etherLeft=id=>{const k=ETHER_KIND[id];if(k==="miner"||k==="repair"||k==="puppet"||k==="carriage"||k==="ace"||k==="wall"||k==="lighthouse")return Infinity;   /* v70: Aces and Walls are unlimited too */return G.ether.filter(c=>k==="soldier"?/^\d+$/.test(c.rank):c.unit?c.unit===k:kind(c)===k).length};
 SP("maxmana").name="Increase Max Mana";
 
 function spellRow(s,live){
