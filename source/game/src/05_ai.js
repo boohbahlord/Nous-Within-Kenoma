@@ -113,6 +113,7 @@ const AI=(()=>{
     let p=W.dist*(FAX&&FAX.pl===pl&&FAX.wMul&&FAX.wMul.dist||1)*near*n;
     if(W.ctr){const d=ctrDist(r,c);p+=W.ctr*(d<=1?d*.3:d-.7)}   // v70c: the walk (around walls and water) to the middle tiles; on them or beside them it holds
     if(hp)p+=n*(hp*hillDist(r,c)-(isHill(r,c)?1.5:0));   // standing on the Hill is what scores
+    if(FAX&&FAX.pl===pl&&FAX.crys)p+=FAX.crys(S,r,c,walk);   // v71n: a guard is drawn to its crystal (80_crystals.js)
     return p}
   function ctrDist(r,c){let d=99;for(const [a,b] of centerTiles())d=Math.min(d,walk(r,c,a,b));return d===99?dist(r,c,(G.rows-1)/2,(COLS-1)/2):d}
   /* gathering an army: a stack drifts toward the biggest of its own */
@@ -234,12 +235,13 @@ const AI=(()=>{
   async function moves(pl,W){
     const lv=L(pl);
     const order=isHorde(pl)?stacksOf(pl).sort((a,b)=>stackRate(b.st)-stackRate(a.st)):stacksOf(pl).sort((a,b)=>{const na=Math.min(99,...enemyStacks(pl).map(e=>dist(a.r,a.c,e.r,e.c))),nb=Math.min(99,...enemyStacks(pl).map(e=>dist(b.r,b.c,e.r,e.c)));return na-nb});
+    if(FAX&&FAX.pl===pl&&FAX.first)order.sort((a,b)=>FAX.first(b.st)-FAX.first(a.st));   // v71n: a crystal's guard sets out before anyone can join it
     for(const o of order){
       if(G.over)return;
       const st=G.board[o.r][o.c];if(!st||st!==o.st||st.owner!==pl||st.moved)continue;
       if(Math.random()<lv.skipMove)continue;
       if(st.cards.every(c=>c.unit==="miner"))continue;   // lone Miners have their own errands
-      let grp=st.cards.filter(c=>!isBase(c)&&!c.faLock&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter)));   // v65: cards locked in place stay   // Miners, Repairmen and shooters stay in their base
+      let grp=st.cards.filter(c=>!isBase(c)&&!c.faLock&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter))&&!(c.unit==="miner"&&crystalAt(o.r,o.c)));   // v71n: a Miner digging a crystal stays at it   // v65: cards locked in place stay   // Miners, Repairmen and shooters stay in their base
       if(!grp.length||st.stun)continue;
       if(FAX&&!FAX.ok(grp))continue;   // Field Automation: a stack it doesn't control stays where the player put it
       if(!stackLegal(grp)){ // too many to leave together (a full Ace): send out the strongest group that can stand on its own

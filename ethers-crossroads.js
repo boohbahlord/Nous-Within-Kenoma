@@ -1447,6 +1447,7 @@ const AI=(()=>{
     let p=W.dist*(FAX&&FAX.pl===pl&&FAX.wMul&&FAX.wMul.dist||1)*near*n;
     if(W.ctr){const d=ctrDist(r,c);p+=W.ctr*(d<=1?d*.3:d-.7)}   // v70c: the walk (around walls and water) to the middle tiles; on them or beside them it holds
     if(hp)p+=n*(hp*hillDist(r,c)-(isHill(r,c)?1.5:0));   // standing on the Hill is what scores
+    if(FAX&&FAX.pl===pl&&FAX.crys)p+=FAX.crys(S,r,c,walk);   // v71n: a guard is drawn to its crystal (80_crystals.js)
     return p}
   function ctrDist(r,c){let d=99;for(const [a,b] of centerTiles())d=Math.min(d,walk(r,c,a,b));return d===99?dist(r,c,(G.rows-1)/2,(COLS-1)/2):d}
   /* gathering an army: a stack drifts toward the biggest of its own */
@@ -1568,12 +1569,13 @@ const AI=(()=>{
   async function moves(pl,W){
     const lv=L(pl);
     const order=isHorde(pl)?stacksOf(pl).sort((a,b)=>stackRate(b.st)-stackRate(a.st)):stacksOf(pl).sort((a,b)=>{const na=Math.min(99,...enemyStacks(pl).map(e=>dist(a.r,a.c,e.r,e.c))),nb=Math.min(99,...enemyStacks(pl).map(e=>dist(b.r,b.c,e.r,e.c)));return na-nb});
+    if(FAX&&FAX.pl===pl&&FAX.first)order.sort((a,b)=>FAX.first(b.st)-FAX.first(a.st));   // v71n: a crystal's guard sets out before anyone can join it
     for(const o of order){
       if(G.over)return;
       const st=G.board[o.r][o.c];if(!st||st!==o.st||st.owner!==pl||st.moved)continue;
       if(Math.random()<lv.skipMove)continue;
       if(st.cards.every(c=>c.unit==="miner"))continue;   // lone Miners have their own errands
-      let grp=st.cards.filter(c=>!isBase(c)&&!c.faLock&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter)));   // v65: cards locked in place stay   // Miners, Repairmen and shooters stay in their base
+      let grp=st.cards.filter(c=>!isBase(c)&&!c.faLock&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter))&&!(c.unit==="miner"&&crystalAt(o.r,o.c)));   // v71n: a Miner digging a crystal stays at it   // v65: cards locked in place stay   // Miners, Repairmen and shooters stay in their base
       if(!grp.length||st.stun)continue;
       if(FAX&&!FAX.ok(grp))continue;   // Field Automation: a stack it doesn't control stays where the player put it
       if(!stackLegal(grp)){ // too many to leave together (a full Ace): send out the strongest group that can stand on its own
@@ -8047,33 +8049,39 @@ if(window.__EC)Object.assign(window.__EC,{guestLobby,lobbySend});
    that opens its settings. The field moves at the end of your prep phase (after you place and cast) and attacks at the start of
    your attack phase; the stacks it doesn't control are yours to move and attack with as usual.
    The settings, top to bottom: the simple modes; Attack (always on); Stance; Ambush; then, for every option: Rush, Formation,
-   Lives, Picking battles, Target bases (with walls that don't block the way ignored), which cards it controls ("Yes, and…" adds
+   Lives, Picking battles, Target bases (with walls that don't block the way ignored) and Focus on crystals (v71n: its
+   options and its guards are in 80_crystals.js), which cards it controls ("Yes, and…" adds
    single kinds of card), Hierarchical control (the order in which these principles win when they pull apart; two can be made
-   equal, and then the state of the field decides between them), and the same controls under the field instead of a window. */
+   equal, and then the state of the field decides between them; Target bases and Focus on crystals can be taken out of it with
+   their ×, and brought back with +), and the same controls under the field instead of a window. */
 
-const FA_PRINC=[["noatk","Don't attack"],["stance","Stance"],["rush","Rush"],["lives","Lives"],["battles","Picking battles"],["formation","Formation"],["bases","Target bases"],["ambush","Ambush"]];
+const FA_PRINC=[["noatk","Don't attack"],["stance","Stance"],["rush","Rush"],["lives","Lives"],["battles","Picking battles"],["formation","Formation"],["bases","Target bases"],["crystals","Focus on crystals"],["ambush","Ambush"]];
 const FA_CATS=[["soldiers","Soldiers","Grunts, Infantry, Puppets"],["specials","Specials","Jacks, Queens, Kings, Jokers, Assassins"],["support","Support","Scouts, Healers, Repairmen, Rams, Miners"],
   ["ranged","Ranged","Archers and Cannons"],["wildcards","Wildcards","the Emanations' own cards"]];
 const FA_KINDS=["grunt","infantry","puppet","jack","queen","king","joker","assassin","scout","healer","repair","ram","miner","archer","cannon",
   "samson","antony","satan","bullgoat","goatbull","slavemaster","slave","leviathan","trafficker","debt"];
 const FA_DEF={tgroup:true,tgorder:["wildcard","special","base","standard","support"],mode:"full",stance:"auto",rush:0,formation:"auto",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,
   ctl:{soldiers:true,specials:true,support:true,miners:true,ranged:true,wildcards:true},extra:[],hier:false,order:FA_PRINC.map(p=>p[0]),eq:[],under:false,
-  noAttack:false,flee:false,tprio:false,torder:null,teq:[],tIgnoreGI:false,tSameGI:false,xminus:[],hill:true,hillHow:"army",grp:"normal",fLink:true};
+  noAttack:false,flee:false,tprio:false,torder:null,teq:[],tIgnoreGI:false,tSameGI:false,xminus:[],hill:true,hillHow:"army",grp:"normal",fLink:true,
+  crys:false,crysStance:false,crysLives:false,crysMiner:false,crysAsk:false,crysHow:false,crysShow:true,crysFight:false,hout:[]};   // v71n: the crystals, and the principles taken out of the ranking
 /* v47: the kinds of card the field can rank as targets, strongest first by default (suit doesn't matter) */
 const FA_TK=[["wildcards","Wildcards"],["joker","Jokers"],["king","Kings"],["ace","Aces"],["queen","Queens"],["jack","Jacks"],["wall","Walls"],["tree","The Tree"],["assassin","Assassins"],
   ["cannon","Cannons"],["infantry","Infantry"],["archer","Archers"],["grunt","Grunts"],["puppet","Puppets"],["healer","Healers"],["repair","Repairmen"],["ram","Rams"],["miner","Miners"],["claimer","Claimers"],["scout","Scouts"]];
 const FA_TKEYS=FA_TK.map(x=>x[0]);
+const FA_OUT=["bases","crystals"];   // v71n: the principles that can be taken out of the ranking (× in it, + to bring them back)
 const faClean=c=>{c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringify(FA_DEF));
   for(const k of ["mode","stance","formation","lives","battles","hillHow","grp"])if(typeof c[k]==="string")o[k]=c[k];
-  o.rush=Math.max(0,Math.min(9,Math.round(+c.rush||0)));for(const k of ["ambush","bases","walls","hier","under","noAttack","flee","tprio","tIgnoreGI","tSameGI","tgroup","hill","fLink"])if(typeof c[k]==="boolean")o[k]=c[k];
+  o.rush=Math.max(0,Math.min(9,Math.round(+c.rush||0)));for(const k of ["ambush","bases","walls","hier","under","noAttack","flee","tprio","tIgnoreGI","tSameGI","tgroup","hill","fLink","crys","crysStance","crysLives","crysMiner","crysAsk","crysHow","crysShow","crysFight"])if(typeof c[k]==="boolean")o[k]=c[k];
   if(Array.isArray(c.tgorder))o.tgorder=[...c.tgorder.filter(k=>o.tgorder.includes(k)),...o.tgorder.filter(k=>!c.tgorder.includes(k))];   // v54: the ranking by kinds of card
   o.torder=Array.isArray(c.torder)?[...c.torder.filter(k=>FA_TKEYS.includes(k)),...FA_TKEYS.filter(k=>!c.torder.includes(k))]:[...FA_TKEYS];
   if(Array.isArray(c.teq))o.teq=c.teq.filter(p=>Array.isArray(p)&&p.length===2&&p.every(k=>FA_TKEYS.includes(k)));
   if(Array.isArray(c.order)&&!c.order.includes("noatk"))c={...c,order:["noatk",...c.order]};   // older settings: Don't attack goes on top
+  if(Array.isArray(c.order)&&!c.order.includes("crystals")){const o2=[...c.order],i=o2.indexOf("bases");o2.splice(i<0?o2.length:i+1,0,"crystals");c={...c,order:o2}}   // v71n: Focus on crystals comes in after Target bases
+  if(Array.isArray(c.hout))o.hout=FA_OUT.filter(k=>c.hout.includes(k));
   if(c.ctl)for(const k in o.ctl)if(typeof c.ctl[k]==="boolean")o.ctl[k]=c.ctl[k];
   if(Array.isArray(c.extra))o.extra=c.extra.filter(k=>FA_KINDS.includes(k));if(Array.isArray(c.xminus))o.xminus=c.xminus.filter(k=>FA_KINDS.includes(k)&&!o.extra.includes(k));
   if(Array.isArray(c.order)&&c.order.length===FA_PRINC.length&&FA_PRINC.every(([k])=>c.order.includes(k)))o.order=[...c.order];
-  if(Array.isArray(c.eq))o.eq=c.eq.filter(p=>Array.isArray(p)&&p.length===2&&p.every(k=>o.order.includes(k)));return o};
+  if(Array.isArray(c.eq))o.eq=c.eq.filter(p=>Array.isArray(p)&&p.length===2&&p.every(k=>o.order.includes(k)&&!o.hout.includes(k)));return o};
 const faMine=()=>faClean(PREF.fa);   // this device's settings
 const faAllowed=()=>!!G&&(G.opts.fieldAuto||"medium")!=="off";
 const faLevel=()=>{const v=G&&G.opts.fieldAuto;return ["easy","medium","hard"].includes(v)?v:"medium"};
@@ -8094,10 +8102,10 @@ function faControls(c,cfg){const k0=faKind(c);if((cfg.xminus||[]).includes(k0))r
 
 /* ---------- the hierarchy: higher principles pull harder; equals share a rank, and the field decides between them ---------- */
 const FA_AGGR={noatk:c=>c.noAttack?-1:0,stance:c=>({offensive:1,defensive:-1}[c.stance]||0),rush:c=>c.rush?1:0,lives:c=>({throw:1,preserve:-1}[c.lives]||0),
-  battles:c=>({reckless:1,careful:-1}[c.battles]||0),formation:()=>0,bases:c=>c.bases?1:0,ambush:c=>c.ambush?-1:0};
+  battles:c=>({reckless:1,careful:-1}[c.battles]||0),formation:()=>0,bases:c=>c.bases?1:0,crystals:c=>c.crys?(c.crysFight?1:-1):0,ambush:c=>c.ambush?-1:0};
 function faScales(c,pl){const sc={};for(const [k] of FA_PRINC)sc[k]=1;if(!c.hier)return sc;
   const pairOf=k=>c.eq.find(p=>p.includes(k));let rank=0;const seen=new Set();
-  for(const k of c.order){if(seen.has(k))continue;const p=pairOf(k);const grp=p?p:[k];for(const g of grp){seen.add(g);sc[g]=Math.max(.35,1-.15*rank)}rank++}
+  for(const k of c.order){if(seen.has(k)||c.hout.includes(k))continue;const p=pairOf(k);const grp=p?p:[k];for(const g of grp){seen.add(g);sc[g]=Math.max(.35,1-.15*rank)}rank++}   // one taken out of the ranking keeps its full weight
   // between two equals the field decides: behind, the more careful one leads; ahead, the bolder one
   const mine=stacksOf(pl).reduce((a,x)=>a+AI.value(x.st),0),foe=AI.enemyStacks(pl).reduce((a,x)=>a+AI.value(x.st),0),behind=mine<foe;
   for(const [a,b] of c.eq){const da=FA_AGGR[a](c),db=FA_AGGR[b](c);if(da===db)continue;const lead=(behind?da<db:da>db)?a:b;sc[lead]=Math.min(1,sc[lead]+.1)}
@@ -8111,7 +8119,7 @@ function faWallBlocks(pl,wr,wc){const bases=AI.enemyStacks(pl).filter(e=>hasBase
   const d=(a,b,c,e)=>Math.abs(a-c)+Math.abs(b-e);
   return bases.some(b=>d(wr,wc,b.r,b.c)<=2&&mine.some(m=>d(m.r,m.c,wr,wc)+d(wr,wc,b.r,b.c)<=d(m.r,m.c,b.r,b.c)+1))}
 /* the rank of each principle (equals share one) */
-function faRanks(c){const r={};let n=0;const seen=new Set();for(const k of c.order){if(seen.has(k))continue;const p=c.eq.find(q=>q.includes(k));for(const g of p||[k]){seen.add(g);r[g]=n}n++}return r}
+function faRanks(c){const r={};let n=0;const seen=new Set();for(const k of c.order){if(seen.has(k)||c.hout.includes(k))continue;const p=c.eq.find(q=>q.includes(k));for(const g of p||[k]){seen.add(g);r[g]=n}n++}return r}
 /* target priority: a stack is worth more the higher its best kind ranks; Grunts and Infantry can be flattened or merged */
 const faTKind=(c,cfg)=>{if(c.puppet)return "puppet";const u=c.unit;if(u)return FA_TKEYS.includes(u)?u:"wildcards";const k=kind(c);return cfg.tSameGI&&k==="infantry"?"grunt":FA_TKEYS.includes(k)?k:"grunt"};
 function faTargetFactor(cfg){if(!cfg.tprio)return ()=>1;
@@ -8175,7 +8183,7 @@ function faToggle(){const V=view(),s=faState(V);if(s&&s.on){setFieldAuto(V,false
 /* ---------- the settings, drawn the same in the window and under the field ---------- */
 const faVal=(k,c)=>({stance:{auto:"Automatic",offensive:"Offensive",defensive:"Defensive",center:"Center"}[c.stance],rush:c.rush?`${c.rush} round${c.rush>1?"s":""}`:"Off",
   lives:{preserve:"Preserve",balanced:"Balanced",throw:"Throw them in"}[c.lives],battles:{careful:"Careful",normal:"Normal",reckless:"Reckless"}[c.battles],
-  formation:{auto:"Automatic",wide:"Wide",deep:"Tall"}[c.formation],bases:c.bases?"On":"Off",ambush:c.ambush?"On":"Off",noatk:c.noAttack?"On":"Off"})[k];
+  formation:{auto:"Automatic",wide:"Wide",deep:"Tall"}[c.formation],bases:c.bases?"On":"Off",crystals:c.crys?"On":"Off",ambush:c.ambush?"On":"Off",noatk:c.noAttack?"On":"Off"})[k];
 /* v47: one kit draws every automation panel the same way: the words on the left, the switch or the arrows on the right */
 function cfgKit(attr,act,pfx){
   const ph=isPhone(),tip=t=>t&&!ph?` data-tip="${esc(t)}"`:"",sm=t=>t&&ph?`<small>${t}</small>`:"";   // a phone shows the line, a computer shows it on hover
@@ -8205,7 +8213,8 @@ function faPanelHTML(c,pl,pfx){
       "Lives is about your cards: how many it is willing to lose.");
     h+=sec("Picking battles",radio("battles",c.battles,[["careful","Careful","Fights only with good odds"],["normal","Normal",""],["reckless","Reckless","Takes long shots"]]),"","Lives ranks above this unless you change the order in Hierarchical control.",
       "Picking battles is about the odds: how sure a win must be before it attacks.");
-    h+=sec("Bases",row("bases",c.bases,"Target bases","Enemy Aces and the Tree are worth more to it.")+row("walls",c.walls,"Ignore Walls that aren't in the way","A Wall only matters when it stands between your field and a base."));
+    h+=sec("Bases and crystals",row("bases",c.bases,"Target bases","Enemy Aces and the Tree are worth more to it.")+row("walls",c.walls,"Ignore Walls that aren't in the way","A Wall only matters when it stands between your field and a base.")+
+      row("crys",c.crys,"Focus on crystals","Your field guards the crystals for your Miners until they're dug out. More options below."));
     h+=sec("Which cards it controls",`<div class="facats">${FA_CATS.map(([k,t,s2])=>row("ctl."+k,c.ctl[k],t,s2)).join("")}${!c.ctl.support?row("ctl.miners",c.ctl.miners,"Miners","Even with Support off"):""}</div>
 <details class="faextra" ${c.extra.length||c.xminus.length?"open":""}><summary>Yes, and… (single kinds of card: + it controls them, − it leaves them to you)</summary>${K.pmChips(FA_KINDS.map(k=>[k,shortInfo(k)]),c.extra,c.xminus,"data-fapm")}</details>`,"fafull");
     /* v52: the two rankings open like the Yes-and lists: ▸ closed is off, ▾ open is on */
@@ -8213,7 +8222,17 @@ function faPanelHTML(c,pl,pfx){
       row("tgroup",c.tgroup,"Rank by kinds of card","On: Special, Base, Standard and so on. Off: every single kind, like the King.")+
       (c.tgroup?kindRankHTML(c.tgorder,"data-tgact",TGROUP_NAMES):row("tIgnoreGI",c.tIgnoreGI,"Ignore how strong a Grunt or Infantry is","A 2 and a 6 Grunt count the same when it picks a target.")+row("tSameGI",c.tSameGI,"Treat Grunts and Infantry alike","One kind instead of two in the ranking.")+
       hierHTML((c.tSameGI?c.torder.filter(k=>k!=="infantry"):c.torder),c.teq,faHierHTML.tpending,k=>FA_TK.find(x=>x[0]===k)[1],()=>"","t"))+`<p class="dim">The kinds on the left are hunted first.</p></details>`,"fafull","",c.tprio?FA_CAUTION:"");
-    h+=sec("Hierarchical control",`<details class="faextra fadet" data-fadet="hier" ${c.hier?"open":""}><summary>Rank the principles <small class="dim">(${c.hier?"on":"off"})</small></summary><p class="dim">When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.</p>`+hierHTML(c.order,c.eq,faHierHTML.pending,k=>FA_PRINC.find(x=>x[0]===k)[1],k=>faVal(k,c),"")+`</details>`,"fafull","",c.hier?FA_CAUTION:"");
+    h+=sec("Hierarchical control",`<details class="faextra fadet" data-fadet="hier" ${c.hier?"open":""}><summary>Rank the principles <small class="dim">(${c.hier?"on":"off"})</small></summary><p class="dim">When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.</p>`+hierHTML(c.order.filter(k=>!c.hout.includes(k)),c.eq,faHierHTML.pending,k=>FA_PRINC.find(x=>x[0]===k)[1]+(FA_OUT.includes(k)?`<button type="button" class="faout" data-faact="out:${k}" aria-label="Take ${FA_PRINC.find(x=>x[0]===k)[1]} out of the ranking" title="Take it out of the ranking">×</button>`:""),k=>faVal(k,c),"")+
+      (c.hout.length?`<p class="fahin">${c.hout.map(k=>`<button type="button" class="btn ghost sm" data-faact="in:${k}" title="Add it to the ranking">+ ${FA_PRINC.find(x=>x[0]===k)[1]}</button>`).join(" ")}<small class="dim">Out of the ranking: ${c.hout.length>1?"they keep":"it keeps"} ${c.hout.length>1?"their":"its"} full weight.</small></p>`:"")+`</details>`,"fafull","",c.hier?FA_CAUTION:"");
+    if(c.crys)h+=sec("Crystals",`<details class="faextra" open><summary>More options for Focus on crystals</summary>`+
+      row("crysStance",c.crysStance,"Depends on the stance","It guards crystals only while your field defends or holds the center.")+
+      row("crysLives",c.crysLives,"Depends on Lives","Preserve guards only where it's safe; Balanced unless it's badly outnumbered; Throw them in, whatever comes.")+
+      row("crysMiner",c.crysMiner,"Only with a Miner","Only while you have a Miner in your deck, your hand or on the field.")+
+      row("crysAsk",c.crysAsk,"Ask me first","Before a stack sets out to guard a crystal: yes, no, or other stacks instead (at most once every five rounds).")+
+      (c.crysAsk?row("crysHow",c.crysHow,"Ask how long","The same question asks how many rounds to guard it."):"")+
+      row("crysShow",c.crysShow,"Show the guard","A soft ring around the crystal and around its guard, joined by a dashed line (only you and your team see it).")+
+      row("crysFight",c.crysFight,"Fight over crystals","Some of your cards go after enemy stacks on crystals first.")+
+      `<p class="dim">${c.crysStance||c.crysLives?"Guarding follows "+(c.crysStance&&c.crysLives?"the stance and Lives":c.crysStance?"the stance":"Lives")+" first, then its place in the ranking.":"With neither the stance nor Lives checked, guarding a crystal comes before everything else, whatever the ranking."} To stop guarding for five rounds, select the guard: Stop guarding the crystal.</p></details>`,"fafull");
   }
   h+=`<p class="dim fanote fafull">Some options aren't the best choice for every situation on your field.</p>`;
   return h}
@@ -8246,10 +8265,14 @@ function faWire(root){
   root.querySelectorAll("[data-fapm]").forEach(b=>b.onclick=()=>{const c2=faMine(),k=b.dataset.fapm,[p,m]=pmCycle(c2.extra,c2.xminus,k);c2.extra=p;c2.xminus=m;faSave(c2)});
   root.querySelectorAll("[data-faact]").forEach(b=>b.onclick=()=>{const c2=faMine(),v=b.dataset.faact;
     if(v==="rush+"||v==="rush-"){c2.rush=Math.max(1,Math.min(9,(c2.rush||1)+(v==="rush+"?1:-1)));faSave(c2);return}
+    if(v.startsWith("out:")||v.startsWith("in:")){const [a,k]=v.split(":");if(!FA_OUT.includes(k))return;
+      if(a==="out"){if(!c2.hout.includes(k))c2.hout.push(k);c2.eq=c2.eq.filter(p=>!p.includes(k));if(faHierHTML.pending===k)faHierHTML.pending=null}
+      else{c2.hout=c2.hout.filter(x=>x!==k);c2.order=[...c2.order.filter(x=>x!==k),k]}   // back in at the bottom
+      faSave(c2);return}
     const t=v.startsWith("t"),[a,k]=(t?v.slice(1):v).split(":");
     if(t){const ord=c2.tSameGI?c2.torder.filter(x=>x!=="infantry"):c2.torder,r=hierMove(ord,c2.teq,"tpending",a,k);
       c2.torder=c2.tSameGI?[...r.order,"infantry"]:r.order;c2.teq=r.eq}
-    else{const r=hierMove(c2.order,c2.eq,"pending",a,k);c2.order=r.order;c2.eq=r.eq}
+    else{const r=hierMove(c2.order.filter(x=>!c2.hout.includes(x)),c2.eq,"pending",a,k);c2.order=[...r.order,...c2.hout];c2.eq=r.eq}   // the ones out of the ranking don't count when moving
     faSave(c2)})}
 function faWindow(){let box=$("#facfg");if(!box){box=document.createElement("div");box.id="facfg";box.className="faov";document.body.appendChild(box)}
   box.hidden=false;paintFA()}
@@ -11493,5 +11516,155 @@ function lookExtras(i,S,n){const v=S.pattern||"random",pc=S.color&&S.color!=="ra
 document.addEventListener("change",e=>{if(e.target&&e.target.id==="dpat"){PREF.pat=e.target.checked;savePrefs();applyPrefs()}});
 
 if(window.__EC)Object.assign(window.__EC,{dealPatterns,PATTERNS,darkCol});
+
+/* ---------- v71n: Field Automation and the crystals ----------
+   "Focus on crystals" (beside Target bases, Every option): at the end of your prep phase your field sends a stack to guard
+   each crystal that no enemy holds, for your Miners, until it's dug out. Its options (a fold that shows once it's checked):
+   - Depends on the stance: it guards only while the field defends or holds the center.
+   - Depends on Lives: Preserve guards only where it's safe, Balanced unless badly outnumbered, Throw them in whatever comes.
+     With neither of these two, guarding comes before everything else, whatever the ranking; with either, they come first
+     and then its place in the ranking.
+   - Only with a Miner: only while you have a Miner in your deck, your hand or on the field (not one in an Ace's slot).
+   - Ask me first: a question before a stack sets out (yes, no, or no but these stacks can, up to five), at most once every
+     five rounds, and only if you have a stack that can go. Ask how long (shown under it) adds the number of rounds.
+   - Show the guard: a soft ring around the crystal and around its guard, joined by a dashed line, for you and your team;
+     when the guard stands on the crystal the two rings lie one in the other.
+   - Fight over crystals: enemy stacks on crystals are worth more to attack, and cards near them go for them.
+   The guard is marked on its cards (c.faCrys={r,c,until,on}), so it goes wherever they go. Selecting a guard offers Stop
+   guarding the crystal: every guard stands down for five rounds and Field Automation stays on. */
+const crysCfg=pl=>{const s=faState(pl);return faEff(s&&s.cfg)};
+const crysRest=pl=>{const P=G.p[pl];return !!(P&&P.crysOff!=null&&G.moon.round<P.crysOff)};
+const crysMd=(a,b,c,d)=>Math.abs(a-c)+Math.abs(b-d);
+/* the cards of a stack that would set out (not bases, locked cards, Miners, or what keeps an Ace) */
+const crysGrp=st=>st.cards.filter(x=>!isBase(x)&&!x.faLock&&x.unit!=="miner"&&!(hasBase(st)&&x.unit&&(x.unit==="repair"||UNIT[x.unit].shooter)));
+const crysFighter=x=>!(x.unit&&UNIT[x.unit]&&UNIT[x.unit].noDef);
+/* the stacks that can go: a fighter among the cards that would set out, all of them under Field Automation, free to move */
+function crysCands(pl,c){return stacksOf(pl).filter(({st})=>{if(st.stun||st.pin)return false;const g=crysGrp(st);return g.length>0&&g.some(crysFighter)&&g.every(x=>faControls(x,c))&&!g.some(x=>x.faCrys)})}
+function crysGuards(pl){const out=[];for(const {st,r,c} of stacksOf(pl)){const cards=st.cards.filter(x=>x.faCrys);if(cards.length)out.push({st,r,c,g:cards[0].faCrys,cards})}return out}
+const crysHasMiner=pl=>{const P=G.p[pl];return [...P.hand,...P.deck].some(x=>x.unit==="miner")||stacksOf(pl).some(({st})=>!hasBase(st)&&st.cards.some(x=>x.unit==="miner"))};
+const crysFree=pl=>(G.crystals||[]).filter(x=>{const t=G.board[x.r][x.c];return !(t&&isEnemy(pl,t.owner))});
+const crysKey=(r,c)=>r+"."+c;
+/* a guard stands down when its crystal is gone, its rounds are up, or Focus on crystals is off or resting */
+function crysTidy(pl,c){const off=!c.crys||crysRest(pl);
+  for(const {st} of stacksOf(pl))for(const x of st.cards){const g=x.faCrys;if(!g)continue;
+    if(off||isBase(x)||!crystalAt(g.r,g.c)||g.until!=null&&G.moon.round>g.until)delete x.faCrys}}
+function crysSet(pl,list,x,len){const until=len?G.moon.round+len-1:null;
+  for(const {st} of list)for(const y of crysGrp(st))y.faCrys={r:x.r,c:x.c,until,on:true}}
+/* whether each guard guards this turn: the stance, Lives and the Miner, as checked */
+function crysLive(pl,c,ctx){const k=ctx&&ctx.W&&ctx.W.k,stanceOk=!c.crysStance||k==="def"||k==="center",minerOk=!c.crysMiner||crysHasMiner(pl);
+  for(const gd of crysGuards(pl)){let on=stanceOk&&minerOk;
+    if(on&&c.crysLives&&c.lives!=="throw"){const mine=AI.value({cards:gd.cards,owner:pl}),foe=AI.enemyStacks(pl).filter(e=>crysMd(e.r,e.c,gd.g.r,gd.g.c)<=2).reduce((a,e)=>a+AI.value(e.st),0);
+      on=foe<=mine*(c.lives==="preserve"?.8:1.5)}
+    for(const x of gd.cards)x.faCrys.on=on}}
+const crysNames=st=>{const n=st.cards.filter(x=>!isBase(x)).map(x=>nameOf(x));return n.length>3?n.slice(0,3).join(", ")+` and ${n.length-3} more`:n.join(", ")};
+const crysShort=x=>x.puppet?"Puppet":x.unit?UNIT[x.unit].name:x.rank==="JK"?"Joker":x.rank+(SUITS[x.suit]||"");
+const crysLabel=s=>{const n=s.st.cards.filter(x=>!isBase(x)).map(crysShort);return `${coord(s.r,s.c)} · ${n.length>4?n.slice(0,4).join(" ")+" +"+(n.length-4):n.join(" ")}${hasBase(s.st)?" (from the base)":""}`};
+/* the end of the prep phase, before the field moves: tidy, find guards (or ask), then which of them guard this turn */
+async function crysPrep(pl){const P=G.p[pl],c=crysCfg(pl);crysTidy(pl,c);if(!c.crys||crysRest(pl))return;
+  if(!c.crysMiner||crysHasMiner(pl)){
+    const taken=new Set(crysGuards(pl).map(gd=>crysKey(gd.g.r,gd.g.c))),free=crysFree(pl).filter(x=>!taken.has(crysKey(x.r,x.c)));
+    let cands=crysCands(pl,c);
+    if(free.length&&cands.length){
+      if(c.crysAsk){if(P.crysAskAt==null||G.moon.round>=P.crysAskAt+5){   // at most once every five rounds
+        const near=s=>Math.min(...free.map(x=>crysMd(s.r,s.c,x.r,x.c))),open=cands.filter(s=>!hasBase(s.st)),pool=open.length?open:cands;
+        const prop=pool.reduce((a,s)=>near(s)<near(a)?s:a),x=free.reduce((a,y)=>crysMd(prop.r,prop.c,y.r,y.c)<crysMd(prop.r,prop.c,a.r,a.c)?y:a);
+        P.crysAskAt=G.moon.round;
+        const a=await ask(pl,{kind:"crysguard",id:"crysguard",title:`Guard the crystal on ${coord(x.r,x.c)}?`,at:[x.r,x.c],left:x.left,prop:[prop.r,prop.c],propName:crysNames(prop.st),
+          stacks:cands.map(s=>({r:s.r,c:s.c,label:crysLabel(s)})),how:!!c.crysHow,max:5,ai:()=>({v:"yes",stacks:[[prop.r,prop.c]],len:0})});
+        if(!G.over&&a&&(a.v==="yes"||a.v==="other")&&Array.isArray(a.stacks)){cands=crysCands(pl,c);const ok=new Map(cands.map(s=>[crysKey(s.r,s.c),s]));
+          const keys=[...new Set(a.stacks.filter(v=>Array.isArray(v)&&v.length===2).map(([r,cc])=>crysKey(+r,+cc)))].filter(k=>ok.has(k)).slice(0,5);
+          crysSet(pl,keys.map(k=>ok.get(k)),x,Math.max(0,Math.min(20,Math.round(+a.len||0))))}}}
+      else{const fighting=stacksOf(pl).filter(({st})=>crysGrp(st).some(crysFighter)).length;let n=crysGuards(pl).length;const cap=Math.max(1,Math.floor(fighting/2));   // never more than half the field
+        for(const x of free){if(n>=cap)break;const cs=crysCands(pl,c).filter(s=>!hasBase(s.st));if(!cs.length)break;
+          crysSet(pl,[cs.reduce((a,s)=>crysMd(s.r,s.c,x.r,x.c)<crysMd(a.r,a.c,x.r,x.c)?s:a)],x,0);n++}}}}
+  crysLive(pl,c,faCtx(pl))}
+{const _fr=faRun;faRun=async function(pl,ph){
+  if(ph==="prep"&&G&&!G.over&&faOn(pl)&&!blindPause(pl)){const was=G.busy;G.busy=true;try{await crysPrep(pl)}catch(e){console.error(e)}G.busy=was}
+  return _fr.apply(this,arguments)}}
+/* a card that comes back to the field comes back free */
+{const _p=place;place=function(card){if(card&&card.faCrys)delete card.faCrys;return _p.apply(this,arguments)}}
+
+/* ---------- the pull: a guard heads for its crystal and holds it; Fight over crystals ---------- */
+const crysOn=E=>(G.crystals||[]).find(x=>G.board[x.r]&&G.board[x.r][x.c]===E)||null;
+{const _fc=faCtx;faCtx=function(pl){const ctx=_fc.apply(this,arguments),c=crysCfg(pl);if(!c.crys||crysRest(pl))return ctx;
+  const sc=faScales(c,pl),over=!c.crysStance&&!c.crysLives,w=over?8:2.2*sc.crystals,stay=over?2:1;   // with neither, it outweighs everything the ranking does, and once there it holds
+  const foeCr=c.crysFight?(G.crystals||[]).filter(x=>{const t=G.board[x.r][x.c];return t&&isEnemy(pl,t.owner)}):[];
+  const held=new Set(crysGuards(pl).map(gd=>crysKey(gd.g.r,gd.g.c)));
+  ctx.crys=(S,r,cc,walk)=>{const g=S.cards.find(x=>x.faCrys&&x.faCrys.on);
+    if(g){const d=walk(r,cc,g.faCrys.r,g.faCrys.c);return w*Math.min(d,30)-(d===0?stay:0)}
+    if(foeCr.length){let d=99;for(const x of foeCr)d=Math.min(d,walk(r,cc,x.r,x.c));return .45*sc.crystals*Math.min(d,5)}   // the cards within a few steps: "some cards"
+    return 0};
+  ctx.first=st=>st.cards.some(x=>x.faCrys&&x.faCrys.on)?1:0;
+  const gm=ctx.gainMul;ctx.gainMul=E=>{let m=gm(E);const at=crysOn(E);if(at){if(c.crysFight)m*=1+.8*sc.crystals;else if(held.has(crysKey(at.r,at.c)))m*=1.4}return m};
+  return ctx}}
+
+/* ---------- the question: yes, no, or no but these stacks can (up to five), and for how long ---------- */
+const CRYS_LENS=[0,1,2,3,4,5,6,8,10];
+{const _ah=askHuman;askHuman=function(pl,spec){if(!spec||spec.kind!=="crysguard")return _ah.apply(this,arguments);
+  return new Promise(res=>{const all=spec.stacks||[],max=Math.max(1,Math.min(5,spec.max||5)),k=s=>s.r+"."+s.c,pk=spec.prop[0]+"."+spec.prop[1];
+    let ans="yes",rows=[],len=0;
+    const who=G.p.filter(P=>!P.cpu).length>1&&!G.opts.online?`<p class="dim">${esc(G.p[pl].name)} chooses.</p>`:"";
+    const firstOther=()=>{const o=all.find(s=>k(s)!==pk)||all[0];return o?k(o):null};
+    const chosen=()=>ans==="yes"?[pk,...rows]:rows;
+    const sel=(i,v)=>{const me=ans==="yes"?i+1:i,used=new Set(chosen().filter((x,j)=>j!==me));   // a stack chosen in another row isn't offered again
+      return `<select data-cs="${i}" aria-label="Which stack">${all.filter(s=>k(s)===v||!used.has(k(s))).map(s=>`<option value="${k(s)}" ${k(s)===v?"selected":""}>${esc(s.label)}</option>`).join("")}</select>`};
+    const paint=()=>{const n=chosen().length,left=all.filter(s=>!chosen().includes(k(s))).length,more=ans!=="no"&&n<max&&left>0;
+      ovShow(`<div class="ovbox crysbox" role="dialog" aria-labelledby="crysh"><button type="button" class="xclose" id="crysX" aria-label="Close: no">×</button>
+<h2 id="crysh">${esc(spec.title)}</h2>${who}
+<p>Your stack on ${coord(spec.prop[0],spec.prop[1])} (${esc(spec.propName)}) can guard the crystal on ${coord(spec.at[0],spec.at[1])} for a Miner until it's dug out${spec.left!=null?` (${spec.left} mana left in it)`:""}.</p>
+<div class="opts crysans">${[["yes","Yes"],["no","No"],["other","No, but this stack can"]].map(([v,t])=>`<label class="opt"><input type="radio" name="crysans" value="${v}" ${ans===v?"checked":""}><span>${t}</span></label>`).join("")}</div>
+${ans==="no"?"":`<div class="crysrows">${rows.map((v,i)=>`<p class="crysrow">${ans==="other"&&!i?"<span>Stack</span>":"<span>And this stack too</span>"}${sel(i,v)}${ans==="other"&&!i?"":`<button type="button" class="btn ghost sm crysdel" data-cdel="${i}" aria-label="Take this stack off">×</button>`}</p>`).join("")}
+${more?`<p class="crysrow"><button type="button" class="btn ghost sm" id="crysPlus" title="Another stack guards it as well (up to ${max})">+ And this stack too</button></p>`:""}</div>`}
+${spec.how&&ans!=="no"?`<label class="f crysrow"><span>For how long</span><select id="crysLen">${CRYS_LENS.map(v=>`<option value="${v}" ${len===v?"selected":""}>${v?`${v} round${v>1?"s":""}`:"Until it's dug out"}</option>`).join("")}</select></label>`:""}
+<p class="acts"><button type="button" class="btn" id="crysOk">${ans==="no"?"No":"Guard it"}</button></p></div>`);
+      document.querySelectorAll("input[name=crysans]").forEach(i=>i.onchange=()=>{ans=i.value;rows=ans==="other"?[firstOther()].filter(Boolean):[];paint()});
+      document.querySelectorAll("[data-cs]").forEach(s=>s.onchange=()=>{rows[+s.dataset.cs]=s.value;paint()});
+      document.querySelectorAll("[data-cdel]").forEach(b=>b.onclick=()=>{rows.splice(+b.dataset.cdel,1);paint()});
+      const plus=$("#crysPlus");if(plus)plus.onclick=()=>{const o=all.find(s=>!chosen().includes(k(s)));if(o){rows.push(k(o));paint()}};
+      const ls=$("#crysLen");if(ls)ls.onchange=()=>{len=+ls.value};
+      $("#crysX").onclick=()=>{ovHide();res(null)};
+      $("#crysOk").onclick=()=>{ovHide();if(ans==="no"||!chosen().length){res(null);return}res({v:ans,stacks:chosen().map(v=>v.split(".").map(Number)),len:spec.how?len:0})}};
+    paint()})}}
+
+/* ---------- Stop guarding the crystal (the Selected box): every guard stands down for five rounds ---------- */
+function crysStop(pl){if(!G||!G.p[pl]||NET.ctx!=null&&NET.ctx!==pl)return false;
+  for(const {st} of stacksOf(pl))for(const x of st.cards)delete x.faCrys;
+  G.p[pl].crysOff=G.moon.round+5;render();return true}
+for(const [name,get,set] of [["crysStop",()=>crysStop,f=>crysStop=f]]){
+  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+{const _rs=renderSel;renderSel=function(live){_rs.apply(this,arguments);if(!G||!G.sel)return;const V=view(),st=selStack(),box=$("#selbox");
+  if(!box||!st||st.owner!==V||!faOn(V)||!st.cards.some(x=>x.faCrys))return;
+  let row=box.querySelector(".falockrow");if(!row){box.insertAdjacentHTML("beforeend",`<p class="falockrow"><span class="dim">Field Automation:</span></p>`);row=box.querySelector(".falockrow")}
+  row.insertAdjacentHTML("beforeend",` <button type="button" class="btn sm ghost" id="crysStopB" title="All your stacks stop guarding crystals for five rounds. Field Automation stays on.">Stop guarding the crystal</button>`);
+  $("#crysStopB").onclick=()=>{crysStop(V);flash("Your field stops guarding crystals for five rounds.")}}}
+
+/* ---------- the rings and the dashed line (the guard's own player and their team) ----------
+   Drawn in the board's own coordinates (the tiles' offsets), so the camera's zoom and pan carry them along. */
+let crysSig="";
+function guardSVG(){const B=$("#board");if(!B||!G)return;const V=view();let list=[];
+  if(V!=null&&!G.over)for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){const st=G.board[r]&&G.board[r][c];if(!st||st.owner==null||!G.p[st.owner]||isEnemy(st.owner,V)||isNPC(st.owner))continue;
+    const own=st.owner,fa=G.p[own].fa;if(!fa||!fa.on||!faAllowed()||!fa.cfg||fa.cfg.crysShow===false||crysRest(own))continue;
+    const seen=new Set();for(const x of st.cards){const g=x.faCrys;if(!g||!g.on||seen.has(crysKey(g.r,g.c))||!crystalAt(g.r,g.c)||g.until!=null&&G.moon.round>g.until)continue;seen.add(crysKey(g.r,g.c));list.push([r,c,g.r,g.c,own])}}
+  const old=B.querySelector(":scope>svg.guards");
+  if(!list.length){if(old)old.remove();crysSig="";return}
+  const sig=JSON.stringify([list,B.offsetWidth,B.offsetHeight]);if(old&&sig===crysSig&&old===B.lastElementChild)return;crysSig=sig;
+  const at=(r,c)=>{const t=B.querySelector(`.tile[data-r="${r}"][data-c="${c}"]`);if(!t)return null;let x=0,y=0,e=t;while(e&&e!==B){x+=e.offsetLeft;y+=e.offsetTop;e=e.offsetParent}   // up through the row to the board
+    if(e!==B){const R=t.getBoundingClientRect(),Q=B.getBoundingClientRect();x=R.left-Q.left;y=R.top-Q.top}
+    return {x:x+t.offsetWidth/2,y:y+t.offsetHeight/2,s:Math.min(t.offsetWidth,t.offsetHeight)}};
+  const f=v=>v.toFixed(1);let rings="",lines="";const crys=new Map();
+  for(const [r,c,gr,gc,own] of list){const a=at(r,c),b=at(gr,gc);if(!a||!b)continue;let col=G.p[own].color;if(darkCol(col))col="#a59d92";const pc=cbMap(col);
+    const same=r===gr&&c===gc,R1=b.s*.47,R2=a.s*(same?.36:.4);
+    if(!crys.has(crysKey(gr,gc)+own))crys.set(crysKey(gr,gc)+own,`<g style="--gc:${pc}"><circle class="gh" cx="${f(b.x)}" cy="${f(b.y)}" r="${f(R1+3)}"/><circle class="gc gcry" cx="${f(b.x)}" cy="${f(b.y)}" r="${f(R1)}"/></g>`);
+    rings+=`<g style="--gc:${pc}"><circle class="gc" cx="${f(a.x)}" cy="${f(a.y)}" r="${f(R2)}"/></g>`;
+    if(!same){const dx=a.x-b.x,dy=a.y-b.y,L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L;if(L>R1+R2+4)   // from ring to ring, never across them
+      lines+=`<line class="gl" style="--gc:${pc}" x1="${f(b.x+ux*(R1+2))}" y1="${f(b.y+uy*(R1+2))}" x2="${f(a.x-ux*(R2+2))}" y2="${f(a.y-uy*(R2+2))}"/>`}}
+  const svg=`<svg class="guards" aria-hidden="true" width="${B.scrollWidth}" height="${B.scrollHeight}">${lines}${[...crys.values()].join("")}${rings}</svg>`;
+  if(old)old.remove();B.insertAdjacentHTML("beforeend",svg)}
+{const _r=render;render=function(){_r.apply(this,arguments);try{guardSVG()}catch(e){console.error(e)}}}
+if(typeof ResizeObserver==="function"){let q=0;const ro=new ResizeObserver(()=>{if(q)return;q=requestAnimationFrame(()=>{q=0;crysSig="";if(G)guardSVG()})});
+  const hook=()=>{const B=$("#board");if(B&&!B.dataset.crysRo){B.dataset.crysRo="1";ro.observe(B)}};
+  {const _r=render;render=function(){_r.apply(this,arguments);hook()}}}
+
+if(window.__EC)Object.assign(window.__EC,{crysPrep:(...a)=>crysPrep(...a),crysStop:(...a)=>crysStop(...a),crysGuards:pl=>crysGuards(pl),guardSVG:()=>guardSVG(),crysCands:(pl,c)=>crysCands(pl,c||crysCfg(pl)),faSaveW:c=>faSave(c),faMineW:()=>faMine(),faCleanW:c=>faClean(c)});
 
 })();
