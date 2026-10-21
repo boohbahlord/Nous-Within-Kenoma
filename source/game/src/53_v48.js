@@ -26,7 +26,7 @@ SPELL_TEXT.dplus={n:"Select one of your stacks that can attack or defend, one wi
 {const s=SP("dplus");const t=SPELL_TEXT.dplus;s.text=[t.n,t.e,t.l].join(" ")}
 /* the row has a sword and a shield: pick one, then click one of your stacks */
 {const _sr=spellRow;spellRow=function(s,live){const h=_sr(s,live);if(!s||s.id!=="dplus"||!G)return h;
-  return `<div class="spellrow dprow"><button type="button" class="autotog dparm${dpArm==="atk"?" on":""}" data-dparm="atk" aria-label="Dice Plus on an attack" data-tip="Pick the sword, then click one of your stacks.">⚔</button><button type="button" class="autotog dparm${dpArm==="def"?" on":""}" data-dparm="def" aria-label="Dice Plus on a defense" data-tip="Pick the shield, then click one of your stacks.">⛨</button>${h}</div>`}}
+  return `<div class="spellrow dprow"><button type="button" class="autotog dparm${dpArm==="atk"?" on":""}" data-dparm="atk" aria-label="Dice Plus on an attack" data-tip="Pick the sword, then click one of your stacks.">⚔︎</button><button type="button" class="autotog dparm${dpArm==="def"?" on":""}" data-dparm="def" aria-label="Dice Plus on a defense" data-tip="Pick the shield, then click one of your stacks.">⛨</button>${h}</div>`}}
 {const _rs=renderSpells;renderSpells=function(live){_rs(live);document.querySelectorAll("[data-dparm]").forEach(b=>b.onclick=e=>{e.stopPropagation();if(!canAct())return;
   const m=b.dataset.dparm;dpArm=dpArm===m?null:m;if(dpArm){const st=selOwn()&&selStack();if(st&&spellReady(SP("dplus"))){cast(SP("dplus"));return}flash(`Dice Plus (${m==="atk"?"sword":"shield"}): click one of your stacks.`)}render()})}}
 {const _tc=tileClick;tileClick=function(r,c){const out=_tc.apply(this,arguments);
@@ -46,7 +46,7 @@ function stackSpells(st){const L=[],t=n=>`${n} turn${n===1?"":"s"}`;
   if(hated(st))L.push(["Hate","until it fights","disadvantage"]);
   return L}
 {const _sd=siegeDecor;siegeDecor=function(inner,st,V,r,c){let h=_sd(inner,st,V,r,c);const L=stackSpells(st);
-  const add=[];if(st.dplus){h=h.replace('class="stack ',`class="stack dp-${st.dplus.m} `);add.push(`<span class="dpicon" aria-hidden="true">${st.dplus.m==="atk"?"⚔":"⛨"}</span>`)}
+  const add=[];if(st.dplus){h=h.replace('class="stack ',`class="stack dp-${st.dplus.m} `);add.push(`<span class="dpicon" aria-hidden="true">${st.dplus.m==="atk"?"⚔︎":"⛨"}</span>`)}
   if(L.length)add.push(`<span class="spfx" title="${esc(L.map(x=>`${x[0]}: ${x[1]}${x[2]?", "+x[2]:""}`).join(" · "))}"><span class="spdur">${L[0][1]}${L[0][2]?" · "+L[0][2]:""}${L.length>1?` +${L.length-1}`:""}</span><span class="spname">${L.map(x=>x[0]).join(" · ")}</span></span>`);
   if(add.length&&h.endsWith("</div>"))h=h.slice(0,-6)+add.join("")+"</div>";return h}}
 

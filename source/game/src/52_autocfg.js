@@ -154,6 +154,6 @@ async function lhAutoPlace(pl){const P=G.p[pl],c=P.lhCfg;if(!c||!c.autoPlace||G.
 
 /* ---------- the Ritual Dice row gets its settings button ---------- */
 {const _sr=spellRow;spellRow=function(s,live){const h=_sr(s,live);if(!s||s.id!=="ritual"||!G)return h;const on=rdMine().on;
-  return `<div class="spellrow"><button type="button" class="autotog cfgtog${on?" on":""}" id="rdCfg" aria-label="Ritual Dice automation" data-tip="Ritual Dice automation (${on?"on":"off"}): buy it for you, when and how much.">⚙</button>${h}</div>`}}
+  return `<div class="spellrow"><button type="button" class="autotog cfgtog${on?" on":""}" id="rdCfg" aria-label="Ritual Dice automation" data-tip="Ritual Dice automation (${on?"on":"off"}): buy it for you, when and how much.">⚙︎</button>${h}</div>`}}
 {const _rs=renderSpells;renderSpells=function(live){_rs(live);const b=$("#rdCfg");if(b)b.onclick=e=>{e.stopPropagation();faWindow("ritual")}}}
 if(window.__EC)Object.assign(window.__EC,{rdMine,lhMine,autoRitual,lhAutoSac,lhAutoPlace,faWindow:t=>faWindow(t)});

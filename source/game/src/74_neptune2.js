@@ -39,7 +39,7 @@ function nepLostTargets(k){const me_=G.active,P=G.p[me_],out=[];
   if(P.nepWay!=="self"&&G.moon.round>3)for(const e of enemiesOf(me_))if(!isNPC(e)&&!isHorde(e)&&!G.p[e].out&&!nepSelf(e))out.push(e);
   return out}
 const nepLostOk=k=>!!G&&oathNow(G.active,"neptune")&&!nepEcOn()&&!(k==="ev"&&nepEvOn())&&!nepSelf(G.active)&&nepLostTargets(k).length>0;
-function nepSignNames(){const names={};for(const P of G.p){let s="";const n=3+R(4);for(let i=0;i<n;i++)s+=NEP_SIGNS[Math.floor(Math.random()*NEP_SIGNS.length)];names[P.i]=s}return names}
+function nepSignNames(){const names={};for(const P of G.p)names[P.i]=nepJumble();return names}
 async function castLostness(k){const me_=G.active,P=G.p[me_],nm=k==="ev"?"Lostness I":"Lostness II";
   const ts=nepLostTargets(k);let t=ts.length===1?ts[0]:await ask(me_,{kind:"player",id:"lostness",title:`${nm}: on whom?`,players:ts,ai:()=>me_});
   if(t==null)return;

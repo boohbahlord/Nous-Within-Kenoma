@@ -1974,3 +1974,5 @@ html.lite #menu label.mslide:has(#mMus){display:none}
 #menu #mFxLvlV{white-space:nowrap}
 #menu label.f.faded{opacity:.55}
 @media (max-width:520px){#menu .mslides label.f.mslide:has(#mFxLvl){grid-template-columns:minmax(5.5em,7em) auto minmax(60px,1fr) auto minmax(3.4em,7.5em)}#menu #mFxLvlV{white-space:normal}}
+/* v71m: symbols are never drawn as emoji (where the browser can choose; the strings also ask for text with U+FE0E) */
+html.ecpage body,.fx{font-variant-emoji:text}
