@@ -6,7 +6,7 @@
    Someone who joins without a seat, or after the start, watches. And a chat for everyone in the room. */
 
 /* ---------- the host tells every screen what to show and play ---------- */
-function netFX(e){if(NET.role!=="host"||!G||!G.opts.online||G.opts.fast)return;const ids=guestIds();if(!ids.length)return;for(const id of ids)sendTo(id,{t:"fx",e})}
+function netFX(e){if(NET.role!=="host"||!G||!G.opts.online||G.opts.fast)return;const ids=guestIds();if(!ids.length)return;for(const id of ids)if(!netQuiet(id)&&fxSeen(e,id))sendTo(id,{t:"fx",e})}   // v71j: none for a poor connection; v71l: none they couldn't see
 const hostOnline=()=>NET.role==="host"&&G&&G.opts.online&&guestIds().length>0;
 {const _pl=place;place=function(card,r,c){const pl=card&&card.owner;const out=_pl.apply(this,arguments);if(hostOnline())netFX({k:"place",r,c,pl});return out}}
 {const _dm=doMove;doMove=function(r,c){const s=G.sel,st=s&&G.board[s.r]&&G.board[s.r][s.c],pl=st?st.owner:null;const out=_dm.apply(this,arguments);if(hostOnline()&&s)netFX({k:"move",a:[s.r,s.c],b:[r,c],pl});return out}}
@@ -107,9 +107,10 @@ function netRejoin(from,tok,name){if(!G||!G.opts.online||G.over)return false;con
 {const _jl=onlineLobby;onlineLobby=function(){_jl();const j=$("#onJoin");if(!j)return;const old=j.onclick;
   j.onclick=async()=>{const code=($("#onCode").value||"").trim().toUpperCase(),saved=rejoinLoad();NET.token=saved&&saved.code===code?saved.token:null;return old()}}}
 let reTries=0;
+/* v71j: a poor connection keeps trying for a minute and a half (30 tries), not 24 seconds */
 async function netReconnect(){if(NET.reconnecting)return;NET.reconnecting=true;reTries=0;netBanner("The connection dropped. Reconnecting…");
   const saved=rejoinLoad();NET.token=saved&&saved.code===NET.code?saved.token:NET.token;
-  while(reTries<8&&NET.role==="guest"){reTries++;try{try{NET.tr&&NET.tr.close()}catch(e){}NET.tr=await transport(NET.code,false,onNet);sendHost({t:"hello",name:NET.name,token:NET.token});NET.reconnecting=false;netBanner("Reconnected.");setTimeout(()=>netBanner(""),2500);return}catch(e){await new Promise(r=>setTimeout(r,3000))}}
+  while(reTries<(netLvl()>1?30:8)&&NET.role==="guest"){reTries++;try{try{NET.tr&&NET.tr.close()}catch(e){}NET.tr=await transport(NET.code,false,onNet);sendHost({t:"hello",name:NET.name,token:NET.token});NET.reconnecting=false;netBanner("Reconnected.");setTimeout(()=>netBanner(""),2500);return}catch(e){await new Promise(r=>setTimeout(r,3000))}}
   NET.reconnecting=false;netBanner("");_netLost()}
 function _netLost(){if(G)G.over=true;ovShow(`<div class="ovbox"><h2>Connection lost</h2><p>The game couldn't be reached again. You can join the room again with the same code: you'll get your seat back while the game is on.</p><p class="acts"><button class="btn" id="netOk">Back to the menu</button></p></div>`);$("#netOk").onclick=()=>{netLeave();startMode="online";showStart()}}
 function netBanner(t){let b=$("#netbanner");if(!t){if(b)b.hidden=true;return}if(!b){b=document.createElement("div");b.id="netbanner";b.setAttribute("role","status");document.body.appendChild(b)}b.textContent=t;b.hidden=false}

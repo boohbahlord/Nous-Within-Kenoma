@@ -235,7 +235,6 @@ const BANK_HELP=[
  ["The Report","Every Full Moon (every eighth round without the Moon) the Bank hands each player a Credit and Loan Report: what was taken on loans and credit, the interest, the taxes, the mana earned, and good or bad standing."],
  ["Taxes","On Report day only: 1d2 for a base in the middle of the field; every other Ace or Tree, 1 in 3 (1 in 2 in bad standing) of 1d2. With no mana a tax goes unpaid (no credit), and the standing turns bad."],
  ["Land in the middle","2 mana: a spawn point on the middle ground for 8 of your turns (this one counts), on your side of the midline, for any card but a Wall. A card without a base there costs 1d2 − 1. None in King of the Hill."],
- ["Selling","Sell cards from your hand or deck for their soul worth, or 1 less (rolled at the sale). A standard card worth only 1 can't be sold. Sold cards go to the Ether, and your deck is reshuffled. Binah can sell thralls for 1 mana."],
  ["Upselling","A spell bought more than twice in each of two rounds in a row costs 1d2 − 1 more."],
  ["When the Bank is in the red","The Ether goes on sale (1 less, never below 1), and the Bank asks the richest player for a loan."],
  ["The angry Banker","If Demons hold the middle of the field for 7d2 turns, every price goes up by 1 until they are gone."],

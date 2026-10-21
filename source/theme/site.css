@@ -214,3 +214,22 @@ html.th-office #ecmusic{background:#eef0f3ee}   /* v71: the music plays in every
 #ecmusic[hidden]{display:none}
 #ecmusic button{font:inherit;color:var(--amber-hi);background:transparent;border:1px solid var(--rule);padding:2px 7px;cursor:pointer;text-transform:uppercase;letter-spacing:.1em}
 #ecmusic b{font-weight:400;min-width:3.4em;text-align:center;color:var(--text)}
+
+/* v71j: Data saving and Poor connection on the Ether's Crossroads pages (html.lite, html.poor; set in each page's head): the
+   device's own fonts (Cascadia Code is never fetched), no background picture, no music corner, no static and no lines */
+html.lite{--mono:Consolas,"Courier New",Menlo,"DejaVu Sans Mono","Liberation Mono",monospace}
+html.lite.th-darkfantasy{background:radial-gradient(ellipse 120% 70% at 50% -10%,#231920,#0d0a0e 62%) fixed}
+html.lite #ecmusic,html.lite button.static-toggle,html.lite svg.strings,html.lite canvas.static,html.lite .scan{display:none!important}
+/* the first visit asks once how the pages should load */
+#netask{position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;padding:16px;background:#000b}
+#netask .nabox{position:relative;width:100%;max-width:780px;max-height:calc(100vh - 32px);overflow:auto;background:var(--well);border:1px solid var(--amber);padding:22px 22px 20px;font-family:var(--mono);color:var(--text)}
+#netask h2{margin:0 40px 6px 0;font-size:20px;font-weight:400;color:var(--amber-hi);letter-spacing:.02em}
+#netask .nadim{margin:0 0 16px;font-size:13px;line-height:1.5;color:var(--dim)}
+#netask .naopts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+#netask .naopts button{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:14px;text-align:left;background:var(--deep);border:1px solid var(--rule);color:var(--text);font:inherit;cursor:pointer}
+#netask .naopts button:hover,#netask .naopts button:focus-visible{border-color:var(--amber);outline:none}
+#netask .naopts b{font-weight:400;font-size:16px;color:var(--amber-hi)}
+#netask .naopts span{font-size:12.5px;line-height:1.5;color:var(--dim)}
+#netask .nax{position:absolute;top:10px;right:10px;width:32px;height:32px;padding:0;background:none;border:1px solid var(--rule);color:var(--text);font:inherit;font-size:18px;line-height:1;cursor:pointer}
+#netask .nax:hover,#netask .nax:focus-visible{border-color:var(--amber);outline:none}
+@media (max-width:640px){#netask .naopts{grid-template-columns:1fr}#netask .nabox{padding:18px 16px 16px}}

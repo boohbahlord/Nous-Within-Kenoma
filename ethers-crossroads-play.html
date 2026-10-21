@@ -5,14 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Play · Ether&#x27;s Crossroads</title>
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="preload" href="cascadia-code-latin-200-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="site.css?v=56">
-<link rel="preload" href="grenze-gotisch-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="ethers-crossroads.css?v=100"><script>try{var P=JSON.parse(localStorage.getItem("ec-prefs2")||"{}"),t=P.theme==null||(!P.v43t&&P.theme==="")?"darkfantasy":P.theme,
+<link rel="stylesheet" href="site.css?v=57">
+<script>window.EC_BL=1</script>
+<link rel="stylesheet" href="ethers-crossroads.css?v=101"><script>try{var P=JSON.parse(localStorage.getItem("ec-prefs2")||"{}"),t=P.theme==null||(!P.v43t&&P.theme==="")?"darkfantasy":P.theme,
 M={darkfantasy:["th-darkfantasy"],"":["th-rich"],dull:["th-dull","th-rich"],office:["th-office","th-rich"],officedark:["th-officedark","th-rich"],earth:["th-earth","th-rich"],jester:["th-black","th-jester","th-rich"],ten:["th-indigo","th-blue","th-rich"],satan:["th-crimson","th-rich"]};
-(M[t]||[]).forEach(function(c){document.documentElement.classList.add(c)});document.documentElement.classList.add("ecpage")}catch(e){}</script>
-<script src="ec-music.js?v=56" defer></script>
-<script src="site.js?v=56" defer></script>
+(M[t]||[]).forEach(function(c){document.documentElement.classList.add(c)});document.documentElement.classList.add("ecpage")}catch(e){}
+/* v71j: Data saving (1) and Poor connection (2) fetch nothing the page can do without: no fonts (the blackletter becomes the
+   device's own serif), no music. Otherwise the fonts are preloaded and the music comes, as before. */
+try{var N=+(P&&P.net)||0,D=document.documentElement,H=document.head;
+if(N>0){D.classList.add("lite");if(N>1)D.classList.add("poor");var y=document.createElement("style");y.id="litefonts";
+y.textContent='@font-face{font-family:"Grenze Gotisch";font-style:normal;font-weight:500;src:local("Old English Text MT"),local("Times New Roman"),local("Georgia"),local("Noto Serif"),local("DejaVu Serif"),local("Liberation Serif")}';H.appendChild(y)}
+else{var F=function(u){var l=document.createElement("link");l.rel="preload";l.as="font";l.type="font/woff2";l.crossOrigin="anonymous";l.href=u;H.appendChild(l)};
+F("cascadia-code-latin-200-normal.woff2");if(window.EC_BL)F("grenze-gotisch-latin-500-normal.woff2");
+var m=document.createElement("script");m.src="ec-music.js?v=57";H.appendChild(m)}}catch(e){}</script>
+<script src="site.js?v=57" defer></script>
 </head>
 <body data-static="1" data-fx="strings bars">
 <main class="wide game">
@@ -53,7 +59,7 @@ M={darkfantasy:["th-darkfantasy"],"":["th-rich"],dull:["th-dull","th-rich"],offi
 </main>
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
-<script src="ethers-crossroads-quotes.js?v=100"></script>
-<script src="ethers-crossroads.js?v=100"></script>
+<script>window.EC_QSRC="ethers-crossroads-quotes.js?v=101"</script>
+<script src="ethers-crossroads.js?v=101"></script>
 </body>
 </html>

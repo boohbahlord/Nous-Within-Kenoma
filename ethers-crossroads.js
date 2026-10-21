@@ -2493,6 +2493,8 @@ ${chk("oskyrand","A random start","Every few rounds only. Each new Heavenly Body
 <p class="dim">Turning animations off helps slower phones. Also in the Display bar at the bottom of the game.</p></fieldset>
 <fieldset class="pf"><legend>Colors</legend><div class="opts">
 <label class="opt"><input type="checkbox" id="dcb" ${PREF.cb?"checked":""}><span>Colorblind-safe colors (off by default)<small>Every player shows in a color that red-green and blue-yellow colorblind eyes can tell apart, the nearest to the one they picked. Their cards and stacks carry a faint pattern of their own and always show their symbol. Only on this device.</small></span></label></div></fieldset>
+<fieldset class="pf"><legend>Connection</legend><div class="opts">${NET_NAMES.map((t,i)=>`<label class="opt"><input type="radio" name="dnet" value="${i}" ${netLvl()===i?"checked":""}><span>${t}${i?"":" (default)"}<small>${NET_SUBS[i]}</small></span></label>`).join("")}</div>
+<p class="dim">How much the game loads and sends, on this device. Also in the Menu and the Display bar.</p></fieldset>
 <fieldset class="pf"><legend>Background lines</legend><div class="opts">
 <label class="opt"><input type="radio" name="dlines" value="1" ${PREF.lines!==false?"checked":""}><span>On (default)<small>Thin black lines across the page behind everything, and now and then a black bar.</small></span></label>
 <label class="opt"><input type="radio" name="dlines" value="0" ${PREF.lines===false?"checked":""}><span>Off<small>A plain background, on every page of the site.</small></span></label></div></fieldset>
@@ -4534,7 +4536,7 @@ ${live&&!B.dead?`<div class="bacts">
 <p class="brow"><span class="bkey" ${tip(LOAN_TIP)}>Loan <i class="q">?</i></span><label class="${lim?"":"off"}"><select id="bLoan" aria-label="Mana to borrow" ${lim?"":"disabled"}>${lim?nums(lim):"<option>—</option>"}</select> mana</label><button class="btn sm" id="bLoanBtn" ${lim?"":"disabled"}>Take the loan</button><small class="dim">${lim?`grows 1d2 every 3 turns · due in half the amount, at least 2`:why||"The Bank won't lend to you now."}</small></p>
 <p class="brow"><span class="bkey">Repay</span>${payOpts.length?`<label><select id="bPayWho" aria-label="Which loan">${payOpts.map(([v,t])=>`<option value="${v}">${t}</option>`).join("")}</select></label>`:""}<label class="${pay0?"":"off"}"><select id="bPay" aria-label="Mana to repay" ${pay0?"":"disabled"}>${pay0?nums(pay0):"<option>—</option>"}</select> mana</label><button class="btn sm" id="bPayBtn" ${pay0?"":"disabled"}>Pay</button><small class="dim">${payOpts.length?"A loan is only paid when you pay it here.":"No loans to repay."}</small></p>
 <p class="brow"><span class="bkey" ${tip(CREDIT_TIP)}>Credit <i class="q">?</i></span><label><input type="checkbox" id="bCredit" ${P.credit?"checked":""}> Spend on credit</label><small class="dim">Spells you can't afford become mana debt, down to ${fl}; below it you lose.</small></p>
-<p class="brow bsellrow"><button class="btn bsell" id="bSell">Sell cards to the Bank</button>${P.tribe==="binah"&&(P.thralls||[]).length?`<button class="btn sm" id="bThrall">Sell a thrall (1 mana)</button>`:""}<small class="dim">From your hand or deck, for their soul worth or 1 less.</small></p></div>`:`<p class="dim">${B.dead?"":"Bank business is done in your own prep phase."}</p>`}
+${P.tribe==="binah"&&(P.thralls||[]).length?`<p class="brow bsellrow"><button class="btn sm" id="bThrall">Sell a thrall (1 mana)</button></p>`:""}</div>`:`<p class="dim">${B.dead?"":"Bank business is done in your own prep phase."}</p>`}
 <details class="bankhelp"><summary>How the Bank works</summary><dl>${BANK_HELP.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl></details>
 <p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
   $("#mcancel").onclick=ovHide;
@@ -5658,7 +5660,6 @@ const BANK_HELP=[
  ["The Report","Every Full Moon (every eighth round without the Moon) the Bank hands each player a Credit and Loan Report: what was taken on loans and credit, the interest, the taxes, the mana earned, and good or bad standing."],
  ["Taxes","On Report day only: 1d2 for a base in the middle of the field; every other Ace or Tree, 1 in 3 (1 in 2 in bad standing) of 1d2. With no mana a tax goes unpaid (no credit), and the standing turns bad."],
  ["Land in the middle","2 mana: a spawn point on the middle ground for 8 of your turns (this one counts), on your side of the midline, for any card but a Wall. A card without a base there costs 1d2 − 1. None in King of the Hill."],
- ["Selling","Sell cards from your hand or deck for their soul worth, or 1 less (rolled at the sale). A standard card worth only 1 can't be sold. Sold cards go to the Ether, and your deck is reshuffled. Binah can sell thralls for 1 mana."],
  ["Upselling","A spell bought more than twice in each of two rounds in a row costs 1d2 − 1 more."],
  ["When the Bank is in the red","The Ether goes on sale (1 less, never below 1), and the Bank asks the richest player for a loan."],
  ["The angry Banker","If Demons hold the middle of the field for 7d2 turns, every price goes up by 1 until they are gone."],
@@ -7651,7 +7652,7 @@ if(window.__EC)Object.assign(window.__EC,{NET,netLeave,flushSnap,onlineLobby,app
    Someone who joins without a seat, or after the start, watches. And a chat for everyone in the room. */
 
 /* ---------- the host tells every screen what to show and play ---------- */
-function netFX(e){if(NET.role!=="host"||!G||!G.opts.online||G.opts.fast)return;const ids=guestIds();if(!ids.length)return;for(const id of ids)sendTo(id,{t:"fx",e})}
+function netFX(e){if(NET.role!=="host"||!G||!G.opts.online||G.opts.fast)return;const ids=guestIds();if(!ids.length)return;for(const id of ids)if(!netQuiet(id)&&fxSeen(e,id))sendTo(id,{t:"fx",e})}   // v71j: none for a poor connection; v71l: none they couldn't see
 const hostOnline=()=>NET.role==="host"&&G&&G.opts.online&&guestIds().length>0;
 {const _pl=place;place=function(card,r,c){const pl=card&&card.owner;const out=_pl.apply(this,arguments);if(hostOnline())netFX({k:"place",r,c,pl});return out}}
 {const _dm=doMove;doMove=function(r,c){const s=G.sel,st=s&&G.board[s.r]&&G.board[s.r][s.c],pl=st?st.owner:null;const out=_dm.apply(this,arguments);if(hostOnline()&&s)netFX({k:"move",a:[s.r,s.c],b:[r,c],pl});return out}}
@@ -7752,9 +7753,10 @@ function netRejoin(from,tok,name){if(!G||!G.opts.online||G.over)return false;con
 {const _jl=onlineLobby;onlineLobby=function(){_jl();const j=$("#onJoin");if(!j)return;const old=j.onclick;
   j.onclick=async()=>{const code=($("#onCode").value||"").trim().toUpperCase(),saved=rejoinLoad();NET.token=saved&&saved.code===code?saved.token:null;return old()}}}
 let reTries=0;
+/* v71j: a poor connection keeps trying for a minute and a half (30 tries), not 24 seconds */
 async function netReconnect(){if(NET.reconnecting)return;NET.reconnecting=true;reTries=0;netBanner("The connection dropped. Reconnecting…");
   const saved=rejoinLoad();NET.token=saved&&saved.code===NET.code?saved.token:NET.token;
-  while(reTries<8&&NET.role==="guest"){reTries++;try{try{NET.tr&&NET.tr.close()}catch(e){}NET.tr=await transport(NET.code,false,onNet);sendHost({t:"hello",name:NET.name,token:NET.token});NET.reconnecting=false;netBanner("Reconnected.");setTimeout(()=>netBanner(""),2500);return}catch(e){await new Promise(r=>setTimeout(r,3000))}}
+  while(reTries<(netLvl()>1?30:8)&&NET.role==="guest"){reTries++;try{try{NET.tr&&NET.tr.close()}catch(e){}NET.tr=await transport(NET.code,false,onNet);sendHost({t:"hello",name:NET.name,token:NET.token});NET.reconnecting=false;netBanner("Reconnected.");setTimeout(()=>netBanner(""),2500);return}catch(e){await new Promise(r=>setTimeout(r,3000))}}
   NET.reconnecting=false;netBanner("");_netLost()}
 function _netLost(){if(G)G.over=true;ovShow(`<div class="ovbox"><h2>Connection lost</h2><p>The game couldn't be reached again. You can join the room again with the same code: you'll get your seat back while the game is on.</p><p class="acts"><button class="btn" id="netOk">Back to the menu</button></p></div>`);$("#netOk").onclick=()=>{netLeave();startMode="online";showStart()}}
 function netBanner(t){let b=$("#netbanner");if(!t){if(b)b.hidden=true;return}if(!b){b=document.createElement("div");b.id="netbanner";b.setAttribute("role","status");document.body.appendChild(b)}b.textContent=t;b.hidden=false}
@@ -8464,7 +8466,7 @@ if(window.__EC)Object.assign(window.__EC,{lazySpot,lazyPlace,lazyOn});
    the bottom always has a small link back to it. */
 const MK_TLDR=`Your deck is your life and your souls are your mana: you are out when you have nothing left on the field, or no deck, hand and mana at all. Keep your Ace safe on your back line, get Miners working for steady mana, and only fight battles your best card can win.`;
 const MK_BODY=`<p><b>Cards are life and money at once.</b> Every card you draw, place or lose comes out of your deck; every card you sacrifice becomes mana (its soul's worth), but it is one soldier less. You can sacrifice cards from your hand, too: a quick way to pay for a spell.</p>
-<p><b>Mana grows slowly unless you build for it.</b> Miners are the steady income: two can sit in each of your Aces (1d2 − 1 mana every turn), and one on a crystal tile digs up to 12 mana over time. Spells you pay for go to the Bank, which lends mana, sells you cards' worth, and lets you spend on credit, at a price.</p>
+<p><b>Mana grows slowly unless you build for it.</b> Miners are the steady income: two can sit in each of your Aces (1d2 − 1 mana every turn), and one on a crystal tile digs up to 12 mana over time. Spells you pay for go to the Bank, which lends mana and lets you spend on credit, at a price.</p>
 <p><b>Bases hold the line.</b> Aces, Walls, the Tree and Lighthouses are bases: they don't walk, they have hearts, and each holds one stack. Cards inside an Ace, a Wall or the Tree are protected until it falls, and then they fall with it; a Lighthouse's stack fights from inside it and takes the blows first.</p>
 <p><b>The sky changes the rules.</b> The Moon turns once a round and moves prices up and down (the Full and New Moons most of all). Heavenly Bodies can take its place, each with its own cycle, and now and then a rare eclipse brings a strange effect.</p>
 <p><b>The dead come back.</b> Fallen cards go to the grave. Grave Blessing (free, once a turn) rolls dice, and every 6 raises a card from the grave into your hand.</p>`;
@@ -11277,5 +11279,154 @@ nepCloudTiles=function(){const N=NEP();let w=N.cloud&&N.cw;
     if(v>.35)out.push(r*100+c)}
   return out};
 if(window.__EC)Object.assign(window.__EC,{nepCloudTilesW:()=>nepCloudTiles()});
+
+/* ---------- v71j: Default, Data saving or Poor connection (asked once, on the first visit to any Ether's Crossroads page) ----------
+   A setting on this device (PREF.net: 0, 1 or 2).
+   Data saving: the pages fetch nothing they can do without (the background picture, the fonts, the music, the book's
+   passages: see each page's head and site.js), nothing on the field moves (animations, fog, fire, the sky's glow, static,
+   lines), and online the host sends this player only the parts of the game that changed (a few kilobytes, not the
+   whole game every time).
+   Poor connection: all of that, the host's updates gathered into a few a second for the whole table, no animation
+   messages for this player, and a dropped connection keeps trying for a minute and a half. The map stays: it is drawn on
+   the device and costs no data. */
+const netLvl=()=>Math.max(0,Math.min(2,+PREF.net||0));
+const NET_NAMES=["Default","Data saving","Poor connection"];
+const NET_SUBS=["Everything: the art, the fonts, the music and the animations.",
+  "Your device's own fonts, a plain background, no music, nothing moving, and lighter online play.",
+  "For a weak or unreliable connection: all of Data saving, fewer online updates, and longer patience when the connection drops."];
+{const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);const h=document.documentElement,n=netLvl();
+  h.classList.toggle("lite",n>0);h.classList.toggle("poor",n>1);
+  if(n>0)for(const k of ["fog","fire","sky","glow","blood","magic"])h.classList.add("still-"+k);
+  const b=$("#pNet");if(b){b.textContent="Connection: "+NET_NAMES[n];b.setAttribute("aria-pressed",n>0)}}}
+{const _on=FX.on;FX.on=function(){return netLvl()===0&&_on.apply(this,arguments)}}
+/* what the page fetches only without data saving: the music and the book's passages */
+const siteV=()=>{const s=document.querySelector('script[src*="site.js?v="]'),m=s&&/v=(\d+)/.exec(s.getAttribute("src"));return m?m[1]:"0"};
+function loadScript(src,done){const s=document.createElement("script");s.src=src;if(done)s.onload=done;document.head.appendChild(s)}
+function loadMusic(){if(window.ECMusic||document.querySelector('script[src^="ec-music.js"]'))return;loadScript(`ec-music.js?v=${siteV()}`)}
+let quotesUp=false,quotesLoading=false;
+{const _mq=mountQuotes;mountQuotes=function(){if(quotesUp||netLvl()>0)return;
+  if(window.EC_QUOTES&&window.EC_QUOTES.length){quotesUp=true;return _mq.apply(this,arguments)}
+  if(!window.EC_QSRC||quotesLoading)return;quotesLoading=true;loadScript(window.EC_QSRC,()=>{quotesLoading=false;mountQuotes()})}}
+const LITE_FONTS='@font-face{font-family:"Grenze Gotisch";font-style:normal;font-weight:500;src:local("Old English Text MT"),local("Times New Roman"),local("Georgia"),local("Noto Serif"),local("DejaVu Serif"),local("Liberation Serif")}';
+function liteFonts(on){let y=document.getElementById("litefonts");if(on&&!y){y=document.createElement("style");y.id="litefonts";y.textContent=LITE_FONTS;document.head.appendChild(y)}else if(!on&&y)y.remove()}
+function netSet(n,asked){n=Math.max(0,Math.min(2,+n||0));PREF.net=n;if(asked)PREF.netAsked=1;savePrefs();applyPrefs();liteFonts(n>0);
+  if(window.nwkLook)window.nwkLook();if(window.nwkStatic&&window.nwkStatic.refresh)window.nwkStatic.refresh();
+  if(n>0){if(window.ECMusic)window.ECMusic.stop()}else{loadMusic();mountQuotes()}
+  if(NET.role==="guest"&&NET.tr)sendHost({t:"lite",lvl:n,delta:1});
+  if(G)render();else paintNetCtl()}
+window.ecSetNet=(n,asked)=>netSet(n,asked);   // the first visit's question (site.js) answers here on the game's page
+
+/* where it is set: the Display bar, the Menu (also Settings before a game), the setup's Display tab, the online Display tab */
+function paintNetCtl(){const m=$("#mNet");if(m)m.value=String(netLvl());const g=$("#gNet");if(g)g.value=String(netLvl())}
+{const _mb=mountBar;mountBar=function(){_mb.apply(this,arguments);const a=$("#pCb")||$("#pCoord");if(!a||$("#pNet"))return;
+  a.insertAdjacentHTML("afterend",`<button type="button" id="pNet" class="gtog" title="Default, Data saving or Poor connection: how much the game loads and sends. Only on this device."></button>`);
+  $("#pNet").onclick=()=>netSet((netLvl()+1)%3);applyPrefs()}}
+const netSel=id=>`<select id="${id}">${NET_NAMES.map((t,i)=>`<option value="${i}" ${netLvl()===i?"selected":""}>${t}${i?"":" (default)"}</option>`).join("")}</select>`;
+{const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu"),a=m&&(m.querySelector("#mCb")||m.querySelector("#mCardSym"));if(!a||m.querySelector("#mNet"))return;
+  a.closest("label").insertAdjacentHTML("afterend",`<label class="f">Connection ${netSel("mNet")}</label>`);
+  $("#mNet").onchange=e=>netSet(+e.target.value)}}
+{const _pd=paintDisp;paintDisp=function(){_pd.apply(this,arguments);const a=$("#gCb")||$("#gAnimM");if(!a||$("#gNet"))return;
+  a.closest("label").insertAdjacentHTML("afterend",`<label class="f">Connection ${netSel("gNet")}</label>`);
+  $("#gNet").onchange=e=>netSet(+e.target.value)}}
+document.addEventListener("change",e=>{if(e.target&&e.target.name==="dnet")netSet(+e.target.value)});
+
+/* ---------- online: a joined player tells the host how it loads ----------
+   The host sends a data-saving player (or everyone, when the host saves data) only the parts of the game that changed: each
+   player's every field, each row of the board and every other part of the game separately; the joined screen keeps the
+   rest and puts the game back together, exactly as it was sent. It asks for the whole game again if anything is missing.
+   With a poor connection anywhere at the table the host gathers its updates into a few a second; a poor-connection
+   player gets no animation messages (they don't play them anyway). */
+NET.lite=NET.lite||{};
+const deltaFor=id=>{const L=NET.lite[id];return !!(L&&L.delta&&(L.lvl>0||netLvl()>0))};
+function netQuiet(id){const L=NET.lite&&NET.lite[id];return !!(L&&L.lvl>1)}   // used by netFX (37_online2)
+const netSlow=()=>netLvl()>1||Object.keys(NET.guests).some(id=>netQuiet(id));
+function snapSplit(g){const o=JSON.parse(g),parts={},skel=[];
+  for(const k of Object.keys(o)){const v=o[k];
+    if(k==="p"&&Array.isArray(v))skel.push(["p",v.map((P,i)=>{if(!P||typeof P!=="object"||Array.isArray(P)){parts[`p|${i}`]=JSON.stringify(P);return null}
+      const ks=Object.keys(P);for(const q of ks)parts[`p|${i}|${q}`]=JSON.stringify(P[q]);return ks})]);
+    else if(k==="board"&&Array.isArray(v)){skel.push(["board",v.length]);v.forEach((row,i)=>parts[`board|${i}`]=JSON.stringify(row))}
+    else{skel.push(k);parts[k]=JSON.stringify(v)}}
+  return {skel,parts}}
+function snapJoin(skel,parts){const get=k=>{if(parts[k]===undefined)throw new Error("missing "+k);return parts[k]};
+  return "{"+skel.map(e=>typeof e==="string"?JSON.stringify(e)+":"+get(e)
+    :e[0]==="p"?'"p":['+e[1].map((ks,i)=>ks?"{"+ks.map(q=>JSON.stringify(q)+":"+get(`p|${i}|${q}`)).join(",")+"}":get(`p|${i}`)).join(",")+"]"
+    :'"board":['+Array.from({length:e[1]},(_,i)=>get(`board|${i}`)).join(",")+"]").join(",")+"}"}
+flushSnap=function(){clearTimeout(snapT);snapT=null;if(NET.role!=="host"||!G||!G.opts.online)return;let base=null,lean=null,split=null;
+  for(const id of guestIds()){const st=NET.sent[id]||(NET.sent[id]={n:0,full:false});const full=!st.full;
+    const log=G.log.filter(l=>!full?(l.n||0)>st.n:true).slice(0,full?600:200);
+    if(deltaFor(id)){if(!lean){lean=snapshot(false);split=snapSplit(lean.g)}
+      const parts={};for(const k in split.parts)if(full||!st.parts||st.parts[k]!==split.parts[k])parts[k]=split.parts[k];
+      const sk=JSON.stringify(split.skel),dg={parts};if(full||st.skel!==sk)dg.skel=split.skel;
+      sendTo(id,{t:"snap",full,dg,aim:lean.aim,log});st.parts=split.parts;st.skel=sk}
+    else{if(!base||full)base=snapshot(full);sendTo(id,{t:"snap",full,g:base.g,aim:base.aim,log})}
+    st.full=true;st.n=G.logN||0}};
+{const _on=onNet;onNet=function(from,d){
+  if(d&&NET.role==="guest"&&(d.t==="welcome"||d.t==="start"))setTimeout(()=>{if(NET.tr)sendHost({t:"lite",lvl:netLvl(),delta:1})},0);
+  if(d&&d.t==="lite"&&(NET.role==="host"||NET.role==="lobby-host")){NET.lite[from]={lvl:Math.max(0,Math.min(2,+d.lvl||0)),delta:!!d.delta};
+    if(d.resync&&NET.sent[from])NET.sent[from].full=false;return}
+  if(d&&d.t==="snap"&&d.dg&&NET.role==="guest"){let g=null;
+    try{if(d.full||!NET.dparts)NET.dparts={};Object.assign(NET.dparts,d.dg.parts||{});if(d.dg.skel)NET.dskel=d.dg.skel;
+      if(NET.dskel&&(d.full?d.dg.skel:true))g=snapJoin(NET.dskel,NET.dparts)}catch(e){g=null}
+    if(g==null){sendHost({t:"lite",lvl:netLvl(),delta:1,resync:1});return}
+    d=Object.assign({},d,{g});delete d.dg}
+  return _on.call(this,from,d)}}
+/* a poor connection at the table: the host gathers its updates (a question still sends the game at once, before it asks) */
+{const _rd=render;render=function(){const had=!!snapT;_rd.apply(this,arguments);if(!had&&snapT&&NET.role==="host"&&netSlow()){clearTimeout(snapT);snapT=setTimeout(flushSnap,320)}}}
+
+if(window.__EC)Object.assign(window.__EC,{netLvl,netSet:(n,a)=>netSet(n,a),snapSplit,snapJoin,netQuiet});
+
+/* ---------- v71l: no animations in the fog; Minimize computer animation ----------
+   - Animations on a tile in the fog of war don't play (they would show nothing the player can see, and only cost the
+     device). Online, the host doesn't even send a player the ones they couldn't see. On for everyone.
+   - Minimize computer animation (the Menu, off by default). On, a slider of five steps hides more effects the further left
+     it goes, down to none at all, and "Effects chosen by" can hand the choice to each particular switch instead, which
+     greys the slider out. Turning it on starts on the slider; turning it off brings the switches back as they were.
+     It works through the switches that were already there (Card and Magic animations, Particular animations). */
+{const _t=FX.tile;FX.tile=function(r,c){if(G&&!FX.sees(r,c))return null;return _t.apply(this,arguments)}}
+/* online: an animation tied to tiles that this player sees none of plays nothing on their screen, sound included */
+const FX_TILED=new Set(["place","move","strike","hit","death","suicide","repair","sac"]);
+function fxSeen(e,id){if(!G||!e||!FX_TILED.has(e.k))return true;const V=seatOfGuest(id);if(V==null||e.pl===V)return true;
+  const ts=[];if(e.r!=null&&e.c!=null)ts.push([e.r,e.c]);for(const k of ["a","b","from"])if(Array.isArray(e[k])&&e[k].length===2)ts.push(e[k]);
+  return !ts.length||ts.some(([r,c])=>!fogTile(V,r,c))}
+
+const FX_LVLS=[[],["moves","strikes"],["moves","strikes","deaths","banners","spells"],["moves","strikes","deaths","banners","spells","mana","shuffles","weather"],
+  ["moves","strikes","deaths","banners","spells","mana","shuffles","weather","fire","glow","blood","sky"]];
+const FX_LVL_NAME=["None","Moves and strikes","Fights and spells","Nothing constant","Nearly all"];
+const fxMin=()=>PREF.fxMin===true,fxEach=()=>PREF.fxBy==="each",fxLvl=()=>Math.max(0,Math.min(4,PREF.fxLvl==null?3:+PREF.fxLvl));
+/* the switches follow the slider (or the particular choices kept for "each one myself") */
+function fxMinApply(){if(!fxMin())return;
+  if(fxEach()){PREF.fxOff=[...(PREF.fxOffEach||PREF.fxOff||[])];PREF.fxCards=true;PREF.fxMagic=true;return}
+  const on=new Set(FX_LVLS[fxLvl()]);PREF.fxOff=FX_PARTS.map(([k])=>k).filter(k=>!on.has(k));PREF.fxCards=PREF.fxMagic=fxLvl()>0}
+function fxMinSet(on){on=!!on;if(on===fxMin())return;
+  if(on){PREF.fxFull={off:[...(PREF.fxOff||[])],c:PREF.fxCards,m:PREF.fxMagic};PREF.fxMin=true;PREF.fxBy="slider";if(PREF.fxLvl==null)PREF.fxLvl=3;fxMinApply()}
+  else{const F=PREF.fxFull||{off:["fog"],c:true,m:true};PREF.fxOff=[...F.off];PREF.fxCards=F.c;PREF.fxMagic=F.m;PREF.fxMin=false}
+  fxMinSave()}
+function fxMinSave(){savePrefs();applyPrefs();fxMinPaint();if(G)render()}
+{const _aa=askAnimations;askAnimations=function(){if(fxMin())return;return _aa.apply(this,arguments)}}   // the phone's question would undo the choice
+/* the Display bar's two animation switches stand still while the choice is minimized */
+{const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);for(const id of ["#pAnimC","#pAnimM"]){const b=$(id);if(b){b.disabled=fxMin();b.title=fxMin()?"Minimize computer animation is on: the Menu decides.":""}}}}
+
+/* the Menu: the drop-downs with the drop-downs, the slider with the sliders */
+function fxMinPaint(){const m=$("#menu");if(!m)return;const on=fxMin(),each=fxEach();
+  const mn=m.querySelector("#mFxMin");if(mn)mn.value=on?"1":"0";
+  const by=m.querySelector("#mFxBy");if(by){by.value=each?"each":"slider";by.closest("label").hidden=!on}
+  const sl=m.querySelector("#mFxLvl");if(sl){sl.value=fxLvl();sl.disabled=!on||each;const L=sl.closest("label");L.hidden=!on;L.classList.toggle("faded",each);
+    L.querySelectorAll(".mstep").forEach(b=>b.disabled=sl.disabled);const v=m.querySelector("#mFxLvlV");if(v)v.textContent=FX_LVL_NAME[fxLvl()]}
+  for(const [id,k] of [["#mAnimC","fxCards"],["#mAnimM","fxMagic"]]){const s=m.querySelector(id);if(s){s.value=PREF[k]===false?"0":"1";s.disabled=on;s.closest("label").classList.toggle("faded",on)}}
+  const parts=m.querySelector("#mParts");if(parts){const lock=on&&!each;parts.classList.toggle("faded",lock);
+    parts.querySelectorAll("[data-fxp]").forEach(i=>{i.disabled=lock;i.checked=!(PREF.fxOff||[]).includes(i.dataset.fxp)})}}
+{const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu"),a=m&&m.querySelector("#mAnimM");if(!a||m.querySelector("#mFxMin"))return;
+  a.closest("label").insertAdjacentHTML("afterend",`<label class="f">Minimize computer animation <select id="mFxMin"><option value="0">Off (default)</option><option value="1">On</option></select></label>
+<label class="f" hidden>Effects chosen by <select id="mFxBy"><option value="slider">The slider (default)</option><option value="each">Each one myself, below</option></select></label>`);
+  const g=m.querySelector(".mslides")||m.querySelector(".mgrid");
+  g.insertAdjacentHTML("beforeend",`<label class="f mslide" hidden>Effects <input type="range" id="mFxLvl" min="0" max="4" step="1" aria-label="Effects: further left hides more"><b id="mFxLvlV"></b></label>`);
+  groupMenuSliders();
+  $("#mFxMin").onchange=e=>fxMinSet(e.target.value==="1");
+  $("#mFxBy").onchange=e=>{PREF.fxBy=e.target.value==="each"?"each":"slider";fxMinApply();fxMinSave()};
+  $("#mFxLvl").oninput=e=>{PREF.fxLvl=+e.target.value;fxMinApply();fxMinSave()};
+  const parts=m.querySelector("#mParts");if(parts)parts.addEventListener("change",e=>{if(e.target.dataset.fxp!=null&&fxMin()&&fxEach()){PREF.fxOffEach=[...(PREF.fxOff||[])];savePrefs()}});
+  fxMinPaint()}}
+
+if(window.__EC)Object.assign(window.__EC,{fxMinSet,fxLvl,FX_LVLS,fxSeen:(e,id)=>fxSeen(e,id)});
 
 })();

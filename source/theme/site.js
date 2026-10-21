@@ -13,13 +13,14 @@
 
   /* ---------- strings and background bars ---------- */
   const lookPref=()=>{try{return JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){return {}}};
+  const lite=()=>document.documentElement.classList.contains("lite");   // v71j: Data saving or Poor connection: no lines, no static
   function look(){const P=lookPref(),b=+P.bright||1;
     document.documentElement.style.filter=Math.abs(b-1)>.01?`brightness(${b})`:"";
     document.documentElement.classList.toggle("nolines",P.lines===false)}
   function drawStrings(){
     const W=innerWidth,H=innerHeight;
     document.querySelector("svg.strings")?.remove();
-    if(lookPref().lines===false)return;
+    if(lookPref().lines===false||lite())return;
     const s=el("svg",{class:"strings",viewBox:`0 0 ${W} ${H}`,preserveAspectRatio:"none","aria-hidden":"true"});
     const g=el("g",{stroke:"#000",fill:"none"},s);
     if(fx.includes("strings")){
@@ -83,22 +84,24 @@
     b.addEventListener("click",()=>{on=!on;try{localStorage.setItem(KEY,on?"on":"off")}catch(e){}on?start():stop();label()});
     body.appendChild(b);
   }
-  document.addEventListener("visibilitychange",()=>{if(!LV||!on)return;if(document.hidden){cancelAnimationFrame(raf);raf=0}else if(!reduce&&!raf)raf=requestAnimationFrame(loop)});
+  document.addEventListener("visibilitychange",()=>{if(!LV||!on||lite())return;if(document.hidden){cancelAnimationFrame(raf);raf=0}else if(!reduce&&!raf)raf=requestAnimationFrame(loop)});
 
   /* pages can raise or lower the static while open (the game's Blood Moon does) */
   window.nwkLook=()=>{drawStrings();look()};   // the game's Display settings call this after a change
   window.nwkStatic={level(n){
     n=Math.max(0,Math.min(4,n|0));if(n===LV)return;LV=n;ALPHA=[0,.035,.065,.1,.13][LV]||0;
     if(!LV){stop();return}
+    if(lite())return;
     toggleButton();if(!cv)buildStatic();
     scan.style.opacity=(.25+LV*.12).toFixed(2);
     if(LV>=3&&!roll){roll=document.createElement("div");roll.className="roll";body.prepend(roll)}
     if(roll)roll.hidden=LV<3||!on;
     if(on)start();
-  }};
+  },
+  refresh(){if(lite()||!LV){stop();if(btn)btn.hidden=true;return}toggleButton();btn.hidden=false;if(on)start()}};   // v71j: after Data saving is switched
   function go(){
     drawStrings();look();
-    if(LV>0){toggleButton();if(on)start()}
+    if(LV>0&&!lite()){toggleButton();if(on)start()}
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",go);else go();
   let lw=innerWidth,tm;addEventListener("resize",()=>{clearTimeout(tm);tm=setTimeout(()=>{if(Math.abs(innerWidth-lw)>40){drawStrings();lw=innerWidth}},200)});
@@ -119,4 +122,37 @@
     if(!on()||!e.target.closest)return;
     if(window.__EC&&window.__EC.G&&!window.__EC.G.over)return;   // in a game, the game's own sounds answer
     if(e.target.closest("button,a[href],summary,label,select,.card,[role=button],[role=tab]"))click()},true);
+})();
+
+/* v71j: the first visit to an Ether's Crossroads page asks once how its pages should load: Default, Data saving or Poor
+   connection. The X keeps the default. In the game, its own settings take the answer (window.ecSetNet); elsewhere it is saved
+   with the game's display settings ("ec-prefs2": net, netAsked) and applied at once. */
+(function(){
+  const D=document.documentElement;if(!D.classList.contains("ecpage"))return;
+  let P={};try{P=JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){return}
+  if(P.netAsked)return;
+  function apply(n){
+    if(window.ecSetNet){window.ecSetNet(n,true);return}
+    let Q={};try{Q=JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){}
+    Q.net=n;Q.netAsked=1;try{localStorage.setItem("ec-prefs2",JSON.stringify(Q))}catch(e){}
+    D.classList.toggle("lite",n>0);D.classList.toggle("poor",n>1);
+    if(window.nwkLook)window.nwkLook();if(window.nwkStatic&&window.nwkStatic.refresh)window.nwkStatic.refresh();
+    if(n>0&&window.ECMusic)window.ECMusic.stop()}
+  function show(){if(document.getElementById("netask"))return;
+    const w=document.createElement("div");w.id="netask";w.setAttribute("role","dialog");w.setAttribute("aria-modal","true");w.setAttribute("aria-labelledby","netaskT");
+    w.innerHTML=`<div class="nabox"><button type="button" class="nax" aria-label="Close: keep the default">×</button>
+<h2 id="netaskT">How should Ether's Crossroads load?</h2>
+<p class="nadim">For this device. You can change it any time in the Menu, or in the Display bar during a game.</p>
+<div class="naopts">
+<button type="button" data-n="0"><b>Default</b><span>Everything: the art, the fonts, the music and the animations.</span></button>
+<button type="button" data-n="1"><b>Data saving</b><span>Your device's own fonts, a plain background, no music, nothing moving, and lighter online play.</span></button>
+<button type="button" data-n="2"><b>Poor connection</b><span>For a weak or unreliable connection: all of Data saving, fewer online updates, and longer patience when the connection drops.</span></button>
+</div></div>`;
+    document.body.appendChild(w);
+    const done=n=>{w.remove();apply(n)};
+    w.querySelector(".nax").onclick=()=>done(0);
+    w.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>done(+b.dataset.n));
+    w.addEventListener("keydown",e=>{if(e.key==="Escape")done(0)});
+    w.querySelector("[data-n='0']").focus()}
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",show);else show();
 })();
