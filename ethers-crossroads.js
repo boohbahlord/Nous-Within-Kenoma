@@ -10463,7 +10463,7 @@ function notePause(pl,what){const k=what+"|"+G.turnNo;G._blindNote=G._blindNote|
 {const _fr=faRun;faRun=async function(pl){if(G&&faOn(pl)&&blindPause(pl)){notePause(pl,"Field Automation");return}return _fr.apply(this,arguments)}}
 {const _lp=lhAutoPlace;lhAutoPlace=async function(pl){if(G&&blindPause(pl)){const c=G.p[pl].lhCfg;if(c&&c.autoPlace)notePause(pl,"Lazy Hand");return}return _lp.apply(this,arguments)}}
 {const _ls=lhAutoSac;lhAutoSac=async function(pl){if(G&&blindPause(pl))return;return _ls.apply(this,arguments)}}
-{const _l=lazyPlace;lazyPlace=function(card){if(G&&blindPause(G.active)){G.selHand=card;G.mode=null;flash("Lazy Hand pauses while you are blind: place this card yourself.");render();return false}return _l.apply(this,arguments)}}
+{const _l=lazyPlace;lazyPlace=function(card){if(G&&blindPause(G.active)){flash("Lazy Hand pauses while you are blind: place this card yourself.");return false}return _l.apply(this,arguments)}}   // v71k: false lets the click pick the card up
 /* the buttons say so */
 {const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view();if(V==null||!blindPause(V))return;
   const nep=nepEcPause(V);   // v71c: in Neptune's eclipse the switches stay On, crossed out
@@ -11247,5 +11247,35 @@ function cbSet(on){PREF.cb=!!on;savePrefs();applyPrefs();if(G)render()}
 document.addEventListener("change",e=>{if(e.target&&e.target.id==="dcb")cbSet(e.target.checked)});
 
 if(window.__EC)Object.assign(window.__EC,{cbTable:()=>cbTable(),cbMap:c=>cbMap(c),cbSet:on=>cbSet(on),CB_PAL});
+
+/* ---------- v71k: Neptune's eclipse darkens the grave ----------
+   Under Neptune's eclipse (or Lostness II on oneself), whoever takes cards from the grave (the New Moon's gift, Peace,
+   Resurrection, Neptune's own grave) only chooses to draw or to stop: which card comes is chance, and for Resurrection it
+   is one they can pay for. Grave automation waits with the rest of the automation. */
+const NEP_GRAVE=new Set(["grave","resur","nepgrave"]);
+{const _ask=ask;ask=async function(pl,spec){
+  if(spec&&spec.kind==="cards"&&NEP_GRAVE.has(spec.id)&&G&&G.p[pl]&&nepEcFor(pl)&&Array.isArray(spec.cards)&&spec.cards.length){
+    const ok=spec.cards.map((c,i)=>i).filter(i=>!(spec.offs&&spec.offs[i]));
+    if(!ok.length)return _ask.apply(this,arguments);   // nothing they can pay for: the usual window says so
+    const v=await _ask.call(this,pl,{kind:"choice",id:spec.id+"-blind",title:spec.title,
+      sub:"Neptune's eclipse darkens the grave: you draw from it blindly.",
+      options:[{id:"take",label:"Draw blindly",sub:spec.id==="resur"?"A card you can pay for, unseen until it comes up.":"A card from the grave, unseen until it comes up."},{id:"stop",label:spec.cancel||"Stop"}],
+      ai:()=>!spec.ai||spec.ai()!=null?"take":"stop"});
+    return v==="take"?pick(ok):null}
+  return _ask.apply(this,arguments)}}
+
+/* ---------- v71k: Neptune's cloud is one cloud ----------
+   It settles where a slow wave over the field rises, on tiles near the cards, and drifts with the wave a little each turn.
+   (Before, every tile near a card was in it on its own 45% chance, every turn, so it looked like loose blue squares.) */
+nepCloudTiles=function(){const N=NEP();let w=N.cloud&&N.cw;
+  if(w)w.k++;else w=N.cw={a:Math.random()*6.283,b:Math.random()*6.283,c:Math.random()*6.283,dx:(Math.random()-.5)*1.3,dy:(Math.random()-.5)*1.3,k:0};
+  const out=[];
+  for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){if(isVoid(r,c)||tileRole(r,c)==="water")continue;
+    let near=false;for(let dr=-1;dr<=1&&!near;dr++)for(let dc=-1;dc<=1;dc++){const a=r+dr,b=c+dc;if(a>=0&&b>=0&&a<G.rows&&b<COLS&&G.board[a][b]){near=true;break}}
+    if(!near)continue;
+    const x=c+w.dx*w.k,y=r+w.dy*w.k,v=Math.sin(x*.95+w.a)+Math.sin(y*1.05+w.b)+Math.sin((x+y)*.62+w.c);
+    if(v>.35)out.push(r*100+c)}
+  return out};
+if(window.__EC)Object.assign(window.__EC,{nepCloudTilesW:()=>nepCloudTiles()});
 
 })();
