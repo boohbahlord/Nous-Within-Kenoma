@@ -10463,4 +10463,42 @@ if(window.__EC)Object.assign(window.__EC,{lhSpot:(...a)=>lhSpot(...a),canPlaceW:
     const m=j>=0?G.ether.splice(j,1)[0]:mkUnit("miner",pl);m.owner=pl;m.inSlot=0;st.cards.push(m);log(`A Miner takes ${plName(pl)}'s first miner slot.`)}
   return out}}
 
+/* ---------- two Illusions on an enemy, each for their next turn (their next two on a 3 of 1d3); the target is told ----------
+   Blind Hand (2 mana): their hand shows blank and shuffled; they can still play it, blind.
+   Mana Delusion (1d2 + 1 mana): their own mana bar lies by 1d3 either way (rolled again each of their turns), and what it
+   shows is what they can spend: more than they really have goes on credit with the Bank, as debt. */
+const illOf=(k,pl)=>G&&(G[k]||[]).find(x=>x.t===pl&&x.left>0)||null;
+async function pickHandFoe(id,title){const es=enemiesOf(G.active).filter(pl=>!isHorde(pl)&&!isNPC(pl)&&!G.p[pl].out);const t=es.length<=1?es[0]:await ask(G.active,{kind:"player",id,title,players:es});G.histTarget=t;return t}
+const illFoes=()=>enemiesOf(G.active).some(pl=>!isHorde(pl)&&!isNPC(pl)&&!G.p[pl].out);
+const delOff=()=>(R(2)===1?-1:1)*R(3);
+PRICE.mdel=()=>R(2)+1;
+SPELLS.push(
+ {id:"blindh",dice:"1d3",name:"Blind Hand",cost:2,school:"Illusion",text:"Choose an enemy: for 1 round their hand shows blank and shuffled (2 rounds on a 3 of 1d3). They can still play it, blind.",
+  ok:illFoes,run:async()=>{const t=await pickHandFoe("blindh","Blind Hand: whose hand?");if(t==null)return;const d=R(3),n=d===3?2:1;
+   G.blindHand=(G.blindHand||[]).filter(x=>x.t!==t);G.blindHand.push({by:G.active,t,left:n});shuffle(G.p[t].hand);
+   tray(G.active,"Blind Hand",[{s:3,v:d}],`${n} round${n>1?"s":""}`);log(`<b>Blind Hand</b>: ${plName(G.active)} blinds ${plName(t)}'s hand for ${n} round${n>1?"s":""}.`,"event");
+   notify(t,`Blind Hand: your hand shows blank and shuffled for ${n===2?"your next two turns":"your next turn"}. You can still play it, blind.`)}},
+ {id:"mdel",dice:"1d2+1",name:"Mana Delusion",cost:2,school:"Illusion",text:"Choose an enemy: for 1 round their mana bar lies by 1d3 either way (2 rounds on a 3 of 1d3), and they spend by what it shows: more than they have goes on credit, as debt.",
+  ok:illFoes,run:async()=>{const t=await pickHandFoe("mdel","Mana Delusion: whose mana?");if(t==null)return;const d=R(3),n=d===3?2:1;
+   G.manaDel=(G.manaDel||[]).filter(x=>x.t!==t);G.manaDel.push({by:G.active,t,left:n,off:delOff()});
+   tray(G.active,"Mana Delusion",[{s:3,v:d}],`${n} round${n>1?"s":""}`);log(`<b>Mana Delusion</b>: ${plName(G.active)} clouds ${plName(t)}'s mana for ${n} round${n>1?"s":""}.`,"event");
+   notify(t,`Mana Delusion: your mana bar may be lying for ${n===2?"your next two turns":"your next turn"}, and you spend by what it shows.`)}});
+SPELL_TEXT.blindh={e:"Choose an enemy: their hand shows blank and shuffled for 1 round (2 on a 3 of 1d3).",l:"They can still play their cards, blind. They are told."};
+SPELL_TEXT.mdel={e:"Choose an enemy: their mana bar lies by 1d3 either way for 1 round (2 on a 3 of 1d3).",l:"They spend by what it shows: more than they really have goes on credit with the Bank. They are told."};
+{const _bt=beginTurn;beginTurn=function(pl){const out=_bt.apply(this,arguments);if(illOf("blindHand",pl))shuffle(G.p[pl].hand);const m=illOf("manaDel",pl);if(m)m.off=delOff();return out}}
+{const _et=endTurn;endTurn=function(pl){for(const k of ["blindHand","manaDel"])if(G[k]){for(const x of G[k])if(x.t===pl)x.left--;G[k]=G[k].filter(x=>x.left>0)}return _et.apply(this,arguments)}}
+/* the blind hand, as its owner sees it */
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view();if(!illOf("blindHand",V))return;
+  document.querySelectorAll("#hand .hc").forEach(h=>{const b=h.querySelector(".cardbtn");if(b){b.innerHTML=`<span class="cf blank"><b>?</b></span>`;b.setAttribute("aria-label","a hidden card")}
+    h.querySelectorAll("[data-sh]").forEach(x=>{x.textContent="sac ?";x.title="Sacrifice this hidden card to your soul pile"});h.querySelectorAll("[data-sunh]").forEach(x=>{x.textContent="sun ?"})});
+  if(G.selHand){const box=$("#selbox");if(box)box.innerHTML=`<p><b>A hidden card</b> selected (Blind Hand). Click a highlighted tile to place it.</p>`}}}
+/* the lying mana bar: only its owner sees the lie, and spends by it */
+const manaShown=pl=>{const P=G.p[pl],x=illOf("manaDel",pl),real=mana(pl)-(P.debt||0);return x?Math.max(-8,real+x.off):real};
+{const _b=bars;bars=function(P){const h=_b.apply(this,arguments);if(!illOf("manaDel",P.i)||view()!==P.i)return h;const m=manaShown(P.i),cap=soulCap(P.i);
+  const meter=`<div class="meter mana deluded" title="Mana Delusion: this bar may be lying"><span class="bk">Mana</span><div class="manabar" role="img" aria-label="Mana ${m} of ${cap}">${Array.from({length:cap},(_,i)=>`<i class="${i<m?"f":""}"></i>`).join("")}</div><b class="mv${m<0?" neg":""}">${m<0?"−"+(-m):m}/${cap}</b></div>`;
+  return h.replace(/<div class="meter mana">[\s\S]*$/,meter+"</div>")}}
+{const _ca=canAfford;canAfford=function(pl,n){if(!illOf("manaDel",pl)||pl!==G.active)return _ca.apply(this,arguments);
+  return manaShown(pl)>=n&&(mana(pl)>=n||!!(G.bank&&!G.bank.dead))}}   // what the bar shows decides; without a Bank there is no credit to fall into
+if(window.__EC)Object.assign(window.__EC,{illOf:(...a)=>illOf(...a),manaShown:pl=>manaShown(pl),canAffordW2:(...a)=>canAfford(...a),beginTurnW:(...a)=>beginTurn(...a),endTurnW:(...a)=>endTurn(...a)});
+
 })();
