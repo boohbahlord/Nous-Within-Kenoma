@@ -1905,3 +1905,9 @@ html.th-rich .ovbox legend{color:var(--lab)}
 svg.moon.neptune{filter:drop-shadow(0 0 5px #3f9be088)}
 svg.moon.neptune.nepev{filter:drop-shadow(0 0 12px #3f9be0) brightness(1.15)}
 svg.moon.neptune.nepec{filter:drop-shadow(0 0 16px #6a1fa0) brightness(1.25)}
+/* v71c-2: Neptune's cycle: the tiles fade into the map, the numbers go dark */
+html.nepev #board .tile{border-color:transparent!important;box-shadow:none!important;outline:none}
+html.nepev #board .tile .coord,html.nepev #board .rl{opacity:0}
+html.nepev .pbox .meter,html.nepev .pbox p.stats,html.nepev #me .meter,html.nepev #me p.stats{visibility:hidden}
+.nepword{font-family:"Grenze Gotisch","Old English Text MT",serif;font-size:17px;color:#3f9be0;opacity:.85;text-shadow:0 0 6px #3f9be088;margin-right:6px;animation:nepword 2.4s ease-in-out}
+@keyframes nepword{0%{opacity:0;letter-spacing:.3em}40%{opacity:.9}100%{opacity:.75;letter-spacing:0}}

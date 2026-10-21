@@ -10862,8 +10862,80 @@ ${ec?`<circle r="43" fill="url(#nepdark)"/>`:""}<circle r="40" fill="url(#nepglo
   const lost=V!=null&&G.p[V]?stacksOf(V).filter(x=>x.st.lost).length:0;if(lost)L.push(`${lost} of your stacks ${lost===1?"is":"are"} lost in the cloud.`);
   L.push("The first mana each player earns or spends each round rolls 1d20: a 1 sends it to another player (a spender still pays), a 20 doubles it.","The moon's phases are stopped.");
   skyCommon(L);return skyBox("Neptune","",L,"neptune")}}
-SKY_PARA.neptune="Neptune, the Form of Dissolve, stops the Moon's phases. Every 4d2 turns a cloud in its blue settles over the tiles around the cards for 2d4 turns, drifting with every turn. Its tiles are in fog for everyone, even beside your own cards (a tile with your own stack stays yours). At the start of each player's turn in the cloud, a 1 on 1d20 loses one of their stacks for 1d3 + 1d2 − 1 of their turns: they can't see it or command it, nor can their automation; it never attacks, defends itself, and wanders. Another of their stacks beside it finds it: then they see it, see-through, as everyone does. The first mana each player earns or spends each round rolls 1d20: a 1 sends it to another player (a spender still pays), a 20 doubles it.";
+SKY_PARA.neptune="Neptune, the Form of Dissolve, stops the Moon's phases. Every 4d2 turns a cloud in its blue settles over the tiles around the cards for 2d4 turns, drifting with every turn. Its tiles are in fog for everyone, even beside your own cards (a tile with your own stack stays yours). At the start of each player's turn in the cloud, a 1 on 1d20 loses one of their stacks for 1d3 + 1d2 − 1 of their turns: they can't see it or command it, nor can their automation; it never attacks, defends itself, and wanders. Another of their stacks beside it finds it: then they see it, see-through, as everyone does. The first mana each player earns or spends each round rolls 1d20: a 1 sends it to another player (a spender still pays), a 20 doubles it. Its cycle, every ten rounds, lasts 2d3 rounds: the tiles fade into the map and everyone's numbers go dark; a sacrifice's mana goes to another player on a 1 of 1d8; the mana a purchase brings the Bank goes to a random player on a 1 of 1d10 (not in Survival); a drawn card is lost at sea on a 1 of 1d20 (another from the same draw on a 1 of 1d3), found 1d10 turns later by anyone; a card that dies sinks on a 1 of 1d4, to the Outer Darkness (1 on 1d2) or the Ether (2); at its start Neptune offers each player a free Clairvoyance or 2d6 + 1d2 mana for 1d6 deck cards; and once a round, on a 1 of 1d8, a player may sacrifice up to three cards from the grave for their soul worth.";
 
-if(window.__EC)Object.assign(window.__EC,{nepCloudAt:(r,c)=>nepCloudAt(r,c),neptuneSVG,giveManaW:(...a)=>giveMana(...a),spendW:(...a)=>spend(...a),beginTurnW:pl=>beginTurn(pl),hiddenFromW:(V,r,c)=>hiddenFrom(V,r,c)});
+/* ---------- v71c-2: Neptune's cycle, every ten rounds it has hung in the sky, for 2d3 rounds ----------
+   It glows; the tiles lose their outlines into the map and everyone's numbers go dark. A sacrifice's mana goes to a random
+   other player on a 1 of 1d8. Mana a purchase brings the Bank goes to a random player (the buyer too) on a 1 of 1d10 (not
+   in Survival). A drawn card is lost on a 1 of 1d20 (another from that draw on a 1 of 1d3), found 1d10 turns later by any
+   player. A card that dies goes, on a 1 of 1d4, to the Outer Darkness (1 on 1d2) or the Ether (2). Neptune offers each
+   player at its start: give up 1d6 deck cards for a free Clairvoyance, or for 2d6 + 1d2 mana. Once a round, on a 1 of 1d8,
+   a player may sacrifice up to three cards from the grave for their soul worth. Cycle events off: none of it. */
+const nepEvOn=()=>nepUp()&&!!G.nepEv&&G.moon.round<=G.nepEv.until;
+const nepRealPl=()=>G.p.filter(P=>!P.out&&!isNPC(P.i)&&!isHorde(P.i)).map(P=>P.i);
+async function nepEventRound(){if(!nepUp()){G.nepEv=null;return}
+  const r=G.moon.round;
+  if(G.nepEv&&r>G.nepEv.until){G.nepEv=null;log("Neptune's cycle ends: the field and the numbers come back.","event");render()}
+  const since=G.skySince;
+  if(!G.nepEv&&!(typeof cyclesOff==="function"&&cyclesOff())&&since!=null&&r>since&&(r-since)%10===0){
+    const d=sum(rollN(2,3));G.nepEv={from:r,until:r+d-1};
+    log(`<b>Neptune's cycle</b> (every ten rounds): for ${d} rounds (2d3) the tiles fade into the map and every player's numbers go dark. Sacrifices, the Bank's takings and drawn cards may drift away; the dead may sink to the Ether or the Outer Darkness.`,"event");
+    popup("Neptune's cycle",`<p>For <b>${d} round${d>1?"s":""}</b> (2d3) Neptune glows: the tiles fade into the map and every player's numbers go dark.</p><ul><li>A sacrifice's mana goes to another player on a 1 of 1d8.</li><li>Mana a purchase brings the Bank goes to a random player on a 1 of 1d10${survival()?" (not in Survival)":""}.</li><li>A drawn card is lost on a 1 of 1d20 (another from the same draw on a 1 of 1d3), and found 1d10 turns later by anyone.</li><li>A card that dies sinks, on a 1 of 1d4, to the Outer Darkness or the Ether.</li><li>Once a round a player may be let into the grave (a 1 of 1d8) to sacrifice its cards for mana.</li></ul>`);
+    render();
+    for(const pl of nepRealPl()){if(G.over)return;await nepOffer(pl)}}
+  if(nepEvOn())for(const pl of nepRealPl()){if(G.over)return;if(R(8)===1)await nepGraveSac(pl)}}
+{const _cr=cycleRound;cycleRound=async function(){await _cr.apply(this,arguments);if(G&&!G.over)await nepEventRound()}}
+/* Neptune's offer: 1d6 deck cards for a free Clairvoyance (once, until used) or for 2d6 + 1d2 mana */
+async function nepOffer(pl){const P=G.p[pl];if(!P.deck.length)return;
+  const opts=[];if(!P.nepClair)opts.push({id:"clair",label:"A free Clairvoyance",sub:"your next one costs nothing"});opts.push({id:"mana",label:"2d6 + 1d2 mana",sub:"rolled now"},{id:"no",label:"Keep my cards"});
+  const ch=await ask(pl,{kind:"choice",id:"nepoffer",title:"Neptune's offer",text:"Give up 1d6 cards from your deck to Neptune, for a free Clairvoyance (your next, once) or for 2d6 + 1d2 mana?",options:opts,ai:()=>P.deck.length>18&&Math.random()<.6?"mana":"no"});
+  if(!ch||ch==="no")return;
+  const n=R(6),gone=P.deck.splice(Math.max(0,P.deck.length-n),n);for(const c of gone)toDark(c);
+  if(ch==="clair"){P.nepClair=true;log(`${plName(pl)} gives Neptune ${gone.length} deck card${gone.length===1?"":"s"} (1d6) for a free Clairvoyance.`,"event")}
+  else{const d=[...rollN(2,6),...rollN(1,2)],m=sum(d),got=giveMana(pl,m);tray(pl,"Neptune's offer",d,`${m} mana`);log(`${plName(pl)} gives Neptune ${gone.length} deck card${gone.length===1?"":"s"} (1d6) for ${m} mana (2d6 + 1d2${got<m?`; ${got} fit`:""}).`,"event")}
+  render()}
+{const _sc=spellCost;spellCost=function(sp){if(sp&&sp.id==="clair"&&G&&G.p[G.active]&&G.p[G.active].nepClair)return 0;return _sc.apply(this,arguments)}}
+{const sp=SP("clair");if(sp){const run=sp.run;sp.run=async function(){const P=G.p[G.active],free=!!(P&&P.nepClair);if(free)P.nepClair=false;const out=await run.apply(this,arguments);if(free)log(`${plName(G.active)}'s Clairvoyance is Neptune's gift: free.`);return out}}}
+/* the grave opens to one player: up to three of its cards, sacrificed for their soul worth */
+async function nepGraveSac(pl){let n=0;
+  while(n<3&&G.grave.length&&!G.over){const i=await ask(pl,{kind:"cards",id:"nepgrave",title:`Neptune opens the grave to ${esc(G.p[pl].name)}: sacrifice a card for its soul worth (${3-n} left)`,cards:G.grave,cancel:"Done",box:"limbo"});
+    if(i==null||!G.grave[i])break;const c=G.grave.splice(i,1)[0],w=soulOf(c);toDark(c);const got=giveMana(pl,w);n++;
+    log(`Neptune lets ${plName(pl)} sacrifice ${esc(nameOf(c))} from the grave: +${got} mana.`,"event");render()}}
+/* a sacrifice's mana strays to another player on a 1 of 1d8 */
+let nepSacking=false;
+{const _s=sacrifice;sacrifice=function(card,from){nepSacking=nepEvOn();try{return _s.apply(this,arguments)}finally{nepSacking=false}}}
+{const _as=addSoul;addSoul=function(pl,c){if(nepSacking&&R(8)===1){nepSacking=false;const o=nepRealPl().filter(i=>i!==pl);if(o.length){const q=pick(o);
+    const ok=_as(q,c);log(`<b>Neptune</b>: the soul ${plName(pl)} sacrifices drifts to ${plName(q)} (a 1 on 1d8).`,"event");notify(null,`Neptune: ${esc(G.p[pl].name)}'s sacrifice drifts to ${esc(G.p[q].name)}.`);return ok}}
+  return _as.apply(this,arguments)}}
+/* the Bank's takings from a purchase go to a random player on a 1 of 1d10 (not in Survival) */
+let nepBuying=false;
+{const _sp=spend;spend=function(pl,n){nepBuying=true;try{return _sp.apply(this,arguments)}finally{nepBuying=false}}}
+{const _ba=bankAdd;bankAdd=function(n){if(nepBuying&&n>0&&nepEvOn()&&!survival()&&!nepIn&&R(10)===1){nepBuying=false;const ps=nepRealPl();if(ps.length){const q=pick(ps);nepIn=true;let got=0;try{got=giveMana(q,n)}finally{nepIn=false}
+    log(`<b>Neptune</b>: the ${n} mana the Bank takes for a purchase drifts to ${plName(q)} (a 1 on 1d10).`,"event");notify(null,`Neptune: ${n} of the Bank's mana drifts to ${esc(G.p[q].name)}.`);return}}
+  return _ba.apply(this,arguments)}}
+/* drawn cards lost in the sea, found 1d10 turns later by anyone */
+{const _d=draw;draw=function(pl,n,why,opening){const P=G.p[pl],before=new Set(P.hand),out=_d.apply(this,arguments);
+  if(opening||!nepEvOn()||isNPC(pl)||isHorde(pl))return out;
+  const drawn=P.hand.filter(c=>!before.has(c));let lost=[];
+  for(const c of drawn){if(lost.length?R(3)===1:R(20)===1)lost.push(c)}
+  if(lost.length){for(const c of lost)P.hand.splice(P.hand.indexOf(c),1);(G.nepLost=G.nepLost||[]).push({cards:lost,from:pl,at:G.turnNo+R(10)});
+    log(`<b>Neptune</b>: ${plName(pl)} loses ${lost.length} drawn card${lost.length>1?"s":""} at sea.`,"event");
+    popup("Lost at sea",`<p>${esc(P.name)} lost <b>${lost.length}</b> card${lost.length>1?"s":""} as they drew. Someone will find ${lost.length>1?"them":"it"} within ten turns.</p>`)}
+  return out}}
+{const _bt=beginTurn;beginTurn=function(pl){const out=_bt.apply(this,arguments);if(!G||G.over||!G.nepLost||!G.nepLost.length)return out;
+  for(const L of [...G.nepLost])if(G.turnNo>=L.at){G.nepLost.splice(G.nepLost.indexOf(L),1);const ps=nepRealPl();if(!ps.length)continue;const q=pick(ps),Q=G.p[q];
+    for(const c of L.cards){c.owner=q;if(Q.hand.length<handCap(q))Q.hand.push(c);else{Q.deck.push(c);shuffle(Q.deck)}}
+    log(`<b>Neptune</b>: ${plName(q)} finds the ${L.cards.length} card${L.cards.length>1?"s":""} ${plName(L.from)} lost at sea.`,"event");
+    popup("Found at sea",`<p><b>${esc(Q.name)}</b> found the ${L.cards.length} card${L.cards.length>1?"s":""} ${esc(G.p[L.from].name)} lost${q===L.from?": they come home":""}.</p>`)}
+  return out}}
+/* the dead may sink: on a 1 of 1d4, to the Outer Darkness (1 on 1d2) or the Ether (2) */
+{const _tg=toGrave;toGrave=function(c,cause){if(c&&cause==="death"&&nepEvOn()&&R(4)===1){const dark=R(2)===1||c.unit&&!(UNIT[c.unit]&&UNIT[c.unit].ether);
+    if(dark)toDark(c);else{if(c.captured&&c.captured.length){for(const s of c.captured)toGrave(s,"death");c.captured=[]}c.owner=null;if(c.hp!=null)c.hp=c.maxHp;G.ether.push(c)}
+    log(`<b>Neptune</b>: ${esc(nameOf(c))} sinks into ${dark?"the Outer Darkness":"the Ether, for sale"}.`);notify(null,`<span class="nepword">♆ ${dark?"Darkness":"Ether"}</span> ${esc(nameOf(c))} sinks into ${dark?"the Outer Darkness":"the Ether"}.`);return}
+  return _tg.apply(this,arguments)}}
+{const _r=render;render=function(){_r.apply(this,arguments);document.documentElement.classList.toggle("nepev",!!G&&nepEvOn())}}
+/* G.nepEv drives the glow in the picture too (planetSVG above) */
+
+if(window.__EC)Object.assign(window.__EC,{nepEventRoundW:()=>nepEventRound(),nepEvOnW:()=>nepEvOn(),toGraveW:(...a)=>toGrave(...a),nepCloudAt:(r,c)=>nepCloudAt(r,c),neptuneSVG,giveManaW:(...a)=>giveMana(...a),spendW:(...a)=>spend(...a),beginTurnW:pl=>beginTurn(pl),hiddenFromW:(V,r,c)=>hiddenFrom(V,r,c)});
 
 })();
