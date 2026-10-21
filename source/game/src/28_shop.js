@@ -56,16 +56,15 @@ function raisePlanet(){
   if(G.eclipse)endEclipse();
   if(G.moonLev&&(k==="saturn"||k==="sun")){const L=G.moonLev;G.moonLev=null;L.card.hp=L.card.maxHp;G.p[L.owner].deck.push(L.card);shuffle(G.p[L.owner].deck);log(`The Leviathan can't lie on ${skyWord(k)}: it falls back into ${plName(L.owner)}'s deck.`,"event")}
   if(PLANETS[k])setPlanet(k,by);
-  else{const keep=G.p.map(P=>P.oath);
+  else{   // v71: Oaths hold whatever is in the sky (v50)
     G.moon.gone=k==="moon"?null:k;G.moon.i=k==="moon"?1:-1;G.moon.blood=false;G.planetBy=k==="moon"?null:by;
-    G.p.forEach((P,i)=>{if(P.oath&&P.oath!==OATH_SKY[k]&&keep[i]!=="earth"&&!(keep[i]==="saturn"&&P.satLocked))P.oath=null});
     checkMoonMiner();if(old==="jupiter")G.jupSale=null}
   if(k==="saturn"){G.saturnBy=by;G.saturnDebt=0}else if(old==="saturn")G.saturnBy=null;
   if(k==="venus")G.venus=p.venus||{by,mode:"a",target:by};else if(old==="venus")G.venus=null;
   if(k==="jupiter")rollJupSale();
   G._vis=null;applyMoonTheme();
   log(`<b>${esc(SHOP_NAME[k])}</b> takes the sky: it replaces ${skyWord(old)}, bought by ${plName(by)}.`,"event");
-  popup(`${SHOP_NAME[k]} rises`,`<p><b>${esc(SHOP_NAME[k])}</b> has replaced ${skyWord(old)} in the sky. ${plName(by)} bought it.</p>${k==="moon"?"<p>The Moon comes back as a Waxing Crescent.</p>":""}${OATH_SKY[old]&&OATH_SKY[old]!==OATH_SKY[k]?`<p class="dim">Oaths sworn to ${skyWord(old)} are broken.</p>`:""}`,by);
+  popup(`${SHOP_NAME[k]} rises`,`<p><b>${esc(SHOP_NAME[k])}</b> has replaced ${skyWord(old)} in the sky. ${plName(by)} bought it.</p>${k==="moon"?"<p>The Moon comes back as a Waxing Crescent.</p>":""}`,by);
 }
 {const _ms=moonStart;moonStart=async function(){raisePlanet();return _ms()}}
 /* ---------- the shop's panel ---------- */

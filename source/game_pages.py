@@ -8,13 +8,13 @@ open(f'{OUT}/ethers-crossroads.js', 'w').write(
     + "\n".join(open('game/src/' + f).read() for f in _parts) + "\n})();\n")
 EC = "Ether's Crossroads"
 ec_cards = '''<nav class="cards">
-  <a class="card" href="ethers-crossroads-play.html">Play Game<span>Local (people and computers), Survival or Online</span></a>
+  <a class="card" href="ethers-crossroads-play.html">Play Game<span>Standard (computers and people on this device), Survival or Online</span></a>
   <a class="card" href="ethers-crossroads-play.html#settings">Settings<span>The game's look, sound and animations: the same as the Menu in a game</span></a>
   <a class="card" href="ethers-crossroads-rules.html">All Rules<span>Every rule, spell, moon phase and event</span></a>
 </nav>'''
 MODES_HTML = """<h2 id="modes">Game Modes</h2>
-<h3>Local</h3>
-<p>Up to four people share one device, and every other seat is a computer: you against one to three computers, friends together against computers, or friends against each other, up to eight seats in King of the Hill. Each player picks a Substance (or the host turns Substances off), a color and a symbol, which marks every card they own. With more than one person, the board turns to face whoever is playing, and the screen goes dark between turns until the next player confirms they hold the device. Everyone sees every die.</p>
+<h3>Standard</h3>
+<p>Local play: against computers, together on this device, or both. Up to four people share one device, and every other seat is a computer: you against one to three computers, friends together against computers, or friends against each other, up to eight seats in King of the Hill. Each player picks a Substance (or the host turns Substances off), a color and a symbol, which marks every card they own. With more than one person, the board turns to face whoever is playing, and the screen goes dark between turns until the next player confirms they hold the device. Everyone sees every die.</p>
 <h3>The computers</h3>
 <p>The computers are written as plain code rather than a language model. Each turn the computer weighs offense against defense from the field and the decks. <b>Easy</b> plays loosely and makes mistakes. <b>Medium</b> is balanced and a real fight. <b>Hard</b> plays the Joker for souls, stacks Aces for the Grave Blessing, keeps its own deck full and eats away at yours.</p>
 <h3>Survival</h3>
@@ -224,7 +224,7 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 <h2 id="digital">How the digital table reads the rules</h2>
 <p>Some rules leave room for the players to decide. Play Game uses these readings:</p>
 <ul>
-<li>In Local, two to four players share one device; the screen goes black between turns until the next player confirms, and the board turns so the player at the device always sits at the bottom. With one person at the device, that person always sits at the bottom. Hands show face down to the other side unless Naked Hand reveals them.</li>
+<li>In Standard, two to four players share one device; the screen goes black between turns until the next player confirms, and the board turns so the player at the device always sits at the bottom. With one person at the device, that person always sits at the bottom. Hands show face down to the other side unless Naked Hand reveals them.</li>
 <li>The field is five tiles wide by default, or six or seven. It is five lines tall with the midline (the default) and four without it. Survival always keeps the midline. Three and four players use a 7 by 7 field (corners cut by default) where each player's back line is their whole edge; two against two on the same side uses 6 by 6, two lines and three columns for each player.</li>
 <li>When play is together, the computers take their phase first and you play yours after; the shared phase ends when you press Ready. Spells that pick one player (Forced Hand, Double Edged Sword, Three of Swords, Naked Hand) ask which opponent when there is more than one, and Naked Hand shows that one hand only, to the caster and the caster's team.</li>
 <li>Cut corners remove the four corner tiles from play. Nothing can stand on a removed tile or the river, and a Jack cannot leap over them; the only way across the River map is its two-tile bridge.</li>
@@ -287,7 +287,7 @@ b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({beha
 </main>''', 1)
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
-play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=83">', ec=True) + f'''<main class="wide game">
+play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=84">', ec=True) + f'''<main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
@@ -325,8 +325,8 @@ play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="eth
 </main>
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
-<script src="ethers-crossroads-quotes.js?v=83"></script>
-<script src="ethers-crossroads.js?v=83"></script>
+<script src="ethers-crossroads-quotes.js?v=84"></script>
+<script src="ethers-crossroads.js?v=84"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 
