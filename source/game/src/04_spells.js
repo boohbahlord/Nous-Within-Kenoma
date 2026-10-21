@@ -127,7 +127,7 @@ async function jokerSuicide(r,c,st,pl){
 async function doubleEdge(){
   const t=await pickFoe("double","Double Edged Sword: whose deck?"),F=G.p[t];
   const d=rollN(3,6);let mine=0,theirs=0;
-  for(const x of d){if(x.v===1){const c=me().deck.pop();if(c){toGrave(c,"burn");mine++}}if(x.v===6){const c=F.deck.pop();if(c){toGrave(c,"burn");theirs++}}}
+  for(const x of d){if(x.v===1){const c=me().deck.pop();if(c){toGrave(c,"burn");mine++}else deckShort(G.active,1,"Double Edged Sword")}if(x.v===6){const c=F.deck.pop();if(c){toGrave(c,"burn");theirs++}else deckShort(t,1,"Double Edged Sword")}}
   tray(G.active,"Double Edged Sword",d,`you −${mine} · them −${theirs}`);
   log(`Double Edged Sword: 3d6 → ${d.map(x=>x.v).join(", ")}. ${plName(G.active)} loses ${mine}, the enemy loses ${theirs} from the deck.`);
 }
@@ -136,7 +136,7 @@ async function threeSwords(){
   const n=R(2);tray(G.active,"Three of Swords",[{s:2,v:n}],`${n} each`);
   const F=G.p[t],P=me();let fl=0,ml=0,dl=0;
   for(let i=0;i<n&&F.hand.length;i++){toGrave(F.hand.splice(Math.floor(Math.random()*F.hand.length),1)[0],"death");fl++}
-  for(let i=0;i<n;i++){if(P.hand.length){toGrave(P.hand.splice(Math.floor(Math.random()*P.hand.length),1)[0],"death");ml++}else if(P.deck.length){toGrave(P.deck.pop(),"death");dl++}}
+  for(let i=0;i<n;i++){if(P.hand.length){toGrave(P.hand.splice(Math.floor(Math.random()*P.hand.length),1)[0],"death");ml++}else if(P.deck.length){toGrave(P.deck.pop(),"death");dl++}else deckShort(P.i,1,"Three of Swords")}
   log(`Three of Swords (${plName(P.i)}): 1d2 → ${n}. ${plName(F.i)} loses ${fl} from the hand; ${plName(P.i)} loses ${ml} from the hand${dl?` and ${dl} from the deck`:""}.`);
 }
 async function clairvoyance(){

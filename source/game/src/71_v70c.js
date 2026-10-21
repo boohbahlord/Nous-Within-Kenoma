@@ -146,3 +146,4 @@ if(window.__EC)Object.assign(window.__EC,{hordeCounters:()=>hordeCounters(),roun
 
 /* ---------- v70d: while the others finish drawing, the bar below the field says so ---------- */
 {const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.drawWait)return;const c=$("#controls");if(c&&!c.querySelector(".drawwait"))c.insertAdjacentHTML("beforeend",`<span class="drawwait" role="status">Waiting for players to draw…</span>`)}}
+if(window.__EC)Object.assign(window.__EC,{drawW:(...a)=>draw(...a),deckShort:(...a)=>deckShort(...a),takeDeck:(...a)=>takeDeck(...a),takeHand:(...a)=>takeHand(...a),effManaW:pl=>effMana(pl)});

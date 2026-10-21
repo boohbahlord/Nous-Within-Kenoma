@@ -397,8 +397,20 @@ function draw(pl,n,why,opening){
   for(let i=0;i<n;i++){const c=P.deck.pop();if(!c)break;
     if(P.hand.length<handCap(pl)){P.hand.push(c);got++}else{toGrave(c,"burn");burned++;if(!opening)P.od++}}
   log(`${plName(pl)} draws ${got} card${got===1?"":"s"}${why?" ("+why+")":""}${burned?`; ${burned} over the hand limit go${burned===1?"es":""} to the grave${opening?"":` (Grave Blessing −${burned}d6 max)`}`:""}${P.deck.length?"":" (deck empty)"}.`);
+  if(!opening&&got+burned<n)deckShort(pl,n-got-burned,why||"a draw");   // v71: a card the deck can't give costs 1 mana
   return{got,burned};
 }
+/* ---------- v71: an empty deck costs mana. Every card a deck can't give (a draw, a toll, a price) costs 1 mana instead, as deep
+   below zero as it goes: past the floor the player is out. A Heavenly Body asking for cards from the hand takes them from the
+   deck when the hand is empty, and then mana (an enemy's spell on your hand doesn't reach past the hand). ---------- */
+function deckShort(pl,n,why){if(!(n>0)||!G||G.over||!G.p[pl]||G.p[pl].out||isHorde(pl))return 0;addDebt(pl,n);
+  log(`${plName(pl)}'s deck can't give ${n} card${n>1?"s":""}${why?` (${why})`:""}: ${n} mana instead (now ${effMana(pl)}).`,"event");return n}
+function takeDeck(pl,n,why,rand){const P=G.p[pl],out=[];
+  for(let i=0;i<n&&P.deck.length;i++)out.push(rand?P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0]:P.deck.pop());
+  deckShort(pl,n-out.length,why);return out}
+function takeHand(pl,n,why){const P=G.p[pl],out=[];for(let i=0;i<n&&P.hand.length;i++)out.push(P.hand.splice(Math.floor(Math.random()*P.hand.length),1)[0]);
+  return out.concat(takeDeck(pl,n-out.length,why,true))}
+const shortNote=(pl,n)=>{const k=Math.max(0,n-G.p[pl].deck.length);return k?` (your deck is ${k} short: ${k} mana instead)`:""};
 const mana=pl=>G.p[pl].souls.reduce((a,c)=>a+soulOf(c),0);
 function pay(pl,n){
   const P=G.p[pl];if(mana(pl)<n)return false;
@@ -842,19 +854,18 @@ async function pickGrave(pl,n,title){
 function moonTarget(pl){const ok=stacksOf(pl).filter(x=>!x.st.hypo&&!hasK(x.st,"ace"));
   const twos=ok.filter(x=>x.st.cards.length===2);if(twos.length){const t=pick(twos);return {kind:"stack",r:t.r,c:t.c,st:t.st,cards:[...t.st.cards]}}
   const all=ok.flatMap(x=>x.st.cards.filter(c=>!isBase(c)).map(c=>({x,c})));if(all.length){const {x,c}=pick(all);return {kind:"card",r:x.r,c:x.c,st:x.st,cards:[c]}}
-  const P=G.p[pl];if(P.deck.length){shuffle(P.deck);return {kind:"deck",cards:P.deck.slice(-3)}}
-  return null}
+  const P=G.p[pl];shuffle(P.deck);return {kind:"deck",cards:P.deck.slice(-3),short:Math.max(0,3-P.deck.length)}}   // v71: what the deck can't give costs mana
 function strongest(pl){return moonTarget(pl)}
 async function fullMoonToll(){
   for(const pl of order()){
     if(G.p[pl].tribe==="firm"){log(`${plName(pl)} owes the Full Moon nothing: the Firmament is above its toll.`);continue}
     const t=moonTarget(pl);if(!t)continue;const P=G.p[pl];
-    const what=t.kind==="deck"?`three cards from your shuffled deck (${t.cards.map(c=>esc(nameOf(c))).join(", ")})`:t.kind==="stack"?`a stack of two: <b>${t.cards.map(c=>esc(nameOf(c))).join(", ")}</b>`:`a card on your field: <b>${esc(nameOf(t.cards[0]))}</b>`;
+    const what=t.kind==="deck"?`three cards from your shuffled deck (${t.cards.length?t.cards.map(c=>esc(nameOf(c))).join(", "):"it is empty"}${t.short?`; the ${t.short} it can't give cost ${t.short} mana instead`:""})`:t.kind==="stack"?`a stack of two: <b>${t.cards.map(c=>esc(nameOf(c))).join(", ")}</b>`:`a card on your field: <b>${esc(nameOf(t.cards[0]))}</b>`;
     const yes=await ask(pl,{kind:"yesno",id:"fullmoon",target:t,title:`Full Moon: ${esc(P.name)}'s toll`,
       text:`The Full Moon asks for ${what}. Give it to your soul pile (any mana over your maximum goes to the grave), or refuse and pay 2d2 + 2 mana, even below zero.`,
       yes:"Give it",no:"Refuse",ai:()=>t.kind==="deck"||AI.value({cards:t.cards,owner:pl})<7||effMana(pl)-6<=-4});
     if(yes){let m=0;
-      if(t.kind==="deck"){for(const c of t.cards){P.deck.splice(P.deck.indexOf(c),1);if(addSoul(pl,c))m+=soulOf(c);else toGrave(c,"spent")}}
+      if(t.kind==="deck"){for(const c of t.cards){P.deck.splice(P.deck.indexOf(c),1);if(addSoul(pl,c))m+=soulOf(c);else toGrave(c,"spent")}deckShort(pl,t.short||0,"the Full Moon's toll")}
       else{const st=G.board[t.r][t.c];if(st){for(const c of t.cards){const i=st.cards.indexOf(c);if(i<0)continue;st.cards.splice(i,1);
           if(c.captured&&c.captured.length){for(const s of c.captured)toGrave(s,"death");c.captured=[]}
           if(c.unit&&buryUnit(c,t.r,t.c,pl))continue;   // Substance cards keep their own fates
@@ -1270,7 +1281,7 @@ async function jokerSuicide(r,c,st,pl){
 async function doubleEdge(){
   const t=await pickFoe("double","Double Edged Sword: whose deck?"),F=G.p[t];
   const d=rollN(3,6);let mine=0,theirs=0;
-  for(const x of d){if(x.v===1){const c=me().deck.pop();if(c){toGrave(c,"burn");mine++}}if(x.v===6){const c=F.deck.pop();if(c){toGrave(c,"burn");theirs++}}}
+  for(const x of d){if(x.v===1){const c=me().deck.pop();if(c){toGrave(c,"burn");mine++}else deckShort(G.active,1,"Double Edged Sword")}if(x.v===6){const c=F.deck.pop();if(c){toGrave(c,"burn");theirs++}else deckShort(t,1,"Double Edged Sword")}}
   tray(G.active,"Double Edged Sword",d,`you −${mine} · them −${theirs}`);
   log(`Double Edged Sword: 3d6 → ${d.map(x=>x.v).join(", ")}. ${plName(G.active)} loses ${mine}, the enemy loses ${theirs} from the deck.`);
 }
@@ -1279,7 +1290,7 @@ async function threeSwords(){
   const n=R(2);tray(G.active,"Three of Swords",[{s:2,v:n}],`${n} each`);
   const F=G.p[t],P=me();let fl=0,ml=0,dl=0;
   for(let i=0;i<n&&F.hand.length;i++){toGrave(F.hand.splice(Math.floor(Math.random()*F.hand.length),1)[0],"death");fl++}
-  for(let i=0;i<n;i++){if(P.hand.length){toGrave(P.hand.splice(Math.floor(Math.random()*P.hand.length),1)[0],"death");ml++}else if(P.deck.length){toGrave(P.deck.pop(),"death");dl++}}
+  for(let i=0;i<n;i++){if(P.hand.length){toGrave(P.hand.splice(Math.floor(Math.random()*P.hand.length),1)[0],"death");ml++}else if(P.deck.length){toGrave(P.deck.pop(),"death");dl++}else deckShort(P.i,1,"Three of Swords")}
   log(`Three of Swords (${plName(P.i)}): 1d2 → ${n}. ${plName(F.i)} loses ${fl} from the hand; ${plName(P.i)} loses ${ml} from the hand${dl?` and ${dl} from the deck`:""}.`);
 }
 async function clairvoyance(){
@@ -1681,6 +1692,7 @@ const AI=(()=>{
   function shouldDraw(pl){
     const P=G.p[pl],lv=lvl(pl);
     if(!P.deck.length||P.hand.length>handCap(pl)-4+(lv==="easy"?1:0))return false;
+    if(P.deck.length<4&&effMana(pl)<6)return false;   // v71: a card the deck can't give costs 1 mana
     if(lv==="hard")return P.hand.length<=1||(P.hand.length<=2&&P.deck.length>P.start*.5);
     return P.hand.length<=2;
   }
@@ -2127,7 +2139,7 @@ function render(){
   $("#mytray").innerHTML=hidden?"":trayHTML(P,V);
   // controls
   const ctl=[];
-  if(live&&G.phase==="draw")ctl.push(`<button class="btn" id="d4" ${P.deck.length&&!overdrewNow(G.active)?"":"disabled"}>${overdrewNow(G.active)?"Overdrew: no more draws":"Roll d4 and draw"}</button>`);
+  if(live&&G.phase==="draw")ctl.push(`<button class="btn" id="d4" ${P.deck.length&&!overdrewNow(G.active)?"":"disabled"}>${overdrewNow(G.active)?"Overdrew: no more draws":"Roll d4 and draw"}${P.deck.length&&P.deck.length<4&&!overdrewNow(G.active)?` <small>(${P.deck.length} left: a card short costs 1 mana)</small>`:""}</button>`);
   if(live&&G.phase!=="moon")ctl.push(`<button class="btn ghost" id="next">${G.phase==="setup"?"Done setting up":G.nextLabel||"Next →"}</button>`);
   if(+G.opts.timer&&!G.over)ctl.push(`<span id="timer" class="timer" aria-live="off" title="time left in this phase">${G.deadline?Math.max(0,Math.ceil((G.deadline-Date.now())/1000))+"s":""}</span>`);
   $("#controls").innerHTML=ctl.join("");
@@ -3251,7 +3263,7 @@ function round2(){
   if(L&&levNew()&&G.moon.round>L.since){
     for(const pl of enemiesOf(L.owner)){const P=G.p[pl];if(isHorde(pl)||P.tribe==="tiph"||P.tribe==="firm"){if(!isHorde(pl))log(`${plName(pl)} is immune to the Leviathan on the moon.`);continue}
       const k=R(4)+R(4);let a=0,b=0,m=0;
-      for(let i=0;i<k&&P.deck.length;i++){toDark(P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0]);a++}
+      for(let i=0;i<k&&P.deck.length;i++){toDark(P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0]);a++}deckShort(pl,k-a,"the Leviathan's toll");
       for(let i=0;i<2&&P.hand.length;i++){toDark(P.hand.splice(Math.floor(Math.random()*P.hand.length),1)[0]);b++}
       if(P.souls.length){P.souls.sort((x,y)=>soulOf(x)-soulOf(y));toDark(P.souls.shift());m=1}
       log(`<b>The Leviathan's toll</b>: ${plName(pl)} loses ${a} deck card${a===1?"":"s"}, ${b} from the hand and ${m} mana to the Outer Darkness.`,"event");
@@ -4422,7 +4434,7 @@ SPELLS.push(
  {id:"gamble",name:"Gambling",cost:1,school:"Sorcery",text:"Roll 1d10. A natural 10 turns your mana into 7d2 mana, paid by the Bank. A 1 costs you one maximum mana, puts you 7d2 into mana debt and takes a card from your deck into the Ether. Anything else: the mana is gone.",
   ok:()=>bankOpen(),run:async()=>{const pl=G.active,P=me(),d=R(10);
    if(d===10){const w=rollN(7,2),n=Math.min(sum(w),Math.max(0,G.bank.mana-BANK_FLOOR)),got=giveMana(pl,n);G.bank.mana-=got;tray(pl,"Gambling",[{s:10,v:d},...w],`+${got}`);log(`<b>Gambling</b>: ${plName(pl)} rolls a natural 10 and wins ${n} mana (${got} fit).`,"event")}
-   else if(d===1){const w=rollN(7,2),n=Math.max(0,Math.min(sum(w),effMana(pl)-floorOf(pl)));P.maxAdd=(P.maxAdd||0)-1;const c=P.deck.pop();if(c){c.owner=null;G.ether.push(c)}tray(pl,"Gambling",[{s:10,v:d},...w],`−${n}`);
+   else if(d===1){const w=rollN(7,2),n=Math.max(0,Math.min(sum(w),effMana(pl)-floorOf(pl)));P.maxAdd=(P.maxAdd||0)-1;const c=P.deck.pop();if(c){c.owner=null;G.ether.push(c)}else deckShort(pl,1,"Gambling");tray(pl,"Gambling",[{s:10,v:d},...w],`−${n}`);
      log(`<b>Gambling</b>: ${plName(pl)} rolls a 1. One maximum mana is lost, ${n} mana of debt (7d2) is owed${c?", and a card leaves the deck for the Ether":""}.`,"event");addDebt(pl,n)}
    else{tray(pl,"Gambling",[{s:10,v:d}],"nothing");log(`Gambling: ${plName(pl)} rolls ${d}. Nothing.`)}}},
  {id:"maxmana",name:"Increase Max Mana",cost:4,school:"Conjuring",text:"Your maximum mana goes up by one for the rest of the game, eighteen at most.",ok:()=>soulCap(G.active)<18,run:async()=>{const P=me();P.maxAdd=(P.maxAdd||0)+1;log(`${plName(G.active)} buys one more maximum mana (${soulCap(G.active)}).`)}}
@@ -4793,7 +4805,7 @@ async function skyAsync(pl){
     const nM=R(6),nH=R(2),nD=R(2)+R(3),nB=R(3),opts=[];
     if(mana(pl)>=nM)opts.push({id:"mana",label:`Pay ${nM} mana`,sub:"1d6, to the Bank."});
     if(stacksOf(pl).length)opts.push({id:"hurt",label:`${nH} damage to your stacks`,sub:`1d2: ${nH>1?"each blow to a random stack of yours":"one blow to a random stack of yours"}.`});
-    if(P.deck.length)opts.push({id:"deck",label:`${Math.min(nD,P.deck.length)} cards from your deck`,sub:"1d2 + 1d3: they burn in the Sun (to the grave)."});
+    opts.push({id:"deck",label:`${nD} cards from your deck${shortNote(pl,nD)}`,sub:"1d2 + 1d3: they burn in the Sun (to the grave). Cards your deck can't give cost 1 mana each."});
     opts.push({id:"no",label:`Blindness for ${nB} turn${nB>1?"s":""}`,sub:"1d3: you can't see even what is beside you."});
     const ch=opts.length===1?"no":await ask(pl,{kind:"choice",id:"sunjudge",title:`The Second Sun judges ${esc(P.name)}`,options:opts,
       ai:()=>mana(pl)>=nM+2?"mana":P.deck.length>8+nD?"deck":stacksOf(pl).length>3&&opts.some(o=>o.id==="hurt")?"hurt":opts.some(o=>o.id==="mana")?"mana":opts[0].id});
@@ -4801,7 +4813,7 @@ async function skyAsync(pl){
     if(ch==="mana"){payQuiet(pl,nM);bankAdd(nM);log(`${plName(pl)} worships the Earth before the Second Sun: ${nM} mana to the Bank.`);sunPayback(pl,nM)}
     else if(ch==="hurt"){const hit=[];G.sunHurt=true;try{for(let i=0;i<nH;i++){const L=stacksOf(pl);if(!L.length)break;const x=pick(L);hit.push(coord(x.r,x.c));damage(x.r,x.c,1,false)}}finally{G.sunHurt=false}
       log(`${plName(pl)} offers the Second Sun ${nH} wound${nH>1?"s":""} (${hit.join(", ")}).`);sunPayback(pl,nH)}
-    else if(ch==="deck"){let w=0,k=0;for(let i=0;i<nD&&P.deck.length;i++){const c=P.deck.pop();w+=soulOf(c);toGrave(c,"burn");k++}log(`${plName(pl)} burns ${k} deck card${k>1?"s":""} in the Second Sun.`);sunPayback(pl,w)}
+    else if(ch==="deck"){let w=0,k=0;for(const c of takeDeck(pl,nD,"the Second Sun")){w+=soulOf(c);toGrave(c,"burn");k++}log(`${plName(pl)} burns ${k} deck card${k>1?"s":""} in the Second Sun.`);sunPayback(pl,w)}
     else{P.sunBlind=tnOf(pl);P.sunBlindTo=tnOf(pl)+nB-1;G._vis=null;log(`<b>The Second Sun</b> blinds ${plName(pl)} for ${nB} turn${nB>1?"s":""}.`,"event");notify(pl,`${esc(P.name)} is blinded by the Sun for ${nB} turn${nB>1?"s":""}.`)}
     render();
   }
@@ -4809,9 +4821,9 @@ async function skyAsync(pl){
   if(planetUp("blacksun")&&P.tribe==="firm"&&G.blackBy!=null&&!G.p[G.blackBy].out){
     if(P.blackNext==null)P.blackNext=tnOf(pl)+R(2);
     if(tnOf(pl)>=P.blackNext){P.blackNext=tnOf(pl)+R(2);const Y=G.blackBy,n=R(2);
-      const ch=await ask(pl,{kind:"choice",id:"blacksun",title:`The Black Sun: ${esc(P.name)} pays Yaldabaoth`,options:[{id:"mana",label:`${n} mana`},{id:"deck",label:`${n} card${n>1?"s":""} from your deck`}],ai:()=>mana(pl)>=n+2?"mana":"deck"});
+      const ch=await ask(pl,{kind:"choice",id:"blacksun",title:`The Black Sun: ${esc(P.name)} pays Yaldabaoth`,options:[{id:"mana",label:`${n} mana`},{id:"deck",label:`${n} card${n>1?"s":""} from your deck${shortNote(pl,n)}`}],ai:()=>mana(pl)>=n+2?"mana":"deck"});
       if(ch==="mana"){const p=payQuiet(pl,Math.min(n,mana(pl)));giveMana(Y,p);log(`The Black Sun: ${plName(pl)} pays ${plName(Y)} ${p} mana.`,"event")}
-      else{let k=0;for(let i=0;i<n&&P.deck.length;i++){const c=P.deck.pop();c.owner=Y;G.p[Y].deck.push(c);k++}shuffle(G.p[Y].deck);log(`The Black Sun: ${plName(pl)} gives ${plName(Y)} ${k} deck card${k===1?"":"s"}.`,"event")}}
+      else{let k=0;for(const c of takeDeck(pl,n,"the Black Sun")){c.owner=Y;G.p[Y].deck.push(c);k++}shuffle(G.p[Y].deck);log(`The Black Sun: ${plName(pl)} gives ${plName(Y)} ${k} deck card${k===1?"":"s"}.`,"event")}}
   }
 }
 const sunBlind=pl=>{const P=G.p[pl];if(!P||P.sunBlind==null)return false;const t=tnOf(pl);return t>=P.sunBlind&&t<=(P.sunBlindTo!=null?P.sunBlindTo:P.sunBlind)};   // v65: blind for 1d3 turns
@@ -6104,7 +6116,7 @@ async function saturnEclipse(){
     for(let i=0;i<3&&tiles.length;i++){const [r,c]=tiles.shift();const cards=Array.from({length:R(4)},()=>mk(String(1+R(5)),pick(["S","H","D","C"])));cards.forEach(q=>q.owner=S);G.board[r][c]={owner:S,cards,moved:true,attacked:true,wild:true};n++}}
     html=`<p>Saturn spits out <b>${n} stack${n===1?"":"s"} of Grunts</b>. They fight anyone beside them, except those under its Oath and those in good standing with the Bank for four Reports.</p>`}
   if(k==="meteor"){html="<p>Something falls from Saturn's ring: <b>a meteor</b>.</p>";meteor()}
-  if(k==="tithe"){const hit=pls.filter(i=>!satSafe(i));for(const pl of hit){const P=G.p[pl];P.maxAdd=(P.maxAdd||0)-3;for(let i=0;i<3&&P.deck.length;i++)toGrave(P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0],"burn");payQuiet(pl,Math.min(3,mana(pl)))}
+  if(k==="tithe"){const hit=pls.filter(i=>!satSafe(i));for(const pl of hit){const P=G.p[pl];P.maxAdd=(P.maxAdd||0)-3;for(const c of takeDeck(pl,3,"Saturn's tithe",true))toGrave(c,"burn");payQuiet(pl,Math.min(3,mana(pl)))}
     html=`<p>Saturn takes its tithe: <b>three maximum mana, three deck cards and three mana</b> from ${hit.length?hit.map(plName).join(", "):"no one"}.</p>`}
   if(k==="banker"){if(B&&!B.dead){B.dead=true;html="<p>The Banker looks up at the dark ring, clutches his chest and falls over the ledger. <b>The Bank is closed</b> and the Ether shuts its doors.</p>"}else html="<p>Saturn's shadow passes over an empty Bank.</p>"}
   if(k==="strict"){G.satStrict=true;G.satStrictSafe=realPlayers().filter(good4);html="<p>Saturn binds the economy: <b>no surplus mana for the rest of the game</b>, and Debt Collectors come more often for debts to the Bank or to Saturn.</p><p class='dim'>Those under the Oath of Saturn, and those in good standing for the last four Reports, are spared.</p>"}
@@ -8958,11 +8970,11 @@ if(window.__EC)Object.assign(window.__EC,{moonTarget:pl=>moonTarget(pl),fullMoon
 /* ---------- the Oath of Saturn: what breaking it costs ---------- */
 function saturnBreak(pl){const P=G.p[pl];if(!P)return;
   const m=Math.max(0,mana(pl)),paid=payQuiet(pl,m);bankAdd(paid);
-  let d=0;for(let i=0;i<5&&P.deck.length;i++){toGrave(P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0],"burn");d++}
-  let h=0;for(let i=0;i<2&&P.hand.length;i++){toGrave(P.hand.splice(Math.floor(Math.random()*P.hand.length),1)[0],"burn");h++}
+  let d=0;for(const c of takeDeck(pl,5,"Saturn's price",true)){toGrave(c,"burn");d++}
+  let h=0;for(const c of takeHand(pl,2,"Saturn's price")){toGrave(c,"burn");h++}
   P.maxAdd=(P.maxAdd||0)-2;P.satPaid=0;
   log(`<b>Saturn</b> takes its price from ${plName(pl)} for the broken Oath: ${paid} mana, ${d} deck card${d===1?"":"s"}, ${h} hand card${h===1?"":"s"} and two maximum mana.`,"event")}
-const SAT_BREAK_TXT="Breaking the Oath of Saturn costs all your mana, 5 random cards from your deck, 2 random cards from your hand, and 2 maximum mana.";
+const SAT_BREAK_TXT="Breaking the Oath of Saturn costs all your mana, 5 random cards from your deck, 2 random cards from your hand (from the deck when the hand is empty), and 2 maximum mana. Cards your deck can't give cost 1 mana each.";
 async function saturnBreakOk(V){const P=G.p[V];if(!P||P.oath!=="saturn"||P.satLocked)return true;if(P.cpu)return false;
   return !!await askHuman(V,{kind:"yesno",id:"satbreak",title:"Break the Oath of Saturn?",text:SAT_BREAK_TXT,yes:"Break it",no:"Keep it"})}
 for(const [k] of OATHS){const sp=SP("oath_"+k);if(!sp)continue;const run=sp.run;
@@ -9065,7 +9077,7 @@ function bountyMove(pl){if(!G.p[pl].cpu)return;
     if(P.earthJoker){P.earthJoker=false;if(!dbl)notes.push("doubled odds for the enemy Joker killed");dbl=true}
     const d=R(10),ed=[{s:2,v:a},{s:2,v:b}],why=notes.length?` (the Oath of the Earth: ${notes.join("; ")})`:"";
     if(d===10||dbl&&d===9){const w=rollN(7,2),n=Math.min(sum(w),Math.max(0,G.bank.mana-BANK_FLOOR)),got=giveMana(pl,n);G.bank.mana-=got;tray(pl,"Gambling",[{s:10,v:d},...ed,...w],`+${got}`);log(`<b>Gambling</b>: ${plName(pl)} rolls ${d} and wins ${n} mana (${got} fit)${why}.`,"event")}
-    else if(d===1&&!safe){const w=rollN(7,2),n=Math.max(0,Math.min(sum(w),effMana(pl)-floorOf(pl)));P.maxAdd=(P.maxAdd||0)-1;const c=P.deck.pop();if(c){c.owner=null;G.ether.push(c)}tray(pl,"Gambling",[{s:10,v:d},...ed,...w],`−${n}`);
+    else if(d===1&&!safe){const w=rollN(7,2),n=Math.max(0,Math.min(sum(w),effMana(pl)-floorOf(pl)));P.maxAdd=(P.maxAdd||0)-1;const c=P.deck.pop();if(c){c.owner=null;G.ether.push(c)}else deckShort(pl,1,"Gambling");tray(pl,"Gambling",[{s:10,v:d},...ed,...w],`−${n}`);
       log(`<b>Gambling</b>: ${plName(pl)} rolls a 1${why}. One maximum mana is lost, ${n} mana of debt (7d2) is owed${c?", and a card leaves the deck for the Ether":""}.`,"event");addDebt(pl,n)}
     else{tray(pl,"Gambling",[{s:10,v:d},...ed],"nothing");log(`Gambling: ${plName(pl)} rolls ${d}${d===1?", and the Earth catches the fall":""}. Nothing${why}.`)}}}
 SPELLS.push({id:"gamble2",name:"Gamble II",cost:1,school:"Sorcery",text:"",ok:()=>oathNow(G.active,"earth")&&bankOpen(),run:async()=>{const pl=G.active,P=me(),dbl=!!P.earthJoker;P.earthJoker=false;const d=R(20);
@@ -10584,5 +10596,6 @@ if(window.__EC)Object.assign(window.__EC,{hordeCounters:()=>hordeCounters(),roun
 
 /* ---------- v70d: while the others finish drawing, the bar below the field says so ---------- */
 {const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.drawWait)return;const c=$("#controls");if(c&&!c.querySelector(".drawwait"))c.insertAdjacentHTML("beforeend",`<span class="drawwait" role="status">Waiting for players to draw…</span>`)}}
+if(window.__EC)Object.assign(window.__EC,{drawW:(...a)=>draw(...a),deckShort:(...a)=>deckShort(...a),takeDeck:(...a)=>takeDeck(...a),takeHand:(...a)=>takeHand(...a),effManaW:pl=>effMana(pl)});
 
 })();

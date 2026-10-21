@@ -48,7 +48,7 @@ async function skyAsync(pl){
     const nM=R(6),nH=R(2),nD=R(2)+R(3),nB=R(3),opts=[];
     if(mana(pl)>=nM)opts.push({id:"mana",label:`Pay ${nM} mana`,sub:"1d6, to the Bank."});
     if(stacksOf(pl).length)opts.push({id:"hurt",label:`${nH} damage to your stacks`,sub:`1d2: ${nH>1?"each blow to a random stack of yours":"one blow to a random stack of yours"}.`});
-    if(P.deck.length)opts.push({id:"deck",label:`${Math.min(nD,P.deck.length)} cards from your deck`,sub:"1d2 + 1d3: they burn in the Sun (to the grave)."});
+    opts.push({id:"deck",label:`${nD} cards from your deck${shortNote(pl,nD)}`,sub:"1d2 + 1d3: they burn in the Sun (to the grave). Cards your deck can't give cost 1 mana each."});
     opts.push({id:"no",label:`Blindness for ${nB} turn${nB>1?"s":""}`,sub:"1d3: you can't see even what is beside you."});
     const ch=opts.length===1?"no":await ask(pl,{kind:"choice",id:"sunjudge",title:`The Second Sun judges ${esc(P.name)}`,options:opts,
       ai:()=>mana(pl)>=nM+2?"mana":P.deck.length>8+nD?"deck":stacksOf(pl).length>3&&opts.some(o=>o.id==="hurt")?"hurt":opts.some(o=>o.id==="mana")?"mana":opts[0].id});
@@ -56,7 +56,7 @@ async function skyAsync(pl){
     if(ch==="mana"){payQuiet(pl,nM);bankAdd(nM);log(`${plName(pl)} worships the Earth before the Second Sun: ${nM} mana to the Bank.`);sunPayback(pl,nM)}
     else if(ch==="hurt"){const hit=[];G.sunHurt=true;try{for(let i=0;i<nH;i++){const L=stacksOf(pl);if(!L.length)break;const x=pick(L);hit.push(coord(x.r,x.c));damage(x.r,x.c,1,false)}}finally{G.sunHurt=false}
       log(`${plName(pl)} offers the Second Sun ${nH} wound${nH>1?"s":""} (${hit.join(", ")}).`);sunPayback(pl,nH)}
-    else if(ch==="deck"){let w=0,k=0;for(let i=0;i<nD&&P.deck.length;i++){const c=P.deck.pop();w+=soulOf(c);toGrave(c,"burn");k++}log(`${plName(pl)} burns ${k} deck card${k>1?"s":""} in the Second Sun.`);sunPayback(pl,w)}
+    else if(ch==="deck"){let w=0,k=0;for(const c of takeDeck(pl,nD,"the Second Sun")){w+=soulOf(c);toGrave(c,"burn");k++}log(`${plName(pl)} burns ${k} deck card${k>1?"s":""} in the Second Sun.`);sunPayback(pl,w)}
     else{P.sunBlind=tnOf(pl);P.sunBlindTo=tnOf(pl)+nB-1;G._vis=null;log(`<b>The Second Sun</b> blinds ${plName(pl)} for ${nB} turn${nB>1?"s":""}.`,"event");notify(pl,`${esc(P.name)} is blinded by the Sun for ${nB} turn${nB>1?"s":""}.`)}
     render();
   }
@@ -64,9 +64,9 @@ async function skyAsync(pl){
   if(planetUp("blacksun")&&P.tribe==="firm"&&G.blackBy!=null&&!G.p[G.blackBy].out){
     if(P.blackNext==null)P.blackNext=tnOf(pl)+R(2);
     if(tnOf(pl)>=P.blackNext){P.blackNext=tnOf(pl)+R(2);const Y=G.blackBy,n=R(2);
-      const ch=await ask(pl,{kind:"choice",id:"blacksun",title:`The Black Sun: ${esc(P.name)} pays Yaldabaoth`,options:[{id:"mana",label:`${n} mana`},{id:"deck",label:`${n} card${n>1?"s":""} from your deck`}],ai:()=>mana(pl)>=n+2?"mana":"deck"});
+      const ch=await ask(pl,{kind:"choice",id:"blacksun",title:`The Black Sun: ${esc(P.name)} pays Yaldabaoth`,options:[{id:"mana",label:`${n} mana`},{id:"deck",label:`${n} card${n>1?"s":""} from your deck${shortNote(pl,n)}`}],ai:()=>mana(pl)>=n+2?"mana":"deck"});
       if(ch==="mana"){const p=payQuiet(pl,Math.min(n,mana(pl)));giveMana(Y,p);log(`The Black Sun: ${plName(pl)} pays ${plName(Y)} ${p} mana.`,"event")}
-      else{let k=0;for(let i=0;i<n&&P.deck.length;i++){const c=P.deck.pop();c.owner=Y;G.p[Y].deck.push(c);k++}shuffle(G.p[Y].deck);log(`The Black Sun: ${plName(pl)} gives ${plName(Y)} ${k} deck card${k===1?"":"s"}.`,"event")}}
+      else{let k=0;for(const c of takeDeck(pl,n,"the Black Sun")){c.owner=Y;G.p[Y].deck.push(c);k++}shuffle(G.p[Y].deck);log(`The Black Sun: ${plName(pl)} gives ${plName(Y)} ${k} deck card${k===1?"":"s"}.`,"event")}}
   }
 }
 const sunBlind=pl=>{const P=G.p[pl];if(!P||P.sunBlind==null)return false;const t=tnOf(pl);return t>=P.sunBlind&&t<=(P.sunBlindTo!=null?P.sunBlindTo:P.sunBlind)};   // v65: blind for 1d3 turns
