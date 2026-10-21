@@ -195,7 +195,20 @@ html.th-darkfantasy.ecpage .rules h3{color:#c4c2cc}
 html.th-darkfantasy.ecpage a.card{background:#1a1419e0;border-color:#8a7442;box-shadow:inset 0 0 24px #00000060}
 html.th-darkfantasy.ecpage a.card:hover{border-color:var(--amber-hi)}
 html.th-darkfantasy.ecpage .rules main,html.th-darkfantasy.ecpage main.rules{background:#0d0a0eb8;padding-left:18px;padding-right:18px;box-shadow:0 0 0 1px #5b283055}
+/* v71: every theme carries more than two colors, like the default: buttons, borders, labels, headings (used in game.css too) */
+html.th-rich{--b1:#9a4a1c;--b2:#6e3010;--bh1:#b0571f;--bh2:#823914;--bb:#e9a157;--bt:#fbe7c6;--gb:#7a5530;--pb:#7a5530;--lab:#9cc7b9;--h1:#ffc98a;--h1g:#c2581c66}
+html.th-dull.th-rich{--b1:#6d5d2e;--b2:#4c4120;--bh1:#7d6b35;--bh2:#584b25;--bb:#c8b273;--bt:#f0e6c6;--gb:#6b5d38;--pb:#6b5d38;--lab:#a8b6c8;--h1:#e6d49a;--h1g:#8a7a3a55}
+html.th-office.th-rich{--b1:#3467b2;--b2:#244f8e;--bh1:#3a72c4;--bh2:#2a5a9e;--bb:#1a3f78;--bt:#fff;--gb:#2b579a;--pb:#b3b6bb;--lab:#1d6b47;--h1:#b4462a;--h1g:transparent}
+html.th-officedark.th-rich{--b1:#3574cc;--b2:#2860ad;--bh1:#3d80dc;--bh2:#2e6bbd;--bb:#5b9bf0;--bt:#fff;--gb:#3a5f8f;--pb:#454a52;--lab:#6cc795;--h1:#ef8a6b;--h1g:#ef8a6b30}
+html.th-earth.th-rich{--b1:#4a6a2a;--b2:#33491c;--bh1:#557a30;--bh2:#3b5520;--bb:#c9b458;--bt:#eee8cc;--gb:#6b5a34;--pb:#6b5434;--lab:#c9b458;--h1:#cfe08c;--h1g:#9bbf5e40}
+html.th-jester.th-rich{--b1:#6b2a9a;--b2:#4c1d70;--bh1:#7a32ae;--bh2:#5a2384;--bb:#d9b44a;--bt:#fff;--gb:#5a5a5a;--pb:#4a4a4a;--lab:#ff6b7d;--h1:#ffffff;--h1g:#8a3ad080}
+html.th-indigo.th-rich{--b1:#4b3fb0;--b2:#352b8c;--bh1:#5649c4;--bh2:#3e33a0;--bb:#d8c27a;--bt:#fff;--gb:#4a4680;--pb:#4a4680;--lab:#9fd3e8;--h1:#ffffff;--h1g:#7a6cff66}
+html.th-crimson.th-rich{--b1:#4a070b;--b2:#260305;--bh1:#5e0a10;--bh2:#330407;--bb:#c8913a;--bt:#ffd9d4;--gb:#7a3a1c;--pb:#8a5a2a;--lab:#e0bf5a;--h1:#ff6b6b;--h1g:#ff2a2a66}
+html.th-rich.ecpage main h1,html.th-rich.ecpage .rules h2{color:var(--h1);text-shadow:0 0 12px var(--h1g)}
+html.th-rich.ecpage .rules h3{color:var(--lab)}
+html.th-rich.ecpage a.card{border-color:var(--pb)}html.th-rich.ecpage a.card:hover{border-color:var(--amber-hi)}
 /* v43: the music control on the landing and rules pages */
+html.th-office #ecmusic{background:#eef0f3ee}   /* v71: the music plays in every theme; its box on light paper */
 #ecmusic{position:fixed;left:max(10px,env(safe-area-inset-left,0px));bottom:max(10px,env(safe-area-inset-bottom,0px));z-index:50;display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);background:rgba(0,0,0,.6);border:1px solid var(--rule);padding:3px 6px}
 #ecmusic[hidden]{display:none}
 #ecmusic button{font:inherit;color:var(--amber-hi);background:transparent;border:1px solid var(--rule);padding:2px 7px;cursor:pointer;text-transform:uppercase;letter-spacing:.1em}

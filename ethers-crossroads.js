@@ -914,7 +914,7 @@ function beginTurn(pl){
   Object.assign(G,{spent:false,spentOther:false,blessed:false,ritual:0,sel:null,selHand:null,mode:null,noDraw:false,sevSum:0,libation:false,saleD:null});
   G.p[pl].tn=(G.p[pl].tn||0)+1;   // the player's own turn count, for cooldowns
   G.prices={...(G.roundPrices||{})};
-  if(G.inflation&&G.moon.round<=G.inflation.untilR)G.inflation.add=R(2)-1;
+  if(G.inflation&&G.turnNo<=G.inflation.until)G.inflation.add=R(2)-1;   // v71: back to turns, as the rule was written
   skyPrices(pl);   // after the Bank's collapse every price wobbles up, turn by turn
   for(const {st} of stacksOf(pl)){st.moved=false;st.attacked=false;if(st.hypo){st.hypo--;if(!st.hypo)log(`Hypostasis fades from ${plName(pl)}'s stack.`)}}
   G.p[pl].sevArmed=false;
@@ -2326,7 +2326,7 @@ function infoHTML(){
 <details class="cinfo"><summary>Further explanations</summary>
 <details class="sub"><summary>Substances explained</summary><dl class="spellinfo">${subs}</dl><p class="dim">Only the Beginner can be played by more than one player in a game. The full rules for each are on the All Rules page.</p></details>
 <details class="sub"><summary>Fog of war and stealth explained</summary><dl class="spellinfo"><dt>Fog of war</dt><dd>On by default (Rules tab). Each of your cards sees only the eight tiles around it, straight and diagonal; a Scout sees two tiles out in a diamond (two straight, one diagonal). Shaded tiles are out of sight: enemy cards there stay hidden, and the log only says that something moved out of sight.</dd><dt>Shooting into the fog</dt><dd>Archers, Cannons, Rifles and the Slugshot Cannon can fire at a fogged tile in reach. If nothing is there the shot is lost; if something is, it is a normal attack, but all you learn is whether it hit: you hear the blow land.</dd><dt>Scouts</dt><dd>Never attack or defend. Everything in a Scout's diamond of sight is uncovered: Assassins, ambushers, face-down cards and enemy Scouts. Every Ace you put down brings one from the Ether.</dd><dt>Assassins</dt><dd>Hidden from enemies unless one of their cards stands right beside it (straight, not diagonal) or a Scout is near. Two hearts; 10 + 1d12 to attack, 8 to defend. Only another Assassin stacks with one.</dd><dt>Face down</dt><dd>Tick "Place it face down" before putting a card down. Enemies see only its back. Double disadvantage to attack, advantage to defend; it turns face up once it attacks or is attacked.</dd><dt>Ambush</dt><dd>Select an Assassin or face-down stack in your prep phase and press "Set an ambush": it turns sideways, hides like an Assassin, and strikes with advantage, out of turn, at the first enemy that steps beside it (diagonals too for a Jack's reach). Moving it ends the ambush.</dd><dt>Quiet Eyes and Bird's Eye</dt><dd>Quiet Eyes (Illusion, 2 mana): on each enemy's next turn, and only that turn, they see only the tiles their own cards stand on; Scouts don't see through it. Bird's Eye (Sorcery) lifts the fog for your side for a round, but not a Delusion.</dd></dl></details>
-<details class="sub"><summary>Siege, support and mining explained</summary><dl class="spellinfo"><dt>Bought from the Ether</dt><dd>Archers, Cannons, Healers, Walls, Repairmen, Battering Rams and Miners all wait in the Ether, a set for every deck, and come into your deck with their Conjure spells. The Beginner starts with two Archers, a Wall, two Repairmen and a Battering Ram in the deck, and a Miner in the first Ace.</dd><dt>Shooting</dt><dd>Archers and Cannons fire from wherever they stand, inside an Ace, the Tree or a Wall too, where the rest can't fight. Select the stack in the attack phase and click a highlighted target; a miss costs the shooter nothing. Only one shot a turn leaves a base.</dd><dt>Support cards</dt><dd>Healers, Repairmen, Battering Rams and Miners never fight. In a stack they die last (Miners first). Standing alone they can't defend: an enemy beside them chooses Capture or Destroy instead of an attack. A captured card rides in the stack's capture slot (one per stack) until you set it to work beside the stack; then it is yours.</dd><dt>Heal and Repair</dt><dd>Select the stack in your prep phase and press Heal a heart or Repair. The status line under the cards shows every cooldown.</dd><dt>Crystals</dt><dd>A crystal rises in the middle of the field every 1d6 + 4 rounds. A Miner on it digs 1 + 1d3 mana on a 2 of 1d2 each turn, until the crystal's 12 mana are gone.</dd><dt>Field Libation</dt><dd>Necromancy, free, not under the Full Moon: pour out cards from your field; each one is worth its mana on a 2 of 1d2, and goes to the grave for nothing on a 1.</dd></dl></details>
+<details class="sub"><summary>Siege, support and mining explained</summary><dl class="spellinfo"><dt>Bought from the Ether</dt><dd>Archers, Cannons, Healers, Walls, Repairmen, Battering Rams and Miners all wait in the Ether, a set for every deck, and come into your deck with their Conjure spells. The Beginner starts with two Archers, a Wall, two Repairmen and a Battering Ram in the deck, and a Miner in the first Ace.</dd><dt>Shooting</dt><dd>Archers and Cannons fire from wherever they stand, inside an Ace, the Tree or a Wall too, where the rest can't fight. Select the stack in the attack phase and click a highlighted target; a miss costs the shooter nothing. Only one shot a turn leaves a base.</dd><dt>Support cards</dt><dd>Healers, Repairmen, Battering Rams and Miners never fight. In a stack they die last (Miners first). Standing alone they can't defend: an enemy beside them chooses Capture or Destroy instead of an attack. A captured card rides in the stack's capture slot (one per stack) until you set it to work beside the stack; then it is yours.</dd><dt>Heal and Repair</dt><dd>Select the stack in your prep phase and press Heal a heart or Repair. The status line under the cards shows every cooldown.</dd><dt>Crystals</dt><dd>A crystal rises in the middle of the field every 1d6 + 4 turns. A Miner on it digs 1 + 1d3 mana on a 2 of 1d2 each turn, until the crystal's 12 mana are gone.</dd><dt>Field Libation</dt><dd>Necromancy, free, not under the Full Moon: pour out cards from your field; each one is worth its mana on a 2 of 1d2, and goes to the grave for nothing on a 1.</dd></dl></details>
 ${bankExplainHTML()}
 ${skyExplainHTML()}
 </details>`;
@@ -2415,7 +2415,7 @@ ${chk("okcontest","Contest","When more than one side holds the Hill, nobody scor
 <label class="opt"><input type="radio" name="oelim" value="grave" checked><span>To the grave (default)<small>Their deck and hand go to the grave, and the grave is shuffled.</small></span></label>
 <label class="opt"><input type="radio" name="oelim" value="dark"><span>To the Outer Darkness<small>Their deck and hand are gone for good.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Field</legend>
-${chk("ocrys","Crystals (default)","A crystal cluster rises in the middle of the field every 1d6 + 4 rounds (Headquarters opens with one). A Miner standing on it digs out its 12 mana.",true)}
+${chk("ocrys","Crystals (default)","A crystal cluster rises in the middle of the field every 1d6 + 4 turns (Headquarters opens with one). A Miner standing on it digs out its 12 mana.",true)}
 ${chk("ofog","Fog of war (default)","Each card sees only the eight tiles around it (a Scout two tiles out, in a diamond); ranged cards can fire blind into the fog. Assassins, ambushers and Scouts stay hidden until you stand right beside them.",true)}
 ${chk("obarb","Demons (default)","Every 4 + 1d12 rounds (never while one still stands) a crimson band of Grunts, Infantry or Jacks (sometimes with an Ace) takes the middle of the field and fights everyone. Whoever kills the most earns an Ether sale; a big band can earn debt forgiveness.",true)}
 <label class="f">Hole in the middle <select id="ohole"><option value="0" selected>None (default)</option><option value="1">One or two tiles</option><option value="2">Doubled</option><option value="3">Tripled</option></select></label>
@@ -2474,7 +2474,7 @@ ${chk("oskyrand","A random start","Every few rounds only. Each new Heavenly Body
 <label class="opt"><input type="radio" name="dlines" value="1" ${PREF.lines!==false?"checked":""}><span>On (default)<small>Thin black lines across the page behind everything, and now and then a black bar.</small></span></label>
 <label class="opt"><input type="radio" name="dlines" value="0" ${PREF.lines===false?"checked":""}><span>Off<small>A plain background, on every page of the site.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Brightness</legend><label class="f">Brightness <select id="dbright">${[.7,.8,.9,1,1.1,1.2,1.3].map(v=>`<option value="${v}" ${Math.abs((PREF.bright||1)-v)<.01?"selected":""}>${Math.round(v*100)}%${v===1?" (default)":""}</option>`).join("")}</select></label><p class="dim">For the whole site. Also in the Display bar at the bottom of the game.</p></fieldset>
-<fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({darkfantasy:"The default: an old dungeon in grey and crimson, gold and silver, with music.","":"The burnt amber of the rest of the site.",dull:"The burnt amber, duller and less orange, with a faint yellow tint.",office:"Soft grey pages and panels with a blue accent, like an office suite; easy on the eyes.",officedark:"The Office theme in charcoal, for the night.",earth:"A night druid\u2019s grove: dark soil, moss and lichen gold.",jester:"Black, after chapter 26.",ten:"White on indigo, after chapters 1–4.",satan:"Crimson, after chapter 23."})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, text size, hand position, tile names, page width and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
+<fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({darkfantasy:"The default: an old dungeon in grey and crimson, gold and silver.","":"The burnt amber of the rest of the site.",dull:"The burnt amber, duller and less orange, with a faint yellow tint.",office:"Soft grey pages and panels with a blue accent, like an office suite; easy on the eyes.",officedark:"The Office theme in charcoal, for the night.",earth:"A night druid\u2019s grove: dark soil, moss and lichen gold.",jester:"Black, after chapter 26.",ten:"White on indigo, after chapters 1–4.",satan:"Crimson, after chapter 23."})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, text size, hand position, tile names, page width and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
   const suitSel=`<div id="suitpick" hidden><p class="dim">${mode==="survival"?"You pick; the other two suits wait in the Ether.":"P1 picks; P2 gets the other two suits."}</p>
 <label class="f">Red suit <select id="osuitR"><option value="H">♥ Hearts</option><option value="D">♦ Diamonds</option></select></label>
 <label class="f">Black suit <select id="osuitB"><option value="S">♠ Spades</option><option value="C">♣ Clubs</option></select></label></div>`;
@@ -2653,7 +2653,7 @@ const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{
   return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:true,full:false,theme:"darkfantasy",lines:true,bright:1},p)})();
 const sfxV=()=>Math.max(0,Math.min(1.5,PREF.sfxVol==null?1:+PREF.sfxVol));   // v43: the sound effects' volume, 0 to 150%
 function savePrefs(){try{localStorage.setItem("ec-prefs2",JSON.stringify(PREF))}catch(e){}}
-const THEMES={darkfantasy:["Ether's Crossroads",["th-darkfantasy"]],"":["Kenoma",[]],dull:["Kenoma (dull)",["th-dull"]],office:["Office",["th-office"]],officedark:["Office Dark",["th-officedark"]],earth:["Druid",["th-earth"]],jester:["Jester",["th-black","th-jester"]],ten:["Ten",["th-indigo","th-blue"]],satan:["Disturbed Satan",["th-crimson"]]};
+const THEMES={darkfantasy:["Ether's Crossroads",["th-darkfantasy"]],"":["Kenoma",["th-rich"]],dull:["Kenoma (dull)",["th-dull","th-rich"]],office:["Office",["th-office","th-rich"]],officedark:["Office Dark",["th-officedark","th-rich"]],earth:["Druid",["th-earth","th-rich"]],jester:["Jester",["th-black","th-jester","th-rich"]],ten:["Ten",["th-indigo","th-blue","th-rich"]],satan:["Disturbed Satan",["th-crimson","th-rich"]]};   // v71: th-rich gives every theme its button, border, label and heading colors
 function applyMoonTheme(){
   const h=document.documentElement,b=!!(G&&G.moon.blood&&!G.over);
   for(const k in THEMES)for(const c of THEMES[k][1])h.classList.remove(c);
@@ -4112,9 +4112,9 @@ function spawnCrystal(){const free=centerTiles().filter(([r,c])=>!crystalAt(r,c)
   log(`<b>A crystal cluster</b> rises on ${coord(r,c)}: 12 mana for a Miner to dig.`,"event");notify(null,`A crystal rises on ${coord(r,c)}.`);return true}
 function crystalTick(){
   if(G.opts.crystals===false||G.phase==="setup")return;G.crystals=G.crystals||[];
-  if(!G.crystalInit){G.crystalInit=true;if(hq())spawnCrystal();G.crystalNextR=G.moon.round+R(6)+4;return}   // Headquarters opens with a crystal in the middle
-  if(G.crystalNextR==null)G.crystalNextR=G.moon.round+R(6)+4;
-  if(G.moon.round>=G.crystalNextR){spawnCrystal();G.crystalNextR=G.moon.round+R(6)+4}   // then one every 1d6 + 4 rounds (v70c: it counted every player's turn)
+  if(!G.crystalInit){G.crystalInit=true;if(hq())spawnCrystal();G.crystalNext=G.turnNo+R(6)+4;return}   // Headquarters opens with a crystal in the middle
+  if(G.crystalNext==null)G.crystalNext=G.turnNo+R(6)+4;
+  if(G.turnNo>=G.crystalNext){spawnCrystal();G.crystalNext=G.turnNo+R(6)+4}   // then one every 1d6 + 4 turns (v71: turns again, as the rule was written)
 }
 /* the start of a player's turn: crystals, then Miners */
 function siegeTurn(pl){
@@ -4336,7 +4336,7 @@ function noteBuy(id){const B=G.bank;if(!B)return;const r=G.moon.round;(B.buys[r]
 function saleCut(sp){const D=G.saleD||(G.saleD={});if(D[sp.id]==null)D[sp.id]=R(2)-1;return D[sp.id]}
 function spellCost(sp){
   let c=baseCost(sp);const B=G.bank;if(!B)return c;
-  if(c>0){c+=(B.upsell[sp.id]||0)+(B.angry?1:0);if(G.inflation&&G.moon.round<=G.inflation.untilR)c+=G.inflation.add||0}
+  if(c>0){c+=(B.upsell[sp.id]||0)+(B.angry?1:0);if(G.inflation&&G.turnNo<=G.inflation.until)c+=G.inflation.add||0}
   c=jupiterCost(sp,c);c=mercuryCost(sp,c);
   if(sp.school==="Conjuring"&&c>0){
     if(B.mana<0&&!B.dead)c=Math.max(1,c-1);   // the Bank is broke: the Ether goes on sale
@@ -4444,8 +4444,8 @@ function collapse(){
     if(!gone){for(let i=0;i<2;i++){const all=stacksOf(pl).flatMap(x=>x.st.cards.filter(c=>!isBase(c)).map(c=>({c,x})));if(!all.length)break;const {c,x}=pick(all);x.st.cards.splice(x.st.cards.indexOf(c),1);if(!x.st.cards.length)G.board[x.r][x.c]=null;c.owner=null;G.ether.push(c)}}
     const a=stacksOf(pl).find(x=>hasK(x.st,"ace"));if(a){const ace=a.st.cards.find(c=>kind(c)==="ace");a.st.cards.splice(a.st.cards.indexOf(ace),1);if(!a.st.cards.length)G.board[a.r][a.c]=null;ace.owner=null;ace.hp=ace.maxHp=2;G.ether.push(ace)}
   }
-  B.mana=0;B.owes=[];G.inflation={untilR:G.moon.round+sum(rollN(4,2)),add:0};
-  popup("The Bank collapses",`<p>The Bank and every player were 3 or more below zero. It all comes down.</p><p>Everyone's mana and debts are wiped to zero, every maximum falls to three, five random cards leave each deck (two from the field if the deck is empty) and each player's Ace on the field goes back into the Ether. For 4d2 rounds every price wobbles up by 1d2 − 1 a turn.</p>`);
+  B.mana=0;B.owes=[];G.inflation={until:G.turnNo+sum(rollN(4,2)),add:0};
+  popup("The Bank collapses",`<p>The Bank and every player were 3 or more below zero. It all comes down.</p><p>Everyone's mana and debts are wiped to zero, every maximum falls to three, five random cards leave each deck (two from the field if the deck is empty) and each player's Ace on the field goes back into the Ether. For 4d2 turns every price wobbles up by 1d2 − 1 a turn.</p>`);
   checkWin();
 }
 
@@ -4482,7 +4482,7 @@ function openBank(){
   const fl=floorOf(V),gap=e-fl,debt=P.debt||0;
   const notes=[];if(B.dead)notes.push("The Banker is dead: the Bank and the Ether are closed.");if(B.angry)notes.push("The Banker is angry about the Demons holding the middle: every price +1.");
   if(B.mana<0&&!B.dead)notes.push("The Bank is in the red: everything in the Ether costs 1 less.");const up=Object.keys(B.upsell);if(up.length)notes.push(`Upsold this round: ${up.map(id=>SP(id)?SP(id).name:id).join(", ")}.`);
-  if(G.inflation&&G.moon.round<=G.inflation.untilR)notes.push(`After the collapse, prices wobble up until round ${G.inflation.untilR}.`);
+  if(G.inflation&&G.turnNo<=G.inflation.until)notes.push(`After the collapse, prices wobble up for ${G.inflation.until-G.turnNo+1} more turn${G.inflation.until-G.turnNo+1===1?"":"s"}.`);
   const cap=soulCap(V),pay=Math.min(mana(V),owed),why=loanWhy(V);
   const tip=t=>`data-tip="${esc(t)}" tabindex="0"`;
   const LOAN_TIP=`A loan is mana now, paid out of the Bank's own mana. How much: up to 12 (6 if you are below zero, 5 at −${cap} or lower), and only while the Bank stays at ${BANK_FLOOR} or above. When it's due: half the amount in your turns, at least 2 (12 mana: 6 turns). It grows by 1d2 every 3 of your turns. Pay it back with Repay; whatever is left when it's due becomes mana debt. One loan at a time, one a round, and the next no sooner than ${LOAN_GAP} turns after the last.`;
@@ -4561,13 +4561,13 @@ function barbTick(){
   // a new band waits while the last one still stands
   const rd=G.moon.round;if(G.barbNextR==null){G.barbNextR=rd+4+R(12);return}
   if(rd>=G.barbNextR){if(stacksOf(B).length)G.barbNextR=rd+1+R(3);else{G.barbNextR=rd+4+R(12);spawnBarbarians()}}
-  // the middle held for 7d2 rounds angers the Banker
+  // the middle held for 7d2 turns angers the Banker (v71: turns again, as the rule was written)
   const held=stacksOf(B).some(x=>centerArea().some(([r,c])=>r===x.r&&c===x.c));
-  if(held){if(G.barbHeldR==null){G.barbHeldR=G.moon.round;G.barbNeed=sum(rollN(7,2))}
-    else if(G.bank&&!G.bank.angry&&!G.bank.dead&&G.moon.round-G.barbHeldR>=G.barbNeed){G.bank.angry=true;
-      log(`<b>The Banker is angry.</b> The Demons have held the middle for ${G.barbNeed} rounds: every price goes up by 1 until they are gone.`,"event");
-      popup("The Banker's justification",`<p>"Trade can't cross the middle of the field while those savages sit on it. Every caravan pays for guards, every guard wants his wage, and somebody has to pay the wage."</p><p>The Demons have held the middle for ${G.barbNeed} rounds (7d2). Every spell costs 1 more until no Demon is left in the middle.</p>`)}}
-  else{G.barbHeldR=null;if(G.bank&&G.bank.angry){G.bank.angry=false;log("The middle is clear of Demons: the Banker calms down and prices go back.","event")}}
+  if(held){if(G.barbHeld==null){G.barbHeld=G.turnNo;G.barbNeed=sum(rollN(7,2))}
+    else if(G.bank&&!G.bank.angry&&!G.bank.dead&&G.turnNo-G.barbHeld>=G.barbNeed){G.bank.angry=true;
+      log(`<b>The Banker is angry.</b> The Demons have held the middle for ${G.barbNeed} turns: every price goes up by 1 until they are gone.`,"event");
+      popup("The Banker's justification",`<p>"Trade can't cross the middle of the field while those savages sit on it. Every caravan pays for guards, every guard wants his wage, and somebody has to pay the wage."</p><p>The Demons have held the middle for ${G.barbNeed} turns (7d2). Every spell costs 1 more until no Demon is left in the middle.</p>`)}}
+  else{G.barbHeld=null;if(G.bank&&G.bank.angry){G.bank.angry=false;log("The middle is clear of Demons: the Banker calms down and prices go back.","event")}}
 }
 function centerArea(){const c0=centerTiles(),out=[];for(const [r,c] of c0)for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const rr=r+dr,cc=c+dc;if(rr>=0&&cc>=0&&rr<G.rows&&cc<COLS&&!out.some(t=>t[0]===rr&&t[1]===cc))out.push([rr,cc])}return out}
 function spawnBarbarians(blood){
@@ -5614,11 +5614,11 @@ const BANK_HELP=[
  ["Debt Collectors","Stay below zero for 3 of your turns, or leave a Bank loan open for 3 + (owed ÷ 3) of your turns, and you are in default. From then on, at the start of each of your turns the Bank sends 1d2 Debt Collectors (half as many again after six turns in default; six at most on the field) after whoever owes the most, until it is paid off. Every card they kill goes to the Ether, and its worth pays the debt. Only a player who owes the Bank can strike a Debt Collector."],
  ["The Report","Every Full Moon (every eighth round without the Moon) the Bank hands each player a Credit and Loan Report: what was taken on loans and credit, the interest, the taxes, the mana earned, and good or bad standing."],
  ["Taxes","On Report day only: 1d2 for a base in the middle of the field; every other Ace or Tree, 1 in 3 (1 in 2 in bad standing) of 1d2. With no mana a tax goes unpaid (no credit), and the standing turns bad."],
- ["Land in the middle","2 mana: a spawn point on the middle ground until the next Report, for any card but a Wall. A card without a base there costs 1d2 − 1."],
+ ["Land in the middle","2 mana: a spawn point on the middle ground for 8 of your turns (this one counts), on your side of the midline, for any card but a Wall. A card without a base there costs 1d2 − 1. None in King of the Hill."],
  ["Selling","Sell cards from your hand or deck for their soul worth, or 1 less (rolled at the sale). A standard card worth only 1 can't be sold. Sold cards go to the Ether, and your deck is reshuffled. Binah can sell thralls for 1 mana."],
  ["Upselling","A spell bought more than twice in each of two rounds in a row costs 1d2 − 1 more."],
  ["When the Bank is in the red","The Ether goes on sale (1 less, never below 1), and the Bank asks the richest player for a loan."],
- ["The angry Banker","If Demons hold the middle of the field for 7d2 rounds, every price goes up by 1 until they are gone."],
+ ["The angry Banker","If Demons hold the middle of the field for 7d2 turns, every price goes up by 1 until they are gone."],
  ["Collapse","If the Bank and every player are 3 or more below zero, the Bank collapses: mana and debts go to zero, every maximum falls to three, cards leave the decks for the Ether, and prices wobble up for a while."]];
 function bankExplainHTML(){return `<details class="sub"><summary>The Bank, Demons and meteors explained</summary><dl class="spellinfo">${BANK_HELP.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}
 <dt>Demons</dt><dd>A crimson band takes the middle every 4 + 1d12 rounds (never while one still stands) and with every Blood Moon, and fights anyone beside it. The player who kills the most of a band gets an Ether sale; breaking a big band can earn debt forgiveness.</dd>
@@ -8351,11 +8351,11 @@ async function paintRooms(){const box=$("#rmList");if(!box)return;box.innerHTML=
 if(window.__EC)Object.assign(window.__EC,{listRooms,dirBeat,DIR,TabPeer});
 
 /* ---------------- v43: the game's side of the Ether's Crossroads music (the songs themselves are in ec-music.js) ----------------
-   The songs play with the Ether's Crossroads theme: the game opens with its own song, then plays every song once in a shuffled order
+   The songs play in every theme (v71; before, only with the Ether's Crossroads theme): the game opens with its own song, then plays every song once in a shuffled order
    (songs heard longest ago lean to the front) before shuffling again. The Display bar has the Music switch and its volume
    (0 to 150%, in steps of 5%); the sound switch turns the music off with everything else. */
 const MUSV=()=>Math.max(0,Math.min(1.5,PREF.musicVol==null?1:+PREF.musicVol));
-function musicSync(){const b=$("#pMusic"),on=PREF.theme==="darkfantasy";
+function musicSync(){const b=$("#pMusic"),on=true;   // v71: in every theme
   if(b){b.hidden=!on;b.textContent="Music: "+(PREF.music!==false?"On":"Off");b.setAttribute("aria-pressed",PREF.music!==false)}
   const v=$("#pMusicV");if(v){v.hidden=!on;const n=v.querySelector("b");if(n)n.textContent=Math.round(MUSV()*100)+"%"}
   if(window.ECMusic)window.ECMusic.sync()}
@@ -8822,8 +8822,8 @@ if(window.__EC)Object.assign(window.__EC,{critBanner,dicePlusRoll,landRoll});
    Taxes, taken only on that day: 1d2 for a base standing in the middle of the field (ground that is nobody's home rows); and for
    every other Ace or Tree a 1 in 3 chance (1 in 2 in bad standing) of 1d2. They can't be paid on credit: with no mana they go
    unpaid, and the standing turns bad.
-   Land in the middle: 2 mana at the Bank buys a spawn point on a free tile of the middle ground until the next Report (one at a
-   time). Any card but a Wall can come down there; a card that comes down without a base on the tile costs 1d2 − 1. A base there
+   Land in the middle: 2 mana at the Bank buys a spawn point on a free tile of the middle ground for 8 of the buyer's turns (v71;
+   before, until the next Report), on the buyer's side of the midline, never in King of the Hill (one at a time). Any card but a Wall can come down there; a card that comes down without a base on the tile costs 1d2 − 1. A base there
    stays a spawn point after the land is gone, until it falls.
    Between players: a lender can forgive a loan, and anyone can give mana or a card from the hand to another player.
    Debt Collectors can only be attacked by a player who owes the Bank something. */
@@ -8851,18 +8851,28 @@ function bankReport(){if(!G.bank||survival())return;
     P.rp=null;rpOf(pl);
     log(`<b>The Bank's Report</b> for ${plName(pl)} (turns ${paper.from}–${paper.to}): ${good?"good standing":"bad standing"}${due?`; taxes ${paid} of ${due} paid`:""}.`,"event");
     if(!good)notify(pl,`The Bank's Report: ${esc(P.name)} is in bad standing.`)}
-  // the land in the middle runs out
-  if((G.lands||[]).length){G.lands=[];log("The Bank's land in the middle goes back to the Bank (a base on it stays a spawn point until it falls).")}}
+}
 {const _cr=cycleRound;cycleRound=async function(){const out=await _cr.apply(this,arguments);if(G.over)return out;if(G.moon.round>1&&payDay())bankReport();render();return out}}
 
 /* ---------- land in the middle ---------- */
 const landAt=(r,c)=>(G.lands||[]).find(l=>l.r===r&&l.c===c&&G.p[l.owner]&&!G.p[l.owner].out);
-const landFree=()=>{const t=[];for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(midTile(r,c)&&!G.board[r][c]&&!landAt(r,c)&&!(typeof flagAt==="function"&&flagAt(r,c)))t.push([r,c]);return t};
+/* v71: land lasts 8 of its owner's turns (this one counts), never lies past the midline from the buyer's side, and King of the Hill has none */
+const LAND_TURNS=8;
+const landLeft=l=>Math.max(0,l.untilT-tnOf(l.owner));
+function landOwnSide(pl,r,c){const S=seat(pl);if(!S||!S.back||!S.back.length)return true;const [br,bc]=S.back[0],[fr,fc]=S.fwd;
+  const depth=(r-br)*fr+(c-bc)*fc,full=(fr?(fr>0?G.rows-1-br:br):0)+(fc?(fc>0?COLS-1-bc:bc):0);   // how far forward, out of the whole field
+  return depth<=Math.ceil(full/2)}
+const landFree=pl=>{const t=[];if(typeof kothOn==="function"&&kothOn())return t;
+  for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(midTile(r,c)&&!G.board[r][c]&&!landAt(r,c)&&!(typeof flagAt==="function"&&flagAt(r,c))&&(pl==null||landOwnSide(pl,r,c)))t.push([r,c]);return t};
+{const _bt=beginTurn;beginTurn=function(pl){const out=_bt.apply(this,arguments);
+  for(const l of [...(G.lands||[])])if(l.owner===pl&&l.untilT!=null&&tnOf(pl)>=l.untilT){G.lands.splice(G.lands.indexOf(l),1);
+    log(`${plName(pl)}'s land on ${coord(l.r,l.c)} goes back to the Bank after ${LAND_TURNS} turns (a base on it stays a spawn point until it falls).`)}
+  return out}}
 function buyLand(pl,r,c){const P=G.p[pl];if(!bankOpen()||G.phase!=="prep"||G.active!==pl)return false;
   if((G.lands||[]).some(l=>l.owner===pl)){if(!P.cpu)flash("You already hold land in the middle.");return false}
-  if(!landFree().some(([a,b])=>a===r&&b===c))return false;if(!canAfford(pl,2)){if(!P.cpu)flash("Land costs 2 mana.");return false}
-  spend(pl,2);(G.lands=G.lands||[]).push({r,c,owner:pl});
-  log(`${plName(pl)} buys land from the Bank on ${coord(r,c)}: a spawn point until the next Report.`,"event");return true}
+  if(!landFree(pl).some(([a,b])=>a===r&&b===c))return false;if(!canAfford(pl,2)){if(!P.cpu)flash("Land costs 2 mana.");return false}
+  spend(pl,2);(G.lands=G.lands||[]).push({r,c,owner:pl,untilT:tnOf(pl)+LAND_TURNS});
+  log(`${plName(pl)} buys land from the Bank on ${coord(r,c)}: a spawn point for ${LAND_TURNS} of their turns.`,"event");return true}
 {NETFN.buyLand={get:()=>buyLand,set:f=>buyLand=f};const orig=buyLand;buyLand=function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:"buyLand",args:netClean(a),ui:uiSnap(),rid})}}
 {const _cp=canPlace;canPlace=function(card,r,c){if(_cp(card,r,c))return true;if(!G||G.phase==="setup"||isVoid(r,c))return false;
   const l=landAt(r,c);if(!l||l.owner!==G.active||kind(card)==="wall")return false;const st=G.board[r][c];
@@ -8873,7 +8883,7 @@ function buyLand(pl,r,c){const P=G.p[pl];if(!bankOpen()||G.phase!=="prep"||G.act
   const st=G.board[r][c];if(l&&l.owner===pl&&st&&!st.cards.some(isBase)){const fee=R(2)-1;if(fee){spend(pl,fee);log(`The Bank charges ${plName(pl)} ${fee} mana for a card on its land.`)}}
   return out}}
 function landHTML_(r,c,under){const l=landAt(r,c);if(!l)return "";const P=G.p[l.owner];
-  return `<span class="landmk${under?" under":""}" style="--fc:${P.color}" data-tip="${esc(P.name)}'s land from the Bank: a spawn point for any card but a Wall until the next Report. A card without a base here costs 1d2 − 1.">$</span>`}
+  return `<span class="landmk${under?" under":""}" style="--fc:${P.color}" data-tip="${esc(P.name)}'s land from the Bank: a spawn point for any card but a Wall, ${landLeft(l)} more of ${esc(P.name)}'s turns (counting the current one). A card without a base here costs 1d2 − 1.">$</span>`}
 {const _ch=crystalHTML;crystalHTML=function(r,c,under){return _ch(r,c,under)+landHTML_(r,c,under)}}
 
 /* ---------- Debt Collectors: only someone who owes the Bank can strike them ---------- */
@@ -8912,8 +8922,8 @@ ${paper({...rp},true)}${R0?paper(R0,false):`<p class="dim">No Report yet.</p>`}$
     const show=t=>{tabs.querySelectorAll("[data-bt]").forEach(b=>{const on=b.dataset.bt===t;b.classList.toggle("on",on);b.setAttribute("aria-selected",on)});box.querySelectorAll(".btab").forEach(p=>p.hidden=p.dataset.t!==t);bankTab=t};
     tabs.querySelectorAll("[data-bt]").forEach(b=>b.onclick=()=>show(b.dataset.bt));if(bankTab==="report")show("report")}
   // land on the front tab
-  const acts=box.querySelector(".bacts");if(acts&&live&&bankOpen()){const mine=(G.lands||[]).find(l=>l.owner===V),free=landFree();
-    acts.insertAdjacentHTML("beforeend",`<p class="brow landrow"><span class="bkey" data-tip="A spawn point on the middle ground until the next Report: any card but a Wall can come down there; a card without a base on it costs 1d2 − 1. A base on it stays a spawn point after that, until it falls." tabindex="0">Land <i class="q">?</i></span>${mine?`<small class="dim">You hold land on ${coord(mine.r,mine.c)} until the next Report.</small>`:`<label class="${free.length?"":"off"}"><select id="bLandAt" aria-label="Where" ${free.length?"":"disabled"}>${free.length?free.map(([r,c])=>`<option value="${r},${c}">${coord(r,c)}</option>`).join(""):"<option>—</option>"}</select></label><button class="btn sm" id="bLandBtn" ${free.length&&canAfford(V,2)?"":"disabled"}>Buy for 2 mana</button><small class="dim">A spawn point in the middle until the next Report.</small>`}</p>`);
+  const acts=box.querySelector(".bacts");if(acts&&live&&bankOpen()){const mine=(G.lands||[]).find(l=>l.owner===V),free=landFree(V);
+    acts.insertAdjacentHTML("beforeend",`<p class="brow landrow"><span class="bkey" data-tip="A spawn point on the middle ground for 8 of your turns (this one counts), on your side of the midline (none in King of the Hill): any card but a Wall can come down there; a card without a base on it costs 1d2 − 1. A base on it stays a spawn point after that, until it falls." tabindex="0">Land <i class="q">?</i></span>${mine?`<small class="dim">You hold land on ${coord(mine.r,mine.c)}: ${landLeft(mine)} of your turns left, this one counted.</small>`:`<label class="${free.length?"":"off"}"><select id="bLandAt" aria-label="Where" ${free.length?"":"disabled"}>${free.length?free.map(([r,c])=>`<option value="${r},${c}">${coord(r,c)}</option>`).join(""):"<option>—</option>"}</select></label><button class="btn sm" id="bLandBtn" ${free.length&&canAfford(V,2)?"":"disabled"}>Buy for 2 mana</button><small class="dim">A spawn point in the middle, on your side of the midline, for 8 of your turns.</small>`}</p>`);
     const b=$("#bLandBtn");if(b)b.onclick=()=>{const [r,c]=$("#bLandAt").value.split(",").map(Number);buyLand(V,r,c);render();openBank()}}
   // between players: forgive, give
   const p2p=box.querySelector(".btab.p2p");if(p2p){
@@ -8933,7 +8943,7 @@ ${paper({...rp},true)}${R0?paper(R0,false):`<p class="dim">No Report yet.</p>`}$
 {const _et=econTags;econTags=function(P){const t=_et(P);if(!G.bank||isHorde(P.i)||isNPC(P.i))return t;
   if(P.guilty)t.unshift(`<span class="debttag" data-tip="In default with the Bank: Debt Collectors come every turn until the debt is paid off.">In default</span>`);
   else if(P.rp&&P.rp.bad)t.unshift(`<span class="debttag" data-tip="Bad standing with the Bank this period (default, an unpaid tax or a robbery). It shows on the next Report.">Bad standing</span>`);
-  const l=(G.lands||[]).find(x=>x.owner===P.i);if(l)t.push(`<span class="saletag" data-tip="Land from the Bank on ${coord(l.r,l.c)}: a spawn point until the next Report.">Land ${coord(l.r,l.c)}</span>`);
+  const l=(G.lands||[]).find(x=>x.owner===P.i);if(l)t.push(`<span class="saletag" data-tip="Land from the Bank on ${coord(l.r,l.c)}: a spawn point for ${landLeft(l)} more of ${esc(P.name)}'s turns, this one counted.">Land ${coord(l.r,l.c)} · ${landLeft(l)}</span>`);
   if(P.shield)t.push(`<span class="saletag" data-tip="Please Don't Hurt Me: none of this player's stacks can be attacked until their next turn.">Untouchable</span>`);
   if(P.noLoans)t.push(`<span class="debttag" data-tip="Tried to rob the Bank: no loans or credit, ever.">No loans</span>`);
   return t}}
@@ -8942,6 +8952,7 @@ const TAG_TIPS=[[/^Debt −/,"Mana debt: shows as mana below zero. Every soul ga
 {const _et=econTags;econTags=function(P){return _et(P).map(h=>{if(/data-tip=/.test(h))return h;const m=/^<span([^>]*)>([^<]*)</.exec(h);if(!m)return h;const tip=TAG_TIPS.find(([re])=>re.test(m[2]));
   return tip?h.replace("<span",`<span data-tip="${esc(tip[1])}"`):h})}}
 if(window.__EC)Object.assign(window.__EC,{bankReport,buyLand,landFree,forgiveLoan,giftMana,giftCard,rpOf,attackOptions:(...a)=>attackOptions(...a)});
+if(window.__EC)Object.assign(window.__EC,{landFreeW:pl=>landFree(pl),buyLandW:(...a)=>buyLand(...a),landLeftW:l=>landLeft(l),midTileW:(r,c)=>midTile(r,c)});
 
 /* ---------------- v49: particular animations ----------------
    Under the two big switches (card animations, magic and other animations) each kind of animation can be turned off on its own
@@ -9866,7 +9877,8 @@ function kothFillEther(decks){const per=kothDeckCounts(),have={};for(const c of 
   return added}
 {const _sg=startGame;startGame=function(opts){const out=_sg.apply(this,arguments);if(kothOn()){kothFillEther(3);G.kothDecks=3}return out}}
 {const _st=substanceTurn;substanceTurn=function(pl){_st.apply(this,arguments);if(!kothOn()||G.over)return;
-  if(G.moon.round>1&&G.moon.round%10===0&&G.kothEtherR!==G.moon.round){G.kothEtherR=G.moon.round;const n=kothFillEther(Math.min(4,(G.kothDecks||3)+1));G.kothDecks=Math.min(4,(G.kothDecks||3)+1);if(n)log(`<b>The Ether</b> fills up: ${n} souls come in (never more than four decks' worth of a kind).`,"event")}
+  if(G.turnNo>0&&G.turnNo%10===0&&G.kothEtherAt!==G.turnNo){G.kothEtherAt=G.turnNo;   // v71: every 10 turns again, as the rule was written
+    const n=kothFillEther(Math.min(4,(G.kothDecks||3)+1));G.kothDecks=Math.min(4,(G.kothDecks||3)+1);if(n)log(`<b>The Ether</b> fills up: ${n} souls come in (never more than four decks' worth of a kind).`,"event")}
   if(!G.kothBankDone&&G.phase!=="setup"){G.kothBankDone=true;kothBank();render()}   // the Bank exists once the game is under way
   kothMercs(pl);kothCarriages()}}
 

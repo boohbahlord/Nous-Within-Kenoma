@@ -232,11 +232,11 @@ const BANK_HELP=[
  ["Debt Collectors","Stay below zero for 3 of your turns, or leave a Bank loan open for 3 + (owed ÷ 3) of your turns, and you are in default. From then on, at the start of each of your turns the Bank sends 1d2 Debt Collectors (half as many again after six turns in default; six at most on the field) after whoever owes the most, until it is paid off. Every card they kill goes to the Ether, and its worth pays the debt. Only a player who owes the Bank can strike a Debt Collector."],
  ["The Report","Every Full Moon (every eighth round without the Moon) the Bank hands each player a Credit and Loan Report: what was taken on loans and credit, the interest, the taxes, the mana earned, and good or bad standing."],
  ["Taxes","On Report day only: 1d2 for a base in the middle of the field; every other Ace or Tree, 1 in 3 (1 in 2 in bad standing) of 1d2. With no mana a tax goes unpaid (no credit), and the standing turns bad."],
- ["Land in the middle","2 mana: a spawn point on the middle ground until the next Report, for any card but a Wall. A card without a base there costs 1d2 − 1."],
+ ["Land in the middle","2 mana: a spawn point on the middle ground for 8 of your turns (this one counts), on your side of the midline, for any card but a Wall. A card without a base there costs 1d2 − 1. None in King of the Hill."],
  ["Selling","Sell cards from your hand or deck for their soul worth, or 1 less (rolled at the sale). A standard card worth only 1 can't be sold. Sold cards go to the Ether, and your deck is reshuffled. Binah can sell thralls for 1 mana."],
  ["Upselling","A spell bought more than twice in each of two rounds in a row costs 1d2 − 1 more."],
  ["When the Bank is in the red","The Ether goes on sale (1 less, never below 1), and the Bank asks the richest player for a loan."],
- ["The angry Banker","If Demons hold the middle of the field for 7d2 rounds, every price goes up by 1 until they are gone."],
+ ["The angry Banker","If Demons hold the middle of the field for 7d2 turns, every price goes up by 1 until they are gone."],
  ["Collapse","If the Bank and every player are 3 or more below zero, the Bank collapses: mana and debts go to zero, every maximum falls to three, cards leave the decks for the Ether, and prices wobble up for a while."]];
 function bankExplainHTML(){return `<details class="sub"><summary>The Bank, Demons and meteors explained</summary><dl class="spellinfo">${BANK_HELP.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}
 <dt>Demons</dt><dd>A crimson band takes the middle every 4 + 1d12 rounds (never while one still stands) and with every Blood Moon, and fights anyone beside it. The player who kills the most of a band gets an Ether sale; breaking a big band can earn debt forgiveness.</dd>

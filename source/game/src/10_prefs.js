@@ -12,7 +12,7 @@ const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{
   return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:true,full:false,theme:"darkfantasy",lines:true,bright:1},p)})();
 const sfxV=()=>Math.max(0,Math.min(1.5,PREF.sfxVol==null?1:+PREF.sfxVol));   // v43: the sound effects' volume, 0 to 150%
 function savePrefs(){try{localStorage.setItem("ec-prefs2",JSON.stringify(PREF))}catch(e){}}
-const THEMES={darkfantasy:["Ether's Crossroads",["th-darkfantasy"]],"":["Kenoma",[]],dull:["Kenoma (dull)",["th-dull"]],office:["Office",["th-office"]],officedark:["Office Dark",["th-officedark"]],earth:["Druid",["th-earth"]],jester:["Jester",["th-black","th-jester"]],ten:["Ten",["th-indigo","th-blue"]],satan:["Disturbed Satan",["th-crimson"]]};
+const THEMES={darkfantasy:["Ether's Crossroads",["th-darkfantasy"]],"":["Kenoma",["th-rich"]],dull:["Kenoma (dull)",["th-dull","th-rich"]],office:["Office",["th-office","th-rich"]],officedark:["Office Dark",["th-officedark","th-rich"]],earth:["Druid",["th-earth","th-rich"]],jester:["Jester",["th-black","th-jester","th-rich"]],ten:["Ten",["th-indigo","th-blue","th-rich"]],satan:["Disturbed Satan",["th-crimson","th-rich"]]};   // v71: th-rich gives every theme its button, border, label and heading colors
 function applyMoonTheme(){
   const h=document.documentElement,b=!!(G&&G.moon.blood&&!G.over);
   for(const k in THEMES)for(const c of THEMES[k][1])h.classList.remove(c);
