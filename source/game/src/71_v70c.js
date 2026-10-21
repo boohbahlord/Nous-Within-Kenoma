@@ -120,7 +120,12 @@ if($("#mkBtn"))$("#mkBtn").onclick=openMustKnow;if($("#helpMk"))$("#helpMk").onc
   acts.insertAdjacentHTML("beforebegin",`<p><button type="button" class="btn ghost" id="mMk">Show "What you must know" again</button></p>`);
   $("#mMk").onclick=()=>{PREF.mkHide=null;savePrefs();paintMustKnow();$("#mMk").parentNode.remove();if(typeof flash==="function"&&G)flash('"What you must know" is back at the top of the page.')}}}
 /* Settings on the game's front page opens this same menu here, before any game */
-if(location.hash==="#settings")setTimeout(()=>{openMenu();history.replaceState(null,"",location.pathname+location.search)},250);
+/* the front page's Settings opens this menu alone: no game and no mode window behind it, and closing it goes back to the front page */
+const SETTINGS_ONLY=location.hash==="#settings";
+if(SETTINGS_ONLY){document.documentElement.classList.add("settingsonly");
+  {const _ss=showStart;showStart=function(){if(!G)return;return _ss.apply(this,arguments)}}
+  setTimeout(()=>{openMenu();history.replaceState(null,"",location.pathname+location.search)},250)}
+{const _cm=closeMenu;closeMenu=function(){_cm.apply(this,arguments);if(SETTINGS_ONLY&&!G)location.href="ethers-crossroads.html"}}
 
 /* ---------- Survival: counter cards (v70d). From the eleventh wave, when the players lean on something the Horde has no answer
    to, a wave brings two counter cards with it, never wildcards: Battering Rams against Walls, Archers against bases packed

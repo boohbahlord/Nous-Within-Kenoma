@@ -2381,8 +2381,8 @@ function showStart(){
   const q0=new URLSearchParams(location.search).get("mode"),q=q0==="cpu"?"local":q0;
   if(!startMode&&MODES.some(m=>m[0]===q))startMode=q;
   if(!startMode){
-    ovShow(`<div class="ovbox setup"><div class="shead"><h2>New game</h2><p class="dim">Choose how to play.</p></div><div class="modes">${MODES.map(([k,t,s])=>`<button class="mode" data-m="${k}"><b>${t}</b><span>${s}</span></button>`).join("")}</div></div>`);
-    document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{startMode=b.dataset.m;showStart()});return;
+    ovShow(`<div class="ovbox setup"><button type="button" class="xclose" id="modeX" aria-label="Close: back to the Ether's Crossroads page">×</button><div class="shead"><h2>New game</h2><p class="dim">Choose how to play.</p></div><div class="modes">${MODES.map(([k,t,s])=>`<button class="mode" data-m="${k}"><b>${t}</b><span>${s}</span></button>`).join("")}</div></div>`);
+    document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{startMode=b.dataset.m;showStart()});$("#modeX").onclick=()=>{location.href="ethers-crossroads.html"};return;
   }
   const mode=startMode,M=MODES.find(m=>m[0]===mode);
   const seatsS=[0,1,2,3,4,5,6,7].map(i=>({name:mode==="survival"&&i===0?"Survivor":`P${i+1}`,type:i===0?"human":"medium",
@@ -2437,6 +2437,18 @@ ${chk("omoon","Moon combat bonus","Every attack adds 1d2 at the Full Moon, and e
 ${chk("opshop","Heavenly Body shop","Any of the seven Heavenly Bodies can be bought for the sky (Astrology) for 7 + 1d3 + 1d12 mana, rolled every round. It rises at the start of the next round; then no Heavenly Body can be bought for six rounds.",true)}
 ${chk("oatk","Spells in the attack phase","Enchantments, curses, sorcery and illusions can also be cast while attacking. Necromancy, conjuring and sacrifices stay in prep.",false)}
 ${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the game opens on a Blood Moon; each deck is shuffled and two thirds of it go to the grave; each player starts with a Joker in hand. With a Heavenly Body in the sky: the game opens under that Heavenly Body's eclipse.",false)}
+${chk("ocycev","Cycle events (default)","Each Heavenly Body's cycle event when its cycle comes round: the Full Moon's toll, Venus's and Mercury's cycles, the Second Sun's judgement and the rest.",true)}
+${chk("oeclipse","Eclipses (default)","Now and then a Heavenly Body is eclipsed, with its own strange effect.",true)}
+</fieldset>
+<fieldset class="pf" id="skychg"><legend>How the sky changes</legend>
+<label class="f">The sky changes <select id="oskychg"><option value="bid" selected>By bidding (default)</option><option value="never">Never by itself</option><option value="cycles">Every few cycles</option><option value="rounds">Every few rounds</option></select></label>
+<p class="dim" id="skychgnote"></p>
+<div id="skyevery" hidden>
+<div class="f"><span>How many</span><div class="opts"><label class="opt"><input type="radio" name="oskyhow" value="n" checked><span>A number</span></label><label class="opt"><input type="radio" name="oskyhow" value="dice"><span>Dice<small>Rolled again for every new Heavenly Body; 100 at most.</small></span></label></div></div>
+<p class="skynum" id="skyn"><button type="button" class="mstep" data-sk="n" data-d="-1" aria-label="fewer">◀</button> <b id="oskyn">4</b> <button type="button" class="mstep" data-sk="n" data-d="1" aria-label="more">▶</button> <span class="dim" id="oskyunit">cycles</span></p>
+<p class="skynum" id="skyd" hidden><button type="button" class="mstep" data-sk="dn" data-d="-1" aria-label="fewer dice">◀</button> <b id="oskydn">2</b> <button type="button" class="mstep" data-sk="dn" data-d="1" aria-label="more dice">▶</button> d <select id="oskyds">${[2,3,4,6,8,10,12,20,100].map(v=>`<option value="${v}" ${v===6?"selected":""}>${v}</option>`).join("")}</select> <span class="dim" id="oskydtot"></span></p>
+${chk("oskyrand","A random start","Every few rounds only. Each new Heavenly Body begins at a random point of its cycle, so it can land right on its event.",false)}
+</div>
 </fieldset>`;
   const display=`<fieldset class="pf"><legend>Your hand</legend><div class="opts">
 <label class="opt"><input type="radio" name="dhand" value="below" ${PREF.hand!=="side"?"checked":""}><span>Under your deck (default)<small>Right below your own bars, with your dice box.</small></span></label>
@@ -2573,6 +2585,15 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
   $("#oeach").addEventListener("change",()=>$("#oeach").dataset.touched=1);
   document.querySelectorAll('input[name=odeckper],input[name=oetherper],input[name=ospecials],input[name=osuitmode],#ojoker').forEach(i=>i.addEventListener("change",()=>{if(i.name==="odeckper")$("#decksset").dataset.touched=1;sumUp()}));sumUp();
   $("#onosubs").addEventListener("change",drawSeats);
+  const SKY_NOTE={bid:"Every 3 + 1d2 − 1 completed cycles, the Heavenly Body announces it is leaving. Players bid mana to keep it for one more cycle, or to see it go; the highest bid wins (an Oath of that Heavenly Body adds half again to a bid on a 2 of 1d2). If nobody bids to keep it, a new Heavenly Body takes the sky.",never:"The Heavenly Body stays until a spell, the shop or a Substance changes it.",cycles:"After this many of its cycles, a new Heavenly Body takes the sky.",rounds:"After this many rounds, a new Heavenly Body takes the sky, wherever it is in its cycle."};
+  const skyUp=()=>{const m=$("#oskychg").value,ev=m==="cycles"||m==="rounds",dice=val("oskyhow")==="dice";$("#skychgnote").textContent=SKY_NOTE[m];
+    $("#skyevery").hidden=!ev;$("#oskyunit").textContent=m==="rounds"?"rounds":"cycles";$("#skyn").hidden=dice;$("#skyd").hidden=!dice;
+    $("#oskyrand").closest("label").hidden=m!=="rounds";const dn=+$("#oskydn").textContent,ds=+$("#oskyds").value;
+    if(dn*ds>100){$("#oskydn").textContent=Math.max(1,Math.floor(100/ds))}$("#oskydtot").textContent=`(${$("#oskydn").textContent}d${ds}: ${$("#oskydn").textContent} to ${+$("#oskydn").textContent*ds} ${m==="rounds"?"rounds":"cycles"})`};
+  $("#skychg").querySelectorAll("[data-sk]").forEach(b=>b.onclick=()=>{const k=b.dataset.sk,el=k==="n"?$("#oskyn"):$("#oskydn"),ds=+$("#oskyds").value,max=k==="n"?100:Math.max(1,Math.floor(100/ds));
+    el.textContent=Math.max(1,Math.min(max,+el.textContent+ +b.dataset.d));skyUp()});
+  ["#oskychg","#oskyds"].forEach(q=>$(q).addEventListener("change",skyUp));document.querySelectorAll('input[name=oskyhow]').forEach(i=>i.addEventListener("change",skyUp));skyUp();
+  function skyChangeOpts(){const m=$("#oskychg").value;return {mode:m,dice:val("oskyhow")==="dice",n:+$("#oskyn").textContent,dn:+$("#oskydn").textContent,ds:+$("#oskyds").value,rand:m==="rounds"&&$("#oskyrand").checked}}
   mapUp=()=>{const rv=val("omap")==="river";$("#bridgeopt").hidden=!rv;$("#rivernote").hidden=!rv;
     document.querySelectorAll('#sizeduel input').forEach(i=>i.disabled=rv);};
   document.querySelectorAll('input[name=omap]').forEach(i=>i.addEventListener("change",mapUp));
@@ -2601,7 +2622,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     startGame({mode,players,mid:mode==="survival"||(val("orowsd")?+val("orowsd")>4:true),aceLock:$("#olock").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,cheat:!!($("#ocheat")&&$("#ocheat").checked),hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off","saturn"].includes(val("omoonon")||"on"),
       map:L==="koth"?"hill":val("omap"),big:L==="koth"?"":val("obig")||"",koth:L==="koth"?{team:$("#okteam").checked,tug:$("#okteam").checked&&$("#oktug").checked,double:$("#okdouble").checked,contest:$("#okcontest").checked,target:+val("oktarget")||50,near:val("oknear")==="near",cpu:val("okcpu")||"each"}:null,cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:L==="duel"&&val("orowsd")?+val("orowsd"):undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
       deckPer:val("odeckper")||"1",etherPer:val("oetherper")||"same",noSubs:$("#onosubs").checked,specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:val("odeckper")==="half"&&L==="duel"&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
-      startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",atkSpells:$("#oatk").checked,pshop:$("#opshop")?$("#opshop").checked:true,
+      startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",cycleEvents:$("#ocycev").checked,eclipses:$("#oeclipse").checked,skyChange:skyChangeOpts(),atkSpells:$("#oatk").checked,pshop:$("#opshop")?$("#opshop").checked:true,
       layout:L,turns:$("#oturns").value,timer:+$("#otimer").value,cpuSpeed:$("#ospeed").value,elimDark:val("oelim")==="dark",shareDeck:$("#oshare").checked});
   };
 }
@@ -2612,7 +2633,7 @@ function startGame(opts){
 document.addEventListener("DOMContentLoaded",()=>{
   mountInfo();mountBar();applyPrefs();guardLinks();mountQuotes();showStart();
   $("#moon").addEventListener("click",()=>{if(G&&canAct()&&G.phase==="attack"&&G.sel&&moonAttackable(selStack())){attackMoon(G.sel.r,G.sel.c);G.mode=null;if(G.sel&&!G.board[G.sel.r][G.sel.c])G.sel=null;render()}});
-  if($("#menubtn"))$("#menubtn").onclick=()=>{if(G&&!G.over)openMenu();else flash("Start a game first.")};
+  if($("#menubtn"))$("#menubtn").onclick=()=>openMenu();   // v70d: the menu's settings work before a game too
   $("#newgame").onclick=()=>confirmLeave(()=>{startMode=null;showStart()});
 });
 window.__EC={get G(){return G},startGame,stackLegal,canPlace,nextPhase,render,AI,SP,cast,SPELLS,hordeSpawn,roman,moonSVG,
@@ -10570,7 +10591,12 @@ if($("#mkBtn"))$("#mkBtn").onclick=openMustKnow;if($("#helpMk"))$("#helpMk").onc
   acts.insertAdjacentHTML("beforebegin",`<p><button type="button" class="btn ghost" id="mMk">Show "What you must know" again</button></p>`);
   $("#mMk").onclick=()=>{PREF.mkHide=null;savePrefs();paintMustKnow();$("#mMk").parentNode.remove();if(typeof flash==="function"&&G)flash('"What you must know" is back at the top of the page.')}}}
 /* Settings on the game's front page opens this same menu here, before any game */
-if(location.hash==="#settings")setTimeout(()=>{openMenu();history.replaceState(null,"",location.pathname+location.search)},250);
+/* the front page's Settings opens this menu alone: no game and no mode window behind it, and closing it goes back to the front page */
+const SETTINGS_ONLY=location.hash==="#settings";
+if(SETTINGS_ONLY){document.documentElement.classList.add("settingsonly");
+  {const _ss=showStart;showStart=function(){if(!G)return;return _ss.apply(this,arguments)}}
+  setTimeout(()=>{openMenu();history.replaceState(null,"",location.pathname+location.search)},250)}
+{const _cm=closeMenu;closeMenu=function(){_cm.apply(this,arguments);if(SETTINGS_ONLY&&!G)location.href="ethers-crossroads.html"}}
 
 /* ---------- Survival: counter cards (v70d). From the eleventh wave, when the players lean on something the Horde has no answer
    to, a wave brings two counter cards with it, never wildcards: Battering Rams against Walls, Archers against bases packed
