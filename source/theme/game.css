@@ -1989,3 +1989,16 @@ html.lite .v61.sheen::before,html.still-glow .v61.sheen::before{animation:none;b
 /* Onyx (black) names read on dark pages: a light edge */
 .pn[style*="--pc:#17120e"],.note[style*="--pc: #17120e"],#pop .popbox[style*="--pc:#17120e"] h2{text-shadow:0 0 1px #e8e0d4,0 0 3px #e8e0d4bb,0 0 7px #ffffff40}
 html.th-office .pn[style*="--pc:#17120e"]{text-shadow:none}
+
+/* v71n: a crystal's guard: a soft ring around the crystal and one around the stack, joined by a slow dashed line (only for
+   the guard's own side). Faint fills, thin lines, a glow in the player's color; nothing moves with Data saving or reduced
+   motion. */
+#board svg.guards{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;overflow:visible}
+svg.guards .gc{fill:color-mix(in oklab,var(--gc) 9%,transparent);stroke:color-mix(in oklab,var(--gc) 70%,#fff);stroke-opacity:.55;stroke-width:1.4;
+  filter:drop-shadow(0 0 4px color-mix(in oklab,var(--gc) 55%,transparent))}
+svg.guards .gc.gcry{fill:color-mix(in oklab,var(--gc) 5%,transparent);stroke-opacity:.42;stroke-width:1.1}
+svg.guards .gl{stroke:color-mix(in oklab,var(--gc) 70%,#fff);stroke-opacity:.5;stroke-width:1.6;stroke-linecap:round;stroke-dasharray:6 6;
+  filter:drop-shadow(0 0 3px color-mix(in oklab,var(--gc) 50%,transparent));animation:guardflow 2.4s linear infinite}
+@keyframes guardflow{to{stroke-dashoffset:-24}}
+html.lite svg.guards .gl,html.still-glow svg.guards .gl{animation:none}
+@media (prefers-reduced-motion:reduce){svg.guards .gl{animation:none}}
