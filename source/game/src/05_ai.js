@@ -30,7 +30,7 @@ const AI=(()=>{
   const L=pl=>FAX&&FAX.pl===pl?LV[FAX.level]||LV.medium:LV[G.p[pl].cpu]||LV.medium;
   const lvl=pl=>FAX&&FAX.pl===pl?FAX.level:G.p[pl].cpu;
   const jit=pl=>1+(Math.random()*2-1)*L(pl).noise;
-  const PUSH={atk:1.5,def:.2,dist:1.1,ally:0},OFF={atk:1.3,def:.7,dist:.35,ally:.1},DEF={atk:.8,def:1.35,dist:.06,ally:.35},HORDE={atk:1.5,def:.35,dist:.7,ally:.05};
+  const PUSH={atk:1.5,def:.2,dist:1.1,ally:0,k:"push"},OFF={atk:1.3,def:.7,dist:.35,ally:.1,k:"off"},DEF={atk:.8,def:1.35,dist:.06,ally:.35,k:"def"},HORDE={atk:1.5,def:.35,dist:.7,ally:.05,k:"horde"};   // v70c: k names the stance, so a copy (Field Automation mixes its own) is still recognised
   let cache=new Map();
   const key=st=>st.cards.map(c=>c.id+(c.hp||"")).join(".")+(st.odds||"");
   function winP(A,D,n,mode){
@@ -110,9 +110,11 @@ const AI=(()=>{
   /* the far-off pulls on a tile: toward the enemy, the center (Field Automation) and the Hill */
   function pullOf(pl,S,r,c,W,near){
     const hp=hillPull(pl,S),n=hp?Math.max(1,fighters(S)):1;   // in King of the Hill the pulls are per card, so joining a stack never hides a card's walk
-    let p=W.dist*(FAX&&FAX.pl===pl&&FAX.wMul&&FAX.wMul.dist||1)*near*n+(W.ctr?W.ctr*(Math.abs(r-(G.rows-1)/2)+Math.abs(c-(COLS-1)/2)):0);
+    let p=W.dist*(FAX&&FAX.pl===pl&&FAX.wMul&&FAX.wMul.dist||1)*near*n;
+    if(W.ctr){const d=ctrDist(r,c);p+=W.ctr*(d<=1?d*.3:d-.7)}   // v70c: the walk (around walls and water) to the middle tiles; on them or beside them it holds
     if(hp)p+=n*(hp*hillDist(r,c)-(isHill(r,c)?1.5:0));   // standing on the Hill is what scores
     return p}
+  function ctrDist(r,c){let d=99;for(const [a,b] of centerTiles())d=Math.min(d,walk(r,c,a,b));return d===99?dist(r,c,(G.rows-1)/2,(COLS-1)/2):d}
   /* gathering an army: a stack drifts toward the biggest of its own */
   function rallyScore(pl,S,r,c){const how=hillHow(pl),solo=fighters(S)===1;
     if(!(how==="army"&&!armyGo(pl)||how==="groups"&&solo))return 0;const ids=new Set(S.cards.map(x=>x.id));
@@ -164,7 +166,7 @@ const AI=(()=>{
   }
   function stance(pl){
     if(isHorde(pl))return HORDE;
-    if(G.turnNo-(G.lastAttack||0)>10)return hillHow(pl)?OFF:PUSH;   // nobody has fought for five rounds: break the stalemate (in King of the Hill the Hill is the way)
+    if(G.turnNo-(G.lastAttack||0)>5*Math.max(2,roundOrder().length))return hillHow(pl)?OFF:PUSH;   // nobody has fought for five rounds: break the stalemate (in King of the Hill the Hill is the way)
     const es=enemiesOf(pl).filter(e=>!isNPC(e)),my=stacksOf(pl).reduce((a,x)=>a+value(x.st),0),th=enemyStacks(pl).reduce((a,x)=>a+value(x.st),0)/Math.max(1,es.length);
     const eDeck=es.length?Math.min(...es.map(e=>G.p[e].deck.length)):0,deckAdv=(G.p[pl].deck.length-eDeck)/40;
     let o=my/(th+1)+deckAdv+L(pl).bias+(FAX&&FAX.pl===pl&&FAX.bias||0);   // v69: the archetype leans one way
@@ -191,15 +193,15 @@ const AI=(()=>{
     if(u==="repair"){const b=t&&t.cards.find(isBase);return (b?3+((b.hp||1)<(b.maxHp||1)?2:0):t?.8:-.5)*jit(pl)}
     if(u==="ram")return (t&&enemyWalls(pl)?3:t?.3:-1)*jit(pl);
     if(k==="tree")return (t?-9:(isBack(pl,r,c)?4:3)-tileScore(pl,{cards:[card],owner:pl},r,c,DEF,false)*.1)*jit(pl);
-    if(t&&hasBase(t)&&k!=="ace"&&!hasK(t,"lighthouse"))return (hq()?1.2+rate(card)/12-t.cards.length*.15:(W===DEF?.7:.2)-t.cards.length*.3)*jit(pl);   // cards inside an Ace cannot fight, and die with it
+    if(t&&hasBase(t)&&k!=="ace"&&!hasK(t,"lighthouse"))return (hq()?1.2+rate(card)/12-t.cards.length*.15:(W?.k==="def"?.7:.2)-t.cards.length*.3)*jit(pl);   // cards inside an Ace cannot fight, and die with it
     let s=tileScore(pl,S,r,c,W,false)-(t?tileScore(pl,t,r,c,W,false):0)+value(S)-(t?value(t):0);
     if(!t&&G.map&&G.map.large)s+=zonePull(pl,S,W);   // v64: on a large field the long walk ahead is the same from every spawn tile, so it doesn't stop a card going down
     if(k==="ace")s+=lvl(pl)==="hard"?4:2;
-    if(k==="queen"&&t&&hasK(t,"king"))s+=W===DEF?3:1.5;
-    if(k==="king"&&t&&hasK(t,"queen"))s+=W===DEF?3:1.5;
+    if(k==="queen"&&t&&hasK(t,"king"))s+=W?.k==="def"?3:1.5;
+    if(k==="king"&&t&&hasK(t,"queen"))s+=W?.k==="def"?3:1.5;
     if(k==="joker")s+=enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=2)?2:.5;
-    if(isFront(pl,r,c)&&W===OFF)s+=.4;
-    if(isBack(pl,r,c)&&W===DEF)s+=.3;
+    if(isFront(pl,r,c)&&W?.k==="off")s+=.4;
+    if(isBack(pl,r,c)&&W?.k==="def")s+=.3;
     return s*jit(pl);
   }
   const zcache=new Map();
@@ -244,7 +246,7 @@ const AI=(()=>{
         for(const [r,c] of tg){const sc=supportScore(pl,S,r,c,W,st)*jit(pl);if(!best||sc>best.s)best={r,c,s:sc}}
         if(best&&best.s>stay+.2){G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step()}
         continue}
-      let stay=inAce?tileScore(pl,S,o.r,o.c,W,false)+(hq()?-1:W===DEF?.6:0):tileScore(pl,S,o.r,o.c,W,true);
+      let stay=inAce?tileScore(pl,S,o.r,o.c,W,false)+(hq()?-1:W?.k==="def"?.6:0):tileScore(pl,S,o.r,o.c,W,true);
       const tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets);
       let best=null;
       for(const [r,c] of tg){
@@ -327,7 +329,7 @@ const AI=(()=>{
     const lv=lvl(pl),F=G.p[es.reduce((a,b)=>G.p[b].hand.length>G.p[a].hand.length?b:a)],P=G.p[pl],sp=L(pl).spell;
     if(Math.random()>sp)return;
     // shield the most exposed valuable stack
-    if((W===DEF||lv==="hard")&&stacksOf(pl).length>=2){
+    if((W?.k==="def"||lv==="hard")&&stacksOf(pl).length>=2){
       let best=null;
       for(const x of stacksOf(pl)){if(x.st.hypo)continue;let rk=0;
         for(const e of enemyStacks(pl))if(dist(e.r,e.c,x.r,x.c)<=2&&canAttackFrom({cards:e.st.cards,attacked:false}))rk=Math.max(rk,winP(e.st,x.st,24));
@@ -361,7 +363,7 @@ const AI=(()=>{
     // keep the deck alive with whatever mana is left
     const low=P.deck.length<(lv==="hard"?Math.max(18,P.start*.7):12);
     if(low||mana(pl)>=5){
-      const order=lv==="hard"&&stacksOf(pl).filter(x=>hasK(x.st,"ace")).length<2?["ca","ck","cjk","cj","cs"]:W===DEF?["ck","cq","ca","cs"]:["cj","ck","cs","cjk"];
+      const order=lv==="hard"&&stacksOf(pl).filter(x=>hasK(x.st,"ace")).length<2?["ca","ck","cjk","cj","cs"]:W?.k==="def"?["ck","cq","ca","cs"]:["cj","ck","cs","cjk"];
       for(const id of order){if(mana(pl)<(low?1:3))break;await tryCast(id)}
     }
   }
@@ -403,7 +405,7 @@ const AI=(()=>{
     if(ph==="draw"){for(let n=0;n<3&&shouldDraw(pl);n++){rollDraw();await step()}return}
     if(ph==="prep"){
       const W=stance(pl),lv=lvl(pl);
-      log(`${plName(pl)} ${W===PUSH?"pushes to break the standoff":"leans to "+(W===DEF?"defense":"offense")}.`,"ai");
+      log(`${plName(pl)} ${W?.k==="push"?"pushes to break the standoff":"leans to "+(W?.k==="def"?"defense":"offense")}.`,"ai");
       await suicides(pl);
       await sacrifices(pl,lv==="hard"?5:lv==="medium"?4:2,lv==="hard"?2:1);
       await necro(pl);
@@ -485,5 +487,5 @@ const AI=(()=>{
           if(!attackOptions(r,c).length&&Math.random()<ctx.ambushP){st.ambush=true;log(`${plName(pl)}'s field sets a stack in ambush.`,"ai")}}}
       else if(ph==="attack")await attacks(pl);
     }finally{FAX=null;cache.clear();G.sel=null}}
-  return{ARCH,phase,setup,choose,winP,value,LV,bestSpot,field,stance:pl=>stance(pl),W:{PUSH,OFF,DEF},enemyStacks:pl=>enemyStacks(pl),hillHow:pl=>hillHow(pl),hillDist:(r,c)=>hillDist(r,c)};
+  return{ARCH,phase,setup,choose,winP,value,LV,bestSpot,field,tileScore:(...a)=>tileScore(...a),stance:pl=>stance(pl),W:{PUSH,OFF,DEF},enemyStacks:pl=>enemyStacks(pl),hillHow:pl=>hillHow(pl),hillDist:(r,c)=>hillDist(r,c)};
 })();
