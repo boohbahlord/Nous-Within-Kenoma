@@ -1989,3 +1989,31 @@ html.lite .v61.sheen::before,html.still-glow .v61.sheen::before{animation:none;b
 /* Onyx (black) names read on dark pages: a light edge */
 .pn[style*="--pc:#17120e"],.note[style*="--pc: #17120e"],#pop .popbox[style*="--pc:#17120e"] h2{text-shadow:0 0 1px #e8e0d4,0 0 3px #e8e0d4bb,0 0 7px #ffffff40}
 html.th-office .pn[style*="--pc:#17120e"]{text-shadow:none}
+
+/* v71n: a crystal's guard: a soft ring around the crystal and one around the stack, joined by a slow dashed line (only for
+   the guard's own side). Faint fills, thin lines, a glow in the player's color; nothing moves with Data saving or reduced
+   motion. */
+/* v71n: a crystal's guard: soft rings in the player's color, a dashed line drifting from the crystal to its guard */
+#board svg.guards{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;overflow:visible}
+svg.guards .gc{fill:color-mix(in oklab,var(--gc) 10%,transparent);stroke:color-mix(in oklab,var(--gc) 72%,#fff);stroke-opacity:.6;stroke-width:1.5;
+  filter:drop-shadow(0 0 5px color-mix(in oklab,var(--gc) 60%,transparent))}
+svg.guards .gc.gcry{fill:color-mix(in oklab,var(--gc) 6%,transparent);stroke-opacity:.5;stroke-width:1.2;stroke-dasharray:2 5;stroke-linecap:round}
+svg.guards .gh{fill:none;stroke:color-mix(in oklab,var(--gc) 55%,#fff);stroke-opacity:.16;stroke-width:5;animation:guardbreathe 3.6s ease-in-out infinite}
+svg.guards .gl{stroke:color-mix(in oklab,var(--gc) 72%,#fff);stroke-opacity:.62;stroke-width:1.7;stroke-linecap:round;stroke-dasharray:7 7;fill:none;
+  filter:drop-shadow(0 0 3px color-mix(in oklab,var(--gc) 55%,transparent));animation:guardflow 2.4s linear infinite}
+@keyframes guardflow{to{stroke-dashoffset:-28}}
+@keyframes guardbreathe{50%{stroke-opacity:.05}}
+html.lite svg.guards .gl,html.still-glow svg.guards .gl,html.lite svg.guards .gh,html.still-glow svg.guards .gh{animation:none}
+@media (prefers-reduced-motion:reduce){svg.guards .gl,svg.guards .gh{animation:none}}
+/* the ranking: × takes Target bases or Focus on crystals out, + brings it back */
+.facol{position:relative}
+.facol .faout{position:absolute;top:3px;right:3px;width:20px;height:20px;padding:0;border:1px solid transparent;background:transparent;color:var(--dim);font:300 16px/1 var(--mono);cursor:pointer;border-radius:3px}
+.facol .faout:hover,.facol .faout:focus-visible{color:var(--ink,#e6d6bd);border-color:var(--rule)}
+.fahin{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 0}.fahin small{flex-basis:100%}
+/* the question: guard the crystal? */
+.crysbox{max-width:520px}
+.crysbox .crysans{margin:10px 0 6px}
+.crysbox .crysrow,.crysbox label.f.crysrow{font-size:inherit;letter-spacing:normal;text-transform:none;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:8px;margin:8px 0;text-align:left}
+.crysbox .crysrow>span{min-width:9.5em;color:var(--dim);font-size:inherit;letter-spacing:normal;text-transform:none}
+.crysbox .crysrow select{flex:1;min-width:0;max-width:100%}
+.crysbox .crysdel{padding:2px 8px}
