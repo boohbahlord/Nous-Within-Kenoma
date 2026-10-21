@@ -36,7 +36,11 @@ function firmFog(V){const F=G.ffog;if(!F||!G.p[F.by]||G.p[F.by].out||tnOf(F.by)>
   return nm?{own:true}:null}
 const visR=(x,ff)=>ff&&ff.own||!hasK(x.st,"scout")?1:2-(ff&&ff.cut?1:0);
 /* every card sees the eight tiles around it; a Scout sees two tiles out in a diamond (which holds those eight too) */
-const inSight=(x,r,c,ff)=>{const dr=Math.abs(x.r-r),dc=Math.abs(x.c-c),v=visR(x,ff);if(G.opts.layout==="koth"&&!ff&&v>=1)return Math.hypot(dr,dc)<=(hasK(x.st,"scout")?4.3:2.3);   // v57: King of the Hill: sight is a circle
+/* v70c: a Lighthouse lights a circle seven tiles across (eleven in King of the Hill, where every sight is longer). Whatever cuts
+   a Scout's sight down to almost nothing (the Firmament's Fog) leaves the Lighthouse no better than a Scout: then it sees
+   like any card. It lights the fog only: hidden Assassins and face-down stacks still need a Scout. */
+const lhR=(x,ff)=>!hasK(x.st,"lighthouse")||ff?0:G.opts.layout==="koth"?5.3:3.5;
+const inSight=(x,r,c,ff)=>{const dr=Math.abs(x.r-r),dc=Math.abs(x.c-c),v=visR(x,ff),L=lhR(x,ff);if(L&&Math.hypot(dr,dc)<=L)return true;if(G.opts.layout==="koth"&&!ff&&v>=1)return Math.hypot(dr,dc)<=(hasK(x.st,"scout")?4.3:2.3);   // v57: King of the Hill: sight is a circle
   return Math.max(dr,dc)<=1&&v>=1||hasK(x.st,"scout")&&!(ff&&ff.own)&&dr+dc<=v}
 
 /* ---------- drawings ---------- */

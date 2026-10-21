@@ -44,8 +44,9 @@ function tray(pl,label,dice,line,quiet){
 }
 /* the weapon a lone Substance card fights with (Samson picks one; the rest have one) */
 const soloUnit=st=>st&&st.cards.length&&st.cards[0].unit&&UNIT[st.cards[0].unit].weapons&&st.cards.every(c=>c.unit===st.cards[0].unit)?st.cards[0]:null;   // one Substance card, or a pair of Assassins
-function weaponOf(st,mode){const u=soloUnit(st);if(!u)return null;const W=UNIT[u.unit].weapons;return W.find(w=>w.id===mode)||W[0]}
+function weaponOf(st,mode){const u=soloUnit(lhInner(st));if(!u)return null;const W=UNIT[u.unit].weapons;return W.find(w=>w.id===mode)||W[0]}
 function rollStack(st,mode,enemy,fx,weapon){ // mode: "atk" | "def"
+  if(st&&hasK(st,"lighthouse")){st=lhInner(st);if(!st.cards.length)return{total:0,parts:["the Lighthouse stands empty"],dice:[],kingRoll:null}}   // v70c: the stack inside fights; the tower adds nothing
   const once=()=>{
     const parts=[],dice=[];let best=-1,kingRoll=null,aceRoll=null;
     const u=st.cards[0]&&st.cards[0].unit&&st.cards.every(c=>c.unit===st.cards[0].unit)?st.cards[0]:null;
@@ -106,6 +107,7 @@ const shielded=pl=>pl!=null&&G.p[pl]&&!!G.p[pl].shield;          // Please Don't
 const hated=st=>st.cards.some(c=>c.hate);
 function canAttackFrom(st){
   if(st.attacked||st.hypo||st.stun||st.pin)return false;
+  if(hasK(st,"lighthouse")){const s=lhInner(st);return s.cards.length>0&&canAttackFrom(s)}   // v70c: the stack inside a Lighthouse attacks from it
   if(st.cards.every(c=>c.unit&&UNIT[c.unit].noAtk||kind(c)==="queen"))return false;   // Scouts, support cards and Archers don't fight up close
   if(hasBase(st))return false;
   const horde=G&&st.owner!=null&&G.p[st.owner]&&isHorde(st.owner);   // the Horde ignores the lone-King and lone-Queen limits
@@ -144,13 +146,13 @@ function attackOptions(r,c){
     for(const [r2,c2] of tg)for(const w of U.weapons)if(reaches(w.reach,r,c,r2,c2))out.push({r:r2,c:c2,mode:w.id,ranged:true,w,A,card});
   }
   if(!canAttackFrom(st))return out;
-  const u=soloUnit(st),diag=jackOnly(st);
+  const st0=lhInner(st),u=soloUnit(st0),diag=jackOnly(st0);
   for(const [r2,c2,t] of tg){
     if(adjacent(r,c,r2,c2,diag)&&lonely(t)){   // support cards standing alone: take one, or destroy one
       if(canCapture(st,t))out.push({r:r2,c:c2,mode:"capture",ranged:false,w:{name:"Capture",text:`take ${nameOf(captureCard(t))} into this stack's capture slot`}});
       out.push({r:r2,c:c2,mode:"destroy",ranged:false,w:{name:"Destroy",text:`destroy ${nameOf(captureCard(t))}`}});
       continue}
-    if(hasK(st,"ram")&&st.cards.length>1&&hasK(t,"wall")&&adjacent(r,c,r2,c2,false))out.push({r:r2,c:c2,mode:"ram",ranged:false,w:{name:"Battering Ram",text:"two damage to the Wall, no roll"}});
+    if(hasK(st0,"ram")&&st0.cards.length>1&&hasK(t,"wall")&&adjacent(r,c,r2,c2,false))out.push({r:r2,c:c2,mode:"ram",ranged:false,w:{name:"Battering Ram",text:"two damage to the Wall, no roll"}});
     if(u){for(const w of UNIT[u.unit].weapons)if(reaches(w.reach,r,c,r2,c2))out.push({r:r2,c:c2,mode:w.id,ranged:w.reach==="gun"&&!near8(r,c,r2,c2),w})}
     else if(adjacent(r,c,r2,c2,diag))out.push({r:r2,c:c2,mode:null,ranged:false});
   }
@@ -264,18 +266,19 @@ function damage(r,c,n,defending){
       if(A&&!A.captive&&G.board.flat().includes(A)){st.cards.splice(mi,1);takeCaptive(A,m);log(`${plName(A.owner)} captures a Miner from ${coord(r,c)}, and the blow still lands.`)}
       else{st.cards.splice(mi,1);dead.push(m);log(`The Miner on ${coord(r,c)} is the first to fall.`);continue}}
     if(!st.cards.length)break;
-    const base=st.cards.find(isBase);
-    if(base){stealOnDamage(st);base.hp=(base.hp||1)-1;const nm=kind(base)==="ace"?"The Ace":kind(base)==="wall"?"The Wall":"The Tree of Neither Life Or Death";
+    const lh=st.cards.find(x=>x.unit==="lighthouse");   // v70c: the stack inside a Lighthouse takes the blows first; the tower, once nothing else can
+    const base=st.cards.find(x=>isBase(x)&&x!==lh)||(lh&&!st.cards.some(x=>x!==lh&&x.unit!=="ram")?lh:null);
+    if(base){stealOnDamage(st);base.hp=(base.hp||1)-1;const nm=kind(base)==="ace"?"The Ace":kind(base)==="wall"?"The Wall":kind(base)==="lighthouse"?"The Lighthouse":"The Tree of Neither Life Or Death";
       if(base.hp>0){log(`${nm} loses a heart (${base.hp} left); the cards inside are safe.`);continue}
       dead.push(...st.cards.splice(0));log(`${nm} falls, and every card inside it dies with it.`);break}
     // support cards hide behind the fighters; the Battering Ram can't be killed by blows at all
-    const fighters=st.cards.filter(x=>!(x.unit&&UNIT[x.unit].sup)),pool=fighters.length?fighters:st.cards.filter(x=>x.unit!=="ram");
+    const fighters=st.cards.filter(x=>!(x.unit&&UNIT[x.unit].sup)&&x!==lh),pool=fighters.length?fighters:st.cards.filter(x=>x.unit!=="ram"&&x!==lh);
     if(!pool.length){log(`The Battering Ram on ${coord(r,c)} can't be harmed by blows: it has to be captured or destroyed.`);break}
     pool.sort((a,b)=>nat(a)-nat(b));
     const low=pool[0];stealOnDamage(st);
     if(low.hp>1){low.hp--;log(`${esc(nameOf(low))} loses a heart (${low.hp} left).`);continue}
     st.cards.splice(st.cards.indexOf(low),1);const c0=low;dead.push(c0);
-    if(kind(c0)==="king"&&defending&&st.cards.length){dead.push(...st.cards.splice(0));log("The King is defeated in defense: all units with it die.")}
+    if(kind(c0)==="king"&&defending&&st.cards.some(x=>x!==lh)){dead.push(...st.cards.filter(x=>x!==lh));st.cards.splice(0,st.cards.length,...(lh?[lh]:[]));log("The King is defeated in defense: all units with it die.")}
   }
   if(!st.cards.length){G.board[r][c]=null;freeCaptive(st,r,c)}
   if(defending&&dead.length&&G.p[st.owner].tribe==="angel")addBolts(st.owner,dead.length,"a card lost in defense");

@@ -89,7 +89,9 @@ const UNIT={
  repair:{name:"Repairman",short:"Repairman",word:"Repairman",nat:0,soul:1,cost:2,noDef:true,noAtk:true,sup:true,attach:true,kind:"Support",ether:true,desc:"repairs Walls, Aces and the Tree"},
  ram:{name:"Battering Ram",short:"Ram",word:"Ram",nat:0,soul:1,cost:3,noDef:true,noAtk:true,sup:true,kind:"Support",ether:true,desc:"two damage to a Wall, worked by one or two soldiers"},
  miner:{name:"Miner",word:"Miner",nat:0,soul:1,cost:2,noDef:true,noAtk:true,sup:true,attach:true,kind:"Support",ether:true,desc:"mana from an Ace's miner slot, or from a crystal"},
- wall:{name:"Wall",word:"Wall",hp:5,nat:10,base:true,soul:3,cost:4,kind:"Base",ether:true,desc:"five hearts, defense 10; holds six cards; only ranged cards fire from it"}
+ wall:{name:"Wall",word:"Wall",hp:5,nat:10,base:true,soul:3,cost:4,kind:"Base",ether:true,desc:"five hearts, defense 10; holds six cards; only ranged cards fire from it"},
+ /* v70c: the Lighthouse: a base that holds one stack, which fights from inside it and takes the blows first */
+ lighthouse:{name:"Lighthouse",word:"Lighthouse",hp:3,nat:0,base:true,soul:2,cost:3,noDef:true,noAtk:true,kind:"Base",ether:true,desc:"three hearts; holds one stack, which fights from inside it and takes the blows first; lights a circle seven tiles across"}
 };
 const unitOf=c=>c&&c.unit?UNIT[c.unit]:null;
 function mkUnit(u,owner){const c=mk(u.toUpperCase(),null,"black");c.unit=u;c.owner=owner;if(UNIT[u].hp){c.hp=UNIT[u].hp;c.maxHp=UNIT[u].hp}return c}
@@ -108,7 +110,7 @@ for(const k in UNIT)TYPEWORD[k]=UNIT[k].word;
 const typeWord=c=>c.puppet?"Puppet":TYPEWORD[kind(c)];
 const KNAME={grunt:"Grunt",infantry:"Infantry",jack:"Jack",queen:"Queen",king:"King",ace:"Ace",joker:"Joker"};
 for(const k in UNIT)KNAME[k]=UNIT[k].short||UNIT[k].name;
-const isBase=c=>kind(c)==="ace"||kind(c)==="tree"||kind(c)==="wall";             // holds other cards inside it
+const isBase=c=>kind(c)==="ace"||kind(c)==="tree"||kind(c)==="wall"||kind(c)==="lighthouse";             // holds other cards inside it
 const isHero=c=>!!(c.unit&&UNIT[c.unit].solo&&UNIT[c.unit].solo!=="pair");   // stands alone (or only inside an Ace)
 const short=c=>c.puppet?"Puppet":c.unit?(UNIT[c.unit].short||UNIT[c.unit].name):c.rank==="JK"?"JK":c.rank+SUITS[c.suit];
 const nameOf=c=>c.puppet?"Puppet":c.unit?(c.unit==="slave"?`Slave (once the ${({J:"Jack",Q:"Queen",K:"King",A:"Ace"}[c.rank]||c.rank)} of ${SUITNAME[c.suit]})`:UNIT[c.unit].name):c.rank==="JK"?`${c.color==="red"?"Red":"Black"} Joker`:(c.puppet?"Puppet ":"")+(({J:"Jack",Q:"Queen",K:"King",A:"Ace"}[c.rank]||c.rank)+" of "+SUITNAME[c.suit]);
@@ -144,6 +146,7 @@ function stackLegal(cards){
     const inside=cards.filter(c=>!isBase(c));
     if(inside.length>6)return false;
     if(kind(aces[0])==="tree"&&inside.some(c=>kind(c)==="king"||c.rank==="10"))return false;   // the Jester doesn't like how Kings and tens taste
+    if(kind(aces[0])==="lighthouse")return !inside.length||stackLegal(inside);   // v70c: the Lighthouse holds one stack, as it would stand on the field
     if(kind(aces[0])==="ace"&&G&&G.opts.aceLock&&inside.some(c=>c.color!==aces[0].color))return false;
     return true;
   }
@@ -157,6 +160,7 @@ function stackLegal(cards){
 }
 const hasK=(st,k)=>st.cards.some(c=>kind(c)===k);
 const hasBase=st=>st.cards.some(isBase);
+const lhInner=st=>st&&st.cards.some(c=>c.unit==="lighthouse")?{...st,cards:st.cards.filter(c=>c.unit!=="lighthouse")}:st;   // v70c: the stack inside a Lighthouse, which does its fighting
 
 /* ---------------- state ---------------- */
 let G=null;

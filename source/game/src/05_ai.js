@@ -46,8 +46,9 @@ const AI=(()=>{
     cache.set(k,p);return p;
   }
   function value(st){let v=0;for(const c of st.cards){v+=1+soulOf(c)*.8+rate(c)/7;if(kind(c)==="joker")v+=2+capMana(c)*1.4;if(kind(c)==="ace")v+=3;if(c.hp)v+=c.hp*2.2;if(kind(c)==="tree")v+=4}return v}
-  function killsOnHit(st){const b=st.cards.find(isBase);if(b)return !(b.hp>1);if(st.cards.length===1)return !(st.cards[0].hp>1);const low=[...st.cards].sort((a,b)=>nat(a)-nat(b))[0];return kind(low)==="king"}
+  function killsOnHit(st){if(hasK(st,"lighthouse")&&st.cards.length>1)st=lhInner(st);const b=st.cards.find(isBase);if(b)return !(b.hp>1);if(st.cards.length===1)return !(st.cards[0].hp>1);const low=[...st.cards].sort((a,b)=>nat(a)-nat(b))[0];return kind(low)==="king"}
   function threat(st){
+    if(hasK(st,"lighthouse")&&st.cards.length>1)st=lhInner(st);   // v70c: what fights from a Lighthouse is as dangerous as it is anywhere
     if(hasBase(st))return 1+(hasK(st,"joker")?3:0);
     let t=Math.max(0,...st.cards.map(c=>kind(c)==="joker"?7:rate(c)))/4+st.cards.length*.4;
     const j=st.cards.find(c=>kind(c)==="joker");if(j)t+=2.5+capMana(j);
@@ -178,6 +179,9 @@ const AI=(()=>{
   function placeScore(pl,card,r,c,W){
     const t=G.board[r][c];const S={cards:t?[...t.cards,card]:[card],owner:pl,hypo:t?t.hypo:0};
     const k=kind(card),u=card.unit;
+    if(u==="lighthouse"){if(!fogOn()||t)return -1;let fog=0;for(let dr=-3;dr<=3;dr++)for(let dc=-3;dc<=3;dc++){const rr=r+dr,cc=c+dc;   // v70c: only where it would light up a good piece of fog, and one at a time
+        if(rr>=0&&cc>=0&&rr<G.rows&&cc<COLS&&!isVoid(rr,cc)&&Math.hypot(dr,dc)<=3.5&&fogTile(pl,rr,cc))fog++}
+      return (Math.min(3,fog*.13)-stacksOf(pl).filter(x=>hasK(x.st,"lighthouse")).length*2.5-(enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=1)?1:0))*jit(pl)}
     if(u==="wall")return ((isFront(pl,r,c)?3:1.5)+(enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=3)?1:0)-stacksOf(pl).filter(x=>hasK(x.st,"wall")).length*1.5)*jit(pl);
     if(u==="miner"){if(t&&hasK(t,"ace"))return (t.cards.filter(x=>x.unit==="miner").length<2?4.5:-1)*jit(pl);if(t)return -1;   // v69: two Miners to an Ace, no more
       const cr=(G.crystals||[]).filter(x=>!G.board[x.r][x.c]||G.board[x.r][x.c].owner===pl);if(!cr.length)return -1;
@@ -187,7 +191,7 @@ const AI=(()=>{
     if(u==="repair"){const b=t&&t.cards.find(isBase);return (b?3+((b.hp||1)<(b.maxHp||1)?2:0):t?.8:-.5)*jit(pl)}
     if(u==="ram")return (t&&enemyWalls(pl)?3:t?.3:-1)*jit(pl);
     if(k==="tree")return (t?-9:(isBack(pl,r,c)?4:3)-tileScore(pl,{cards:[card],owner:pl},r,c,DEF,false)*.1)*jit(pl);
-    if(t&&hasBase(t)&&k!=="ace")return (hq()?1.2+rate(card)/12-t.cards.length*.15:(W===DEF?.7:.2)-t.cards.length*.3)*jit(pl);   // cards inside an Ace cannot fight, and die with it
+    if(t&&hasBase(t)&&k!=="ace"&&!hasK(t,"lighthouse"))return (hq()?1.2+rate(card)/12-t.cards.length*.15:(W===DEF?.7:.2)-t.cards.length*.3)*jit(pl);   // cards inside an Ace cannot fight, and die with it
     let s=tileScore(pl,S,r,c,W,false)-(t?tileScore(pl,t,r,c,W,false):0)+value(S)-(t?value(t):0);
     if(!t&&G.map&&G.map.large)s+=zonePull(pl,S,W);   // v64: on a large field the long walk ahead is the same from every spawn tile, so it doesn't stop a card going down
     if(k==="ace")s+=lvl(pl)==="hard"?4:2;
