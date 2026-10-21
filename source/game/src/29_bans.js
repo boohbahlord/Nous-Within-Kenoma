@@ -1,12 +1,12 @@
-/* ---------------- Prompt 12, part 2c (v29): striking Substances and Heavenly Bodies before a game; the Sun and Saturn judge their buyer ----------------
-   Substances: a small check in every Substance tile strikes it from the game: nobody can pick it and Random never rolls it. One ban list
+/* ---------------- Prompt 12, part 2c (v29): striking Emanations and Heavenly Bodies before a game; the Sun and Saturn judge their buyer ----------------
+   Emanations: a small check in every Emanation tile strikes it from the game: nobody can pick it and Random never rolls it. One ban list
      for the whole table (it shows in every seat). At least one stays; Random fades out by itself when only one is left. Only the Beginner
-     can be shared, so it is the last to go: it can be struck only while there are still as many other Substances as seats.
+     can be shared, so it is the last to go: it can be struck only while there are still as many other Emanations as seats.
      Survival has no bans.
    Planets: a check on each Heavenly Body in "Starting Heavenly Body" strikes it from Astrology: it can't be bought in the Heavenly Body shop and the
      Firmament can't raise it. The starting Heavenly Body itself can't be struck.
    The Second Sun and Saturn bought in the shop judge and tax whoever bought them; their favors go to the Bank, like a sky from the
-     start, unless the buyer's own Substance already raises that Heavenly Body (the Firmament's Sun, Yaldabaoth's Saturn). */
+     start, unless the buyer's own Emanation already raises that Heavenly Body (the Firmament's Sun, Yaldabaoth's Saturn). */
 
 const SUB_BAN=new Set((PREF.subBan||[]).filter(k=>PLAYABLE.includes(k)));
 const PLANET_BAN=new Set(PREF.planetBan||[]);
@@ -18,16 +18,16 @@ const subsAllowed=()=>PLAYABLE.filter(k=>!SUB_BAN.has(k));
 function banBtn(on,what){const b=document.createElement("button");b.type="button";b.className="bancheck"+(on?" on":"");b.setAttribute("aria-pressed",on);
   b.setAttribute("aria-label",on?`${what} is allowed in this game. Click to strike it.`:`${what} is struck from this game. Click to allow it.`);b.dataset.tip=on?"Allowed. Click to strike it from this game.":"Struck from this game. Click to allow it again.";return b}
 
-/* ---------- the rules for striking a Substance ---------- */
+/* ---------- the rules for striking an Emanation ---------- */
 function subFloorFix(){const N=seatCount();if(SUB_BAN.has("beginner")&&subsAllowed().length<N){SUB_BAN.delete("beginner");saveBans();return true}return false}
 function toggleSub(k){
   if(SUB_BAN.has(k)){SUB_BAN.delete(k);saveBans();return true}
   const N=seatCount(),after=subsAllowed().filter(x=>x!==k);
-  if(!after.length){flash("At least one Substance has to stay.");return false}
+  if(!after.length){flash("At least one Emanation has to stay.");return false}
   if(!after.includes("beginner")&&after.length<N){
-    flash(k==="beginner"?`The Beginner stays until ${N} other Substances are allowed: ${N} players need ${N} Substances, and only the Beginner can be shared.`:`With the Beginner struck, ${N} players need at least ${N} Substances.`);return false}
+    flash(k==="beginner"?`The Beginner stays until ${N} other Emanations are allowed: ${N} players need ${N} Emanations, and only the Beginner can be shared.`:`With the Beginner struck, ${N} players need at least ${N} Emanations.`);return false}
   SUB_BAN.add(k);saveBans();return true}
-/* seats sitting on a struck Substance move to Random (or to the only one left) */
+/* seats sitting on a struck Emanation move to Random (or to the only one left) */
 function fixSeats(root){
   const A=subsAllowed();
   root.querySelectorAll('.seat input[name^="tr"]:checked').forEach(inp=>{const k=inp.value;
@@ -38,14 +38,14 @@ function fixSeats(root){
 /* ---------- painting the checks into the setup ---------- */
 function applyBans(root){
   if(!root)return;const surv=setupSurvival();root.classList.toggle("nobans",surv);
-  if(!surv&&subFloorFix())flash("The Beginner is back: there are more seats than other Substances.");
+  if(!surv&&subFloorFix())flash("The Beginner is back: there are more seats than other Emanations.");
   const A=subsAllowed();
   root.querySelectorAll('.seat label.opt input[name^="tr"]').forEach(inp=>{const lab=inp.closest("label.opt"),k=inp.value;
     if(surv){lab.classList.remove("banned");return}
     const isRand=k==="random",banned=isRand?A.length<2:SUB_BAN.has(k);
     lab.classList.toggle("banned",banned);
     if(banned)inp.disabled=true;else if(!lab.classList.contains("off"))inp.disabled=false;
-    if(isRand){lab.dataset.autonote=banned?"Random needs two Substances to choose from.":"";return}
+    if(isRand){lab.dataset.autonote=banned?"Random needs two Emanations to choose from.":"";return}
     let b=lab.querySelector(":scope > .bancheck");if(!b){b=banBtn(!banned,TRIBES[k].name);b.dataset.sub=k;lab.appendChild(b)}
     else if(b.classList.contains("on")===banned){const nb=banBtn(!banned,TRIBES[k].name);nb.dataset.sub=k;b.replaceWith(nb)}});
   if(!surv)fixSeats(root);
@@ -78,7 +78,7 @@ const planetStruck=k=>!!(G&&(G.opts.planetBan||[]).includes(k));
 for(const k of ["mars","sun","venus","jupiter","mercury"]){const s=SP(k);if(s){const ok=s.ok;s.ok=()=>!planetStruck(k)&&ok()}}
 {const _pb=spellBlock;spellBlock=function(sp){if(sp&&["mars","sun","venus","jupiter","mercury"].includes(sp.id)&&sp.tribe==="firm"&&planetStruck(sp.id))return "Struck from this game.";return _pb(sp)}}
 
-/* a bought Second Sun or Saturn: its favors go to the Bank and it judges its buyer, unless the buyer's Substance raises it anyway */
+/* a bought Second Sun or Saturn: its favors go to the Bank and it judges its buyer, unless the buyer's Emanation raises it anyway */
 const OWN_PLANET={sun:"firm",saturn:"yald"};
 {const _rp=raisePlanet;raisePlanet=function(){const p=SH().pend;if(!p||G.moon.round<=p.round)return _rp();
   const k=p.k,own=OWN_PLANET[k]&&G.p[p.by]&&G.p[p.by].tribe===OWN_PLANET[k];

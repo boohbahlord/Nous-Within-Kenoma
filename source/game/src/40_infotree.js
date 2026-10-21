@@ -1,7 +1,7 @@
 /* ---------------- v38: the info panels as folders ----------------
-   Card info opens on kinds of card (Standard, Special, Support, Bases, Wildcards, and the Wildcards by Substance); each folder
+   Card info opens on kinds of card (Standard, Special, Support, Bases, Wildcards, and the Wildcards by Emanation); each folder
    holds only a few cards, and the card's page opens right under them. Spells explained has a folder for each school, the
-   Substances' own spells in a folder of their own; Further explanations turns each list into the same buttons. One folder
+   Emanations' own spells in a folder of their own; Further explanations turns each list into the same buttons. One folder
    is open at a time in each place, so a phone never shows a wall of buttons. */
 const CARD_TREE=[["Standard",["grunt","infantry","puppet","archer","cannon"]],["Special",["jack","queen","king","ace","joker","assassin"]],
   ["Support",["scout","healer","repair","ram","miner"]],["Bases",["ace","tree","wall"]],
@@ -11,7 +11,7 @@ const shortInfo=k=>INFO[k][0].replace(/ \([^)]*\)$/,"");
 const ifold=(name,inner,n)=>`<details class="sub ifold"><summary>${esc(name)}${n?` <span class="ifn">${n}</span>`:""}</summary>${inner}</details>`;
 function cardTreeHTML(){
   const tabs=ks=>`<div class="itabs">${ks.filter(k=>INFO[k]).map(k=>`<button type="button" class="itab" data-k="${k}">${esc(shortInfo(k))}</button>`).join("")}</div>`;
-  return CARD_TREE.map(([name,ks])=>Array.isArray(ks[0])?ifold(name,ks.map(([n2,k2])=>ifold(n2,tabs(k2),k2.length)).join(""),ks.length+" Substances"):ifold(name,tabs(ks),ks.length)).join("");
+  return CARD_TREE.map(([name,ks])=>Array.isArray(ks[0])?ifold(name,ks.map(([n2,k2])=>ifold(n2,tabs(k2),k2.length)).join(""),ks.length+" Emanations"):ifold(name,tabs(ks),ks.length)).join("");
 }
 /* one list of terms (dt) and their answers (dd) becomes buttons, and the answer opens under them */
 function tabify(dl){
@@ -37,7 +37,7 @@ function infoTree(){
       if(on){body.innerHTML='<p class="dim">Pick a kind of card, then a card.</p>';cards.appendChild(body);return}
       b.classList.add("on");b.parentElement.after(body);body.innerHTML=infoBody(b.dataset.k)});
     oneOpen(cards)}
-  // Spells explained: a folder for each school, the Substances' spells in their own folder
+  // Spells explained: a folder for each school, the Emanations' spells in their own folder
   if(spells){const si=spells.querySelector(".spellinfo");if(si){const parts=[];let h=null;
     for(const el of [...si.children]){if(el.tagName==="H4")h=el;else if(el.tagName==="DL"&&h){parts.push([h.textContent,el]);h=null}}
     const tree=document.createElement("div");tree.className="ctree";
@@ -51,7 +51,7 @@ function infoTree(){
         for(let i=0;i<g.length;i+=2){const k=tier(g[i]);(by[k]=by[k]||document.createElement("dl")).append(g[i],g[i+1])}
         for(const k of order)if(by[k]){const f=document.createElement("details");f.className="sub ifold";f.innerHTML=`<summary>${k} <span class="ifn">${by[k].children.length/2}</span></summary>`;f.appendChild(by[k]);d.appendChild(f);tabify(by[k])}}
       else if(gen.children.length){d.appendChild(gen);tabify(gen)}
-      if(sub.children.length){const s2=document.createElement("details");s2.className="sub ifold";s2.innerHTML=`<summary>The Substances' own ${esc(school.toLowerCase())} <span class="ifn">${sub.children.length/2}</span></summary>`;s2.appendChild(sub);d.appendChild(s2);tabify(sub)}
+      if(sub.children.length){const s2=document.createElement("details");s2.className="sub ifold";s2.innerHTML=`<summary>The Emanations' own ${esc(school.toLowerCase())} <span class="ifn">${sub.children.length/2}</span></summary>`;s2.appendChild(sub);d.appendChild(s2);tabify(sub)}
       tree.appendChild(d)}
     const note=si.querySelector(":scope > p.dim");si.innerHTML="";si.appendChild(tree);if(note)si.appendChild(note);oneOpen(si)}}
   // Further explanations: the same buttons in each section

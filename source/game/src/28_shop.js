@@ -1,7 +1,7 @@
 /* ---------------- Prompt 12, part 2b (v28): the Heavenly Body shop, Venus's and Mercury's cycles, Rob the Bank, Jail ----------------
    The Heavenly Body shop (a setting, on by default): any of the eight Heavenly Bodies can be bought for the sky for 7 + 1d3 + 1d12 mana, each
      rolled every round. Everyone is told at once; the Heavenly Body rises at the start of the next round, with a second popup. After a
-     purchase no Heavenly Body can be bought for six rounds. Nobody's Substance changes.
+     purchase no Heavenly Body can be bought for six rounds. Nobody's Emanation changes.
    Cycles: a Heavenly Body's cycle comes every sixth round it has hung in the sky.
      Venus: under its Oath, support and base conjurings cost 1 less that round and every card heals a heart; without the Oath,
        only on a 4 of 1d4.

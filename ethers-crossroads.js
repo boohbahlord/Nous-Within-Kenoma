@@ -4,14 +4,14 @@
 (function(){
 "use strict";
 const SUBST_TEXT={
- "random":{"tag":"One of the Substances, picked when the game starts.","pts":[]},
- "beginner":{"tag":"The learning Substance: a bigger hand, an early army, and one free shield.","pts":[
+ "random":{"tag":"One of the Emanations, picked when the game starts.","pts":[]},
+ "beginner":{"tag":"The learning Emanation: a bigger hand, an early army, and one free shield.","pts":[
   "Eight starting cards, eight mana at most and an eight-card hand.",
   "A second Ace and a Joker in hand, and three Grunts already on the field.",
   "Scouts, an Assassin, Archers, a Wall, Repairmen and a Battering Ram in the deck; a Miner in the first Ace.",
   "Archers cost 1 mana, and a free Scout comes every Full Moon.",
   "Please Don't Hurt Me: once a game, none of your stacks can be attacked until your next turn.",
-  "The only Substance more than one player can pick."]},
+  "The only Emanation more than one player can pick."]},
  "angel":{"tag":"Antony's mech: Samson fights, and Antony rises from his corpse.","pts":[
   "Always Bone white with the cracked mask.",
   "Samson in the deck: two hearts, defense 12, with the Slugshot Cannon, the Arm Blade and the Mech Slam.",
@@ -74,7 +74,7 @@ const sleep=ms=>{const g=G;return new Promise(r=>{const go=()=>{if(G!==g)return;
 const SUITS={S:"♠",H:"♥",D:"♦",C:"♣"};
 const SUITNAME={S:"Spades",H:"Hearts",D:"Diamonds",C:"Clubs"};
 let COLS=5;const SOUL_CAP=6, HAND_CAP=6;   // COLS is set by the map for each game; SOUL_CAP is also what a Joker can hold
-/* a Substance can raise a player's own limits. Mana can go up to three times the maximum for a round (the surplus);
+/* an Emanation can raise a player's own limits. Mana can go up to three times the maximum for a round (the surplus);
    anything over the maximum fades at the start of the next round */
 const surCap=pl=>G&&G.satStrict&&!oathNow(pl,"saturn")&&!(G.satStrictSafe||[]).includes(pl)?soulCap(pl):Math.min(54,soulCap(pl)*3);   // a strict Saturn (its eclipse) allows no surplus
 const handCap=pl=>G&&G.p[pl]?({jester:7,beginner:8}[G.p[pl].tribe]||HAND_CAP)*(nepGlow(pl)?3:1):HAND_CAP;   // v71d: Neptune's Afterglow triples it
@@ -89,14 +89,14 @@ function soulCap(pl){
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
-/* ---------------- Substances, colors, symbols ----------------
-   A Substance is what a player plays as. Some fix the color and the symbol (the Angel Machine is always Bone and the mask,
+/* ---------------- Emanations, colors, symbols ----------------
+   An Emanation is what a player plays as. Some fix the color and the symbol (the Angel Machine is always Bone and the mask,
    Satan always his dark crimson and the claw); the rest leave both to the player. "soon" ones arrive in the next update. */
 const BONE="#e9dfc4",SATAN_RED="#9c1428";
 const TRIBES={
- random:{name:"Random",sub:"One of the Substances below, picked when the game starts."},
+ random:{name:"Random",sub:"One of the Emanations below, picked when the game starts."},
  beginner:{name:"Beginner",sub:"Eight starting cards, eight mana and an eight-card hand, a second Ace and a Joker in hand, three Grunts already on the field, and Please Don't Hurt Me once a game."},
- angel:{name:"Angel Machine",sub:"Antony's Substance. Always Bone white with the cracked mask. Samson in the deck, Lightning Strike from three bolts, and Three of Swords for 1 mana.",color:BONE,solid:"mask"},
+ angel:{name:"Angel Machine",sub:"Antony's Emanation. Always Bone white with the cracked mask. Samson in the deck, Lightning Strike from three bolts, and Three of Swords for 1 mana.",color:BONE,solid:"mask"},
  satan:{name:"Satan",sub:"Always dark crimson with the claw. The Satan card (three hearts, 6d12, stands alone) and the curse Hate.",color:SATAN_RED,solid:"claw"},
  binah:{name:"Binah",sub:"The Southern tribe of the Euclids. Three Slavemasters capture the soldiers they defeat, and the captured come back as armed Slaves. Jokers hit for +3."},
  jester:{name:"Jester Fool",sub:"The Tree of Neither Life Or Death, Puppets for every soldier, the BullGoat, and Deck of Cards. Seven-card hand, seven mana."},
@@ -105,7 +105,7 @@ const TRIBES={
  leviathan:{name:"The Leviathan",sub:"The black serpent in the deck: three hearts, 6d4 + 1d2 + 6. On a New Moon it can rise onto the moon and tax every New Moon after. Its Jokers can exile souls to the Outer Darkness."},
  firm:{name:"The Firmament",sub:"Always the six-pointed star. Untouched by the Moon's and Saturn's harms and by meteors; a Miner on the moon; Blood Moon, Rain, Asteroid, Fog, and Mars in the sky.",solid:"hexa"},
  yald:{name:"Yaldabaoth",sub:"Always the symbol of Saturn. Night's Judgement eats the moon, God Hunger eats cards, and seven eaten bring Saturn and its Debt Collectors.",solid:"saturn"},
- plain:{name:"No Substance",sub:"The plain rules: no Substance's advantages or drawbacks.",hidden:true}   // v70d: only through the host's No Substances option
+ plain:{name:"No Emanation",sub:"The plain rules: no Emanation's advantages or drawbacks.",hidden:true}   // v70d: only through the host's No Emanations option
 };
 const PLAYABLE=Object.keys(TRIBES).filter(k=>k!=="random"&&!TRIBES[k].soon&&!TRIBES[k].hidden);
 /* v71e: one palette for both a player's color and their accent, in hue order. Bone stays the Angel Machine's and Onyx is too
@@ -126,7 +126,7 @@ const HORDE_COLOR="#97a487";
 /* ---------------- cards ---------------- */
 let uid=0;
 function mk(rank,suit,color){const c={id:++uid,rank,suit,color:color||(suit==="H"||suit==="D"?"red":"black"),owner:null};if(rank==="A"){c.hp=2;c.maxHp=2}return c}   // every Ace is a base with two hearts
-/* Substance cards ("wildcards" and special units). solo: stands alone ("ace": alone or inside an Ace); base: holds cards like an Ace.
+/* Emanation cards ("wildcards" and special units). solo: stands alone ("ace": alone or inside an Ace); base: holds cards like an Ace.
    atk: attack options; def: defense score; hp: hearts. */
 const UNIT={
  samson:{name:"Samson",word:"Mech",hp:2,nat:12,solo:"ace",soul:2,cost:3,diag2:true,
@@ -388,7 +388,7 @@ function toDark(c){if(c.captured&&c.captured.length){for(const s of c.captured)t
 function toGrave(c,cause){
   if(!c)return;
   if(c.unit&&UNIT[c.unit].ether){if(c.hp!=null)c.hp=c.maxHp;c.hate=false;c.readyAt=0;c.shieldAt=0;c.shieldOff=0;c.healAt=0;c.repAt=0;c.inSlot=null}   // Ether cards lie in the grave like any card
-  else if(c.unit&&c.unit!=="slave"){   // Substance cards never lie in the grave
+  else if(c.unit&&c.unit!=="slave"){   // Emanation cards never lie in the grave
     if(c.hp!=null)c.hp=c.maxHp;c.hate=false;
     if(c.unit==="bullgoat"&&c.owner!=null&&G.p[c.owner]){const g=mkUnit("goatbull",c.owner);G.p[c.owner].deck.push(g);shuffle(G.p[c.owner].deck);log(`The BullGoat goes back into ${plName(c.owner)}'s deck, and will come out as the Goatbull.`);return}
     if(c.unit==="samson"){G.limbo.push(c);G.p.forEach(Q=>Q.readLimbo=false);return}
@@ -484,8 +484,8 @@ function tray(pl,label,dice,line,quiet){
   hist(pl,{kind:"roll",name:label,dice:dice.map(d=>d.v!=null?`d${d.s}:${d.v}`:"").filter(Boolean),line:line||"",tile:G.histTile||null});
   if(!quiet&&dice.length)SND.dice(dice.length);
 }
-/* the weapon a lone Substance card fights with (Samson picks one; the rest have one) */
-const soloUnit=st=>st&&st.cards.length&&st.cards[0].unit&&UNIT[st.cards[0].unit].weapons&&st.cards.every(c=>c.unit===st.cards[0].unit)?st.cards[0]:null;   // one Substance card, or a pair of Assassins
+/* the weapon a lone Emanation card fights with (Samson picks one; the rest have one) */
+const soloUnit=st=>st&&st.cards.length&&st.cards[0].unit&&UNIT[st.cards[0].unit].weapons&&st.cards.every(c=>c.unit===st.cards[0].unit)?st.cards[0]:null;   // one Emanation card, or a pair of Assassins
 function weaponOf(st,mode){const u=soloUnit(lhInner(st));if(!u)return null;const W=UNIT[u.unit].weapons;return W.find(w=>w.id===mode)||W[0]}
 function rollStack(st,mode,enemy,fx,weapon){ // mode: "atk" | "def"
   if(st&&hasK(st,"lighthouse")){st=lhInner(st);if(!st.cards.length)return{total:0,parts:["the Lighthouse stands empty"],dice:[],kingRoll:null}}   // v70c: the stack inside fights; the tower adds nothing
@@ -743,7 +743,7 @@ function bury(card,r,c,st){
   if(card.hate)card.hate=false;
   if((card.unit==="samson"||card.unit==="antony")&&buryUnit(card,r,c,owner))return;   // Samson and Antony keep their own fates
   if(buryHook(card,r,c,st))return;                     // Traffickers, Pleasure and Joy, the Leviathan's kills
-  if(card.unit&&buryUnit(card,r,c,owner))return;       // the other Substance cards have their own fates
+  if(card.unit&&buryUnit(card,r,c,owner))return;       // the other Emanation cards have their own fates
   // a Binah Slavemaster takes the soldiers it defeats
   const F=G.fight;
   if(F&&(kind(card)==="grunt"||kind(card)==="infantry")){
@@ -879,7 +879,7 @@ async function fullMoonToll(){
       if(t.kind==="deck"){for(const c of t.cards){P.deck.splice(P.deck.indexOf(c),1);if(addSoul(pl,c))m+=soulOf(c);else toGrave(c,"spent")}deckShort(pl,t.short||0,"the Full Moon's toll")}
       else{const st=G.board[t.r][t.c];if(st){for(const c of t.cards){const i=st.cards.indexOf(c);if(i<0)continue;st.cards.splice(i,1);
           if(c.captured&&c.captured.length){for(const s of c.captured)toGrave(s,"death");c.captured=[]}
-          if(c.unit&&buryUnit(c,t.r,t.c,pl))continue;   // Substance cards keep their own fates
+          if(c.unit&&buryUnit(c,t.r,t.c,pl))continue;   // Emanation cards keep their own fates
           if(addSoul(pl,c))m+=soulOf(c);else toGrave(c,"spent")}
         if(!st.cards.length){G.board[t.r][t.c]=null;freeCaptive(st,t.r,t.c)}}}
       log(`${plName(pl)} gives the Full Moon ${t.cards.length} card${t.cards.length>1?"s":""}${t.kind==="deck"?" from the deck":""} (+${m} mana).`,"event");
@@ -1073,7 +1073,7 @@ function placeOpening(pl,r,c){
   if(P.opening.length){G.board[r][c]={owner:pl,cards:P.opening.splice(0),moved:true,attacked:false};log(`${plName(pl)} raises the opening Ace with its Jack on ${coord(r,c)}.`);aceScout(pl,r,c,true)}
   else{G.board[r][c]={owner:pl,cards:P.opening2.splice(0),moved:true,attacked:false};log(`${plName(pl)} raises a second Ace as a base on ${coord(r,c)}.`);aceScout(pl,r,c)}
   G.setupStep=P.opening.length||(P.opening2&&P.opening2.length)?"ace":"more";
-  if(G.setupStep==="more")setupDone(pl);   // Substances that start with cards on the field
+  if(G.setupStep==="more")setupDone(pl);   // Emanations that start with cards on the field
 }
 
 /* ---------------- actions ---------------- */
@@ -1160,7 +1160,7 @@ function sacrifice(card,from){
   if(from!=="hand")checkWin();
   return true;
 }
-const canSacCard=c=>!(c.unit&&(UNIT[c.unit].hp||UNIT[c.unit].base));   // the Substance cards with hearts (and the Tree) can't be sacrificed
+const canSacCard=c=>!(c.unit&&(UNIT[c.unit].hp||UNIT[c.unit].base));   // the Emanation cards with hearts (and the Tree) can't be sacrificed
 const canSacOnField=(st,c)=>kind(c)!=="ace"&&canSacCard(c)&&!(kind(c)==="king"&&st.cards.length>1);
 
 /* ---------------- spells ---------------- */
@@ -1222,7 +1222,7 @@ function spellBlock(sp){ // reason the moon or mode forbids a spell, or ""
   return "";
 }
 const phaseOk=sp=>G.phase==="prep"||(G.phase==="attack"&&G.opts.atkSpells&&["Enchantment","Curse","Sorcery","Illusion"].includes(sp.atkSchool||sp.school));
-const spellMine=sp=>!sp.tribe||G.p[G.active].tribe===sp.tribe;   // Substance spells belong to their Substance
+const spellMine=sp=>!sp.tribe||G.p[G.active].tribe===sp.tribe;   // Emanation spells belong to their Emanation
 function spellReady(sp){return spellMine(sp)&&phaseOk(sp)&&!spellBlock(sp)&&sp.ok()&&canAfford(G.active,spellCost(sp))}
 async function cast(sp){
   if(G.busy&&!me().cpu)return;
@@ -1940,7 +1940,7 @@ function moonStrip(){
 function face(c,o={}){
   const own=o.owner!==undefined?o.owner:c.owner,P=own!=null&&G.p[own]?G.p[own]:null;
   const col=P?P.color:"#8a8a8a",k=kind(c),sm=o.cls==="sm";
-  if(c.unit){   // a Substance card: its own symbol and its hearts
+  if(c.unit){   // an Emanation card: its own symbol and its hearts
     const U=UNIT[c.unit],nm=U.short||U.name;
     return `<span class="cf unit u-${c.unit}${c.hate?" hated":""}${isBase(c)?" basecard":""} ${o.cls||""}" style="--pc:${col}" title="${esc(nameOf(c))}"><span class="cx"><b class="rk un">${esc(sm?nm.slice(0,4):nm)}</b></span><span class="uic">${unitSVG(c.unit,c.unit==="tree"?"#2d6b3a":c.unit==="satan"?"#8e1426":"#15100b",sm?18:30)}</span>${c.maxHp&&!sm?heartsHTML(c):""}${P?`<span class="so">${solidSVG(P.solid,col,sm?12:17)}</span>`:""}${sm?"":`<em class="ty">${esc(U.word)}</em>`}${o.price?`<span class="price">${costOf(c)} mana</span>`:""}${o.noci?"":`<span class="ci" data-cid="${c.id}" role="button" title="Card info"></span>`}</span>`;
   }
@@ -2339,12 +2339,12 @@ function infoHTML(){
 <li><b>Push:</b> stack soldiers up to the limit, surround an enemy stack with two of yours, and use Divine Odds or Hexed Odds on the fight that matters.</li>
 <li><b>Starve them:</b> Forced Hand, Three of Swords and Double Edged Sword wear down the enemy's hand and deck; an empty deck, hand and soul pile loses the game.</li>
 <li><b>The Joker:</b> it captures the souls of enemies dying around it; shoot it (Sacrificial Suicide) for a burst of mana.</li>
-<li>Each Substance pushes one of these further: see Substances explained, and the Card info tabs for every card.</li></ul></details>
+<li>Each Emanation pushes one of these further: see Emanations explained, and the Card info tabs for every card.</li></ul></details>
 </details>
 <details class="cinfo"><summary>Card info</summary><div class="itabs">${tabs}</div><div id="ibody"></div></details>
 <details class="cinfo"><summary>Spells explained</summary><div class="spellinfo">${spells}<p class="dim">New Moon: Clairvoyance and Naked Hand cost 6. Full Moon: Clairvoyance costs 2, Naked Hand is free, and no necromancy is cast. Blood Moon: Full Moon prices with no Full Moon drawbacks; necromancy is allowed. The moon turns one phase per round, once every player has had a turn.</p></div></details>
 <details class="cinfo"><summary>Further explanations</summary>
-<details class="sub"><summary>Substances explained</summary><dl class="spellinfo">${subs}</dl><p class="dim">Only the Beginner can be played by more than one player in a game. The full rules for each are on the All Rules page.</p></details>
+<details class="sub"><summary>Emanations explained</summary><dl class="spellinfo">${subs}</dl><p class="dim">Only the Beginner can be played by more than one player in a game. The full rules for each are on the All Rules page.</p></details>
 <details class="sub"><summary>Fog of war and stealth explained</summary><dl class="spellinfo"><dt>Fog of war</dt><dd>On by default (Rules tab). Each of your cards sees only the eight tiles around it, straight and diagonal; a Scout sees two tiles out in a diamond (two straight, one diagonal). Shaded tiles are out of sight: enemy cards there stay hidden, and the log only says that something moved out of sight.</dd><dt>Shooting into the fog</dt><dd>Archers, Cannons, Rifles and the Slugshot Cannon can fire at a fogged tile in reach. If nothing is there the shot is lost; if something is, it is a normal attack, but all you learn is whether it hit: you hear the blow land.</dd><dt>Scouts</dt><dd>Never attack or defend. Everything in a Scout's diamond of sight is uncovered: Assassins, ambushers, face-down cards and enemy Scouts. Every Ace you put down brings one from the Ether.</dd><dt>Assassins</dt><dd>Hidden from enemies unless one of their cards stands right beside it (straight, not diagonal) or a Scout is near. Two hearts; 10 + 1d12 to attack, 8 to defend. Only another Assassin stacks with one.</dd><dt>Face down</dt><dd>Tick "Place it face down" before putting a card down. Enemies see only its back. Double disadvantage to attack, advantage to defend; it turns face up once it attacks or is attacked.</dd><dt>Ambush</dt><dd>Select an Assassin or face-down stack in your prep phase and press "Set an ambush": it turns sideways, hides like an Assassin, and strikes with advantage, out of turn, at the first enemy that steps beside it (diagonals too for a Jack's reach). Moving it ends the ambush.</dd><dt>Quiet Eyes and Bird's Eye</dt><dd>Quiet Eyes (Illusion, 2 mana): on each enemy's next turn, and only that turn, they see only the tiles their own cards stand on; Scouts don't see through it. Bird's Eye (Sorcery) lifts the fog for your side for a round, but not a Delusion.</dd></dl></details>
 <details class="sub"><summary>Siege, support and mining explained</summary><dl class="spellinfo"><dt>Bought from the Ether</dt><dd>Archers, Cannons, Healers, Walls, Repairmen, Battering Rams and Miners all wait in the Ether, a set for every deck, and come into your deck with their Conjure spells. The Beginner starts with two Archers, a Wall, two Repairmen and a Battering Ram in the deck, and a Miner in the first Ace.</dd><dt>Shooting</dt><dd>Archers and Cannons fire from wherever they stand, inside an Ace, the Tree or a Wall too, where the rest can't fight. Select the stack in the attack phase and click a highlighted target; a miss costs the shooter nothing. Only one shot a turn leaves a base.</dd><dt>Support cards</dt><dd>Healers, Repairmen, Battering Rams and Miners never fight. In a stack they die last (Miners first). Standing alone they can't defend: an enemy beside them chooses Capture or Destroy instead of an attack. A captured card rides in the stack's capture slot (one per stack) until you set it to work beside the stack; then it is yours.</dd><dt>Heal and Repair</dt><dd>Select the stack in your prep phase and press Heal a heart or Repair. The status line under the cards shows every cooldown.</dd><dt>Crystals</dt><dd>A crystal rises in the middle of the field every 1d6 + 4 turns. A Miner on it digs 1 + 1d3 mana on a 2 of 1d2 each turn, until the crystal's 12 mana are gone.</dd><dt>Field Libation</dt><dd>Necromancy, free, not under the Full Moon: pour out cards from your field; each one is worth its mana on a 2 of 1d2, and goes to the grave for nothing on a 1.</dd></dl></details>
 ${bankExplainHTML()}
@@ -2378,12 +2378,12 @@ function seatForm(i,S,mode,L,taken){taken=taken||new Set();
   const type=`<label class="f">Plays as <select data-seat="${i}" data-k="type">${[["human",S.noHuman?"Human (four on this device already)":"Human"],["easy","Computer · Easy"],["medium","Computer · Medium"],["hard","Computer · Hard"]].map(([v,t])=>`<option value="${v}" ${S.type===v?"selected":""} ${v==="human"&&S.noHuman?"disabled":""}>${t}</option>`).join("")}</select></label>`+(S.type&&S.type!=="human"?`<label class="f">Style <select data-seat="${i}" data-k="arch" title="${esc(AI.ARCH[S.arch]?AI.ARCH[S.arch].sub:"Each computer gets one of the styles at random.")}">${[["random","Random (default)"],...Object.entries(AI.ARCH).map(([k,a])=>[k,a.name])].map(([v,t])=>`<option value="${v}" ${(S.arch||"random")===v?"selected":""}>${t}</option>`).join("")}</select></label>`:"");   // v69: the computer's playstyle
   const pcol=TRIBES[S.tribe]&&TRIBES[S.tribe].color||(S.color==="random"?"#c9a274":S.color);
   const T0=TRIBES[S.tribe]||{},scol=T0.color||S.color,ssol=T0.solid||S.solid,
-    lsum=`<span class="dim lsum">· ${esc(S.noSubs?"No Substance":T0.name||"Random")} ${scol&&scol!=="random"?`<i class="lsw" style="background:${scol}"></i>`:`<i class="lsw rnd">?</i>`}${ssol&&ssol!=="random"&&SOLIDS[ssol]?`<i class="lso">${solidSVG(ssol,scol&&scol!=="random"?scol:"#f3d6a6",14)}</i>`:""}</span>`;
+    lsum=`<span class="dim lsum">· ${esc(S.noSubs?"No Emanation":T0.name||"Random")} ${scol&&scol!=="random"?`<i class="lsw" style="background:${scol}"></i>`:`<i class="lsw rnd">?</i>`}${ssol&&ssol!=="random"&&SOLIDS[ssol]?`<i class="lso">${solidSVG(ssol,scol&&scol!=="random"?scol:"#f3d6a6",14)}</i>`:""}</span>`;
   return `<fieldset class="pf seat${you?" isyou":""}" style="--pc:${pcol}"><legend>P${i+1}${you?' <b class="youtag">You</b>':""} ${team}</legend>
 <div class="srow"><label class="f">Name <input data-seat="${i}" data-k="name" value="${esc(S.name)}" maxlength="20"></label>${type}</div>
-<details class="look" ${S.open?"open":""}><summary>${tm?"Team, Substance, color and symbol":"Substance, color and symbol"} ${lsum}</summary>
+<details class="look" ${S.open?"open":""}><summary>${tm?"Team, Emanation, color and symbol":"Emanation, color and symbol"} ${lsum}</summary>
 ${tm?`<div class="f"><span>Team</span><div class="opts">${[0,1].map(t=>`<label class="opt"><input type="radio" name="tm${n}" data-seat="${i}" data-k="team" value="${t}" ${S.team===t?"checked":""}><span>${t?"Side B":"Side A"}<small>${t?"Plays against Side A.":"Plays against Side B."} ${L==="koth"?"Each side needs at least one player.":"Each side needs two players."}</small></span></label>`).join("")}</div></div>`:""}
-${S.noSubs?`<p class="dim fixednote">No Substances (the Table option): everyone plays by the plain rules.</p>`:`<div class="f"><span>Substance</span><div class="opts subs">${Object.entries(TRIBES).filter(([k,t])=>!t.hidden).map(([k,t])=>{const off=t.soon||taken.has(k)&&k!==S.tribe;return `<label class="opt${off?" off":""}"><input type="radio" name="tr${n}" data-seat="${i}" data-k="tribe" value="${k}" ${k===S.tribe?"checked":""} ${off?"disabled":""}><span>${t.solid?`<i class="subsym">${solidSVG(t.solid,t.color||"#f3d6a6",18)}</i>`:""}${t.name}<small>${taken.has(k)&&k!==S.tribe?"Another player has it: only the Beginner can be played by more than one player.":t.sub}</small></span></label>`}).join("")}</div></div>`}
+${S.noSubs?`<p class="dim fixednote">No Emanations (the Table option): everyone plays by the plain rules.</p>`:`<div class="f"><span>Emanation</span><div class="opts subs">${Object.entries(TRIBES).filter(([k,t])=>!t.hidden).map(([k,t])=>{const off=t.soon||taken.has(k)&&k!==S.tribe;return `<label class="opt${off?" off":""}"><input type="radio" name="tr${n}" data-seat="${i}" data-k="tribe" value="${k}" ${k===S.tribe?"checked":""} ${off?"disabled":""}><span>${t.solid?`<i class="subsym">${solidSVG(t.solid,t.color||"#f3d6a6",18)}</i>`:""}${t.name}<small>${taken.has(k)&&k!==S.tribe?"Another player has it: only the Beginner can be played by more than one player.":t.sub}</small></span></label>`}).join("")}</div></div>`}
 ${(()=>{const T=TRIBES[S.tribe]||{};
   const acc=c0=>`<div class="f"><span>Accent</span><div class="opts swatches accents">${ACCENTS.map(([v,nm])=>`<label class="sw" title="${nm}${v==="auto"?" (a light shade of the color)":""}"><input type="radio" name="ac${n}" data-seat="${i}" data-k="accent" value="${v}" ${v===(S.accent||"auto")?"checked":""}><span style="--pc:${v==="auto"?accentOf(c0&&c0!=="random"?c0:"#c9a274","auto"):v}"></span><em>${nm}</em></label>`).join("")}</div></div><p class="dim acnote">The accent is the thin frame around each of your cards, and the glow on the card you have selected.</p>`;   // v61: the frame of your cards (v71: and the selection glow)
   if(T.color)return `<p class="dim fixednote">${esc(T.name)} always plays in its own color and symbol: ${solidSVG(T.solid,T.color,20)}</p>`+acc(T.color);
@@ -2414,7 +2414,7 @@ function showStart(){
 <label class="f">${mode==="survival"?"Players against the Horde":"Players"} <select id="pcount">${counts.map(c=>`<option value="${c}" ${c===counts[0]?"selected":""}>${c}</option>`).join("")}</select></label>
 <div class="f" id="layoutf" ${mode==="survival"?"hidden":""}><span>Layout</span><div class="opts">${Object.entries(LAYOUTS).map(([k,[t,d]],i)=>`<label class="opt" data-lay="${k}"><input type="radio" name="olayout" value="${k}" ${i===0?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
 <p class="dim" id="laynote"></p>
-${chk("onosubs","No Substances","Every player plays by the plain rules, with no Substance's advantages or drawbacks. On by default in Survival.",mode==="survival")}
+${chk("onosubs","No Emanations","Every player plays by the plain rules, with no Emanation's advantages or drawbacks. On by default in Survival.",mode==="survival")}
 <div id="kothopts" hidden><div class="f"><span>King of the Hill</span><div class="opts">
 ${chk("okteam","Team mode","Players form two sides, Side A and Side B (not necessarily even). Off: everyone for themselves.",true)}
 ${chk("oktug","Tug of war","Team mode only. One shared bar from −25 to +25: holding the Hill pulls it your side's way; when both sides hold it, it stops. Pull it all the way to win.",false)}
@@ -2551,7 +2551,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     $("#laynote").textContent=mode==="survival"?(n===1?"One survivor on the usual field.":`${n} survivors share the bottom of the field, and the Horde spawns once for each of you. Any seat can be a computer; people take their turns one after another on this device, and the Horde moves first each round.`):"";
     const blk=skyBlocked(val("omoonon")),hum=humans(),ns=$("#onosubs")&&$("#onosubs").checked;
     seatsS.forEach((S,i)=>{S.you=i===0&&S.type==="human"&&hum===1&&!NET.inSetup;S.noHuman=S.type!=="human"&&hum>=4;S.noSubs=ns});   // v70d: four people on one device at most
-    // v71: no two seats share a color; a Substance's own color (Satan's crimson) takes Crimson from the others, and a seat that held it moves
+    // v71: no two seats share a color; an Emanation's own color (Satan's crimson) takes Crimson from the others, and a seat that held it moves
     // v71e: and no two alike (colorNear): a color too close to another seat's can't be picked
     const colOf=Q=>!ns&&TRIBES[Q.tribe]&&TRIBES[Q.tribe].color||(Q.color&&Q.color!=="random"?Q.color:null);
     const takenBy=i=>seatsS.slice(0,n).map((Q,j)=>j===i?null:[colOf(Q),Q.name||`P${j+1}`]).filter(x=>x&&x[0]);
@@ -2614,7 +2614,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
   $("#oeach").addEventListener("change",()=>$("#oeach").dataset.touched=1);
   document.querySelectorAll('input[name=odeckper],input[name=oetherper],input[name=ospecials],input[name=osuitmode],#ojoker').forEach(i=>i.addEventListener("change",()=>{if(i.name==="odeckper")$("#decksset").dataset.touched=1;sumUp()}));sumUp();
   $("#onosubs").addEventListener("change",drawSeats);
-  const SKY_NOTE={bid:"Every 3 + 1d2 − 1 completed cycles, the Heavenly Body announces it is leaving. Players bid mana to keep it for one more cycle, or to see it go; the highest bid wins (an Oath of that Heavenly Body adds half again to a bid on a 2 of 1d2). If nobody bids to keep it, a new Heavenly Body takes the sky.",never:"The Heavenly Body stays until a spell, the shop or a Substance changes it.",cycles:"After this many of its cycles, a new Heavenly Body takes the sky.",rounds:"After this many rounds, a new Heavenly Body takes the sky, wherever it is in its cycle."};
+  const SKY_NOTE={bid:"Every 2 + 1d2 − 1 completed cycles, the Heavenly Body announces it is leaving. Players bid mana to keep it for one more cycle, or to see it go; the highest bid wins (an Oath of that Heavenly Body adds half again to a bid on a 2 of 1d2). If nobody bids to keep it, a new Heavenly Body takes the sky.",never:"The Heavenly Body stays until a spell, the shop or an Emanation changes it.",cycles:"After this many of its cycles, a new Heavenly Body takes the sky.",rounds:"After this many rounds, a new Heavenly Body takes the sky, wherever it is in its cycle."};
   const skyUp=()=>{const m=$("#oskychg").value,ev=m==="cycles"||m==="rounds",dice=val("oskyhow")==="dice";$("#skychgnote").textContent=SKY_NOTE[m];
     $("#skyevery").hidden=!ev;$("#oskyunit").textContent=m==="rounds"?"rounds":"cycles";$("#skyn").hidden=dice;$("#skyd").hidden=!dice;
     $("#oskyrand").closest("label").hidden=m!=="rounds";const dn=+$("#oskydn").textContent,ds=+$("#oskyds").value;
@@ -2637,8 +2637,8 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
       return{name,tribe:S.tribe,color:S.color,solid:S.solid,accent:S.accent||"auto",cpu,arch:cpu&&cpu!=="horde"?S.arch||"random":null};
     });
     const blk=skyBlocked(val("omoonon")),bad=players.find(p=>blk.includes(p.tribe));if(bad){flash(`${TRIBES[bad.tribe].name} can't be played with that Heavenly Body in the sky.`);return}
-    if($("#onosubs").checked)players.forEach(p=>{p.tribe="plain"});   // v70d: No Substances: everyone plays by the plain rules
-    for(const t of Object.keys(TRIBES))if(t!=="random"&&t!=="beginner"&&t!=="plain"&&players.filter(p=>p.tribe===t).length>1){flash(`Only one player can be ${TRIBES[t].name}. The Beginner is the only Substance more than one player can share.`);return}
+    if($("#onosubs").checked)players.forEach(p=>{p.tribe="plain"});   // v70d: No Emanations: everyone plays by the plain rules
+    for(const t of Object.keys(TRIBES))if(t!=="random"&&t!=="beginner"&&t!=="plain"&&players.filter(p=>p.tribe===t).length>1){flash(`Only one player can be ${TRIBES[t].name}. The Beginner is the only Emanation more than one player can share.`);return}
     {const picked=players.filter(p=>!TRIBES[p.tribe].color&&p.color!=="random");if(new Set(picked.map(p=>p.color)).size<picked.length){flash("Every player needs a different color.");return}}   // Random finds a free color at the start
     if(L==="koth"&&$("#okteam").checked){players.forEach((p,i)=>p.team=seatsS[i].team?1:0);if(!players.some(p=>p.team===0)||!players.some(p=>p.team===1)){flash("Each side needs at least one player.");return}}
     if(L.startsWith("team")){ // seats alternate sides: A, B, A, B
@@ -2949,14 +2949,14 @@ function outerEdge(r,c,rot){
   return order[(i-rot+4)%4];
 }
 
-/* ---------------- Substances: what each one adds to the game ----------------
+/* ---------------- Emanations: what each one adds to the game ----------------
    Random, Beginner, Angel Machine, Satan, Binah, Jester Fool (and Tiphareth of Kether, plain for now).
    Lucifer & Ouroboros, The Leviathan and Yaldabaoth come in the next update. */
 
-/* Random becomes a real Substance before the game starts; fixed colors and symbols are applied */
+/* Random becomes a real Emanation before the game starts; fixed colors and symbols are applied */
 function resolveSubstances(opts){
-  const taken=new Set(skyBlocked(opts.moon));   // a Heavenly Body in the sky from the start keeps out the Substance it would serve
-  // every Substance but the Beginner is played by one player at most
+  const taken=new Set(skyBlocked(opts.moon));   // a Heavenly Body in the sky from the start keeps out the Emanation it would serve
+  // every Emanation but the Beginner is played by one player at most
   for(const p of opts.players)if(p.tribe&&TRIBES[p.tribe]&&p.tribe!=="random"&&p.tribe!=="beginner"&&p.tribe!=="plain"&&!TRIBES[p.tribe].soon)taken.add(p.tribe);
   for(const p of opts.players){
     if(p.cpu==="horde")continue;
@@ -2966,7 +2966,7 @@ function resolveSubstances(opts){
     }
     const T=TRIBES[p.tribe];if(T.color)p.color=T.color;if(T.solid)p.solid=T.solid;
   }
-  // v43: Random color and Random symbol take what nobody else has (after the fixed ones of the Substances)
+  // v43: Random color and Random symbol take what nobody else has (after the fixed ones of the Emanations)
   const ps=opts.players.filter(p=>p.cpu!=="horde");
   const usedC=ps.filter(p=>TRIBES[p.tribe].color||p.color&&p.color!=="random").map(p=>TRIBES[p.tribe].color||p.color);
   for(const p of ps)if(!TRIBES[p.tribe].color&&(!p.color||p.color==="random")){const free=COLORS.map(c=>c[1]).filter(c=>!usedC.some(u=>colorNear(u,c)));p.color=pick(free.length?free:COLORS.map(c=>c[1]));usedC.push(p.color)}   // v71e: nothing alike
@@ -2984,7 +2984,7 @@ const subOf=pl=>G.p[pl]?G.p[pl].tribe:null;
 const usedOnce=id=>!!(me().once&&me().once[id]);
 const treeOf=pl=>stacksOf(pl).find(x=>hasK(x.st,"tree"));
 
-/* the cards each Substance brings into its deck */
+/* the cards each Emanation brings into its deck */
 function substanceDecks(pls){
   for(const pl of pls){
     const P=G.p[pl];P.once={};
@@ -3060,7 +3060,7 @@ function addBolts(pl,n,why){
   if(P.bolts>before){log(`${plName(pl)} gains ${P.bolts-before} bolt${P.bolts-before>1?"s":""} from ${why} (${P.bolts}/3).`);
     if(P.bolts===3&&before<3)notify(pl,`${esc(P.name)}'s three bolts are charged: Lightning Strike is ready.`)}
 }
-/* where Substance cards go when they die; true when handled */
+/* where Emanation cards go when they die; true when handled */
 function buryUnit(card,r,c,owner){
   const u=card.unit,P=G.p[owner];
   if(u==="samson"){
@@ -3110,7 +3110,7 @@ function notify(pl,html){
   setTimeout(()=>{n.classList.add("out");setTimeout(()=>n.remove(),700)},5600);
 }
 
-/* ---------------- Substance spells ---------------- */
+/* ---------------- Emanation spells ---------------- */
 SPELLS.push(
  {id:"bolt",tribe:"angel",name:"Lightning Strike",cost:0,school:"Sorcery",text:"Free, with three bolts. Select an enemy stack: lightning immobilizes it for 1d2 + 1d2 − 1 of its turns, so it can't move or attack. Against the Leviathan it rolls nothing and simply takes one heart; with nothing selected it strikes a Leviathan on the moon. You earn a bolt for every card you lose while defending against an enemy's attack, and for every card Antony kills.",
   ok:()=>(me().bolts||0)>=3&&(selEnemy()&&!shielded(selStack().owner)||!selStack()&&!!G.moonLev&&isEnemy(G.moonLev.owner,G.active)),run:async()=>{
@@ -3149,7 +3149,7 @@ async function deploySlave(){
 /* a Slave that was never put down goes back to the thralls */
 function cancelPlacing(){const c=G.placing;if(!c)return;G.placing=null;if(G.selHand===c)G.selHand=null;delete c.unit;(G.p[c.owner].thralls=G.p[c.owner].thralls||[]).unshift(c)}
 
-/* ---------------- the computer playing a Substance ---------------- */
+/* ---------------- the computer playing an Emanation ---------------- */
 async function aiSubstance(pl,W){
   const P=G.p[pl],lv=P.cpu;if(G.over)return;
   const cast1=async(id,r,c)=>{const sp=SP(id);const old=G.sel;G.sel=r==null?null:{r,c,pick:new Set()};
@@ -3184,7 +3184,7 @@ async function aiSubstance(pl,W){
   }
 }
 
-/* ---------------- symbols for the Substance cards ---------------- */
+/* ---------------- symbols for the Emanation cards ---------------- */
 const UNIT_ICON={
  samson:`<path d="M-6,-8h12v6h-12z M-4,-6h3v2h-3z M1,-6h3v2h-3z M-8,-1h16v8h-16z M-8,7v3 M8,7v3 M-3,-2v-1 M3,-2v-1 M-11,0v5 M11,0v5"/>`,
  antony:`<path d="M0,9C-6,4 -9,0 -9,-3C-9,-7 -5,-8 -2.5,-6C-1,-5 0,-3.5 0,-3.5C0,-3.5 1,-5 2.5,-6C5,-8 9,-7 9,-3C9,0 6,4 0,9Z M-2.5,-6L-3,-10 M2.5,-6L3.5,-10 M0,-3.5V2 M-4,0L0,2L4,-1"/>`,
@@ -3200,7 +3200,7 @@ const UNIT_ICON={
 function unitSVG(u,color,size){const d=UNIT_ICON[u]||"";return `<svg class="usym" viewBox="-12 -12 24 24" width="${size||22}" height="${size||22}" aria-hidden="true"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><g stroke="#000" stroke-opacity=".5" stroke-width="3.2">${d}</g><g stroke="${color}" stroke-width="1.5">${d}</g></g></svg>`}
 const heartsHTML=c=>c.maxHp?`<span class="hearts" aria-label="${c.hp} of ${c.maxHp} hearts">${"♥".repeat(c.hp)}<s>${"♥".repeat(Math.max(0,c.maxHp-c.hp))}</s></span>`:"";
 
-/* ---------------- Substances, second part: Lucifer & Ouroboros, The Leviathan, Yaldabaoth, Tiphareth of Kether ---------------- */
+/* ---------------- Emanations, second part: Lucifer & Ouroboros, The Leviathan, Yaldabaoth, Tiphareth of Kether ---------------- */
 
 /* ---------- the moon when it is eaten, replaced by Saturn, or carries the Leviathan ---------- */
 const moonName=()=>G.moon.gone==="saturn"?"Saturn":G.moon.gone==="mars"?"Mars":PLANETS[G.moon.gone]?PLANETS[G.moon.gone].name:G.moon.gone==="fallen"?"Empty sky":G.moon.gone?"No moon":MOON[G.moon.i];
@@ -3775,11 +3775,11 @@ function wireMoon(){
   el.addEventListener("click",e=>{if(G&&canAct()&&G.phase==="attack"&&G.sel&&moonAttackable(selStack()))return;e.stopPropagation();show(e);const p=$("#cinfo");if(p)delete p.dataset.hover});
 }
 
-/* ---------- a player's status: hover or click the Substance symbol ---------- */
+/* ---------- a player's status: hover or click the Emanation symbol ---------- */
 function statusHTML(pl){
   const P=G.p[pl],T=TRIBES[P.tribe]||{name:"",sub:""},L=[];
   if(P.cpu==="horde")return `<div class="cin"><div class="cih"><b>The Horde</b></div><p>It spawns every round and never holds back.</p></div>`;
-  L.push(`<dt class="k-type">Substance</dt><dd>${esc(T.name)}${P.randomSub?" (random)":""}</dd>`);
+  L.push(`<dt class="k-type">Emanation</dt><dd>${esc(T.name)}${P.randomSub?" (random)":""}</dd>`);
   L.push(`<dt class="k-soul">Limits</dt><dd>${handCap(pl)}-card hand · ${soulCap(pl)} mana (up to ${surCap(pl)} for a round) · ${P.deck.length} cards in the deck</dd>`);
   const fx=[];
   if(P.bolts)fx.push(`${P.bolts}/3 bolts`);if((P.thralls||[]).length)fx.push(`${P.thralls.length} thralls`);if(P.hunger)fx.push(`hunger ${P.hunger}/7`);
@@ -4734,7 +4734,7 @@ Object.assign(UNIT_ICON,{
    The Firmament is above the moon's and Saturn's harms and meteors, keeps a Miner on the moon, and casts
    Blood Moon, Rain, Asteroid, Fog and Mars. */
 
-/* a Heavenly Body that starts in the sky keeps out the Substance it would serve */
+/* a Heavenly Body that starts in the sky keeps out the Emanation it would serve */
 const skyBlocked=sky=>sky==="saturn"?["yald"]:["mars","sun","venus","jupiter","mercury"].includes(sky)?["firm"]:[];
 const isFirm=pl=>!!(G.p[pl]&&G.p[pl].tribe==="firm");
 /* the Leviathan's New Moon: the real New Moon, or every eighth round while it coils on Mars */
@@ -5422,7 +5422,7 @@ addEventListener("resize",fitSide);
 /* ---------------- UI pass 2 (v21): English ----------------
    Every spell's text in three short parts: what you need (n), what it does (e), and its limits (l).
    The hover box shows them like card info: price, when, needs, effect, limits. s.text keeps the joined text for the
-   Spells explained panel. Planets get their Forms; Substances get a one-line tag and a few points. */
+   Spells explained panel. Planets get their Forms; Emanations get a one-line tag and a few points. */
 
 const SPELL_TEXT={
  // Necromancy
@@ -5630,7 +5630,7 @@ const SKY_OPTS=[
  ["mercury","Mercury","Votes for Peace or Total War, and the Oath of Mercury. No Firmament."],
  ["jupiter","Jupiter","Ace miners bring 1d2, conjurings go on sale, cards trade at the Auction. No Firmament."],
  ["neptune","Neptune","Clouds in its blue that hide tiles and lose cards, and mana that strays or doubles."]];
-/* Substances: one tag line for the setup, and a few points for the info panels */
+/* Emanations: one tag line for the setup, and a few points for the info panels */
 for(const k in SUBST_TEXT)if(TRIBES[k]){TRIBES[k].sub=SUBST_TEXT[k].tag;TRIBES[k].pts=SUBST_TEXT[k].pts}
 
 /* "Heavenly Bodies explained" and "The Bank explained", under the table */
@@ -5716,7 +5716,7 @@ function compactSetup(root){
     for(const k of MAP_ORDER){const i=box.querySelector(`input[name=omap][value=${k}]`);if(i)box.appendChild(i.closest("label"))}}}
   root.querySelectorAll(".opts.subs").forEach(b=>b.classList.add("tiles"));
 }
-/* rich info for a Substance tile */
+/* rich info for an Emanation tile */
 function subTipHTML(k){const T=TRIBES[k];if(!T)return "";
   return `<div class="cin subtip"><div class="cih">${T.solid?solidSVG(T.solid,T.color||"#f3d6a6",16):""}<b>${esc(T.name)}</b></div><p class="stag">${esc(T.sub)}</p>${T.pts&&T.pts.length?`<ul>${T.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>`:""}</div>`}
 (()=>{
@@ -5878,7 +5878,7 @@ function planetsHTML(){
    Three cards wait face down. The price is a range (1d2 + 2d3: 3 to 8 mana) and is rolled when you pay. Once paid, all three are
    yours at once, in your deck, even if you close the window; reveal them one at a time by clicking, or all at once.
    Rarity has loot-box colors. Wildcards are 5% in all, each with its own share by strength (cards that come back as another card count
-   as stronger); the Collector, Slave, Slavemaster and Trafficker never come out. A wildcard comes alone: its Substance's spells don't. */
+   as stronger); the Collector, Slave, Slavemaster and Trafficker never come out. A wildcard comes alone: its Emanation's spells don't. */
 
 const MYS_TIERS=[
   {k:"common",   name:"Common",   col:"#b9b4a8",p:47.5, pool:["2","3","4","5","6","7","8","9","10"]},
@@ -6278,7 +6278,7 @@ if(window.__EC)window.__EC.render=()=>render();
 /* ---------------- Prompt 12, part 2b (v28): the Heavenly Body shop, Venus's and Mercury's cycles, Rob the Bank, Jail ----------------
    The Heavenly Body shop (a setting, on by default): any of the eight Heavenly Bodies can be bought for the sky for 7 + 1d3 + 1d12 mana, each
      rolled every round. Everyone is told at once; the Heavenly Body rises at the start of the next round, with a second popup. After a
-     purchase no Heavenly Body can be bought for six rounds. Nobody's Substance changes.
+     purchase no Heavenly Body can be bought for six rounds. Nobody's Emanation changes.
    Cycles: a Heavenly Body's cycle comes every sixth round it has hung in the sky.
      Venus: under its Oath, support and base conjurings cost 1 less that round and every card heals a heart; without the Oath,
        only on a 4 of 1d4.
@@ -6523,15 +6523,15 @@ function leaveJail(pl){const P=G.p[pl];if(!P.jail)return;P.cpu=P.jail.cpu;P.jail
 
 if(window.__EC)Object.assign(window.__EC,{buyPlanet,raisePlanet,venusCycle,mercuryCycle,robBank,goToJail,leaveJail,cycleRound,shopBlock,spellCost:sp=>spellCost(sp),spellBlock:sp=>spellBlock(sp)});
 
-/* ---------------- Prompt 12, part 2c (v29): striking Substances and Heavenly Bodies before a game; the Sun and Saturn judge their buyer ----------------
-   Substances: a small check in every Substance tile strikes it from the game: nobody can pick it and Random never rolls it. One ban list
+/* ---------------- Prompt 12, part 2c (v29): striking Emanations and Heavenly Bodies before a game; the Sun and Saturn judge their buyer ----------------
+   Emanations: a small check in every Emanation tile strikes it from the game: nobody can pick it and Random never rolls it. One ban list
      for the whole table (it shows in every seat). At least one stays; Random fades out by itself when only one is left. Only the Beginner
-     can be shared, so it is the last to go: it can be struck only while there are still as many other Substances as seats.
+     can be shared, so it is the last to go: it can be struck only while there are still as many other Emanations as seats.
      Survival has no bans.
    Planets: a check on each Heavenly Body in "Starting Heavenly Body" strikes it from Astrology: it can't be bought in the Heavenly Body shop and the
      Firmament can't raise it. The starting Heavenly Body itself can't be struck.
    The Second Sun and Saturn bought in the shop judge and tax whoever bought them; their favors go to the Bank, like a sky from the
-     start, unless the buyer's own Substance already raises that Heavenly Body (the Firmament's Sun, Yaldabaoth's Saturn). */
+     start, unless the buyer's own Emanation already raises that Heavenly Body (the Firmament's Sun, Yaldabaoth's Saturn). */
 
 const SUB_BAN=new Set((PREF.subBan||[]).filter(k=>PLAYABLE.includes(k)));
 const PLANET_BAN=new Set(PREF.planetBan||[]);
@@ -6543,16 +6543,16 @@ const subsAllowed=()=>PLAYABLE.filter(k=>!SUB_BAN.has(k));
 function banBtn(on,what){const b=document.createElement("button");b.type="button";b.className="bancheck"+(on?" on":"");b.setAttribute("aria-pressed",on);
   b.setAttribute("aria-label",on?`${what} is allowed in this game. Click to strike it.`:`${what} is struck from this game. Click to allow it.`);b.dataset.tip=on?"Allowed. Click to strike it from this game.":"Struck from this game. Click to allow it again.";return b}
 
-/* ---------- the rules for striking a Substance ---------- */
+/* ---------- the rules for striking an Emanation ---------- */
 function subFloorFix(){const N=seatCount();if(SUB_BAN.has("beginner")&&subsAllowed().length<N){SUB_BAN.delete("beginner");saveBans();return true}return false}
 function toggleSub(k){
   if(SUB_BAN.has(k)){SUB_BAN.delete(k);saveBans();return true}
   const N=seatCount(),after=subsAllowed().filter(x=>x!==k);
-  if(!after.length){flash("At least one Substance has to stay.");return false}
+  if(!after.length){flash("At least one Emanation has to stay.");return false}
   if(!after.includes("beginner")&&after.length<N){
-    flash(k==="beginner"?`The Beginner stays until ${N} other Substances are allowed: ${N} players need ${N} Substances, and only the Beginner can be shared.`:`With the Beginner struck, ${N} players need at least ${N} Substances.`);return false}
+    flash(k==="beginner"?`The Beginner stays until ${N} other Emanations are allowed: ${N} players need ${N} Emanations, and only the Beginner can be shared.`:`With the Beginner struck, ${N} players need at least ${N} Emanations.`);return false}
   SUB_BAN.add(k);saveBans();return true}
-/* seats sitting on a struck Substance move to Random (or to the only one left) */
+/* seats sitting on a struck Emanation move to Random (or to the only one left) */
 function fixSeats(root){
   const A=subsAllowed();
   root.querySelectorAll('.seat input[name^="tr"]:checked').forEach(inp=>{const k=inp.value;
@@ -6563,14 +6563,14 @@ function fixSeats(root){
 /* ---------- painting the checks into the setup ---------- */
 function applyBans(root){
   if(!root)return;const surv=setupSurvival();root.classList.toggle("nobans",surv);
-  if(!surv&&subFloorFix())flash("The Beginner is back: there are more seats than other Substances.");
+  if(!surv&&subFloorFix())flash("The Beginner is back: there are more seats than other Emanations.");
   const A=subsAllowed();
   root.querySelectorAll('.seat label.opt input[name^="tr"]').forEach(inp=>{const lab=inp.closest("label.opt"),k=inp.value;
     if(surv){lab.classList.remove("banned");return}
     const isRand=k==="random",banned=isRand?A.length<2:SUB_BAN.has(k);
     lab.classList.toggle("banned",banned);
     if(banned)inp.disabled=true;else if(!lab.classList.contains("off"))inp.disabled=false;
-    if(isRand){lab.dataset.autonote=banned?"Random needs two Substances to choose from.":"";return}
+    if(isRand){lab.dataset.autonote=banned?"Random needs two Emanations to choose from.":"";return}
     let b=lab.querySelector(":scope > .bancheck");if(!b){b=banBtn(!banned,TRIBES[k].name);b.dataset.sub=k;lab.appendChild(b)}
     else if(b.classList.contains("on")===banned){const nb=banBtn(!banned,TRIBES[k].name);nb.dataset.sub=k;b.replaceWith(nb)}});
   if(!surv)fixSeats(root);
@@ -6603,7 +6603,7 @@ const planetStruck=k=>!!(G&&(G.opts.planetBan||[]).includes(k));
 for(const k of ["mars","sun","venus","jupiter","mercury"]){const s=SP(k);if(s){const ok=s.ok;s.ok=()=>!planetStruck(k)&&ok()}}
 {const _pb=spellBlock;spellBlock=function(sp){if(sp&&["mars","sun","venus","jupiter","mercury"].includes(sp.id)&&sp.tribe==="firm"&&planetStruck(sp.id))return "Struck from this game.";return _pb(sp)}}
 
-/* a bought Second Sun or Saturn: its favors go to the Bank and it judges its buyer, unless the buyer's Substance raises it anyway */
+/* a bought Second Sun or Saturn: its favors go to the Bank and it judges its buyer, unless the buyer's Emanation raises it anyway */
 const OWN_PLANET={sun:"firm",saturn:"yald"};
 {const _rp=raisePlanet;raisePlanet=function(){const p=SH().pend;if(!p||G.moon.round<=p.round)return _rp();
   const k=p.k,own=OWN_PLANET[k]&&G.p[p.by]&&G.p[p.by].tribe===OWN_PLANET[k];
@@ -6737,7 +6737,7 @@ if(window.__EC)Object.assign(window.__EC,{coolOf,skyLit,moonStrip:()=>moonStrip(
    A card sacrificed from the hand is worth its Ether price − 1d2 + 1 (so the price or one less), rolled when it is sacrificed.
    Resurrection shuffles the grave first.
    Whatever a Bank Debt Collector kills goes to the Ether, and its soul worth pays the victim's debt (to the Bank, or to the player
-   whose loan it is collecting). On a 4 of 1d4 a good card (not a 2 to 10, never a Substance card) turns up at the Auction instead,
+   whose loan it is collecting). On a 4 of 1d4 a good card (not a 2 to 10, never an Emanation card) turns up at the Auction instead,
    for less than the Ether asks.
    Players can ask each other for loans in the Bank window. A loan is due in four of the borrower's turns; what isn't paid then is
    taken from their souls, and if that isn't enough the Bank sends Debt Collectors after them for the lender.
@@ -7848,9 +7848,9 @@ function askAnimations(){
 if(window.__EC)Object.assign(window.__EC,{askAnimations,FX});
 
 /* ---------------- v38: the info panels as folders ----------------
-   Card info opens on kinds of card (Standard, Special, Support, Bases, Wildcards, and the Wildcards by Substance); each folder
+   Card info opens on kinds of card (Standard, Special, Support, Bases, Wildcards, and the Wildcards by Emanation); each folder
    holds only a few cards, and the card's page opens right under them. Spells explained has a folder for each school, the
-   Substances' own spells in a folder of their own; Further explanations turns each list into the same buttons. One folder
+   Emanations' own spells in a folder of their own; Further explanations turns each list into the same buttons. One folder
    is open at a time in each place, so a phone never shows a wall of buttons. */
 const CARD_TREE=[["Standard",["grunt","infantry","puppet","archer","cannon"]],["Special",["jack","queen","king","ace","joker","assassin"]],
   ["Support",["scout","healer","repair","ram","miner"]],["Bases",["ace","tree","wall"]],
@@ -7860,7 +7860,7 @@ const shortInfo=k=>INFO[k][0].replace(/ \([^)]*\)$/,"");
 const ifold=(name,inner,n)=>`<details class="sub ifold"><summary>${esc(name)}${n?` <span class="ifn">${n}</span>`:""}</summary>${inner}</details>`;
 function cardTreeHTML(){
   const tabs=ks=>`<div class="itabs">${ks.filter(k=>INFO[k]).map(k=>`<button type="button" class="itab" data-k="${k}">${esc(shortInfo(k))}</button>`).join("")}</div>`;
-  return CARD_TREE.map(([name,ks])=>Array.isArray(ks[0])?ifold(name,ks.map(([n2,k2])=>ifold(n2,tabs(k2),k2.length)).join(""),ks.length+" Substances"):ifold(name,tabs(ks),ks.length)).join("");
+  return CARD_TREE.map(([name,ks])=>Array.isArray(ks[0])?ifold(name,ks.map(([n2,k2])=>ifold(n2,tabs(k2),k2.length)).join(""),ks.length+" Emanations"):ifold(name,tabs(ks),ks.length)).join("");
 }
 /* one list of terms (dt) and their answers (dd) becomes buttons, and the answer opens under them */
 function tabify(dl){
@@ -7886,7 +7886,7 @@ function infoTree(){
       if(on){body.innerHTML='<p class="dim">Pick a kind of card, then a card.</p>';cards.appendChild(body);return}
       b.classList.add("on");b.parentElement.after(body);body.innerHTML=infoBody(b.dataset.k)});
     oneOpen(cards)}
-  // Spells explained: a folder for each school, the Substances' spells in their own folder
+  // Spells explained: a folder for each school, the Emanations' spells in their own folder
   if(spells){const si=spells.querySelector(".spellinfo");if(si){const parts=[];let h=null;
     for(const el of [...si.children]){if(el.tagName==="H4")h=el;else if(el.tagName==="DL"&&h){parts.push([h.textContent,el]);h=null}}
     const tree=document.createElement("div");tree.className="ctree";
@@ -7900,7 +7900,7 @@ function infoTree(){
         for(let i=0;i<g.length;i+=2){const k=tier(g[i]);(by[k]=by[k]||document.createElement("dl")).append(g[i],g[i+1])}
         for(const k of order)if(by[k]){const f=document.createElement("details");f.className="sub ifold";f.innerHTML=`<summary>${k} <span class="ifn">${by[k].children.length/2}</span></summary>`;f.appendChild(by[k]);d.appendChild(f);tabify(by[k])}}
       else if(gen.children.length){d.appendChild(gen);tabify(gen)}
-      if(sub.children.length){const s2=document.createElement("details");s2.className="sub ifold";s2.innerHTML=`<summary>The Substances' own ${esc(school.toLowerCase())} <span class="ifn">${sub.children.length/2}</span></summary>`;s2.appendChild(sub);d.appendChild(s2);tabify(sub)}
+      if(sub.children.length){const s2=document.createElement("details");s2.className="sub ifold";s2.innerHTML=`<summary>The Emanations' own ${esc(school.toLowerCase())} <span class="ifn">${sub.children.length/2}</span></summary>`;s2.appendChild(sub);d.appendChild(s2);tabify(sub)}
       tree.appendChild(d)}
     const note=si.querySelector(":scope > p.dim");si.innerHTML="";si.appendChild(tree);if(note)si.appendChild(note);oneOpen(si)}}
   // Further explanations: the same buttons in each section
@@ -7911,8 +7911,8 @@ function infoTree(){
 
 /* ---------------- v38: the online lobby ----------------
    Everyone in the room sees the lobby: who is there, what each of them has chosen, and what the host is doing (in the room, or
-   setting up the game and on which tab). While the host sets up, a joined player chooses their own name, Substance, color and
-   symbol in "Your player" (a Substance someone else holds is greyed out, except the Beginner), and their own look in "Display",
+   setting up the game and on which tab). While the host sets up, a joined player chooses their own name, Emanation, color and
+   symbol in "Your player" (an Emanation someone else holds is greyed out, except the Beginner), and their own look in "Display",
    which is saved on their device like any display setting and carries into the game. When the host gives them a seat, their
    choices fill it. */
 
@@ -7942,13 +7942,13 @@ function setStatus(k){if(NET.status===k)return;NET.status=k;lobbySend()}
       return `<li>${L?solidSVG(L.solid,L.color,16):""} <b>${esc(g.name)}</b>${p?` <span class="dim">· ${esc(TRIBES[p.tribe].name)}</span>`:` <span class="dim">· choosing…</span>`}</li>`}).join("");
     e.innerHTML=`<b>In the room</b><ul class="lroster"><li><b>${esc(NET.name)}</b> <b class="youtag">You</b> <span class="dim">· the host</span></li>${rows}</ul>${guestIds().length?"":'<span class="dim">Share the code and wait for the others to join.</span>'}`}
   lobbySend()}}
-/* a seat given to a joined player takes their name, Substance, color and symbol */
+/* a seat given to a joined player takes their name, Emanation, color and symbol */
 {const _sf=seatForm;seatForm=function(i,S,mode,L,taken){
   const apply=()=>{if(!(NET.role==="lobby-host"&&NET.inSetup)||!S.type||!String(S.type).startsWith("net:"))return false;const g=NET.guests[S.type.slice(4)];if(!g||!g.pick)return false;
     const p=g.pick,before=JSON.stringify([S.name,S.tribe,S.color,S.solid]);S.name=p.name;if(!(taken&&taken.has(p.tribe))||p.tribe==="beginner")S.tribe=p.tribe;S.color=p.color;S.solid=p.solid;S.named=true;
     return JSON.stringify([S.name,S.tribe,S.color,S.solid])!==before};
   apply();let h=_sf(i,S,mode,L,taken);if(apply())h=_sf(i,S,mode,L,taken);
-  if(NET.role==="lobby-host"&&NET.inSetup){NET.seatInfo[i]={type:S.type,tribe:S.tribe};if(String(S.type).startsWith("net:"))h=h.replace("<legend>",`<legend title="This player chooses their own name, Substance, color and symbol in the lobby">`);lobbySend()}
+  if(NET.role==="lobby-host"&&NET.inSetup){NET.seatInfo[i]={type:S.type,tribe:S.tribe};if(String(S.type).startsWith("net:"))h=h.replace("<legend>",`<legend title="This player chooses their own name, Emanation, color and symbol in the lobby">`);lobbySend()}
   return h}}
 /* the host's setup tells the room which tab it is on */
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest(".ovbox.setup .stab");if(!b||NET.role!=="lobby-host"||!NET.inSetup)return;setStatus(b.dataset.t)},true);
@@ -7976,7 +7976,7 @@ function paintGuestLobby(){const L=NET.lobby,m=$("#onMsg"),r=$("#gRoster");if(!m
   r.innerHTML=`<ul class="lroster">${L.roster.map(x=>{const p=x.id===L.you?netPickOf():x.pick;const look=p?pickLook(p):null;
     return `<li>${look?solidSVG(look.solid,look.color,18):""} <b>${esc(x.id===L.you?netPickOf().name:x.name)}</b>${x.host?' <span class="dim">· the host</span>':""}${x.id===L.you?' <b class="youtag">You</b>':""}${p?` <span class="dim">· ${esc(TRIBES[p.tribe].name)}</span>`:x.host?"":' <span class="dim">· choosing…</span>'}${x.seat>=0?` <span class="seatag">P${x.seat+1}</span>`:x.host?"":' <span class="dim">· no seat yet</span>'}</li>`}).join("")}</ul>
 <p class="dim">The host gives each player a seat. Your choices in "Your player" fill your seat; your Display settings are your own.</p>`}
-/* Substances other seats hold (the Beginner can be shared) */
+/* Emanations other seats hold (the Beginner can be shared) */
 const takenByOthers=()=>{const L=NET.lobby;if(!L)return new Set();const me="net:"+L.you,s=new Set();
   for(const t of L.taken||[])if(t.type!==me&&t.tribe&&t.tribe!=="beginner"&&t.tribe!=="random")s.add(t.tribe);
   for(const x of L.roster)if(x.id!==L.you&&x.pick&&x.pick.tribe!=="beginner")s.add(x.pick.tribe);return s};
@@ -7984,7 +7984,7 @@ function sendMe(){const p=netPickOf();PREF.netPick=p;PREF.netName=p.name;savePre
 function paintMe(){const box=$("#gMe");if(!box)return;const p=netPickOf(),taken=takenByOthers(),T=TRIBES[p.tribe]||{};
   box.innerHTML=`<fieldset class="pf seat" style="--pc:${T.color||p.color}"><legend>Your player</legend>
 <div class="srow"><label class="f">Name <input id="gName" value="${esc(p.name)}" maxlength="20"></label></div>
-<div class="f"><span>Substance</span><div class="opts subs">${Object.entries(TRIBES).filter(([k,t])=>k!=="random"&&!t.hidden).map(([k,t])=>{const off=t.soon||taken.has(k)&&k!==p.tribe;
+<div class="f"><span>Emanation</span><div class="opts subs">${Object.entries(TRIBES).filter(([k,t])=>k!=="random"&&!t.hidden).map(([k,t])=>{const off=t.soon||taken.has(k)&&k!==p.tribe;
   return `<label class="opt${off?" off":""}"><input type="radio" name="gTr" value="${k}" ${k===p.tribe?"checked":""} ${off?"disabled":""}><span>${t.solid?`<i class="subsym">${solidSVG(t.solid,t.color||"#f3d6a6",18)}</i>`:""}${t.name}<small>${taken.has(k)&&k!==p.tribe?"Another player has it.":esc(t.sub||"")}</small></span></label>`}).join("")}</div></div>
 ${T.color?`<p class="dim fixednote">${esc(T.name)} always plays in its own color and symbol: ${solidSVG(T.solid,T.color,20)}</p>`:`<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex])=>`<label class="sw" title="${nm}"><input type="radio" name="gCo" value="${hex}" ${hex===p.color?"checked":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}</div></div>
 ${T.solid?`<p class="dim fixednote">${esc(T.name)} always bears its own symbol: ${solidSVG(T.solid,p.color,20)}</p>`:`<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="gSo" value="${k}" ${k===p.solid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}</div></div>`}`}
@@ -8046,7 +8046,7 @@ if(window.__EC)Object.assign(window.__EC,{guestLobby,lobbySend});
 
 const FA_PRINC=[["noatk","Don't attack"],["stance","Stance"],["rush","Rush"],["lives","Lives"],["battles","Picking battles"],["formation","Formation"],["bases","Target bases"],["ambush","Ambush"]];
 const FA_CATS=[["soldiers","Soldiers","Grunts, Infantry, Puppets"],["specials","Specials","Jacks, Queens, Kings, Jokers, Assassins"],["support","Support","Scouts, Healers, Repairmen, Rams, Miners"],
-  ["ranged","Ranged","Archers and Cannons"],["wildcards","Wildcards","the Substances' own cards"]];
+  ["ranged","Ranged","Archers and Cannons"],["wildcards","Wildcards","the Emanations' own cards"]];
 const FA_KINDS=["grunt","infantry","puppet","jack","queen","king","joker","assassin","scout","healer","repair","ram","miner","archer","cannon",
   "samson","antony","satan","bullgoat","goatbull","slavemaster","slave","leviathan","trafficker","debt"];
 const FA_DEF={tgroup:true,tgorder:["wildcard","special","base","standard","support"],mode:"full",stance:"auto",rush:0,formation:"auto",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,
@@ -8673,7 +8673,7 @@ const rdMine=()=>rdClean(PREF.rd);
 /* ---------- Lazy Hand settings ---------- */
 const LH_DEF={exclude:[],xextra:[],xminus:[],sminus:[],autoPlace:false,sac:false,skinds:[],sextra:[],notFull:true,surplus:0,maxSurplus:false,negOnly:false};
 const LH_RANKS=["2","3","4","5","6","7","8","9","10","J","Q","K","A","JK"];
-const LH_UNITS=["puppet","scout","healer","repair","ram","miner","claimer","archer","cannon","assassin","wall","tree","satan","carriage","samson","antony","bullgoat","goatbull","slavemaster","slave","leviathan","trafficker","debt"];   // v66: every card a Substance can hold (the Tree, Satan, the Carriage too)
+const LH_UNITS=["puppet","scout","healer","repair","ram","miner","claimer","archer","cannon","assassin","wall","tree","satan","carriage","samson","antony","bullgoat","goatbull","slavemaster","slave","leviathan","trafficker","debt"];   // v66: every card an Emanation can hold (the Tree, Satan, the Carriage too)
 let lhKeysMemo=null;
 function lhKeyList(){if(lhKeysMemo)return lhKeysMemo;
   lhKeysMemo=[...LH_RANKS.map(r=>{const k=kind(protoCard(r));return [r,r==="JK"?"Joker":/^\d+$/.test(r)?`${r} ${shortInfo(k)}`:shortInfo(k)]}),...LH_UNITS.filter(u=>INFO[u]).map(u=>[u,shortInfo(u)])];return lhKeysMemo}
@@ -9625,7 +9625,7 @@ const TGROUP_NAMES={wildcard:"Wildcards",special:"Special",base:"Base",standard:
 /* ---------- Grave automation: the settings ---------- */
 const GR_GROUPS=["special","base","standard","support","wildcard"];
 const GR_DEF={on:false,kinds:[],extra:[],minus:[],rank:true,group:true,gorder:[...GR_GROUPS],korder:[],strong:true,askNone:true};
-/* v60: only cards that can lie in the grave (the cards of the deck and the Ether's own; never Substance cards like Samson or
+/* v60: only cards that can lie in the grave (the cards of the deck and the Ether's own; never Emanation cards like Samson or
    the Debt Collector); in the ranking, every Grunt (2 to 6) is one entry and every Infantry (7 to 10) another, the higher number
    taken first within them */
 const grGraveable=k=>k==="puppet"||!UNIT[k]||!!UNIT[k].ether||k==="slave";
@@ -10290,7 +10290,7 @@ for(const [name,get,set] of [["conjure",()=>conjure,f=>conjure=f],["conjureU",()
     if(cheatOn()&&CH().etherInf){const now=new Set(G.ether.map(c=>c.id));for(const id of before)if(!now.has(id)){const c=[...G.p.flatMap(P=>[...P.deck,...P.hand])].find(x=>x.id===id);
       if(c)G.ether.push(c.unit?mkUnit(c.unit,null):mk(c.rank,c.suit,c.color))}}
     return out})}
-/* every spell in a Cheat List: the spells of other Substances, castable */
+/* every spell in a Cheat List: the spells of other Emanations, castable */
 {const _sr=spellReady;spellReady=function(sp){if(sp&&sp.tribe&&G&&cheatList(G.active)&&G.p[G.active].tribe!==sp.tribe)return phaseOk(sp)&&!spellBlock(sp)&&sp.ok()&&canAfford(G.active,spellCost(sp));return _sr.apply(this,arguments)}}
 {const _c=cast;cast=async function(sp){const P=G&&G.p[G.active];if(sp&&sp.tribe&&P&&cheatList(G.active)&&P.tribe!==sp.tribe){const t=P.tribe;P.tribe=sp.tribe;try{return await _c.apply(this,arguments)}finally{P.tribe=t}}return _c.apply(this,arguments)}}
 {const _rs=renderSpells;renderSpells=function(live){_rs.apply(this,arguments);if(!G||!cheatOn())return;const V=view(),P=G.p[V],box=$("#spells");if(!box||!P||!cheatList(V))return;
@@ -10705,7 +10705,7 @@ if(window.__EC)Object.assign(window.__EC,{drawW:(...a)=>draw(...a),deckShort:(..
    - The sky changes (host setting, Rules tab): by bidding (default), never by itself, every few cycles, or every few rounds
      (a number or dice, 100 at most; by rounds, a new Heavenly Body can start at a random point of its cycle). Cycle events
      and eclipses can each be turned off.
-   - Bidding: every 3 + 1d2 − 1 completed cycles the Heavenly Body announces that it is leaving. Each player bids mana in
+   - Bidding: every 2 + 1d2 − 1 completed cycles the Heavenly Body announces that it is leaving. Each player bids mana in
      secret to keep it for one more cycle or to see it go, or passes. The highest bid wins (keeping wins a tie), and only
      the winner pays, to the Bank; a player under that Heavenly Body's Oath has their bid count half again on a 2 of 1d2.
      If nobody bids to keep it, a new Heavenly Body takes the sky. */
@@ -10732,7 +10732,7 @@ const skyFixed=k=>["off","eaten","fallen"].includes(k);   // no Heavenly Body th
 const cycLen=k=>k==="neptune"?10:CYCLE;   // v71c: Neptune's cycle comes every ten rounds
 const cycleDone=k=>k==="moon"?G.moon.i===4&&G.moon.round>(G.skyArr||0):G.skySince!=null&&G.moon.round>G.skySince&&(G.moon.round-G.skySince)%cycLen(k)===0;
 function skyArrive(){const o=SKYCHG(),k=sky();G._chgK=k;G.skyCyc=0;G.skyArr=G.moon.round;
-  G.skyKeepAt=o.mode==="bid"?3+R(2)-1:null;G.skyEveryN=o.mode==="cycles"||o.mode==="rounds"?skyEvery(o):null}
+  G.skyKeepAt=o.mode==="bid"?2+R(2)-1:null;G.skyEveryN=o.mode==="cycles"||o.mode==="rounds"?skyEvery(o):null}
 /* a new Heavenly Body, picked at random from those that can take the sky (not the one leaving, nothing eaten or banned) */
 function skyPick(){const old=sky(),ban=new Set(G.opts.planetBan||[]);const pool=SHOP_PL.filter(k=>k!==old&&!isEaten(k)&&!ban.has(k));return pool.length?pick(pool):null}
 function skySwap(k,why){const old=sky(),o=SKYCHG();

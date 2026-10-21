@@ -3,7 +3,7 @@
    A card sacrificed from the hand is worth its Ether price − 1d2 + 1 (so the price or one less), rolled when it is sacrificed.
    Resurrection shuffles the grave first.
    Whatever a Bank Debt Collector kills goes to the Ether, and its soul worth pays the victim's debt (to the Bank, or to the player
-   whose loan it is collecting). On a 4 of 1d4 a good card (not a 2 to 10, never a Substance card) turns up at the Auction instead,
+   whose loan it is collecting). On a 4 of 1d4 a good card (not a 2 to 10, never an Emanation card) turns up at the Auction instead,
    for less than the Ether asks.
    Players can ask each other for loans in the Bank window. A loan is due in four of the borrower's turns; what isn't paid then is
    taken from their souls, and if that isn't enough the Bank sends Debt Collectors after them for the lender.

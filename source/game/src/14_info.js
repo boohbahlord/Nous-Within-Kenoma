@@ -208,11 +208,11 @@ function wireMoon(){
   el.addEventListener("click",e=>{if(G&&canAct()&&G.phase==="attack"&&G.sel&&moonAttackable(selStack()))return;e.stopPropagation();show(e);const p=$("#cinfo");if(p)delete p.dataset.hover});
 }
 
-/* ---------- a player's status: hover or click the Substance symbol ---------- */
+/* ---------- a player's status: hover or click the Emanation symbol ---------- */
 function statusHTML(pl){
   const P=G.p[pl],T=TRIBES[P.tribe]||{name:"",sub:""},L=[];
   if(P.cpu==="horde")return `<div class="cin"><div class="cih"><b>The Horde</b></div><p>It spawns every round and never holds back.</p></div>`;
-  L.push(`<dt class="k-type">Substance</dt><dd>${esc(T.name)}${P.randomSub?" (random)":""}</dd>`);
+  L.push(`<dt class="k-type">Emanation</dt><dd>${esc(T.name)}${P.randomSub?" (random)":""}</dd>`);
   L.push(`<dt class="k-soul">Limits</dt><dd>${handCap(pl)}-card hand · ${soulCap(pl)} mana (up to ${surCap(pl)} for a round) · ${P.deck.length} cards in the deck</dd>`);
   const fx=[];
   if(P.bolts)fx.push(`${P.bolts}/3 bolts`);if((P.thralls||[]).length)fx.push(`${P.thralls.length} thralls`);if(P.hunger)fx.push(`hunger ${P.hunger}/7`);

@@ -71,7 +71,7 @@ async function fullMoonToll(){
       if(t.kind==="deck"){for(const c of t.cards){P.deck.splice(P.deck.indexOf(c),1);if(addSoul(pl,c))m+=soulOf(c);else toGrave(c,"spent")}deckShort(pl,t.short||0,"the Full Moon's toll")}
       else{const st=G.board[t.r][t.c];if(st){for(const c of t.cards){const i=st.cards.indexOf(c);if(i<0)continue;st.cards.splice(i,1);
           if(c.captured&&c.captured.length){for(const s of c.captured)toGrave(s,"death");c.captured=[]}
-          if(c.unit&&buryUnit(c,t.r,t.c,pl))continue;   // Substance cards keep their own fates
+          if(c.unit&&buryUnit(c,t.r,t.c,pl))continue;   // Emanation cards keep their own fates
           if(addSoul(pl,c))m+=soulOf(c);else toGrave(c,"spent")}
         if(!st.cards.length){G.board[t.r][t.c]=null;freeCaptive(st,t.r,t.c)}}}
       log(`${plName(pl)} gives the Full Moon ${t.cards.length} card${t.cards.length>1?"s":""}${t.kind==="deck"?" from the deck":""} (+${m} mana).`,"event");
@@ -265,7 +265,7 @@ function placeOpening(pl,r,c){
   if(P.opening.length){G.board[r][c]={owner:pl,cards:P.opening.splice(0),moved:true,attacked:false};log(`${plName(pl)} raises the opening Ace with its Jack on ${coord(r,c)}.`);aceScout(pl,r,c,true)}
   else{G.board[r][c]={owner:pl,cards:P.opening2.splice(0),moved:true,attacked:false};log(`${plName(pl)} raises a second Ace as a base on ${coord(r,c)}.`);aceScout(pl,r,c)}
   G.setupStep=P.opening.length||(P.opening2&&P.opening2.length)?"ace":"more";
-  if(G.setupStep==="more")setupDone(pl);   // Substances that start with cards on the field
+  if(G.setupStep==="more")setupDone(pl);   // Emanations that start with cards on the field
 }
 
 /* ---------------- actions ---------------- */
@@ -352,5 +352,5 @@ function sacrifice(card,from){
   if(from!=="hand")checkWin();
   return true;
 }
-const canSacCard=c=>!(c.unit&&(UNIT[c.unit].hp||UNIT[c.unit].base));   // the Substance cards with hearts (and the Tree) can't be sacrificed
+const canSacCard=c=>!(c.unit&&(UNIT[c.unit].hp||UNIT[c.unit].base));   // the Emanation cards with hearts (and the Tree) can't be sacrificed
 const canSacOnField=(st,c)=>kind(c)!=="ace"&&canSacCard(c)&&!(kind(c)==="king"&&st.cards.length>1);

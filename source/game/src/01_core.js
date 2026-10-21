@@ -7,7 +7,7 @@ const sleep=ms=>{const g=G;return new Promise(r=>{const go=()=>{if(G!==g)return;
 const SUITS={S:"♠",H:"♥",D:"♦",C:"♣"};
 const SUITNAME={S:"Spades",H:"Hearts",D:"Diamonds",C:"Clubs"};
 let COLS=5;const SOUL_CAP=6, HAND_CAP=6;   // COLS is set by the map for each game; SOUL_CAP is also what a Joker can hold
-/* a Substance can raise a player's own limits. Mana can go up to three times the maximum for a round (the surplus);
+/* an Emanation can raise a player's own limits. Mana can go up to three times the maximum for a round (the surplus);
    anything over the maximum fades at the start of the next round */
 const surCap=pl=>G&&G.satStrict&&!oathNow(pl,"saturn")&&!(G.satStrictSafe||[]).includes(pl)?soulCap(pl):Math.min(54,soulCap(pl)*3);   // a strict Saturn (its eclipse) allows no surplus
 const handCap=pl=>G&&G.p[pl]?({jester:7,beginner:8}[G.p[pl].tribe]||HAND_CAP)*(nepGlow(pl)?3:1):HAND_CAP;   // v71d: Neptune's Afterglow triples it
@@ -22,14 +22,14 @@ function soulCap(pl){
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
-/* ---------------- Substances, colors, symbols ----------------
-   A Substance is what a player plays as. Some fix the color and the symbol (the Angel Machine is always Bone and the mask,
+/* ---------------- Emanations, colors, symbols ----------------
+   An Emanation is what a player plays as. Some fix the color and the symbol (the Angel Machine is always Bone and the mask,
    Satan always his dark crimson and the claw); the rest leave both to the player. "soon" ones arrive in the next update. */
 const BONE="#e9dfc4",SATAN_RED="#9c1428";
 const TRIBES={
- random:{name:"Random",sub:"One of the Substances below, picked when the game starts."},
+ random:{name:"Random",sub:"One of the Emanations below, picked when the game starts."},
  beginner:{name:"Beginner",sub:"Eight starting cards, eight mana and an eight-card hand, a second Ace and a Joker in hand, three Grunts already on the field, and Please Don't Hurt Me once a game."},
- angel:{name:"Angel Machine",sub:"Antony's Substance. Always Bone white with the cracked mask. Samson in the deck, Lightning Strike from three bolts, and Three of Swords for 1 mana.",color:BONE,solid:"mask"},
+ angel:{name:"Angel Machine",sub:"Antony's Emanation. Always Bone white with the cracked mask. Samson in the deck, Lightning Strike from three bolts, and Three of Swords for 1 mana.",color:BONE,solid:"mask"},
  satan:{name:"Satan",sub:"Always dark crimson with the claw. The Satan card (three hearts, 6d12, stands alone) and the curse Hate.",color:SATAN_RED,solid:"claw"},
  binah:{name:"Binah",sub:"The Southern tribe of the Euclids. Three Slavemasters capture the soldiers they defeat, and the captured come back as armed Slaves. Jokers hit for +3."},
  jester:{name:"Jester Fool",sub:"The Tree of Neither Life Or Death, Puppets for every soldier, the BullGoat, and Deck of Cards. Seven-card hand, seven mana."},
@@ -38,7 +38,7 @@ const TRIBES={
  leviathan:{name:"The Leviathan",sub:"The black serpent in the deck: three hearts, 6d4 + 1d2 + 6. On a New Moon it can rise onto the moon and tax every New Moon after. Its Jokers can exile souls to the Outer Darkness."},
  firm:{name:"The Firmament",sub:"Always the six-pointed star. Untouched by the Moon's and Saturn's harms and by meteors; a Miner on the moon; Blood Moon, Rain, Asteroid, Fog, and Mars in the sky.",solid:"hexa"},
  yald:{name:"Yaldabaoth",sub:"Always the symbol of Saturn. Night's Judgement eats the moon, God Hunger eats cards, and seven eaten bring Saturn and its Debt Collectors.",solid:"saturn"},
- plain:{name:"No Substance",sub:"The plain rules: no Substance's advantages or drawbacks.",hidden:true}   // v70d: only through the host's No Substances option
+ plain:{name:"No Emanation",sub:"The plain rules: no Emanation's advantages or drawbacks.",hidden:true}   // v70d: only through the host's No Emanations option
 };
 const PLAYABLE=Object.keys(TRIBES).filter(k=>k!=="random"&&!TRIBES[k].soon&&!TRIBES[k].hidden);
 /* v71e: one palette for both a player's color and their accent, in hue order. Bone stays the Angel Machine's and Onyx is too
@@ -59,7 +59,7 @@ const HORDE_COLOR="#97a487";
 /* ---------------- cards ---------------- */
 let uid=0;
 function mk(rank,suit,color){const c={id:++uid,rank,suit,color:color||(suit==="H"||suit==="D"?"red":"black"),owner:null};if(rank==="A"){c.hp=2;c.maxHp=2}return c}   // every Ace is a base with two hearts
-/* Substance cards ("wildcards" and special units). solo: stands alone ("ace": alone or inside an Ace); base: holds cards like an Ace.
+/* Emanation cards ("wildcards" and special units). solo: stands alone ("ace": alone or inside an Ace); base: holds cards like an Ace.
    atk: attack options; def: defense score; hp: hearts. */
 const UNIT={
  samson:{name:"Samson",word:"Mech",hp:2,nat:12,solo:"ace",soul:2,cost:3,diag2:true,
@@ -321,7 +321,7 @@ function toDark(c){if(c.captured&&c.captured.length){for(const s of c.captured)t
 function toGrave(c,cause){
   if(!c)return;
   if(c.unit&&UNIT[c.unit].ether){if(c.hp!=null)c.hp=c.maxHp;c.hate=false;c.readyAt=0;c.shieldAt=0;c.shieldOff=0;c.healAt=0;c.repAt=0;c.inSlot=null}   // Ether cards lie in the grave like any card
-  else if(c.unit&&c.unit!=="slave"){   // Substance cards never lie in the grave
+  else if(c.unit&&c.unit!=="slave"){   // Emanation cards never lie in the grave
     if(c.hp!=null)c.hp=c.maxHp;c.hate=false;
     if(c.unit==="bullgoat"&&c.owner!=null&&G.p[c.owner]){const g=mkUnit("goatbull",c.owner);G.p[c.owner].deck.push(g);shuffle(G.p[c.owner].deck);log(`The BullGoat goes back into ${plName(c.owner)}'s deck, and will come out as the Goatbull.`);return}
     if(c.unit==="samson"){G.limbo.push(c);G.p.forEach(Q=>Q.readLimbo=false);return}

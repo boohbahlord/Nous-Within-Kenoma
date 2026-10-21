@@ -57,7 +57,7 @@ function spellBlock(sp){ // reason the moon or mode forbids a spell, or ""
   return "";
 }
 const phaseOk=sp=>G.phase==="prep"||(G.phase==="attack"&&G.opts.atkSpells&&["Enchantment","Curse","Sorcery","Illusion"].includes(sp.atkSchool||sp.school));
-const spellMine=sp=>!sp.tribe||G.p[G.active].tribe===sp.tribe;   // Substance spells belong to their Substance
+const spellMine=sp=>!sp.tribe||G.p[G.active].tribe===sp.tribe;   // Emanation spells belong to their Emanation
 function spellReady(sp){return spellMine(sp)&&phaseOk(sp)&&!spellBlock(sp)&&sp.ok()&&canAfford(G.active,spellCost(sp))}
 async function cast(sp){
   if(G.busy&&!me().cpu)return;

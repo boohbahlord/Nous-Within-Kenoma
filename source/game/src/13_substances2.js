@@ -1,4 +1,4 @@
-/* ---------------- Substances, second part: Lucifer & Ouroboros, The Leviathan, Yaldabaoth, Tiphareth of Kether ---------------- */
+/* ---------------- Emanations, second part: Lucifer & Ouroboros, The Leviathan, Yaldabaoth, Tiphareth of Kether ---------------- */
 
 /* ---------- the moon when it is eaten, replaced by Saturn, or carries the Leviathan ---------- */
 const moonName=()=>G.moon.gone==="saturn"?"Saturn":G.moon.gone==="mars"?"Mars":PLANETS[G.moon.gone]?PLANETS[G.moon.gone].name:G.moon.gone==="fallen"?"Empty sky":G.moon.gone?"No moon":MOON[G.moon.i];

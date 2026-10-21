@@ -2,7 +2,7 @@
    Three cards wait face down. The price is a range (1d2 + 2d3: 3 to 8 mana) and is rolled when you pay. Once paid, all three are
    yours at once, in your deck, even if you close the window; reveal them one at a time by clicking, or all at once.
    Rarity has loot-box colors. Wildcards are 5% in all, each with its own share by strength (cards that come back as another card count
-   as stronger); the Collector, Slave, Slavemaster and Trafficker never come out. A wildcard comes alone: its Substance's spells don't. */
+   as stronger); the Collector, Slave, Slavemaster and Trafficker never come out. A wildcard comes alone: its Emanation's spells don't. */
 
 const MYS_TIERS=[
   {k:"common",   name:"Common",   col:"#b9b4a8",p:47.5, pool:["2","3","4","5","6","7","8","9","10"]},
