@@ -61,8 +61,8 @@ function faScales(c,pl){const sc={};for(const [k] of FA_PRINC)sc[k]=1;if(!c.hier
   const mine=stacksOf(pl).reduce((a,x)=>a+AI.value(x.st),0),foe=AI.enemyStacks(pl).reduce((a,x)=>a+AI.value(x.st),0),behind=mine<foe;
   for(const [a,b] of c.eq){const da=FA_AGGR[a](c),db=FA_AGGR[b](c);if(da===db)continue;const lead=(behind?da<db:da>db)?a:b;sc[lead]=Math.min(1,sc[lead]+.1)}
   return sc}
-const faMix=(a,b,t)=>{const o={...a};for(const k of ["atk","def","dist","ally","ctr"])o[k]=(a[k]||0)*(1-t)+(b[k]||0)*t;return o};
-const FA_CENTER={atk:1,def:.9,dist:.15,ally:.25,ctr:.6};
+const faMix=(a,b,t)=>{const o={...a};for(const k of ["atk","def","dist","ally","ctr"])o[k]=(a[k]||0)*(1-t)+(b[k]||0)*t;if(t>=.5&&b.k)o.k=b.k;return o};   // the stronger side names the stance
+const FA_CENTER={atk:1,def:.8,dist:.04,ally:.3,ctr:1,k:"center"};   // v70c: it goes for the middle and holds it, striking what comes in reach
 const faRushing=pl=>{const s=faState(pl);return !!(s&&s.cfg&&s.cfg.rush>0&&s.rushUntil!=null&&G.moon.round<=s.rushUntil)};
 /* a Wall matters only when it stands between your field and an enemy base */
 function faWallBlocks(pl,wr,wc){const bases=AI.enemyStacks(pl).filter(e=>hasBase(e.st)&&!hasK(e.st,"wall"));const mine=stacksOf(pl);
