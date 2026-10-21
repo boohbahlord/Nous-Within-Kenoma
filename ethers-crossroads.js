@@ -1338,13 +1338,13 @@ const AI=(()=>{
      attack groups, bases, the Hill) plus leanings for the economy, spells and Oaths. The difficulty still sets how well they
      play (the dice they weigh, the noise, the mistakes); the archetype sets what they want. */
   const ARCH={
-    warlord:{name:"Warlord",sub:"Offensive and reckless: throws cards in, takes long shots, goes straight for the Hill.",bias:.35,w:{atk:1.2,def:.8,dist:1.25},thr:-.07,loss:.8,hill:"straight",econ:.6,spell:1,oaths:{mercury:3,sun:3,moon:2,earth:1}},
-    bulwark:{name:"Bulwark",sub:"Defensive and careful: keeps its cards alive, stacks tall, pulls back when hurt.",bias:-.3,w:{atk:.9,def:1.3,ally:1.3},thr:.07,loss:1.35,grp:"big",hill:"army",flee:true,econ:1.1,spell:1,oaths:{venus:3,saturn:3,earth:2,moon:1}},
-    swarm:{name:"Swarm",sub:"Wide: many small groups that spread out and surround.",bias:.1,w:{ally:1.6},stack:-.4,grp:"small",hill:"groups",econ:1,spell:1,oaths:{moon:2,earth:2,jupiter:2,venus:1}},
-    phalanx:{name:"Phalanx",sub:"Tall: big stacks that move and attack in force.",bias:.05,w:{},stack:.7,grp:"big",hill:"army",econ:1,spell:1,oaths:{jupiter:3,saturn:2,moon:1,earth:1}},
-    siege:{name:"Besieger",sub:"Hunts the enemy's bases.",bias:.2,w:{dist:1.2},bases:true,hill:"straight",econ:.8,spell:1,oaths:{mercury:2,sun:2,earth:1,moon:1}},
-    prospector:{name:"Prospector",sub:"Economy first: Miners in its Aces, the Bank's land, mana.",bias:-.1,w:{def:1.1},thr:.03,hill:"army",econ:2.2,spell:1.1,oaths:{earth:3,jupiter:3,saturn:2,venus:2}},
-    mystic:{name:"Mystic",sub:"Spells and Oaths: curses, odds and conjurings.",bias:0,w:{},hill:"groups",econ:1,spell:1.35,oaths:{moon:3,sun:3,earth:2,saturn:1,venus:1,jupiter:1,mercury:1}}
+    warlord:{name:"Archon",sub:"A ruler of the spheres: offensive and reckless, throws cards in, takes long shots, goes straight for the Hill.",bias:.35,w:{atk:1.2,def:.8,dist:1.25},thr:-.07,loss:.8,hill:"straight",econ:.6,spell:1,oaths:{mercury:3,sun:3,moon:2,earth:1}},
+    bulwark:{name:"Horos",sub:"The Limit that guards the Pleroma: defensive and careful, keeps its cards alive, stacks tall, pulls back when hurt.",bias:-.3,w:{atk:.9,def:1.3,ally:1.3},thr:.07,loss:1.35,grp:"big",hill:"army",flee:true,econ:1.1,spell:1,oaths:{venus:3,saturn:3,earth:2,moon:1}},
+    swarm:{name:"Legion",sub:"For they are many: wide, small clusters that spread out and surround.",bias:.1,w:{ally:1.6},stack:-.4,grp:"small",hill:"groups",econ:1,spell:1,oaths:{moon:2,earth:2,jupiter:2,venus:1}},
+    phalanx:{name:"Monad",sub:"The One: tall stacks that keep together as one army and strike in force.",bias:.05,w:{},stack:.7,grp:"big",hill:"army",econ:1,spell:1,oaths:{jupiter:3,saturn:2,moon:1,earth:1}},
+    siege:{name:"Sabaoth",sub:"The lord of hosts: hunts the enemy's bases.",bias:.2,w:{dist:1.2},bases:true,hill:"straight",econ:.8,spell:1,oaths:{mercury:2,sun:2,earth:1,moon:1}},
+    prospector:{name:"Mammon",sub:"Wealth first: Miners in its Aces, the Bank's land, mana.",bias:-.1,w:{def:1.1},thr:.03,hill:"army",econ:2.2,spell:1.1,oaths:{earth:3,jupiter:3,saturn:2,venus:2}},
+    mystic:{name:"Gnosis",sub:"Knowledge first: spells and Oaths, curses, odds and conjurings.",bias:0,w:{},hill:"groups",econ:1,spell:1.35,oaths:{moon:3,sun:3,earth:2,saturn:1,venus:1,jupiter:1,mercury:1}}
   };
   const archOf=pl=>{const P=G.p[pl];return P&&P.cpu&&P.cpu!=="horde"&&!isNPC(pl)?ARCH[P.arch]||null:null};
   function archCtx(pl){const A=archOf(pl);if(!A)return null;const P=G.p[pl],set=G.opts.koth&&G.opts.koth.cpu||"each";
