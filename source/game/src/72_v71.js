@@ -26,7 +26,8 @@ const SKYCHG=()=>Object.assign({mode:"bid",dice:false,n:4,dn:2,ds:6,rand:false},
 const skyEvery=o=>Math.max(1,Math.min(100,o.dice?sum(rollN(Math.max(1,o.dn),o.ds)):o.n));
 const skyFixed=k=>["off","eaten","fallen"].includes(k);   // no Heavenly Body there to change
 /* a cycle of the body in the sky completes this round: the Moon at the Full Moon, the others every sixth round */
-const cycleDone=k=>k==="moon"?G.moon.i===4&&G.moon.round>(G.skyArr||0):G.skySince!=null&&G.moon.round>G.skySince&&(G.moon.round-G.skySince)%CYCLE===0;
+const cycLen=k=>k==="neptune"?10:CYCLE;   // v71c: Neptune's cycle comes every ten rounds
+const cycleDone=k=>k==="moon"?G.moon.i===4&&G.moon.round>(G.skyArr||0):G.skySince!=null&&G.moon.round>G.skySince&&(G.moon.round-G.skySince)%cycLen(k)===0;
 function skyArrive(){const o=SKYCHG(),k=sky();G._chgK=k;G.skyCyc=0;G.skyArr=G.moon.round;
   G.skyKeepAt=o.mode==="bid"?3+R(2)-1:null;G.skyEveryN=o.mode==="cycles"||o.mode==="rounds"?skyEvery(o):null}
 /* a new Heavenly Body, picked at random from those that can take the sky (not the one leaving, nothing eaten or banned) */
@@ -92,7 +93,7 @@ const cyclesOff=()=>!!G&&G.opts.cycleEvents===false,eclipsesOff=()=>!!G&&G.opts.
 
 /* ---------- the sky's lines: when it changes next ---------- */
 function skyChgLine(){if(!G||!G.moon)return "";const o=SKYCHG(),k=sky();if(skyFixed(k)||o.mode==="never"||G._chgK!==k)return "";
-  const cyc=k==="moon"?8:CYCLE,start=k==="moon"?(G.skyArr||1):(G.skySince||G.moon.round);
+  const cyc=k==="moon"?8:cycLen(k),start=k==="moon"?(G.skyArr||1):(G.skySince||G.moon.round);
   if(o.mode==="rounds"){const left=G.skyArr+G.skyEveryN-G.moon.round;return `A new Heavenly Body takes the sky in ${left} round${left===1?"":"s"}.`}
   const target=o.mode==="bid"?G.skyKeepAt:G.skyEveryN,leftC=Math.max(0,target-(G.skyCyc||0));
   return o.mode==="bid"?`Leaves after ${leftC===0?"this":leftC===1?"its next":`${leftC} more`} cycle${leftC>1?"s":""}, unless bids keep it (${G.skyCyc||0} of ${target} cycles done).`:`Leaves after ${leftC} more cycle${leftC===1?"":"s"} (${G.skyCyc||0} of ${target} done).`}

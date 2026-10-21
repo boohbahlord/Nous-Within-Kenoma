@@ -248,7 +248,7 @@ function newGame(opts){
   for(const P of G.p)if(!P.cpu)P.autoBless=!!(typeof PREF!=="undefined"&&PREF.autoBless);
   if(opts.moon==="off"){G.moon.gone="off";G.moon.i=-1}
   if(opts.moon==="saturn"){G.moon.gone="saturn";G.moon.i=-1;G.saturnBy=null;G.saturnDebt=0}   // Saturn from the start: its favors go to the Bank
-  if(["mars","sun","venus","jupiter","mercury"].includes(opts.moon)){G.moon.gone=opts.moon;G.moon.i=-1;G.planetBy=null;G.sunTears=0}
+  if(["mars","sun","venus","jupiter","mercury","neptune"].includes(opts.moon)){G.moon.gone=opts.moon;G.moon.i=-1;G.planetBy=null;G.sunTears=0}
   G.zone=Array.from({length:rows},()=>Array(COLS).fill(-1));G.backz=Array.from({length:rows},()=>Array(COLS).fill(-1));
   M.seats.forEach((S,pl)=>{for(const [r,c] of S.zone)G.zone[r][c]=pl;for(const [r,c] of S.back)G.backz[r][c]=pl});
   buildDecks();
@@ -2444,7 +2444,7 @@ ${chk("oeach","Each player rolls their own","On by default with one deck; off by
 <fieldset class="pf"><legend>Heavenly Bodies</legend>
 <p class="dim">The starting Heavenly Body is chosen in the Map tab.</p>
 ${chk("omoon","Moon combat bonus","Every attack adds 1d2 at the Full Moon, and every defense adds 1d2 at the New Moon.",true)}
-${chk("opshop","Heavenly Body shop","Any of the seven Heavenly Bodies can be bought for the sky (Astrology) for 7 + 1d3 + 1d12 mana, rolled every round. It rises at the start of the next round; then no Heavenly Body can be bought for six rounds.",true)}
+${chk("opshop","Heavenly Body shop","Any of the eight Heavenly Bodies can be bought for the sky (Astrology) for 7 + 1d3 + 1d12 mana, rolled every round. It rises at the start of the next round; then no Heavenly Body can be bought for six rounds.",true)}
 ${chk("oatk","Spells in the attack phase","Enchantments, curses, sorcery and illusions can also be cast while attacking. Necromancy, conjuring and sacrifices stay in prep.",false)}
 ${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the game opens on a Blood Moon; each deck is shuffled and two thirds of it go to the grave; each player starts with a Joker in hand. With a Heavenly Body in the sky: the game opens under that Heavenly Body's eclipse.",false)}
 ${chk("ocycev","Cycle events (default)","Each Heavenly Body's cycle event when its cycle comes round: the Full Moon's toll, Venus's and Mercury's cycles, the Second Sun's judgement and the rest.",true)}
@@ -3219,7 +3219,7 @@ function deluSees(V,r,c){   // the Delusion's own rule: only what your cards can
   for(const {r:a,c:b} of stacksOf(V)){const dr=Math.abs(a-r),dc=Math.abs(b-c);if(dr<=1&&dc<=1||dr===0&&dc===2||dc===0&&dr===2)return true}
   return false;
 }
-const hiddenFrom=(V,r,c)=>{const st=G.board[r][c];return !!(st&&(totalBlind(V)||isEnemy(st.owner,V)&&!seesTile(V,r,c)))};   // the blind see nothing, their own cards too
+const hiddenFrom=(V,r,c)=>{const st=G.board[r][c];return !!(st&&(totalBlind(V)||isEnemy(st.owner,V)&&!seesTile(V,r,c)||nepHidden(V,st,r,c)))};   // v71c: a stack lost in Neptune's cloud is hidden from its owner   // the blind see nothing, their own cards too
 function applyDelusion(t,by){
   const d=rollN(2,2),n=sum(d);G.p[t].delu={turns:n,maxCut:0,diceCut:0,by};
   tray(by,by===t?"Delusion of Ouroboros":"Delusion of Lucifer",d,`${n} turns`);
@@ -3725,10 +3725,10 @@ ${BROWSE.map(([cat,ks])=>`<h3>${cat}</h3><div class="pickrow">${ks.map(k=>{const
 }
 
 /* ---------- the moon (or what is in its place), hover or click ---------- */
-const SKY_NAME={moon:"Fate",saturn:"No",mars:"Strife",sun:"King",mercury:"Guile",venus:"Harmony",jupiter:"Fortune"};
+const SKY_NAME={moon:"Fate",saturn:"No",mars:"Strife",sun:"King",mercury:"Guile",venus:"Harmony",jupiter:"Fortune",neptune:"Dissolve"};
 function moonInfoHTML(){
   const m=G.moon,V=view(),P=G.p[V],L=[];
-  if(["sun","blacksun","venus","jupiter","mercury","fallen"].includes(m.gone))return planetInfoHTML(m.gone);
+  if(["sun","blacksun","venus","jupiter","mercury","fallen","neptune"].includes(m.gone))return planetInfoHTML(m.gone);
   if(m.gone==="off")L.push("The moon is off for this game: no phases, no gifts, no tolls.");
   else if(m.gone==="mars"){L.push("Mars hangs where the moon was. At the start of each turn, every stack of only Grunts and Infantry (Puppets too) gets advantage on its next attack on 1–5 of 1d8.");
     if(G.moonLev)L.push(`The Leviathan coils on Mars; its toll and its weak spot come every eighth round.`)}
@@ -4808,7 +4808,8 @@ const PLANETS={
   sun:{name:"The Second Sun",word:"King",hunger:3},
   blacksun:{name:"The Black Sun",word:"King",hunger:3},
   venus:{name:"Venus",word:"Harmony",hunger:3},
-  jupiter:{name:"Jupiter",word:"Fortune",hunger:4}
+  jupiter:{name:"Jupiter",word:"Fortune",hunger:4},
+  neptune:{name:"Neptune",word:"Dissolve",hunger:4}   // v71c
 };
 const planetUp=k=>G.moon.gone===k;
 const sunUp=()=>G.moon.gone==="sun";
@@ -5513,7 +5514,7 @@ function spellTipHTML(s){
 }
 
 /* ---------- the sky: names, Forms and a compact info box ---------- */
-const SKY_FORM={moon:"Form of Fate",saturn:"Form of Limitation",mars:"Form of Strife",sun:"Form of Judgement",blacksun:"Form of Judgement",venus:"Form of Harmony",mercury:"Form of Guile",jupiter:"Form of Abundance"};
+const SKY_FORM={moon:"Form of Fate",saturn:"Form of Limitation",mars:"Form of Strife",sun:"Form of Judgement",blacksun:"Form of Judgement",venus:"Form of Harmony",mercury:"Form of Guile",jupiter:"Form of Abundance",neptune:"Form of Dissolve"};
 for(const k in PLANETS)PLANETS[k].word=(SKY_FORM[k]||"").replace("Form of ","");
 for(const k in SKY_NAME)SKY_NAME[k]=(SKY_FORM[k]||"").replace("Form of ","");
 /* both sky boxes share one shape: the name, its state, short lines, and the Form at the bottom */
@@ -5530,7 +5531,7 @@ function skyCommon(L){
 }
 moonInfoHTML=function(){
   const m=G.moon,V=view(),P=G.p[V],L=[];
-  if(["sun","blacksun","venus","jupiter","mercury","fallen"].includes(m.gone))return planetInfoHTML(m.gone);
+  if(["sun","blacksun","venus","jupiter","mercury","fallen","neptune"].includes(m.gone))return planetInfoHTML(m.gone);
   if(m.gone==="off"){L.push("No starting Heavenly Body in this game: no phases, no gifts, no tolls.");return skyBox("No starting Heavenly Body","",L,"")}
   if(m.gone==="eaten"){L.push("Yaldabaoth ate the moon. No phases, no gifts, no tolls, no Blood Moon.");skyCommon(L);return skyBox("The empty sky","",L,"")}
   if(m.gone==="mars"){L.push("Each turn, every stack of only Grunts, Infantry or Puppets gets advantage on its next attack on 1–5 of 1d8.","The moon's phases are stopped.");
@@ -5609,7 +5610,8 @@ const SKY_OPTS=[
  ["sun","The Second Sun","No fog of war; every 2d2 turns each player pays the Bank or goes blind for a turn. No Firmament."],
  ["venus","Venus","The Oath of Venus rewards turns without attacking a player. No Firmament."],
  ["mercury","Mercury","Votes for Peace or Total War, and the Oath of Mercury. No Firmament."],
- ["jupiter","Jupiter","Ace miners bring 1d2, conjurings go on sale, cards trade at the Auction. No Firmament."]];
+ ["jupiter","Jupiter","Ace miners bring 1d2, conjurings go on sale, cards trade at the Auction. No Firmament."],
+ ["neptune","Neptune","Clouds in its blue that hide tiles and lose cards, and mana that strays or doubles."]];
 /* Substances: one tag line for the setup, and a few points for the info panels */
 for(const k in SUBST_TEXT)if(TRIBES[k]){TRIBES[k].sub=SUBST_TEXT[k].tag;TRIBES[k].pts=SUBST_TEXT[k].pts}
 
@@ -5621,7 +5623,8 @@ const SKY_ROWS=[
  ["sun","The Second Sun","The Firmament, with a Joker that shoots itself; or the sky from the start.","No fog of war. Every 2d2 turns it judges each other player: 1d6 mana to the Bank, 1d2 damage to their stacks or 1d2 + 1d3 deck cards, or 1d3 blind turns. Three cries from Yaldabaoth make it the Black Sun."],
  ["venus","Venus","The Firmament; or the sky from the start.","+2 mana a turn and +2 maximum for the caster or a teammate, or +1 a turn while every enemy gets +2 maximum."],
  ["mercury","Mercury","The Firmament; or the sky from the start.","Votes for Peace or Total War, bought Peace, and under its Oath Betrayal, Declare War and Bribe the Banker."],
- ["jupiter","Jupiter","The Firmament; or the sky from the start.","Ace miners bring 1d2, two conjurings on sale each round, trades at the Auction."]];
+ ["jupiter","Jupiter","The Firmament; or the sky from the start.","Ace miners bring 1d2, two conjurings on sale each round, trades at the Auction."],
+ ["neptune","Neptune","The Heavenly Body shop, or a change of sky; or the sky from the start.","Every 4d2 turns a cloud in Neptune's blue settles around the cards for 2d4 turns: its tiles go into fog for everyone, and on a 1 of 1d20 a player loses a stack in it for 1d3 + 1d2 − 1 of their turns. The first mana a player earns or spends each round may stray to another player (a 1 on 1d20) or double (a 20)."]];
 function skyExplainHTML(){return `<details class="sub"><summary>Heavenly Bodies explained</summary><div class="skygrid">${SKY_ROWS.map(([k,n,how,what])=>`<div class="skycard"><b>${n}</b><p>${what}</p><small>${how}</small><em class="skyform">${SKY_FORM[k]}</em></div>`).join("")}</div><p class="dim">Every Heavenly Body but the Moon can be eclipsed: 5% at the start of each round. Hover or tap the sky in a game for what it means for you.</p></details>`}
 const BANK_HELP=[
  ["Where mana goes","Every mana spent on a spell goes to the Bank. The Bank can go 8 into the red, no further."],
@@ -6255,7 +6258,7 @@ if(window.__EC)Object.assign(window.__EC,{saturnEclipse,spawnPuppets,saturnPaid,
 if(window.__EC)window.__EC.render=()=>render();
 
 /* ---------------- Prompt 12, part 2b (v28): the Heavenly Body shop, Venus's and Mercury's cycles, Rob the Bank, Jail ----------------
-   The Heavenly Body shop (a setting, on by default): any of the seven Heavenly Bodies can be bought for the sky for 7 + 1d3 + 1d12 mana, each
+   The Heavenly Body shop (a setting, on by default): any of the eight Heavenly Bodies can be bought for the sky for 7 + 1d3 + 1d12 mana, each
      rolled every round. Everyone is told at once; the Heavenly Body rises at the start of the next round, with a second popup. After a
      purchase no Heavenly Body can be bought for six rounds. Nobody's Substance changes.
    Cycles: a Heavenly Body's cycle comes every sixth round it has hung in the sky.
@@ -6267,8 +6270,8 @@ if(window.__EC)window.__EC.render=()=>render();
      and no more loans, ever; 1, Jail for 2d2 rounds (an easy computer plays for them, no spells), and after Jail no Ether and no
      Bank for ten turns, and no loans, ever. */
 
-const SHOP_PL=["moon","mercury","venus","sun","mars","jupiter","saturn"];
-const SHOP_NAME={moon:"The Moon",mercury:"Mercury",venus:"Venus",sun:"The Second Sun",mars:"Mars",jupiter:"Jupiter",saturn:"Saturn"};
+const SHOP_PL=["moon","mercury","venus","sun","mars","jupiter","saturn","neptune"];   // v71c: Neptune
+const SHOP_NAME={moon:"The Moon",mercury:"Mercury",venus:"Venus",sun:"The Second Sun",mars:"Mars",jupiter:"Jupiter",saturn:"Saturn",neptune:"Neptune"};
 const SHOP_LOCK=6,CYCLE=6;
 const skyWord=k=>SHOP_NAME[k]?SHOP_NAME[k].replace(/^The /,"the "):k==="blacksun"?"the Black Sun":"the empty sky";
 const shopOn=()=>!!G&&G.opts.pshop!==false;
@@ -6338,7 +6341,7 @@ function shopHTML(){
 DRAWERS.shop={title:"Heavenly Body shop",fill:shopHTML};
 {const _p=astroPins;astroPins=function(live,V){let h=_p(live,V);if(!shopOn())return h;const S=SH();
   const st=S.pend?`${SHOP_NAME[S.pend.k]} next round`:G.moon.round<S.next?`opens round ${S.next}`:"open";
-  return h+`<button class="spell drawerbtn shop ${live?"":"off"}" id="openShop" data-tip="The Heavenly Body shop: buy any of the seven Heavenly Bodies for the sky. It rises at the start of the next round."><span class="sn">Heavenly Body shop<small class="dc">${esc(st)}</small></span><em>›</em></button>`}}
+  return h+`<button class="spell drawerbtn shop ${live?"":"off"}" id="openShop" data-tip="The Heavenly Body shop: buy any of the eight Heavenly Bodies for the sky. It rises at the start of the next round."><span class="sn">Heavenly Body shop<small class="dc">${esc(st)}</small></span><em>›</em></button>`}}
 {const _w=wireAstroPins;wireAstroPins=function(){_w();if($("#openShop"))$("#openShop").onclick=()=>openDrawer("shop")}}
 
 /* ---------- cycles: every sixth round a Heavenly Body has hung in the sky ---------- */
@@ -10686,7 +10689,8 @@ const SKYCHG=()=>Object.assign({mode:"bid",dice:false,n:4,dn:2,ds:6,rand:false},
 const skyEvery=o=>Math.max(1,Math.min(100,o.dice?sum(rollN(Math.max(1,o.dn),o.ds)):o.n));
 const skyFixed=k=>["off","eaten","fallen"].includes(k);   // no Heavenly Body there to change
 /* a cycle of the body in the sky completes this round: the Moon at the Full Moon, the others every sixth round */
-const cycleDone=k=>k==="moon"?G.moon.i===4&&G.moon.round>(G.skyArr||0):G.skySince!=null&&G.moon.round>G.skySince&&(G.moon.round-G.skySince)%CYCLE===0;
+const cycLen=k=>k==="neptune"?10:CYCLE;   // v71c: Neptune's cycle comes every ten rounds
+const cycleDone=k=>k==="moon"?G.moon.i===4&&G.moon.round>(G.skyArr||0):G.skySince!=null&&G.moon.round>G.skySince&&(G.moon.round-G.skySince)%cycLen(k)===0;
 function skyArrive(){const o=SKYCHG(),k=sky();G._chgK=k;G.skyCyc=0;G.skyArr=G.moon.round;
   G.skyKeepAt=o.mode==="bid"?3+R(2)-1:null;G.skyEveryN=o.mode==="cycles"||o.mode==="rounds"?skyEvery(o):null}
 /* a new Heavenly Body, picked at random from those that can take the sky (not the one leaving, nothing eaten or banned) */
@@ -10752,7 +10756,7 @@ const cyclesOff=()=>!!G&&G.opts.cycleEvents===false,eclipsesOff=()=>!!G&&G.opts.
 
 /* ---------- the sky's lines: when it changes next ---------- */
 function skyChgLine(){if(!G||!G.moon)return "";const o=SKYCHG(),k=sky();if(skyFixed(k)||o.mode==="never"||G._chgK!==k)return "";
-  const cyc=k==="moon"?8:CYCLE,start=k==="moon"?(G.skyArr||1):(G.skySince||G.moon.round);
+  const cyc=k==="moon"?8:cycLen(k),start=k==="moon"?(G.skyArr||1):(G.skySince||G.moon.round);
   if(o.mode==="rounds"){const left=G.skyArr+G.skyEveryN-G.moon.round;return `A new Heavenly Body takes the sky in ${left} round${left===1?"":"s"}.`}
   const target=o.mode==="bid"?G.skyKeepAt:G.skyEveryN,leftC=Math.max(0,target-(G.skyCyc||0));
   return o.mode==="bid"?`Leaves after ${leftC===0?"this":leftC===1?"its next":`${leftC} more`} cycle${leftC>1?"s":""}, unless bids keep it (${G.skyCyc||0} of ${target} cycles done).`:`Leaves after ${leftC} more cycle${leftC===1?"":"s"} (${G.skyCyc||0} of ${target} done).`}
@@ -10763,5 +10767,103 @@ function skyChgLine(){if(!G||!G.moon)return "";const o=SKYCHG(),k=sky();if(skyFi
   const B=G.bank;if(B&&B.owes)for(const o of B.owes)if(o.atT!=null&&G.turnNo>=o.atT){o.owed=Math.ceil(o.owed*1.2);o.atT=G.turnNo+R(2)}   // what the Bank owes grows 20% every 1d2 turns
   return out}}
 if(window.__EC)Object.assign(window.__EC,{eclipseW:k=>eclipse(k),venusCycleW:()=>venusCycle(),fullMoonTollW:()=>fullMoonToll(),skyChangeRound:()=>skyChangeRound(),skySwap:(...a)=>skySwap(...a),skyAuction:()=>skyAuction(),skyArrive:()=>skyArrive(),skyChgLine:()=>skyChgLine(),cycleRoundW:()=>cycleRound()});
+
+/* ---------------- v71c: Neptune, the Form of Dissolve ----------------
+   In the sky (the shop, a change of sky, or the start): every 4d2 turns a cloud in Neptune's blue settles over the tiles
+   around the cards for 2d4 turns, drifting each turn. Its tiles are in fog for everyone (a tile with your own stack stays
+   yours), even beside your cards. At the start of each player's turn in the cloud, a 1 on 1d20 loses one of their stacks
+   for 1d3 + 1d2 − 1 of their turns: they can't see it or command it (nor can their automation), it never attacks, it
+   defends itself, and it wanders. Found (another of their stacks beside it) it shows to them, see-through, as it does to
+   everyone who can see it. Each round the first mana a player earns or spends rolls 1d20: a 1 sends it to another
+   player (a spender still pays), a 20 doubles it. Its cycle (every ten rounds) and eclipse come next. */
+const NEP_COL="#3f9be0";
+const nepUp=()=>!!(G&&planetUp("neptune"));
+const NEP=()=>G.nep||(G.nep={next:null,cloud:null});
+const nepCloudOn=()=>nepUp()&&!!(G.nep&&G.nep.cloud);
+const nepCloudAt=(r,c)=>nepCloudOn()&&G.nep.cloud.tiles.includes(r*100+c);
+const stFights=st=>st.cards.some(c=>!isBase(c));
+function nepCloudTiles(){const out=[];
+  for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){if(isVoid(r,c)||tileRole(r,c)==="water")continue;
+    let near=false;for(let dr=-1;dr<=1&&!near;dr++)for(let dc=-1;dc<=1;dc++){const a=r+dr,b=c+dc;if(a>=0&&b>=0&&a<G.rows&&b<COLS&&G.board[a][b]){near=true;break}}
+    if(near&&Math.random()<.45)out.push(r*100+c)}
+  return out}
+/* a word in Neptune's blue that rises over a tile, like a critical miss */
+function nepMark(r,c,txt){if(!G||G.opts.fast)return;setTimeout(()=>{const b=document.querySelector(`#board button.tile[data-r="${r}"][data-c="${c}"]`);if(!b)return;
+  const R0=b.getBoundingClientRect(),s=document.createElement("div");s.className="nepmark";s.textContent=txt;s.style.left=(R0.left+R0.width/2+scrollX)+"px";s.style.top=(R0.top+scrollY)+"px";
+  document.body.appendChild(s);setTimeout(()=>s.remove(),1900)},80)}
+
+/* ---------- each turn: the cloud comes and goes, lost stacks wander or are found, and a stack may be lost ---------- */
+{const _bt=beginTurn;beginTurn=function(pl){const out=_bt.apply(this,arguments);if(!G||G.over)return out;
+  if(!nepUp()){if(G.nep&&G.nep.cloud)G.nep.cloud=null;for(const P of G.p)for(const {st} of stacksOf(P.i))if(st.lost)st.lost=null;return out}
+  const N=NEP(),t=G.turnNo;if(N.next==null)N.next=t+sum(rollN(4,2));
+  if(N.cloud&&t>N.cloud.until){N.cloud=null;N.next=t+sum(rollN(4,2));G._vis=null;log("Neptune's cloud lifts.","event")}
+  if(!N.cloud&&t>=N.next){const d=sum(rollN(2,4));N.cloud={until:t+d-1,tiles:nepCloudTiles()};G._vis=null;
+    log(`<b>A cloud in Neptune's blue</b> settles over the field for ${d} turns (2d4): its tiles are in fog for everyone, and cards can be lost in it.`,"event");notify(null,"Neptune's cloud settles over the field.")}
+  else if(N.cloud){N.cloud.tiles=nepCloudTiles();G._vis=null}   // the cloud drifts every turn
+  for(const {st,r,c} of stacksOf(pl)){if(!st.lost)continue;
+    if(tnOf(pl)>=st.lost.untilT){st.lost=null;log(`${plName(pl)} finds a lost stack again on ${coord(r,c)}.`,"event");notify(pl,`You find your lost stack on ${coord(r,c)}.`);continue}
+    if(Math.random()<.6){const opts=[[1,0],[-1,0],[0,1],[0,-1]].map(([a,b])=>[r+a,c+b]).filter(([a,b])=>a>=0&&b>=0&&a<G.rows&&b<COLS&&!isVoid(a,b)&&tileRole(a,b)!=="water"&&!G.board[a][b]);
+      if(opts.length){const [a,b]=pick(opts);G.board[a][b]=st;G.board[r][c]=null;G._vis=null}}}   // it wanders
+  if(N.cloud&&!isNPC(pl)&&!isHorde(pl)&&R(20)===1){const pool=stacksOf(pl).filter(x=>!x.st.lost&&stFights(x.st)&&!hasBase(x.st));
+    if(pool.length){const x=pick(pool),n=Math.max(1,R(3)+R(2)-1);x.st.lost={untilT:tnOf(pl)+n};G._vis=null;
+      log(`<b>Lost in Neptune's cloud</b>: ${plName(pl)}'s stack on ${coord(x.r,x.c)} is lost for ${n} of their turns (1d3 + 1d2 − 1). They can't see or command it; it defends itself.`,"event");
+      notify(pl,`Neptune's cloud: one of your stacks is lost for ${n} turn${n>1?"s":""}.`);nepMark(x.r,x.c,"Lost")}}
+  return out}}
+
+/* ---------- what the cloud hides, and what a lost stack can't do ---------- */
+const nepFound=(st,r,c)=>stacksOf(st.owner).some(x=>x.st!==st&&Math.max(Math.abs(x.r-r),Math.abs(x.c-c))<=1);
+function nepHidden(V,st,r,c){return !!(st&&st.lost&&V!=null&&st.owner===V&&!nepFound(st,r,c))}   // used by hiddenFrom (13_substances2)
+{const _f=fogTile;fogTile=function(V,r,c){if(nepCloudAt(r,c)&&!(G.board[r][c]&&G.board[r][c].owner===V))return true;return _f.apply(this,arguments)}}
+{const _s=seesTile;seesTile=function(V,r,c){const st=G.board[r]&&G.board[r][c];if(st&&V!=null&&isEnemy(st.owner,V)&&nepCloudAt(r,c))return false;return _s.apply(this,arguments)}}
+{const _ao=attackOptions;attackOptions=function(r,c){const st=G.board[r]&&G.board[r][c];if(st&&st.lost)return [];return _ao.apply(this,arguments)}}
+{const _mt=moveTargets;moveTargets=function(){const s=G.sel,st=s&&G.board[s.r]&&G.board[s.r][s.c];if(st&&st.lost)return [];return _mt.apply(this,arguments)}}
+{const _cp=canPlace;canPlace=function(card,r,c){const st=G&&G.board[r]&&G.board[r][c];if(st&&st.lost)return false;return _cp.apply(this,arguments)}}
+{const _sd=siegeDecor;siegeDecor=function(inner,st,V,r,c){const h=_sd.apply(this,arguments);return st&&st.lost?h.replace('class="stack ','class="stack nlost '):h}}
+{const _r=render;render=function(){_r.apply(this,arguments);if(!nepCloudOn())return;
+  for(const b of document.querySelectorAll("#board button.tile"))if(nepCloudAt(+b.dataset.r,+b.dataset.c)&&!b.querySelector(".nepcloud"))b.insertAdjacentHTML("beforeend",'<span class="nepcloud" aria-hidden="true"></span>')}}
+
+/* ---------- stray mana: once a round each player's earning or spending may go astray (1) or double (20) ---------- */
+let nepIn=false;
+const nepStrayOk=pl=>nepUp()&&!nepIn&&!!G.p[pl]&&!G.p[pl].out&&!isNPC(pl)&&!isHorde(pl)&&G.p[pl].nepR!==G.moon.round;
+const nepOther=pl=>{const o=G.p.filter(P=>P.i!==pl&&!P.out&&!isNPC(P.i)&&!isHorde(P.i)).map(P=>P.i);return o.length?pick(o):null};
+{const _gm=giveMana;giveMana=function(pl,n){if(!(n>0)||!nepStrayOk(pl))return _gm.apply(this,arguments);
+  const d=R(20);G.p[pl].nepR=G.moon.round;if(d!==1&&d!==20)return _gm.apply(this,arguments);   // one roll a round: the first mana earned or spent
+  nepIn=true;
+  try{if(d===1){const q=nepOther(pl);if(q==null)return _gm(pl,n);_gm(q,n);
+      log(`<b>Neptune</b>: ${n} mana meant for ${plName(pl)} strays to ${plName(q)} (a 1 on 1d20).`,"event");notify(null,`Neptune: ${esc(G.p[pl].name)}'s ${n} mana strays to ${esc(G.p[q].name)}.`);return 0}
+    const got=_gm(pl,2*n);log(`<b>Neptune</b> doubles the mana ${plName(pl)} earns: ${n} becomes ${2*n} (a 20 on 1d20).`,"event");notify(pl,`Neptune doubles your ${n} mana.`);return got}
+  finally{nepIn=false}}}
+{const _sp=spend;spend=function(pl,n){if(!(n>0)||!nepStrayOk(pl))return _sp.apply(this,arguments);
+  const d=R(20);G.p[pl].nepR=G.moon.round;if(d!==1&&d!==20)return _sp.apply(this,arguments);
+  nepIn=true;
+  try{if(d===1){const q=nepOther(pl),out=_sp(pl,n);if(q!=null){const got=giveMana(q,n);if(G.bank)G.bank.mana-=got;
+        log(`<b>Neptune</b>: the ${n} mana ${plName(pl)} spends strays to ${plName(q)} (a 1 on 1d20).`,"event");notify(null,`Neptune: ${esc(G.p[pl].name)}'s ${n} mana strays to ${esc(G.p[q].name)}.`)}return out}
+    const out=_sp(pl,2*n);log(`<b>Neptune</b> doubles what ${plName(pl)} spends: ${n} becomes ${2*n} (a 20 on 1d20).`,"event");notify(pl,`Neptune doubles what you spend: ${2*n} instead of ${n}.`);return out}
+  finally{nepIn=false}}}
+
+/* ---------- its picture and its box ---------- */
+function neptuneSVG(state){const ev=state==="event",ec=state==="eclipse";
+  const ring=(o,w)=>`<ellipse rx="33" ry="6.2" fill="none" stroke="#bfe0fa" stroke-opacity="${o}" stroke-width="${w}"/>`;
+  return `<svg class="moon neptune${ev?" nepev":""}${ec?" nepec":""}" viewBox="-44 -44 88 88" width="88" height="88" aria-hidden="true"><defs>
+<radialGradient id="nepg" cx="36%" cy="32%"><stop offset="0" stop-color="#a8dcff"/><stop offset=".42" stop-color="#3f86dc"/><stop offset=".84" stop-color="#1c3f99"/><stop offset="1" stop-color="#0a1846"/></radialGradient>
+<radialGradient id="nepglow"><stop offset="52%" stop-color="${NEP_COL}" stop-opacity="${ev?.62:ec?.5:.34}"/><stop offset="100%" stop-color="${NEP_COL}" stop-opacity="0"/></radialGradient>
+<radialGradient id="nepdark"><stop offset="40%" stop-color="#14031f" stop-opacity=".95"/><stop offset="78%" stop-color="#3a0a52" stop-opacity=".55"/><stop offset="100%" stop-color="#000" stop-opacity="0"/></radialGradient>
+<clipPath id="nepclip"><circle r="24"/></clipPath><clipPath id="nepfront"><rect x="-40" y="0" width="80" height="12"/></clipPath></defs>
+${ec?`<circle r="43" fill="url(#nepdark)"/>`:""}<circle r="40" fill="url(#nepglow)"/><g transform="rotate(-14)">${ring(.28,1)}</g>
+<circle r="24" fill="url(#nepg)" stroke="#0a1846"/>
+<g clip-path="url(#nepclip)"><path d="M-26,-10C-12,-13 8,-8 26,-11" stroke="#cdeeff" stroke-width="1.3" fill="none" opacity=".45"/><path d="M-26,6C-10,3 10,8 26,4" stroke="#163f9a" stroke-width="3.2" fill="none" opacity=".7"/><path d="M-26,14C-8,12 9,16 26,13" stroke="#cdeeff" stroke-width="1" fill="none" opacity=".35"/>
+<ellipse cx="-6" cy="3.6" rx="5.6" ry="3" fill="#0a1d57" opacity=".85"/><path d="M-11.5,0.6C-8,-0.8 -3,-0.6 0.4,1" stroke="#ecf8ff" stroke-width="1.1" fill="none" stroke-linecap="round" opacity=".9"/><path d="M9,-4C11,-5 14,-4.6 15.5,-3.6" stroke="#ecf8ff" stroke-width=".8" fill="none" stroke-linecap="round" opacity=".7"/></g>
+<g transform="rotate(-14)" clip-path="url(#nepfront)">${ring(.55,1.2)}</g></svg>`}
+{const _ps=planetSVG;planetSVG=function(k){if(k==="neptune")return neptuneSVG(G.eclipse&&G.eclipse.k==="neptune"?"eclipse":G.nepEv?"event":"");return _ps.apply(this,arguments)}}
+{const _pi=planetInfoHTML;planetInfoHTML=function(k){if(k!=="neptune")return _pi.apply(this,arguments);
+  const V=view(),L=[],N=G.nep||{};
+  if(N.cloud){const left=N.cloud.until-G.turnNo+1;L.push(`A cloud in its blue covers ${N.cloud.tiles.length} tiles for ${left} more turn${left===1?"":"s"}: they are in fog for everyone, and at the start of a player's turn a 1 on 1d20 loses one of their stacks.`)}
+  else L.push(N.next!=null?`The next cloud settles in ${Math.max(1,N.next-G.turnNo)} turn${N.next-G.turnNo===1?"":"s"} (every 4d2 turns, for 2d4).`:"Every 4d2 turns a cloud in its blue settles for 2d4 turns.");
+  const lost=V!=null&&G.p[V]?stacksOf(V).filter(x=>x.st.lost).length:0;if(lost)L.push(`${lost} of your stacks ${lost===1?"is":"are"} lost in the cloud.`);
+  L.push("The first mana each player earns or spends each round rolls 1d20: a 1 sends it to another player (a spender still pays), a 20 doubles it.","The moon's phases are stopped.");
+  skyCommon(L);return skyBox("Neptune","",L,"neptune")}}
+SKY_PARA.neptune="Neptune, the Form of Dissolve, stops the Moon's phases. Every 4d2 turns a cloud in its blue settles over the tiles around the cards for 2d4 turns, drifting with every turn. Its tiles are in fog for everyone, even beside your own cards (a tile with your own stack stays yours). At the start of each player's turn in the cloud, a 1 on 1d20 loses one of their stacks for 1d3 + 1d2 − 1 of their turns: they can't see it or command it, nor can their automation; it never attacks, defends itself, and wanders. Another of their stacks beside it finds it: then they see it, see-through, as everyone does. The first mana each player earns or spends each round rolls 1d20: a 1 sends it to another player (a spender still pays), a 20 doubles it.";
+
+if(window.__EC)Object.assign(window.__EC,{nepCloudAt:(r,c)=>nepCloudAt(r,c),neptuneSVG,giveManaW:(...a)=>giveMana(...a),spendW:(...a)=>spend(...a),beginTurnW:pl=>beginTurn(pl),hiddenFromW:(V,r,c)=>hiddenFrom(V,r,c)});
 
 })();

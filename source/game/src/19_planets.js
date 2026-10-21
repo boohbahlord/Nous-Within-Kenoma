@@ -9,7 +9,8 @@ const PLANETS={
   sun:{name:"The Second Sun",word:"King",hunger:3},
   blacksun:{name:"The Black Sun",word:"King",hunger:3},
   venus:{name:"Venus",word:"Harmony",hunger:3},
-  jupiter:{name:"Jupiter",word:"Fortune",hunger:4}
+  jupiter:{name:"Jupiter",word:"Fortune",hunger:4},
+  neptune:{name:"Neptune",word:"Dissolve",hunger:4}   // v71c
 };
 const planetUp=k=>G.moon.gone===k;
 const sunUp=()=>G.moon.gone==="sun";

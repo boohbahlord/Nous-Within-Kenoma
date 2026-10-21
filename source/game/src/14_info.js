@@ -170,10 +170,10 @@ ${BROWSE.map(([cat,ks])=>`<h3>${cat}</h3><div class="pickrow">${ks.map(k=>{const
 }
 
 /* ---------- the moon (or what is in its place), hover or click ---------- */
-const SKY_NAME={moon:"Fate",saturn:"No",mars:"Strife",sun:"King",mercury:"Guile",venus:"Harmony",jupiter:"Fortune"};
+const SKY_NAME={moon:"Fate",saturn:"No",mars:"Strife",sun:"King",mercury:"Guile",venus:"Harmony",jupiter:"Fortune",neptune:"Dissolve"};
 function moonInfoHTML(){
   const m=G.moon,V=view(),P=G.p[V],L=[];
-  if(["sun","blacksun","venus","jupiter","mercury","fallen"].includes(m.gone))return planetInfoHTML(m.gone);
+  if(["sun","blacksun","venus","jupiter","mercury","fallen","neptune"].includes(m.gone))return planetInfoHTML(m.gone);
   if(m.gone==="off")L.push("The moon is off for this game: no phases, no gifts, no tolls.");
   else if(m.gone==="mars"){L.push("Mars hangs where the moon was. At the start of each turn, every stack of only Grunts and Infantry (Puppets too) gets advantage on its next attack on 1–5 of 1d8.");
     if(G.moonLev)L.push(`The Leviathan coils on Mars; its toll and its weak spot come every eighth round.`)}

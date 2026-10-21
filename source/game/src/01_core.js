@@ -181,7 +181,7 @@ function newGame(opts){
   for(const P of G.p)if(!P.cpu)P.autoBless=!!(typeof PREF!=="undefined"&&PREF.autoBless);
   if(opts.moon==="off"){G.moon.gone="off";G.moon.i=-1}
   if(opts.moon==="saturn"){G.moon.gone="saturn";G.moon.i=-1;G.saturnBy=null;G.saturnDebt=0}   // Saturn from the start: its favors go to the Bank
-  if(["mars","sun","venus","jupiter","mercury"].includes(opts.moon)){G.moon.gone=opts.moon;G.moon.i=-1;G.planetBy=null;G.sunTears=0}
+  if(["mars","sun","venus","jupiter","mercury","neptune"].includes(opts.moon)){G.moon.gone=opts.moon;G.moon.i=-1;G.planetBy=null;G.sunTears=0}
   G.zone=Array.from({length:rows},()=>Array(COLS).fill(-1));G.backz=Array.from({length:rows},()=>Array(COLS).fill(-1));
   M.seats.forEach((S,pl)=>{for(const [r,c] of S.zone)G.zone[r][c]=pl;for(const [r,c] of S.back)G.backz[r][c]=pl});
   buildDecks();

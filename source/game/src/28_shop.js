@@ -1,5 +1,5 @@
 /* ---------------- Prompt 12, part 2b (v28): the Heavenly Body shop, Venus's and Mercury's cycles, Rob the Bank, Jail ----------------
-   The Heavenly Body shop (a setting, on by default): any of the seven Heavenly Bodies can be bought for the sky for 7 + 1d3 + 1d12 mana, each
+   The Heavenly Body shop (a setting, on by default): any of the eight Heavenly Bodies can be bought for the sky for 7 + 1d3 + 1d12 mana, each
      rolled every round. Everyone is told at once; the Heavenly Body rises at the start of the next round, with a second popup. After a
      purchase no Heavenly Body can be bought for six rounds. Nobody's Substance changes.
    Cycles: a Heavenly Body's cycle comes every sixth round it has hung in the sky.
@@ -11,8 +11,8 @@
      and no more loans, ever; 1, Jail for 2d2 rounds (an easy computer plays for them, no spells), and after Jail no Ether and no
      Bank for ten turns, and no loans, ever. */
 
-const SHOP_PL=["moon","mercury","venus","sun","mars","jupiter","saturn"];
-const SHOP_NAME={moon:"The Moon",mercury:"Mercury",venus:"Venus",sun:"The Second Sun",mars:"Mars",jupiter:"Jupiter",saturn:"Saturn"};
+const SHOP_PL=["moon","mercury","venus","sun","mars","jupiter","saturn","neptune"];   // v71c: Neptune
+const SHOP_NAME={moon:"The Moon",mercury:"Mercury",venus:"Venus",sun:"The Second Sun",mars:"Mars",jupiter:"Jupiter",saturn:"Saturn",neptune:"Neptune"};
 const SHOP_LOCK=6,CYCLE=6;
 const skyWord=k=>SHOP_NAME[k]?SHOP_NAME[k].replace(/^The /,"the "):k==="blacksun"?"the Black Sun":"the empty sky";
 const shopOn=()=>!!G&&G.opts.pshop!==false;
@@ -82,7 +82,7 @@ function shopHTML(){
 DRAWERS.shop={title:"Heavenly Body shop",fill:shopHTML};
 {const _p=astroPins;astroPins=function(live,V){let h=_p(live,V);if(!shopOn())return h;const S=SH();
   const st=S.pend?`${SHOP_NAME[S.pend.k]} next round`:G.moon.round<S.next?`opens round ${S.next}`:"open";
-  return h+`<button class="spell drawerbtn shop ${live?"":"off"}" id="openShop" data-tip="The Heavenly Body shop: buy any of the seven Heavenly Bodies for the sky. It rises at the start of the next round."><span class="sn">Heavenly Body shop<small class="dc">${esc(st)}</small></span><em>›</em></button>`}}
+  return h+`<button class="spell drawerbtn shop ${live?"":"off"}" id="openShop" data-tip="The Heavenly Body shop: buy any of the eight Heavenly Bodies for the sky. It rises at the start of the next round."><span class="sn">Heavenly Body shop<small class="dc">${esc(st)}</small></span><em>›</em></button>`}}
 {const _w=wireAstroPins;wireAstroPins=function(){_w();if($("#openShop"))$("#openShop").onclick=()=>openDrawer("shop")}}
 
 /* ---------- cycles: every sixth round a Heavenly Body has hung in the sky ---------- */
