@@ -94,7 +94,7 @@ function notePause(pl,what){const k=what+"|"+G.turnNo;G._blindNote=G._blindNote|
 {const _fr=faRun;faRun=async function(pl){if(G&&faOn(pl)&&blindPause(pl)){notePause(pl,"Field Automation");return}return _fr.apply(this,arguments)}}
 {const _lp=lhAutoPlace;lhAutoPlace=async function(pl){if(G&&blindPause(pl)){const c=G.p[pl].lhCfg;if(c&&c.autoPlace)notePause(pl,"Lazy Hand");return}return _lp.apply(this,arguments)}}
 {const _ls=lhAutoSac;lhAutoSac=async function(pl){if(G&&blindPause(pl))return;return _ls.apply(this,arguments)}}
-{const _l=lazyPlace;lazyPlace=function(card){if(G&&blindPause(G.active)){G.selHand=card;G.mode=null;flash("Lazy Hand pauses while you are blind: place this card yourself.");render();return false}return _l.apply(this,arguments)}}
+{const _l=lazyPlace;lazyPlace=function(card){if(G&&blindPause(G.active)){flash("Lazy Hand pauses while you are blind: place this card yourself.");return false}return _l.apply(this,arguments)}}   // v71k: false lets the click pick the card up
 /* the buttons say so */
 {const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view();if(V==null||!blindPause(V))return;
   const nep=nepEcPause(V);   // v71c: in Neptune's eclipse the switches stay On, crossed out
