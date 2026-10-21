@@ -77,7 +77,7 @@ let COLS=5;const SOUL_CAP=6, HAND_CAP=6;   // COLS is set by the map for each ga
 /* a Substance can raise a player's own limits. Mana can go up to three times the maximum for a round (the surplus);
    anything over the maximum fades at the start of the next round */
 const surCap=pl=>G&&G.satStrict&&!oathNow(pl,"saturn")&&!(G.satStrictSafe||[]).includes(pl)?soulCap(pl):Math.min(54,soulCap(pl)*3);   // a strict Saturn (its eclipse) allows no surplus
-const handCap=pl=>G&&G.p[pl]?({jester:7,beginner:8}[G.p[pl].tribe]||HAND_CAP):HAND_CAP;
+const handCap=pl=>G&&G.p[pl]?({jester:7,beginner:8}[G.p[pl].tribe]||HAND_CAP)*(nepGlow(pl)?3:1):HAND_CAP;   // v71d: Neptune's Afterglow triples it
 function soulCap(pl){
   if(!G||!G.p[pl])return SOUL_CAP;const P=G.p[pl];
   let cap={jester:7,beginner:8}[P.tribe]||SOUL_CAP;
@@ -10874,6 +10874,11 @@ SKY_PARA.neptune="Neptune, the Form of Dissolve, stops the Moon's phases. Every 
    player at its start: give up 1d6 deck cards for a free Clairvoyance, or for 2d6 + 1d2 mana. Once a round, on a 1 of 1d8,
    a player may sacrifice up to three cards from the grave for their soul worth. Cycle events off: none of it. */
 const nepEvOn=()=>nepUp()&&(!!G.nepEv&&G.moon.round<=G.nepEv.until||nepEcOn());   // its eclipse brings every effect of its cycle too
+/* v71d: Lostness puts one player under Neptune's cycle (I) or eclipse (II) whatever is in the sky: these ask for one player */
+const nepSelf=pl=>{const s=G&&pl!=null&&G.nepSelf&&G.nepSelf[pl];return s&&G.moon.round<=s.until?s:null};
+const nepEvFor=pl=>nepEvOn()||!!nepSelf(pl);
+const nepEcFor=pl=>nepEcOn()||!!(nepSelf(pl)&&nepSelf(pl).k==="ec");
+const nepEcState=pl=>nepEcOn()?G.nepEc:nepSelf(pl)&&nepSelf(pl).k==="ec"?nepSelf(pl).st:null;
 const nepRealPl=()=>G.p.filter(P=>!P.out&&!isNPC(P.i)&&!isHorde(P.i)).map(P=>P.i);
 async function nepEventRound(){if(!nepUp()){G.nepEv=null;return}
   const r=G.moon.round;
@@ -10905,19 +10910,19 @@ async function nepGraveSac(pl){let n=0;
     log(`Neptune lets ${plName(pl)} sacrifice ${esc(nameOf(c))} from the grave: +${got} mana.`,"event");render()}}
 /* a sacrifice's mana strays to another player on a 1 of 1d8 */
 let nepSacking=false;
-{const _s=sacrifice;sacrifice=function(card,from){nepSacking=nepEvOn();try{return _s.apply(this,arguments)}finally{nepSacking=false}}}
+{const _s=sacrifice;sacrifice=function(card,from){nepSacking=nepEvFor(G.active);try{return _s.apply(this,arguments)}finally{nepSacking=false}}}
 {const _as=addSoul;addSoul=function(pl,c){if(nepSacking&&R(8)===1){nepSacking=false;const o=nepRealPl().filter(i=>i!==pl);if(o.length){const q=pick(o);
     const ok=_as(q,c);log(`<b>Neptune</b>: the soul ${plName(pl)} sacrifices drifts to ${plName(q)} (a 1 on 1d8).`,"event");notify(null,`Neptune: ${esc(G.p[pl].name)}'s sacrifice drifts to ${esc(G.p[q].name)}.`);return ok}}
   return _as.apply(this,arguments)}}
 /* the Bank's takings from a purchase go to a random player on a 1 of 1d10 (not in Survival) */
-let nepBuying=false;
-{const _sp=spend;spend=function(pl,n){nepBuying=true;try{return _sp.apply(this,arguments)}finally{nepBuying=false}}}
-{const _ba=bankAdd;bankAdd=function(n){if(nepBuying&&n>0&&nepEvOn()&&!survival()&&!nepIn&&R(10)===1){nepBuying=false;const ps=nepRealPl();if(ps.length){const q=pick(ps);nepIn=true;let got=0;try{got=giveMana(q,n)}finally{nepIn=false}
+let nepBuying=null;
+{const _sp=spend;spend=function(pl,n){nepBuying=pl;try{return _sp.apply(this,arguments)}finally{nepBuying=null}}}
+{const _ba=bankAdd;bankAdd=function(n){if(nepBuying!=null&&n>0&&nepEvFor(nepBuying)&&!survival()&&!nepIn&&R(10)===1){nepBuying=null;const ps=nepRealPl();if(ps.length){const q=pick(ps);nepIn=true;let got=0;try{got=giveMana(q,n)}finally{nepIn=false}
     log(`<b>Neptune</b>: the ${n} mana the Bank takes for a purchase drifts to ${plName(q)} (a 1 on 1d10).`,"event");notify(null,`Neptune: ${n} of the Bank's mana drifts to ${esc(G.p[q].name)}.`);return}}
   return _ba.apply(this,arguments)}}
 /* drawn cards lost in the sea, found 1d10 turns later by anyone */
 {const _d=draw;draw=function(pl,n,why,opening){const P=G.p[pl],before=new Set(P.hand),out=_d.apply(this,arguments);
-  if(opening||!nepEvOn()||isNPC(pl)||isHorde(pl))return out;
+  if(opening||!nepEvFor(pl)||isNPC(pl)||isHorde(pl))return out;
   const drawn=P.hand.filter(c=>!before.has(c));let lost=[];
   for(const c of drawn){if(lost.length?R(3)===1:R(20)===1)lost.push(c)}
   if(lost.length){for(const c of lost)P.hand.splice(P.hand.indexOf(c),1);(G.nepLost=G.nepLost||[]).push({cards:lost,from:pl,at:G.turnNo+R(10)});
@@ -10931,11 +10936,11 @@ let nepBuying=false;
     popup("Found at sea",`<p><b>${esc(Q.name)}</b> found the ${L.cards.length} card${L.cards.length>1?"s":""} ${esc(G.p[L.from].name)} lost${q===L.from?": they come home":""}.</p>`)}
   return out}}
 /* the dead may sink: on a 1 of 1d4, to the Outer Darkness (1 on 1d2) or the Ether (2) */
-{const _tg=toGrave;toGrave=function(c,cause){if(c&&cause==="death"&&nepEvOn()&&R(4)===1){const dark=R(2)===1||c.unit&&!(UNIT[c.unit]&&UNIT[c.unit].ether);
+{const _tg=toGrave;toGrave=function(c,cause){if(c&&cause==="death"&&(nepEvOn()||c.owner!=null&&nepSelf(c.owner))&&R(4)===1){const dark=R(2)===1||c.unit&&!(UNIT[c.unit]&&UNIT[c.unit].ether);
     if(dark)toDark(c);else{if(c.captured&&c.captured.length){for(const s of c.captured)toGrave(s,"death");c.captured=[]}c.owner=null;if(c.hp!=null)c.hp=c.maxHp;G.ether.push(c)}
     log(`<b>Neptune</b>: ${esc(nameOf(c))} sinks into ${dark?"the Outer Darkness":"the Ether, for sale"}.`);notify(null,`<span class="nepword">♆ ${dark?"Darkness":"Ether"}</span> ${esc(nameOf(c))} sinks into ${dark?"the Outer Darkness":"the Ether"}.`);return}
   return _tg.apply(this,arguments)}}
-{const _r=render;render=function(){_r.apply(this,arguments);document.documentElement.classList.toggle("nepev",!!G&&nepEvOn())}}
+{const _r=render;render=function(){_r.apply(this,arguments);const V=G?view():null;document.documentElement.classList.toggle("nepev",!!G&&(nepEvFor(V)||G.p.some(P=>P.i!==V&&nepSelf(P.i)&&V!=null&&!isEnemy(P.i,V))))}}   // a teammate under Lostness clouds your view too
 /* G.nepEv drives the glow in the picture too (planetSVG above) */
 
 /* ---------- v71c-3: Neptune's eclipse: 5% a round like the others (or Eclipse mode; never with eclipses off), as long as
@@ -10948,7 +10953,7 @@ let nepBuying=false;
    On, crossed out in Neptune's blue, and wait for it to end. The field may turn around. The music sinks an octave and a
    half step, muffled. ---------- */
 const nepEcOn=()=>nepUp()&&!!G.eclipse&&G.eclipse.k==="neptune";
-function nepEcPause(pl){return !!G&&nepEcOn()}   // used by blindPause (70_v65)
+function nepEcPause(pl){return !!G&&nepEcFor(pl)}   // used by blindPause (70_v65)
 const NEP_SIGNS="☉☽☿♀♂♃♄♅♆♇♈♉♊♋♌♍♎♏♐♑♒♓☊☋☌☍";
 const nepHash=s=>{let h=2166136261;for(const ch of String(s))h=Math.imul(h^ch.charCodeAt(0),16777619);return h>>>0};
 {const _e=eclipse;eclipse=async function(k){if(k!=="neptune")return _e.apply(this,arguments);if(typeof eclipsesOff==="function"&&eclipsesOff())return;
@@ -10965,28 +10970,28 @@ const nepHash=s=>{let h=2166136261;for(const ch of String(s))h=Math.imul(h^ch.ch
 /* acting with a stranger's stack */
 function nepFoePenalty(V){const lost=takeDeck(V,R(2),"Neptune's eclipse");for(const x of lost)toGrave(x,"burn");
   log(`Neptune's eclipse: that stack wasn't ${plName(V)}'s, and it costs ${lost.length} deck card${lost.length===1?"":"s"} (1d2).`,"event");flash(`That stack wasn't yours: Neptune takes ${lost.length} card${lost.length===1?"":"s"} from your deck.`)}
-{const _tc=tileClick;tileClick=function(r,c){if(!G||!nepEcOn())return _tc.apply(this,arguments);
+{const _tc=tileClick;tileClick=function(r,c){if(!G||!nepEcFor(view()))return _tc.apply(this,arguments);
   const V=view(),st=G.board[r][c],S=G.sel;
   if(S&&S.nepFoe){G.sel=null;if(S.r===r&&S.c===c){render();return}
-    const E=G.nepEc,k=V+"|"+G.moon.round,fs=G.board[S.r][S.c];
+    const E=nepEcState(V)||{foe:{}},k=V+"|"+G.moon.round,fs=G.board[S.r][S.c];
     if(fs&&!E.foe[k]&&!G.board[r][c]&&!isVoid(r,c)&&Math.abs(r-S.r)+Math.abs(c-S.c)===1&&R(6)===1){E.foe[k]=1;G.board[r][c]=fs;G.board[S.r][S.c]=null;G._vis=null;
       log(`Neptune's eclipse: ${plName(V)} moves a stranger's stack by accident, to ${coord(r,c)} (a 1 on 1d6).`,"event");render();return}
     nepFoePenalty(V);render();return}
   if(st&&isEnemy(st.owner,V)&&G.active===V&&(G.phase==="prep"||G.phase==="attack")&&!G.mode&&!G.selHand&&canAct()&&stFights(st)){G.sel={r,c,pick:new Set(st.cards.filter(x=>!isBase(x)).map(x=>x.id)),nepFoe:true};render();return}
   return _tc.apply(this,arguments)}}
-document.addEventListener("click",e=>{if(!G||!nepEcOn()||!G.sel||!G.sel.nepFoe)return;const b=e.target.closest&&e.target.closest("#selbox button");if(!b)return;
+document.addEventListener("click",e=>{if(!G||!G.sel||!G.sel.nepFoe||!nepEcFor(view()))return;const b=e.target.closest&&e.target.closest("#selbox button");if(!b)return;
   e.preventDefault();e.stopPropagation();G.sel=null;nepFoePenalty(view());render()},true);   // the Selected box's buttons count as acting with it
 /* twice a round at most, a 1 of 1d20 sends a move or an attack astray */
-const nepAstray=pl=>{const E=G.nepEc;if(!E)return false;const k=pl+"|"+G.moon.round;if((E.mis[k]||0)>=2||R(20)!==1)return false;E.mis[k]=(E.mis[k]||0)+1;return true};
-{const _dm=doMove;doMove=function(r,c){if(nepEcOn()&&G.sel&&!G.sel.nepFoe&&nepAstray(G.active)){const alt=moveTargets().filter(([a,b])=>a!==r||b!==c);
+const nepAstray=pl=>{const E=nepEcState(pl);if(!E)return false;const k=pl+"|"+G.moon.round;if((E.mis[k]||0)>=2||R(20)!==1)return false;E.mis[k]=(E.mis[k]||0)+1;return true};
+{const _dm=doMove;doMove=function(r,c){if(nepEcFor(G.active)&&G.sel&&!G.sel.nepFoe&&nepAstray(G.active)){const alt=moveTargets().filter(([a,b])=>a!==r||b!==c);
     if(alt.length){const [a,b]=pick(alt);log(`Neptune's eclipse: ${plName(G.active)}'s stack wanders astray, to ${coord(a,b)} (a 1 on 1d20).`,"event");return _dm.call(this,a,b)}}
   return _dm.apply(this,arguments)}}
-{const _at=attack;attack=function(r1,c1,r2,c2,mode){if(nepEcOn()&&nepAstray(G.active)){const alt=attackOptions(r1,c1).filter(o=>(o.r!==r2||o.c!==c2)&&(o.mode||null)===(mode||null));
+{const _at=attack;attack=function(r1,c1,r2,c2,mode){if(nepEcFor(G.active)&&nepAstray(G.active)){const alt=attackOptions(r1,c1).filter(o=>(o.r!==r2||o.c!==c2)&&(o.mode||null)===(mode||null));
     if(alt.length){const o=pick(alt);log(`Neptune's eclipse: ${plName(G.active)}'s attack goes astray, at ${coord(o.r,o.c)} (a 1 on 1d20).`,"event");return _at.call(this,r1,c1,o.r,o.c,mode)}}
   return _at.apply(this,arguments)}}
 /* what the eclipse does to the screen */
 let nepMusicOn=false;
-{const _r=render;render=function(){_r.apply(this,arguments);const E=G&&nepEcOn()?G.nepEc:null,h=document.documentElement;
+{const _r=render;render=function(){_r.apply(this,arguments);const V=G?view():null,E=G?nepEcState(V):null,h=document.documentElement;
   h.classList.toggle("nepec",!!E);h.classList.toggle("nepflip",!!(E&&E.flip));
   if(!!E!==nepMusicOn){nepMusicOn=!!E;try{window.ECMusic&&ECMusic.nep&&ECMusic.nep(nepMusicOn)}catch(e){}}
   if(!E)return;
@@ -11000,5 +11005,144 @@ let nepMusicOn=false;
   const bk=document.querySelector("#openBank small");if(bk){const m=/(-?\d+)/.exec(bk.textContent);if(m)bk.textContent=bk.textContent.replace(m[1],String((+m[1])*(nepHash("bank"+rd+E.seed)%2?-1:1)+(nepHash("bk"+rd+E.seed)%9)-4))}}}
 
 if(window.__EC)Object.assign(window.__EC,{endEclipseW:()=>endEclipse(),eclipseRoundW:()=>eclipseRound(),nepEclipseW:()=>eclipse("neptune"),nepEcOnW:()=>nepEcOn(),tileClickW:(r,c)=>tileClick(r,c),nepEventRoundW:()=>nepEventRound(),nepEvOnW:()=>nepEvOn(),toGraveW:(...a)=>toGrave(...a),nepCloudAt:(r,c)=>nepCloudAt(r,c),neptuneSVG,giveManaW:(...a)=>giveMana(...a),spendW:(...a)=>spend(...a),beginTurnW:pl=>beginTurn(pl),hiddenFromW:(V,r,c)=>hiddenFrom(V,r,c)});
+
+/* ---------------- v71d: the Oath of Neptune, Lostness I and II, Neptune Event and Neptune Eclipse, Stray Mana ----------------
+   The Oath of Neptune (any sky): Illusions cost 1d2 − 1 less for you (rolled each turn); +1d2 − 1 mana a turn through
+   Neptune's own cycle, 1d3 through its eclipse. It unlocks:
+   - Lostness I (free): Neptune's cycle on yourself for 2d3 rounds, without its gifts; at its end 2d2 + 1d6 mana, and 1d2
+     more for every round past two. Not during Neptune's cycle or eclipse.
+   - Lostness II (free): Neptune's eclipse on yourself for 2d3 rounds; at its end +1d6 maximum for good, 2d2 + 1d6 mana for
+     every round past two, and Neptune's Afterglow: three times your maximum mana and hand for eight of your turns. Not
+     during Neptune's eclipse.
+   - Either can be laid on an enemy instead (not in the first three rounds): it costs you 1d12 deck cards, 1d8 mana and
+     1d3 hand cards (a Jester rolls the cards with advantage against himself), and they get no gifts. Whoever has laid one
+     on another can't lay one on themselves, and the other way round.
+   - Neptune Event (4 + 1d2 mana) and Neptune Eclipse (10): Neptune takes the sky for its cycle or its eclipse; whatever
+     hung there before pauses and comes back when it ends.
+   Stray Mana (Illusion, 1 mana, every 7d2 rounds; 6d2 or 5d2 under the Oath of Neptune, on a 1d2): choose an enemy. For the
+   rest of the round, each mana they earn or spend rolls 1d20: on a 1 it strays to you (what they earn comes to you, what
+   they spend is paid to you); on a 20 you share it (you gain what they gain, and pay what they pay). */
+OATHS.push(["neptune","Lostness and cheaper illusions"]);
+OATH_SKY.neptune="neptune";
+const nepGlow=pl=>!!(G&&G.p[pl]&&G.p[pl].nepGlow!=null&&tnOf(pl)<=G.p[pl].nepGlow);   // Neptune's Afterglow (handCap, soulCap)
+{const _sc=soulCap;soulCap=function(pl){const c=_sc.apply(this,arguments);return nepGlow(pl)?c*3:c}}
+
+/* ---------- the Oath ---------- */
+SPELLS.push({id:"oath_neptune",name:"Oath of Neptune",cost:0,school:"Astrology",text:"",ok:()=>oathFree("neptune"),
+  run:async()=>{const P=me();if(P.oath==="saturn"&&!P.satLocked){const yes=await ask(G.active,{kind:"yesno",id:"satbreak",title:"Break the Oath of Saturn?",text:SAT_BREAK_TXT,yes:"Break it",no:"Keep it",ai:()=>false});
+      if(!yes){log(`${plName(G.active)} keeps the Oath of Saturn.`);return}}
+    toggleOath("neptune")}});
+SPELL_TEXT.oath_neptune={n:"Any sky.",e:"Illusions cost 1d2 − 1 less for you, rolled each turn. +1d2 − 1 mana each turn through Neptune's own cycle, 1d3 through its eclipse. Unlocks Lostness I and II, Neptune Event and Neptune Eclipse, and shortens Stray Mana's wait.",l:"Cast again to break the Oath."};
+SP("oath_neptune").text=[SPELL_TEXT.oath_neptune.n,SPELL_TEXT.oath_neptune.e,SPELL_TEXT.oath_neptune.l].join(" ");
+{const _sc=spellCost;spellCost=function(sp){const c=_sc.apply(this,arguments);const P=G&&G.p[G.active];
+  if(sp&&sp.school==="Illusion"&&c>0&&P&&oathNow(G.active,"neptune"))return Math.max(0,c-(P.nepCut||0));return c}}
+{const _bt=beginTurn;beginTurn=function(pl){const out=_bt.apply(this,arguments);const P=G&&G.p[pl];if(!P||G.over||!oathNow(pl,"neptune"))return out;
+  P.nepCut=R(2)-1;
+  const m=nepEcOn()?R(3):nepEvOn()?R(2)-1:0;if(m){const got=giveMana(pl,m);if(got)log(`The Oath of Neptune: ${plName(pl)} draws ${got} mana from its ${nepEcOn()?"eclipse":"cycle"}.`)}
+  return out}}
+
+/* ---------- Lostness I and II ---------- */
+function nepLostTargets(k){const me_=G.active,P=G.p[me_],out=[];
+  if(P.nepWay!=="other")out.push(me_);
+  if(P.nepWay!=="self"&&G.moon.round>3)for(const e of enemiesOf(me_))if(!isNPC(e)&&!isHorde(e)&&!G.p[e].out&&!nepSelf(e))out.push(e);
+  return out}
+const nepLostOk=k=>!!G&&oathNow(G.active,"neptune")&&!nepEcOn()&&!(k==="ev"&&nepEvOn())&&!nepSelf(G.active)&&nepLostTargets(k).length>0;
+function nepSignNames(){const names={};for(const P of G.p){let s="";const n=3+R(4);for(let i=0;i<n;i++)s+=NEP_SIGNS[Math.floor(Math.random()*NEP_SIGNS.length)];names[P.i]=s}return names}
+async function castLostness(k){const me_=G.active,P=G.p[me_],nm=k==="ev"?"Lostness I":"Lostness II";
+  const ts=nepLostTargets(k);let t=ts.length===1?ts[0]:await ask(me_,{kind:"player",id:"lostness",title:`${nm}: on whom?`,players:ts,ai:()=>me_});
+  if(t==null)return;
+  if(t!==me_){const adv=P.tribe==="jester",dk=adv?Math.max(R(12),R(12)):R(12),hd=adv?Math.max(R(3),R(3)):R(3),mn=R(8);
+    let gone=0;for(const c of takeDeck(me_,dk,nm,true)){toGrave(c,"burn");gone++}
+    let hand=0;for(const c of takeHand(me_,hd,nm)){toGrave(c,"burn");hand++}
+    const paid=payQuiet(me_,Math.min(mn,Math.max(0,mana(me_))));bankAdd(paid);if(paid<mn)addDebt(me_,mn-paid);
+    P.nepWay="other";log(`${plName(me_)} pays for laying ${nm} on ${plName(t)}: ${gone} deck card${gone===1?"":"s"} (1d12${adv?", the Jester's worse of two":""}), ${hand} hand card${hand===1?"":"s"} (1d3) and ${mn} mana (1d8).`,"event")}
+  else P.nepWay="self";
+  const d=sum(rollN(2,3)),r=G.moon.round,S={k,from:r,until:r+d-1,d,by:me_,self:t===me_};
+  if(k==="ec"){S.st={names:nepSignNames(),seed:R(1e6),flip:R(2)===1,mis:{},foe:{}};const Q=G.p[t];shuffle(Q.deck);shuffle(Q.hand);
+    (G.blindHand=G.blindHand||[]).push({by:"nepself",t,left:999});(G.manaDel=G.manaDel||[]).push({by:"nepself",t,left:999,off:delOff()})}
+  (G.nepSelf=G.nepSelf||{})[t]=S;G._vis=null;
+  log(`<b>${nm}</b>: ${plName(t)} ${t===me_?"gives themselves":"is given"} Neptune's ${k==="ev"?"cycle":"eclipse"} for ${d} round${d>1?"s":""} (2d3)${t===me_?", for its gifts at the end":""}.`,"event");
+  if(t!==me_)notify(t,`${esc(G.p[me_].name)} lays ${nm} on you: Neptune's ${k==="ev"?"cycle":"eclipse"} for ${d} rounds.`);
+  render()}
+function lostnessEnd(t,S){if(S.k==="ec"){for(const k of ["blindHand","manaDel"])if(G[k])G[k]=G[k].filter(x=>!(x.by==="nepself"&&x.t===t))}
+  delete G.nepSelf[t];G._vis=null;const P=G.p[t];if(!P||P.out)return;
+  if(!S.self){log(`${plName(t)} is free of ${S.k==="ev"?"Lostness I":"Lostness II"}.`,"event");return}
+  const extra=Math.max(0,S.d-2);
+  if(S.k==="ev"){const d=[...rollN(2,2),...rollN(1,6),...rollN(extra,2)],m=sum(d),got=giveMana(t,m);tray(t,"Lostness I",d,`${m} mana`);
+    log(`<b>Lostness I</b> ends: ${plName(t)} comes back with ${m} mana (2d2 + 1d6${extra?` + ${extra}d2`:""}${got<m?`; ${got} fit`:""}).`,"event")}
+  else{const mx=R(6);P.maxAdd=(P.maxAdd||0)+mx;let m=0;const d=[];for(let i=0;i<extra;i++){const x=[...rollN(2,2),...rollN(1,6)];d.push(...x);m+=sum(x)}
+    const got=m?giveMana(t,m):0;P.nepGlow=tnOf(t)+8;if(d.length)tray(t,"Lostness II",d,`${m} mana`);
+    log(`<b>Lostness II</b> ends: ${plName(t)} gains ${mx} maximum for good (1d6)${m?` and ${m} mana (2d2 + 1d6 for each of ${extra} round${extra>1?"s":""} past two${got<m?`; ${got} fit`:""})`:""}, and <b>Neptune's Afterglow</b>: three times their maximum mana and hand for eight of their turns.`,"event");
+    notify(t,"Neptune's Afterglow: three times your maximum mana and hand for eight turns.")}}
+PRICE.nepev=()=>4+R(2);
+SPELLS.push(
+ {id:"lost1",name:"Lostness I",cost:0,school:"Illusion",text:"",ok:()=>nepLostOk("ev"),run:async()=>{await castLostness("ev")}},
+ {id:"lost2",name:"Lostness II",cost:0,school:"Illusion",text:"",ok:()=>nepLostOk("ec"),run:async()=>{await castLostness("ec")}},
+ {id:"nepev",name:"Neptune Event",cost:5,dice:"4+1d2",school:"Astrology",text:"",ok:()=>!!G&&oathNow(G.active,"neptune")&&!nepEvOn()&&!G.nepTemp&&!(typeof cyclesOff==="function"&&cyclesOff()),run:async()=>{await nepCall("ev")}},
+ {id:"nepec",name:"Neptune Eclipse",cost:10,school:"Astrology",text:"",ok:()=>!!G&&oathNow(G.active,"neptune")&&!nepEcOn()&&!G.eclipse&&!G.nepTemp&&!(typeof eclipsesOff==="function"&&eclipsesOff()),run:async()=>{await nepCall("ec")}});
+Object.assign(OATH_ONLY,{lost1:"neptune",lost2:"neptune",nepev:"neptune",nepec:"neptune"});
+Object.assign(SPELL_TEXT,{
+ lost1:{n:"The Oath of Neptune. Not during Neptune's cycle or eclipse.",e:"Neptune's cycle on yourself for 2d3 rounds, without its gifts. At its end: 2d2 + 1d6 mana, and 1d2 more for every round past two.",l:"Free. Or lay it on an enemy (not in the first three rounds): it costs you 1d12 deck cards, 1d8 mana and 1d3 hand cards, and nobody gets gifts. Once you lay it on another you can't take it yourself, and the other way round."},
+ lost2:{n:"The Oath of Neptune. Not during Neptune's eclipse.",e:"Neptune's eclipse on yourself for 2d3 rounds. At its end: +1d6 maximum for good, 2d2 + 1d6 mana for every round past two, and Neptune's Afterglow: three times your maximum mana and hand for eight of your turns.",l:"Free. Or lay it on an enemy (not in the first three rounds): it costs you 1d12 deck cards, 1d8 mana and 1d3 hand cards, and nobody gets gifts. Once you lay it on another you can't take it yourself, and the other way round."},
+ nepev:{n:"The Oath of Neptune.",e:"Neptune takes the sky for its cycle (2d3 rounds); whatever hung there pauses and comes back when it ends.",l:"4 + 1d2 mana. Not with cycle events off."},
+ nepec:{n:"The Oath of Neptune.",e:"Neptune takes the sky for its eclipse (2d3 rounds); whatever hung there pauses and comes back when it ends.",l:"10 mana. Not with eclipses off."}});
+for(const id of ["lost1","lost2","nepev","nepec"]){const t=SPELL_TEXT[id];SP(id).text=[t.n,t.e,t.l].join(" ")}
+/* Lostness runs out at the start of a round */
+{const _cr=cycleRound;cycleRound=async function(){await _cr.apply(this,arguments);if(!G||G.over)return;
+  for(const [t,S] of Object.entries(G.nepSelf||{}))if(G.moon.round>S.until)lostnessEnd(+t,S);
+  nepTempRound();render()}}
+
+/* ---------- Neptune Event and Neptune Eclipse: Neptune takes the sky for a while ---------- */
+const NEP_SAVE=["skySince","_skyK","_chgK","skyCyc","skyArr","skyKeepAt","skyEveryN","planetBy","saturnBy","saturnDebt","venus","jupSale","sunTears"];
+async function nepCall(k){const me_=G.active,r=G.moon.round;
+  if(!nepUp()){const prev={gone:G.moon.gone,i:G.moon.i,blood:G.moon.blood,at:r};for(const f of NEP_SAVE)prev[f]=G[f];G.nepTemp={prev,k};
+    if(G.eclipse)endEclipse();G.moon.gone="neptune";G.moon.i=-1;G.moon.blood=false;G.planetBy=me_;G._skyK="neptune";G._chgK="neptune";G.skySince=r;G._vis=null;applyMoonTheme();
+    log(`<b>${k==="ev"?"Neptune Event":"Neptune Eclipse"}</b>: ${plName(me_)} calls Neptune into the sky. ${esc(SHOP_NAME[prev.gone||"moon"]||"The sky")} pauses until it passes.`,"event")}
+  else G.nepTemp={prev:null,k};
+  if(k==="ev"){const d=sum(rollN(2,3));G.nepEv={from:r,until:r+d-1,spell:true};
+    log(`<b>Neptune's cycle</b> for ${d} round${d>1?"s":""} (2d3), called by ${plName(me_)}.`,"event");
+    popup("Neptune is called",`<p>${esc(G.p[me_].name)} calls Neptune's cycle for <b>${d} round${d>1?"s":""}</b> (2d3). The tiles fade, the numbers go dark, and the deep tide plays.</p>`);
+    for(const pl of nepRealPl()){if(G.over)return;await nepOffer(pl)}}
+  else{G.forceNepEc=true;try{await eclipse("neptune")}finally{G.forceNepEc=false}}
+  render()}
+{const _e=eclipse;eclipse=async function(k){if(k==="neptune"&&G.forceNepEc&&typeof eclipsesOff==="function"&&eclipsesOff())return;return _e.apply(this,arguments)}}
+function nepTempRound(){const T=G.nepTemp;if(!T)return;const busy=T.k==="ev"?!!(G.nepEv&&G.moon.round<=G.nepEv.until):!!(G.eclipse&&G.eclipse.k==="neptune");if(busy)return;
+  G.nepTemp=null;if(!T.prev)return;const p=T.prev,held=G.moon.round-p.at;
+  G.moon.gone=p.gone;G.moon.i=p.i;G.moon.blood=p.blood;for(const f of NEP_SAVE)G[f]=p[f];
+  if(G.skySince!=null)G.skySince+=held;if(G.skyArr!=null)G.skyArr+=held;   // its cycle picks up where it paused
+  G.nepEv=null;G._vis=null;applyMoonTheme();
+  log(`Neptune leaves the sky: ${skyWord(sky())} comes back where it paused.`,"event")}
+/* the called cycle sounds like the eclipse: the deep tide and the sunken music */
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.nepEv||!G.nepEv.spell||!nepEvOn())return;
+  try{if(typeof AUD!=="undefined"&&AUD.setAmb&&!G.eclipse)AUD.setAmb("ecl-neptune");if(window.ECMusic&&ECMusic.nep)ECMusic.nep(true)}catch(e){}}}
+
+/* ---------- Stray Mana ---------- */
+PRICE.stray=()=>1;
+SPELLS.push({id:"stray",name:"Stray Mana",cost:1,school:"Illusion",text:"",ok:()=>!!G&&illFoes()&&G.moon.round>=(G.p[G.active].strayNext||0)&&!(G.strayOn&&G.strayOn.by===G.active&&G.strayOn.round===G.moon.round),
+  run:async()=>{const me_=G.active,P=G.p[me_];const t=await pickHandFoe("stray","Stray Mana: whose mana?");if(t==null)return;
+    let n,how;if(oathNow(me_,"neptune")){const c=R(2);n=sum(rollN(c===1?6:5,2));how=`${c===1?6:5}d2 (the Oath of Neptune)`}else{n=sum(rollN(7,2));how="7d2"}
+    P.strayNext=G.moon.round+n;G.strayOn={by:me_,t,round:G.moon.round};
+    log(`<b>Stray Mana</b>: ${plName(me_)} sets Neptune on ${plName(t)}'s mana for the rest of the round. Ready again in ${n} rounds (${how}).`,"event");
+    notify(t,`Stray Mana: your mana may stray to ${esc(P.name)} for the rest of the round.`)}});
+SPELL_TEXT.stray={n:"Choose an enemy.",e:"For the rest of the round, each mana they earn or spend rolls 1d20: on a 1 it strays to you (what they earn comes to you; what they spend is paid to you); on a 20 you share it (you gain what they gain, and pay what they pay).",l:"1 mana. Then not for 7d2 rounds (6d2 or 5d2 under the Oath of Neptune, on a 1d2)."};
+SP("stray").text=[SPELL_TEXT.stray.n,SPELL_TEXT.stray.e,SPELL_TEXT.stray.l].join(" ");
+let strayIn=false;
+const strayOn=pl=>{const S=G&&G.strayOn;return !strayIn&&S&&S.t===pl&&S.round===G.moon.round&&G.p[S.by]&&!G.p[S.by].out?S:null};
+{const _gm=giveMana;giveMana=function(pl,n){const S=n>0?strayOn(pl):null;if(!S)return _gm.apply(this,arguments);const d=R(20);if(d!==1&&d!==20)return _gm.apply(this,arguments);
+  strayIn=true;try{if(d===1){const got=_gm(S.by,n);log(`<b>Stray Mana</b>: ${n} mana meant for ${plName(pl)} strays to ${plName(S.by)} (a 1 on 1d20).`,"event");return 0}
+    const out=_gm(pl,n),g2=_gm(S.by,n);log(`<b>Stray Mana</b>: ${plName(S.by)} shares the ${n} mana ${plName(pl)} earns (a 20 on 1d20).`,"event");return out}finally{strayIn=false}}}
+{const _sp=spend;spend=function(pl,n){const S=n>0?strayOn(pl):null;if(!S)return _sp.apply(this,arguments);const d=R(20);if(d!==1&&d!==20)return _sp.apply(this,arguments);
+  strayIn=true;try{const out=_sp(pl,n);
+    if(d===1){const got=giveMana(S.by,n);if(G.bank)G.bank.mana-=got;log(`<b>Stray Mana</b>: the ${n} mana ${plName(pl)} spends is paid to ${plName(S.by)} (a 1 on 1d20).`,"event")}
+    else{_sp(S.by,n);log(`<b>Stray Mana</b>: ${plName(S.by)} pays the same ${n} mana ${plName(pl)} spends (a 20 on 1d20).`,"event")}
+    return out}finally{strayIn=false}}}
+
+/* a teammate under Lostness II: you see their stacks in a stranger's colors too */
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view();if(V==null||nepEcState(V))return;
+  for(const P of G.p){const S=P.i!==V&&nepSelf(P.i);if(!S||S.k!=="ec"||isEnemy(P.i,V))continue;
+    for(const t of document.querySelectorAll("#board button.tile")){const st=G.board[+t.dataset.r][+t.dataset.c],s=t.querySelector(".stack");if(!st||!s||st.owner!==P.i||!st.cards[0])continue;
+      const col=COLORS[nepHash(st.cards[0].id+"|"+S.st.seed)%COLORS.length][1];s.style.setProperty("--pc",col);s.style.setProperty("--pcb",`color-mix(in oklab,${col} 44%,#211b16)`)}}}}
+
+if(window.__EC)Object.assign(window.__EC,{castLostnessW:k=>castLostness(k),nepCallW:k=>nepCall(k),nepTempRoundW:()=>nepTempRound(),nepSelfW:pl=>nepSelf(pl),cycleRoundW2:()=>cycleRound()});
 
 })();
