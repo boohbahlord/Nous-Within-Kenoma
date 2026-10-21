@@ -156,7 +156,9 @@ const UNIT={
  repair:{name:"Repairman",short:"Repairman",word:"Repairman",nat:0,soul:1,cost:2,noDef:true,noAtk:true,sup:true,attach:true,kind:"Support",ether:true,desc:"repairs Walls, Aces and the Tree"},
  ram:{name:"Battering Ram",short:"Ram",word:"Ram",nat:0,soul:1,cost:3,noDef:true,noAtk:true,sup:true,kind:"Support",ether:true,desc:"two damage to a Wall, worked by one or two soldiers"},
  miner:{name:"Miner",word:"Miner",nat:0,soul:1,cost:2,noDef:true,noAtk:true,sup:true,attach:true,kind:"Support",ether:true,desc:"mana from an Ace's miner slot, or from a crystal"},
- wall:{name:"Wall",word:"Wall",hp:5,nat:10,base:true,soul:3,cost:4,kind:"Base",ether:true,desc:"five hearts, defense 10; holds six cards; only ranged cards fire from it"}
+ wall:{name:"Wall",word:"Wall",hp:5,nat:10,base:true,soul:3,cost:4,kind:"Base",ether:true,desc:"five hearts, defense 10; holds six cards; only ranged cards fire from it"},
+ /* v70c: the Lighthouse: a base that holds one stack, which fights from inside it and takes the blows first */
+ lighthouse:{name:"Lighthouse",word:"Lighthouse",hp:3,nat:0,base:true,soul:2,cost:3,noDef:true,noAtk:true,kind:"Base",ether:true,desc:"three hearts; holds one stack, which fights from inside it and takes the blows first; lights a circle seven tiles across"}
 };
 const unitOf=c=>c&&c.unit?UNIT[c.unit]:null;
 function mkUnit(u,owner){const c=mk(u.toUpperCase(),null,"black");c.unit=u;c.owner=owner;if(UNIT[u].hp){c.hp=UNIT[u].hp;c.maxHp=UNIT[u].hp}return c}
@@ -175,7 +177,7 @@ for(const k in UNIT)TYPEWORD[k]=UNIT[k].word;
 const typeWord=c=>c.puppet?"Puppet":TYPEWORD[kind(c)];
 const KNAME={grunt:"Grunt",infantry:"Infantry",jack:"Jack",queen:"Queen",king:"King",ace:"Ace",joker:"Joker"};
 for(const k in UNIT)KNAME[k]=UNIT[k].short||UNIT[k].name;
-const isBase=c=>kind(c)==="ace"||kind(c)==="tree"||kind(c)==="wall";             // holds other cards inside it
+const isBase=c=>kind(c)==="ace"||kind(c)==="tree"||kind(c)==="wall"||kind(c)==="lighthouse";             // holds other cards inside it
 const isHero=c=>!!(c.unit&&UNIT[c.unit].solo&&UNIT[c.unit].solo!=="pair");   // stands alone (or only inside an Ace)
 const short=c=>c.puppet?"Puppet":c.unit?(UNIT[c.unit].short||UNIT[c.unit].name):c.rank==="JK"?"JK":c.rank+SUITS[c.suit];
 const nameOf=c=>c.puppet?"Puppet":c.unit?(c.unit==="slave"?`Slave (once the ${({J:"Jack",Q:"Queen",K:"King",A:"Ace"}[c.rank]||c.rank)} of ${SUITNAME[c.suit]})`:UNIT[c.unit].name):c.rank==="JK"?`${c.color==="red"?"Red":"Black"} Joker`:(c.puppet?"Puppet ":"")+(({J:"Jack",Q:"Queen",K:"King",A:"Ace"}[c.rank]||c.rank)+" of "+SUITNAME[c.suit]);
@@ -211,6 +213,7 @@ function stackLegal(cards){
     const inside=cards.filter(c=>!isBase(c));
     if(inside.length>6)return false;
     if(kind(aces[0])==="tree"&&inside.some(c=>kind(c)==="king"||c.rank==="10"))return false;   // the Jester doesn't like how Kings and tens taste
+    if(kind(aces[0])==="lighthouse")return !inside.length||stackLegal(inside);   // v70c: the Lighthouse holds one stack, as it would stand on the field
     if(kind(aces[0])==="ace"&&G&&G.opts.aceLock&&inside.some(c=>c.color!==aces[0].color))return false;
     return true;
   }
@@ -224,6 +227,7 @@ function stackLegal(cards){
 }
 const hasK=(st,k)=>st.cards.some(c=>kind(c)===k);
 const hasBase=st=>st.cards.some(isBase);
+const lhInner=st=>st&&st.cards.some(c=>c.unit==="lighthouse")?{...st,cards:st.cards.filter(c=>c.unit!=="lighthouse")}:st;   // v70c: the stack inside a Lighthouse, which does its fighting
 
 /* ---------------- state ---------------- */
 let G=null;
@@ -457,8 +461,9 @@ function tray(pl,label,dice,line,quiet){
 }
 /* the weapon a lone Substance card fights with (Samson picks one; the rest have one) */
 const soloUnit=st=>st&&st.cards.length&&st.cards[0].unit&&UNIT[st.cards[0].unit].weapons&&st.cards.every(c=>c.unit===st.cards[0].unit)?st.cards[0]:null;   // one Substance card, or a pair of Assassins
-function weaponOf(st,mode){const u=soloUnit(st);if(!u)return null;const W=UNIT[u.unit].weapons;return W.find(w=>w.id===mode)||W[0]}
+function weaponOf(st,mode){const u=soloUnit(lhInner(st));if(!u)return null;const W=UNIT[u.unit].weapons;return W.find(w=>w.id===mode)||W[0]}
 function rollStack(st,mode,enemy,fx,weapon){ // mode: "atk" | "def"
+  if(st&&hasK(st,"lighthouse")){st=lhInner(st);if(!st.cards.length)return{total:0,parts:["the Lighthouse stands empty"],dice:[],kingRoll:null}}   // v70c: the stack inside fights; the tower adds nothing
   const once=()=>{
     const parts=[],dice=[];let best=-1,kingRoll=null,aceRoll=null;
     const u=st.cards[0]&&st.cards[0].unit&&st.cards.every(c=>c.unit===st.cards[0].unit)?st.cards[0]:null;
@@ -519,6 +524,7 @@ const shielded=pl=>pl!=null&&G.p[pl]&&!!G.p[pl].shield;          // Please Don't
 const hated=st=>st.cards.some(c=>c.hate);
 function canAttackFrom(st){
   if(st.attacked||st.hypo||st.stun||st.pin)return false;
+  if(hasK(st,"lighthouse")){const s=lhInner(st);return s.cards.length>0&&canAttackFrom(s)}   // v70c: the stack inside a Lighthouse attacks from it
   if(st.cards.every(c=>c.unit&&UNIT[c.unit].noAtk||kind(c)==="queen"))return false;   // Scouts, support cards and Archers don't fight up close
   if(hasBase(st))return false;
   const horde=G&&st.owner!=null&&G.p[st.owner]&&isHorde(st.owner);   // the Horde ignores the lone-King and lone-Queen limits
@@ -557,13 +563,13 @@ function attackOptions(r,c){
     for(const [r2,c2] of tg)for(const w of U.weapons)if(reaches(w.reach,r,c,r2,c2))out.push({r:r2,c:c2,mode:w.id,ranged:true,w,A,card});
   }
   if(!canAttackFrom(st))return out;
-  const u=soloUnit(st),diag=jackOnly(st);
+  const st0=lhInner(st),u=soloUnit(st0),diag=jackOnly(st0);
   for(const [r2,c2,t] of tg){
     if(adjacent(r,c,r2,c2,diag)&&lonely(t)){   // support cards standing alone: take one, or destroy one
       if(canCapture(st,t))out.push({r:r2,c:c2,mode:"capture",ranged:false,w:{name:"Capture",text:`take ${nameOf(captureCard(t))} into this stack's capture slot`}});
       out.push({r:r2,c:c2,mode:"destroy",ranged:false,w:{name:"Destroy",text:`destroy ${nameOf(captureCard(t))}`}});
       continue}
-    if(hasK(st,"ram")&&st.cards.length>1&&hasK(t,"wall")&&adjacent(r,c,r2,c2,false))out.push({r:r2,c:c2,mode:"ram",ranged:false,w:{name:"Battering Ram",text:"two damage to the Wall, no roll"}});
+    if(hasK(st0,"ram")&&st0.cards.length>1&&hasK(t,"wall")&&adjacent(r,c,r2,c2,false))out.push({r:r2,c:c2,mode:"ram",ranged:false,w:{name:"Battering Ram",text:"two damage to the Wall, no roll"}});
     if(u){for(const w of UNIT[u.unit].weapons)if(reaches(w.reach,r,c,r2,c2))out.push({r:r2,c:c2,mode:w.id,ranged:w.reach==="gun"&&!near8(r,c,r2,c2),w})}
     else if(adjacent(r,c,r2,c2,diag))out.push({r:r2,c:c2,mode:null,ranged:false});
   }
@@ -677,18 +683,19 @@ function damage(r,c,n,defending){
       if(A&&!A.captive&&G.board.flat().includes(A)){st.cards.splice(mi,1);takeCaptive(A,m);log(`${plName(A.owner)} captures a Miner from ${coord(r,c)}, and the blow still lands.`)}
       else{st.cards.splice(mi,1);dead.push(m);log(`The Miner on ${coord(r,c)} is the first to fall.`);continue}}
     if(!st.cards.length)break;
-    const base=st.cards.find(isBase);
-    if(base){stealOnDamage(st);base.hp=(base.hp||1)-1;const nm=kind(base)==="ace"?"The Ace":kind(base)==="wall"?"The Wall":"The Tree of Neither Life Or Death";
+    const lh=st.cards.find(x=>x.unit==="lighthouse");   // v70c: the stack inside a Lighthouse takes the blows first; the tower, once nothing else can
+    const base=st.cards.find(x=>isBase(x)&&x!==lh)||(lh&&!st.cards.some(x=>x!==lh&&x.unit!=="ram")?lh:null);
+    if(base){stealOnDamage(st);base.hp=(base.hp||1)-1;const nm=kind(base)==="ace"?"The Ace":kind(base)==="wall"?"The Wall":kind(base)==="lighthouse"?"The Lighthouse":"The Tree of Neither Life Or Death";
       if(base.hp>0){log(`${nm} loses a heart (${base.hp} left); the cards inside are safe.`);continue}
       dead.push(...st.cards.splice(0));log(`${nm} falls, and every card inside it dies with it.`);break}
     // support cards hide behind the fighters; the Battering Ram can't be killed by blows at all
-    const fighters=st.cards.filter(x=>!(x.unit&&UNIT[x.unit].sup)),pool=fighters.length?fighters:st.cards.filter(x=>x.unit!=="ram");
+    const fighters=st.cards.filter(x=>!(x.unit&&UNIT[x.unit].sup)&&x!==lh),pool=fighters.length?fighters:st.cards.filter(x=>x.unit!=="ram"&&x!==lh);
     if(!pool.length){log(`The Battering Ram on ${coord(r,c)} can't be harmed by blows: it has to be captured or destroyed.`);break}
     pool.sort((a,b)=>nat(a)-nat(b));
     const low=pool[0];stealOnDamage(st);
     if(low.hp>1){low.hp--;log(`${esc(nameOf(low))} loses a heart (${low.hp} left).`);continue}
     st.cards.splice(st.cards.indexOf(low),1);const c0=low;dead.push(c0);
-    if(kind(c0)==="king"&&defending&&st.cards.length){dead.push(...st.cards.splice(0));log("The King is defeated in defense: all units with it die.")}
+    if(kind(c0)==="king"&&defending&&st.cards.some(x=>x!==lh)){dead.push(...st.cards.filter(x=>x!==lh));st.cards.splice(0,st.cards.length,...(lh?[lh]:[]));log("The King is defeated in defense: all units with it die.")}
   }
   if(!st.cards.length){G.board[r][c]=null;freeCaptive(st,r,c)}
   if(defending&&dead.length&&G.p[st.owner].tribe==="angel")addBolts(st.owner,dead.length,"a card lost in defense");
@@ -1340,8 +1347,9 @@ const AI=(()=>{
     cache.set(k,p);return p;
   }
   function value(st){let v=0;for(const c of st.cards){v+=1+soulOf(c)*.8+rate(c)/7;if(kind(c)==="joker")v+=2+capMana(c)*1.4;if(kind(c)==="ace")v+=3;if(c.hp)v+=c.hp*2.2;if(kind(c)==="tree")v+=4}return v}
-  function killsOnHit(st){const b=st.cards.find(isBase);if(b)return !(b.hp>1);if(st.cards.length===1)return !(st.cards[0].hp>1);const low=[...st.cards].sort((a,b)=>nat(a)-nat(b))[0];return kind(low)==="king"}
+  function killsOnHit(st){if(hasK(st,"lighthouse")&&st.cards.length>1)st=lhInner(st);const b=st.cards.find(isBase);if(b)return !(b.hp>1);if(st.cards.length===1)return !(st.cards[0].hp>1);const low=[...st.cards].sort((a,b)=>nat(a)-nat(b))[0];return kind(low)==="king"}
   function threat(st){
+    if(hasK(st,"lighthouse")&&st.cards.length>1)st=lhInner(st);   // v70c: what fights from a Lighthouse is as dangerous as it is anywhere
     if(hasBase(st))return 1+(hasK(st,"joker")?3:0);
     let t=Math.max(0,...st.cards.map(c=>kind(c)==="joker"?7:rate(c)))/4+st.cards.length*.4;
     const j=st.cards.find(c=>kind(c)==="joker");if(j)t+=2.5+capMana(j);
@@ -1472,6 +1480,9 @@ const AI=(()=>{
   function placeScore(pl,card,r,c,W){
     const t=G.board[r][c];const S={cards:t?[...t.cards,card]:[card],owner:pl,hypo:t?t.hypo:0};
     const k=kind(card),u=card.unit;
+    if(u==="lighthouse"){if(!fogOn()||t)return -1;let fog=0;for(let dr=-3;dr<=3;dr++)for(let dc=-3;dc<=3;dc++){const rr=r+dr,cc=c+dc;   // v70c: only where it would light up a good piece of fog, and one at a time
+        if(rr>=0&&cc>=0&&rr<G.rows&&cc<COLS&&!isVoid(rr,cc)&&Math.hypot(dr,dc)<=3.5&&fogTile(pl,rr,cc))fog++}
+      return (Math.min(3,fog*.13)-stacksOf(pl).filter(x=>hasK(x.st,"lighthouse")).length*2.5-(enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=1)?1:0))*jit(pl)}
     if(u==="wall")return ((isFront(pl,r,c)?3:1.5)+(enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=3)?1:0)-stacksOf(pl).filter(x=>hasK(x.st,"wall")).length*1.5)*jit(pl);
     if(u==="miner"){if(t&&hasK(t,"ace"))return (t.cards.filter(x=>x.unit==="miner").length<2?4.5:-1)*jit(pl);if(t)return -1;   // v69: two Miners to an Ace, no more
       const cr=(G.crystals||[]).filter(x=>!G.board[x.r][x.c]||G.board[x.r][x.c].owner===pl);if(!cr.length)return -1;
@@ -1481,7 +1492,7 @@ const AI=(()=>{
     if(u==="repair"){const b=t&&t.cards.find(isBase);return (b?3+((b.hp||1)<(b.maxHp||1)?2:0):t?.8:-.5)*jit(pl)}
     if(u==="ram")return (t&&enemyWalls(pl)?3:t?.3:-1)*jit(pl);
     if(k==="tree")return (t?-9:(isBack(pl,r,c)?4:3)-tileScore(pl,{cards:[card],owner:pl},r,c,DEF,false)*.1)*jit(pl);
-    if(t&&hasBase(t)&&k!=="ace")return (hq()?1.2+rate(card)/12-t.cards.length*.15:(W===DEF?.7:.2)-t.cards.length*.3)*jit(pl);   // cards inside an Ace cannot fight, and die with it
+    if(t&&hasBase(t)&&k!=="ace"&&!hasK(t,"lighthouse"))return (hq()?1.2+rate(card)/12-t.cards.length*.15:(W===DEF?.7:.2)-t.cards.length*.3)*jit(pl);   // cards inside an Ace cannot fight, and die with it
     let s=tileScore(pl,S,r,c,W,false)-(t?tileScore(pl,t,r,c,W,false):0)+value(S)-(t?value(t):0);
     if(!t&&G.map&&G.map.large)s+=zonePull(pl,S,W);   // v64: on a large field the long walk ahead is the same from every spawn tile, so it doesn't stop a card going down
     if(k==="ace")s+=lvl(pl)==="hard"?4:2;
@@ -4666,7 +4677,11 @@ function firmFog(V){const F=G.ffog;if(!F||!G.p[F.by]||G.p[F.by].out||tnOf(F.by)>
   return nm?{own:true}:null}
 const visR=(x,ff)=>ff&&ff.own||!hasK(x.st,"scout")?1:2-(ff&&ff.cut?1:0);
 /* every card sees the eight tiles around it; a Scout sees two tiles out in a diamond (which holds those eight too) */
-const inSight=(x,r,c,ff)=>{const dr=Math.abs(x.r-r),dc=Math.abs(x.c-c),v=visR(x,ff);if(G.opts.layout==="koth"&&!ff&&v>=1)return Math.hypot(dr,dc)<=(hasK(x.st,"scout")?4.3:2.3);   // v57: King of the Hill: sight is a circle
+/* v70c: a Lighthouse lights a circle seven tiles across (eleven in King of the Hill, where every sight is longer). Whatever cuts
+   a Scout's sight down to almost nothing (the Firmament's Fog) leaves the Lighthouse no better than a Scout: then it sees
+   like any card. It lights the fog only: hidden Assassins and face-down stacks still need a Scout. */
+const lhR=(x,ff)=>!hasK(x.st,"lighthouse")||ff?0:G.opts.layout==="koth"?5.3:3.5;
+const inSight=(x,r,c,ff)=>{const dr=Math.abs(x.r-r),dc=Math.abs(x.c-c),v=visR(x,ff),L=lhR(x,ff);if(L&&Math.hypot(dr,dc)<=L)return true;if(G.opts.layout==="koth"&&!ff&&v>=1)return Math.hypot(dr,dc)<=(hasK(x.st,"scout")?4.3:2.3);   // v57: King of the Hill: sight is a circle
   return Math.max(dr,dc)<=1&&v>=1||hasK(x.st,"scout")&&!(ff&&ff.own)&&dr+dc<=v}
 
 /* ---------- drawings ---------- */
@@ -8773,7 +8788,7 @@ function bankReport(){if(!G.bank||survival())return;
     if(P.robbed!=null&&P.robbed>=rp.round)rp.bad=true;
     // taxes
     let due=0;const lines=[];
-    for(const {st,r,c} of stacksOf(pl)){const b=st.cards.find(isBase);if(!b||kind(b)==="wall")continue;
+    for(const {st,r,c} of stacksOf(pl)){const b=st.cards.find(isBase);if(!b||kind(b)==="wall"||kind(b)==="lighthouse")continue;   // v70c: Lighthouses pay no tax, like Walls
       if(midTile(r,c)){const t=R(2);due+=t;lines.push(`${KNAME[kind(b)]||"base"} in the middle (${coord(r,c)}): ${t}`)}
       else if((kind(b)==="ace"||kind(b)==="tree")&&R(rp.bad||P.guilty?2:3)===1){const t=R(2);due+=t;lines.push(`${KNAME[kind(b)]||"base"} on ${coord(r,c)}: ${t}`)}}
     let paid=0;if(due){paid=mana(pl)>0?payQuiet(pl,Math.min(due,mana(pl))):0;bankAdd(paid);if(paid<due)rp.bad=true}
@@ -10400,5 +10415,41 @@ const skySignK=()=>{const m=G.moon;return m.gone?(m.gone==="off"?null:m.gone):m.
 {const _f=fullMoonToll;fullMoonToll=async function(){later(()=>planetFX(G.moon.blood?"blood":"moon"));return _f.apply(this,arguments)}}
 {const _d=damage;damage=function(r,c){if(G&&G.sunHurt)later(()=>planetFX("sun",r,c));return _d.apply(this,arguments)}}
 {const _ms=moonStart;moonStart=async function(){const was=G.moon.blood;const out=await _ms.apply(this,arguments);if(G.moon.blood&&!was)later(()=>planetFX("blood"));return out}}
+
+/* ---------------- v70c ----------------
+   - The Lighthouse: a base for 3 mana, as many as you like (Lighthouse Conjure). In your prep phase it goes up on any empty
+     tile beside or diagonal to one of your stacks that isn't a base, anywhere on the field. It holds one stack, which
+     attacks and defends from inside it and takes the blows first; the tower itself has three hearts and no defense, a
+     Repairman can mend it and a Healer can't. It lights a circle seven tiles across (the rules live in 01_core, 02_combat,
+     05_ai and 18_sky; this file adds the card to the game's lists, the Ether and the computer's habits). */
+
+/* a lighthouse on its rock: a banded tower, the gallery, the lamp between the lantern's posts, beams thrown both ways */
+UNIT_ICON.lighthouse=`<path fill="@" stroke="none" d="M-5,10.2L-3.1,-2.6H3.1L5,10.2Z"/><path fill="#bg" stroke="none" d="M-3.55,0.4H3.55L3.81,2.2H-3.81Z M-4.23,5H4.23L4.5,6.8H-4.5Z M-1.15,10.2V8.5a1.15,1.15 0 0,1 2.3,0V10.2Z"/><path fill="@" stroke="none" d="M-4.9,-2.4H4.9V-3.7H-4.9Z"/><path stroke-width=".9" d="M-2.3,-3.7V-7.4 M2.3,-3.7V-7.4"/><circle fill="@" stroke="none" cx="0" cy="-5.55" r="1.3"/><path fill="@" stroke="none" d="M-3.4,-7.4C-3,-9.4 -1.6,-10.4 0,-10.6C1.6,-10.4 3,-9.4 3.4,-7.4Z"/><path stroke-width="1.1" d="M0,-10.6V-11.9"/><path stroke-width=".7" d="M-3.7,-6.3L-11.6,-9.1 M-3.7,-4.8L-11.6,-2 M3.7,-6.3L11.6,-9.1 M3.7,-4.8L11.6,-2"/><path stroke-width="1.3" d="M-8.6,10.8C-6.8,9.8 -5.6,10.3 -4.6,10.3H4.6C5.6,10.3 6.8,9.8 8.6,10.8"/>`;
+UNIT_MARK.lighthouse="B";UNLIMITED.add("lighthouse");
+INFO.lighthouse=["Lighthouse (base)","Lighthouse",[["Hearts","three, and no defense of its own: the stack inside takes the blows first, then the tower"],
+  ["Holds","one stack, as it could stand on the field (no other base); that stack attacks and defends from inside it"],
+  ["Light","lifts the fog of war in a circle seven tiles across (eleven in King of the Hill); under the Firmament's Fog it sees no farther than any card"],
+  ["Goes up","in your prep phase, on any empty tile beside or diagonal to one of your stacks that isn't a base, anywhere on the field"],
+  ["Moves","never"],["Healing","a Healer can't heal it; a Repairman can"],["Conjure","3 mana; as many as you like"]],"A lighthouse on its rock, throwing its light both ways."];
+ETHER_SHOP.find(g=>g[0]==="Base")[1].push(["clight","Lighthouse"]);ETHER_IDS.add("clight");ETHER_KIND.clight="lighthouse";VENUS_CJ.add("clight");
+BROWSE.find(g=>g[0]==="Base")[1].push("lighthouse");CARD_TREE.find(g=>g[0]==="Bases")[1].push("lighthouse");LH_UNITS.splice(LH_UNITS.indexOf("tree")+1,0,"lighthouse");
+{const i=FA_TKEYS.indexOf("tree")+1;FA_TK.splice(i,0,["lighthouse","Lighthouses"]);FA_TKEYS.splice(i,0,"lighthouse");TGROUP.lighthouse="base"}   // Field Automation ranks it with the bases, not as a wildcard
+SPELLS.push({id:"clight",name:"Lighthouse Conjure",cost:3,school:"Conjuring",text:"A Lighthouse comes into your deck, made from nothing. In your prep phase it goes up beside or diagonal to one of your stacks that isn't a base, anywhere on the field. It lights a circle seven tiles across and holds one stack, which fights from inside it and takes the blows first; three hearts, no defense.",ok:()=>true,run:()=>conjureU("lighthouse")});
+SPELL_TEXT.clight={e:"A Lighthouse comes into your deck, made from nothing.",l:"It goes up beside or diagonal to one of your stacks that isn't a base, anywhere on the field, and lights a circle seven tiles across. It holds one stack, which fights from inside it and takes the blows first. Three hearts, no defense."};
+
+/* where it can go up: an empty tile beside or diagonal to one of your stacks that isn't a base (spawn lines don't matter) */
+const lhSpot=(pl,r,c)=>!isVoid(r,c)&&!G.board[r][c]&&stacksOf(pl).some(x=>!hasBase(x.st)&&Math.max(Math.abs(x.r-r),Math.abs(x.c-c))===1);
+{const _cp=canPlace;canPlace=function(card,r,c){if(card&&card.unit==="lighthouse")return !!G&&G.phase!=="setup"&&lhSpot(G.active,r,c);return _cp.apply(this,arguments)}}
+{const _rs=renderSel;renderSel=function(live){_rs.apply(this,arguments);if(!G||!G.selHand||G.selHand.unit!=="lighthouse")return;const p=$("#selbox")&&[...$("#selbox").querySelectorAll("p")].find(x=>/selected\./.test(x.textContent));
+  if(p)p.innerHTML=`<b>Lighthouse</b> selected. Click a highlighted tile beside or diagonal to one of your stacks (not a base) to raise it, anywhere on the field.`}}
+
+/* the computer: it keeps one for a foggy field and conjures one now and then, never a string of them */
+{const _k=keepSupport;keepSupport=function(pl,c){if(c&&c.unit==="lighthouse")return fogOn();return _k.apply(this,arguments)}}
+{const _as=aiSubstance;aiSubstance=async function(pl,W){const P=G.p[pl];   // asked first, while the turn's mana is still there; one Lighthouse at a time
+  if(P&&!G.over&&fogOn()&&G.moon.round>=3&&P.cpu&&P.cpu!=="horde"&&!isNPC(pl)&&mana(pl)>=4&&Math.random()<({hard:.15,medium:.1}[P.cpu]||.05)
+    &&![...P.hand,...P.deck,...stacksOf(pl).flatMap(x=>x.st.cards)].some(c=>c.unit==="lighthouse")){const sp=SP("clight");if(sp&&spellReady(sp)){await cast(sp);render();await sleep(420)}}
+  return _as.apply(this,arguments)}}
+
+if(window.__EC)Object.assign(window.__EC,{lhSpot:(...a)=>lhSpot(...a),canPlaceW:(...a)=>canPlace(...a),damageW:(...a)=>damage(...a),stackLegalW:(...a)=>stackLegal(...a),fogTileW:(...a)=>fogTile(...a),rollStackW:(...a)=>rollStack(...a)});
 
 })();

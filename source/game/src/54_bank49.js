@@ -25,7 +25,7 @@ function bankReport(){if(!G.bank||survival())return;
     if(P.robbed!=null&&P.robbed>=rp.round)rp.bad=true;
     // taxes
     let due=0;const lines=[];
-    for(const {st,r,c} of stacksOf(pl)){const b=st.cards.find(isBase);if(!b||kind(b)==="wall")continue;
+    for(const {st,r,c} of stacksOf(pl)){const b=st.cards.find(isBase);if(!b||kind(b)==="wall"||kind(b)==="lighthouse")continue;   // v70c: Lighthouses pay no tax, like Walls
       if(midTile(r,c)){const t=R(2);due+=t;lines.push(`${KNAME[kind(b)]||"base"} in the middle (${coord(r,c)}): ${t}`)}
       else if((kind(b)==="ace"||kind(b)==="tree")&&R(rp.bad||P.guilty?2:3)===1){const t=R(2);due+=t;lines.push(`${KNAME[kind(b)]||"base"} on ${coord(r,c)}: ${t}`)}}
     let paid=0;if(due){paid=mana(pl)>0?payQuiet(pl,Math.min(due,mana(pl))):0;bankAdd(paid);if(paid<due)rp.bad=true}

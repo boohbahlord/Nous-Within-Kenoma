@@ -286,7 +286,7 @@ b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({beha
 </main>''', 1)
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
-play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=74">', ec=True) + f'''<main class="wide game">
+play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=75">', ec=True) + f'''<main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
@@ -324,8 +324,8 @@ play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="eth
 </main>
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
-<script src="ethers-crossroads-quotes.js?v=74"></script>
-<script src="ethers-crossroads.js?v=74"></script>
+<script src="ethers-crossroads-quotes.js?v=75"></script>
+<script src="ethers-crossroads.js?v=75"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 
