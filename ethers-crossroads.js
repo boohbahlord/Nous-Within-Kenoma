@@ -2131,9 +2131,9 @@ function render(){
   $("#board").querySelectorAll("button.tile").forEach(b=>b.onclick=()=>tileClick(+b.dataset.r,+b.dataset.c));
   // player boxes
   const others=G.p.map(P=>P.i).filter(i=>i!==V&&!isNPC(i));
-  if(others.length===1){$("#foe").classList.remove("multi");$("#foe").innerHTML=pboxHTML(others[0],true);$("#foe").style.setProperty("--pc",G.p[others[0]].color)}
+  if(others.length===1){$("#foe").classList.remove("multi");$("#foe").innerHTML=pboxHTML(others[0],true);$("#foe").style.setProperty("--pc",cbMap(G.p[others[0]].color))}
   else{$("#foe").classList.add("multi");$("#foe").innerHTML=others.map(o=>`<div class="pbox sub" style="--pc:${G.p[o].color}">${pboxHTML(o,true)}</div>`).join("")}
-  $("#me").innerHTML=pboxHTML(V,false);$("#me").style.setProperty("--pc",G.p[V].color);
+  $("#me").innerHTML=pboxHTML(V,false);$("#me").style.setProperty("--pc",cbMap(G.p[V].color));
   $("#shared").innerHTML=`<button class="link limbo-l" id="seegrave">Grave <b>${G.grave.length}</b></button><button class="link" id="seeether">Ether <b>${G.ether.length}</b></button><button class="link dark-l" id="seedark">Outer Darkness <b>${G.dark.length}</b></button>`;
   $("#seegrave").onclick=()=>viewBox("The Grave",G.grave,"limbo","Shared by every player. The dead sleep here until something raises them.");
   $("#seeether").onclick=showEther;
@@ -2491,6 +2491,8 @@ ${chk("oskyrand","A random start","Every few rounds only. Each new Heavenly Body
 <label class="opt"><input type="checkbox" id="danimc" ${PREF.fxCards!==false?"checked":""}><span>Card animations (on by default)<small>Moves, strikes, wounds, deaths (a white skull rises), sacrifices, mana and shuffles.</small></span></label>
 <label class="opt"><input type="checkbox" id="danimm" ${PREF.fxMagic!==false?"checked":""}><span>Magic and other animations (on by default)<small>Spells, the sky, fire and weather, and the drifting fog. Off, the fog of war stands still.</small></span></label></div>
 <p class="dim">Turning animations off helps slower phones. Also in the Display bar at the bottom of the game.</p></fieldset>
+<fieldset class="pf"><legend>Colors</legend><div class="opts">
+<label class="opt"><input type="checkbox" id="dcb" ${PREF.cb?"checked":""}><span>Colorblind-safe colors (off by default)<small>Every player shows in a color that red-green and blue-yellow colorblind eyes can tell apart, the nearest to the one they picked. Their cards and stacks carry a faint pattern of their own and always show their symbol. Only on this device.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Background lines</legend><div class="opts">
 <label class="opt"><input type="radio" name="dlines" value="1" ${PREF.lines!==false?"checked":""}><span>On (default)<small>Thin black lines across the page behind everything, and now and then a black bar.</small></span></label>
 <label class="opt"><input type="radio" name="dlines" value="0" ${PREF.lines===false?"checked":""}><span>Off<small>A plain background, on every page of the site.</small></span></label></div></fieldset>
@@ -3105,7 +3107,7 @@ function showPop(){
 function notify(pl,html){
   if(!G||G.opts.fast)return;
   let box=$("#notes");if(!box){box=document.createElement("div");box.id="notes";box.setAttribute("aria-live","polite");document.body.appendChild(box)}
-  const n=document.createElement("div");n.className="note";n.style.setProperty("--pc",pl!=null&&G.p[pl]?G.p[pl].color:"#e6d6bd");n.innerHTML=html;
+  const n=document.createElement("div");n.className="note";n.style.setProperty("--pc",pl!=null&&G.p[pl]?cbMap(G.p[pl].color):"#e6d6bd");n.innerHTML=html;
   n.onclick=()=>n.remove();box.prepend(n);while(box.children.length>4)box.lastChild.remove();
   setTimeout(()=>{n.classList.add("out");setTimeout(()=>n.remove(),700)},5600);
 }
@@ -6927,7 +6929,7 @@ const FX={
     for(const [r,c,rect] of rs){const d=Math.hypot(r-mr,c-mc);FX.play(FX.make("wash",rect,{col}),[{opacity:0},{opacity:strength,offset:.4},{opacity:0}],900,d*70)}},
   all(){const t=[];for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(!isVoid(r,c))t.push([r,c]);return t},
   strike(a,b,col){if(!a||!b)return;const x1=a.left+a.width/2,y1=a.top+a.height/2,x2=b.left+b.width/2,y2=b.top+b.height/2,len=Math.hypot(x2-x1,y2-y1),ang=Math.atan2(y2-y1,x2-x1)*180/Math.PI;
-    const e=document.createElement("div");e.className="fx streak";e.style.setProperty("--fc",col);Object.assign(e.style,{left:x1+"px",top:(y1-2)+"px",width:len+"px",transform:`rotate(${ang}deg)`});FX.layer().appendChild(e);
+    const e=document.createElement("div");e.className="fx streak";e.style.setProperty("--fc",cbMap(col));Object.assign(e.style,{left:x1+"px",top:(y1-2)+"px",width:len+"px",transform:`rotate(${ang}deg)`});FX.layer().appendChild(e);
     FX.play(e,[{clipPath:"inset(0 100% 0 0)",opacity:1},{clipPath:"inset(0 0 0 0)",opacity:1,offset:.55},{clipPath:"inset(0 0 0 100%)",opacity:.2}],320,0,"ease-in")},
   hit(rect,col="#fff"){FX.play(FX.make("flash",rect,{col}),[{opacity:.75},{opacity:0}],260,120)},
   slide(a,b,col){if(!a||!b)return;const e=FX.make("ghost",a,{col,w:a.width*.82,h:a.height*.82});if(!e)return;
@@ -9838,7 +9840,7 @@ function kothWin(g,why){if(G.over)return;const w=g[0]==="t"?alive().find(i=>!isN
   if(!kothOn()){if(bar)bar.remove();return}
   const K=G.opts.koth,S=G.koth||(G.koth={score:{},tug:0,last:null}),hold=new Map();
   for(let r=HILL[0];r<=HILL[1];r++)for(let c=HILL[0];c<=HILL[1];c++){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(!t)continue;t.classList.add("hilltile");
-    const st=G.board[r][c];if(st&&!isNPC(st.owner)&&G.p[st.owner]){t.style.setProperty("--hc",kothGroupColor(kothGroup(st.owner)));t.style.setProperty("--ho",G.p[st.owner].color);t.classList.add("held")}}
+    const st=G.board[r][c];if(st&&!isNPC(st.owner)&&G.p[st.owner]){t.style.setProperty("--hc",cbMap(kothGroupColor(kothGroup(st.owner))));t.style.setProperty("--ho",cbMap(G.p[st.owner].color));t.classList.add("held")}}
   for(const [g] of kothHolders())hold.set(g,true);
   if(!bar){bar=document.createElement("div");bar.id="kothbar";const w=$(".camwrap")||$("#board");w.parentNode.insertBefore(bar,w)}
   const groups=K.team?["t0","t1"]:alive().filter(i=>!isNPC(i)&&!isHorde(i)).map(i=>"p"+i);
@@ -10098,7 +10100,7 @@ if(window.__EC)Object.assign(window.__EC,{seesTile:(...a)=>seesTile(...a),fogTil
 /* ---------- accent colors ---------- */
 const ACCENTS=[["auto","Its own light"],...PALETTE.map(([n,h])=>[h,n])];   // v71e: the whole palette, the same as the players' colors
 const accentOf=(color,acc)=>!acc||acc==="auto"?`color-mix(in oklab,${color} 55%,#f3e7d2)`:acc;
-const pAccent=P=>P?accentOf(P.color,P.accent):"#9a8f80";
+const pAccent=P=>P?accentOf(P.color,PREF.cb?"auto":P.accent):"#9a8f80";   // v71h: colorblind-safe colors use the color's own light
 
 /* ---------- the card face ---------- */
 {const _i=inkSVG;inkSVG=function(u,color,size){   // the art takes the card's lettering color, and its paper is the card itself
@@ -10388,7 +10390,7 @@ function groupMenuSliders(){const m=$("#menu"),box=m&&m.querySelector(".ovbox");
 /* ---------- cards in the players' colors, further apart: each color has its own card tone (U3). Crimson and Ember used to
    come out the same muddy red-brown; now Crimson is a deep red and Ember a burnt orange. Light lettering reads on every one. */
 const CARD_TONE={"#ee7a3c":"#8f4a0e","#e3b944":"#6f5a0c","#45b89c":"#14604f","#4c92e6":"#1f4c8c","#a77de8":"#55348f","#e4648f":"#8a2457","#d7333b":"#7e0d16","#8fb33f":"#46661a","#74d7ea":"#16687a"};
-const toneOf=col=>CARD_TONE[String(col||"").toLowerCase()]||null;
+const toneOf=col=>PREF.cb?null:CARD_TONE[String(col||"").toLowerCase()]||null;   // v71h: colorblind-safe colors mix their own tone
 const addTone=h=>h.replace(/style="--pc:([^";]*)/,(m,col)=>{const t=toneOf(col);return t?`style="--pc:${col};--pcb:${t}`:m});
 {const _f=face;face=function(){return addTone(_f.apply(this,arguments))}}
 {const _sd=siegeDecor;siegeDecor=function(){const h=_sd.apply(this,arguments);return h.replace(/(<div class="stack[^"]*v61[^"]*") style="--pc:([^";]*)/,(m,a,col)=>{const t=toneOf(col);return t?`${a} style="--pc:${col};--pcb:${t}`:m})}}
@@ -11183,5 +11185,61 @@ const strayOn=pl=>{const S=G&&G.strayOn;return !strayIn&&S&&S.t===pl&&S.round===
       const col=COLORS[nepHash(st.cards[0].id+"|"+S.st.seed)%COLORS.length][1];s.style.setProperty("--pc",col);s.style.setProperty("--pcb",`color-mix(in oklab,${col} 44%,#211b16)`)}}}}
 
 if(window.__EC)Object.assign(window.__EC,{castLostnessW:k=>castLostness(k),nepCallW:k=>nepCall(k),nepTempRoundW:()=>nepTempRound(),nepSelfW:pl=>nepSelf(pl),cycleRoundW2:()=>cycleRound()});
+
+/* ---------- v71h: Colorblind-safe colors (a Display setting, only for this device) ----------
+   Every player shows in a color of the Okabe and Ito palette, which red-green and blue-yellow colorblind eyes can tell
+   apart. CB_SEP is how far apart each pair stays for protanopia, deuteranopia and tritanopia (the least of the three, in
+   CIEDE2000, by simulation): never under 10. Each player gets the palette color nearest to the one they picked, steering
+   away from the pairs that come closest. Their cards and stacks carry a faint pattern of their own and always show their
+   symbol. It changes only what this screen shows: the game, its log and what goes online keep the colors players picked.
+   The colors are swapped as the page draws (innerHTML, insertAdjacentHTML and the few style properties set by hand), so
+   every place a player's color appears follows without touching each one. */
+const CB_PAL=["#56b4e9","#d55e00","#f0e442","#cc79a7","#0072b2","#009e73","#e69f00","#dddddd"];
+const CB_SEP=[[0,52,40,14,20,12,51,21],[52,0,24,14,50,18,13,34],[40,24,0,25,47,28,12,15],[14,14,25,0,12,16,11,19],[20,50,47,12,0,12,51,37],[12,18,28,16,12,0,18,24],[51,13,12,11,51,18,0,27],[21,34,15,19,37,24,27,0]];
+let cbKey=null,cbTab=null,cbRe=null;
+/* the players' colors mapped to the palette: the least total distance from the colors picked, plus a cost for each pair
+   closer than 16 */
+function cbTable(){
+  if(!PREF.cb||!G||!G.p)return null;
+  const ps=G.p.filter(P=>P&&!isNPC(P.i)&&/^#[0-9a-f]{6}$/i.test(P.color||""));
+  const key=ps.map(P=>P.color.toLowerCase()).join();
+  if(key===cbKey)return cbTab;
+  cbKey=key;cbTab=null;cbRe=null;
+  const src=[...new Set(ps.map(P=>P.color.toLowerCase()))].slice(0,CB_PAL.length);if(!src.length)return null;
+  const D=src.map(a=>CB_PAL.map(b=>{const x=labOf(a),y=labOf(b);return Math.hypot(x[0]-y[0],x[1]-y[1],x[2]-y[2])}));
+  let best=1/0,out=null;const used=[],cur=[];
+  (function go(i,s){if(s>=best)return;if(i===src.length){best=s;out=cur.slice();return}
+    for(let j=0;j<CB_PAL.length;j++)if(!used[j]){let t=s+D[i][j];for(let q=0;q<i;q++)t+=Math.max(0,16-CB_SEP[cur[q]][j])*3;
+      used[j]=1;cur[i]=j;go(i+1,t);used[j]=0}})(0,0);
+  cbTab={};src.forEach((c,i)=>cbTab[c]=CB_PAL[out[i]]);
+  cbRe=new RegExp(src.join("|"),"gi");return cbTab}
+function cbMap(col){const T=cbTable();return T&&typeof col==="string"?T[col.toLowerCase()]||col:col}
+/* the setup keeps the colors as picked: they are what the other players see */
+function cbHTML(el,v){if(!PREF.cb||typeof v!=="string"||v.indexOf("#")<0)return v;
+  const T=cbTable();if(!T||!cbRe)return v;
+  if(el&&el.closest&&el.closest(".ovbox.setup"))return v;
+  if(el&&el.id==="ov"&&/^\s*<div class="ovbox setup/.test(v))return v;
+  return v.replace(cbRe,m=>T[m.toLowerCase()]||m)}
+{const d=Object.getOwnPropertyDescriptor(Element.prototype,"innerHTML");
+  if(d&&d.set)Object.defineProperty(Element.prototype,"innerHTML",{configurable:true,enumerable:d.enumerable,get(){return d.get.call(this)},set(v){d.set.call(this,cbHTML(this,v))}})}
+{const _ia=Element.prototype.insertAdjacentHTML;Element.prototype.insertAdjacentHTML=function(w,v){return _ia.call(this,w,cbHTML(this,v))}}
+{const _mk=FX.make;FX.make=function(cls,rect,o){if(o&&o.col)o=Object.assign({},o,{col:cbMap(o.col)});return _mk.call(this,cls,rect,o)}}
+{const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);document.documentElement.classList.toggle("cvd",PREF.cb===true);
+  const b=$("#pCb");if(b){b.textContent="Colorblind-safe: "+(PREF.cb?"On":"Off");b.setAttribute("aria-pressed",PREF.cb===true)}}}
+function cbSet(on){PREF.cb=!!on;savePrefs();applyPrefs();if(G)render()}
+
+/* where it is set: the Display bar, the pause menu (Settings on the front page), the setup's Display tab, the online Display tab */
+{const _mb=mountBar;mountBar=function(){_mb.apply(this,arguments);const c=$("#pCoord");if(!c||$("#pCb"))return;
+  c.insertAdjacentHTML("afterend",`<button type="button" id="pCb" class="gtog" title="Players in colors colorblind eyes can tell apart, each with a faint pattern of their own. Only on this device."></button>`);
+  $("#pCb").onclick=()=>cbSet(!PREF.cb);applyPrefs()}}
+{const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu"),a=m&&(m.querySelector("#mCardSym")||m.querySelector("#mSpellBL"));if(!a||m.querySelector("#mCb"))return;
+  a.closest("label").insertAdjacentHTML("afterend",`<label class="f">Colorblind-safe colors <select id="mCb"><option value="0" ${PREF.cb?"":"selected"}>Off (default)</option><option value="1" ${PREF.cb?"selected":""}>On</option></select></label>`);
+  $("#mCb").onchange=e=>cbSet(e.target.value==="1")}}
+{const _pd=paintDisp;paintDisp=function(){_pd.apply(this,arguments);const a=$("#gAnimM");if(!a||$("#gCb"))return;
+  a.closest("label").insertAdjacentHTML("afterend",`<label class="f">Colorblind-safe colors <select id="gCb"><option value="0" ${PREF.cb?"":"selected"}>Off</option><option value="1" ${PREF.cb?"selected":""}>On</option></select></label>`);
+  $("#gCb").onchange=e=>cbSet(e.target.value==="1")}}
+document.addEventListener("change",e=>{if(e.target&&e.target.id==="dcb")cbSet(e.target.checked)});
+
+if(window.__EC)Object.assign(window.__EC,{cbTable:()=>cbTable(),cbMap:c=>cbMap(c),cbSet:on=>cbSet(on),CB_PAL});
 
 })();

@@ -1695,13 +1695,13 @@ summary .fasum{font-size:.72em;letter-spacing:.05em;vertical-align:1px}
 .ovbox.setup .seat .opts.subs{gap:4px;grid-template-columns:repeat(auto-fill,minmax(min(100%,132px),1fr))}
 /* ---------- v61: card faces in the players' colors (darkened, calmed), the accent as the frame, light lettering ---------- */
 .cf.v61,.stack.v61{--cb:var(--pcb,color-mix(in oklab,var(--pc) 44%,#211b16));--cbe:color-mix(in oklab,var(--cb) 78%,#000);--ct:#f4ead9;--cr:#ff9b90;
-  background:linear-gradient(160deg,color-mix(in oklab,var(--cb) 86%,#fff) 0%,var(--cb) 55%,color-mix(in oklab,var(--cb) 82%,#000) 100%);color:var(--ct);
+  background:var(--cbpat,none),linear-gradient(160deg,color-mix(in oklab,var(--cb) 86%,#fff) 0%,var(--cb) 55%,color-mix(in oklab,var(--cb) 82%,#000) 100%);color:var(--ct);
   box-shadow:inset 0 0 0 2px var(--cb),inset 0 0 0 3px var(--ca),var(--stk,0 0 #0000),0 2px 4px #0008}
 .cf.v61.red,.stack.v61.red{color:var(--cr)}
 .v61 .ty{color:color-mix(in oklab,var(--ct) 80%,transparent);border-top-color:color-mix(in oklab,var(--ca) 45%,transparent)}
 .v61 .mini,.v61 .used,.v61 .souls,.v61 .odds{color:color-mix(in oklab,var(--ct) 82%,transparent)}
 .v61 .hearts,.v61 .bhp,.v61 .bhp .hearts,.v61 .mini .hearts{color:#ff6b74}
-html:not(.cardsym) .v61 .so{display:none}
+html:not(.cardsym):not(.cvd) .v61 .so{display:none}
 .v61 .ci::before{border-color:var(--ca)}
 .cf.v61 .cmid{position:absolute;left:0;right:0;top:calc(20px * var(--ci));display:flex;justify-content:center;align-items:baseline;gap:2px;line-height:1}
 .cf.v61 .cmid .rk{font-family:"Grenze Gotisch","Old English Text MT",serif;font-weight:500;font-size:calc(27px * var(--ci))}
@@ -1924,3 +1924,19 @@ html.th-office .ovbox.bank .landerr{color:#a3202a}
 .ovbox.bank .bacts p.brow:has(#bPayWho){grid-template-columns:76px auto auto auto minmax(0,1fr)}   /* Repay: which loan, how much */
 .ovbox.bank .bacts p.brow .landerr{grid-column:2/-1}
 @media (max-width:640px){.ovbox.bank .bacts p.brow:has(#bPayWho){grid-template-columns:62px minmax(0,1fr) auto auto}.ovbox.bank #bPayWho{max-width:100%;min-width:0}}
+
+/* v71h: Colorblind-safe colors (75_access.js). Each player's cards and stacks carry a faint pattern of their own, and the
+   player symbol always shows. The dark blue is lifted for words on dark themes; on Office every name is darkened. */
+@property --cbpat{syntax:"*";inherits:false}
+html.cvd .v61[style*="--pc:#56b4e9"]{--cbpat:repeating-linear-gradient(45deg,#ffffff2b 0 1.5px,#0000 1.5px 7px)}
+html.cvd .v61[style*="--pc:#d55e00"]{--cbpat:repeating-linear-gradient(-45deg,#ffffff2b 0 1.5px,#0000 1.5px 7px)}
+html.cvd .v61[style*="--pc:#f0e442"]{--cbpat:radial-gradient(circle,#ffffff3d 0 1.4px,#0000 1.9px) 0 0/7px 7px}
+html.cvd .v61[style*="--pc:#cc79a7"]{--cbpat:repeating-linear-gradient(90deg,#ffffff2b 0 1.5px,#0000 1.5px 7px)}
+html.cvd .v61[style*="--pc:#0072b2"]{--cbpat:repeating-linear-gradient(0deg,#ffffff2b 0 1.5px,#0000 1.5px 7px)}
+html.cvd .v61[style*="--pc:#009e73"]{--cbpat:repeating-linear-gradient(45deg,#ffffff24 0 1.5px,#0000 1.5px 9px),repeating-linear-gradient(-45deg,#ffffff24 0 1.5px,#0000 1.5px 9px)}
+html.cvd .v61[style*="--pc:#e69f00"]{--cbpat:repeating-linear-gradient(0deg,#ffffff24 0 1.5px,#0000 1.5px 9px),repeating-linear-gradient(90deg,#ffffff24 0 1.5px,#0000 1.5px 9px)}
+html.cvd .v61[style*="--pc:#dddddd"]{--cbpat:repeating-radial-gradient(circle at 50% 45%,#ffffff2b 0 1.5px,#0000 1.5px 6px)}
+html.cvd [style*="--pc:"]{--pct:var(--pc)}
+html.cvd:not(.th-office) [style*="--pc:#0072b2"],html.cvd:not(.th-office) [style*="--pc: #0072b2"]{--pct:#4a9fdc}
+html.cvd .pn,html.cvd .note,html.cvd #pop h2{color:var(--pct,var(--pc))}
+html.cvd.th-office .pn{color:color-mix(in oklab,var(--pc) 45%,#000)}

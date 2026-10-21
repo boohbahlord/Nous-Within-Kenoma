@@ -32,7 +32,7 @@ const FX={
     for(const [r,c,rect] of rs){const d=Math.hypot(r-mr,c-mc);FX.play(FX.make("wash",rect,{col}),[{opacity:0},{opacity:strength,offset:.4},{opacity:0}],900,d*70)}},
   all(){const t=[];for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(!isVoid(r,c))t.push([r,c]);return t},
   strike(a,b,col){if(!a||!b)return;const x1=a.left+a.width/2,y1=a.top+a.height/2,x2=b.left+b.width/2,y2=b.top+b.height/2,len=Math.hypot(x2-x1,y2-y1),ang=Math.atan2(y2-y1,x2-x1)*180/Math.PI;
-    const e=document.createElement("div");e.className="fx streak";e.style.setProperty("--fc",col);Object.assign(e.style,{left:x1+"px",top:(y1-2)+"px",width:len+"px",transform:`rotate(${ang}deg)`});FX.layer().appendChild(e);
+    const e=document.createElement("div");e.className="fx streak";e.style.setProperty("--fc",cbMap(col));Object.assign(e.style,{left:x1+"px",top:(y1-2)+"px",width:len+"px",transform:`rotate(${ang}deg)`});FX.layer().appendChild(e);
     FX.play(e,[{clipPath:"inset(0 100% 0 0)",opacity:1},{clipPath:"inset(0 0 0 0)",opacity:1,offset:.55},{clipPath:"inset(0 0 0 100%)",opacity:.2}],320,0,"ease-in")},
   hit(rect,col="#fff"){FX.play(FX.make("flash",rect,{col}),[{opacity:.75},{opacity:0}],260,120)},
   slide(a,b,col){if(!a||!b)return;const e=FX.make("ghost",a,{col,w:a.width*.82,h:a.height*.82});if(!e)return;

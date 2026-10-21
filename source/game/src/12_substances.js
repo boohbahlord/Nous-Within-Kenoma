@@ -154,7 +154,7 @@ function showPop(){
 function notify(pl,html){
   if(!G||G.opts.fast)return;
   let box=$("#notes");if(!box){box=document.createElement("div");box.id="notes";box.setAttribute("aria-live","polite");document.body.appendChild(box)}
-  const n=document.createElement("div");n.className="note";n.style.setProperty("--pc",pl!=null&&G.p[pl]?G.p[pl].color:"#e6d6bd");n.innerHTML=html;
+  const n=document.createElement("div");n.className="note";n.style.setProperty("--pc",pl!=null&&G.p[pl]?cbMap(G.p[pl].color):"#e6d6bd");n.innerHTML=html;
   n.onclick=()=>n.remove();box.prepend(n);while(box.children.length>4)box.lastChild.remove();
   setTimeout(()=>{n.classList.add("out");setTimeout(()=>n.remove(),700)},5600);
 }
