@@ -2,9 +2,12 @@
 function roman(n){if(n<=0)return "0";const T=[[1000,"M"],[900,"CM"],[500,"D"],[400,"CD"],[100,"C"],[90,"XC"],[50,"L"],[40,"XL"],[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]];let s="";for(const [v,l] of T)while(n>=v){s+=l;n-=v}return s}
 const spawnRank=c=>({joker:100,king:90,jack:80,queen:70}[kind(c)]||num(c));
 /* the Horde spawns once for every player still standing */
-function hordeSpawn(){const n=Math.max(1,G.p.filter(P=>!P.out&&!isHorde(P.i)).length);for(let k=0;k<n;k++)hordeSpawnOne(k,n)}
+/* v70d: three rounds of grace, then a wave every 1d2 + 2 rounds; each wave is one step of strength (what a round used to bring) */
+function hordeSpawn(){if(G.hordeNextR==null)G.hordeNextR=4;if(G.round<G.hordeNextR)return;
+  G.hordeWave=(G.hordeWave||0)+1;G.hordeNextR=G.round+R(2)+2;
+  const n=Math.max(1,G.p.filter(P=>!P.out&&!isHorde(P.i)).length);for(let k=0;k<n;k++)hordeSpawnOne(k,n);hordeCounters()}
 function hordeSpawnOne(k,n){
-  const r=G.round,pl=hordeIx(),dice=[];
+  const r=G.hordeWave||G.round,pl=hordeIx(),dice=[];
   const roll=(n,s)=>{let t=0;for(let i=0;i<n;i++){const v=R(s);dice.push({s,v});t+=v}return t};
   let g=0,inf=0,sp=0,cap=0,jk=0;
   if(r<=5){g=roll(1,4)+r;inf=Math.max(0,roll(1,2)-2+r);cap=Math.min(4,Math.ceil(r/2))}
@@ -18,8 +21,8 @@ function hordeSpawnOne(k,n){
   const chosen=pool.slice(0,cap);chosen.forEach(c=>c.owner=pl);
   let placed=0,lost=0;
   for(const c of chosen){if(hordePlace(c))placed++;else lost++}
-  tray(pl,`Round ${roman(r)} spawn${n>1?` ${k+1}/${n}`:""}`,dice,`${placed} spawn${placed===1?"":"s"}`);
-  log(`Round ${roman(r)}${n>1?`, spawn ${k+1} of ${n}`:""}: the Horde rolls ${dice.map(x=>"d"+x.s+":"+x.v).join(" ")}; ${g} grunts, ${inf} infantry${sp?`, ${sp} royals`:""}${jk?`, ${jk} Joker${jk>1?"s":""}`:""}, cap ${cap}. ${placed} spawn${lost?`, ${lost} find no room`:""}.`,"event");
+  tray(pl,`Wave ${roman(r)}${n>1?` ${k+1}/${n}`:""}`,dice,`${placed} spawn${placed===1?"":"s"}`);
+  log(`Wave ${roman(r)} (round ${roman(G.round)})${n>1?`, spawn ${k+1} of ${n}`:""}: the Horde rolls ${dice.map(x=>"d"+x.s+":"+x.v).join(" ")}; ${g} grunts, ${inf} infantry${sp?`, ${sp} royals`:""}${jk?`, ${jk} Joker${jk>1?"s":""}`:""}, cap ${cap}. ${placed} spawn${lost?`, ${lost} find no room`:""}.`,"event");
 }
 function hordePlace(c){
   const pl=hordeIx(),zone=zoneTiles(pl),front=zone.filter(([r,cc])=>!isBack(pl,r,cc)),back=zone.filter(([r,cc])=>isBack(pl,r,cc));
