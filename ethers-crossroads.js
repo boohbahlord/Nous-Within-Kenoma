@@ -5078,14 +5078,14 @@ async function eclipseRound(){
   if(G.peace&&r>G.peace.until){G.peace=null;log("<b>Peace ends.</b> The lines are open again.","event");notify(null,"Peace is over.")}
   if(G.war&&r>G.war.until){G.war=null;log("<b>Total War ends.</b>","event");notify(null,"Total War is over.")}
   if(G.war)G.warCurse=R(2)-1;
-  if(G.eclipse&&r>G.eclipse.round+(G.eclipse.k==="jupiter"?1:0)){endEclipse()}
+  if(G.eclipse&&r>(G.eclipse.until!=null?G.eclipse.until:G.eclipse.round+(G.eclipse.k==="jupiter"?1:0))){endEclipse()}   // v71c: Neptune's lasts 2d3 rounds
   // the Banker's bribes are paid every round
   for(const b of [...(G.bribes||[])]){if(r>b.until||G.p[b.by].out||G.p[b.target].out){G.bribes.splice(G.bribes.indexOf(b),1);log(`The bribe against ${plName(b.target)} runs out.`);continue}
     if(b.paid===r)continue;const c=R(2)+R(3)+R(3);if(mana(b.by)>=c){payQuiet(b.by,c);bankAdd(c);b.paid=r;log(`${plName(b.by)} keeps the Banker bribed (${c} mana): ${plName(b.target)} pays more.`)}
     else{G.bribes.splice(G.bribes.indexOf(b),1);log(`${plName(b.by)} can't pay the Banker: the bribe against ${plName(b.target)} ends.`)}}
   // each Heavenly Body: 5% a round, or at once in Eclipse Mode
   const k=sky();
-  if(["sun","mars","venus","jupiter","mercury"].includes(k)&&!G.eclipse&&(Math.random()<.05||G.opts.eclipseStart&&!G.eclipsedOnce||G.forceEclipse)){G.forceEclipse=false;G.eclipsedOnce=true;await eclipse(k)}
+  if(["sun","mars","venus","jupiter","mercury","neptune"].includes(k)&&!G.eclipse&&(Math.random()<.05||G.opts.eclipseStart&&!G.eclipsedOnce||G.forceEclipse)){G.forceEclipse=false;G.eclipsedOnce=true;await eclipse(k)}
 }
 
 /* ---------- Peace ---------- */
@@ -7181,6 +7181,7 @@ const AUD=(()=>{
     "ecl-venus":A=>{drone(A,130.8,"sine",.008,500);A.timers.push(setInterval(()=>S.harp(),18000));S.harp()},
     "ecl-jupiter":A=>{drone(A,98,"sine",.01,600);drone(A,147,"sine",.007,600);A.timers.push(setInterval(()=>S.coins(),8000));S.coins()},
     "ecl-mercury":A=>{drone(A,73,"triangle",.01,400);A.timers.push(setInterval(()=>{S.quill();setTimeout(()=>S.whispers(),2500)},10000));S.quill();setTimeout(()=>S.whispers(),2500)},
+    "ecl-neptune":A=>{drone(A,46.2,"sine",.017,260);drone(A,69.3,"triangle",.008,380,-7);hiss(A,.012,650,.5)},   // v71c: deep water
     "ecl-saturn":A=>{drone(A,49,"sawtooth",.014,300);drone(A,73.5,"sawtooth",.009,300);A.timers.push(setInterval(()=>S.bell(),9000));S.bell()}};
   function setAmb(k){if(k===ambKey)return;stopAmb();if(!k||!AMB[k]||!ok()){ambKey=k&&AMB[k]?null:k;return}ambKey=k;const a=ctx();if(!a)return;amb={nodes:[],gains:[],timers:[]};try{AMB[k](amb)}catch(e){console.error(e)}}
   Object.assign(S,{setAmb,stopAmb,ok});Object.defineProperty(S,"ambKey",{get:()=>ambKey});return S;
@@ -10416,7 +10417,7 @@ if(window.__EC)Object.assign(window.__EC,{setFaLock:(...a)=>setFaLock(...a),atta
 
 /* ---------- blind: Field Automation and Lazy Hand pause (N3). While a player is blinded (the second Sun, an eclipse and the
    like) their field isn't played for them and Lazy Hand places nothing; both stay on and carry on once they can see. ---------- */
-const blindPause=pl=>typeof totalBlind==="function"&&totalBlind(pl);
+const blindPause=pl=>typeof totalBlind==="function"&&totalBlind(pl)||nepEcPause(pl);   // v71c: and Neptune's eclipse
 function notePause(pl,what){const k=what+"|"+G.turnNo;G._blindNote=G._blindNote||{};if(G._blindNote[pl]===k)return;G._blindNote[pl]=k;
   log(`${what} pauses while ${plName(pl)} is blind; it carries on when they can see again.`,"event")}
 {const _fr=faRun;faRun=async function(pl){if(G&&faOn(pl)&&blindPause(pl)){notePause(pl,"Field Automation");return}return _fr.apply(this,arguments)}}
@@ -10425,8 +10426,9 @@ function notePause(pl,what){const k=what+"|"+G.turnNo;G._blindNote=G._blindNote|
 {const _l=lazyPlace;lazyPlace=function(card){if(G&&blindPause(G.active)){G.selHand=card;G.mode=null;flash("Lazy Hand pauses while you are blind: place this card yourself.");render();return false}return _l.apply(this,arguments)}}
 /* the buttons say so */
 {const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view();if(V==null||!blindPause(V))return;
-  const t=document.querySelector(".fabar .fatog");if(t&&faOn(V)&&!t.dataset.blind){t.dataset.blind="1";t.textContent="Auto field: paused (blind)";t.title="Field Automation pauses while you are blind; it carries on when you can see again."}
-  const l=$("#lazyBtn");if(l&&!l.classList.contains("blindpause")){l.classList.add("blindpause");l.setAttribute("data-tip","Lazy Hand pauses while you are blind.")}}}
+  const nep=nepEcPause(V);   // v71c: in Neptune's eclipse the switches stay On, crossed out
+  const t=document.querySelector(".fabar .fatog");if(t&&faOn(V)&&!t.dataset.blind){t.dataset.blind="1";if(nep){t.classList.add("nepcancel");t.title="Neptune's eclipse: Field Automation is lost in the fog until it ends."}else{t.textContent="Auto field: paused (blind)";t.title="Field Automation pauses while you are blind; it carries on when you can see again."}}
+  const l=$("#lazyBtn");if(l&&!l.classList.contains("blindpause")){l.classList.add("blindpause");if(nep)l.classList.add("nepcancel");l.setAttribute("data-tip",nep?"Neptune's eclipse: Lazy Hand is lost in the fog until it ends.":"Lazy Hand pauses while you are blind.")}}}
 if(window.__EC)Object.assign(window.__EC,{skyAsyncW:(...a)=>skyAsync(...a),totalBlindW:V=>totalBlind(V),faRunW2:(...a)=>faRun(...a),lhAutoPlaceW:(...a)=>lhAutoPlace(...a)});
 
 /* ---------- v66: the Puppet's picture: a round head in the middle of the card, like a puppet toy or a dummy doll: dot eyes, a
@@ -10862,7 +10864,7 @@ ${ec?`<circle r="43" fill="url(#nepdark)"/>`:""}<circle r="40" fill="url(#nepglo
   const lost=V!=null&&G.p[V]?stacksOf(V).filter(x=>x.st.lost).length:0;if(lost)L.push(`${lost} of your stacks ${lost===1?"is":"are"} lost in the cloud.`);
   L.push("The first mana each player earns or spends each round rolls 1d20: a 1 sends it to another player (a spender still pays), a 20 doubles it.","The moon's phases are stopped.");
   skyCommon(L);return skyBox("Neptune","",L,"neptune")}}
-SKY_PARA.neptune="Neptune, the Form of Dissolve, stops the Moon's phases. Every 4d2 turns a cloud in its blue settles over the tiles around the cards for 2d4 turns, drifting with every turn. Its tiles are in fog for everyone, even beside your own cards (a tile with your own stack stays yours). At the start of each player's turn in the cloud, a 1 on 1d20 loses one of their stacks for 1d3 + 1d2 − 1 of their turns: they can't see it or command it, nor can their automation; it never attacks, defends itself, and wanders. Another of their stacks beside it finds it: then they see it, see-through, as everyone does. The first mana each player earns or spends each round rolls 1d20: a 1 sends it to another player (a spender still pays), a 20 doubles it. Its cycle, every ten rounds, lasts 2d3 rounds: the tiles fade into the map and everyone's numbers go dark; a sacrifice's mana goes to another player on a 1 of 1d8; the mana a purchase brings the Bank goes to a random player on a 1 of 1d10 (not in Survival); a drawn card is lost at sea on a 1 of 1d20 (another from the same draw on a 1 of 1d3), found 1d10 turns later by anyone; a card that dies sinks on a 1 of 1d4, to the Outer Darkness (1 on 1d2) or the Ether (2); at its start Neptune offers each player a free Clairvoyance or 2d6 + 1d2 mana for 1d6 deck cards; and once a round, on a 1 of 1d8, a player may sacrifice up to three cards from the grave for their soul worth.";
+SKY_PARA.neptune="Neptune, the Form of Dissolve, stops the Moon's phases. Every 4d2 turns a cloud in its blue settles over the tiles around the cards for 2d4 turns, drifting with every turn. Its tiles are in fog for everyone, even beside your own cards (a tile with your own stack stays yours). At the start of each player's turn in the cloud, a 1 on 1d20 loses one of their stacks for 1d3 + 1d2 − 1 of their turns: they can't see it or command it, nor can their automation; it never attacks, defends itself, and wanders. Another of their stacks beside it finds it: then they see it, see-through, as everyone does. The first mana each player earns or spends each round rolls 1d20: a 1 sends it to another player (a spender still pays), a 20 doubles it. Its cycle, every ten rounds, lasts 2d3 rounds: the tiles fade into the map and everyone's numbers go dark; a sacrifice's mana goes to another player on a 1 of 1d8; the mana a purchase brings the Bank goes to a random player on a 1 of 1d10 (not in Survival); a drawn card is lost at sea on a 1 of 1d20 (another from the same draw on a 1 of 1d3), found 1d10 turns later by anyone; a card that dies sinks on a 1 of 1d4, to the Outer Darkness (1 on 1d2) or the Ether (2); at its start Neptune offers each player a free Clairvoyance or 2d6 + 1d2 mana for 1d6 deck cards; and once a round, on a 1 of 1d8, a player may sacrifice up to three cards from the grave for their soul worth. Its eclipse (5% a round, like the others) lasts 2d3 rounds and brings its whole cycle with it: everyone's numbers lie and hands go blank and shuffled, every deck is shuffled, names turn to astrological signs, every stack on the field takes a stranger's color (a stranger's stack can be picked up, but acting with it costs 1d2 deck cards; once a round, on a 1 of 1d6, it moves by accident), a 1 of 1d20 sends a move or an attack astray (twice a round at most), prices, the Ether's counts and the Bank's mana lie (one price in eight reads free), Field Automation and Lazy Hand wait (still On, crossed out), the field may turn around, and the music sinks an octave and a half step, muffled.";
 
 /* ---------- v71c-2: Neptune's cycle, every ten rounds it has hung in the sky, for 2d3 rounds ----------
    It glows; the tiles lose their outlines into the map and everyone's numbers go dark. A sacrifice's mana goes to a random
@@ -10871,7 +10873,7 @@ SKY_PARA.neptune="Neptune, the Form of Dissolve, stops the Moon's phases. Every 
    player. A card that dies goes, on a 1 of 1d4, to the Outer Darkness (1 on 1d2) or the Ether (2). Neptune offers each
    player at its start: give up 1d6 deck cards for a free Clairvoyance, or for 2d6 + 1d2 mana. Once a round, on a 1 of 1d8,
    a player may sacrifice up to three cards from the grave for their soul worth. Cycle events off: none of it. */
-const nepEvOn=()=>nepUp()&&!!G.nepEv&&G.moon.round<=G.nepEv.until;
+const nepEvOn=()=>nepUp()&&(!!G.nepEv&&G.moon.round<=G.nepEv.until||nepEcOn());   // its eclipse brings every effect of its cycle too
 const nepRealPl=()=>G.p.filter(P=>!P.out&&!isNPC(P.i)&&!isHorde(P.i)).map(P=>P.i);
 async function nepEventRound(){if(!nepUp()){G.nepEv=null;return}
   const r=G.moon.round;
@@ -10936,6 +10938,67 @@ let nepBuying=false;
 {const _r=render;render=function(){_r.apply(this,arguments);document.documentElement.classList.toggle("nepev",!!G&&nepEvOn())}}
 /* G.nepEv drives the glow in the picture too (planetSVG above) */
 
-if(window.__EC)Object.assign(window.__EC,{nepEventRoundW:()=>nepEventRound(),nepEvOnW:()=>nepEvOn(),toGraveW:(...a)=>toGrave(...a),nepCloudAt:(r,c)=>nepCloudAt(r,c),neptuneSVG,giveManaW:(...a)=>giveMana(...a),spendW:(...a)=>spend(...a),beginTurnW:pl=>beginTurn(pl),hiddenFromW:(V,r,c)=>hiddenFrom(V,r,c)});
+/* ---------- v71c-3: Neptune's eclipse: 5% a round like the others (or Eclipse mode; never with eclipses off), as long as
+   its cycle would be (2d3 rounds, rolled for itself), and every effect of its cycle with it. Neptune glows brighter in a
+   black aura. Everyone's numbers lie (Mana Delusion) and hands go blank and shuffled (Blind Hand); every deck is
+   shuffled; names turn to jumbles of astrological signs; every stack on the field takes a stranger's color, so nobody
+   is sure which are theirs. A stranger's stack can be picked up, but acting with it costs 1d2 deck cards; once a round,
+   on a 1 of 1d6, it moves by accident. Twice a round at most, a 1 of 1d20 sends a move or an attack astray. Prices lie
+   (one in eight reads free), and so do the Ether's counts and the Bank's mana. Field Automation and Lazy Hand still read
+   On, crossed out in Neptune's blue, and wait for it to end. The field may turn around. The music sinks an octave and a
+   half step, muffled. ---------- */
+const nepEcOn=()=>nepUp()&&!!G.eclipse&&G.eclipse.k==="neptune";
+function nepEcPause(pl){return !!G&&nepEcOn()}   // used by blindPause (70_v65)
+const NEP_SIGNS="☉☽☿♀♂♃♄♅♆♇♈♉♊♋♌♍♎♏♐♑♒♓☊☋☌☍";
+const nepHash=s=>{let h=2166136261;for(const ch of String(s))h=Math.imul(h^ch.charCodeAt(0),16777619);return h>>>0};
+{const _e=eclipse;eclipse=async function(k){if(k!=="neptune")return _e.apply(this,arguments);if(typeof eclipsesOff==="function"&&eclipsesOff())return;
+  const d=sum(rollN(2,3)),r=G.moon.round;G.eclipse={k:"neptune",round:r,until:r+d-1};
+  const names={};for(const P of G.p){let s="";const n=3+R(4);for(let i=0;i<n;i++)s+=NEP_SIGNS[Math.floor(Math.random()*NEP_SIGNS.length)];names[P.i]=s}
+  G.nepEc={names,seed:R(1e6),flip:R(2)===1,mis:{},foe:{}};
+  for(const P of G.p){if(P.out||isNPC(P.i)||isHorde(P.i))continue;shuffle(P.deck);shuffle(P.hand);
+    (G.blindHand=G.blindHand||[]).push({by:"nep",t:P.i,left:999});(G.manaDel=G.manaDel||[]).push({by:"nep",t:P.i,left:999,off:delOff()})}
+  applyMoonTheme();
+  log(`<b>Neptune's eclipse</b> for ${d} round${d>1?"s":""} (2d3): names, numbers, prices and colors lie, hands go blank, every deck is shuffled, and automation waits. All of Neptune's cycle comes with it.`,"event");
+  popup("Neptune is eclipsed",`<p>A black aura closes around Neptune for <b>${d} round${d>1?"s":""}</b> (2d3), and everything it touches dissolves.</p><ul><li>Every player's numbers lie, and hands go blank and shuffled; every deck is shuffled.</li><li>Names turn to signs, and every stack on the field takes a stranger's color: a stack you pick up may not be yours, and acting with one that isn't costs 1d2 cards from your deck (once a round, on a 1 of 1d6, it moves by accident).</li><li>Twice a round, a 1 of 1d20 sends a move or an attack astray.</li><li>Prices, the Ether's counts and the Bank's mana lie.</li><li>Field Automation and Lazy Hand wait for it to end.</li><li>Everything in Neptune's cycle happens too.</li></ul>`);
+  render()}}
+{const _ee=endEclipse;endEclipse=function(){if(G.eclipse&&G.eclipse.k==="neptune"){G.nepEc=null;for(const k of ["blindHand","manaDel"])if(G[k])G[k]=G[k].filter(x=>x.by!=="nep")}return _ee.apply(this,arguments)}}
+/* acting with a stranger's stack */
+function nepFoePenalty(V){const lost=takeDeck(V,R(2),"Neptune's eclipse");for(const x of lost)toGrave(x,"burn");
+  log(`Neptune's eclipse: that stack wasn't ${plName(V)}'s, and it costs ${lost.length} deck card${lost.length===1?"":"s"} (1d2).`,"event");flash(`That stack wasn't yours: Neptune takes ${lost.length} card${lost.length===1?"":"s"} from your deck.`)}
+{const _tc=tileClick;tileClick=function(r,c){if(!G||!nepEcOn())return _tc.apply(this,arguments);
+  const V=view(),st=G.board[r][c],S=G.sel;
+  if(S&&S.nepFoe){G.sel=null;if(S.r===r&&S.c===c){render();return}
+    const E=G.nepEc,k=V+"|"+G.moon.round,fs=G.board[S.r][S.c];
+    if(fs&&!E.foe[k]&&!G.board[r][c]&&!isVoid(r,c)&&Math.abs(r-S.r)+Math.abs(c-S.c)===1&&R(6)===1){E.foe[k]=1;G.board[r][c]=fs;G.board[S.r][S.c]=null;G._vis=null;
+      log(`Neptune's eclipse: ${plName(V)} moves a stranger's stack by accident, to ${coord(r,c)} (a 1 on 1d6).`,"event");render();return}
+    nepFoePenalty(V);render();return}
+  if(st&&isEnemy(st.owner,V)&&G.active===V&&(G.phase==="prep"||G.phase==="attack")&&!G.mode&&!G.selHand&&canAct()&&stFights(st)){G.sel={r,c,pick:new Set(st.cards.filter(x=>!isBase(x)).map(x=>x.id)),nepFoe:true};render();return}
+  return _tc.apply(this,arguments)}}
+document.addEventListener("click",e=>{if(!G||!nepEcOn()||!G.sel||!G.sel.nepFoe)return;const b=e.target.closest&&e.target.closest("#selbox button");if(!b)return;
+  e.preventDefault();e.stopPropagation();G.sel=null;nepFoePenalty(view());render()},true);   // the Selected box's buttons count as acting with it
+/* twice a round at most, a 1 of 1d20 sends a move or an attack astray */
+const nepAstray=pl=>{const E=G.nepEc;if(!E)return false;const k=pl+"|"+G.moon.round;if((E.mis[k]||0)>=2||R(20)!==1)return false;E.mis[k]=(E.mis[k]||0)+1;return true};
+{const _dm=doMove;doMove=function(r,c){if(nepEcOn()&&G.sel&&!G.sel.nepFoe&&nepAstray(G.active)){const alt=moveTargets().filter(([a,b])=>a!==r||b!==c);
+    if(alt.length){const [a,b]=pick(alt);log(`Neptune's eclipse: ${plName(G.active)}'s stack wanders astray, to ${coord(a,b)} (a 1 on 1d20).`,"event");return _dm.call(this,a,b)}}
+  return _dm.apply(this,arguments)}}
+{const _at=attack;attack=function(r1,c1,r2,c2,mode){if(nepEcOn()&&nepAstray(G.active)){const alt=attackOptions(r1,c1).filter(o=>(o.r!==r2||o.c!==c2)&&(o.mode||null)===(mode||null));
+    if(alt.length){const o=pick(alt);log(`Neptune's eclipse: ${plName(G.active)}'s attack goes astray, at ${coord(o.r,o.c)} (a 1 on 1d20).`,"event");return _at.call(this,r1,c1,o.r,o.c,mode)}}
+  return _at.apply(this,arguments)}}
+/* what the eclipse does to the screen */
+let nepMusicOn=false;
+{const _r=render;render=function(){_r.apply(this,arguments);const E=G&&nepEcOn()?G.nepEc:null,h=document.documentElement;
+  h.classList.toggle("nepec",!!E);h.classList.toggle("nepflip",!!(E&&E.flip));
+  if(!!E!==nepMusicOn){nepMusicOn=!!E;try{window.ECMusic&&ECMusic.nep&&ECMusic.nep(nepMusicOn)}catch(e){}}
+  if(!E)return;
+  for(const s of document.querySelectorAll(".pn[data-pl]")){const n=E.names[+s.dataset.pl];if(n&&s.textContent!==n)s.textContent=n}
+  for(const b of document.querySelectorAll(".ph [data-stat]")){const nm=b.parentNode.querySelector("b"),n=E.names[+b.dataset.stat];if(nm&&n)nm.textContent=n}
+  for(const t of document.querySelectorAll("#board button.tile")){const st=G.board[+t.dataset.r][+t.dataset.c],s=t.querySelector(".stack");if(!st||!s||!st.cards[0])continue;
+    const col=COLORS[nepHash(st.cards[0].id+"|"+E.seed)%COLORS.length][1];s.style.setProperty("--pc",col);s.style.setProperty("--pcb",`color-mix(in oklab,${col} 44%,#211b16)`);s.classList.remove("mine","theirs","ally")}
+  const rd=G.moon.round;
+  for(const em of document.querySelectorAll("#spells .spell em")){const b=em.closest("[data-sp],[data-cast]");const id=b&&(b.dataset.sp||b.dataset.cast);if(id&&/mana/.test(em.textContent)&&nepHash(id+"|"+rd+"|"+E.seed)%8===0)em.textContent="free"}
+  for(const sm of document.querySelectorAll("#etherpanel .spell small.left")){const m=/^(\d+)/.exec(sm.textContent);if(m)sm.textContent=sm.textContent.replace(m[1],String(Math.max(0,+m[1]+(nepHash(sm.textContent+rd+E.seed)%7)-3)))}
+  const bk=document.querySelector("#openBank small");if(bk){const m=/(-?\d+)/.exec(bk.textContent);if(m)bk.textContent=bk.textContent.replace(m[1],String((+m[1])*(nepHash("bank"+rd+E.seed)%2?-1:1)+(nepHash("bk"+rd+E.seed)%9)-4))}}}
+
+if(window.__EC)Object.assign(window.__EC,{endEclipseW:()=>endEclipse(),eclipseRoundW:()=>eclipseRound(),nepEclipseW:()=>eclipse("neptune"),nepEcOnW:()=>nepEcOn(),tileClickW:(r,c)=>tileClick(r,c),nepEventRoundW:()=>nepEventRound(),nepEvOnW:()=>nepEvOn(),toGraveW:(...a)=>toGrave(...a),nepCloudAt:(r,c)=>nepCloudAt(r,c),neptuneSVG,giveManaW:(...a)=>giveMana(...a),spendW:(...a)=>spend(...a),beginTurnW:pl=>beginTurn(pl),hiddenFromW:(V,r,c)=>hiddenFrom(V,r,c)});
 
 })();
