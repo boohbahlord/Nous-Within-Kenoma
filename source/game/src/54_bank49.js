@@ -52,6 +52,21 @@ const landFree=pl=>{const t=[];if(typeof kothOn==="function"&&kothOn())return t;
   for(const l of [...(G.lands||[])])if(l.owner===pl&&l.untilT!=null&&tnOf(pl)>=l.untilT){G.lands.splice(G.lands.indexOf(l),1);
     log(`${plName(pl)}'s land on ${coord(l.r,l.c)} goes back to the Bank after ${LAND_TURNS} turns (a base on it stays a spawn point until it falls).`)}
   return out}}
+/* v71e: a typed tile, like C3, and why it can't be land */
+const landParse=txt=>{const m=/^([A-Z])\s*(\d{1,2})$/.exec(String(txt||"").trim().toUpperCase());return m?[G.rows-(+m[2]),m[1].charCodeAt(0)-65]:null};
+function landWhy(pl,txt){const t=String(txt||"").trim().toUpperCase();if(!t)return "Type a tile: a letter and a number, like C3.";
+  if(typeof kothOn==="function"&&kothOn())return "No land in King of the Hill.";
+  const rc=landParse(t);if(!rc)return `"${t}" isn't a tile: a letter and a number, like C3.`;const [r,c]=rc;
+  if(c<0||c>=COLS||r<0||r>=G.rows)return `${t} isn't on the field.`;
+  if(isVoid(r,c)||tileRole(r,c)==="water")return `${t} isn't ground anyone can stand on.`;
+  if(!midTile(r,c))return `${t} is home ground, not the middle.`;
+  if(!landOwnSide(pl,r,c))return `${t} is past the midline: land must be on your side of it.`;
+  if(landAt(r,c))return `${t} is already someone's land.`;
+  if(G.board[r][c])return `Something stands on ${t}: land must be empty.`;
+  if(typeof flagAt==="function"&&flagAt(r,c))return `${t} is already a spawn point.`;
+  if((G.lands||[]).some(l=>l.owner===pl))return "You already hold land in the middle.";
+  if(!canAfford(pl,2))return "Land costs 2 mana.";
+  return ""}
 function buyLand(pl,r,c){const P=G.p[pl];if(!bankOpen()||G.phase!=="prep"||G.active!==pl)return false;
   if((G.lands||[]).some(l=>l.owner===pl)){if(!P.cpu)flash("You already hold land in the middle.");return false}
   if(!landFree(pl).some(([a,b])=>a===r&&b===c))return false;if(!canAfford(pl,2)){if(!P.cpu)flash("Land costs 2 mana.");return false}
@@ -107,8 +122,11 @@ ${paper({...rp},true)}${R0?paper(R0,false):`<p class="dim">No Report yet.</p>`}$
     tabs.querySelectorAll("[data-bt]").forEach(b=>b.onclick=()=>show(b.dataset.bt));if(bankTab==="report")show("report")}
   // land on the front tab
   const acts=box.querySelector(".bacts");if(acts&&live&&bankOpen()){const mine=(G.lands||[]).find(l=>l.owner===V),free=landFree(V);
-    acts.insertAdjacentHTML("beforeend",`<p class="brow landrow"><span class="bkey" data-tip="A spawn point on the middle ground for 8 of your turns (this one counts), on your side of the midline (none in King of the Hill): any card but a Wall can come down there; a card without a base on it costs 1d2 − 1. A base on it stays a spawn point after that, until it falls." tabindex="0">Land <i class="q">?</i></span>${mine?`<small class="dim">You hold land on ${coord(mine.r,mine.c)}: ${landLeft(mine)} of your turns left, this one counted.</small>`:`<label class="${free.length?"":"off"}"><select id="bLandAt" aria-label="Where" ${free.length?"":"disabled"}>${free.length?free.map(([r,c])=>`<option value="${r},${c}">${coord(r,c)}</option>`).join(""):"<option>—</option>"}</select></label><button class="btn sm" id="bLandBtn" ${free.length&&canAfford(V,2)?"":"disabled"}>Buy for 2 mana</button><small class="dim">A spawn point in the middle, on your side of the midline, for 8 of your turns.</small>`}</p>`);
-    const b=$("#bLandBtn");if(b)b.onclick=()=>{const [r,c]=$("#bLandAt").value.split(",").map(Number);buyLand(V,r,c);render();openBank()}}
+    acts.insertAdjacentHTML("beforeend",`<p class="brow landrow"><span class="bkey" data-tip="A spawn point on the middle ground for 8 of your turns (this one counts), on your side of the midline (none in King of the Hill): any card but a Wall can come down there; a card without a base on it costs 1d2 − 1. A base on it stays a spawn point after that, until it falls." tabindex="0">Land <i class="q">?</i></span>${mine?`<small class="dim">You hold land on ${coord(mine.r,mine.c)}: ${landLeft(mine)} of your turns left, this one counted.</small>`:`<label class="landin ${free.length?"":"off"}"><input id="bLandAt" type="text" maxlength="4" autocomplete="off" spellcheck="false" placeholder="${free.length?coord(free[0][0],free[0][1]):"—"}" aria-label="Which tile, like C3" aria-describedby="bLandErr" ${free.length?"":"disabled"}></label><button class="btn sm" id="bLandBtn" disabled>Buy for 2 mana</button><small class="dim">Type a tile in the middle, on your side of the midline: a spawn point for 8 of your turns.</small><small id="bLandErr" class="landerr" role="status" aria-live="polite">${free.length?"":"No free tile on your side of the midline."}</small>`}</p>`);
+    const inp=$("#bLandAt"),btn=$("#bLandBtn"),err=$("#bLandErr");   // v71e: typed, and what's wrong shows under it as you type
+    if(inp&&btn&&err){const chk=()=>{const t=inp.value.trim(),why=landWhy(V,t);err.classList.toggle("ok",!why);err.textContent=!t?"":why||`${t.toUpperCase()} is free: yours for 2 mana.`;btn.disabled=!!why;return !why};
+      inp.oninput=chk;inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();if(chk())btn.click()}};
+      btn.onclick=()=>{if(!chk())return;const rc=landParse(inp.value);if(rc)buyLand(V,rc[0],rc[1]);render();openBank()}}}
   // between players: forgive, give
   const p2p=box.querySelector(".btab.p2p");if(p2p){
     p2p.querySelectorAll("ul.p2pl li").forEach(li=>{});

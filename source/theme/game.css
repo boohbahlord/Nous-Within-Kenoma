@@ -1917,3 +1917,10 @@ html.nepev .pbox .meter,html.nepev .pbox p.stats,html.nepev #me .meter,html.nepe
 html.nepflip #board{rotate:180deg}
 html.nepflip #board .stack,html.nepflip #board .coord,html.nepflip #board .rl,html.nepflip #board .crys{rotate:180deg}
 html.nepec .game h1{text-shadow:0 0 14px #6a1fa0}
+/* v71e: the land's tile is typed; what's wrong shows under it */
+.ovbox.bank .landin input{width:4.2em;font:inherit;text-transform:uppercase;text-align:center;padding:2px 4px;background:var(--deep);color:var(--text);border:1px solid var(--rule)}
+.ovbox.bank .landerr{flex-basis:100%;color:#ff8f86;font-size:12px;min-height:1.2em}.ovbox.bank .landerr.ok{color:var(--dim)}
+html.th-office .ovbox.bank .landerr{color:#a3202a}
+.ovbox.bank .bacts p.brow:has(#bPayWho){grid-template-columns:76px auto auto auto minmax(0,1fr)}   /* Repay: which loan, how much */
+.ovbox.bank .bacts p.brow .landerr{grid-column:2/-1}
+@media (max-width:640px){.ovbox.bank .bacts p.brow:has(#bPayWho){grid-template-columns:62px minmax(0,1fr) auto auto}.ovbox.bank #bPayWho{max-width:100%;min-width:0}}

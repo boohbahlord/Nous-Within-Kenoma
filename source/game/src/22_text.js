@@ -78,7 +78,7 @@ const SPELL_TEXT={
  oath_jupiter:{n:"Any sky.",e:"Every conjuring costs you one less, unless it already costs one. Your mana can fall to −12 before you lose, not −8.",l:"Cast again to break the Oath."},
  oath_mercury:{n:"Any sky.",e:"Unlocks Betrayal, Declare War and Bribe the Banker. +1 mana for every Auction sale. Rob the Bank in any round, once a round. Take the Bank's bounties at any time.",l:"Cast again to break the Oath."},
  peace:{n:"Mercury in the sky. Every player must agree.",e:"Peace for 3 + 1d2 − 1 rounds. Every stack goes home, every card with hearts heals, curses and enchantments end, and everyone takes three cards from the grave, one at a time.",l:"No player can attack another or step into another player's lines. Stacks with no room at home go back into the deck, weakest first."},
- buypeace:{n:"Mercury in the sky.",e:"Peace for two rounds without a vote, with everything Peace brings."},
+ buypeace:{n:"Mercury in the sky.",e:"Peace for two turns without a vote, with everything Peace brings."},
  war:{n:"Mercury in the sky. Every player must agree.",e:"Total War for 3 + 1d2 − 1 rounds. Every card killed falls into the Outer Darkness and pays its killer a mana, and curses cost 1d2 − 1 less.",l:"Teammates may strike each other: each damage to a teammate pays its soul's worth + 1d2 − 1."},
  betray:{n:"The Oath of Mercury, in a team game.",e:"You leave your team for good. For two rounds every card killed falls into the Outer Darkness, and each damage between you and your former teammates pays its dealer the soul's worth + 1d2 − 1."},
  warnow:{n:"The Oath of Mercury.",e:"Total War for 1d2 rounds, without a vote."},
@@ -172,7 +172,7 @@ planetInfoHTML=function(k){
     if(G.moonLev)L.push("The Leviathan coils on Jupiter. Its toll and its weak spot come every eighth round.");
     skyCommon(L);return skyBox("Jupiter","",L,"jupiter")}
   if(k==="mercury"){
-    if(peaceOn())L.push(`<b>Peace</b> until round ${G.peace.until}: no player may attack another or step into another player's lines.`);
+    if(peaceOn())L.push(`<b>Peace</b> ${peaceTill()}: no player may attack another or step into another player's lines.`);
     if(warOn())L.push(`<b>Total War</b> until round ${G.war.until}: kills fall into the Outer Darkness and pay a mana; teammates may fight.`);
     L.push("Anyone can call a vote for Peace or Total War (everyone must agree), or buy Peace for two rounds.");
     L.push(P.oath==="mercury"?"You have sworn the Oath of Mercury: Betrayal, Declare War and Bribe the Banker are open to you.":"The Oath of Mercury (Astrology) opens Betrayal, Declare War and Bribe the Banker.");
@@ -187,7 +187,7 @@ moonNote=function(){
   if(m.gone==="sun")return "No fog of war · it judges every 2d2 turns";
   if(m.gone==="blacksun")return "Its flames are out · the fog of war is back";
   if(m.gone==="venus")return G.venus?`${plN(G.venus.target)}: ${G.venus.mode==="a"?"+2 mana a turn and +2 maximum":"+1 mana a turn · every enemy +2 maximum"}`:"Oath of Venus open";
-  if(m.gone==="mercury")return peaceOn()?`Peace until round ${G.peace.until}`:warOn()?`Total War until round ${G.war.until}`:"Votes for Peace or Total War";
+  if(m.gone==="mercury")return peaceOn()?`Peace ${peaceTill()}`:warOn()?`Total War until round ${G.war.until}`:"Votes for Peace or Total War";
   if(m.gone==="jupiter")return "Ace miners bring 1d2 · two conjurings on sale";
   if(m.gone==="fallen")return "The Second Sun fell · the sky is empty";
   if(m.gone==="mars")return `Grunts and Infantry: advantage on 1–5 of 1d8${L?" · the Leviathan coils here":""}`;

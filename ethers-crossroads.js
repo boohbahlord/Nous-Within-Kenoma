@@ -4502,6 +4502,9 @@ function openBank(){
   if(B.mana<0&&!B.dead)notes.push("The Bank is in the red: everything in the Ether costs 1 less.");const up=Object.keys(B.upsell);if(up.length)notes.push(`Upsold this round: ${up.map(id=>SP(id)?SP(id).name:id).join(", ")}.`);
   if(G.inflation&&G.turnNo<=G.inflation.until)notes.push(`After the collapse, prices wobble up for ${G.inflation.until-G.turnNo+1} more turn${G.inflation.until-G.turnNo+1===1?"":"s"}.`);
   const cap=soulCap(V),pay=Math.min(mana(V),owed),why=loanWhy(V);
+  // v71e: which loan to repay: the Bank's, or one from a player
+  const payOpts=[...(owed?[["bank",`The Bank · ${owed} owed`,owed]]:[]),...(typeof p2pOf==="function"?p2pOf():[]).filter(x=>x.from===V&&["open","late"].includes(x.state)&&x.owed>0).map(x=>[`p2p:${x.id}`,`${esc(G.p[x.to].name)} · ${x.owed} owed${x.state==="late"?" · late":""}`,x.owed])];
+  const payMax=k=>Math.min(mana(V),(payOpts.find(o=>o[0]===k)||[0,0,0])[2]),pay0=payOpts.length?payMax(payOpts[0][0]):0;
   const tip=t=>`data-tip="${esc(t)}" tabindex="0"`;
   const LOAN_TIP=`A loan is mana now, paid out of the Bank's own mana. How much: up to 12 (6 if you are below zero, 5 at −${cap} or lower), and only while the Bank stays at ${BANK_FLOOR} or above. When it's due: half the amount in your turns, at least 2 (12 mana: 6 turns). It grows by 1d2 every 3 of your turns. It is never taken back by itself: pay it with Repay. Left open too long (3 + owed ÷ 3 of your turns), it brings the Debt Collectors. One loan at a time, one a round, and the next no sooner than ${LOAN_GAP} turns after the last.`;
   const CREDIT_TIP=`Credit is not a loan: nothing is paid out up front. With it on, you can cast spells you can't afford; what your souls don't cover becomes mana debt at once. You can go down to ${fl}, and below ${fl} you lose the game. Debt grows by 1d2 every 3 of your turns, and every soul you gain pays it first. Stay at ${DEEP_DEBT} or lower for 3 turns and the Debt Collectors come every turn until the debt is paid.`;
@@ -4515,14 +4518,16 @@ function openBank(){
 ${loans?`<ul class="bloans">${loans}</ul>`:""}${notes.length?`<p class="bnote">${notes.join("<br>")}</p>`:""}</div></div>
 ${live&&!B.dead?`<div class="bacts">
 <p class="brow"><span class="bkey" ${tip(LOAN_TIP)}>Loan <i class="q">?</i></span><label class="${lim?"":"off"}"><select id="bLoan" aria-label="Mana to borrow" ${lim?"":"disabled"}>${lim?nums(lim):"<option>—</option>"}</select> mana</label><button class="btn sm" id="bLoanBtn" ${lim?"":"disabled"}>Take the loan</button><small class="dim">${lim?`grows 1d2 every 3 turns · due in half the amount, at least 2`:why||"The Bank won't lend to you now."}</small></p>
-<p class="brow"><span class="bkey">Repay</span><label class="${pay?"":"off"}"><select id="bPay" aria-label="Mana to repay" ${pay?"":"disabled"}>${pay?nums(pay):"<option>—</option>"}</select> mana</label><button class="btn sm" id="bPayBtn" ${pay?"":"disabled"}>Pay</button><small class="dim">${owed?`You owe ${owed}.`:"No loans to repay."}</small></p>
+<p class="brow"><span class="bkey">Repay</span>${payOpts.length?`<label><select id="bPayWho" aria-label="Which loan">${payOpts.map(([v,t])=>`<option value="${v}">${t}</option>`).join("")}</select></label>`:""}<label class="${pay0?"":"off"}"><select id="bPay" aria-label="Mana to repay" ${pay0?"":"disabled"}>${pay0?nums(pay0):"<option>—</option>"}</select> mana</label><button class="btn sm" id="bPayBtn" ${pay0?"":"disabled"}>Pay</button><small class="dim">${payOpts.length?"A loan is only paid when you pay it here.":"No loans to repay."}</small></p>
 <p class="brow"><span class="bkey" ${tip(CREDIT_TIP)}>Credit <i class="q">?</i></span><label><input type="checkbox" id="bCredit" ${P.credit?"checked":""}> Spend on credit</label><small class="dim">Spells you can't afford become mana debt, down to ${fl}; below it you lose.</small></p>
 <p class="brow bsellrow"><button class="btn bsell" id="bSell">Sell cards to the Bank</button>${P.tribe==="binah"&&(P.thralls||[]).length?`<button class="btn sm" id="bThrall">Sell a thrall (1 mana)</button>`:""}<small class="dim">From your hand or deck, for their soul worth or 1 less.</small></p></div>`:`<p class="dim">${B.dead?"":"Bank business is done in your own prep phase."}</p>`}
 <details class="bankhelp"><summary>How the Bank works</summary><dl>${BANK_HELP.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl></details>
 <p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
   $("#mcancel").onclick=ovHide;
   if($("#bLoanBtn"))$("#bLoanBtn").onclick=()=>{takeLoan(V,+$("#bLoan").value);render();openBank()};
-  if($("#bPayBtn"))$("#bPayBtn").onclick=()=>{repay(V,+$("#bPay").value);render();openBank()};
+  if($("#bPayWho"))$("#bPayWho").onchange=()=>{const m=payMax($("#bPayWho").value),s=$("#bPay");s.innerHTML=m?nums(m):"<option>—</option>";s.disabled=!m;s.closest("label").classList.toggle("off",!m);$("#bPayBtn").disabled=!m};
+  if($("#bPayBtn"))$("#bPayBtn").onclick=()=>{const k=$("#bPayWho")?$("#bPayWho").value:"bank",n=+$("#bPay").value;if(!(n>0))return;
+    if(k==="bank")repay(V,n);else{const L=p2pOf().find(x=>"p2p:"+x.id===k);if(L)repayLoan(L,n)}render();openBank()};
   if($("#bCredit"))$("#bCredit").onchange=e=>{setCredit(V,e.target.checked);render()};
   if($("#bThrall"))$("#bThrall").onclick=()=>{sellThrall(V);render();openBank()};
   if($("#bSell"))$("#bSell").onclick=()=>openSell(V);
@@ -5047,7 +5052,7 @@ function planetInfoHTML(k){
     if(G.jupSale)L.push(`On sale this round: ${G.jupSale.ids.map(id=>SP(id).name).join(" and ")}.`);
     L.push(P.oath==="jupiter"?"Your Oath of Jupiter: every conjuring costs one less, except what already costs one.":"You can swear the Oath of Jupiter (Astrology).")}
   if(k==="mercury"){L.push(`Mercury hangs in the moon's place. Anyone can call a vote for Peace or Total War (everyone must agree), or Buy Peace for two rounds. The Oath of Mercury unlocks Betrayal, Declare War and Bribe the Banker.`);
-    if(peaceOn())L.push(`Peace until round ${G.peace.until}: no player may attack another or step into another player's lines.`);if(warOn())L.push(`Total War until round ${G.war.until}: kills fall into the Outer Darkness and pay a mana; teammates may fight.`);
+    if(peaceOn())L.push(`Peace ${peaceTill()}: no player may attack another or step into another player's lines.`);if(warOn())L.push(`Total War until round ${G.war.until}: kills fall into the Outer Darkness and pay a mana; teammates may fight.`);
     L.push(P.oath==="mercury"?"You have sworn the Oath of Mercury.":"You can swear the Oath of Mercury (Astrology).")}
   if(G.eclipse&&G.eclipse.k===k)L.push(`<b>Eclipsed</b> this round${k==="jupiter"?" and the next":""}.`);
   if(k==="fallen")L.push("The Second Sun fell to the ground. Nothing hangs in the sky now: no phases, no gifts, no tolls.");
@@ -5062,7 +5067,8 @@ function skyPrices(pl){if(oathOf(pl)!=="earth"||!G.prices)return;for(const s of 
    and the computer looking after itself ---------------- */
 
 PLANETS.mercury={name:"Mercury",word:"Guile",hunger:3};OATH_SKY.mercury="mercury";
-const peaceOn=()=>!!(G.peace&&G.moon.round<=G.peace.until);
+const peaceOn=()=>!!(G.peace&&(G.peace.untilT!=null?G.turnNo<=G.peace.untilT:G.moon.round<=G.peace.until));
+const peaceTill=()=>G.peace.untilT!=null?`for ${Math.max(1,G.peace.untilT-G.turnNo+1)} more turn${G.peace.untilT-G.turnNo+1===1?"":"s"}`:`until round ${G.peace.until}`;   // v71e: bought Peace counts turns
 const warOn=()=>!!(G.war&&G.moon.round<=G.war.until);
 const betrayOn=()=>!!(G.betrayal&&G.moon.round<=G.betrayal.until);
 const realPlayers=()=>alive().filter(i=>!isHorde(i));
@@ -5075,7 +5081,7 @@ const warOD=()=>warOn()||betrayOn();
 /* ---------- the start of each round: eclipses, the end of Peace and War, bribes ---------- */
 async function eclipseRound(){
   if(G.over)return;const r=G.moon.round;
-  if(G.peace&&r>G.peace.until){G.peace=null;log("<b>Peace ends.</b> The lines are open again.","event");notify(null,"Peace is over.")}
+  if(G.peace&&G.peace.untilT==null&&r>G.peace.until){G.peace=null;log("<b>Peace ends.</b> The lines are open again.","event");notify(null,"Peace is over.")}
   if(G.war&&r>G.war.until){G.war=null;log("<b>Total War ends.</b>","event");notify(null,"Total War is over.")}
   if(G.war)G.warCurse=R(2)-1;
   if(G.eclipse&&r>(G.eclipse.until!=null?G.eclipse.until:G.eclipse.round+(G.eclipse.k==="jupiter"?1:0))){endEclipse()}   // v71c: Neptune's lasts 2d3 rounds
@@ -5099,8 +5105,8 @@ function sendHome(pl){
   }
   if(home||toDeck)log(`Peace: ${plName(pl)}'s ${home?`${home} stack${home>1?"s go":" goes"} home`:""}${home&&toDeck?"; ":""}${toDeck?`${toDeck} card${toDeck>1?"s":""} with no room go back into the deck`:""}.`);
 }
-function startPeace(rounds,why){
-  const r=G.moon.round;G.peace={until:r+rounds-1};G.war=null;
+function startPeace(rounds,why,turns){
+  const r=G.moon.round;G.peace=turns?{untilT:G.turnNo+turns}:{until:r+rounds-1};G.war=null;
   for(const pl of realPlayers())sendHome(pl);
   // every wound heals; every curse and enchantment ends
   for(const row of G.board)for(const st of row){if(!st)continue;st.odds=null;st.hypo=0;st.supp=null;for(const c of st.cards){if(c.maxHp)c.hp=c.maxHp;c.hate=false}}
@@ -5208,8 +5214,8 @@ SPELLS.push(
   ok:firmPlace("mercury"),run:async()=>{setPlanet("mercury",G.active);log(`<b>Mercury</b> rises where the moon was, raised by ${plName(G.active)}.`,"event")}},
  {id:"peace",name:"Peace Time",cost:0,school:"Astrology",text:"Free, under Mercury; everyone must agree. Peace for 3 + 1d2 − 1 rounds: every stack goes home (what has no room goes back into the deck, weakest first), every card with hearts heals, curses and enchantments end, everyone gets three cards from the grave one at a time, and no player can attack another or step into another player's lines.",
   ok:()=>planetUp("mercury")&&!peaceOn()&&!warOn()&&!G.voted,run:async()=>{G.voted=true;const v=await vote("Peace","Agree to Peace for 3 or 4 rounds?");if(!v.no.length)startPeace(2+R(2),"agreed by everyone");else log("No peace: not everyone agrees.")}},
- {id:"buypeace",dice:"4d2",name:"Buy Peace",cost:6,school:"Astrology",text:"Under Mercury, without a vote: Peace for two rounds, with everything Peace brings.",
-  ok:()=>planetUp("mercury")&&!peaceOn(),run:async()=>{startPeace(2,`bought by ${esc(me().name)}`)}},
+ {id:"buypeace",dice:"4d2",name:"Buy Peace",cost:6,school:"Astrology",text:"Under Mercury, without a vote: Peace for two turns, with everything Peace brings.",
+  ok:()=>planetUp("mercury")&&!peaceOn(),run:async()=>{startPeace(0,`bought by ${esc(me().name)}`,2)}},
  {id:"war",name:"Total War",cost:0,school:"Astrology",text:"Free, under Mercury; everyone must agree. For 3 + 1d2 − 1 rounds every card killed falls into the Outer Darkness and gives its killer a mana, curses cost 1d2 − 1 less, and teammates may strike each other: each damage to a teammate pays its soul's worth + 1d2 − 1.",
   ok:()=>planetUp("mercury")&&!warOn()&&!peaceOn()&&!G.voted,run:async()=>{G.voted=true;const v=await vote("Total War","Agree to Total War for 3 or 4 rounds?");if(!v.no.length)startWar(2+R(2),"agreed by everyone");else log("No war: not everyone agrees.")}},
  {id:"oath_mercury",name:"Oath of Mercury",cost:0,school:"Astrology",text:"Free. Unlocks Betrayal, Declare War and Bribe the Banker. Cast again to break the Oath.",
@@ -5481,7 +5487,7 @@ const SPELL_TEXT={
  oath_jupiter:{n:"Any sky.",e:"Every conjuring costs you one less, unless it already costs one. Your mana can fall to −12 before you lose, not −8.",l:"Cast again to break the Oath."},
  oath_mercury:{n:"Any sky.",e:"Unlocks Betrayal, Declare War and Bribe the Banker. +1 mana for every Auction sale. Rob the Bank in any round, once a round. Take the Bank's bounties at any time.",l:"Cast again to break the Oath."},
  peace:{n:"Mercury in the sky. Every player must agree.",e:"Peace for 3 + 1d2 − 1 rounds. Every stack goes home, every card with hearts heals, curses and enchantments end, and everyone takes three cards from the grave, one at a time.",l:"No player can attack another or step into another player's lines. Stacks with no room at home go back into the deck, weakest first."},
- buypeace:{n:"Mercury in the sky.",e:"Peace for two rounds without a vote, with everything Peace brings."},
+ buypeace:{n:"Mercury in the sky.",e:"Peace for two turns without a vote, with everything Peace brings."},
  war:{n:"Mercury in the sky. Every player must agree.",e:"Total War for 3 + 1d2 − 1 rounds. Every card killed falls into the Outer Darkness and pays its killer a mana, and curses cost 1d2 − 1 less.",l:"Teammates may strike each other: each damage to a teammate pays its soul's worth + 1d2 − 1."},
  betray:{n:"The Oath of Mercury, in a team game.",e:"You leave your team for good. For two rounds every card killed falls into the Outer Darkness, and each damage between you and your former teammates pays its dealer the soul's worth + 1d2 − 1."},
  warnow:{n:"The Oath of Mercury.",e:"Total War for 1d2 rounds, without a vote."},
@@ -5575,7 +5581,7 @@ planetInfoHTML=function(k){
     if(G.moonLev)L.push("The Leviathan coils on Jupiter. Its toll and its weak spot come every eighth round.");
     skyCommon(L);return skyBox("Jupiter","",L,"jupiter")}
   if(k==="mercury"){
-    if(peaceOn())L.push(`<b>Peace</b> until round ${G.peace.until}: no player may attack another or step into another player's lines.`);
+    if(peaceOn())L.push(`<b>Peace</b> ${peaceTill()}: no player may attack another or step into another player's lines.`);
     if(warOn())L.push(`<b>Total War</b> until round ${G.war.until}: kills fall into the Outer Darkness and pay a mana; teammates may fight.`);
     L.push("Anyone can call a vote for Peace or Total War (everyone must agree), or buy Peace for two rounds.");
     L.push(P.oath==="mercury"?"You have sworn the Oath of Mercury: Betrayal, Declare War and Bribe the Banker are open to you.":"The Oath of Mercury (Astrology) opens Betrayal, Declare War and Bribe the Banker.");
@@ -5590,7 +5596,7 @@ moonNote=function(){
   if(m.gone==="sun")return "No fog of war · it judges every 2d2 turns";
   if(m.gone==="blacksun")return "Its flames are out · the fog of war is back";
   if(m.gone==="venus")return G.venus?`${plN(G.venus.target)}: ${G.venus.mode==="a"?"+2 mana a turn and +2 maximum":"+1 mana a turn · every enemy +2 maximum"}`:"Oath of Venus open";
-  if(m.gone==="mercury")return peaceOn()?`Peace until round ${G.peace.until}`:warOn()?`Total War until round ${G.war.until}`:"Votes for Peace or Total War";
+  if(m.gone==="mercury")return peaceOn()?`Peace ${peaceTill()}`:warOn()?`Total War until round ${G.war.until}`:"Votes for Peace or Total War";
   if(m.gone==="jupiter")return "Ace miners bring 1d2 · two conjurings on sale";
   if(m.gone==="fallen")return "The Second Sun fell · the sky is empty";
   if(m.gone==="mars")return `Grunts and Infantry: advantage on 1–5 of 1d8${L?" · the Leviathan coils here":""}`;
@@ -6819,15 +6825,17 @@ function sendLoanCollectors(L){const bk=npcIx("bank");if(bk<0)return 0;let n=0;c
     if(["ask","offer","open","late"].includes(L.state)&&(G.p[L.from].out||G.p[L.to].out)){L.state="void";continue}
     if(L.from!==pl)continue;
     if(["open","late"].includes(L.state)&&L.owed>0&&L.intAt!=null&&tn>=L.intAt){const add=R(2);L.owed+=add;L.intAt=tn+3;log(`Interest: ${plName(pl)}'s loan from ${plName(L.to)} grows by ${add} (1d2) to ${L.owed}.`)}
-    if(L.state==="open"&&tn>=L.due){const take=Math.min(mana(pl),L.owed);if(take)repayLoan(L,take);
-      if(L.owed>0){L.state="late";const n=sendLoanCollectors(L);
-        log(`<b>${plName(pl)}'s loan from ${plName(L.to)} is due</b> and ${L.owed} mana is still owed. The Bank sends ${n} Debt Collector${n===1?"":"s"} after ${plName(pl)}; what they take goes to ${plName(L.to)}.`,"event");
-        popup("A loan is not paid",`<p>${plName(pl)} owed ${plName(L.to)} ${L.owed+take} mana and could pay ${take}.</p><p>The Bank sends Debt Collectors after ${plName(pl)} for the other ${L.owed}. Whatever they kill goes to the Ether, and its worth goes to ${plName(L.to)} until the loan is paid.</p>`,L.to)}}
+    // v71e: never taken by itself: due, a reminder; still open a turn later, the Debt Collectors
+    if(L.state==="open"&&tn>=L.due&&!L.told&&L.owed>0){L.told=true;log(`${plName(pl)}'s loan from ${plName(L.to)} is due: ${L.owed} mana, to be paid at the Bank (Repay).`,"event");
+      notify(pl,`Your loan from ${esc(G.p[L.to].name)} is due: ${L.owed} mana. Pay it at the Bank (Repay) this turn, or the Debt Collectors come.`)}
+    else if(L.state==="open"&&tn>L.due&&L.owed>0){L.state="late";const n=sendLoanCollectors(L);
+        log(`<b>${plName(pl)} hasn't paid back ${plName(L.to)}</b>: ${L.owed} mana is still owed. The Bank sends ${n} Debt Collector${n===1?"":"s"} after ${plName(pl)}; what they take goes to ${plName(L.to)}.`,"event");
+        popup("A loan is not paid",`<p>${plName(pl)} owes ${plName(L.to)} ${L.owed} mana, a turn past its due.</p><p>The Bank sends Debt Collectors after ${plName(pl)}. Whatever they kill goes to the Ether, and its worth goes to ${plName(L.to)} until the loan is paid.</p>`,L.to)}
     else if(L.state==="late"){const bk=npcIx("bank");if(bk>=0&&!stacksOf(bk).some(x=>x.st.loan===L.id))sendLoanCollectors(L)}
   }}}
 /* the computer borrows when it is poor, and answers a person's request at once (see askLoan) */
 {const _ab=aiBank;aiBank=async function(pl,W,cast1){await _ab(pl,W,cast1);const P=G.p[pl];if(P.jail||G.over)return;
-  for(const L of p2pOf())if(L.from===pl&&L.state==="open"&&mana(pl)>=L.owed+3)repayLoan(L,L.owed);
+  for(const L of p2pOf())if(L.from===pl&&["open","late"].includes(L.state)&&L.owed>0&&(mana(pl)>=L.owed+3||(L.state==="late"||tnOf(pl)>=L.due)&&mana(pl)>0))repayLoan(L,L.owed);   // v71e: paid by choice, so the computer chooses to
   for(const L of loanReqsFor(pl))answerLoan(L,aiLend(L),2+R(6)+R(4));
   if(mana(pl)<=1&&Math.random()<.08){const t=lenders(pl).filter(i=>!isEnemy(pl,i)||Math.random()<.3).sort((a,b)=>mana(b)-mana(a))[0];if(t!=null&&mana(t)>=4)askLoan(pl,t,1+R(3))}}}
 
@@ -8894,6 +8902,21 @@ const landFree=pl=>{const t=[];if(typeof kothOn==="function"&&kothOn())return t;
   for(const l of [...(G.lands||[])])if(l.owner===pl&&l.untilT!=null&&tnOf(pl)>=l.untilT){G.lands.splice(G.lands.indexOf(l),1);
     log(`${plName(pl)}'s land on ${coord(l.r,l.c)} goes back to the Bank after ${LAND_TURNS} turns (a base on it stays a spawn point until it falls).`)}
   return out}}
+/* v71e: a typed tile, like C3, and why it can't be land */
+const landParse=txt=>{const m=/^([A-Z])\s*(\d{1,2})$/.exec(String(txt||"").trim().toUpperCase());return m?[G.rows-(+m[2]),m[1].charCodeAt(0)-65]:null};
+function landWhy(pl,txt){const t=String(txt||"").trim().toUpperCase();if(!t)return "Type a tile: a letter and a number, like C3.";
+  if(typeof kothOn==="function"&&kothOn())return "No land in King of the Hill.";
+  const rc=landParse(t);if(!rc)return `"${t}" isn't a tile: a letter and a number, like C3.`;const [r,c]=rc;
+  if(c<0||c>=COLS||r<0||r>=G.rows)return `${t} isn't on the field.`;
+  if(isVoid(r,c)||tileRole(r,c)==="water")return `${t} isn't ground anyone can stand on.`;
+  if(!midTile(r,c))return `${t} is home ground, not the middle.`;
+  if(!landOwnSide(pl,r,c))return `${t} is past the midline: land must be on your side of it.`;
+  if(landAt(r,c))return `${t} is already someone's land.`;
+  if(G.board[r][c])return `Something stands on ${t}: land must be empty.`;
+  if(typeof flagAt==="function"&&flagAt(r,c))return `${t} is already a spawn point.`;
+  if((G.lands||[]).some(l=>l.owner===pl))return "You already hold land in the middle.";
+  if(!canAfford(pl,2))return "Land costs 2 mana.";
+  return ""}
 function buyLand(pl,r,c){const P=G.p[pl];if(!bankOpen()||G.phase!=="prep"||G.active!==pl)return false;
   if((G.lands||[]).some(l=>l.owner===pl)){if(!P.cpu)flash("You already hold land in the middle.");return false}
   if(!landFree(pl).some(([a,b])=>a===r&&b===c))return false;if(!canAfford(pl,2)){if(!P.cpu)flash("Land costs 2 mana.");return false}
@@ -8949,8 +8972,11 @@ ${paper({...rp},true)}${R0?paper(R0,false):`<p class="dim">No Report yet.</p>`}$
     tabs.querySelectorAll("[data-bt]").forEach(b=>b.onclick=()=>show(b.dataset.bt));if(bankTab==="report")show("report")}
   // land on the front tab
   const acts=box.querySelector(".bacts");if(acts&&live&&bankOpen()){const mine=(G.lands||[]).find(l=>l.owner===V),free=landFree(V);
-    acts.insertAdjacentHTML("beforeend",`<p class="brow landrow"><span class="bkey" data-tip="A spawn point on the middle ground for 8 of your turns (this one counts), on your side of the midline (none in King of the Hill): any card but a Wall can come down there; a card without a base on it costs 1d2 − 1. A base on it stays a spawn point after that, until it falls." tabindex="0">Land <i class="q">?</i></span>${mine?`<small class="dim">You hold land on ${coord(mine.r,mine.c)}: ${landLeft(mine)} of your turns left, this one counted.</small>`:`<label class="${free.length?"":"off"}"><select id="bLandAt" aria-label="Where" ${free.length?"":"disabled"}>${free.length?free.map(([r,c])=>`<option value="${r},${c}">${coord(r,c)}</option>`).join(""):"<option>—</option>"}</select></label><button class="btn sm" id="bLandBtn" ${free.length&&canAfford(V,2)?"":"disabled"}>Buy for 2 mana</button><small class="dim">A spawn point in the middle, on your side of the midline, for 8 of your turns.</small>`}</p>`);
-    const b=$("#bLandBtn");if(b)b.onclick=()=>{const [r,c]=$("#bLandAt").value.split(",").map(Number);buyLand(V,r,c);render();openBank()}}
+    acts.insertAdjacentHTML("beforeend",`<p class="brow landrow"><span class="bkey" data-tip="A spawn point on the middle ground for 8 of your turns (this one counts), on your side of the midline (none in King of the Hill): any card but a Wall can come down there; a card without a base on it costs 1d2 − 1. A base on it stays a spawn point after that, until it falls." tabindex="0">Land <i class="q">?</i></span>${mine?`<small class="dim">You hold land on ${coord(mine.r,mine.c)}: ${landLeft(mine)} of your turns left, this one counted.</small>`:`<label class="landin ${free.length?"":"off"}"><input id="bLandAt" type="text" maxlength="4" autocomplete="off" spellcheck="false" placeholder="${free.length?coord(free[0][0],free[0][1]):"—"}" aria-label="Which tile, like C3" aria-describedby="bLandErr" ${free.length?"":"disabled"}></label><button class="btn sm" id="bLandBtn" disabled>Buy for 2 mana</button><small class="dim">Type a tile in the middle, on your side of the midline: a spawn point for 8 of your turns.</small><small id="bLandErr" class="landerr" role="status" aria-live="polite">${free.length?"":"No free tile on your side of the midline."}</small>`}</p>`);
+    const inp=$("#bLandAt"),btn=$("#bLandBtn"),err=$("#bLandErr");   // v71e: typed, and what's wrong shows under it as you type
+    if(inp&&btn&&err){const chk=()=>{const t=inp.value.trim(),why=landWhy(V,t);err.classList.toggle("ok",!why);err.textContent=!t?"":why||`${t.toUpperCase()} is free: yours for 2 mana.`;btn.disabled=!!why;return !why};
+      inp.oninput=chk;inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();if(chk())btn.click()}};
+      btn.onclick=()=>{if(!chk())return;const rc=landParse(inp.value);if(rc)buyLand(V,rc[0],rc[1]);render();openBank()}}}
   // between players: forgive, give
   const p2p=box.querySelector(".btab.p2p");if(p2p){
     p2p.querySelectorAll("ul.p2pl li").forEach(li=>{});
@@ -10766,6 +10792,7 @@ function skyChgLine(){if(!G||!G.moon)return "";const o=SKYCHG(),k=sky();if(skyFi
 /* ---------- v71: things the rules count in turns ---------- */
 {const _bt=beginTurn;beginTurn=function(pl){const out=_bt.apply(this,arguments);
   if(G.fires)G.fires=G.fires.filter(f=>f.untilT==null||f.untilT>=G.turnNo);   // fire burns out after its turns
+  if(G.peace&&G.peace.untilT!=null&&G.turnNo>G.peace.untilT){G.peace=null;log("<b>Peace ends.</b> The lines are open again.","event");notify(null,"Peace is over.")}   // bought Peace: two turns
   const B=G.bank;if(B&&B.owes)for(const o of B.owes)if(o.atT!=null&&G.turnNo>=o.atT){o.owed=Math.ceil(o.owed*1.2);o.atT=G.turnNo+R(2)}   // what the Bank owes grows 20% every 1d2 turns
   return out}}
 if(window.__EC)Object.assign(window.__EC,{eclipseW:k=>eclipse(k),venusCycleW:()=>venusCycle(),fullMoonTollW:()=>fullMoonToll(),skyChangeRound:()=>skyChangeRound(),skySwap:(...a)=>skySwap(...a),skyAuction:()=>skyAuction(),skyArrive:()=>skyArrive(),skyChgLine:()=>skyChgLine(),cycleRoundW:()=>cycleRound()});
