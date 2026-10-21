@@ -137,7 +137,7 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 <h3>Joker (Necromancer)</h3>
 <ul><li>Any enemy killed next to the Joker goes to its sacrifice pile (Soul Capture): an upside-down stack inside the Joker, its personal sacrifice pile.</li><li>Has no Dice Max, so it can stack with four Grunts, three Infantry, one King, a King and Queen, or a King with his one soldier.</li><li>When the Joker sacrifices himself, the player gains access to its sacrifice pile.</li><li>The Joker's personal sacrifice pile holds up to six, though players can change this for balance.</li><li>A captured soul stays inside the Joker until the Joker dies, when the Joker and its souls go to the grave, or until it uses Sacrificial Suicide.</li><li>If the Joker is defeated by enemies, its cards go to the grave pile.</li><li>If a Joker kills itself during a Blood Moon, it sends itself and every card it held to the Outer Darkness.</li><li>Can only spawn on a card of the same color (red or black).</li></ul>
 <h3>Ace</h3>
-<ul><li>Each player opens the game with one Ace on their backline, holding one Jack.</li><li>Cannot move or attack, and is always in defense.</li><li>Can only be placed in open tiles in the backlines.</li><li>Anything inside an Ace cannot use modifiers for defense.</li><li>Aces can hold up to six cards inside.</li><li>If an Ace is destroyed, all cards inside are destroyed.</li><li>Cannot be sacrificed while on the field.</li><li>Each Ace on the field grants +1d6 for pulling cards from the grave.</li></ul>
+<ul><li>Each player opens the game with one Ace on their backline, holding one Jack, with a Miner already in one of its two miner slots (that first Ace only).</li><li>Cannot move or attack, and is always in defense.</li><li>Can only be placed in open tiles in the backlines.</li><li>Anything inside an Ace cannot use modifiers for defense.</li><li>An Ace holds one stack inside it: up to six cards that could stand together on the field (Scouts, Healers, Repairmen and Miners ride along). Every base works the same way.</li><li>If an Ace is destroyed, all cards inside are destroyed.</li><li>Cannot be sacrificed while on the field.</li><li>Each Ace on the field grants +1d6 for pulling cards from the grave.</li></ul>
 <h3>Optional Ace rule</h3>
 <p>Card placement inside Aces can be locked to only the Ace's color (red, black) or suit (diamonds, spades, hearts, clubs).</p>
 
@@ -229,7 +229,7 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 <li>Cut corners remove the four corner tiles from play. Nothing can stand on a removed tile or the river, and a Jack cannot leap over them; the only way across the River map is its two-tile bridge.</li>
 <li>The opening roll is a d6 each, rerolled on a tie. Each player's Ace and Jack are taken out of the deck before the opening 2d4 hand is drawn, and the Ace is placed during setup, before any other opening cards. The first turn of the game has no draw phase.</li>
 <li>Scores use the Dice Max of each card: 2–6 roll d6, 7–10 roll d8, Jacks d12, Kings and Aces d20. Natural values are the card's number, Jack 10, King 11, Ace 11, Queen 0.</li>
-<li>Stacking follows the MSV and DM formula, with one Queen and one Joker per stack at most. An Ace holds up to six cards inside it. Where an older line of the rules gave a different number (soldiers stacking to three, three soldiers with a King, a d12 for the King), the MSV, DM and SL formula decides.</li>
+<li>Stacking follows the MSV and DM formula, with one Queen and one Joker per stack at most. Every base (Ace, Tree, Wall, Lighthouse) holds one stack inside it: up to six cards that could stand together on the field, with Scouts, Healers, Repairmen and Miners riding along. Where an older line of the rules gave a different number (soldiers stacking to three, three soldiers with a King, a d12 for the King), the MSV, DM and SL formula decides.</li>
 <li>A stack's score is its best card. Dice add on attack. On defense, cards use their natural value only, unless a Queen is in the stack; an Ace stack defends with the Ace's 11 + d20. Jacks don't count on defense.</li>
 <li>If the attacker's total is higher, the defender takes one damage; otherwise the attacker takes one. Each damage removes the stack's lowest card, or a heart from a card that has hearts. Every Ace has two hearts: the first hit takes a heart and the cards inside are safe; when the last heart goes, the Ace falls with everything inside it. A Repairman can give an Ace a third heart, once. King and Ace rolls of 20 and 1 change the damage as written above. The dice box shows the attack total on the left and the defense total on the right, like 12&gt;1.</li>
 <li><b>The landing roll</b>: in every fight both sides also roll 1d20. The attacker's 1 is a <b>Crit Miss</b>: the attack misses. The attacker's 20, with two or more cards in the stack that can each attack, is a <b>Crit Hit</b>: the defender takes the blow whatever the scores, unless it rolls a 20 too. A defender's 1 costs it nothing. Three or more Puppets in a stack crit on 19 or 20; Puppets never miss and shrug off Crit Hits. Assassins shrug off Crit Hits and dodge on 17 to 20 of their own roll (a <b>Miss</b>). Every player sees the Crit Hit, Crit Miss or Miss on screen.</li>
@@ -286,7 +286,7 @@ b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({beha
 </main>''', 1)
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
-play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=75">', ec=True) + f'''<main class="wide game">
+play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="ethers-crossroads.css?v=76">', ec=True) + f'''<main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
@@ -324,8 +324,8 @@ play = head('Play · ' + EC, extra=BL_FONT + '\n<link rel="stylesheet" href="eth
 </main>
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
-<script src="ethers-crossroads-quotes.js?v=75"></script>
-<script src="ethers-crossroads.js?v=75"></script>
+<script src="ethers-crossroads-quotes.js?v=76"></script>
+<script src="ethers-crossroads.js?v=76"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 

@@ -268,8 +268,10 @@ function skyStrike(r,c,why){
 /* ---------- the Demons ---------- */
 function barbTick(){
   const B=npcIx("barb");if(B<0||G.opts.barbarians===false||G.phase==="setup")return;
-  if(G.barbNext==null){G.barbNext=G.turnNo+4+R(12);return}
-  if(G.turnNo>=G.barbNext){G.barbNext=G.turnNo+4+R(12);spawnBarbarians()}
+  // v70c: the wait is counted in rounds (it was counted in turns, so four players met the Demons four times as often);
+  // a new band waits while the last one still stands
+  const rd=G.moon.round;if(G.barbNextR==null){G.barbNextR=rd+4+R(12);return}
+  if(rd>=G.barbNextR){if(stacksOf(B).length)G.barbNextR=rd+1+R(3);else{G.barbNextR=rd+4+R(12);spawnBarbarians()}}
   // the middle held for 7d2 turns angers the Banker
   const held=stacksOf(B).some(x=>centerArea().some(([r,c])=>r===x.r&&c===x.c));
   if(held){if(G.barbHeld==null){G.barbHeld=G.turnNo;G.barbNeed=sum(rollN(7,2))}
