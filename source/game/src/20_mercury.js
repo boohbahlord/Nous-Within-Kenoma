@@ -2,7 +2,8 @@
    and the computer looking after itself ---------------- */
 
 PLANETS.mercury={name:"Mercury",word:"Guile",hunger:3};OATH_SKY.mercury="mercury";
-const peaceOn=()=>!!(G.peace&&G.moon.round<=G.peace.until);
+const peaceOn=()=>!!(G.peace&&(G.peace.untilT!=null?G.turnNo<=G.peace.untilT:G.moon.round<=G.peace.until));
+const peaceTill=()=>G.peace.untilT!=null?`for ${Math.max(1,G.peace.untilT-G.turnNo+1)} more turn${G.peace.untilT-G.turnNo+1===1?"":"s"}`:`until round ${G.peace.until}`;   // v71e: bought Peace counts turns
 const warOn=()=>!!(G.war&&G.moon.round<=G.war.until);
 const betrayOn=()=>!!(G.betrayal&&G.moon.round<=G.betrayal.until);
 const realPlayers=()=>alive().filter(i=>!isHorde(i));
@@ -15,7 +16,7 @@ const warOD=()=>warOn()||betrayOn();
 /* ---------- the start of each round: eclipses, the end of Peace and War, bribes ---------- */
 async function eclipseRound(){
   if(G.over)return;const r=G.moon.round;
-  if(G.peace&&r>G.peace.until){G.peace=null;log("<b>Peace ends.</b> The lines are open again.","event");notify(null,"Peace is over.")}
+  if(G.peace&&G.peace.untilT==null&&r>G.peace.until){G.peace=null;log("<b>Peace ends.</b> The lines are open again.","event");notify(null,"Peace is over.")}
   if(G.war&&r>G.war.until){G.war=null;log("<b>Total War ends.</b>","event");notify(null,"Total War is over.")}
   if(G.war)G.warCurse=R(2)-1;
   if(G.eclipse&&r>(G.eclipse.until!=null?G.eclipse.until:G.eclipse.round+(G.eclipse.k==="jupiter"?1:0))){endEclipse()}   // v71c: Neptune's lasts 2d3 rounds
@@ -39,8 +40,8 @@ function sendHome(pl){
   }
   if(home||toDeck)log(`Peace: ${plName(pl)}'s ${home?`${home} stack${home>1?"s go":" goes"} home`:""}${home&&toDeck?"; ":""}${toDeck?`${toDeck} card${toDeck>1?"s":""} with no room go back into the deck`:""}.`);
 }
-function startPeace(rounds,why){
-  const r=G.moon.round;G.peace={until:r+rounds-1};G.war=null;
+function startPeace(rounds,why,turns){
+  const r=G.moon.round;G.peace=turns?{untilT:G.turnNo+turns}:{until:r+rounds-1};G.war=null;
   for(const pl of realPlayers())sendHome(pl);
   // every wound heals; every curse and enchantment ends
   for(const row of G.board)for(const st of row){if(!st)continue;st.odds=null;st.hypo=0;st.supp=null;for(const c of st.cards){if(c.maxHp)c.hp=c.maxHp;c.hate=false}}
@@ -148,8 +149,8 @@ SPELLS.push(
   ok:firmPlace("mercury"),run:async()=>{setPlanet("mercury",G.active);log(`<b>Mercury</b> rises where the moon was, raised by ${plName(G.active)}.`,"event")}},
  {id:"peace",name:"Peace Time",cost:0,school:"Astrology",text:"Free, under Mercury; everyone must agree. Peace for 3 + 1d2 − 1 rounds: every stack goes home (what has no room goes back into the deck, weakest first), every card with hearts heals, curses and enchantments end, everyone gets three cards from the grave one at a time, and no player can attack another or step into another player's lines.",
   ok:()=>planetUp("mercury")&&!peaceOn()&&!warOn()&&!G.voted,run:async()=>{G.voted=true;const v=await vote("Peace","Agree to Peace for 3 or 4 rounds?");if(!v.no.length)startPeace(2+R(2),"agreed by everyone");else log("No peace: not everyone agrees.")}},
- {id:"buypeace",dice:"4d2",name:"Buy Peace",cost:6,school:"Astrology",text:"Under Mercury, without a vote: Peace for two rounds, with everything Peace brings.",
-  ok:()=>planetUp("mercury")&&!peaceOn(),run:async()=>{startPeace(2,`bought by ${esc(me().name)}`)}},
+ {id:"buypeace",dice:"4d2",name:"Buy Peace",cost:6,school:"Astrology",text:"Under Mercury, without a vote: Peace for two turns, with everything Peace brings.",
+  ok:()=>planetUp("mercury")&&!peaceOn(),run:async()=>{startPeace(0,`bought by ${esc(me().name)}`,2)}},
  {id:"war",name:"Total War",cost:0,school:"Astrology",text:"Free, under Mercury; everyone must agree. For 3 + 1d2 − 1 rounds every card killed falls into the Outer Darkness and gives its killer a mana, curses cost 1d2 − 1 less, and teammates may strike each other: each damage to a teammate pays its soul's worth + 1d2 − 1.",
   ok:()=>planetUp("mercury")&&!warOn()&&!peaceOn()&&!G.voted,run:async()=>{G.voted=true;const v=await vote("Total War","Agree to Total War for 3 or 4 rounds?");if(!v.no.length)startWar(2+R(2),"agreed by everyone");else log("No war: not everyone agrees.")}},
  {id:"oath_mercury",name:"Oath of Mercury",cost:0,school:"Astrology",text:"Free. Unlocks Betrayal, Declare War and Bribe the Banker. Cast again to break the Oath.",

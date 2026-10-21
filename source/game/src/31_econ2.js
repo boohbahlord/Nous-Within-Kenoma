@@ -103,15 +103,17 @@ function sendLoanCollectors(L){const bk=npcIx("bank");if(bk<0)return 0;let n=0;c
     if(["ask","offer","open","late"].includes(L.state)&&(G.p[L.from].out||G.p[L.to].out)){L.state="void";continue}
     if(L.from!==pl)continue;
     if(["open","late"].includes(L.state)&&L.owed>0&&L.intAt!=null&&tn>=L.intAt){const add=R(2);L.owed+=add;L.intAt=tn+3;log(`Interest: ${plName(pl)}'s loan from ${plName(L.to)} grows by ${add} (1d2) to ${L.owed}.`)}
-    if(L.state==="open"&&tn>=L.due){const take=Math.min(mana(pl),L.owed);if(take)repayLoan(L,take);
-      if(L.owed>0){L.state="late";const n=sendLoanCollectors(L);
-        log(`<b>${plName(pl)}'s loan from ${plName(L.to)} is due</b> and ${L.owed} mana is still owed. The Bank sends ${n} Debt Collector${n===1?"":"s"} after ${plName(pl)}; what they take goes to ${plName(L.to)}.`,"event");
-        popup("A loan is not paid",`<p>${plName(pl)} owed ${plName(L.to)} ${L.owed+take} mana and could pay ${take}.</p><p>The Bank sends Debt Collectors after ${plName(pl)} for the other ${L.owed}. Whatever they kill goes to the Ether, and its worth goes to ${plName(L.to)} until the loan is paid.</p>`,L.to)}}
+    // v71e: never taken by itself: due, a reminder; still open a turn later, the Debt Collectors
+    if(L.state==="open"&&tn>=L.due&&!L.told&&L.owed>0){L.told=true;log(`${plName(pl)}'s loan from ${plName(L.to)} is due: ${L.owed} mana, to be paid at the Bank (Repay).`,"event");
+      notify(pl,`Your loan from ${esc(G.p[L.to].name)} is due: ${L.owed} mana. Pay it at the Bank (Repay) this turn, or the Debt Collectors come.`)}
+    else if(L.state==="open"&&tn>L.due&&L.owed>0){L.state="late";const n=sendLoanCollectors(L);
+        log(`<b>${plName(pl)} hasn't paid back ${plName(L.to)}</b>: ${L.owed} mana is still owed. The Bank sends ${n} Debt Collector${n===1?"":"s"} after ${plName(pl)}; what they take goes to ${plName(L.to)}.`,"event");
+        popup("A loan is not paid",`<p>${plName(pl)} owes ${plName(L.to)} ${L.owed} mana, a turn past its due.</p><p>The Bank sends Debt Collectors after ${plName(pl)}. Whatever they kill goes to the Ether, and its worth goes to ${plName(L.to)} until the loan is paid.</p>`,L.to)}
     else if(L.state==="late"){const bk=npcIx("bank");if(bk>=0&&!stacksOf(bk).some(x=>x.st.loan===L.id))sendLoanCollectors(L)}
   }}}
 /* the computer borrows when it is poor, and answers a person's request at once (see askLoan) */
 {const _ab=aiBank;aiBank=async function(pl,W,cast1){await _ab(pl,W,cast1);const P=G.p[pl];if(P.jail||G.over)return;
-  for(const L of p2pOf())if(L.from===pl&&L.state==="open"&&mana(pl)>=L.owed+3)repayLoan(L,L.owed);
+  for(const L of p2pOf())if(L.from===pl&&["open","late"].includes(L.state)&&L.owed>0&&(mana(pl)>=L.owed+3||(L.state==="late"||tnOf(pl)>=L.due)&&mana(pl)>0))repayLoan(L,L.owed);   // v71e: paid by choice, so the computer chooses to
   for(const L of loanReqsFor(pl))answerLoan(L,aiLend(L),2+R(6)+R(4));
   if(mana(pl)<=1&&Math.random()<.08){const t=lenders(pl).filter(i=>!isEnemy(pl,i)||Math.random()<.3).sort((a,b)=>mana(b)-mana(a))[0];if(t!=null&&mana(t)>=4)askLoan(pl,t,1+R(3))}}}
 

@@ -248,7 +248,7 @@ function planetInfoHTML(k){
     if(G.jupSale)L.push(`On sale this round: ${G.jupSale.ids.map(id=>SP(id).name).join(" and ")}.`);
     L.push(P.oath==="jupiter"?"Your Oath of Jupiter: every conjuring costs one less, except what already costs one.":"You can swear the Oath of Jupiter (Astrology).")}
   if(k==="mercury"){L.push(`Mercury hangs in the moon's place. Anyone can call a vote for Peace or Total War (everyone must agree), or Buy Peace for two rounds. The Oath of Mercury unlocks Betrayal, Declare War and Bribe the Banker.`);
-    if(peaceOn())L.push(`Peace until round ${G.peace.until}: no player may attack another or step into another player's lines.`);if(warOn())L.push(`Total War until round ${G.war.until}: kills fall into the Outer Darkness and pay a mana; teammates may fight.`);
+    if(peaceOn())L.push(`Peace ${peaceTill()}: no player may attack another or step into another player's lines.`);if(warOn())L.push(`Total War until round ${G.war.until}: kills fall into the Outer Darkness and pay a mana; teammates may fight.`);
     L.push(P.oath==="mercury"?"You have sworn the Oath of Mercury.":"You can swear the Oath of Mercury (Astrology).")}
   if(G.eclipse&&G.eclipse.k===k)L.push(`<b>Eclipsed</b> this round${k==="jupiter"?" and the next":""}.`);
   if(k==="fallen")L.push("The Second Sun fell to the ground. Nothing hangs in the sky now: no phases, no gifts, no tolls.");

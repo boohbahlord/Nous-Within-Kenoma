@@ -196,6 +196,9 @@ function openBank(){
   if(B.mana<0&&!B.dead)notes.push("The Bank is in the red: everything in the Ether costs 1 less.");const up=Object.keys(B.upsell);if(up.length)notes.push(`Upsold this round: ${up.map(id=>SP(id)?SP(id).name:id).join(", ")}.`);
   if(G.inflation&&G.turnNo<=G.inflation.until)notes.push(`After the collapse, prices wobble up for ${G.inflation.until-G.turnNo+1} more turn${G.inflation.until-G.turnNo+1===1?"":"s"}.`);
   const cap=soulCap(V),pay=Math.min(mana(V),owed),why=loanWhy(V);
+  // v71e: which loan to repay: the Bank's, or one from a player
+  const payOpts=[...(owed?[["bank",`The Bank · ${owed} owed`,owed]]:[]),...(typeof p2pOf==="function"?p2pOf():[]).filter(x=>x.from===V&&["open","late"].includes(x.state)&&x.owed>0).map(x=>[`p2p:${x.id}`,`${esc(G.p[x.to].name)} · ${x.owed} owed${x.state==="late"?" · late":""}`,x.owed])];
+  const payMax=k=>Math.min(mana(V),(payOpts.find(o=>o[0]===k)||[0,0,0])[2]),pay0=payOpts.length?payMax(payOpts[0][0]):0;
   const tip=t=>`data-tip="${esc(t)}" tabindex="0"`;
   const LOAN_TIP=`A loan is mana now, paid out of the Bank's own mana. How much: up to 12 (6 if you are below zero, 5 at −${cap} or lower), and only while the Bank stays at ${BANK_FLOOR} or above. When it's due: half the amount in your turns, at least 2 (12 mana: 6 turns). It grows by 1d2 every 3 of your turns. It is never taken back by itself: pay it with Repay. Left open too long (3 + owed ÷ 3 of your turns), it brings the Debt Collectors. One loan at a time, one a round, and the next no sooner than ${LOAN_GAP} turns after the last.`;
   const CREDIT_TIP=`Credit is not a loan: nothing is paid out up front. With it on, you can cast spells you can't afford; what your souls don't cover becomes mana debt at once. You can go down to ${fl}, and below ${fl} you lose the game. Debt grows by 1d2 every 3 of your turns, and every soul you gain pays it first. Stay at ${DEEP_DEBT} or lower for 3 turns and the Debt Collectors come every turn until the debt is paid.`;
@@ -209,14 +212,16 @@ function openBank(){
 ${loans?`<ul class="bloans">${loans}</ul>`:""}${notes.length?`<p class="bnote">${notes.join("<br>")}</p>`:""}</div></div>
 ${live&&!B.dead?`<div class="bacts">
 <p class="brow"><span class="bkey" ${tip(LOAN_TIP)}>Loan <i class="q">?</i></span><label class="${lim?"":"off"}"><select id="bLoan" aria-label="Mana to borrow" ${lim?"":"disabled"}>${lim?nums(lim):"<option>—</option>"}</select> mana</label><button class="btn sm" id="bLoanBtn" ${lim?"":"disabled"}>Take the loan</button><small class="dim">${lim?`grows 1d2 every 3 turns · due in half the amount, at least 2`:why||"The Bank won't lend to you now."}</small></p>
-<p class="brow"><span class="bkey">Repay</span><label class="${pay?"":"off"}"><select id="bPay" aria-label="Mana to repay" ${pay?"":"disabled"}>${pay?nums(pay):"<option>—</option>"}</select> mana</label><button class="btn sm" id="bPayBtn" ${pay?"":"disabled"}>Pay</button><small class="dim">${owed?`You owe ${owed}.`:"No loans to repay."}</small></p>
+<p class="brow"><span class="bkey">Repay</span>${payOpts.length?`<label><select id="bPayWho" aria-label="Which loan">${payOpts.map(([v,t])=>`<option value="${v}">${t}</option>`).join("")}</select></label>`:""}<label class="${pay0?"":"off"}"><select id="bPay" aria-label="Mana to repay" ${pay0?"":"disabled"}>${pay0?nums(pay0):"<option>—</option>"}</select> mana</label><button class="btn sm" id="bPayBtn" ${pay0?"":"disabled"}>Pay</button><small class="dim">${payOpts.length?"A loan is only paid when you pay it here.":"No loans to repay."}</small></p>
 <p class="brow"><span class="bkey" ${tip(CREDIT_TIP)}>Credit <i class="q">?</i></span><label><input type="checkbox" id="bCredit" ${P.credit?"checked":""}> Spend on credit</label><small class="dim">Spells you can't afford become mana debt, down to ${fl}; below it you lose.</small></p>
 <p class="brow bsellrow"><button class="btn bsell" id="bSell">Sell cards to the Bank</button>${P.tribe==="binah"&&(P.thralls||[]).length?`<button class="btn sm" id="bThrall">Sell a thrall (1 mana)</button>`:""}<small class="dim">From your hand or deck, for their soul worth or 1 less.</small></p></div>`:`<p class="dim">${B.dead?"":"Bank business is done in your own prep phase."}</p>`}
 <details class="bankhelp"><summary>How the Bank works</summary><dl>${BANK_HELP.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl></details>
 <p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
   $("#mcancel").onclick=ovHide;
   if($("#bLoanBtn"))$("#bLoanBtn").onclick=()=>{takeLoan(V,+$("#bLoan").value);render();openBank()};
-  if($("#bPayBtn"))$("#bPayBtn").onclick=()=>{repay(V,+$("#bPay").value);render();openBank()};
+  if($("#bPayWho"))$("#bPayWho").onchange=()=>{const m=payMax($("#bPayWho").value),s=$("#bPay");s.innerHTML=m?nums(m):"<option>—</option>";s.disabled=!m;s.closest("label").classList.toggle("off",!m);$("#bPayBtn").disabled=!m};
+  if($("#bPayBtn"))$("#bPayBtn").onclick=()=>{const k=$("#bPayWho")?$("#bPayWho").value:"bank",n=+$("#bPay").value;if(!(n>0))return;
+    if(k==="bank")repay(V,n);else{const L=p2pOf().find(x=>"p2p:"+x.id===k);if(L)repayLoan(L,n)}render();openBank()};
   if($("#bCredit"))$("#bCredit").onchange=e=>{setCredit(V,e.target.checked);render()};
   if($("#bThrall"))$("#bThrall").onclick=()=>{sellThrall(V);render();openBank()};
   if($("#bSell"))$("#bSell").onclick=()=>openSell(V);
