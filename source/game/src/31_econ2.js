@@ -63,6 +63,7 @@ async function buyBankItem(pl,it){const P=G.p[pl];if(!G.auction.includes(it))ret
 /* ---------- loans between players ---------- */
 const P2P_DUE=4,P2P_RATE=.2,P2P_MIN=2,P2P_MAX=12;
 const p2pOf=()=>G.p2p||(G.p2p=[]);
+const p2pWhere=()=>typeof dipOn==="function"&&dipOn()?"Diplomacy, under the Bank":"the Bank window";   // v75c: with Diplomacy on, loans between players live there
 const lenders=pl=>alive().filter(i=>i!==pl&&!isHorde(i)&&!G.p[i].jail);
 const loanReqsFor=V=>p2pOf().filter(L=>L.to===V&&L.state==="ask");
 function askLoan(from,to,n){
@@ -70,7 +71,7 @@ function askLoan(from,to,n){
   const L={id:(G.p2pN=(G.p2pN||0)+1),from,to,n,owed:n,state:"ask",round:G.moon.round};p2pOf().push(L);
   log(`${plName(from)} asks ${plName(to)} for a loan of ${n} mana.`,"event");
   if(G.p[to].cpu)answerLoan(L,aiLend(L),2+R(6)+R(4));
-  else notify(to,`${esc(G.p[from].name)} asks ${esc(G.p[to].name)} for a loan of ${n} mana (the Bank window).`);
+  else notify(to,`${esc(G.p[from].name)} asks ${esc(G.p[to].name)} for a loan of ${n} mana (${p2pWhere()}).`);
   return L}
 function aiLend(L){const m=mana(L.to);if(m<L.n+3)return false;if(!isEnemy(L.from,L.to))return true;return m>=L.n+6&&Math.random()<.4}
 /* v46: the lender sets when the loan is due (2 to 12 of the borrower's turns); the borrower then sees the terms and takes the
@@ -105,7 +106,7 @@ function sendLoanCollectors(L){const bk=npcIx("bank");if(bk<0)return 0;let n=0;c
     if(["open","late"].includes(L.state)&&L.owed>0&&L.intAt!=null&&tn>=L.intAt){const add=R(2);L.owed+=add;L.intAt=tn+3;log(`Interest: ${plName(pl)}'s loan from ${plName(L.to)} grows by ${add} (1d2) to ${L.owed}.`)}
     // v71e: never taken by itself: due, a reminder; still open a turn later, the Debt Collectors
     if(L.state==="open"&&tn>=L.due&&!L.told&&L.owed>0){L.told=true;log(`${plName(pl)}'s loan from ${plName(L.to)} is due: ${L.owed} mana, to be paid at the Bank (Repay).`,"event");
-      notify(pl,`Your loan from ${esc(G.p[L.to].name)} is due: ${L.owed} mana. Pay it at the Bank (Repay) this turn, or the Debt Collectors come.`)}
+      notify(pl,`Your loan from ${esc(G.p[L.to].name)} is due: ${L.owed} mana. Pay it ${typeof dipOn==="function"&&dipOn()?"in Diplomacy (Repay)":"at the Bank (Repay)"} this turn, or the Debt Collectors come.`)}
     else if(L.state==="open"&&tn>L.due&&L.owed>0){L.state="late";const n=sendLoanCollectors(L);
         log(`<b>${plName(pl)} hasn't paid back ${plName(L.to)}</b>: ${L.owed} mana is still owed. The Bank sends ${n} Debt Collector${n===1?"":"s"} after ${plName(pl)}; what they take goes to ${plName(L.to)}.`,"event");
         popup("A loan is not paid",`<p>${plName(pl)} owes ${plName(L.to)} ${L.owed} mana, a turn past its due.</p><p>The Bank sends Debt Collectors after ${plName(pl)}. Whatever they kill goes to the Ether, and its worth goes to ${plName(L.to)} until the loan is paid.</p>`,L.to)}

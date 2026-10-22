@@ -188,3 +188,11 @@ document.addEventListener("keydown",e=>{if(e.code!=="Space"&&e.key!==" ")return;
   const r=anchor.getBoundingClientRect(),h=box.offsetHeight,below=innerHeight-r.bottom-8,above=r.top-8;
   if(h>below&&above>below){box.style.maxHeight=Math.max(120,above)+"px";box.style.overflow="auto";box.style.top=Math.max(8,r.top-Math.min(h,above)-4)+scrollY+"px"}
   else if(h>below){box.style.maxHeight=Math.max(120,below)+"px";box.style.overflow="auto"}}}
+
+/* v75c: the turn bar names the phase on its left (Draw, Prep, Attack) wherever the phase line beside it isn't shown:
+   in fullscreen, and with the turn buttons at the top */
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const ctl=$("#controls");if(!ctl)return;let l=ctl.querySelector(".phl");
+  const need=fsOn()||PREF.ctl!=="bottom",ph={draw:"Draw",prep:"Prep",attack:"Attack",setup:"Setup",moon:"The sky"}[G.phase];
+  if(!need||!ph||G.over||G.passing){if(l)l.remove();return}
+  if(!l){l=document.createElement("span");l.className="phl";ctl.prepend(l)}else if(ctl.firstElementChild!==l)ctl.prepend(l);
+  l.textContent=me()&&me().cpu?`${me().name}: ${ph}`:`${ph} phase`}}

@@ -24,7 +24,7 @@ function spNotes(V){const out=[];if(!G||!G.p[V])return out;
   return out}
 const spSeenSet=()=>{const k=spKey();let s=SPSEEN.get(k);if(!s){s=new Set();SPSEEN.set(k,s)}return s};
 const spFresh=V=>{const s=spSeenSet();return spNotes(V).filter(n=>!s.has(n.k))};
-const spWhere=src=>src==="bank"?"the Bank (at the top of the spells)":fsOn()?"the Auction (at the bottom of the spells)":"the Auction (under your hand, beside the Grave)";
+const spWhere=src=>src==="bank"?(typeof dipOn==="function"&&dipOn()?"Diplomacy (under the Bank)":"the Bank (at the top of the spells)"):fsOn()?"the Auction (at the bottom of the spells)":"the Auction (under your hand, beside the Grave)";
 function spNoteHTML(list){const by={auction:list.filter(n=>n.src==="auction"),bank:list.filter(n=>n.src==="bank")};
   if(list.length===1){const n=list[0];return `<b>${n.src==="bank"?"The Bank":"The Auction"}</b>: ${esc(n.what)}. Scroll to ${spWhere(n.src)} to see it.`}
   const parts=[];if(by.auction.length)parts.push(`${by.auction.length} at the Auction`);if(by.bank.length)parts.push(`${by.bank.length} loan request${by.bank.length>1?"s":""} at the Bank`);
@@ -36,7 +36,7 @@ function spShow(){if(!G)return;const V=view(),list=spFresh(V);const sp=$(".spell
   box.innerHTML=`<p>${spNoteHTML(list)}</p><p class="spacts"><button type="button" class="btn ghost sm" id="spGo">Show me</button> <button type="button" class="xclose" id="spX" aria-label="Close the notice">×</button></p>`;
   box.hidden=false;clearTimeout(spShow.t);spShow.t=setTimeout(()=>{box.hidden=true},16000);
   $("#spX").onclick=()=>{box.hidden=true};
-  $("#spGo").onclick=()=>{const t=src==="bank"?($(".bankbar")||$("#bankslot")):$("#seeauct");box.hidden=true;if(!t)return;t.scrollIntoView({block:"center",behavior:"smooth"});t.classList.add("spping");setTimeout(()=>t.classList.remove("spping"),2400)};
+  $("#spGo").onclick=()=>{const t=src==="bank"?($("#dipbar")||$(".bankbar")||$("#bankslot")):$("#seeauct");box.hidden=true;if(!t)return;t.scrollIntoView({block:"center",behavior:"smooth"});t.classList.add("spping");setTimeout(()=>t.classList.remove("spping"),2400)};
   spPaint()}
 function spPaint(){if(!G)return;const V=view(),n=spFresh(V).length,h=$(".spellpanel>h3"),t=$("#fstabSp");
   for(const el of [h,t]){if(!el)continue;el.classList.toggle("spnew",!!n);let b=el.querySelector(".spbang");
