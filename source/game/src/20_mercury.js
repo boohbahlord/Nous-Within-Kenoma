@@ -19,14 +19,14 @@ async function eclipseRound(){
   if(G.peace&&G.peace.untilT==null&&r>G.peace.until){G.peace=null;log("<b>Peace ends.</b> The lines are open again.","event");notify(null,"Peace is over.")}
   if(G.war&&r>G.war.until){G.war=null;log("<b>Total War ends.</b>","event");notify(null,"Total War is over.")}
   if(G.war)G.warCurse=R(2)-1;
-  if(G.eclipse&&r>(G.eclipse.until!=null?G.eclipse.until:G.eclipse.round+(G.eclipse.k==="jupiter"?1:0))){endEclipse()}   // v71c: Neptune's lasts 2d3 rounds
+  if(G.eclipse&&(G.opts.eclipseAlways?G.eclipse.k!==sky():r>(G.eclipse.until!=null?G.eclipse.until:G.eclipse.round+(G.eclipse.k==="jupiter"?1:0)))){endEclipse()}   // v71q: Always in eclipse: it passes only when its Heavenly Body leaves   // v71c: Neptune's lasts 2d3 rounds
   // the Banker's bribes are paid every round
   for(const b of [...(G.bribes||[])]){if(r>b.until||G.p[b.by].out||G.p[b.target].out){G.bribes.splice(G.bribes.indexOf(b),1);log(`The bribe against ${plName(b.target)} runs out.`);continue}
     if(b.paid===r)continue;const c=R(2)+R(3)+R(3);if(mana(b.by)>=c){payQuiet(b.by,c);bankAdd(c);b.paid=r;log(`${plName(b.by)} keeps the Banker bribed (${c} mana): ${plName(b.target)} pays more.`)}
     else{G.bribes.splice(G.bribes.indexOf(b),1);log(`${plName(b.by)} can't pay the Banker: the bribe against ${plName(b.target)} ends.`)}}
   // each Heavenly Body: 5% in a round of its cycle event (v71i), or at once in Eclipse Mode
   const k=sky();
-  if(["sun","mars","venus","jupiter","mercury","neptune"].includes(k)&&!G.eclipse&&(ecCycleNow(k)&&Math.random()<.05||G.opts.eclipseStart&&!G.eclipsedOnce||G.forceEclipse)){G.forceEclipse=false;G.eclipsedOnce=true;await eclipse(k)}
+  if(["sun","mars","venus","jupiter","mercury","neptune"].includes(k)&&!G.eclipse&&(ecCycleNow(k)&&Math.random()<ecChance()||G.opts.eclipseStart&&!G.eclipsedOnce||G.opts.eclipseAlways||G.forceEclipse)){G.forceEclipse=false;G.eclipsedOnce=true;await eclipse(k)}
 }
 
 /* ---------- Peace ---------- */
