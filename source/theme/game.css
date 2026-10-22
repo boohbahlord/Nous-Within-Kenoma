@@ -2367,3 +2367,5 @@ html.still-glow .spnew{animation:none!important}
 #spnote p{margin:0}#spnote .spacts{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
 #spnote .xclose{position:static;margin:0}
 .spping{outline:2px solid var(--amber)!important;outline-offset:2px;box-shadow:0 0 14px #f1d27a99}
+/* v73b: Survival on the large map: the standard sizes step aside */
+#sizeset.survbig #sizeduel,#sizeset.survbig #sizeother{display:none}
