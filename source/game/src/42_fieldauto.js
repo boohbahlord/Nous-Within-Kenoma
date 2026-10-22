@@ -20,7 +20,7 @@ const FA_KINDS=["grunt","infantry","puppet","jack","queen","king","joker","assas
 const FA_DEF={tgroup:true,tgorder:["wildcard","special","base","standard","support"],mode:"full",stance:"auto",rush:0,formation:"auto",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,
   ctl:{soldiers:true,specials:true,support:true,miners:true,ranged:true,wildcards:true},extra:[],hier:false,order:FA_PRINC.map(p=>p[0]),eq:[],under:false,
   noAttack:false,flee:false,tprio:false,torder:null,teq:[],tIgnoreGI:false,tSameGI:false,xminus:[],hill:true,hillHow:"army",grp:"normal",fLink:true,
-  tWeak:false,tStk:{strongest:true,weakest:true,minority:true,majority:true},ambFocus:false,crys:false,crysStance:false,crysLives:false,crysMiner:false,crysAsk:false,crysHow:false,crysShow:true,crysFight:false,hout:[]};   // v71n: the crystals, and the principles taken out of the ranking
+  tWeak:false,tStk:{strongest:true,weakest:true,minority:true,majority:true},ambFocus:false,crys:false,crysStance:false,crysLives:false,crysMiner:false,crysAsk:false,crysHow:false,crysShow:true,crysFight:false,hout:[],scope:"full"};   // v71n: the crystals, and the principles taken out of the ranking
 /* v47: the kinds of card the field can rank as targets, strongest first by default (suit doesn't matter) */
 const FA_TK=[["wildcards","Wildcards"],["joker","Jokers"],["king","Kings"],["ace","Aces"],["queen","Queens"],["jack","Jacks"],["wall","Walls"],["tree","The Tree"],["assassin","Assassins"],
   ["cannon","Cannons"],["infantry","Infantry"],["archer","Archers"],["grunt","Grunts"],["puppet","Puppets"],["healer","Healers"],["repair","Repairmen"],["ram","Rams"],["miner","Miners"],["claimer","Claimers"],["scout","Scouts"]];
@@ -28,6 +28,7 @@ const FA_TKEYS=FA_TK.map(x=>x[0]);
 const FA_OUT=["bases","crystals"];   // v71n: the principles that can be taken out of the ranking (× in it, + to bring them back)
 const faClean=c=>{c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringify(FA_DEF));
   for(const k of ["mode","stance","formation","lives","battles","hillHow","grp"])if(typeof c[k]==="string")o[k]=c[k];
+  o.scope=c.scope==="soft"?"soft":"full";   // v74f: Full field automation (the default) or Soft Automate
   o.rush=Math.max(0,Math.min(9,Math.round(+c.rush||0)));for(const k of ["ambush","bases","walls","hier","under","noAttack","flee","tprio","tIgnoreGI","tSameGI","tgroup","hill","fLink","ambFocus","crys","crysStance","crysLives","crysMiner","crysAsk","crysHow","crysShow","crysFight"])if(typeof c[k]==="boolean")o[k]=c[k];
   if(Array.isArray(c.tgorder))o.tgorder=[...c.tgorder.filter(k=>o.tgorder.includes(k)),...o.tgorder.filter(k=>!c.tgorder.includes(k))];   // v54: the ranking by kinds of card
   o.torder=Array.isArray(c.torder)?[...c.torder.filter(k=>FA_TKEYS.includes(k)),...FA_TKEYS.filter(k=>!c.torder.includes(k))]:[...FA_TKEYS];
@@ -47,7 +48,7 @@ const faLevel=()=>{const v=G&&G.opts.fieldAuto;return ["easy","medium","hard"].i
 const faState=pl=>G&&G.p[pl]&&G.p[pl].fa||null;
 const faOn=pl=>faAllowed()&&!!(faState(pl)&&faState(pl).on)&&!G.p[pl].cpu&&!isNPC(pl);
 /* the simple modes narrow everything to a few choices */
-function faEff(c){c=faClean(c);const d=JSON.parse(JSON.stringify(FA_DEF));d.hill=c.hill;d.hillHow=c.hillHow;   // Capture the Hill is the player's in every mode
+function faEff(c){c=faClean(c);const d=JSON.parse(JSON.stringify(FA_DEF));d.hill=c.hill;d.hillHow=c.hillHow;d.scope=c.scope;   // Capture the Hill is the player's in every mode
   if(c.mode==="full")return Object.assign(d,{mode:"full",under:c.under});
   if(c.mode==="mostly")return Object.assign(d,{mode:"mostly",stance:c.stance,ambush:c.ambush,ambFocus:c.ambFocus,under:c.under,noAttack:c.noAttack});
   if(c.mode==="attacks")return Object.assign(d,{mode:"attacks",ambush:false,under:c.under});
@@ -110,14 +111,13 @@ function faCtx(pl){
     gainMul:E=>{let m=tf(E);if(c.bases&&hasBase(E)&&!hasK(E,"wall"))m*=1+sc.bases;
       if(c.walls&&hasK(E,"wall")){const at=AI.enemyStacks(pl).find(e=>e.st===E);if(at&&!faWallBlocks(pl,at.r,at.c))m*=1-.7*sc.bases}return m}}}
 
-/* ---------- when it plays: the end of your prep phase (after you place and cast), the start of your attack phase ---------- */
+/* ---------- when it plays: the end of your prep phase (after you place and cast), and (v74f) the end of your attack phase ---------- */
 async function faRun(pl,ph){if(!faOn(pl)||G.over)return;const was=G.busy;G.busy=true;render();
   try{await AI.field(pl,ph,faCtx(pl))}catch(e){console.error(e);log("Field automation stumbles: "+esc(e.message))}
   G.busy=was;render()}
-{const _ap=actPhase;actPhase=async function(pl,ph){
-  if(ph==="attack"&&faOn(pl))await faRun(pl,"attack");
+{const _ap=actPhase;actPhase=async function(pl,ph){   // v74f: at the end of each phase, after you have acted with the cards yourself
   const out=await _ap.apply(this,arguments);
-  if(ph==="prep"&&faOn(pl)&&!G.over&&G.active===pl)await faRun(pl,"prep");
+  if((ph==="prep"||ph==="attack")&&faOn(pl)&&!G.over&&G.active===pl)await faRun(pl,ph);
   return out}}
 
 /* ---------- switching it on and off (a joined player's choice travels to the host) ---------- */
@@ -127,7 +127,7 @@ function setFieldAuto(pl,on,cfg){
   if(c.rush>0&&(!prev.cfg||prev.cfg.rush!==c.rush||prev.rushUntil==null||G.moon.round>prev.rushUntil))P.fa.rushUntil=G.moon.round+c.rush-1;
   if(!c.rush)P.fa.rushUntil=null;
   if(!!prev.on!==!!on){log(`${plName(pl)} ${on?"hands the field to the computer (Field Automation on)":"takes the field back (Field Automation off)"}.`,"event");
-    if(on&&G.active===pl&&G.phase==="attack"&&!G.busy)setTimeout(()=>{if(faOn(pl)&&G.active===pl&&G.phase==="attack")faRun(pl,"attack")},50)}
+}
   render()}
 /* this device's settings changed: keep them, and send them on if the automation is running */
 function faSave(c){PREF.fa=faClean(c);savePrefs();const V=view(),s=faState(V);if(G&&s&&s.on)setFieldAuto(V,true,PREF.fa);paintFA()}
@@ -137,7 +137,7 @@ function faAsk(yes){let box=$("#faask");if(!box){box=document.createElement("div
   box.innerHTML=`<div class="ovbox" role="alertdialog" aria-labelledby="faq"><button type="button" class="xclose" id="faX" aria-label="Close: no">×</button>
 <h2 id="faq">Automate your field?</h2>
 <p>The computer (${({easy:"Easy",medium:"Medium",hard:"Hard"})[faLevel()]}) moves and attacks with the cards on your field, following the settings in the small square beside the button: by default, every card, and it decides when to attack, defend or hold the center.</p>
-<p class="dim">Your hand, placing cards, spells and sacrifices stay yours. It moves your field at the end of your prep phase and attacks at the start of your attack phase; turn it off any time.</p>
+<p class="dim">Your hand, placing cards, spells and sacrifices stay yours. It acts only at the end of each phase of your turn: it moves when you end your prep phase and attacks when you end your attack phase, so until then you can act with these cards yourself. Turn it off any time.</p>
 <p class="acts"><button type="button" class="btn" id="faY">Yes</button> <button type="button" class="btn ghost" id="faN">No</button></p></div>`;
   box.hidden=false;const close=()=>{box.hidden=true};$("#faY").onclick=()=>{close();yes()};$("#faN").onclick=close;$("#faX").onclick=close;$("#faN").focus()}
 function faToggle(){const V=view(),s=faState(V);if(s&&s.on){setFieldAuto(V,false,faMine());return}

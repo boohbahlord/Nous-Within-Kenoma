@@ -262,7 +262,7 @@ const AI=(()=>{
         if(best&&best.s>stay+.15){G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step([o.r,o.c],[best.r,best.c])}
         return}
       if(FAX&&isSupport(grp)){const tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets),stay=supportScore(pl,S,o.r,o.c,W,st);let best=null;
-        for(const [r,c] of tg){const sc=supportScore(pl,S,r,c,W,st)*jit(pl);if(!best||sc>best.s)best={r,c,s:sc}}
+        for(const [r,c] of tg){if(G.board[r][c]&&FAX.noStack&&FAX.noStack(grp,G.board[r][c]))continue;const sc=supportScore(pl,S,r,c,W,st)*jit(pl);if(!best||sc>best.s)best={r,c,s:sc}}
         if(best&&best.s>stay+.2){G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step([o.r,o.c],[best.r,best.c])}
         return}
       let stay=inAce?tileScore(pl,S,o.r,o.c,W,false)+(hq()?-1:W?.k==="def"?.6:0):tileScore(pl,S,o.r,o.c,W,true);
@@ -270,6 +270,7 @@ const AI=(()=>{
       let best=null;
       for(const [r,c] of tg){
         const t=G.board[r][c];
+        if(t&&FAX&&FAX.pl===pl&&FAX.noStack&&FAX.noStack(grp,t))continue;   // v74f: a class that avoids stacking
         let s;
         if(t){const M={cards:[...t.cards,...grp],owner:pl,hypo:0};s=tileScore(pl,M,r,c,W,true)-tileScore(pl,t,r,c,W,true)+.2+(W.stack||0)+(FAX&&FAX.pl===pl&&!hasBase(t)?FAX.stack||0:0)+(hasBase(t)?0:stackAdj(pl,fighters(M)))}
         else s=tileScore(pl,S,r,c,W,true);
