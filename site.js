@@ -54,10 +54,13 @@
     body.prepend(scan);body.prepend(cv);body.appendChild(flash);
     if(LV>=3){roll=document.createElement("div");roll.className="roll";body.prepend(roll)}
   }
+  /* v76b: the same static, drawn with one fast random number and one write per pixel */
+  let d32=null,ns=(Math.random()*4294967295)>>>0||1;
   function noise(){
-    const d=img.data;
-    for(let i=0;i<d.length;i+=4){const v=R()*255|0;d[i]=d[i+1]=d[i+2]=v;d[i+3]=R()<.55?(R()*255*ALPHA)|0:0}
-    ctx.putImageData(img,0,0);
+    if(!d32||d32.buffer!==img.data.buffer)d32=new Uint32Array(img.data.buffer);
+    const n=d32.length,lim=Math.round(.55*256);let s=ns;
+    for(let i=0;i<n;i++){s^=s<<13;s^=s>>>17;s^=s<<5;const v=s&255;d32[i]=((s>>>8)&255)<lim?(v|v<<8|v<<16|((((s>>>16)&255)*ALPHA)&255)<<24)>>>0:(v|v<<8|v<<16)}
+    ns=s>>>0||1;ctx.putImageData(img,0,0);
   }
   function flick(t){
     if(t<nextFlick)return;

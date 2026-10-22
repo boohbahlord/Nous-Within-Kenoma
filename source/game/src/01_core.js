@@ -271,6 +271,10 @@ const survival=()=>G.opts.mode==="survival";
 const isHorde=pl=>!!(G.p[pl]&&(G.p[pl].cpu==="horde"||G.p[pl].cpu==="npc"));   // the Horde, and the Demons and the Bank (no deck, no hand, no mana)
 const hordeIx=()=>G.p.findIndex(P=>P.cpu==="horde");
 const alive=()=>G.p.filter(P=>!P.out).map(P=>P.i);
+/* v76b: work that measures the page waits for one pass just before the next paint (see 99_perf.js) */
+const PERF={inRender:0,vk:null,sp:null,jobs:new Map(),raf:0};
+function perfFlush(){PERF.raf=0;const js=[...PERF.jobs.values()];PERF.jobs.clear();for(const f of js){try{f()}catch(e){console.error(e)}}}
+function perfLater(k,fn){PERF.jobs.set(k,fn);if(!PERF.raf)PERF.raf=typeof requestAnimationFrame==="function"?requestAnimationFrame(perfFlush):setTimeout(perfFlush,16)}
 const isEnemy=(a,b)=>a!=null&&b!=null&&a!==b&&G.p[a].team!==G.p[b].team&&!(G.dip&&dipAllied(a,b));   // v75b: allies (Diplomacy) are not enemies
 const enemiesOf=pl=>alive().filter(i=>isEnemy(pl,i));
 const alliesOf=pl=>alive().filter(i=>i!==pl&&!isEnemy(pl,i));

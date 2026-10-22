@@ -32,7 +32,7 @@ function fogVeil(){const B=$("#board");if(!B)return;let v=B.querySelector(":scop
     const m="url(\"data:image/svg+xml;utf8,"+encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'><filter id='b' x='-20%' y='-20%' width='140%' height='140%'><feGaussianBlur stdDeviation='${Math.max(8,tw*.2).toFixed(1)}'/></filter><g fill='white' filter='url(%23b)'>${g}</g></svg>`).replace(/%2523/g,"%23")+"\")";
     v.style.maskImage=m;v.style.webkitMaskImage=m}
   v.style.setProperty("--c1",FOG_CLOUDS[0]);v.style.setProperty("--c2",FOG_CLOUDS[1])}
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;try{fogVeil()}catch(e){console.error(e)}}}
+{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;perfLater("fogveil",fogVeil)}}   // v76b: just before the paint
 addEventListener("resize",()=>{fogKey="";if(G)try{fogVeil()}catch(e){}});
 
 /* ---------- Venus: gratitude and ingratitude ---------- */
