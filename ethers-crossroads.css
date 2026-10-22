@@ -2045,3 +2045,12 @@ html.cvd .tile.tmove::after{background:#56b4e930;box-shadow:inset 0 0 0 2px #56b
 html.cvd .tile.tplace::after{background:repeating-linear-gradient(90deg,#f0e44238 0 2px,transparent 2px 9px);box-shadow:inset 0 0 0 2px #f0e442}
 html.cvd .tile.tatk::after{background:repeating-linear-gradient(45deg,#d55e0066 0 3px,transparent 3px 9px);box-shadow:inset 0 0 0 3px #d55e00}
 html.cvd .tile.tmove{border-color:#56b4e9}html.cvd .tile.tplace{border-color:#f0e442}html.cvd .tile.tatk{border-color:#d55e00}
+/* v72c: the Rule book */
+.rbook .rbfind{display:flex;align-items:center;gap:8px;margin:6px 0 10px}.rbook .rbfind input{flex:1;min-width:0;font-family:var(--mono);font-size:14px;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:6px 8px}
+.rbook .rbsec{border-top:1px solid var(--rule);padding:4px 0}.rbook .rbsec>summary{cursor:pointer;list-style-position:inside}
+.rbook ul{list-style:none;margin:4px 0 8px;padding:0}.rbook li{margin:1px 0}
+.rbook li.lv2{padding-left:14px}.rbook li.lv3{padding-left:28px}.rbook li.lv4{padding-left:42px}.rbook li.hd>.rbent{color:var(--amber)}
+.rbent{text-align:left;font-size:13px;line-height:1.35;color:var(--text)}.rbent b{display:inline-block;min-width:3.6em;font-weight:400;color:var(--dim);font-family:var(--mono)}
+#rbwin .rbbox{max-width:720px}#rbwin .rbcode{margin:0;font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--dim)}
+#rbwin .rbtext{max-height:min(60vh,520px);overflow:auto;padding-right:6px;line-height:1.55}#rbwin .rbtext .rcode{font-family:var(--mono);font-size:.78em;color:var(--dim);margin-right:.35em;text-decoration:none}
+#rbwin .rbnav{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}

@@ -36,6 +36,13 @@ a.totop[hidden]{display:none}
 
 /* v65: a wide table scrolls inside itself on a phone instead of widening the page */
 @media (max-width:700px){.rules table{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}}
+/* v72c: rule codes */
+.rcode{display:inline-block;min-width:2.2em;margin-right:.35em;font:400 .78em/1 var(--mono);letter-spacing:.02em;color:var(--dim);text-decoration:none;opacity:.85;vertical-align:.08em}
+a.rcode:hover,a.rcode:focus-visible{color:var(--amber);opacity:1}
+h2 .rcode,h3 .rcode,h4 .rcode{font-size:.72em;margin-right:.5em;color:var(--amber);opacity:.9}
+.rindex .toc .n{font-family:var(--mono)}
+.rcodehelp{margin:-4px 0 10px;font-size:12.5px}
+[data-rcode]:target{outline:1px dashed var(--amber);outline-offset:4px}
 </style><script>try{var P=JSON.parse(localStorage.getItem("ec-prefs2")||"{}"),t=P.theme==null||(!P.v43t&&P.theme==="")?"darkfantasy":P.theme,
 M={darkfantasy:["th-darkfantasy"],"":["th-rich"],dull:["th-dull","th-rich"],office:["th-office","th-rich"],officedark:["th-officedark","th-rich"],earth:["th-earth","th-rich"],jester:["th-black","th-jester","th-rich"],ten:["th-indigo","th-blue","th-rich"],satan:["th-crimson","th-rich"]};
 (M[t]||[]).forEach(function(c){document.documentElement.classList.add(c)});document.documentElement.classList.add("ecpage")}catch(e){}

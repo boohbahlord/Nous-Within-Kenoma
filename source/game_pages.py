@@ -138,7 +138,7 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 <h3>Joker (Necromancer)</h3>
 <ul><li>Any enemy killed next to the Joker goes to its sacrifice pile (Soul Capture): an upside-down stack inside the Joker, its personal sacrifice pile.</li><li>Has no Dice Max, so it can stack with four Grunts, three Infantry, one King, a King and Queen, or a King with his one soldier.</li><li>When the Joker sacrifices himself, the player gains access to its sacrifice pile.</li><li>The Joker's personal sacrifice pile holds up to six, though players can change this for balance.</li><li>A captured soul stays inside the Joker until the Joker dies, when the Joker and its souls go to the grave, or until it uses Sacrificial Suicide.</li><li>If the Joker is defeated by enemies, its cards go to the grave pile.</li><li>If a Joker kills itself during a Blood Moon, it sends itself and every card it held to the Outer Darkness.</li><li>Can only spawn on a card of the same color (red or black).</li></ul>
 <h3>Ace</h3>
-<ul><li>Each player opens the game with one Ace on their backline, holding one Jack, with a Miner already in one of its two miner slots (that first Ace only).</li><li>Cannot move or attack, and is always in defense.</li><li>Can only be placed in open tiles in the backlines.</li><li>Anything inside an Ace cannot use modifiers for defense.</li><li>An Ace holds one stack inside it: up to six cards that could stand together on the field (Scouts, Healers, Repairmen and Miners ride along). Every base works the same way.</li><li>If an Ace is destroyed, all cards inside are destroyed.</li><li>Cannot be sacrificed while on the field.</li><li>Each Ace on the field grants +1d6 for pulling cards from the grave.</li></ul>
+<ul><li>Each player opens the game with one Ace on their backline, holding one Jack, with a Miner already in it (that first Ace only; an Ace holds as many Miners and Repairmen as you like).</li><li>Cannot move or attack, and is always in defense.</li><li>Can only be placed in open tiles in the backlines.</li><li>Anything inside an Ace cannot use modifiers for defense.</li><li>An Ace holds one stack inside it: up to six cards that could stand together on the field (Scouts, Healers, Repairmen and Miners ride along). Every base works the same way.</li><li>If an Ace is destroyed, all cards inside are destroyed.</li><li>Cannot be sacrificed while on the field.</li><li>Each Ace on the field grants +1d6 for pulling cards from the grave.</li></ul>
 <h3>Optional Ace rule</h3>
 <p>Card placement inside Aces can be locked to only the Ace's color (red, black) or suit (diamonds, spades, hearts, clubs).</p>
 
@@ -275,9 +275,42 @@ for m in _re.finditer(r'<h3 id="([^"]+)">(.*?)</h3>', rules):
     for t in reversed(_toc):
         if rules.find(f'id="{t[0]}"') < m.start():
             t[2].append((m.group(1), _re.sub(r'<[^>]+>', '', m.group(2)))); break
-_idx = '<nav class="rindex" id="index" aria-label="Contents"><h2 class="label">Index</h2><ol class="toc">' + ''.join(
-    f'<li><a href="#{h}"><span class="n">{i+1:02d}</span><span>{t}</span></a>' + (
-        '<ol class="subtoc">' + ''.join(f'<li><a href="#{a}">{b}</a></li>' for a, b in subs) + '</ol>' if subs else '') + '</li>'
+# v72c: every part of the rules gets a code, numbers and letters by turns: 3 (a section), 3.B (its part), 3.B.4 (an entry),
+# 3.B.4.c (an entry under that). Headings share a level's count with the list entries beside them; nested lists get none.
+_L = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+def _lv(n, depth):
+    return str(n) if depth % 2 == 0 else (_L[(n - 1) % 26] if depth == 1 else _L[(n - 1) % 26].lower())
+_codes = {}
+def _code_rules(html):
+    out = []; pos = 0; path = []; cnt = [0]; ldepth = 0; hlev = 0; tok = _re.compile(r'<(/?)(h2|h3|h4|ul|ol|li)\b([^>]*)>')
+    level = {'h2': 0, 'h3': 1, 'h4': 2}
+    for m in tok.finditer(html):
+        close, tag, attrs = m.group(1), m.group(2), m.group(3)
+        if tag in ('ul', 'ol'):
+            if 'class="toc"' in attrs or 'class="subtoc"' in attrs: continue
+            ldepth += -1 if close else 1; continue
+        if close: continue
+        if tag in level:
+            if 'class="label"' in attrs: continue
+            d = level[tag]
+            if d > len(path): d = len(path)   # an h4 straight under an h2 takes the next level
+            path = path[:d]; cnt = cnt[:d + 1]
+            cnt[d] = cnt[d] + 1 if len(cnt) > d else 1
+            path.append(_lv(cnt[d], d)); cnt.append(0)
+            code = '.'.join(path); idm = _re.search(r'id="([^"]+)"', attrs)
+            new = f'<{tag}{attrs if idm else attrs + " id=" + chr(34) + "r-" + code.replace(".", "-") + chr(34)} data-rcode="{code}"><span class="rcode">{code}</span> '
+            _codes[idm.group(1) if idm else 'r-' + code.replace('.', '-')] = code
+            out.append(html[pos:m.start()]); out.append(new); pos = m.end(); continue
+        if tag == 'li' and ldepth == 1 and path:
+            d = len(path)
+            while len(cnt) <= d: cnt.append(0)
+            cnt[d] += 1; code = '.'.join(path + [_lv(cnt[d], d)]); rid = 'r-' + code.replace('.', '-')
+            out.append(html[pos:m.start()]); out.append(f'<li{attrs} id="{rid}" data-rcode="{code}"><a class="rcode" href="#{rid}" title="Rule {code}: a link to it">{code}</a> '); pos = m.end()
+    out.append(html[pos:]); return ''.join(out)
+_mi = rules.index('<main'); rules = rules[:_mi] + _code_rules(rules[_mi:])
+_idx = '<nav class="rindex" id="index" aria-label="Contents"><h2 class="label">Index</h2><p class="dim rcodehelp">Every rule has a code: a number for each section, a letter for its parts, then numbers and letters by turns (3.B.4). Click a code to link to it.</p><ol class="toc">' + ''.join(
+    f'<li><a href="#{h}"><span class="n">{_codes.get(h, i + 1)}</span><span>{t}</span></a>' + (
+        '<ol class="subtoc">' + ''.join(f'<li><a href="#{a}"><span class="n">{_codes.get(a, "")}</span> {b}</a></li>' for a, b in subs) + '</ol>' if subs else '') + '</li>'
     for i, (h, t, subs) in enumerate(_toc)) + '</ol></nav>'
 rules = rules.replace('@@RULES_INDEX@@', _idx)
 rules = rules.replace('</main>', '''<a class="totop" href="#index" hidden>↑ Index</a>
@@ -288,7 +321,7 @@ b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({beha
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
 # v71j: EC_BL asks the page's head to preload the blackletter (unless the device saves data)
-play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel="stylesheet" href="ethers-crossroads.css?v=111">', ec=True) + f'''<main class="wide game">
+play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel="stylesheet" href="ethers-crossroads.css?v=112">', ec=True) + f'''<main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
@@ -325,8 +358,8 @@ play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel
 </main>
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
-<script>window.EC_QSRC="ethers-crossroads-quotes.js?v=111"</script>
-<script src="ethers-crossroads.js?v=111"></script>
+<script>window.EC_QSRC="ethers-crossroads-quotes.js?v=112"</script>
+<script src="ethers-crossroads.js?v=112"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 
