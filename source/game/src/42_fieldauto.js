@@ -188,9 +188,7 @@ function faPanelHTML(c,pl,pfx){
     h+=sec("Target priority",`<details class="faextra fadet" data-fadet="tprio" ${c.tprio?"open":""}><summary>Rank the kinds of card to target <small class="dim">(${c.tprio?"on":"off: every target is weighed by the odds alone"})</small></summary>`+
       row("tgroup",c.tgroup,"Rank by kinds of card","On: Special, Base, Standard and so on. Off: every single kind, like the King.")+
       (c.tgroup?kindRankHTML(c.tgorder,"data-tgact",TGROUP_NAMES):row("tIgnoreGI",c.tIgnoreGI,"Ignore how strong a Grunt or Infantry is","A 2 and a 6 Grunt count the same when it picks a target.")+row("tSameGI",c.tSameGI,"Treat Grunts and Infantry alike","One kind instead of two in the ranking.")+
-      hierHTML((c.tSameGI?c.torder.filter(k=>k!=="infantry"):c.torder),c.teq,faHierHTML.tpending,k=>FA_TK.find(x=>x[0]===k)[1],()=>"","t"))+`<p class="dim">The kinds on the left are hunted first.</p>`+
-      row("tWeak",c.tWeak,"Weakest Grunts and Infantry first","Off: the strongest of them first.")+
-      `<p class="dim fatsk">Go for a stack because of the kind it hunts when that kind is…</p>`+row("tStk.strongest",c.tStk.strongest,"…its strongest card","")+row("tStk.weakest",c.tStk.weakest,"…its weakest card","")+row("tStk.minority",c.tStk.minority,"…only a few of its cards","Not the most of them.")+row("tStk.majority",c.tStk.majority,"…most of its cards","")+`</details>`,"fafull","",c.tprio?FA_CAUTION:"");
+      hierHTML((c.tSameGI?c.torder.filter(k=>k!=="infantry"):c.torder),c.teq,faHierHTML.tpending,k=>FA_TK.find(x=>x[0]===k)[1],()=>"","t"))+`<p class="dim">The kinds on the left are hunted first.</p>`+`</details>`,"fafull","",c.tprio?FA_CAUTION:"");
     if(c.crys)h+=sec("Crystals",`<details class="faextra" open><summary>More options for Focus on crystals</summary>`+
       row("crysStance",c.crysStance,"Depends on the stance","It guards crystals only while your field defends or holds the center.")+
       row("crysLives",c.crysLives,"Depends on Lives","Preserve guards only where it's safe; Balanced unless it's badly outnumbered; Throw them in, whatever comes.")+

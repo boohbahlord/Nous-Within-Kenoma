@@ -18,6 +18,12 @@
    - Every Automated Strategy shares the same classes. */
 const CLS_CFG=["noAttack","stance","lives","battles","formation","ambush","ambFocus","bases","hier","order","eq"];
 const CLS_STK=["strongest","weakest","minority","majority"];
+/* v73f: a class's target priority goes by the types of card (Wildcards, Special, Base, Standard, Support): the type it targets
+   most, the ranking of the types below it, and inside each type (its ⚙ window) the kind it hunts first and their ranking */
+const CLS_TYPES=["wildcard","special","base","standard","support"];
+const clsTypeKinds=t=>t==="wildcard"?FA_KINDS.filter(k=>!TGROUP[k]&&k!=="wildcards"):Object.keys(TGROUP).filter(k=>TGROUP[k]===t&&k!=="wildcards");
+const clsKindName=k=>{const t=FA_TK.find(x=>x[0]===k);return t?t[1]:INFO[k]?shortInfo(k):UNIT[k]?UNIT[k].name:k};
+const tkKey=c=>c.puppet?"puppet":c.unit?c.unit:kind(c),tkType=k=>TGROUP[k]||(UNIT[k]?"wildcard":"standard");
 const clsList=()=>Array.isArray(PREF.faClasses)?PREF.faClasses:(PREF.faClasses=[]);
 const clsPalette=()=>COLORS.map(([n,h])=>[n,h]);
 function clsClean(list){const ids=new Set();const out=[];
@@ -28,8 +34,9 @@ function clsClean(list){const ids=new Set();const out=[];
       color:typeof k.color==="string"&&/^#[0-9a-f]{6}$/i.test(k.color)?k.color:null,sheen:!!k.sheen,show:!!k.show,
       stack:Object.fromEntries(CLS_STK.map(x=>[x,st[x]==null?(x==="strongest"||x==="majority"):!!st[x]])),lowPrio:!!k.lowPrio&&!cfg.hier,
       cluster:(Array.isArray(k.cluster)?k.cluster:[]).filter(x=>typeof x==="string"&&x!==k.id).slice(0,24),cfg,
-      tg:{on:!!tg.on,order:Array.isArray(tg.order)?[...tg.order.filter(x=>FA_TKEYS.includes(x)),...FA_TKEYS.filter(x=>!tg.order.includes(x))]:[...FA_TKEYS],weak:!!tg.weak,
-        stack:Object.fromEntries(CLS_STK.map(x=>[x,tst[x]!==false]))}})}
+      tg:{on:!!tg.on,most:CLS_TYPES.includes(tg.most)?tg.most:null,order:(o=>[...o,...CLS_TYPES.filter(x=>!o.includes(x))])(Array.isArray(tg.order)?tg.order.filter(x=>CLS_TYPES.includes(x)):[]),
+        kinds:Object.fromEntries(CLS_TYPES.map(t=>{const ks=clsTypeKinds(t),q=(tg.kinds||{})[t]||{},o=Array.isArray(q.order)?q.order.filter(x=>ks.includes(x)):[];return [t,{most:ks.includes(q.most)?q.most:null,order:[...o,...ks.filter(x=>!o.includes(x))]}]})),
+        weak:!!tg.weak,stack:Object.fromEntries(CLS_STK.map(x=>[x,tst[x]!==false]))}})}
   return out}
 /* the classes go to the game with the field settings (the host plays them) */
 {const _sf=setFieldAuto;setFieldAuto=function(pl,on,cfg){if(cfg&&typeof cfg==="object"&&!Array.isArray(cfg.classes)&&G&&pl===view())cfg=Object.assign({},cfg,{classes:clsClean(clsList()),classMulti:PREF.faClassMulti===true});
@@ -52,8 +59,9 @@ function stackClass(pl,st,list){list=list||plClasses(pl);if(!st||!list.some(k=>k
 /* the field plays a class's stacks by the class's rules */
 function clsCtx(pl,k){const full=faEff(faState(pl)&&faState(pl).cfg);
   const over=Object.assign({},full,JSON.parse(JSON.stringify(k.cfg)),{mode:"custom",ctl:Object.fromEntries(Object.keys(FA_DEF.ctl).map(x=>[x,true])),extra:[],xminus:[]});delete over.classes;   // it plays all of its stacks
-  if(k.tg.on)Object.assign(over,{tprio:true,tgroup:false,torder:[...k.tg.order],teq:[],tIgnoreGI:false,tSameGI:false,tWeak:k.tg.weak,tStk:Object.assign({},k.tg.stack)});
-  FA_OVR={pl,cfg:faClean(over)};let cx;try{cx=faCtx(pl)}finally{FA_OVR=null}
+  if(k.tg.on)Object.assign(over,{tprio:true,tgroup:true,tgorder:[...k.tg.order],teq:[],tIgnoreGI:false,tSameGI:false,tWeak:k.tg.weak,tStk:Object.assign({},k.tg.stack)});
+  const cc=faClean(over);if(k.tg.on){cc.tgMost=k.tg.most;cc.tgKinds=k.tg.kinds}   // what only a class has
+  FA_OVR={pl,cfg:cc};let cx;try{cx=faCtx(pl)}finally{FA_OVR=null}
   cx=Object.assign({pl},cx,{lowPrio:k.lowPrio&&!k.cfg.hier,clsId:k.id});
   if(k.cluster.length){const ids=new Set(k.cluster);
     cx.extraPull=(S,r,c,walk)=>{const mine=new Set(S.cards.map(x=>x.id));let d=99;
@@ -64,8 +72,15 @@ function clsCtx(pl,k){const full=faEff(faState(pl)&&faState(pl).cfg);
   const list=plClasses(pl);if(!list.some(k=>k.on))return ctx;const cache={};
   ctx.clsOf=st=>{const k=stackClass(pl,st,list);return k?cache[k.id]||(cache[k.id]=clsCtx(pl,k)):null};
   return ctx}}
-/* target priority (yours and each class's): the weakest or strongest Grunts and Infantry first, and which stacks it goes for */
-{const _tf=faTargetFactor;faTargetFactor=function(cfg){const f=_tf.apply(this,arguments);if(!cfg||!cfg.tprio)return f;const S=cfg.tStk||FA_DEF.tStk;
+/* a class's target priority: the type it targets most counts for more, the ranking of the types, then inside each type the kind it
+   hunts first and the ranking of its kinds; a stack is worth what its best card is worth */
+{const _tf=faTargetFactor;faTargetFactor=function(cfg){if(!cfg||!cfg.tprio||!cfg.tgKinds)return _tf.apply(this,arguments);
+  const go=cfg.tgorder,N=Math.max(1,go.length-1);
+  const one=x=>{const k=tkKey(x),t=tkType(k),g=go.indexOf(t);let m=1.6-1.2*(g<0?go.length:g)/N;if(cfg.tgMost===t)m*=1.3;
+    const T=cfg.tgKinds[t];if(T){const ko=T.order,i=ko.indexOf(k),M=Math.max(1,ko.length-1);m*=1.12-.24*(i<0?M:i)/M;if(T.most===k)m*=1.25}return m};
+  return E=>E.cards.length?Math.max(.2,Math.max(...E.cards.map(one))):1}}
+/* and (a class only) the weakest or strongest Grunts and Infantry first, and which stacks it goes for */
+{const _tf=faTargetFactor;faTargetFactor=function(cfg){const f=_tf.apply(this,arguments);if(!cfg||!cfg.tprio||!cfg.tgKinds)return f;const S=cfg.tStk||FA_DEF.tStk;
   return E=>{const v=f(E),cards=E.cards;if(!cards.length)return v;
     const each=cards.map(x=>f({cards:[x],owner:E.owner})),top=Math.max(...each),hunted=cards.filter((x,i)=>each[i]>=top-1e-9);
     const by=[...cards].sort((a,b)=>rate(b)-rate(a)),maj=hunted.length*2>cards.length;
@@ -122,15 +137,21 @@ const clsAttr=(h,k)=>h.replace(/class="(cf|stack) /,`class="$1 clsmark${k.sheen?
   return h.replace(/(<div class="stack)([^"]*")( style=")/,(m,a,b,c)=>`${a} clsmark${k.sheen?" clsheen":""}${b}${c}--clb:${cbMap(k.color)};`)}}
 
 /* ---------- the settings: Class Structures, above the Automated Strategies ---------- */
-let clsUI={open:null,del:null};
+let clsUI={open:null,del:null,ren:null};
 const clsTaken=(id,kd)=>clsList().find(k=>k.id!==id&&k.kinds.includes(kd));
-function clsRank(id,order,key,label){return `<ol class="clsrank">${order.map((x,i)=>`<li><span>${i+1}. ${esc(label(x))}</span><span><button type="button" class="btn ghost sm" data-clact="${id}|${key}up|${x}" ${i?"":"disabled"} aria-label="Higher">▲</button><button type="button" class="btn ghost sm" data-clact="${id}|${key}down|${x}" ${i<order.length-1?"":"disabled"} aria-label="Lower">▼</button></span></li>`).join("")}</ol>`}
+/* a ranking drawn like "Rank by kinds of card": small boxes in a row, the number, the name, ▲ and ▼ */
+function clsRank(id,order,key,label){return `<ol class="krank">${order.map((x,i)=>`<li><span class="farank">${i+1}</span><b>${esc(label(x))}</b><span class="facolbtns"><button type="button" class="btn ghost sm" data-clact="${id}|${key}up|${x}" ${i?"":"disabled"} aria-label="Higher">▲</button><button type="button" class="btn ghost sm" data-clact="${id}|${key}down|${x}" ${i<order.length-1?"":"disabled"} aria-label="Lower">▼</button></span></li>`).join("")}</ol>`}
+/* a fold stays as it was on the screen when the panel is drawn again */
+const clsWasOpen=sel=>!!document.querySelector(`#facfg ${sel}[open],#fapanel ${sel}[open]`);
 function clsHTML(pfx){const L=clsList(),V=G?view():null,mine=V!=null&&G&&G.p[V]?G.p[V].color:null,multi=PREF.faClassMulti===true;
   const K=cfgKit("data-cl","data-clact","cl"+pfx),{row,radio}=K;
-  const one=k=>{const id=k.id,c=k.cfg,o=clsUI.open===id;const near=hex=>mine&&colorNear(hex,mine)||hex===mine||L.some(x=>x.id!==id&&x.color&&(x.color===hex||colorNear(x.color,hex)));
-    return `<details class="clsone" data-clid="${id}" ${o?"open":""}><summary><i class="clsdot" style="--clb:${k.color||"#888"}"></i><b>${esc(k.name)}</b> <small class="dim">${k.kinds.length?k.kinds.map(x=>esc(shortInfo(x))).join(", "):"no cards yet"}${k.on?"":" · off"}</small></summary>
+  const one=k=>{const id=k.id,c=k.cfg,o=clsUI.open===id||clsWasOpen(`.clsone[data-clid="${id}"]`);const near=hex=>mine&&colorNear(hex,mine)||hex===mine||L.some(x=>x.id!==id&&x.color&&(x.color===hex||colorNear(x.color,hex)));
+    const i=L.indexOf(k);
+    return `<details class="clsone" data-clid="${id}" ${o?"open":""}><summary><i class="clsarr" aria-hidden="true">▸</i><i class="clsdot" style="--clb:${k.color||"#888"}"></i><b>${esc(k.name)}</b> <small class="dim">${k.kinds.length?k.kinds.map(x=>esc(shortInfo(x))).join(", "):"no cards yet"}${k.on?"":" · off"}</small></summary>
+<p class="clsacts">${clsUI.ren===id?`<input type="text" class="clsren" maxlength="30" aria-label="Its name" value="${esc(k.name)}"> <button type="button" class="btn sm" data-clact="${id}|renok">Rename</button> <button type="button" class="btn ghost sm" data-clact="${id}|renno">Cancel</button>`:
+  clsUI.del===id?`Delete ${esc(k.name)}? <button type="button" class="btn sm" data-clact="${id}|delok">Delete</button> <button type="button" class="btn ghost sm" data-clact="${id}|delno">Keep it</button>`:
+  `<button type="button" class="btn ghost sm" data-clact="${id}|ren">Rename</button><button type="button" class="btn ghost sm" data-clact="${id}|save">Save</button><button type="button" class="btn ghost sm" data-clact="${id}|copy">Copy</button><button type="button" class="btn ghost sm" data-clact="${id}|mvup" ${i?"":"disabled"} aria-label="Move up">▲</button><button type="button" class="btn ghost sm" data-clact="${id}|mvdn" ${i<L.length-1?"":"disabled"} aria-label="Move down">▼</button><button type="button" class="btn ghost sm" data-clact="${id}|del">Delete</button>`}</p>
 ${row(`${id}|on`,k.on,"Class on","Its rules play its cards by themselves (while Field Automation is on).")}
-<label class="f clsname">Name <input type="text" maxlength="30" data-cl="${id}|name" value="${esc(k.name)}"></label>
 <p class="clsh">Its cards</p><div class="opts fakinds">${FA_KINDS.map(kd=>{const t=clsTaken(id,kd),dis=!!t&&!multi&&!k.kinds.includes(kd);return `<label class="opt${dis?" off":""}" ${t&&!k.kinds.includes(kd)?`title="In ${esc(t.name)}"`:""}><input type="checkbox" data-cl="${id}|kind:${kd}" ${k.kinds.includes(kd)?"checked":""} ${dis?"disabled":""}><span>${esc(shortInfo(kd))}</span></label>`}).join("")}</div>
 <p class="clsh">A stack mixing its cards with others plays by it when its cards are…</p>${row(`${id}|stack:strongest`,k.stack.strongest,"…the stack's strongest card","")}${row(`${id}|stack:weakest`,k.stack.weakest,"…the stack's weakest card","")}${row(`${id}|stack:minority`,k.stack.minority,"…only a few of its cards","Not the most of them.")}${row(`${id}|stack:majority`,k.stack.majority,"…most of its cards","")}
 <p class="clsh">Stance</p>${radio(`${id}|stance`,c.stance,[["auto","Automatic",""],["offensive","Offensive",""],["defensive","Defensive",""],["center","Center",""],["skirmish","Skirmish",""]])}
@@ -141,11 +162,12 @@ ${row(`${id}|noAttack`,c.noAttack,"Don't attack","")}${row(`${id}|ambush`,c.ambu
 ${row(`${id}|hier`,c.hier,"Rank the principles","Its own order of the principles.")}${c.hier?clsRank(id,c.order,"h",x=>(FA_PRINC.find(p=>p[0]===x)||[x,x])[1]):""}
 ${row(`${id}|lowPrio`,k.lowPrio&&!c.hier,"Low priority","It moves and strikes after your other stacks. Not while it ranks the principles.",c.hier)}
 <p class="clsh">Keeps near (cluster)</p><div class="opts fakinds">${[...L.filter(x=>x.id!==id).map(x=>[x.id,x.name]),...FA_KINDS.map(x=>[x,shortInfo(x)])].map(([v,t])=>`<label class="opt"><input type="checkbox" data-cl="${id}|cl:${esc(v)}" ${k.cluster.includes(v)?"checked":""}><span>${esc(t)}</span></label>`).join("")}</div>
-<details class="faextra"><summary>Target priority for this class <small class="dim">(${k.tg.on?"on":"off: your own"})</small></summary>${row(`${id}|tg:on`,k.tg.on,"Its own target priority","")}${k.tg.on?clsRank(id,k.tg.order,"t",x=>FA_TK.find(p=>p[0]===x)[1])+row(`${id}|tg:weak`,k.tg.weak,"Weakest Grunts and Infantry first","Off: the strongest of them first.")+
-  `<p class="dim">Go for a stack because of the kind it hunts when that kind is…</p>`+row(`${id}|tgs:strongest`,k.tg.stack.strongest,"…its strongest card","")+row(`${id}|tgs:weakest`,k.tg.stack.weakest,"…its weakest card","")+row(`${id}|tgs:minority`,k.tg.stack.minority,"…only a few of its cards","")+row(`${id}|tgs:majority`,k.tg.stack.majority,"…most of its cards",""):""}</details>
+<details class="faextra clstg" ${clsUI.tg===id||clsWasOpen(`[data-cltg="${id}"]`)?"open":""} data-cltg="${id}"><summary>Target priority <small class="dim">(${k.tg.on?"on":"off: your own"})</small></summary>${row(`${id}|tg:on`,k.tg.on,"Its own target priority","By types of card: the one it targets most, then their ranking.")}${k.tg.on?
+  `<p class="clsh">Targets most</p><div class="clstypes">${CLS_TYPES.map(t=>{const T=k.tg.kinds[t],sel=k.tg.most===t;return `<div class="clstype${sel?" on":""}"><label class="clstsel"><input type="checkbox" data-cl="${id}|tgmost:${t}" ${sel?"checked":""}><span><b>${TGROUP_NAMES[t]}</b><small>${T.most?esc(clsKindName(T.most))+" first":"in their order"}</small></span></label><button type="button" class="btn ghost sm clsgear" data-clact="${id}|tgwin|${t}" title="Which ${TGROUP_NAMES[t]} it hunts first" aria-label="${TGROUP_NAMES[t]}: which it hunts first">⚙</button></div>`}).join("")}</div>
+<details class="faextra" ${clsUI.tgh===id||clsWasOpen(`[data-cltgh="${id}"]`)?"open":""} data-cltgh="${id}"><summary>Hierarchy of the types</summary>${clsRank(id,k.tg.order,"t",x=>TGROUP_NAMES[x])}</details>`+row(`${id}|tg:weak`,k.tg.weak,"Weakest Grunts and Infantry first","Off: the strongest of them first.")+
+  `<p class="dim clsstk">Go for a stack because of the kind it hunts when that kind is…</p>`+row(`${id}|tgs:strongest`,k.tg.stack.strongest,"…its strongest card","")+row(`${id}|tgs:weakest`,k.tg.stack.weakest,"…its weakest card","")+row(`${id}|tgs:minority`,k.tg.stack.minority,"…only a few of its cards","")+row(`${id}|tgs:majority`,k.tg.stack.majority,"…most of its cards",""):""}</details>
 <p class="clsh">Its look (only you see it unless shown)</p><div class="opts swatches clssw">${clsPalette().map(([nm,hex])=>{const n=near(hex)&&k.color!==hex;return `<label class="sw${n?" off":""}" title="${esc(nm)}${n?" (too like your color or another class's)":""}"><input type="radio" name="clc${pfx}${id}" data-cl="${id}|color" value="${hex}" ${k.color===hex?"checked":""} ${n?"disabled":""}><span style="--pc:${hex}"></span><em>${esc(nm)}</em></label>`}).join("")}</div>
-${row(`${id}|sheen`,k.sheen,"Sheen on its corners","")}${row(`${id}|show`,k.show,"Show the other players its look","")}
-<p class="clsacts">${clsUI.del===id?`Delete ${esc(k.name)}? <button type="button" class="btn sm" data-clact="${id}|delok">Delete</button> <button type="button" class="btn ghost sm" data-clact="${id}|delno">Keep it</button>`:`<button type="button" class="btn ghost sm" data-clact="${id}|del">Delete this class</button>`}</p></details>`};
+${row(`${id}|sheen`,k.sheen,"Sheen on its corners","")}${row(`${id}|show`,k.show,"Show the other players its look","")}</details>`};
   return `<section class="fasec fafull facls"><h4>Class Structures</h4><details class="faextra clsfold" ${PREF.clsOpen||clsUI.open?"open":""}><summary>Your classes <small class="dim">(${L.length})</small></summary>
 ${row("multi",multi,"Choose classes on the field","Needed for one kind of card to be in more than one class: a card then follows the first class that holds it, unless you put it in another on the field.")}
 <p class="dim">To put one stack or hand card in a class on its own (a Class Exception), right-click it while Field Automation is on (on a phone, double-tap it), or use the Class line in the Selected box. Every Automated Strategy shares these classes.</p>
@@ -154,6 +176,8 @@ ${L.map(one).join("")}<p><button type="button" class="btn ghost sm" data-clact="
 function clsWire(root){const L=clsList(),find=id=>L.find(k=>k.id===id);
   const fold=root.querySelector(".clsfold");if(fold)fold.addEventListener("toggle",()=>{PREF.clsOpen=fold.open;savePrefs()});
   root.querySelectorAll("details.clsone").forEach(d=>d.addEventListener("toggle",()=>{if(d.open)clsUI.open=d.dataset.clid;else if(clsUI.open===d.dataset.clid)clsUI.open=null}));
+  root.querySelectorAll("[data-cltg]").forEach(d=>d.addEventListener("toggle",()=>{clsUI.tg=d.open?d.dataset.cltg:null}));
+  root.querySelectorAll("[data-cltgh]").forEach(d=>d.addEventListener("toggle",()=>{clsUI.tgh=d.open?d.dataset.cltgh:null}));
   root.querySelectorAll("[data-cl]").forEach(i=>{const [id,key]=i.dataset.cl.split("|");const ev=i.type==="text"?"change":"change";i.addEventListener(ev,()=>{
     if(id==="multi"){PREF.faClassMulti=i.checked;clsResend();return}
     const k=find(id);if(!k)return;clsUI.open=id;
@@ -165,6 +189,7 @@ function clsWire(root){const L=clsList(),find=id=>L.find(k=>k.id===id);
     else if(key.startsWith("cl:")){const v=key.slice(3);k.cluster=i.checked?[...new Set([...k.cluster,v])]:k.cluster.filter(x=>x!==v)}
     else if(key==="tg:on"||key==="tg:weak")k.tg[key.slice(3)]=i.checked;
     else if(key.startsWith("tgs:"))k.tg.stack[key.slice(4)]=i.checked;
+    else if(key.startsWith("tgmost:"))k.tg.most=i.checked?key.slice(7):null;
     else if(CLS_CFG.includes(key))k.cfg[key]=i.type==="checkbox"?i.checked:i.value;
     if(k.cfg.hier)k.lowPrio=false;PREF.faClasses=clsClean(L);clsResend()})});
   root.querySelectorAll("[data-clact]").forEach(b=>b.onclick=()=>{const [id,a,x]=b.dataset.clact.split("|");
@@ -172,11 +197,34 @@ function clsWire(root){const L=clsList(),find=id=>L.find(k=>k.id===id);
       const base=faMine(),cfg={};for(const f of CLS_CFG)cfg[f]=JSON.parse(JSON.stringify(base[f]));const k={id:"c"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:`Class ${L.length+1}`,on:true,kinds:[],color:col,cfg};
       PREF.faClasses=clsClean([...L,k]);clsUI.open=k.id;PREF.clsOpen=true;clsResend();return}
     const k=find(id);if(!k)return;clsUI.open=id;
-    if(a==="del"){clsUI.del=id;paintFA();return}if(a==="delno"){clsUI.del=null;paintFA();return}
+    if(a==="del"){clsUI.del=id;clsUI.ren=null;paintFA();return}if(a==="delno"){clsUI.del=null;paintFA();return}
+    if(a==="ren"){clsUI.ren=id;clsUI.del=null;paintFA();const r=root.querySelector(".clsren");if(r){r.focus();r.select()}return}if(a==="renno"){clsUI.ren=null;paintFA();return}
+    if(a==="renok"){const r=b.parentNode.querySelector(".clsren");const nm=String(r&&r.value||"").replace(/[<>]/g,"").trim().slice(0,30);if(nm)k.name=nm;clsUI.ren=null;PREF.faClasses=clsClean(L);clsResend();return}
+    if(a==="save"){PREF.faClasses=clsClean(L);clsResend();flash(`Saved “${k.name}”.`);return}
+    if(a==="copy"){const c2=JSON.parse(JSON.stringify(k)),mine=G&&G.p[view()]?G.p[view()].color:null,used=L.map(y=>y.color);
+      c2.id="c"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);c2.name=copyName(k.name,L.map(y=>y.name)).slice(0,30);
+      const free=clsPalette().find(([,h])=>h!==mine&&!(mine&&colorNear(h,mine))&&!used.some(u=>u===h||colorNear(u,h)));c2.color=free?free[1]:k.color;   // a copy takes a color of its own
+      if(!PREF.faClassMulti)c2.kinds=[];   // a kind can be in one class only (unless "Choose classes on the field")
+      L.splice(L.indexOf(k)+1,0,c2);PREF.faClasses=clsClean(L);clsUI.open=c2.id;clsResend();flash(`Copied as “${c2.name}”.`);return}
+    if(a==="mvup"||a==="mvdn"){const j=L.indexOf(k),t=j+(a==="mvup"?-1:1);if(t<0||t>=L.length)return;[L[j],L[t]]=[L[t],L[j]];PREF.faClasses=clsClean(L);clsResend();return}
+    if(a==="tgwin"){clsTgWin(id,x);return}
     if(a==="delok"){clsUI.del=null;PREF.faClasses=clsClean(L.filter(y=>y.id!==id));clsResend();return}
     const mv=(arr,dir)=>{const i=arr.indexOf(x),j=i+dir;if(i<0||j<0||j>=arr.length)return;[arr[i],arr[j]]=[arr[j],arr[i]]};
     if(a==="hup"||a==="hdown")mv(k.cfg.order,a==="hup"?-1:1);if(a==="tup"||a==="tdown")mv(k.tg.order,a==="tup"?-1:1);
     PREF.faClasses=clsClean(L);clsResend()})}
 {const _fw=faWire;faWire=function(root){_fw.apply(this,arguments);if(root.querySelector(".facls"))clsWire(root)}}
+/* a type's ⚙ window: the kind of card the class hunts first in that type, and their ranking */
+function clsTgWin(id,t){const k=clsList().find(y=>y.id===id);if(!k||!CLS_TYPES.includes(t))return;let box=$("#clstgwin");if(!box){box=document.createElement("div");box.id="clstgwin";box.className="faov";document.body.appendChild(box)}
+  const T=k.tg.kinds[t],nm=TGROUP_NAMES[t];
+  box.innerHTML=`<div class="ovbox clstgbox" role="dialog" aria-labelledby="clstgh"><button type="button" class="xclose" id="clstgX" aria-label="Close">×</button><h2 id="clstgh">${esc(k.name)} · ${nm}</h2>
+<p class="dim">Among the ${nm}, the kind this class hunts first, and the order of the rest.</p>
+<p class="clsh">Hunts first</p><div class="opts fakinds">${[["","None"],...clsTypeKinds(t).map(x=>[x,clsKindName(x)])].map(([v,l])=>`<label class="opt"><input type="radio" name="clstgm" value="${v}" ${(T.most||"")===v?"checked":""}><span>${esc(l)}</span></label>`).join("")}</div>
+<details class="faextra" ${clsUI.tgw?"open":""} id="clstgk"><summary>Hierarchy of the ${nm}</summary>${clsRank(id,T.order,"k",clsKindName)}</details>
+<p class="acts"><button type="button" class="btn" id="clstgOk">Done</button></p></div>`;
+  box.hidden=false;const close=()=>{box.hidden=true;paintFA()};$("#clstgX").onclick=$("#clstgOk").onclick=close;box.onclick=e=>{if(e.target===box)close()};
+  const save=()=>{PREF.faClasses=clsClean(clsList());clsResend();clsTgWin(id,t)};
+  $("#clstgk").addEventListener("toggle",e=>{clsUI.tgw=e.target.open});
+  box.querySelectorAll("input[name=clstgm]").forEach(i=>i.onchange=()=>{T.most=i.value||null;save()});
+  box.querySelectorAll("[data-clact]").forEach(b=>b.onclick=()=>{const [,a,x]=b.dataset.clact.split("|"),o=T.order,j=o.indexOf(x),n=j+(a==="kup"?-1:1);if(j<0||n<0||n>=o.length)return;[o[j],o[n]]=[o[n],o[j]];save()})}
 
 if(window.__EC)Object.assign(window.__EC,{clsSetW:list=>{PREF.faClasses=clsClean(list);clsResend()},faCtxW3:pl=>faCtx(pl),clsList:()=>clsList(),stackClass:(...a)=>stackClass(...a),setCardClass:(...a)=>setCardClass(...a),clsOfCard:(...a)=>clsOfCard(...a),plClasses:pl=>plClasses(pl)});

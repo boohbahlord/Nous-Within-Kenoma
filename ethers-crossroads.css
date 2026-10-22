@@ -2207,4 +2207,34 @@ html.fs-sp:not(.fs-sel) #fstabSel{right:min(330px,86vw)}
 .v61.tmark{--tmg:linear-gradient(135deg,var(--tmc) 0 10%,transparent 10.3% 89.7%,var(--tmc) 90%)}
 .tchip{display:inline-block;margin:0 6px;padding:0 6px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;line-height:1.6;color:#fff;background:color-mix(in oklab,var(--tc) 70%,#000);border:1px solid var(--tc);border-radius:3px;vertical-align:middle}
 #layoutf .gmodes .gmn{font-weight:inherit}
-
+/* ---------------- v73f: Field Automation, tighter ---------------- */
+/* the kinds of card: every box the same size and font, every name on one line */
+.faconf .fakinds,#fapanel .fakinds,#clstgwin .fakinds{grid-template-columns:repeat(auto-fill,minmax(142px,1fr));gap:4px}
+.faconf .fakinds .opt>span,#fapanel .fakinds .opt>span,#clstgwin .fakinds .opt>span{height:32px;min-height:0;display:flex;align-items:center;justify-content:flex-start;padding:0 8px 0 12px!important;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;line-height:1}
+/* switches sit beside their words, two to a line where there is room, instead of across the whole window */
+.faconf .farow,#fapanel .farow{display:inline-grid;width:min(100%,390px);margin:0 14px 0 -6px;vertical-align:top}
+.faconf .facats .farow,#fapanel .facats .farow{width:auto;margin:0 -6px}
+/* Always leave Field Automation on: one small line, only on the Field tab */
+.faalways{display:inline-flex;align-items:center;gap:8px;width:max-content;max-width:100%;justify-self:start;grid-column:1/-1;margin:2px 0 8px;padding:4px 10px;border:1px solid var(--rule);background:#00000025;font-size:12.5px;cursor:pointer;color:var(--text)}
+.faalways input{margin:0;width:15px;height:15px;accent-color:var(--amber)}
+/* a class: an arrow to fold it, its actions in one row, the types it targets in equal boxes */
+.facls .clsone>summary{list-style:none}.facls .clsone>summary::-webkit-details-marker{display:none}
+.facls .clsarr{font-style:normal;color:var(--amber-hi);display:inline-block;transition:transform .15s}
+.facls .clsone[open]>summary .clsarr{transform:rotate(90deg)}
+.facls .clsone{padding:4px 10px 8px}
+.facls .clsacts{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:6px 0}
+.facls .clsacts .clsren{font-family:var(--mono);font-size:14px;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:3px 7px;width:min(240px,60vw)}
+.facls .clsh{margin:8px 0 3px}
+.clstypes{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px;margin:2px 0 6px}
+.clstype{display:flex;align-items:stretch;border:1px solid var(--rule);background:#00000022;min-height:44px}
+.clstype.on{border-color:var(--amber-hi);box-shadow:inset 3px 0 0 var(--amber-hi)}
+.clstype .clstsel{flex:1;display:flex;align-items:center;gap:8px;padding:4px 8px;cursor:pointer;min-width:0}
+.clstype .clstsel input{margin:0;accent-color:var(--amber)}
+.clstype .clstsel span{display:flex;flex-direction:column;min-width:0}
+.clstype .clstsel b{font-weight:400;font-size:12.5px;color:var(--text)}
+.clstype .clstsel small{font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clstype .clsgear{border:0;border-left:1px solid var(--rule);border-radius:0;padding:0 10px;font-size:14px}
+#clstgwin .clstgbox{width:min(640px,100%);max-height:calc(100dvh - 32px);overflow:auto}
+#clstgwin h2{margin-top:0}
+#clstgwin .clsh{margin:10px 0 4px;font-size:13px;letter-spacing:.06em;color:var(--amber-hi)}

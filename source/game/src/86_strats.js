@@ -20,6 +20,8 @@ function stSend(from,to,name,cfg){if(!G||!G.p[from]||!G.p[to]||G.p[to].cpu||isNP
 function stTake(pl,i){if(!G||!G.p[pl]||NET.ctx!=null&&NET.ctx!==pl)return false;const L=G.p[pl].stInbox||[];if(i<0||i>=L.length)return false;L.splice(i,1);render();return true}
 for(const [name,get,set] of [["stSend",()=>stSend,f=>stSend=f],["stTake",()=>stTake,f=>stTake=f]]){
   NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+/* v73f: a copy's name: the name and the first number not taken (Jackal → Jackal1, again → Jackal2; Jackal2 → Jackal21) */
+function copyName(name,names){const has=new Set(names);for(let k=1;;k++){const n=name+k;if(!has.has(n))return n}}
 /* the fold */
 function stHTML(){const L=stList(),V=G?view():null,sel=L.find(x=>x.id===stUI.sel)||null,on=PREF.stratOn,m=stUI.mode,inbox=G&&V!=null&&G.p[V]&&G.p[V].stInbox||[];
   const people=G&&V!=null?G.p.filter(P=>P.i!==V&&!P.cpu&&!isNPC(P.i)&&!P.out):[];
@@ -33,7 +35,7 @@ function stHTML(){const L=stList(),V=G?view():null,sel=L.find(x=>x.id===stUI.sel
   return `<section class="fasec fafull fastrat"><h4>Automated Strategies</h4><details class="faextra stfold" ${PREF.stOpen||inbox.length?"open":""}><summary>Saved strategies <small class="dim">(${L.length}${inbox.length?` · ${inbox.length} sent to you`:""})</small></summary>
 <div class="strow"><div class="stlist" role="listbox" aria-label="Saved strategies">${rows||'<p class="dim stnone">None yet: set Field Automation up, then Save as a new strategy.</p>'}</div>
 <label class="stuse"><input type="checkbox" class="stusebox" ${sel&&on===sel.id?"checked":""} ${sel?"":"disabled"}> <span>Use it</span></label></div>
-<p class="stacts"><button type="button" class="btn ghost sm" data-st="new">Save as a new strategy</button>${sel?` <button type="button" class="btn ghost sm" data-st="save">Save settings to it</button> <button type="button" class="btn ghost sm" data-st="rename">Rename</button> <button type="button" class="btn ghost sm" data-st="move">Position</button> <button type="button" class="btn ghost sm" data-st="del">Delete</button>${people.length?` <button type="button" class="btn ghost sm" data-st="send">Send to…</button>`:""}`:""}</p>${form}
+<p class="stacts"><button type="button" class="btn ghost sm" data-st="new">Save as a new strategy</button>${sel?` <button type="button" class="btn ghost sm" data-st="save">Save settings to it</button> <button type="button" class="btn ghost sm" data-st="rename">Rename</button> <button type="button" class="btn ghost sm" data-st="copy">Copy</button> <button type="button" class="btn ghost sm" data-st="move">Position</button> <button type="button" class="btn ghost sm" data-st="del">Delete</button>${people.length?` <button type="button" class="btn ghost sm" data-st="send">Send to…</button>`:""}`:""}</p>${form}
 ${inbox.length?`<div class="stinbox"><b>Sent to you</b>${inbox.map((x,i)=>`<p>“${esc(x.name)}” from ${esc(G.p[x.from]?G.p[x.from].name:"a player")} <button type="button" class="btn ghost sm" data-stin="${i}">Save as…</button> <button type="button" class="btn ghost sm" data-stdrop="${i}">Discard</button></p>`).join("")}</div>`:""}
 <p class="dim">Saved on this device. "Use it" unticks itself when you change a setting it doesn't hold.</p></details></section>`}
 function stWire(root){const L=stList(),sel=L.find(x=>x.id===stUI.sel),go=()=>{savePrefs();paintFA()},val=c=>{const i=root.querySelector(c);return i?i.value:""};
@@ -43,6 +45,7 @@ function stWire(root){const L=stList(),sel=L.find(x=>x.id===stUI.sel),go=()=>{sa
   root.querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{const a=b.dataset.st,V=G?view():null;
     if(["new","rename","move","del","send"].includes(a)){stUI.mode=stUI.mode===a?null:a;paintFA();return}
     if(a==="cancel"){stUI.mode=null;stUI.inbox=null;paintFA();return}
+    if(a==="copy"&&sel){const s={id:stNewId(),name:stName(copyName(sel.name,L.map(x=>x.name)))||sel.name,cfg:JSON.parse(JSON.stringify(sel.cfg)),at:Date.now()};L.splice(L.indexOf(sel)+1,0,s);stUI.sel=s.id;stUI.mode=null;flash(`Copied as “${s.name}”.`);go();return}
     if(a==="save"&&sel){sel.cfg=stCfg(faMine());sel.at=Date.now();PREF.stratOn=sel.id;flash(`Saved to “${sel.name}”.`);go();return}
     if(a==="newok"){const nm=stName(val(".stname"))||`Strategy ${L.length+1}`,s={id:stNewId(),name:nm,cfg:stCfg(faMine()),at:Date.now()};L.push(s);stUI.sel=s.id;stUI.mode=null;PREF.stratOn=s.id;go();return}
     if(a==="renameok"&&sel){sel.name=stName(val(".stname"))||sel.name;stUI.mode=null;go();return}

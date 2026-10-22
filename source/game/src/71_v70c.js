@@ -90,8 +90,9 @@ function faAskOff(yes){let box=$("#faask");if(!box){box=document.createElement("
 {const _r=render;render=function(){_r.apply(this,arguments);if(!G||!faAlways()||G.over||G.phase==="setup"||!faAllowed())return;const V=view(),P=G.p[V];
   if(!P||P.cpu||isNPC(V)||P.faUserOff||faOn(V)||(NET.role==="guest"&&NET.watch)||NET.ctx!=null&&NET.ctx!==V)return;
   const c=faMine();c.under=true;PREF.fa=c;savePrefs();setFieldAuto(V,true,c)}}
-{const _p=paintFA;paintFA=function(){_p.apply(this,arguments);const w=$("#facfg"),b=w&&!w.hidden&&w.querySelector(".fabody");if(!b||b.querySelector("#faAlways"))return;
-  b.insertAdjacentHTML("afterbegin",`<label class="farow faalways"><span class="fal"><b>Always leave Field Automation on</b><small>It turns itself on in every game where it can, and asks before you turn it off.</small></span><input type="checkbox" id="faAlways" ${faAlways()?"checked":""}></label>`);
+const faAlwaysHTML=id=>`<label class="faalways" title="It turns itself on in every game where it can, and asks before you turn it off."><input type="checkbox" id="${id}" ${faAlways()?"checked":""}><span>Always leave Field Automation on</span></label>`;   // v73f: small, and only on the Field tab
+{const _p=paintFA;paintFA=function(){_p.apply(this,arguments);const w=$("#facfg"),b=w&&!w.hidden&&w.querySelector(".fabody");if(!b||b.querySelector("#faAlways")||autoTab!=="field")return;
+  b.insertAdjacentHTML("afterbegin",faAlwaysHTML("faAlways"));
   $("#faAlways").onchange=e=>{PREF.faAlways=e.target.checked;savePrefs();if(G)render()}}}
 
 /* ---------- What you must know, shorter: the gist, the one thing to know, where the Help is; "Tell me more here now" opens the
