@@ -9836,7 +9836,7 @@ function camWire(w){
       if(Math.abs(e.deltaX)>Math.abs(e.deltaY))return;e.preventDefault();const k=e.deltaMode===1?16:e.deltaMode===2?innerHeight:1;scrollBy(0,e.deltaY*k);return}
     e.preventDefault();const dir=(e.deltaY<0?1:-1)*(PREF.camInvWheel?-1:1);camZoom(dir>0?1.12:1/1.12,e.clientX,e.clientY)},{passive:false});
   let drag=null,moved=false;
-  w.addEventListener("pointerdown",e=>{if(!isLarge()||e.pointerType!=="mouse"||e.button!==0)return;if(e.target.closest(".stack,button,.ci,input,select,a"))return;
+  w.addEventListener("pointerdown",e=>{if(!isLarge()||e.pointerType!=="mouse"||e.button!==0||PREF.camDrag===false)return;   // v74a: dragging can be turned off (Controls)if(e.target.closest(".stack,button,.ci,input,select,a"))return;
     drag={x:e.clientX,y:e.clientY,l:w.scrollLeft,t:w.scrollTop};moved=false});
   addEventListener("pointermove",e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>5){moved=true;w.classList.add("dragging")}
     if(moved){w.scrollLeft=drag.l-dx;w.scrollTop=drag.t-dy}});
@@ -10194,7 +10194,7 @@ if(window.__EC)Object.assign(window.__EC,{seesTile:(...a)=>seesTile(...a),fogTil
 {const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const sh=$("#shared"),t=$("#mytray");if(!sh||!t)return;
   let d=$("#dicefold");if(!d){d=document.createElement("details");d.id="dicefold";d.className="dicefold";d.open=PREF.diceOpen!==false;d.innerHTML="<summary>Dice rolls</summary>";
     d.addEventListener("toggle",()=>{if(PREF.diceOpen===d.open)return;PREF.diceOpen=d.open;savePrefs()})}
-  const at=$("#handslot")||sh;if(d.previousElementSibling!==at)at.after(d);if(t.parentNode!==d)d.appendChild(t);d.hidden=!t.innerHTML.trim()}}   // v72a: the piles went under the spells; the dice stay under the hand
+  const at=sh&&!sh.closest(".spellpanel")?sh:($("#handslot")||sh);if(d.previousElementSibling!==at)at.after(d);if(t.parentNode!==d)d.appendChild(t);d.hidden=!t.innerHTML.trim()}}   // v72a: the piles went under the spells; the dice stay under the hand   // v74a: under the piles when they are under the hand
 
 /* ---------------- v61: card faces in the players' colors, accent colors, stacks that look stacked ----------------
    - Every card takes its player's color, darkened and calmed, with light lettering that reads on it; the frame is the
@@ -12370,10 +12370,12 @@ const FS={y:0,api:false,zmin:.45,zmax:2.2,z0:1,paused:false,info:null,fitUntil:0
 const FS_ICON=`<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"/></svg>`;
 function fsButton(){let b=$("#fsbtn");if(!b){b=document.createElement("button");b.type="button";b.id="fsbtn";b.innerHTML=FS_ICON;b.title="Fullscreen";
     b.setAttribute("aria-label","Play in fullscreen");b.onclick=fsEnter;document.body.appendChild(b)}
-  const on=!!G&&!fsOn()&&!!$("main.game");b.hidden=!on;document.body.classList.toggle("hasfs",on)}
+  const on=!!G&&!fsOn()&&!!$("main.game");b.hidden=!on;document.body.classList.toggle("hasfs",on);
+  const f=$("#fieldround");if(on&&f&&b.parentNode!==f)f.appendChild(b);else if(!on&&b.parentNode!==document.body)document.body.appendChild(b)}   // v74a: on the field's top right
 function fsEnter(){if(!G||fsOn())return;const h=document.documentElement;FS.y=scrollY;FS.zmin=CAM.ZMIN;FS.zmax=CAM.ZMAX;FS.z0=CAM.z;CAM.ZMIN=.2;CAM.ZMAX=3.4;
   h.classList.add("ecfs");h.classList.toggle("fs-sp",PREF.fsSp===true);h.classList.toggle("fs-sel",PREF.fsSel===true);scrollTo(0,0);
-  FS.api=false;if(h.requestFullscreen&&!document.fullscreenElement){try{const p=h.requestFullscreen({navigationUI:"hide"});FS.api=true;if(p&&p.catch)p.catch(()=>{FS.api=false})}catch(e){FS.api=false}}
+  FS.api=false;if(PREF.fsBrowser===true&&h.requestFullscreen&&!document.fullscreenElement){   // v74a: the browser's own fullscreen only when chosen (it shows its own notice)
+    try{const p=h.requestFullscreen({navigationUI:"hide"});FS.api=true;if(p&&p.catch)p.catch(()=>{FS.api=false})}catch(e){FS.api=false}}
   FS.fitUntil=Date.now()+1500;FS.ow=innerWidth;FS.oh=innerHeight;render();fsFit()}
 function fsExit(){if(!fsOn())return;fsCloseAll();const h=document.documentElement;h.classList.remove("ecfs","fs-sp","fs-sel");
   CAM.ZMIN=FS.zmin;CAM.ZMAX=FS.zmax||2.2;CAM.z=FS.z0;const api=FS.api;FS.api=false;
@@ -12382,10 +12384,13 @@ function fsExit(){if(!fsOn())return;fsCloseAll();const h=document.documentElemen
 document.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement&&fsOn()&&FS.api){FS.api=false;fsExit()}else if(fsOn())fsFit()});
 /* fit the field to the screen, then center it */
 function fsFit(){if(!fsOn()||!G)return;const w=camWrap(),B=$("#board");if(!w||!B)return;
-  const pass=()=>{const cs=getComputedStyle(w),pw=w.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),ph=w.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
+  const cs=getComputedStyle(w),pt=parseFloat(cs.paddingTop),pb=parseFloat(cs.paddingBottom);
+  const pass=()=>{const pw=w.clientWidth-36,ph=w.clientHeight-pt-pb;
     const bw=B.offsetWidth,bh=B.offsetHeight;if(!bw||!bh||pw<=0||ph<=0)return;
     CAM.z=Math.max(CAM.ZMIN,Math.min(CAM.ZMAX,CAM.z*Math.min(pw/bw,ph/bh)));B.style.setProperty("--tw",Math.round(CAM.TILE*CAM.z)+"px")};
-  pass();requestAnimationFrame(()=>{pass();requestAnimationFrame(()=>{w.scrollLeft=(w.scrollWidth-w.clientWidth)/2;w.scrollTop=(w.scrollHeight-w.clientHeight)/2})})}
+  pass();requestAnimationFrame(()=>{pass();requestAnimationFrame(()=>fsCenter(w,B,pt,pb))})}
+function fsCenter(w,B,pt,pb){const wr=w.getBoundingClientRect(),br=B.getBoundingClientRect(),cy=wr.top+pt+(w.clientHeight-pt-pb)/2,cx=wr.left+w.clientWidth/2;   // the middle of the room between the panels
+  w.scrollLeft+=br.left+br.width/2-cx;w.scrollTop+=br.top+br.height/2-cy}
 /* a new orientation (or the first moments, while the browser goes fullscreen) fits it again; your own zoom stays otherwise */
 addEventListener("resize",()=>{if(!fsOn())return;const turned=(innerWidth>innerHeight)!==(FS.ow>FS.oh);FS.ow=innerWidth;FS.oh=innerHeight;
   if(turned||Date.now()<FS.fitUntil){clearTimeout(FS.rt);FS.rt=setTimeout(fsFit,120)}});
@@ -12393,6 +12398,7 @@ addEventListener("resize",()=>{if(!fsOn())return;const turned=(innerWidth>innerH
 /* ---------- zoom and pan: the wheel, two fingers, one finger ---------- */
 document.addEventListener("wheel",e=>{if(!fsOn()||!e.target.closest||!e.target.closest(".camwrap"))return;e.preventDefault();e.stopImmediatePropagation();
   if(e.ctrlKey){camZoom(Math.exp(-e.deltaY*.01),e.clientX,e.clientY);return}   // a trackpad's pinch
+  if(PREF.fsWheel!==true)return;   // v74a: the mouse wheel does nothing unless chosen in Controls
   const dir=(e.deltaY<0?1:-1)*(PREF.camInvWheel?-1:1);camZoom(dir>0?1.12:1/1.12,e.clientX,e.clientY)},{capture:true,passive:false});
 const FSP=new Map();let fsPan=null,fsPinch=null,fsMoved=false;
 document.addEventListener("pointerdown",e=>{if(!fsOn()||e.pointerType!=="touch"||!e.target.closest)return;const w=e.target.closest(".camwrap");if(!w||e.target.closest(".ci"))return;   // the corner tab drags to compare
@@ -12418,6 +12424,8 @@ function fsUI(){let u=$("#fsui");if(u)return u;u=document.createElement("div");u
 <div id="fsrowM" hidden role="group" aria-label="What this row shows">${[["dice","The last roll"],["log","The log's latest line instead"],["both","The last roll, and the log's latest line under it"]].map(([v,t])=>`<label class="opt"><input type="radio" name="fsrowm" value="${v}"><span>${t}</span></label>`).join("")}</div></div>`;
   ($("main.game")||document.body).appendChild(u);   // inside the game, so it takes the same interface size
   $("#fspauseb").onclick=fsPause;
+  u.insertAdjacentHTML("afterbegin",`<button type="button" id="fsctlb" aria-haspopup="dialog" title="Controls"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="2.5" y="6.5" width="19" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 10h1M9 10h1M12 10h1M15 10h1M18 10h0.5M7 14h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Controls</span></button>`);
+  $("#fsctlb").onclick=fsControls;
   const tab=(id,key,cls)=>{$(id).onclick=()=>{PREF[key]=!PREF[key];savePrefs();document.documentElement.classList.toggle(cls,PREF[key]);fsPaint()}};
   tab("#fstabSp","fsSp","fs-sp");tab("#fstabSel","fsSel","fs-sel");
   $("#fsrowT").onclick=()=>{PREF.fsRowOpen=!PREF.fsRowOpen;savePrefs();fsPaint()};
@@ -12443,11 +12451,32 @@ function fsPaint(){if(!G||!fsOn())return;fsUI();const h=document.documentElement
   B.querySelectorAll("[data-fshist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.fshist,b)});
   h.style.setProperty("--fsrowh",row.offsetHeight+"px");const me=$("#me");if(me)h.style.setProperty("--fsmeh",(me.offsetHeight||36)+"px");
   if(P&&!P.cpu)h.style.setProperty("--fspc",P.color)}
-{const _r=render;render=function(){_r.apply(this,arguments);fsButton();if(G&&fsOn())fsPaint()}}
+{const _r=render;render=function(){_r.apply(this,arguments);fsButton();fsPiles();if(G&&fsOn())fsPaint()}}
+/* v74a: the Grave, the Ether, the Outer Darkness and the Auction sit under the hand (as before v72a); in fullscreen, at the bottom of the spells */
+function fsPiles(){const sh=$("#shared"),sp=$(".spellpanel"),hs=$("#handslot");if(!sh||!sp||!hs)return;
+  if(fsOn()){if(sh.parentNode!==sp)sp.appendChild(sh)}else if(sh.previousElementSibling!==hs)hs.after(sh);
+  const d=$("#dicefold");if(d&&!fsOn()&&sh.nextElementSibling!==d)sh.after(d)}
 /* the sky's body: its cycle on hover, or on a tap */
 document.addEventListener("click",e=>{if(!fsOn())return;const m=e.target.closest&&e.target.closest("#moon");const mo=$("#moon");if(!mo)return;
   if(m&&!mo.classList.contains("moontarget"))mo.classList.toggle("fsopen");else if(!m)mo.classList.remove("fsopen")});
 
+/* ---------- v74a: Controls: what moves what, and the options for it (a phone gets its own list) ---------- */
+function fsControls(){const o=fsOv("fsctl"),touch=isPhone()||matchMedia("(pointer:coarse)").matches,ck=(id,on,t,s)=>`<label class="farow"><span class="fal"><b>${t}</b>${s?`<small>${s}</small>`:""}</span><input type="checkbox" id="${id}" ${on?"checked":""}></label>`;
+  const L=touch?[["Move the field","swipe it with one finger"],["Zoom","pinch with two fingers"],["Pick a stack or a card","tap it; tap it again to let go"],["A class (Field Automation)","double-tap a stack or a hand card"],
+      ["Spells and Selected","the named arrows on the right"],["Dice and the log","the arrow at the bottom left; its ⚙ for more"],["The sky","tap the body at the top left"],["Leave fullscreen","Menu, then Exit fullscreen"]]
+    :[["Move the field",`WASD or the arrow keys (Shift: faster)${PREF.camDrag!==false?", or drag an empty spot":""}; it can go past the edges`],["Zoom",`Q and E (or C and V)${PREF.fsWheel===true?", the mouse wheel":""}, a trackpad's pinch`],["The turn button","Space: Ready, the next phase, End turn"],
+      ["Pick a stack or a card","click it"],["A class (Field Automation)","right-click a stack or a hand card"],["Compare two stacks","drag a card's corner tab onto another stack"],["Spells and Selected","the named arrows on the right"],
+      ["Dice and the log","the arrow at the bottom left; its ⚙ for more"],["The sky","hover the body at the top left"],["Leave fullscreen",`Menu, then Exit fullscreen${document.fullscreenElement?"; Esc also leaves the browser's fullscreen (the browser's own key)":"; Esc opens the Menu"}`]];
+  o.innerHTML=`<div class="ovbox fscbox" role="dialog" aria-modal="true" aria-labelledby="fsch"><button type="button" class="xclose" id="fscX" aria-label="Close">×</button><h2 id="fsch">Controls</h2>
+<dl class="fsckeys">${L.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl>
+<div class="fscopts">${touch?"":ck("fscWheel",PREF.fsWheel!==true,"Disable mouse scroll","On by default: the mouse wheel does nothing over the field. Off: it zooms.")+ck("fscDrag",PREF.camDrag!==false,"Drag to move the field","Dragging an empty spot moves the field (here and on large maps).")}
+${ck("fscBrowser",PREF.fsBrowser===true,"Use the browser's own fullscreen","Hides the browser's bars too; the browser then shows its own notice about leaving it.")}</div>
+<p class="acts"><button type="button" class="btn" id="fscOk">Done</button></p></div>`;
+  o.hidden=false;const close=()=>{o.hidden=true;const b=$("#fsctlb");if(b)b.focus()};$("#fscX").onclick=$("#fscOk").onclick=close;o.onclick=e=>{if(e.target===o)close()};$("#fscOk").focus();
+  const on=(id,f)=>{const i=$("#"+id);if(i)i.onchange=()=>{f(i.checked);savePrefs()}};
+  on("fscWheel",v=>{PREF.fsWheel=!v});on("fscDrag",v=>{PREF.camDrag=v});
+  on("fscBrowser",v=>{PREF.fsBrowser=v;const h=document.documentElement;if(v&&h.requestFullscreen&&!document.fullscreenElement){try{const p=h.requestFullscreen({navigationUI:"hide"});FS.api=true;if(p&&p.catch)p.catch(()=>{FS.api=false})}catch(e){}}
+    else if(!v&&document.fullscreenElement&&document.exitFullscreen){FS.api=false;document.exitFullscreen().catch(()=>{})}})}
 /* ---------- the pause menu, Help, a passage from the book ---------- */
 function fsOv(id){let o=$("#"+id);if(!o){o=document.createElement("div");o.id=id;o.className="fsov";document.body.appendChild(o)}return o}
 function fsResume(){const o=$("#fspause");if(o)o.hidden=true;if(FS.paused&&G){G.paused=false;FS.paused=false;render()}}
@@ -12484,9 +12513,9 @@ function fsQuote(){const o=fsOv("fsquote"),q=$("#qtext"),s=$("#qsrc");
   const next=()=>{const b=$("#qnext");if(b)b.click();for(const ms of [60,300,800,1600])setTimeout(paint,ms)};
   if(!q||!q.innerHTML.trim())next();paint();o.hidden=false;$("#fsqX").focus();
   $("#fsqN").onclick=next;$("#fsqX").onclick=()=>{o.hidden=true;const b=$("#fsQuote");if(b)b.focus()}}
-function fsCloseAll(){fsHelpClose();for(const id of ["fsquote"]){const o=$("#"+id);if(o)o.hidden=true}fsResume();const m=$("#fsrowM");if(m)m.hidden=true;const mo=$("#moon");if(mo)mo.classList.remove("fsopen")}
+function fsCloseAll(){fsHelpClose();for(const id of ["fsquote","fsctl"]){const o=$("#"+id);if(o)o.hidden=true}fsResume();const m=$("#fsrowM");if(m)m.hidden=true;const mo=$("#moon");if(mo)mo.classList.remove("fsopen")}
 document.addEventListener("keydown",e=>{if(!fsOn()||e.key!=="Escape")return;
-  const q=$("#fsquote"),hp=$("#fshelp"),pz=$("#fspause");
+  const q=$("#fsquote"),hp=$("#fshelp"),pz=$("#fspause"),ct=$("#fsctl");if(ct&&!ct.hidden){ct.hidden=true;e.preventDefault();return}
   if(q&&!q.hidden){q.hidden=true;e.preventDefault();return}if(hp&&!hp.hidden){fsHelpClose();e.preventDefault();return}if(pz&&!pz.hidden){fsResume();e.preventDefault();return}
   if(document.fullscreenElement)return;if(typeof dialogOpen==="function"&&dialogOpen())return;e.preventDefault();fsPause()});   // without the browser's fullscreen, Esc pauses
 /* the start screen and a new game */
@@ -12494,6 +12523,18 @@ document.addEventListener("keydown",e=>{if(!fsOn()||e.key!=="Escape")return;
 {const _sg=startGame;startGame=function(){const out=_sg.apply(this,arguments);if(fsOn())requestAnimationFrame(fsFit);return out}}
 
 if(window.__EC)Object.assign(window.__EC,{fsEnter:()=>fsEnter(),fsExit:()=>fsExit(),fsFit:()=>fsFit(),fsOn:()=>fsOn(),fsPause:()=>fsPause()});
+
+/* v74a: Space is the turn button (Ready, the next phase, End turn) when nothing else is open and you aren't typing */
+document.addEventListener("keydown",e=>{if(e.code!=="Space"&&e.key!==" ")return;if(e.ctrlKey||e.metaKey||e.altKey||e.shiftKey||!G||G.over)return;
+  const a=document.activeElement;if(a&&(a.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))return;
+  if(a&&a!==document.body&&a.tagName==="BUTTON"&&!a.closest("#board,#hand"))return;   // a focused button keeps its own Space
+  if([...document.querySelectorAll("#ov,#menu,#facfg,#fspause,#fshelp,#fsquote,#fsctl,#pop,#histpop,#rbwin,#clstgwin,#leavebox,.faov")].some(x=>!x.hidden&&x.getClientRects().length&&x.innerHTML.trim()))return;
+  const n=$("#next");if(!n||n.disabled||!n.getClientRects().length)return;e.preventDefault();n.click()},true);
+/* v74a: the history of rolls opens above its button when there is no room below (the dice row at the bottom of fullscreen) */
+{const _oh=openHist;openHist=function(pl,anchor){_oh.apply(this,arguments);const box=$("#histpop");if(!box||box.hidden||!anchor)return;
+  const r=anchor.getBoundingClientRect(),h=box.offsetHeight,below=innerHeight-r.bottom-8,above=r.top-8;
+  if(h>below&&above>below){box.style.maxHeight=Math.max(120,above)+"px";box.style.overflow="auto";box.style.top=Math.max(8,r.top-Math.min(h,above)-4)+scrollY+"px"}
+  else if(h>below){box.style.maxHeight=Math.max(120,below)+"px";box.style.overflow="auto"}}}
 
 /* ---------------- v73c: the Cross, and the two-armed Cross (large maps) ----------------
    The Cross is a real cross: four arms around a middle shaped like a diamond (a square turned on its point).
