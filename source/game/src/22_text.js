@@ -62,7 +62,7 @@ const SPELL_TEXT={
  cwall:{e:"A Wall's soul comes from the Ether into your deck.",l:"Five hearts, defense 10. Holds one stack like an Ace, but only ranged cards fire from it, one shot a turn. Never moves."},
  crep:{e:"A Repairman's soul comes from the Ether into your deck.",l:"Repairs a Wall, an Ace or the Tree in or beside his stack, then rests 1d3 + 1 turns. He can also give his life to upgrade an Ace once."},
  cram:{e:"A Battering Ram's soul comes from the Ether into your deck.",l:"Worked by one or two Grunts, Infantry or Puppets, it does two damage to a Wall beside it, with no roll. It does nothing else."},
- cmine:{e:"A Miner's soul comes from the Ether into your deck.",l:"In an Ace's miner slot it brings 1d2 − 1 mana a turn, from the next round on. On a crystal it digs 1 + 1d3. Anywhere else it finds 1 mana on a 6."},
+ cmine:{e:"A Miner's soul comes from the Ether into your deck.",l:"In an Ace (as many as you like) it brings 1d2 − 1 mana a turn, from the next round on. On a crystal it digs 1 + 1d3. Anywhere else it finds 1 mana on a 6."},
  maxmana:{e:"Your maximum mana rises by one for the rest of the game.",l:"Eighteen at most."},
  bull:{e:"A BullGoat comes into your hand: two hearts, 10 + 1d20 up close, or a charge of 10 + 2d20 down a straight, empty line at an enemy two or three tiles away.",l:"It stands alone. When it dies it returns as the Goatbull."},
  deckcards:{n:"Your Tree of Neither Life Or Death on the field.",e:"Your deck is full again, as it was at the start of the game. The cards still in it go to the grave; your hand stays.",l:"Once a game."},

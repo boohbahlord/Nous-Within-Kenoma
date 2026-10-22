@@ -176,7 +176,7 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 <ul>
 <li><b>Grave Blessing</b> (free): roll 1d6; each natural 6 raises one card from the grave. Add +1d6 per Ace on the field, or more with Ritual Dice; 6 dice at most per turn.</li>
 <li><b>Ritual Dice</b> (1 mana): roll an additional 2d6 for your Grave Blessing.</li>
-<li><b>Sacrificial Suicide</b>: the Joker sacrifices its soul, and all the souls it captured move into the player's soul pile for spending. A Joker can hold six cards and six mana of souls in all; any surplus goes to the grave.</li>
+<li><b>Sacrificial Suicide</b>: by default (the Rules option, on), the souls the Joker captured fall into the Outer Darkness, their worth comes to the player as mana, and the Joker goes back into the player's deck. With the option off, the Joker sacrifices its soul to the grave and all the souls it captured move into the player's soul pile for spending; a Joker can hold six cards and six mana of souls in all, and any surplus goes to the grave.</li>
 <li><b>Soul Capture</b>: the Joker captures the souls of enemies that die or are killed next to it, up to six mana of souls. They are not available to its player until Sacrificial Suicide. If the enemy kills the Joker, its souls are released into the graveyard, unless an enemy Joker is there to capture them.</li>
 <li><b>Resurrection</b> (1d2 + 1 mana): the grave is shuffled, then choose one card from it and bring it back into your hand.</li>
 <li><b>Flesh Severance</b>: because body and soul are two in this game, the Joker can spend mana from the soul pile to disembody the soul of a unit killed next to it, exiling its form to the Ethereal Realm. This is the player's choice, and it costs half the price to summon the units severed that turn, rounded up: severing a 2-mana and a 1-mana unit costs 2.</li>
@@ -288,7 +288,7 @@ b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({beha
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
 # v71j: EC_BL asks the page's head to preload the blackletter (unless the device saves data)
-play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel="stylesheet" href="ethers-crossroads.css?v=109">', ec=True) + f'''<main class="wide game">
+play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel="stylesheet" href="ethers-crossroads.css?v=110">', ec=True) + f'''<main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
@@ -306,12 +306,11 @@ play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel
   <div id="actbar" hidden><span id="actph"></span><span id="ctlbottom"></span></div>
   <div id="me" class="pbox"></div>
   <div id="handslot"></div>
-  <p id="shared"></p>
 </section>
 <aside class="gside">
   <div id="sidehand"><div id="handwrap"><h3 id="handh">Your hand</h3><div id="hand"></div><div id="mytray" class="traywrap" aria-live="polite"></div></div></div>
   <div id="seltop"><div id="selwrap"><h3>Selected</h3><div id="selbox" class="scrollbox"></div></div></div>
-  <div class="spellpanel"><h3>Spells</h3><div id="bankslot"></div><div id="spells" class="scrollbox"></div></div>
+  <div class="spellpanel"><h3>Spells</h3><div id="bankslot"></div><div id="spells" class="scrollbox"></div><p id="shared" aria-label="The grave, the Ether, the Outer Darkness and the Auction"></p></div>
   <div id="selbottom"></div>
 </aside>
 </div>
@@ -326,8 +325,8 @@ play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel
 </main>
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
-<script>window.EC_QSRC="ethers-crossroads-quotes.js?v=109"</script>
-<script src="ethers-crossroads.js?v=109"></script>
+<script>window.EC_QSRC="ethers-crossroads-quotes.js?v=110"</script>
+<script src="ethers-crossroads.js?v=110"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 

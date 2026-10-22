@@ -168,7 +168,7 @@ SPELLS.push(
  {id:"cwall",name:"Wall Conjure",cost:4,school:"Conjuring",text:"A Wall's soul comes from the Ether into your deck. Five hearts and defense 10; it holds one stack like an Ace, but only ranged cards fire from it (one shot a turn). It never moves.",ok:()=>etherHasU("wall"),run:()=>conjureU("wall")},
  {id:"crep",name:"Repairman Conjure",cost:2,school:"Conjuring",text:"A Repairman's soul comes from the Ether into your deck. He repairs a Wall, an Ace or the Tree in his stack or beside it, then rests 1d3 + 1 turns. He can also upgrade an Ace once, giving his life for it.",ok:()=>etherHasU("repair"),run:()=>conjureU("repair")},
  {id:"cram",name:"Battering Ram Conjure",cost:3,school:"Conjuring",text:"A Battering Ram's soul comes from the Ether into your deck. Worked by one or two Grunts, Infantry or Puppets, it does two damage to a Wall beside it, no roll. It does nothing else.",ok:()=>etherHasU("ram"),run:()=>conjureU("ram")},
- {id:"cmine",name:"Miner Conjure",cost:2,school:"Conjuring",text:"A Miner's soul comes from the Ether into your deck. In one of an Ace's two miner slots it brings 1d2 − 1 mana every turn, from the next round on; on a crystal it digs for 1 + 1d3; anywhere else it finds 1 mana on a 6.",ok:()=>etherHasU("miner"),run:()=>conjureU("miner")}
+ {id:"cmine",name:"Miner Conjure",cost:2,school:"Conjuring",text:"A Miner's soul comes from the Ether into your deck. In an Ace (as many as you like) it brings 1d2 − 1 mana every turn, from the next round on; on a crystal it digs for 1 + 1d3; anywhere else it finds 1 mana on a 6.",ok:()=>etherHasU("miner"),run:()=>conjureU("miner")}
 );
 
 /* ---------- the board ---------- */
@@ -197,7 +197,7 @@ function siegeActs(st,mine,s){
   const sh=st.cards.find(isShooter);if(sh&&!shotReady(sh,st.owner))info.push(`${UNIT[sh.unit].name} rests ${sh.readyAt-n} turn(s)`);
   if(st.captive)info.push(`Capture slot: ${esc(nameOf(st.captive))}`);
   if(st.supp)info.push(`Suppressed: disadvantage on its next attack (${st.supp.n} turn(s))`);
-  const ms=st.cards.filter(x=>x.unit==="miner");if(ms.length)info.push(hasK(st,"ace")?`Miner slots ${ms.length}/2`+(ms.some(x=>x.inSlot==null||x.inSlot>=G.moon.round)?" · mining from next round":""):crystalAt(s.r,s.c)?"Miner on a crystal":"Miner out in the open (1 mana on a 6)");
+  const ms=st.cards.filter(x=>x.unit==="miner");if(ms.length)info.push(hasK(st,"ace")?`Miners ${ms.length}`+(ms.some(x=>x.inSlot==null||x.inSlot>=G.moon.round)?" · mining from next round":""):crystalAt(s.r,s.c)?"Miner on a crystal":"Miner out in the open (1 mana on a 6)");
   if(info.length)out.push(`<p class="sinfo">${info.join(" · ")}</p>`);
   if(prep){
     if(healReady(st)&&healTargets(st,s.r,s.c).length)out.push(`<button class="btn ghost sm" id="healBtn">Heal a heart</button>`);

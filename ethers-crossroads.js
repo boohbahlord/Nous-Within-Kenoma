@@ -204,9 +204,10 @@ function stackLegal(cards){
   const att=cards.filter(isAttach);
   if(att.length){
     const rest=cards.filter(c=>!isAttach(c)),n=u=>att.filter(c=>c.unit===u).length;
-    if(n("healer")>1||n("repair")>1)return false;
+    const inAce=rest.some(c=>kind(c)==="ace");
+    if(n("healer")>1||n("repair")>1&&!inAce)return false;   // v72a: as many Repairmen in an Ace as you like
     if(n("healer")&&rest.some(c=>kind(c)==="queen"))return false;   // the Healer won't stand with a Queen
-    if(n("miner")>(rest.some(c=>kind(c)==="ace")?2:1))return false;   // two miner slots in an Ace, one Miner anywhere else
+    if(n("miner")>1&&!inAce)return false;   // v72a: as many Miners in an Ace as you like, one anywhere else
     if(rest.some(c=>c.unit==="ram"))return false;
     if(!rest.length)return true;
     cards=rest;
@@ -1280,6 +1281,11 @@ async function jokerSuicide(r,c,st,pl){
   if(m.blood){
     toDark(j);for(const s of souls)toDark(s);
     log(`Sacrificial Suicide under the Blood Moon: ${plName(pl)}'s Joker and its ${souls.length} soul${souls.length===1?"":"s"} fall into the Outer Darkness.`,"event");
+  }else if(G.opts.jokerDark!==false){   // v72a (the default rule): the souls fall into the Outer Darkness and their worth comes as mana; the Joker goes back into the deck
+    const w=souls.reduce((a,s)=>a+soulOf(s),0);for(const s of souls)toDark(s);let got=w?giveMana(pl,w):0;
+    if(G.p[pl].tribe==="jester"&&G.moon.gone==="jupiter"){const v=R(2)-1;if(v){got+=giveMana(pl,v);log(`Jupiter adds ${v} mana to the Jester's Sacrificial Suicide.`)}}
+    const P=G.p[pl];j.owner=pl;if(j.hp!=null&&j.maxHp!=null)j.hp=j.maxHp;P.deck.push(j);shuffle(P.deck);
+    log(`Sacrificial Suicide: ${plName(pl)}'s Joker goes back into the deck; ${souls.length} captured soul${souls.length===1?"":"s"} fall${souls.length===1?"s":""} into the Outer Darkness${got?` and ${got} mana come${got===1?"s":""} to the soul pile`:""}.`,"event");
   }else{
     let moved=0,lost=0;
     for(const s of souls){if(addSoul(pl,s))moved++;else{toGrave(s,"spent");lost++}}
@@ -1531,7 +1537,7 @@ const AI=(()=>{
         if(rr>=0&&cc>=0&&rr<G.rows&&cc<COLS&&!isVoid(rr,cc)&&Math.hypot(dr,dc)<=3.5&&fogTile(pl,rr,cc))fog++}
       return (Math.min(3,fog*.13)-stacksOf(pl).filter(x=>hasK(x.st,"lighthouse")).length*2.5-(enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=1)?1:0))*jit(pl)}
     if(u==="wall")return ((isFront(pl,r,c)?3:1.5)+(enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=3)?1:0)-stacksOf(pl).filter(x=>hasK(x.st,"wall")).length*1.5)*jit(pl);
-    if(u==="miner"){if(t&&hasK(t,"ace"))return (t.cards.filter(x=>x.unit==="miner").length<2?4.5:-1)*jit(pl);if(t)return -1;   // v69: two Miners to an Ace, no more
+    if(u==="miner"){if(t&&hasK(t,"ace"))return (t.cards.filter(x=>x.unit==="miner").length<3?4.5:-1)*jit(pl);if(t)return -1;   // v69: two Miners to an Ace, no more
       const cr=(G.crystals||[]).filter(x=>!G.board[x.r][x.c]||G.board[x.r][x.c].owner===pl);if(!cr.length)return -1;
       return (3.2-Math.min(...cr.map(x=>dist(x.r,x.c,r,c)))*.25-(enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=1)?2:0))*jit(pl)}
     if(u==="archer"||u==="cannon")return (t?(hasBase(t)?4+(enemyStacks(pl).some(e=>Math.max(Math.abs(e.r-r),Math.abs(e.c-c))<=3)?1:0):2):(isBack(pl,r,c)?2.2:1.4))*jit(pl);
@@ -1575,6 +1581,7 @@ const AI=(()=>{
       if(G.over)return;
       const st=G.board[o.r][o.c];if(!st||st!==o.st||st.owner!==pl||st.moved)continue;
       if(Math.random()<lv.skipMove)continue;
+      if(FAX&&FAX.pl===pl&&FAX.hold&&FAX.hold(st,o.r,o.c))continue;   // v72a: Focus on ambush: an ambusher near the enemy holds its ground
       if(st.cards.every(c=>c.unit==="miner"))continue;   // lone Miners have their own errands
       let grp=st.cards.filter(c=>!isBase(c)&&!c.faLock&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter))&&!(c.unit==="miner"&&crystalAt(o.r,o.c)));   // v71n: a Miner digging a crystal stays at it   // v65: cards locked in place stay   // Miners, Repairmen and shooters stay in their base
       if(!grp.length||st.stun)continue;
@@ -2228,7 +2235,9 @@ function tileClick(r,c){
   if(G.busy)return;
   const st=hiddenFrom(view(),r,c)?null:G.board[r][c];
   if(!st||(G.sel&&G.sel.r===r&&G.sel.c===c)){G.sel=null;G.mode=null;render();return}
-  G.sel={r,c,pick:new Set(st.cards.filter(x=>!isBase(x)).map(x=>x.id))};G.mode=autoMode(st);render();
+  let pk=st.cards.filter(x=>!isBase(x)&&!(hasBase(st)&&(x.unit==="miner"||x.unit==="repair")));   // v72a: an Ace's Miners and Repairmen stay unless you check them
+  if(hasBase(st)&&pk.length&&!stackLegal(pk)){const g=[];for(const x of [...pk].sort((a,b)=>rate(b)-rate(a)))if(stackLegal([...g,x]))g.push(x);if(g.length)pk=g}   // and out of an Ace, the strongest group that can leave together
+  G.sel={r,c,pick:new Set(pk.map(x=>x.id))};G.mode=autoMode(st);render();
 }
 
 /* the history behind a dice box: every roll and spell, with the tile and the time on this computer */
@@ -2320,7 +2329,7 @@ const INFO={
  healer:["Healer (support)","Healer",[["Shield","a blue shield over its stack turns one whole blow without anyone dying, then comes back in 1d4 rounds"],["Heal","one heart back to a card in its stack or beside it (not a base); then it waits 1d2 + 2 turns, and the shield is down for 3 turns"],["Either or","while the shield is broken it can't heal"],["Fights","never; it dies last in its stack, and can be captured when it stands alone"],["Stacks","with anything but a Queen; one per stack"],["Conjure","2 + 1d3 mana; four per deck"]],"The medical cross."],
  repair:["Repairman (support)","Repairman",[["Repair","one heart back to a Wall, an Ace or the Tree in his stack or beside it; then he rests 1d3 + 1 turns, and while he rests nothing fires from that base and it can't be repaired again"],["Strengthen","the Tree at full hearts goes up one, five at most"],["Upgrade","an Ace gets one more heart, once; he gives his life for it and goes to the grave"],["Fights","never; he dies last in his stack and can be captured when he stands alone"],["Conjure","2 mana; four per deck"]],"A hammer."],
  ram:["Battering Ram (support)","Ram",[["Ram","two damage to an enemy Wall right beside it, no roll; useless against Aces and the Tree"],["Crew","needs one or two Grunts, Infantry or Puppets in its stack; with nobody to push it, it can't move or ram"],["Can't die","blows never kill it: an enemy beside a lone Ram captures it (it joins a stack of soldiers that has room) or destroys it"],["Conjure","3 mana; four per deck"]],"A log on a frame."],
- miner:["Miner (support)","Miner",[["Miner slots","every Ace has two: a Miner there brings 1d2 − 1 mana at the start of every turn, from the round after it moves in"],["Crystal","on a crystal tile it digs: 1d2 each turn, and on a 2 it takes 1 + 1d3 of the crystal's 12 mana"],["In the open","1d6 − 5: one mana on a 6"],["First to fall","when its stack takes damage, the Miner goes first; an attacker beside it with a free capture slot takes it instead, and the blow still lands"],["Moves","one step"],["Stacks","two in an Ace, one with any other stack"],["Conjure","2 mana; four per deck; the Beginner's first Ace comes with one"]],"A pickaxe."],
+ miner:["Miner (support)","Miner",[["In an Ace","as many Miners as you like: each brings 1d2 − 1 mana at the start of every turn, from the round after it moves in"],["Crystal","on a crystal tile it digs: 1d2 each turn, and on a 2 it takes 1 + 1d3 of the crystal's 12 mana"],["In the open","1d6 − 5: one mana on a 6"],["First to fall","when its stack takes damage, the Miner goes first; an attacker beside it with a free capture slot takes it instead, and the blow still lands"],["Moves","one step"],["Stacks","two in an Ace, one with any other stack"],["Conjure","2 mana; four per deck; the Beginner's first Ace comes with one"]],"A pickaxe."],
  wall:["Wall (base)","Wall",[["Hearts","five; the cards inside are safe until it falls, then they all die with it"],["Defense","10"],["Holds","one stack, like an Ace (up to six cards that could stand on the field by themselves); only ranged cards (Archers, Cannons) fire from it, one shot a turn"],["Moves","never; it goes up on any empty tile of your spawn lines"],["Hard hits","charges do double damage to it; Battering Rams and Cannons two; Lightning Strike two"],["Healing","a Healer can't heal it; a Repairman can"],["Conjure","4 mana; four per deck"]],"A fort wall."]
 };
 function infoHTML(){
@@ -2410,7 +2419,7 @@ function showStart(){
     document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{startMode=b.dataset.m;showStart()});$("#modeX").onclick=()=>{location.href="ethers-crossroads.html"};return;
   }
   const mode=startMode,M=MODES.find(m=>m[0]===mode);
-  const seatsS=[0,1,2,3,4,5,6,7].map(i=>({name:mode==="survival"&&i===0?"Survivor":`P${i+1}`,type:i===0?"human":"medium",
+  const seatsS=[0,1,2,3,4,5,6,7].map(i=>({name:`P${i+1}`,type:i===0?"human":"medium",
     tribe:i>0?"random":"beginner",color:"random",solid:"random",team:i%2,named:false}));   // v71m: color and symbol start on Random
   let curLayout=null;
   const counts=mode==="survival"?[1,2,3,4]:mode==="online"?[2,3,4]:[2,3,4,5,6,7,8];
@@ -2447,6 +2456,8 @@ ${chk("obarb","Demons (default)","Every 4 + 1d12 rounds (never while one still s
 <label class="f">Hole in the middle <select id="ohole"><option value="0" selected>None (default)</option><option value="1">One or two tiles</option><option value="2">Doubled</option><option value="3">Tripled</option></select></label>
 <p class="dim">An empty pit in the center of the field, never on the River map and never in anyone's lines; it only grows where there is room.</p>
 ${chk("olock","Optional Ace rule","Cards inside an Ace must match its color.",false)}
+${chk("oetheron","The Ether (default)","Off: nothing can be conjured or bought from the Ether in this game (Conjuring spells that bring a soul from the Ether, the Ether shop, mystery buys), and the Ether holds nothing.",true)}
+${chk("ojkdark","Sacrificial Suicide: souls to the Outer Darkness (default)","A Joker that shoots itself sends the souls it captured into the Outer Darkness (their worth still comes to you as mana), and the Joker goes back into your deck. Off: the souls join your soul pile and the Joker goes to the grave.",true)}
 </fieldset>
 <fieldset class="pf"><legend>Cheats</legend>
 ${chk("ocheat","Cheat mode","Off by default. Free magic, infinite mana, every spell, blocks, rare events and spawns on demand, and no victory or loss, from a Cheat button beside Configure. Every player sees that it is on.",false)}
@@ -2515,7 +2526,7 @@ ${chk("oskyrand","A random start","Every few rounds only. Each new Heavenly Body
 ${[["half","Half a deck","One red and one black suit and one Joker. In 1v1 the two players split one deck; in 2v2 each team splits one (the default there)."],["1","One deck (default)","All four suits and both Jokers."],["2","Two decks","Two of every card. Set Specials and Aces to Half below."],["3","Three decks","Three of every card. Specials and Aces at Half suits it too."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="odeckper" value="${v}" ${v==="1"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
 <div class="f" id="suitmode" hidden><span>Suits (half a deck, 1v1)</span><div class="opts"><label class="opt"><input type="radio" name="osuitmode" value="random" checked><span>Random (default)<small>Each player is dealt one red and one black suit at random.</small></span></label><label class="opt"><input type="radio" name="osuitmode" value="choose"><span>Choose<small>Pick the two suits below.</small></span></label></div>${suitSel}</div>
 <div class="f"><span>Ether decks per player</span><div class="opts">
-${[["same","Same as the players (default)","As many decks' worth of Scouts, Assassins, Archers, Healers, Repairmen, Walls, Rams, Miners and Cannons as the players hold decks."],["half","Half a deck each",""],["1","One deck each",""],["2","Two decks each",""],["3","Three decks each",""]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="oetherper" value="${v}" ${v==="same"?"checked":""}><span>${t}${d?`<small>${d}</small>`:""}</span></label>`).join("")}</div></div>
+${[["same",`Same as the players${startMode==="survival"?"":" (default)"}`,"As many decks' worth of Scouts, Assassins, Archers, Healers, Repairmen, Walls, Rams, Miners and Cannons as the players hold decks."],["half","Half a deck each",""],["1","One deck each",""],["2","Two decks each",""],["3","Three decks each",""],["inf",`Infinite${startMode==="survival"?" (default here)":""}`,"Every card the Ether holds comes back the moment it is taken: it never runs out. The default in Survival."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="oetherper" value="${v}" ${v===(startMode==="survival"?"inf":"same")?"checked":""}><span>${t}${d?`<small>${d}</small>`:""}</span></label>`).join("")}</div></div>
 <p class="dim">With two decks per player (or three), set Specials and Aces to Half: everyone then starts with half the specials and bases, and the rest wait in the Ether.</p>
 <div id="teamdecks" hidden>${chk("oshare","Shared team deck","2v2 only. Teammates draw from one deck and spend from one soul pile, but keep their own hands.",false)}</div>
 </fieldset>
@@ -2663,7 +2674,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     }
     if(mode==="survival")players.push({name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>!players.some(p=>p.solid===s)))||"dodeca",cpu:"horde"});
     PREF.hand=val("dhand")||PREF.hand;PREF.sel=val("dsel")||PREF.sel;PREF.ctl=val("dctl")||PREF.ctl;PREF.theme=val("dtheme")??PREF.theme;PREF.coords=val("dcoord")==="1";PREF.full=val("dfull")==="1";PREF.lines=val("dlines")!=="0";if($("#danimc")){PREF.fxCards=$("#danimc").checked;PREF.fxMagic=$("#danimm").checked}PREF.bright=+($("#dbright")||{}).value||1;savePrefs();applyPrefs();
-    startGame({mode,players,mid:mode==="survival"||(val("orowsd")?+val("orowsd")>4:true),aceLock:$("#olock").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,cheat:!!($("#ocheat")&&$("#ocheat").checked),hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off","saturn"].includes(val("omoonon")||"on"),
+    startGame({mode,players,mid:mode==="survival"||(val("orowsd")?+val("orowsd")>4:true),aceLock:$("#olock").checked,jokerDark:!$("#ojkdark")||$("#ojkdark").checked,etherOff:!!$("#oetheron")&&!$("#oetheron").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,cheat:!!($("#ocheat")&&$("#ocheat").checked),hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off","saturn"].includes(val("omoonon")||"on"),
       map:L==="koth"?"hill":val("omap"),big:L==="koth"?"":val("obig")||"",koth:L==="koth"?{team:$("#okteam").checked,tug:$("#okteam").checked&&$("#oktug").checked,double:$("#okdouble").checked,contest:$("#okcontest").checked,target:+val("oktarget")||50,near:val("oknear")==="near",cpu:val("okcpu")||"each"}:null,cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:L==="duel"&&val("orowsd")?+val("orowsd"):undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
       deckPer:val("odeckper")||"1",etherPer:val("oetherper")||"same",noSubs:$("#onosubs").checked,specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:val("odeckper")==="half"&&L==="duel"&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
       startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",cycleEvents:$("#ocycev").checked,alikeOk:!!($("#oalike")&&$("#oalike").checked),eclipses:$("#oeclipse").checked||$("#oblood").checked,eclipseMode:$("#oblood").checked,eclipseAlways:$("#oblood").checked&&!!($("#oeclall")&&$("#oeclall").checked),skyChange:skyChangeOpts(),atkSpells:$("#oatk").checked,pshop:$("#opshop")?$("#opshop").checked:true,
@@ -3970,7 +3981,7 @@ function ambushCheck(r,c){
 
 /* ---------- Scouts and Assassins in the decks and the Ether ---------- */
 /* v70d: the Ether's decks: as many as the players hold (the default) or its own number per player; 1v1-sized at least in 1v1 */
-function deckCount(){const o=G.opts,L=o.layout||"duel",n=G.p.filter(P=>!isHorde(P.i)).length,e=o.etherPer&&o.etherPer!=="same"?String(o.etherPer):deckPer(o);
+function deckCount(){const o=G.opts,L=o.layout||"duel",n=G.p.filter(P=>!isHorde(P.i)).length,e=o.etherPer&&o.etherPer!=="same"&&o.etherPer!=="inf"?String(o.etherPer):deckPer(o);
   const f=e==="half"?.5:Math.max(.5,+e||1);return Math.max(1,Math.round(f*Math.max(n,L==="duel"?2:1)))}
 function fogDecks(pls){
   const n=deckCount();let scouts=8*n,ass=4*n;
@@ -4215,7 +4226,7 @@ SPELLS.push(
  {id:"cwall",name:"Wall Conjure",cost:4,school:"Conjuring",text:"A Wall's soul comes from the Ether into your deck. Five hearts and defense 10; it holds one stack like an Ace, but only ranged cards fire from it (one shot a turn). It never moves.",ok:()=>etherHasU("wall"),run:()=>conjureU("wall")},
  {id:"crep",name:"Repairman Conjure",cost:2,school:"Conjuring",text:"A Repairman's soul comes from the Ether into your deck. He repairs a Wall, an Ace or the Tree in his stack or beside it, then rests 1d3 + 1 turns. He can also upgrade an Ace once, giving his life for it.",ok:()=>etherHasU("repair"),run:()=>conjureU("repair")},
  {id:"cram",name:"Battering Ram Conjure",cost:3,school:"Conjuring",text:"A Battering Ram's soul comes from the Ether into your deck. Worked by one or two Grunts, Infantry or Puppets, it does two damage to a Wall beside it, no roll. It does nothing else.",ok:()=>etherHasU("ram"),run:()=>conjureU("ram")},
- {id:"cmine",name:"Miner Conjure",cost:2,school:"Conjuring",text:"A Miner's soul comes from the Ether into your deck. In one of an Ace's two miner slots it brings 1d2 − 1 mana every turn, from the next round on; on a crystal it digs for 1 + 1d3; anywhere else it finds 1 mana on a 6.",ok:()=>etherHasU("miner"),run:()=>conjureU("miner")}
+ {id:"cmine",name:"Miner Conjure",cost:2,school:"Conjuring",text:"A Miner's soul comes from the Ether into your deck. In an Ace (as many as you like) it brings 1d2 − 1 mana every turn, from the next round on; on a crystal it digs for 1 + 1d3; anywhere else it finds 1 mana on a 6.",ok:()=>etherHasU("miner"),run:()=>conjureU("miner")}
 );
 
 /* ---------- the board ---------- */
@@ -4244,7 +4255,7 @@ function siegeActs(st,mine,s){
   const sh=st.cards.find(isShooter);if(sh&&!shotReady(sh,st.owner))info.push(`${UNIT[sh.unit].name} rests ${sh.readyAt-n} turn(s)`);
   if(st.captive)info.push(`Capture slot: ${esc(nameOf(st.captive))}`);
   if(st.supp)info.push(`Suppressed: disadvantage on its next attack (${st.supp.n} turn(s))`);
-  const ms=st.cards.filter(x=>x.unit==="miner");if(ms.length)info.push(hasK(st,"ace")?`Miner slots ${ms.length}/2`+(ms.some(x=>x.inSlot==null||x.inSlot>=G.moon.round)?" · mining from next round":""):crystalAt(s.r,s.c)?"Miner on a crystal":"Miner out in the open (1 mana on a 6)");
+  const ms=st.cards.filter(x=>x.unit==="miner");if(ms.length)info.push(hasK(st,"ace")?`Miners ${ms.length}`+(ms.some(x=>x.inSlot==null||x.inSlot>=G.moon.round)?" · mining from next round":""):crystalAt(s.r,s.c)?"Miner on a crystal":"Miner out in the open (1 mana on a 6)");
   if(info.length)out.push(`<p class="sinfo">${info.join(" · ")}</p>`);
   if(prep){
     if(healReady(st)&&healTargets(st,s.r,s.c).length)out.push(`<button class="btn ghost sm" id="healBtn">Heal a heart</button>`);
@@ -5502,7 +5513,7 @@ const SPELL_TEXT={
  cwall:{e:"A Wall's soul comes from the Ether into your deck.",l:"Five hearts, defense 10. Holds one stack like an Ace, but only ranged cards fire from it, one shot a turn. Never moves."},
  crep:{e:"A Repairman's soul comes from the Ether into your deck.",l:"Repairs a Wall, an Ace or the Tree in or beside his stack, then rests 1d3 + 1 turns. He can also give his life to upgrade an Ace once."},
  cram:{e:"A Battering Ram's soul comes from the Ether into your deck.",l:"Worked by one or two Grunts, Infantry or Puppets, it does two damage to a Wall beside it, with no roll. It does nothing else."},
- cmine:{e:"A Miner's soul comes from the Ether into your deck.",l:"In an Ace's miner slot it brings 1d2 − 1 mana a turn, from the next round on. On a crystal it digs 1 + 1d3. Anywhere else it finds 1 mana on a 6."},
+ cmine:{e:"A Miner's soul comes from the Ether into your deck.",l:"In an Ace (as many as you like) it brings 1d2 − 1 mana a turn, from the next round on. On a crystal it digs 1 + 1d3. Anywhere else it finds 1 mana on a 6."},
  maxmana:{e:"Your maximum mana rises by one for the rest of the game.",l:"Eighteen at most."},
  bull:{e:"A BullGoat comes into your hand: two hearts, 10 + 1d20 up close, or a charge of 10 + 2d20 down a straight, empty line at an enemy two or three tiles away.",l:"It stands alone. When it dies it returns as the Goatbull."},
  deckcards:{n:"Your Tree of Neither Life Or Death on the field.",e:"Your deck is full again, as it was at the start of the game. The cards still in it go to the grave; your hand stays.",l:"Once a game."},
@@ -8078,7 +8089,7 @@ const FA_KINDS=["grunt","infantry","puppet","jack","queen","king","joker","assas
 const FA_DEF={tgroup:true,tgorder:["wildcard","special","base","standard","support"],mode:"full",stance:"auto",rush:0,formation:"auto",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,
   ctl:{soldiers:true,specials:true,support:true,miners:true,ranged:true,wildcards:true},extra:[],hier:false,order:FA_PRINC.map(p=>p[0]),eq:[],under:false,
   noAttack:false,flee:false,tprio:false,torder:null,teq:[],tIgnoreGI:false,tSameGI:false,xminus:[],hill:true,hillHow:"army",grp:"normal",fLink:true,
-  crys:false,crysStance:false,crysLives:false,crysMiner:false,crysAsk:false,crysHow:false,crysShow:true,crysFight:false,hout:[]};   // v71n: the crystals, and the principles taken out of the ranking
+  ambFocus:false,crys:false,crysStance:false,crysLives:false,crysMiner:false,crysAsk:false,crysHow:false,crysShow:true,crysFight:false,hout:[]};   // v71n: the crystals, and the principles taken out of the ranking
 /* v47: the kinds of card the field can rank as targets, strongest first by default (suit doesn't matter) */
 const FA_TK=[["wildcards","Wildcards"],["joker","Jokers"],["king","Kings"],["ace","Aces"],["queen","Queens"],["jack","Jacks"],["wall","Walls"],["tree","The Tree"],["assassin","Assassins"],
   ["cannon","Cannons"],["infantry","Infantry"],["archer","Archers"],["grunt","Grunts"],["puppet","Puppets"],["healer","Healers"],["repair","Repairmen"],["ram","Rams"],["miner","Miners"],["claimer","Claimers"],["scout","Scouts"]];
@@ -8086,7 +8097,7 @@ const FA_TKEYS=FA_TK.map(x=>x[0]);
 const FA_OUT=["bases","crystals"];   // v71n: the principles that can be taken out of the ranking (× in it, + to bring them back)
 const faClean=c=>{c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringify(FA_DEF));
   for(const k of ["mode","stance","formation","lives","battles","hillHow","grp"])if(typeof c[k]==="string")o[k]=c[k];
-  o.rush=Math.max(0,Math.min(9,Math.round(+c.rush||0)));for(const k of ["ambush","bases","walls","hier","under","noAttack","flee","tprio","tIgnoreGI","tSameGI","tgroup","hill","fLink","crys","crysStance","crysLives","crysMiner","crysAsk","crysHow","crysShow","crysFight"])if(typeof c[k]==="boolean")o[k]=c[k];
+  o.rush=Math.max(0,Math.min(9,Math.round(+c.rush||0)));for(const k of ["ambush","bases","walls","hier","under","noAttack","flee","tprio","tIgnoreGI","tSameGI","tgroup","hill","fLink","ambFocus","crys","crysStance","crysLives","crysMiner","crysAsk","crysHow","crysShow","crysFight"])if(typeof c[k]==="boolean")o[k]=c[k];
   if(Array.isArray(c.tgorder))o.tgorder=[...c.tgorder.filter(k=>o.tgorder.includes(k)),...o.tgorder.filter(k=>!c.tgorder.includes(k))];   // v54: the ranking by kinds of card
   o.torder=Array.isArray(c.torder)?[...c.torder.filter(k=>FA_TKEYS.includes(k)),...FA_TKEYS.filter(k=>!c.torder.includes(k))]:[...FA_TKEYS];
   if(Array.isArray(c.teq))o.teq=c.teq.filter(p=>Array.isArray(p)&&p.length===2&&p.every(k=>FA_TKEYS.includes(k)));
@@ -8105,7 +8116,7 @@ const faOn=pl=>faAllowed()&&!!(faState(pl)&&faState(pl).on)&&!G.p[pl].cpu&&!isNP
 /* the simple modes narrow everything to a few choices */
 function faEff(c){c=faClean(c);const d=JSON.parse(JSON.stringify(FA_DEF));d.hill=c.hill;d.hillHow=c.hillHow;   // Capture the Hill is the player's in every mode
   if(c.mode==="full")return Object.assign(d,{mode:"full",under:c.under});
-  if(c.mode==="mostly")return Object.assign(d,{mode:"mostly",stance:c.stance,ambush:c.ambush,under:c.under,noAttack:c.noAttack});
+  if(c.mode==="mostly")return Object.assign(d,{mode:"mostly",stance:c.stance,ambush:c.ambush,ambFocus:c.ambFocus,under:c.under,noAttack:c.noAttack});
   if(c.mode==="attacks")return Object.assign(d,{mode:"attacks",ambush:false,under:c.under});
   return c}
 
@@ -8116,7 +8127,7 @@ function faCat(c){const u=c.unit;if(u==="miner")return "miners";if(u&&UNIT[u]&&U
 function faControls(c,cfg){const k0=faKind(c);if((cfg.xminus||[]).includes(k0))return false;if(cfg.extra.includes(k0))return true;const k=faCat(c);return k==="miners"?cfg.ctl.support||cfg.ctl.miners:!!cfg.ctl[k]}
 
 /* ---------- the hierarchy: higher principles pull harder; equals share a rank, and the field decides between them ---------- */
-const FA_AGGR={noatk:c=>c.noAttack?-1:0,stance:c=>({offensive:1,defensive:-1}[c.stance]||0),rush:c=>c.rush?1:0,lives:c=>({throw:1,preserve:-1}[c.lives]||0),
+const FA_AGGR={noatk:c=>c.noAttack?-1:0,stance:c=>({offensive:1,defensive:-1}[c.stance]||0),   // Skirmish counts as neitherrush:c=>c.rush?1:0,lives:c=>({throw:1,preserve:-1}[c.lives]||0),
   battles:c=>({reckless:1,careful:-1}[c.battles]||0),formation:()=>0,bases:c=>c.bases?1:0,crystals:c=>c.crys?(c.crysFight?1:-1):0,ambush:c=>c.ambush?-1:0};
 function faScales(c,pl){const sc={};for(const [k] of FA_PRINC)sc[k]=1;if(!c.hier)return sc;
   const pairOf=k=>c.eq.find(p=>p.includes(k));let rank=0;const seen=new Set();
@@ -8127,7 +8138,8 @@ function faScales(c,pl){const sc={};for(const [k] of FA_PRINC)sc[k]=1;if(!c.hier
   return sc}
 const faMix=(a,b,t)=>{const o={...a};for(const k of ["atk","def","dist","ally","ctr"])o[k]=(a[k]||0)*(1-t)+(b[k]||0)*t;if(t>=.5&&b.k)o.k=b.k;return o};   // the stronger side names the stance
 const FA_CENTER={atk:1,def:.8,dist:.04,ally:.3,ctr:1,k:"center"};
-const FA_OFF={atk:1.45,def:.45,dist:.85,ally:.1,k:"off"};   // v71: Offensive goes forward and fights; the computers keep their own, warier OFF   // v70c: it goes for the middle and holds it, striking what comes in reach
+const FA_OFF={atk:1.45,def:.45,dist:.85,ally:.1,k:"off"};
+const FA_SKIRM={atk:1.3,def:1.6,dist:.5,ally:.15,k:"skirmish"};   // v72a: hit what it can beat, keep out of reach of what it can't (its targets are picked in 83_v72a.js)   // v71: Offensive goes forward and fights; the computers keep their own, warier OFF   // v70c: it goes for the middle and holds it, striking what comes in reach
 const faRushing=pl=>{const s=faState(pl);return !!(s&&s.cfg&&s.cfg.rush>0&&s.rushUntil!=null&&G.moon.round<=s.rushUntil)};
 /* a Wall matters only when it stands between your field and an enemy base */
 function faWallBlocks(pl,wr,wc){const bases=AI.enemyStacks(pl).filter(e=>hasBase(e.st)&&!hasK(e.st,"wall"));const mine=stacksOf(pl);
@@ -8147,7 +8159,7 @@ function faTargetFactor(cfg){if(!cfg.tprio)return ()=>1;
 function faCtx(pl){
   const s=faState(pl),c=faEff(s&&s.cfg),sc=faScales(c,pl);
   let W={...AI.stance(pl)};
-  const fixed={offensive:FA_OFF,defensive:AI.W.DEF,center:FA_CENTER}[c.stance];if(fixed)W=faMix(W,fixed,sc.stance);
+  const fixed={offensive:FA_OFF,defensive:AI.W.DEF,center:FA_CENTER,skirmish:FA_SKIRM}[c.stance];if(fixed)W=faMix(W,fixed,sc.stance);
   if(faRushing(pl))W=faMix(W,AI.W.PUSH,sc.rush);
   W.ally=(W.ally||0)+({wide:.1,deep:-.1}[c.formation]||0)*sc.formation;W.stack=({deep:.8,wide:-.3}[c.formation]||0)*sc.formation;   // v71: Wide surrounds (below), Tall stacks
   const lv={preserve:1,balanced:0,throw:-1}[c.lives]||0;W.def=(W.def||0)*(1+.4*lv*sc.lives);
@@ -8196,7 +8208,7 @@ function faToggle(){const V=view(),s=faState(V);if(s&&s.on){setFieldAuto(V,false
   faAsk(()=>{const c=faMine();c.under=true;PREF.fa=c;PREF.faOpen=true;savePrefs();setFieldAuto(V,true,c)})}   // on: its controls go under the field (uncheck to remove)
 
 /* ---------- the settings, drawn the same in the window and under the field ---------- */
-const faVal=(k,c)=>({stance:{auto:"Automatic",offensive:"Offensive",defensive:"Defensive",center:"Center"}[c.stance],rush:c.rush?`${c.rush} round${c.rush>1?"s":""}`:"Off",
+const faVal=(k,c)=>({stance:{auto:"Automatic",offensive:"Offensive",defensive:"Defensive",center:"Center",skirmish:"Skirmish"}[c.stance],rush:c.rush?`${c.rush} round${c.rush>1?"s":""}`:"Off",
   lives:{preserve:"Preserve",balanced:"Balanced",throw:"Throw them in"}[c.lives],battles:{careful:"Careful",normal:"Normal",reckless:"Reckless"}[c.battles],
   formation:{auto:"Automatic",wide:"Wide",deep:"Tall"}[c.formation],bases:c.bases?"On":"Off",crystals:c.crys?"On":"Off",ambush:c.ambush?"On":"Off",noatk:c.noAttack?"On":"Off"})[k];
 /* v47: one kit draws every automation panel the same way: the words on the left, the switch or the arrows on the right */
@@ -8218,8 +8230,10 @@ function faPanelHTML(c,pl,pfx){
     ["attacks","Attacks only","It only attacks; you move every card"],["custom","Every option","Choose each setting yourself"]]),"fafull famodes");
   h+=sec("Attack",some?row("noAttack",c.noAttack,"Don't attack","Your field moves but never attacks. On top of the ranking unless you move it."):row("",true,"Attacks when the odds say so","Your field attacks enemies in sight when the odds say so.",true),some?"":"falock");
   if(kothOn())h+=sec("Capture the Hill",row("hill",c.hill,"Capture the Hill","It goes for the Hill to score (on by default).")+(c.hill?radio("hillHow",c.hillHow,[["army","Gather an army first","Cards gather into a big army, then march on the Hill together"],["straight","Straight there","Every card heads for the Hill at once"],["groups","In small groups","Groups of two or three set out one after another"]]):""));
-  if(some){h+=sec("Stance",radio("stance",c.stance,[["auto","Automatic","Changes with the field"],["offensive","Offensive",""],["defensive","Defensive",""],["center","Control the center",""]]));
-    h+=sec("Ambush",row("ambush",c.ambush,"Set ambushes","Assassins and face-down stacks with nothing in reach wait in ambush."))}
+  if(some){h+=sec("Stance",radio("stance",c.stance,[["auto","Automatic","Changes with the field"],["offensive","Offensive",""],["defensive","Defensive",""],["center","Control the center",""],
+      ["skirmish","Skirmish","Hit and run: it picks off equal or weaker stacks (small ones first) that have no edge over it, then falls back when stronger ones come"]]));
+    h+=sec("Ambush",row("ambush",c.ambush,"Set ambushes","Assassins and face-down stacks with nothing in reach wait in ambush.")+
+      (c.ambush?row("ambFocus",c.ambFocus,"Focus on ambush","Stacks that can ambush hold their ground near the enemy and always wait in ambush; from an ambush they strike only with the odds well on their side."):""))}
   if(custom){
     h+=sec("Rush the enemy",row("rushon",c.rush>0,"Rush","Everything it controls goes for the enemy, whatever the stance.")+spin("For how long",left!=null?`${left?left+" left":"over"}`:"",Math.max(1,c.rush),"rush",`round${Math.max(1,c.rush)>1?"s":""}`,!c.rush));
     h+=sec("Formation",radio("formation",c.formation,[["auto","Automatic",""],["wide","Wide","Spread out, surround, take the advantage"],["deep","Tall","Columns: stack strength, even with fewer to stack with"]])+row("fLink",c.fLink,"Formation shapes the groups","Wide attacks in small groups, Tall in big ones, while Attack groups is Normal."));
@@ -8314,7 +8328,7 @@ let faSig="";
 
 /* ---------- the setup: Off, or how well it plays ---------- */
 {const _ss=showStart;showStart=function(){const out=_ss.apply(this,arguments);const p=document.querySelector('.ovbox.setup .spanel[data-p="rules"]>.scols')||document.querySelector('.ovbox.setup .spanel[data-p="rules"]');
-  if(p&&!$("#ofauto"))p.insertAdjacentHTML("beforeend",`<fieldset class="pf"><legend>Field Automation</legend><label class="f">Field Automation <select id="ofauto"><option value="off">Off</option><option value="easy">On · Easy</option><option value="medium" selected>On · Medium (default)</option><option value="hard">On · Hard</option></select></label><p class="dim">Lets a player hand the cards on their field to the computer during the game; their hand and spells stay theirs. Off switches Field Automation off for everyone; Ritual Dice and Lazy Hand automation still work.</p></fieldset>`);
+  if(p&&!$("#ofauto"))p.insertAdjacentHTML("beforeend",`<fieldset class="pf"><legend>Field Automation</legend><label class="f">Field Automation <select id="ofauto"><option value="off">Off</option><option value="easy">On · Easy</option><option value="medium" ${startMode==="survival"?"":"selected"}>On · Medium${startMode==="survival"?"":" (default)"}</option><option value="hard" ${startMode==="survival"?"selected":""}>On · Hard${startMode==="survival"?" (default in Survival)":""}</option></select></label><p class="dim">Lets a player hand the cards on their field to the computer during the game; their hand and spells stay theirs. Off switches Field Automation off for everyone; Ritual Dice and Lazy Hand automation still work.</p></fieldset>`);
   return out}}
 {const _sg=startGame;startGame=function(opts){const s=$("#ofauto");if(opts&&s)opts.fieldAuto=s.value;return _sg.apply(this,arguments)}}
 
@@ -8507,7 +8521,7 @@ if(window.__EC)Object.assign(window.__EC,{lazySpot,lazyPlace,lazyOn});
    the bottom always has a small link back to it. */
 const MK_TLDR=`Your deck is your life and your souls are your mana: you are out when you have nothing left on the field, or no deck, hand and mana at all. Keep your Ace safe on your back line, get Miners working for steady mana, and only fight battles your best card can win.`;
 const MK_BODY=`<p><b>Cards are life and money at once.</b> Every card you draw, place or lose comes out of your deck; every card you sacrifice becomes mana (its soul's worth), but it is one soldier less. You can sacrifice cards from your hand, too: a quick way to pay for a spell.</p>
-<p><b>Mana grows slowly unless you build for it.</b> Miners are the steady income: two can sit in each of your Aces (1d2 − 1 mana every turn), and one on a crystal tile digs up to 12 mana over time. Spells you pay for go to the Bank, which lends mana and lets you spend on credit, at a price.</p>
+<p><b>Mana grows slowly unless you build for it.</b> Miners are the steady income: any number can sit in your Aces (1d2 − 1 mana each, every turn), and one on a crystal tile digs up to 12 mana over time. Spells you pay for go to the Bank, which lends mana and lets you spend on credit, at a price.</p>
 <p><b>Bases hold the line.</b> Aces, Walls, the Tree and Lighthouses are bases: they don't walk, they have hearts, and each holds one stack. Cards inside an Ace, a Wall or the Tree are protected until it falls, and then they fall with it; a Lighthouse's stack fights from inside it and takes the blows first.</p>
 <p><b>The sky changes the rules.</b> The Moon turns once a round and moves prices up and down (the Full and New Moons most of all). Heavenly Bodies can take its place, each with its own cycle, and now and then a rare eclipse brings a strange effect.</p>
 <p><b>The dead come back.</b> Fallen cards go to the grave. Grave Blessing (free, once a turn) rolls dice, and every 6 raises a card from the grave into your hand.</p>`;
@@ -10128,7 +10142,7 @@ if(window.__EC)Object.assign(window.__EC,{seesTile:(...a)=>seesTile(...a),fogTil
 {const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const sh=$("#shared"),t=$("#mytray");if(!sh||!t)return;
   let d=$("#dicefold");if(!d){d=document.createElement("details");d.id="dicefold";d.className="dicefold";d.open=PREF.diceOpen!==false;d.innerHTML="<summary>Dice rolls</summary>";
     d.addEventListener("toggle",()=>{if(PREF.diceOpen===d.open)return;PREF.diceOpen=d.open;savePrefs()})}
-  if(d.previousElementSibling!==sh)sh.after(d);if(t.parentNode!==d)d.appendChild(t);d.hidden=!t.innerHTML.trim()}}
+  const at=$("#handslot")||sh;if(d.previousElementSibling!==at)at.after(d);if(t.parentNode!==d)d.appendChild(t);d.hidden=!t.innerHTML.trim()}}   // v72a: the piles went under the spells; the dice stay under the hand
 
 /* ---------------- v61: card faces in the players' colors, accent colors, stacks that look stacked ----------------
    - Every card takes its player's color, darkened and calmed, with light lettering that reads on it; the frame is the
@@ -11508,17 +11522,17 @@ if(window.__EC)Object.assign(window.__EC,{stepStats,fxLvl,FX_LVLS,fxSeen:(e,id)=
 
 /* ---------- v71m: more symbols, card patterns, metal sheen, and black as a player's color ----------
    - Five more shapes for the players' symbols, so a full table of eight never runs short: the Sphere, the Pyramid, the
-     Prism, the Pentagram and the Cuboctahedron, drawn like the Platonic solids.
+     Heart (v72a, in the Prism's place), the Pentagram and the Cuboctahedron, drawn like the Platonic solids.
    - Card patterns: each player's cards and stacks carry a faint pattern of their own. In the seat's look, Pattern is
      Random by default (a pattern nobody else has), None, or one of eight. A Display setting (on by default) shows them;
      Colorblind-safe colors always show them.
    - Metal sheen (off by default, per player): a slow shine sweeps across that player's cards and stacks.
    - Onyx (black) is a player's color: its names, symbols and dice get a light edge so they read on dark pages. */
-Object.assign(SOLIDS,{sphere:"Sphere",pyramid:"Pyramid",prism:"Prism",penta:"Pentagram",cubocta:"Cuboctahedron"});
+Object.assign(SOLIDS,{sphere:"Sphere",pyramid:"Pyramid",heart:"Heart",penta:"Pentagram",cubocta:"Cuboctahedron"});   // v72a: the Heart took the Prism's place
 {const _sp=solidPath;solidPath=function(s){
   if(s==="sphere")return "M-9,0A9,9 0 1,0 9,0A9,9 0 1,0 -9,0Z M-9,0A9,3.1 0 1,0 9,0A9,3.1 0 1,0 -9,0Z M0,-9A3.4,9 0 1,0 0,9A3.4,9 0 1,0 0,-9Z";
   if(s==="pyramid"){const T=[0,-9.5],L=[-9.5,5],F=[-1.5,8.8],R=[9.5,4.4];return ring([T,L,F,R])+seg(T,F)}
-  if(s==="prism"){const f=[[-9,7.6],[1.4,7.6],[-3.8,-1.6]],b=[[-2.4,1.4],[8,1.4],[2.8,-7.8]];return ring(f)+seg(f[1],b[1])+seg(f[2],b[2])+seg(b[1],b[2])+seg(b[0],b[2])}
+  if(s==="heart"||s==="prism")return "M0,8.8C-5.6,4.7 -9.7,1.2 -9.7,-3.3C-9.7,-6.7 -7.1,-8.9 -4.4,-8.9C-2.4,-8.9 -0.9,-7.7 0,-5.8C0.9,-7.7 2.4,-8.9 4.4,-8.9C7.1,-8.9 9.7,-6.7 9.7,-3.3C9.7,1.2 5.6,4.7 0,8.8Z M0,-5.8V8.8";   // a faceted heart (an old Prism draws as the Heart)
   if(s==="penta"){const p=poly(5,9.8,-90);return "M"+[0,2,4,1,3].map(i=>p[i].join(",")).join("L")+"Z"}
   if(s==="cubocta"){const q=poly(4,9.6,45),m=q.map((v,i)=>{const w=q[(i+1)%4];return[(v[0]+w[0])/2,(v[1]+w[1])/2]});return ring(q)+ring(m)}
   return _sp.apply(this,arguments)}}
@@ -11532,7 +11546,7 @@ const darkCol=c=>typeof c==="string"&&/^#[0-9a-f]{6}$/i.test(c)&&labOf(c)[0]<14;
 /* patterns: one per player, chosen or random (none for the Bank's and the Demons' cards) */
 const PATTERNS=["Slant","Reverse","Dots","Upright","Flat","Hatch","Grid","Rings"];
 const SHEEN_T=6;
-{const _m=mkPlayer;mkPlayer=function(i,o){const P=_m.apply(this,arguments);P.patSel=o&&o.pattern!=null?String(o.pattern):"random";P.sheen=!!(o&&o.sheen);return P}}
+{const _m=mkPlayer;mkPlayer=function(i,o){if(o&&o.solid==="prism")o=Object.assign({},o,{solid:"heart"});const P=_m.call(this,i,o);P.patSel=o&&o.pattern!=null?String(o.pattern):"random";P.sheen=!!(o&&o.sheen);return P}}
 function dealPatterns(){if(!G||!G.p)return;const ps=G.p.filter(P=>P&&!P.npc&&!isNPC(P.i));
   for(const P of ps){const v=P.patSel;P.pattern=v==="none"?-1:/^\d$/.test(v)&&+v<PATTERNS.length?+v:null}
   const used=new Set(ps.map(P=>P.pattern).filter(x=>x!=null&&x>=0));
@@ -11852,5 +11866,52 @@ function nepMeters(){if(!document.documentElement.classList.contains("nepec"))re
 setInterval(()=>{if(!G||document.hidden)return;const h=document.documentElement;if(!h.classList.contains("nepec")||h.classList.contains("lite")||matchMedia("(prefers-reduced-motion: reduce)").matches)return;nepMeters()},1400);
 
 if(window.__EC)Object.assign(window.__EC,{nepMetersW:()=>nepMeters()});
+
+/* ---------- v72a: Field Automation's Skirmish stance and Focus on ambush; "Always leave it on" under the field too ----------
+   - Skirmish (hit and run): it attacks only stacks no stronger than the attacker that have no edge over it (no
+     disadvantage on its roll, no advantage on theirs) and that it beats more often than not, small stacks first; its
+     stance keeps it out of reach of what it can't beat, so it falls back when stronger stacks come.
+   - Focus on ambush: stacks that can ambush (Assassins, face-down stacks) hold their ground once an enemy is within four
+     tiles, always set an ambush when nothing is in reach, and strike from it only with three chances in four. */
+{const _fc=faCtx;faCtx=function(pl){const ctx=_fc.apply(this,arguments),s=faState(pl),c=faEff(s&&s.cfg),ok=ctx.okAtk,gm=ctx.gainMul;
+  const mc=ctx.level==="hard"?48:ctx.level==="easy"?14:30;
+  if(c.stance==="skirmish"){
+    ctx.okAtk=(st,o)=>{if(!ok(st,o))return false;const E=G.board[o.r]&&G.board[o.r][o.c];if(!E)return false;const A=o.A||st;
+      if(netFx(A.odds,hated(A)?"dis":null,hated(E)?"adv":null,A.down?"dis":null,A.supp?"dis":null)<0)return false;   // no disadvantage on its roll
+      if(E.odds==="adv"||E.down)return false;   // and no edge on theirs
+      if(AI.value(E)>AI.value(A)*1.05)return false;   // equal or weaker
+      return AI.winP(A,E,mc,o.mode)>=.5};
+    ctx.gainMul=E=>gm(E)*(E.cards.length<=2?1.3:1)}   // small stacks first
+  if(c.ambush&&c.ambFocus){ctx.ambushP=1;
+    ctx.hold=(st,r,cc)=>canAmbush(st)&&AI.enemyStacks(pl).some(e=>Math.abs(e.r-r)+Math.abs(e.c-cc)<=4);
+    const ok2=ctx.okAtk;ctx.okAtk=(st,o)=>{if(!ok2(st,o))return false;if(!st.ambush)return true;const E=G.board[o.r]&&G.board[o.r][o.c];return !!E&&AI.winP(o.A||st,E,mc,o.mode)>=.75}}
+  return ctx}}
+
+/* Always leave Field Automation on: in the controls under the field as well as in the window */
+{const _p=paintFA;paintFA=function(){_p.apply(this,arguments);const d=$("#fapanel"),b=d&&d.querySelector(".fawide");if(!b||b.querySelector("#faAlwaysU"))return;
+  b.insertAdjacentHTML("afterbegin",`<label class="farow faalways"><span class="fal"><b>Always leave Field Automation on</b><small>It turns itself on in every game where it can, and asks before you turn it off.</small></span><input type="checkbox" id="faAlwaysU" ${faAlways()?"checked":""}></label>`);
+  $("#faAlwaysU").onchange=e=>{PREF.faAlways=e.target.checked;savePrefs();if(G)render();paintFA()}}}
+
+if(window.__EC)Object.assign(window.__EC,{faCtxW2:pl=>faCtx(pl)});
+
+/* ---------- v72a: the Ether: Infinite (the default in Survival), or off for the whole game ----------
+   Infinite: the Ether remembers what it held at the start, and whatever is taken comes back (checked at the start of
+   every turn and after every spell). Off: the Ether is emptied, and the Ether shop, the conjurings that bring a soul from
+   the Ether and mystery buys are closed; mana still comes as usual. */
+const etherKey=c=>c.unit?"u:"+c.unit:`${c.rank}|${c.suit||""}|${c.color||""}`;
+function etherSetup(){if(!G||G._etherSet)return;G._etherSet=true;
+  if(G.opts.etherOff){G.ether=[];return}
+  if(G.opts.etherPer==="inf"){const m=new Map();for(const c of G.ether){const k=etherKey(c),e=m.get(k)||{k,n:0,u:c.unit||null,r:c.rank,s:c.suit||null,c:c.color||null};e.n++;m.set(k,e)}G.etherInf=[...m.values()]}}
+function etherTopUp(){if(!G||NET.role==="guest")return;etherSetup();
+  if(G.opts.etherOff){if(G.ether.length)G.ether=[];return}
+  if(!G.etherInf)return;const have=new Map();for(const c of G.ether){const k=etherKey(c);have.set(k,(have.get(k)||0)+1)}
+  for(const t of G.etherInf){let n=have.get(t.k)||0;while(n<t.n){G.ether.push(t.u?mkUnit(t.u,null):mk(t.r,t.s,t.c||undefined));n++}}}
+{const _ng=newGame;newGame=function(){const out=_ng.apply(this,arguments);try{etherSetup()}catch(e){console.error(e)}return out}}
+{const _bt=beginTurn;beginTurn=function(){etherTopUp();return _bt.apply(this,arguments)}}
+{const _c=cast;cast=async function(){const out=await _c.apply(this,arguments);etherTopUp();return out}}
+{const _sb=spellBlock;spellBlock=function(sp){if(G&&G.opts.etherOff&&sp&&ETHER_IDS.has(sp.id))return "The Ether is off in this game.";return _sb.apply(this,arguments)}}
+{const _mb=mysteryBuy;mysteryBuy=function(pl){if(G&&G.opts.etherOff){if(G.p[pl]&&!G.p[pl].cpu)flash("The Ether is off in this game.");return null}return _mb.apply(this,arguments)}}
+/* an endless Ether shows ∞ */
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.etherInf)return;const a=$("#seeether b");if(a)a.textContent="∞";const d=$("#openEther .dc");if(d)d.textContent="endless souls"}}
 
 })();

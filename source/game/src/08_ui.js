@@ -266,7 +266,9 @@ function tileClick(r,c){
   if(G.busy)return;
   const st=hiddenFrom(view(),r,c)?null:G.board[r][c];
   if(!st||(G.sel&&G.sel.r===r&&G.sel.c===c)){G.sel=null;G.mode=null;render();return}
-  G.sel={r,c,pick:new Set(st.cards.filter(x=>!isBase(x)).map(x=>x.id))};G.mode=autoMode(st);render();
+  let pk=st.cards.filter(x=>!isBase(x)&&!(hasBase(st)&&(x.unit==="miner"||x.unit==="repair")));   // v72a: an Ace's Miners and Repairmen stay unless you check them
+  if(hasBase(st)&&pk.length&&!stackLegal(pk)){const g=[];for(const x of [...pk].sort((a,b)=>rate(b)-rate(a)))if(stackLegal([...g,x]))g.push(x);if(g.length)pk=g}   // and out of an Ace, the strongest group that can leave together
+  G.sel={r,c,pick:new Set(pk.map(x=>x.id))};G.mode=autoMode(st);render();
 }
 
 /* the history behind a dice box: every roll and spell, with the tile and the time on this computer */

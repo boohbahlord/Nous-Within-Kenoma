@@ -196,7 +196,7 @@ const AI=(()=>{
         if(rr>=0&&cc>=0&&rr<G.rows&&cc<COLS&&!isVoid(rr,cc)&&Math.hypot(dr,dc)<=3.5&&fogTile(pl,rr,cc))fog++}
       return (Math.min(3,fog*.13)-stacksOf(pl).filter(x=>hasK(x.st,"lighthouse")).length*2.5-(enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=1)?1:0))*jit(pl)}
     if(u==="wall")return ((isFront(pl,r,c)?3:1.5)+(enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=3)?1:0)-stacksOf(pl).filter(x=>hasK(x.st,"wall")).length*1.5)*jit(pl);
-    if(u==="miner"){if(t&&hasK(t,"ace"))return (t.cards.filter(x=>x.unit==="miner").length<2?4.5:-1)*jit(pl);if(t)return -1;   // v69: two Miners to an Ace, no more
+    if(u==="miner"){if(t&&hasK(t,"ace"))return (t.cards.filter(x=>x.unit==="miner").length<3?4.5:-1)*jit(pl);if(t)return -1;   // v69: two Miners to an Ace, no more
       const cr=(G.crystals||[]).filter(x=>!G.board[x.r][x.c]||G.board[x.r][x.c].owner===pl);if(!cr.length)return -1;
       return (3.2-Math.min(...cr.map(x=>dist(x.r,x.c,r,c)))*.25-(enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=1)?2:0))*jit(pl)}
     if(u==="archer"||u==="cannon")return (t?(hasBase(t)?4+(enemyStacks(pl).some(e=>Math.max(Math.abs(e.r-r),Math.abs(e.c-c))<=3)?1:0):2):(isBack(pl,r,c)?2.2:1.4))*jit(pl);
@@ -240,6 +240,7 @@ const AI=(()=>{
       if(G.over)return;
       const st=G.board[o.r][o.c];if(!st||st!==o.st||st.owner!==pl||st.moved)continue;
       if(Math.random()<lv.skipMove)continue;
+      if(FAX&&FAX.pl===pl&&FAX.hold&&FAX.hold(st,o.r,o.c))continue;   // v72a: Focus on ambush: an ambusher near the enemy holds its ground
       if(st.cards.every(c=>c.unit==="miner"))continue;   // lone Miners have their own errands
       let grp=st.cards.filter(c=>!isBase(c)&&!c.faLock&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter))&&!(c.unit==="miner"&&crystalAt(o.r,o.c)));   // v71n: a Miner digging a crystal stays at it   // v65: cards locked in place stay   // Miners, Repairmen and shooters stay in their base
       if(!grp.length||st.stun)continue;

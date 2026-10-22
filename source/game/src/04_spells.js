@@ -114,6 +114,11 @@ async function jokerSuicide(r,c,st,pl){
   if(m.blood){
     toDark(j);for(const s of souls)toDark(s);
     log(`Sacrificial Suicide under the Blood Moon: ${plName(pl)}'s Joker and its ${souls.length} soul${souls.length===1?"":"s"} fall into the Outer Darkness.`,"event");
+  }else if(G.opts.jokerDark!==false){   // v72a (the default rule): the souls fall into the Outer Darkness and their worth comes as mana; the Joker goes back into the deck
+    const w=souls.reduce((a,s)=>a+soulOf(s),0);for(const s of souls)toDark(s);let got=w?giveMana(pl,w):0;
+    if(G.p[pl].tribe==="jester"&&G.moon.gone==="jupiter"){const v=R(2)-1;if(v){got+=giveMana(pl,v);log(`Jupiter adds ${v} mana to the Jester's Sacrificial Suicide.`)}}
+    const P=G.p[pl];j.owner=pl;if(j.hp!=null&&j.maxHp!=null)j.hp=j.maxHp;P.deck.push(j);shuffle(P.deck);
+    log(`Sacrificial Suicide: ${plName(pl)}'s Joker goes back into the deck; ${souls.length} captured soul${souls.length===1?"":"s"} fall${souls.length===1?"s":""} into the Outer Darkness${got?` and ${got} mana come${got===1?"s":""} to the soul pile`:""}.`,"event");
   }else{
     let moved=0,lost=0;
     for(const s of souls){if(addSoul(pl,s))moved++;else{toGrave(s,"spent");lost++}}

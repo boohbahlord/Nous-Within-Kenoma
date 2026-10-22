@@ -2031,3 +2031,8 @@ html.lite.nepec .meters .deckbar::after,html.lite.nepec .meters .manabar::after,
 /* v71q: a sub-option sits under its option; a switch held by another looks held */
 .subchk{margin:-2px 0 6px 26px}
 label.chk.off{opacity:.55;cursor:not-allowed}
+
+/* v72a: the grave, the Ether, the Outer Darkness and the Auction at the bottom of the spell list */
+.spellpanel #shared{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:10px 0 0;padding-top:10px;border-top:1px solid #000}
+.spellpanel #shared .link{display:flex;justify-content:space-between;align-items:center;gap:6px;text-align:left;padding:6px 9px;border:1px solid var(--rule);background:color-mix(in srgb,var(--deep) 80%,transparent);text-decoration:none;border-radius:3px}
+.spellpanel #shared .link:hover,.spellpanel #shared .link:focus-visible{border-color:currentColor}
