@@ -5,13 +5,13 @@
 /* Random becomes a real Emanation before the game starts; fixed colors and symbols are applied */
 function resolveSubstances(opts){
   const taken=new Set(skyBlocked(opts.moon));   // a Heavenly Body in the sky from the start keeps out the Emanation it would serve
-  // every Emanation but the Beginner is played by one player at most
-  for(const p of opts.players)if(p.tribe&&TRIBES[p.tribe]&&p.tribe!=="random"&&p.tribe!=="beginner"&&p.tribe!=="plain"&&!TRIBES[p.tribe].soon)taken.add(p.tribe);
+  // every Emanation is played by one player at most (v73a: the Beginner is gone; a seat left without one plays with No Emanation)
+  for(const p of opts.players)if(p.tribe&&TRIBES[p.tribe]&&p.tribe!=="random"&&p.tribe!=="plain"&&!TRIBES[p.tribe].soon&&!TRIBES[p.tribe].gone)taken.add(p.tribe);
   for(const p of opts.players){
     if(p.cpu==="horde")continue;
-    if(!p.tribe||!TRIBES[p.tribe]||p.tribe==="random"||TRIBES[p.tribe].soon){
-      const ban=opts.subBan||[],pool=PLAYABLE.filter(k=>(k==="beginner"||!taken.has(k))&&!ban.includes(k));
-      p.tribe=pool.length?pick(pool):"beginner";p.randomSub=true;if(p.tribe!=="beginner")taken.add(p.tribe);
+    if(!p.tribe||!TRIBES[p.tribe]||p.tribe==="random"||TRIBES[p.tribe].soon||TRIBES[p.tribe].gone){
+      const ban=opts.subBan||[],pool=PLAYABLE.filter(k=>!taken.has(k)&&!ban.includes(k));
+      p.tribe=pool.length?pick(pool):"plain";p.randomSub=true;if(p.tribe!=="plain")taken.add(p.tribe);
     }
     const T=TRIBES[p.tribe];if(T.color)p.color=T.color;if(T.solid)p.solid=T.solid;
   }

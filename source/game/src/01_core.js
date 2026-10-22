@@ -28,7 +28,7 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random
 const BONE="#e9dfc4",SATAN_RED="#9c1428";
 const TRIBES={
  random:{name:"Random",sub:"One of the Emanations below, picked when the game starts."},
- beginner:{name:"Beginner",sub:"Eight starting cards, eight mana and an eight-card hand, a second Ace and a Joker in hand, three Grunts already on the field, and Please Don't Hurt Me once a game."},
+ beginner:{name:"Beginner",hidden:true,gone:true,sub:"Eight starting cards, eight mana and an eight-card hand, a second Ace and a Joker in hand, three Grunts already on the field, and Please Don't Hurt Me once a game."},
  angel:{name:"Angel Machine",sub:"Antony's Emanation. Always Bone white with the cracked mask. Samson in the deck, Lightning Strike from three bolts, and Three of Swords for 1 mana.",color:BONE,solid:"mask"},
  satan:{name:"Satan",sub:"Always dark crimson with the claw. The Satan card (three hearts, 6d12, stands alone) and the curse Hate.",color:SATAN_RED,solid:"claw"},
  binah:{name:"Binah",sub:"The Southern tribe of the Euclids. Three Slavemasters capture the soldiers they defeat, and the captured come back as armed Slaves. Jokers hit for +3."},
@@ -36,7 +36,7 @@ const TRIBES={
  tiph:{name:"Tiphareth of Kether",sub:"The Northern tribe of the Euclids. Three Traffickers chain the souls that die beside them and sell them at the Auction. The Blindfold, immunity to the Leviathan on the moon, and Jokers that hit for +1."},
  lucifer:{name:"Lucifer & Ouroboros",sub:"Always the ink and scroll. The Delusions of Ouroboros and of Lucifer, Deconjured, and Pleasure and Joy.",solid:"scroll"},
  leviathan:{name:"The Leviathan",sub:"The black serpent in the deck: three hearts, 6d4 + 1d2 + 6. On a New Moon it can rise onto the moon and tax every New Moon after. Its Jokers can exile souls to the Outer Darkness."},
- firm:{name:"The Firmament",sub:"Always the six-pointed star. Untouched by the Moon's and Saturn's harms and by meteors; a Miner on the moon; Blood Moon, Rain, Asteroid, Fog, and Mars in the sky.",solid:"hexa"},
+ firm:{name:"The Firmament",sub:"Always the eight-pointed star. Untouched by the Moon's and Saturn's harms and by meteors; a Miner on the moon; Blood Moon, Rain, Asteroid, Fog, and Mars in the sky.",solid:"star8"},
  yald:{name:"Yaldabaoth",sub:"Always the symbol of Saturn. Night's Judgement eats the moon, God Hunger eats cards, and seven eaten bring Saturn and its Debt Collectors.",solid:"saturn"},
  plain:{name:"No Emanation",sub:"The plain rules: no Emanation's advantages or drawbacks.",hidden:true}   // v70d: only through the host's No Emanations option
 };

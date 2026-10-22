@@ -1,7 +1,7 @@
 /* ---------------- Prompt 12, part 2c (v29): striking Emanations and Heavenly Bodies before a game; the Sun and Saturn judge their buyer ----------------
    Emanations: a small check in every Emanation tile strikes it from the game: nobody can pick it and Random never rolls it. One ban list
-     for the whole table (it shows in every seat). At least one stays; Random fades out by itself when only one is left. Only the Beginner
-     can be shared, so it is the last to go: it can be struck only while there are still as many other Emanations as seats.
+     for the whole table (it shows in every seat). At least one stays; Random fades out by itself when only one is left. Every seat needs one of
+     its own (v73a: the Beginner is gone), so at least as many Emanations as seats stay.
      Survival has no bans.
    Planets: a check on each Heavenly Body in "Starting Heavenly Body" strikes it from Astrology: it can't be bought in the Heavenly Body shop and the
      Firmament can't raise it. The starting Heavenly Body itself can't be struck.
@@ -19,13 +19,12 @@ function banBtn(on,what){const b=document.createElement("button");b.type="button
   b.setAttribute("aria-label",on?`${what} is allowed in this game. Click to strike it.`:`${what} is struck from this game. Click to allow it.`);b.dataset.tip=on?"Allowed. Click to strike it from this game.":"Struck from this game. Click to allow it again.";return b}
 
 /* ---------- the rules for striking an Emanation ---------- */
-function subFloorFix(){const N=seatCount();if(SUB_BAN.has("beginner")&&subsAllowed().length<N){SUB_BAN.delete("beginner");saveBans();return true}return false}
+function subFloorFix(){const N=seatCount();let ch=false;for(const k of [...SUB_BAN]){if(subsAllowed().length>=N)break;SUB_BAN.delete(k);ch=true}if(ch)saveBans();return ch}   // v73a: every seat needs one of its own
 function toggleSub(k){
   if(SUB_BAN.has(k)){SUB_BAN.delete(k);saveBans();return true}
   const N=seatCount(),after=subsAllowed().filter(x=>x!==k);
   if(!after.length){flash("At least one Emanation has to stay.");return false}
-  if(!after.includes("beginner")&&after.length<N){
-    flash(k==="beginner"?`The Beginner stays until ${N} other Emanations are allowed: ${N} players need ${N} Emanations, and only the Beginner can be shared.`:`With the Beginner struck, ${N} players need at least ${N} Emanations.`);return false}
+  if(after.length<N){flash(`${N} players need at least ${N} Emanations: no two players share one.`);return false}
   SUB_BAN.add(k);saveBans();return true}
 /* seats sitting on a struck Emanation move to Random (or to the only one left) */
 function fixSeats(root){
@@ -38,7 +37,7 @@ function fixSeats(root){
 /* ---------- painting the checks into the setup ---------- */
 function applyBans(root){
   if(!root)return;const surv=setupSurvival();root.classList.toggle("nobans",surv);
-  if(!surv&&subFloorFix())flash("The Beginner is back: there are more seats than other Emanations.");
+  if(!surv&&subFloorFix())flash("An Emanation is back: every seat needs one of its own.");
   const A=subsAllowed();
   root.querySelectorAll('.seat label.opt input[name^="tr"]').forEach(inp=>{const lab=inp.closest("label.opt"),k=inp.value;
     if(surv){lab.classList.remove("banned");return}
