@@ -63,7 +63,8 @@ function face(c,o={}){
   return `<span class="cf ${c.color}${c.hate?" hated":""}${isBase(c)?" basecard":""} ${o.cls||""}" style="--pc:${col}" title="${esc(nameOf(c))}"><span class="cx"><b class="rk${c.rank==="JK"?" jk":""}">${rk}</b>${c.rank==="JK"?"":`<i>${su}</i>`}</span><i class="su">${su}</i>${P?`<span class="so">${solidSVG(P.solid,col,sm?12:17)}</span>`:""}${c.puppet&&!sm?`<span class="pup">${unitSVG("puppet","#15100b",16)}</span>`:""}${c.maxHp&&!sm?heartsHTML(c):""}${sm?"":`<em class="ty">${typeWord(c)}</em>`}${o.price?`<span class="price">${costOf(c)} mana</span>`:""}${o.noci?"":`<span class="ci" data-cid="${c.id}" role="button" title="Card info"></span>`}</span>`;
 }
 function back(pl){const P=G.p[pl];return `<span class="cb" style="--pc:${P.color}">${solidSVG(P.solid,P.color,18)}</span>`}
-const clock=t=>new Date(t).toLocaleTimeString([],{hour:"numeric",minute:"2-digit",second:"2-digit"});
+const CLOCK=new Map();   // v76b: each second formatted once (the browser's time formatting is slow, and the log shows many)
+const clock=t=>{const k=Math.floor(t/1000);let s=CLOCK.get(k);if(s==null){if(CLOCK.size>4000)CLOCK.clear();s=new Date(t).toLocaleTimeString([],{hour:"numeric",minute:"2-digit",second:"2-digit"});CLOCK.set(k,s)}return s};
 function lastSpellNote(P){const e=P.lastSpell;if(!e)return "";return `<span class="lastsp">(last spell: ${esc(e.name)}${e.tile?" on "+e.tile:""}${e.target?" at "+esc(e.target):""}, ${e.round?"round "+e.round:"setup"}, ${clock(e.t)})</span>`}
 function trayHTML(P,pl){
   const t=P.tray,head=`<span class="tl">${t?esc(t.label):esc(P.name)+"'s dice"} ${lastSpellNote(P)}</span>`;

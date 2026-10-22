@@ -2414,3 +2414,7 @@ html.still-glow .dipbar.notify{animation:none}
 /* v76a: nothing outside the map: its outer void tiles aren't drawn (the ground is clipped to the rest in code) */
 #board.voidcut .tile.outvoid{visibility:hidden}
 #board.voidcut .mapbg{border:0}
+/* v76b: a tile's insides are laid out and painted on their own (it already clips them), and on the large maps a tile out
+   of view is skipped until it scrolls in: its size comes from the field's grid, never from what it holds */
+#board .tile{contain:layout paint}
+#board.large .tile{content-visibility:auto}

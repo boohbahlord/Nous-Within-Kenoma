@@ -338,6 +338,10 @@ const survival=()=>G.opts.mode==="survival";
 const isHorde=pl=>!!(G.p[pl]&&(G.p[pl].cpu==="horde"||G.p[pl].cpu==="npc"));   // the Horde, and the Demons and the Bank (no deck, no hand, no mana)
 const hordeIx=()=>G.p.findIndex(P=>P.cpu==="horde");
 const alive=()=>G.p.filter(P=>!P.out).map(P=>P.i);
+/* v76b: work that measures the page waits for one pass just before the next paint (see 99_perf.js) */
+const PERF={inRender:0,vk:null,sp:null,jobs:new Map(),raf:0};
+function perfFlush(){PERF.raf=0;const js=[...PERF.jobs.values()];PERF.jobs.clear();for(const f of js){try{f()}catch(e){console.error(e)}}}
+function perfLater(k,fn){PERF.jobs.set(k,fn);if(!PERF.raf)PERF.raf=typeof requestAnimationFrame==="function"?requestAnimationFrame(perfFlush):setTimeout(perfFlush,16)}
 const isEnemy=(a,b)=>a!=null&&b!=null&&a!==b&&G.p[a].team!==G.p[b].team&&!(G.dip&&dipAllied(a,b));   // v75b: allies (Diplomacy) are not enemies
 const enemiesOf=pl=>alive().filter(i=>isEnemy(pl,i));
 const alliesOf=pl=>alive().filter(i=>i!==pl&&!isEnemy(pl,i));
@@ -1974,7 +1978,8 @@ function face(c,o={}){
   return `<span class="cf ${c.color}${c.hate?" hated":""}${isBase(c)?" basecard":""} ${o.cls||""}" style="--pc:${col}" title="${esc(nameOf(c))}"><span class="cx"><b class="rk${c.rank==="JK"?" jk":""}">${rk}</b>${c.rank==="JK"?"":`<i>${su}</i>`}</span><i class="su">${su}</i>${P?`<span class="so">${solidSVG(P.solid,col,sm?12:17)}</span>`:""}${c.puppet&&!sm?`<span class="pup">${unitSVG("puppet","#15100b",16)}</span>`:""}${c.maxHp&&!sm?heartsHTML(c):""}${sm?"":`<em class="ty">${typeWord(c)}</em>`}${o.price?`<span class="price">${costOf(c)} mana</span>`:""}${o.noci?"":`<span class="ci" data-cid="${c.id}" role="button" title="Card info"></span>`}</span>`;
 }
 function back(pl){const P=G.p[pl];return `<span class="cb" style="--pc:${P.color}">${solidSVG(P.solid,P.color,18)}</span>`}
-const clock=t=>new Date(t).toLocaleTimeString([],{hour:"numeric",minute:"2-digit",second:"2-digit"});
+const CLOCK=new Map();   // v76b: each second formatted once (the browser's time formatting is slow, and the log shows many)
+const clock=t=>{const k=Math.floor(t/1000);let s=CLOCK.get(k);if(s==null){if(CLOCK.size>4000)CLOCK.clear();s=new Date(t).toLocaleTimeString([],{hour:"numeric",minute:"2-digit",second:"2-digit"});CLOCK.set(k,s)}return s};
 function lastSpellNote(P){const e=P.lastSpell;if(!e)return "";return `<span class="lastsp">(last spell: ${esc(e.name)}${e.tile?" on "+e.tile:""}${e.target?" at "+esc(e.target):""}, ${e.round?"round "+e.round:"setup"}, ${clock(e.t)})</span>`}
 function trayHTML(P,pl){
   const t=P.tray,head=`<span class="tl">${t?esc(t.label):esc(P.name)+"'s dice"} ${lastSpellNote(P)}</span>`;
@@ -2121,7 +2126,8 @@ function render(){
   const B=$("#board");B.style.setProperty("--rows",DR);B.style.setProperty("--cols",DC);B.classList.toggle("mapped",G.map.theme!=="none");B.classList.toggle("nolabels",!duel);B.dataset.map=G.map.theme;B.classList.toggle("sunlit",G.moon.gone==="sun");B.classList.toggle("blacksun",G.moon.gone==="blacksun");B.style.setProperty("--tears",G.sunTears||0);
   if(!G.map.ground)G.map.ground=mapGround();G.map.art=G.map.art||{};
   const river=G.map.theme==="river";
-  B.innerHTML=`<div class="mapbg">${G.map.ground}</div>`+[...Array(DR).keys()].map(i=>{
+  const oldBg=B.querySelector(":scope>.mapbg"),oldVeil=B.querySelector(":scope>.fogveil");   // v76b: the same ground (with its clip) and fog veil are kept from one redraw to the next
+  B.innerHTML=`<div class="mapbg">${oldBg&&oldBg._g===G.map.ground?"":G.map.ground}</div>`+[...Array(DR).keys()].map(i=>{
     const r0=toBoard(i,0)[0];
     let lineName="",nm="";
     if(duel){
@@ -2133,7 +2139,7 @@ function render(){
       const [r,c]=toBoard(i,j);
       const st=hiddenFrom(V,r,c)?null:G.board[r][c],role=tileRole(r,c),edge=outerEdge(r,c,K),key=r+"."+c+"."+edge;   // a Delusion hides what lies beyond your reach
       const art=G.map.art[key]||(G.map.art[key]=tileArt(r,c,role,edge));
-      if(role==="void"||role==="water")return `<div class="tile ${role}" data-vr="${r}" data-vc="${c}" aria-hidden="true">${art}</div>`;
+      if(role==="void"||role==="water")return `<div class="tile ${role}${role==="void"&&mapIsOut(r,c)?" outvoid":""}" data-vr="${r}" data-vc="${c}" aria-hidden="true">${art}</div>`;
       const cls=["tile"];if(G.sel&&G.sel.r===r&&G.sel.c===c)cls.push("sel");
       if(isT(r,c,tgt))cls.push(G.mode==="attack"?"tatk":"tmove");if(isT(r,c,placeT))cls.push("tplace");
       const z=G.zone[r][c];if(!duel&&z>=0)cls.push("zone");
@@ -2154,6 +2160,7 @@ function render(){
       return `<button class="${cls.join(" ")}${role==="bridge"?" bridge":""}"${zc} data-r="${r}" data-c="${c}" aria-label="${coord(r,c)}, ${lineName||(z>=0?G.p[z].name+"'s ground":"open ground")}${role==="bridge"?" bridge":""}${st?", "+st.cards.map(nameOf).join(", "):", empty"}">${art}${PREF.coords?`<span class="coord">${coord(r,c)}</span>`:""}${inner}</button>`;
     }).join("")+"</div>";
   }).join("");
+  {const nb=B.querySelector(":scope>.mapbg");if(nb){if(oldBg&&oldBg._g===G.map.ground)nb.replaceWith(oldBg);else nb._g=G.map.ground}if(oldVeil)B.appendChild(oldVeil)}
   $("#board").querySelectorAll("button.tile").forEach(b=>b.onclick=()=>tileClick(+b.dataset.r,+b.dataset.c));
   // player boxes
   const others=G.p.map(P=>P.i).filter(i=>i!==V&&!isNPC(i));
@@ -2194,7 +2201,7 @@ function render(){
   if($("#next"))$("#next").onclick=nextPhase;
   paintSndTop();
   renderSel(live);
-  renderSpells(live);fitSide();
+  renderSpells(live);perfLater("fitside",fitSide);   // v76b: measured once, just before the paint
   document.querySelectorAll("[data-hist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.hist,b)});
   wireCorners();wireMoon();wireStatus();
   if(histOpen!=null)fillHist();
@@ -3945,7 +3952,8 @@ const quietOn=V=>(G.quiet||[]).some(q=>q.until>=G.moon.round&&isEnemy(q.by,V));
 const birdOn=V=>(G.bird||[]).some(b=>b.round===G.moon.round&&!isEnemy(b.by,V));
 const stealthy=st=>st.ambush||st.cards.every(c=>c.unit==="assassin"||c.unit==="scout");
 function visionMap(V){   // cached until the board changes: each side's cards and Scouts
-  const L0=G.log[0],key=G.turnNo+"|"+G.log.length+"|"+(L0?L0.t+L0.html.length:0)+"|"+G.board.flat().filter(Boolean).length;
+  let key=PERF.inRender?PERF.vk:null;   // v76b: worked out once per redraw (nothing on the board moves while it is drawn)
+  if(!key){const L0=G.log[0];let n=0;for(const row of G.board)for(const s of row)if(s)n++;key=G.turnNo+"|"+G.log.length+"|"+(L0?L0.t+L0.html.length:0)+"|"+n;if(PERF.inRender)PERF.vk=key}
   if(!G._vis||G._vis.key!==key)G._vis={key,m:{}};
   return G._vis.m[V]||(G._vis.m[V]={own:sideOf(V).flatMap(stacksOf),sc:scoutsOf(V)});
 }
@@ -5395,7 +5403,7 @@ function spellRow(s,live){
 function renderSpells(live){
   const box=$("#spells");if(!box)return;
   box.classList.toggle("bloodmoon",!!G.moon.blood);
-  const V=G.p[view()],keep=box.scrollTop;
+  const V=G.p[view()],keep=PERF.inRender&&PERF.sp!=null?PERF.sp:box.scrollTop;   // v76b: noted before the redraw began
   const mine=s=>(!s.tribe||s.tribe===V.tribe)&&!ETHER_IDS.has(s.id)&&!inDrawer(s,V)&&!(survival()&&["forced","double","three","naked"].includes(s.id));
   const head=!live?`<p class="dim sp-note">${G.passing?"":me().cpu?`${esc(me().name)} is casting.`:"Spells are cast in your prep phase."}</p>`:G.phase==="prep"?"":G.opts.atkSpells&&G.phase==="attack"?'<p class="dim sp-note">Enchantments, curses, sorcery and illusions can be cast now.</p>':'<p class="dim sp-note">Spells are cast in your prep phase.</p>';
   const byPrice=(a,b)=>spellCost(a)-spellCost(b)||a.name.localeCompare(b.name);
@@ -5410,7 +5418,7 @@ function renderSpells(live){
     list.sort(byPrice);if(sc==="Necromancy"){const top=["bless","ritual"];list.sort((a,b)=>(top.includes(a.id)?top.indexOf(a.id):9)-(top.includes(b.id)?top.indexOf(b.id):9))}   // v47: Grave Blessing, then Ritual Dice
     const rows=list.map(s=>spellRow(s,live)),core=sc==="Necromancy"?list.filter(s=>s.id==="bless"||s.id==="ritual").length:0;
     return `<details class="school" data-sc="${sc}" ${(PREF.shut||[]).includes(sc)?"":"open"}><summary>${sc}</summary>${core?`<div class="necrocore">${rows.slice(0,core).join("")}</div>`:""}${pinned}${rows.slice(core).join("")}</details>`}).join("");
-  box.scrollTop=keep;
+  if(keep)perfLater("spscroll",()=>{if(box.isConnected&&box.scrollTop!==keep)box.scrollTop=keep});   // v76b: just before the paint
   box.querySelectorAll("details.school").forEach(d=>d.ontoggle=()=>{const sc=d.dataset.sc,S=new Set(PREF.shut||[]);d.open?S.delete(sc):S.add(sc);PREF.shut=[...S];savePrefs()});
   box.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{if(!canAct())return;cast(SP(b.dataset.s))});
   if($("#openEther"))$("#openEther").onclick=()=>openEtherShop();
@@ -7379,7 +7387,7 @@ function fogVeil(){const B=$("#board");if(!B)return;let v=B.querySelector(":scop
     const m="url(\"data:image/svg+xml;utf8,"+encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'><filter id='b' x='-20%' y='-20%' width='140%' height='140%'><feGaussianBlur stdDeviation='${Math.max(8,tw*.2).toFixed(1)}'/></filter><g fill='white' filter='url(%23b)'>${g}</g></svg>`).replace(/%2523/g,"%23")+"\")";
     v.style.maskImage=m;v.style.webkitMaskImage=m}
   v.style.setProperty("--c1",FOG_CLOUDS[0]);v.style.setProperty("--c2",FOG_CLOUDS[1])}
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;try{fogVeil()}catch(e){console.error(e)}}}
+{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;perfLater("fogveil",fogVeil)}}   // v76b: just before the paint
 addEventListener("resize",()=>{fogKey="";if(G)try{fogVeil()}catch(e){}});
 
 /* ---------- Venus: gratitude and ingratitude ---------- */
@@ -13347,8 +13355,8 @@ function mapOutside(){const M=G.map,V=M&&M.void;if(!V)return null;const key=M.se
   for(let r=0;r<rows;r++){push(r,0);push(r,cols-1)}for(let c=0;c<cols;c++){push(0,c);push(rows-1,c)}
   while(q.length){const [r,c]=q.pop();push(r+1,c);push(r-1,c);push(r,c+1);push(r,c-1)}
   mapOut=out.some(x=>x.some(Boolean))?out:null;return mapOut}
+const mapIsOut=(r,c)=>{const o=G&&G.map&&mapOutside();return !!(o&&o[r]&&o[r][c])};   // the board marks these as it is written
 function mapClip(){const B=$("#board");if(!B||!G||!G.map)return;const out=mapOutside();B.classList.toggle("voidcut",!!out);if(!out)return;
-  for(const t of B.querySelectorAll(".tile[data-vr]"))t.classList.toggle("outvoid",!!(out[+t.dataset.vr]&&out[+t.dataset.vr][+t.dataset.vc]));
   const bg=B.querySelector(".mapbg");if(!bg)return;const W=bg.offsetWidth,H=bg.offsetHeight;if(!W||!H)return;
   const key=mapOutKey+"|"+W+"x"+H+"|"+view();if(bg.dataset.clip===key)return;
   if(clipCache.key===key){mapClipSet(bg,clipCache.url,key);return}   // a new ground for the same board: the same clip
@@ -13358,9 +13366,20 @@ function mapClip(){const B=$("#board");if(!B||!G||!G.map)return;const out=mapOut
   const url=`url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><g fill="#fff">${rects}</g></svg>`)}")`;
   clipCache={key,url};mapClipSet(bg,url,key)}
 function mapClipSet(bg,url,key){for(const [k,v] of [["maskImage",url],["webkitMaskImage",url],["maskSize","100% 100%"],["webkitMaskSize","100% 100%"],["maskRepeat","no-repeat"],["webkitMaskRepeat","no-repeat"]])bg.style[k]=v;bg.dataset.clip=key}
-{const _r=render;render=function(){_r.apply(this,arguments);try{mapClip()}catch(e){console.error(e)}}}
+{const _r=render;render=function(){_r.apply(this,arguments);if(G&&G.map)perfLater("mapclip",mapClip)}}   // v76b: just before the paint
 if(typeof ResizeObserver!=="undefined"){let ro=null;const watch=()=>{const B=$("#board");if(!B||B._clipRO)return;B._clipRO=1;ro=ro||new ResizeObserver(()=>{try{mapClip()}catch(e){}});ro.observe(B)};
   {const _r=render;render=function(){_r.apply(this,arguments);watch()}}}
 if(window.__EC)Object.assign(window.__EC,{mapOutside:()=>mapOutside()});
+
+/* ---------- v76b: performance ----------
+   The outermost redraw: it notes, before anything on the page changes, what the redraw would otherwise have to measure
+   mid-way (the spells' scroll position), and lets the fog's line of sight be worked out once per redraw instead of once
+   per tile. Work that measures the page (the fog veil, the side panel's height, the map's clip, the spells' scroll) runs
+   in one pass just before the next paint (perfLater, 01_core.js), so a redraw lays the page out once. */
+/* the spells' scroll position, kept as it scrolls: a redraw never has to measure it */
+let spellsTop=0;document.addEventListener("scroll",e=>{const t=e.target;if(t&&t.id==="spells")spellsTop=t.scrollTop},{capture:true,passive:true});
+{const _r=render;render=function(){if(!PERF.inRender){PERF.vk=null;PERF.sp=spellsTop}
+  PERF.inRender++;try{return _r.apply(this,arguments)}finally{PERF.inRender--;if(!PERF.inRender){PERF.vk=null;PERF.sp=null}}}}
+if(window.__EC)Object.assign(window.__EC,{renderAll:()=>render(),perfFlush:()=>perfFlush()});
 
 })();

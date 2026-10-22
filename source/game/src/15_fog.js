@@ -14,7 +14,8 @@ const quietOn=V=>(G.quiet||[]).some(q=>q.until>=G.moon.round&&isEnemy(q.by,V));
 const birdOn=V=>(G.bird||[]).some(b=>b.round===G.moon.round&&!isEnemy(b.by,V));
 const stealthy=st=>st.ambush||st.cards.every(c=>c.unit==="assassin"||c.unit==="scout");
 function visionMap(V){   // cached until the board changes: each side's cards and Scouts
-  const L0=G.log[0],key=G.turnNo+"|"+G.log.length+"|"+(L0?L0.t+L0.html.length:0)+"|"+G.board.flat().filter(Boolean).length;
+  let key=PERF.inRender?PERF.vk:null;   // v76b: worked out once per redraw (nothing on the board moves while it is drawn)
+  if(!key){const L0=G.log[0];let n=0;for(const row of G.board)for(const s of row)if(s)n++;key=G.turnNo+"|"+G.log.length+"|"+(L0?L0.t+L0.html.length:0)+"|"+n;if(PERF.inRender)PERF.vk=key}
   if(!G._vis||G._vis.key!==key)G._vis={key,m:{}};
   return G._vis.m[V]||(G._vis.m[V]={own:sideOf(V).flatMap(stacksOf),sc:scoutsOf(V)});
 }

@@ -136,7 +136,8 @@ function render(){
   const B=$("#board");B.style.setProperty("--rows",DR);B.style.setProperty("--cols",DC);B.classList.toggle("mapped",G.map.theme!=="none");B.classList.toggle("nolabels",!duel);B.dataset.map=G.map.theme;B.classList.toggle("sunlit",G.moon.gone==="sun");B.classList.toggle("blacksun",G.moon.gone==="blacksun");B.style.setProperty("--tears",G.sunTears||0);
   if(!G.map.ground)G.map.ground=mapGround();G.map.art=G.map.art||{};
   const river=G.map.theme==="river";
-  B.innerHTML=`<div class="mapbg">${G.map.ground}</div>`+[...Array(DR).keys()].map(i=>{
+  const oldBg=B.querySelector(":scope>.mapbg"),oldVeil=B.querySelector(":scope>.fogveil");   // v76b: the same ground (with its clip) and fog veil are kept from one redraw to the next
+  B.innerHTML=`<div class="mapbg">${oldBg&&oldBg._g===G.map.ground?"":G.map.ground}</div>`+[...Array(DR).keys()].map(i=>{
     const r0=toBoard(i,0)[0];
     let lineName="",nm="";
     if(duel){
@@ -148,7 +149,7 @@ function render(){
       const [r,c]=toBoard(i,j);
       const st=hiddenFrom(V,r,c)?null:G.board[r][c],role=tileRole(r,c),edge=outerEdge(r,c,K),key=r+"."+c+"."+edge;   // a Delusion hides what lies beyond your reach
       const art=G.map.art[key]||(G.map.art[key]=tileArt(r,c,role,edge));
-      if(role==="void"||role==="water")return `<div class="tile ${role}" data-vr="${r}" data-vc="${c}" aria-hidden="true">${art}</div>`;
+      if(role==="void"||role==="water")return `<div class="tile ${role}${role==="void"&&mapIsOut(r,c)?" outvoid":""}" data-vr="${r}" data-vc="${c}" aria-hidden="true">${art}</div>`;
       const cls=["tile"];if(G.sel&&G.sel.r===r&&G.sel.c===c)cls.push("sel");
       if(isT(r,c,tgt))cls.push(G.mode==="attack"?"tatk":"tmove");if(isT(r,c,placeT))cls.push("tplace");
       const z=G.zone[r][c];if(!duel&&z>=0)cls.push("zone");
@@ -169,6 +170,7 @@ function render(){
       return `<button class="${cls.join(" ")}${role==="bridge"?" bridge":""}"${zc} data-r="${r}" data-c="${c}" aria-label="${coord(r,c)}, ${lineName||(z>=0?G.p[z].name+"'s ground":"open ground")}${role==="bridge"?" bridge":""}${st?", "+st.cards.map(nameOf).join(", "):", empty"}">${art}${PREF.coords?`<span class="coord">${coord(r,c)}</span>`:""}${inner}</button>`;
     }).join("")+"</div>";
   }).join("");
+  {const nb=B.querySelector(":scope>.mapbg");if(nb){if(oldBg&&oldBg._g===G.map.ground)nb.replaceWith(oldBg);else nb._g=G.map.ground}if(oldVeil)B.appendChild(oldVeil)}
   $("#board").querySelectorAll("button.tile").forEach(b=>b.onclick=()=>tileClick(+b.dataset.r,+b.dataset.c));
   // player boxes
   const others=G.p.map(P=>P.i).filter(i=>i!==V&&!isNPC(i));
@@ -209,7 +211,7 @@ function render(){
   if($("#next"))$("#next").onclick=nextPhase;
   paintSndTop();
   renderSel(live);
-  renderSpells(live);fitSide();
+  renderSpells(live);perfLater("fitside",fitSide);   // v76b: measured once, just before the paint
   document.querySelectorAll("[data-hist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.hist,b)});
   wireCorners();wireMoon();wireStatus();
   if(histOpen!=null)fillHist();

@@ -36,7 +36,7 @@ function spellRow(s,live){
 function renderSpells(live){
   const box=$("#spells");if(!box)return;
   box.classList.toggle("bloodmoon",!!G.moon.blood);
-  const V=G.p[view()],keep=box.scrollTop;
+  const V=G.p[view()],keep=PERF.inRender&&PERF.sp!=null?PERF.sp:box.scrollTop;   // v76b: noted before the redraw began
   const mine=s=>(!s.tribe||s.tribe===V.tribe)&&!ETHER_IDS.has(s.id)&&!inDrawer(s,V)&&!(survival()&&["forced","double","three","naked"].includes(s.id));
   const head=!live?`<p class="dim sp-note">${G.passing?"":me().cpu?`${esc(me().name)} is casting.`:"Spells are cast in your prep phase."}</p>`:G.phase==="prep"?"":G.opts.atkSpells&&G.phase==="attack"?'<p class="dim sp-note">Enchantments, curses, sorcery and illusions can be cast now.</p>':'<p class="dim sp-note">Spells are cast in your prep phase.</p>';
   const byPrice=(a,b)=>spellCost(a)-spellCost(b)||a.name.localeCompare(b.name);
@@ -51,7 +51,7 @@ function renderSpells(live){
     list.sort(byPrice);if(sc==="Necromancy"){const top=["bless","ritual"];list.sort((a,b)=>(top.includes(a.id)?top.indexOf(a.id):9)-(top.includes(b.id)?top.indexOf(b.id):9))}   // v47: Grave Blessing, then Ritual Dice
     const rows=list.map(s=>spellRow(s,live)),core=sc==="Necromancy"?list.filter(s=>s.id==="bless"||s.id==="ritual").length:0;
     return `<details class="school" data-sc="${sc}" ${(PREF.shut||[]).includes(sc)?"":"open"}><summary>${sc}</summary>${core?`<div class="necrocore">${rows.slice(0,core).join("")}</div>`:""}${pinned}${rows.slice(core).join("")}</details>`}).join("");
-  box.scrollTop=keep;
+  if(keep)perfLater("spscroll",()=>{if(box.isConnected&&box.scrollTop!==keep)box.scrollTop=keep});   // v76b: just before the paint
   box.querySelectorAll("details.school").forEach(d=>d.ontoggle=()=>{const sc=d.dataset.sc,S=new Set(PREF.shut||[]);d.open?S.delete(sc):S.add(sc);PREF.shut=[...S];savePrefs()});
   box.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{if(!canAct())return;cast(SP(b.dataset.s))});
   if($("#openEther"))$("#openEther").onclick=()=>openEtherShop();
