@@ -153,7 +153,7 @@ function pxGroundURL(){const M=G.map,C=PXPAL[M.theme],P=pxPainter(COLS*20,G.rows
 /* a ground picture that came from another browser (online) or from the other style is drawn again here */
 {const _r=render;render=function(){if(G&&G.map&&G.map.ground){const px=/class="mapground px"/.test(G.map.ground),want=PREF.pxMap!==false&&G.map.theme!=="none";
   if(px!==want||px&&(!pxGroundNow||!G.map.ground.includes(pxGroundNow)||pxSeed!==G.map.seed)){G.map.ground=null;G.map.art={}}}
-  return _r.apply(this,arguments)}}
+  return rSafe(_r,this,arguments)}}
 /* the Menu switch: pixel-art maps or the old drawings */
 function pxMapToggle(on){PREF.pxMap=!!on;savePrefs();if(G&&G.map){G.map.ground=null;G.map.art={}}render()}
 {const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const s=$("#mPxMap");if(s)s.onchange=()=>pxMapToggle(s.value==="1")}}

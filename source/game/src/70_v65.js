@@ -27,7 +27,7 @@ const addTone=h=>h.replace(/style="--pc:([^";]*)/,(m,col)=>{const t=toneOf(col);
 {const _sd=siegeDecor;siegeDecor=function(){const h=_sd.apply(this,arguments);return h.replace(/(<div class="stack[^"]*v61[^"]*") style="--pc:([^";]*)/,(m,a,col)=>{const t=toneOf(col);return t?`${a} style="--pc:${col};--pcb:${t}`:m})}}
 
 /* ---------- the opening: a clear line above the field says where the Ace goes (U2) ---------- */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const b=$("#board");if(!b)return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const b=$("#board");if(!b)return;
   const host=b.closest(".camwrap,.boardwrap")||b;let h=$("#acehint");
   const want=G.phase==="setup"&&G.setupStep==="ace"&&canAct()&&!G.p[G.active].cpu;
   if(!want){if(h)h.remove();return}
@@ -60,7 +60,7 @@ SPELLS.push({id:"falock",name:"Lock in Place",cost:0,school:"Enchantment",
   ok:()=>{const st=selStack();return faOn(G.active)&&!!st&&st.owner===G.active&&lockIds(st).length>0},
   run:()=>{const st=selStack();if(st)setFaLock(G.active,G.sel.r,G.sel.c,lockIds(st),true)}});
 SPELL_TEXT.falock={n:"Field Automation only. Free.",e:"The cards you select stay where they are: Field Automation won't move them.",l:"Not on bases, pinned or stunned stacks, or cards already locked. Click the stack to unlock."};
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;if(!faOn(view()))document.querySelectorAll('[data-s="falock"]').forEach(b=>b.remove())}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;if(!faOn(view()))document.querySelectorAll('[data-s="falock"]').forEach(b=>b.remove())}}
 /* the Selected box: lock or unlock */
 {const _rs=renderSel;renderSel=function(live){_rs.apply(this,arguments);if(!G||!G.sel)return;const V=view(),st=selStack(),box=$("#selbox");
   if(!box||!st||st.owner!==V||!faOn(V)||isNPC(V)||showsBack(V,G.sel.r,G.sel.c))return;
@@ -96,7 +96,7 @@ function notePause(pl,what){const k=what+"|"+G.turnNo;G._blindNote=G._blindNote|
 {const _ls=lhAutoSac;lhAutoSac=async function(pl){if(G&&blindPause(pl))return;return _ls.apply(this,arguments)}}
 {const _l=lazyPlace;lazyPlace=function(card){if(G&&blindPause(G.active)){flash("Lazy Hand pauses while you are blind: place this card yourself.");return false}return _l.apply(this,arguments)}}   // v71k: false lets the click pick the card up
 /* the buttons say so */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view();if(V==null||!blindPause(V))return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const V=view();if(V==null||!blindPause(V))return;
   const nep=nepEcPause(V);   // v71c: in Neptune's eclipse the switches stay On, crossed out
   const t=document.querySelector(".fabar .fatog");if(t&&faOn(V)&&!t.dataset.blind){t.dataset.blind="1";if(nep){t.classList.add("nepcancel");t.title="Neptune's eclipse: Field Automation is lost in the fog until it ends."}else{t.textContent="Auto field: paused (blind)";t.title="Field Automation pauses while you are blind; it carries on when you can see again."}}
   const l=$("#lazyBtn");if(l&&!l.classList.contains("blindpause")){l.classList.add("blindpause");if(nep)l.classList.add("nepcancel");l.setAttribute("data-tip",nep?"Neptune's eclipse: Lazy Hand is lost in the fog until it ends.":"Lazy Hand pauses while you are blind.")}}}

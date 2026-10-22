@@ -10,7 +10,7 @@ const stSame=(a,b)=>JSON.stringify(stCfg(a))===JSON.stringify(stCfg(b));
 const stNewId=()=>"s"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const stName=n=>String(n||"").replace(/\s+/g," ").trim().slice(0,40);
 let stUI={sel:null,mode:null,inbox:null};
-function stUse(id){const s=stList().find(x=>x.id===id);if(!s)return;PREF.stratOn=id;stUI.sel=id;faSave(Object.assign(stCfg(s.cfg),{under:faMine().under}))}
+function stUse(id){const s=stList().find(x=>x.id===id);if(!s)return;PREF.stratOn=id;stUI.sel=id;faSave(Object.assign(stCfg(s.cfg),{under:faMine().under},s.cfg&&s.cfg.scope?{}:{scope:faMine().scope}))}   // a strategy saved before Soft Automate keeps the current choice
 /* any other change: the strategy is no longer in use */
 {const _fs=faSave;faSave=function(c){const out=_fs.apply(this,arguments);if(PREF.stratOn){const s=stList().find(x=>x.id===PREF.stratOn);if(!s||!stSame(s.cfg,PREF.fa)){PREF.stratOn=null;savePrefs();paintFA()}}return out}}
 /* sending, through the game (the host keeps each person's inbox) */

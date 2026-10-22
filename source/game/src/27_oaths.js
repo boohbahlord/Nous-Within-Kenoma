@@ -257,7 +257,7 @@ async function saturnEclipse(){
     else log(`The betrayal of ${plName(b.by)} stays unmended.`)}
 }}
 /* remember who betrayed whom, so Venus can mend it */
-{const s=SP("betray");if(s){const run=s.run;s.run=async()=>{const pl=G.active,team=G.p[pl].team,mates=alliesOf(pl).filter(i=>!isHorde(i));await run();
+{const s=SP("betray");if(s){const run=s.run;s.run=async()=>{const pl=G.active,team=G.p[pl].team,mates=teammatesOf(pl);await run();
   if(G.p[pl].team!==team)(G.betrayed=G.betrayed||[]).push({by:pl,team,mates})}}}
 
 /* ---------- the strict economy and the collapse ---------- */
@@ -321,7 +321,7 @@ const sunSacOk=V=>V===G.active&&oathNow(V,"sun");
   if(P.satLocked)t.push(`<span class="debttag">Betrayed Saturn</span>`);
   if(oathNow(P.i,"saturn")&&!P.satLocked)t.push(`<span class="oathtag">Saturn ${P.satPaid||0} paid</span>`);
   return t}}
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G)return;
   const B=$("#board");if(B){const bl=totalBlind(view());B.classList.toggle("blinded",bl);
     let v=B.querySelector(".blindveil");if(bl&&!v){v=document.createElement("div");v.className="blindveil";v.innerHTML=`<b>Blind</b><span>You see nothing on the field this round, not even your own cards.</span>`;B.appendChild(v)}else if(!bl&&v)v.remove();
     if(G.aim&&(G.aim.pl==null||G.aim.pl===view())){const ok=(r,c)=>G.aim.valid?G.aim.valid(r,c):(G.aim.tiles||[]).some(t=>t[0]===r&&t[1]===c);B.querySelectorAll("button.tile").forEach(t=>{if(ok(+t.dataset.r,+t.dataset.c))t.classList.add("taim")})}}

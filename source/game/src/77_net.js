@@ -90,6 +90,6 @@ flushSnap=function(){clearTimeout(snapT);snapT=null;if(NET.role!=="host"||!G||!G
     d=Object.assign({},d,{g});delete d.dg}
   return _on.call(this,from,d)}}
 /* a poor connection at the table: the host gathers its updates (a question still sends the game at once, before it asks) */
-{const _rd=render;render=function(){const had=!!snapT;_rd.apply(this,arguments);if(!had&&snapT&&NET.role==="host"&&netSlow()){clearTimeout(snapT);snapT=setTimeout(flushSnap,320)}}}
+{const _rd=render;render=function(){const had=!!snapT;rSafe(_rd,this,arguments);if(!had&&snapT&&NET.role==="host"&&netSlow()){clearTimeout(snapT);snapT=setTimeout(flushSnap,320)}}}
 
 if(window.__EC)Object.assign(window.__EC,{netLvl,netSet:(n,a)=>netSet(n,a),snapSplit,snapJoin,netQuiet});

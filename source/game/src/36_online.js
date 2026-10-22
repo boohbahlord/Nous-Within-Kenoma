@@ -135,7 +135,7 @@ function flushSnap(){clearTimeout(snapT);snapT=null;if(NET.role!=="host"||!G||!G
   for(const id of guestIds()){const st=NET.sent[id]||(NET.sent[id]={n:0,full:false});const full=!st.full;if(!base||full)base=snapshot(full);
     const lines=G.log.filter(l=>!full?(l.n||0)>st.n:true);
     sendTo(id,{t:"snap",full,g:base.g,aim:base.aim,log:lines.slice(0,full?600:200)});st.full=true;st.n=G.logN||0}}
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(NET.role==="host"&&G&&G.opts.online&&!snapT)snapT=setTimeout(flushSnap,60)}}
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(NET.role==="host"&&G&&G.opts.online&&!snapT)snapT=setTimeout(flushSnap,60)}}
 
 /* ---------- a joined player's screen ---------- */
 function applySnap(m){

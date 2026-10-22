@@ -156,7 +156,7 @@ SPELLS.push(
  {id:"oath_mercury",name:"Oath of Mercury",cost:0,school:"Astrology",text:"Free. Unlocks Betrayal, Declare War and Bribe the Banker. Cast again to break the Oath.",
   ok:()=>oathFree("mercury"),run:async()=>{toggleOath("mercury")}},
  {id:"betray",dice:"1d2+2d3",name:"Betrayal",cost:6,school:"Astrology",text:"Oath of Mercury, in a team game. You leave your team for good. For two rounds every card killed falls into the Outer Darkness, and every damage between you and your former teammates pays its dealer the soul's worth + 1d2 − 1.",
-  ok:()=>oathOf(G.active)==="mercury"&&alliesOf(G.active).filter(i=>!isHorde(i)).length>0,run:async()=>{const pl=G.active,mates=alliesOf(pl).filter(i=>!isHorde(i));
+  ok:()=>oathOf(G.active)==="mercury"&&teammatesOf(G.active).length>0,run:async()=>{const pl=G.active,mates=teammatesOf(pl);
    const sure=await ask(pl,{kind:"yesno",id:"betray",title:"Betrayal",text:`Betray ${mates.map(i=>esc(G.p[i].name)).join(" and ")}? It can't be undone.`,yes:"Betray",no:"Stay loyal",ai:()=>true});
    if(!sure){giveMana(pl,spellCost(SP("betray")));log(`${plName(pl)} thinks better of it.`);return}
    G.p[pl].team=300+pl;G.betrayal={by:pl,mates,until:G.moon.round+1};G._vis=null;
@@ -183,7 +183,7 @@ async function aiMercury(pl,W,cast1){
     if(lv==="hard"&&me>them*1.4&&!warOn()&&mana(pl)>=(G.prices.warnow||6)+2)await cast1("warnow");
     else if(me>them*1.3&&!warOn()&&tryVote){P.voteRound=G.moon.round;await cast1("war")}
     if(lv==="hard"&&mana(pl)>=(G.prices.bribe||6)+4&&!(G.bribes||[]).some(b=>b.by===pl)&&Math.random()<.4)await cast1("bribe");
-    const mates=alliesOf(pl).filter(i=>!isHorde(i));   // betray only a teammate far weaker, when it pays
+    const mates=teammatesOf(pl);   // betray only a teammate far weaker, when it pays
     if(lv==="hard"&&mates.length&&mates.every(m=>strength(m)*2.5<me)&&realPlayers().length<=3&&Math.random()<.15)await cast1("betray");
   }
 }

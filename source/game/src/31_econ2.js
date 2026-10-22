@@ -147,9 +147,9 @@ let bankTab="bank";
   if($("#p2pGo"))$("#p2pGo").onclick=()=>{askLoan(V,+$("#p2pTo").value,+$("#p2pN").value);bankTab="p2p";re()}}}
 
 /* ---------- notices: the Bank bar and the Auction ---------- */
-{const _bb=bankBarHTML;bankBarHTML=function(){const h=_bb();if(!h||!G)return h;const n=loanReqsFor(view()).length;
+{const _bb=bankBarHTML;bankBarHTML=function(){const h=_bb();if(!h||!G)return h;const n=dipOn()?0:loanReqsFor(view()).length;   // with Diplomacy, the flag under the Bank carries it
   return n?h.replace('class="bankbar"','class="bankbar notify"').replace("</button>",`<i class="bang" aria-label="${n} loan request${n>1?"s":""}">!</i></button>`):h}}
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G)return;
   const n=(G.auction||[]).length;if(n>(G._auctLen||0))G.auctV=(G.auctV||0)+1;G._auctLen=n;
   const a=$("#seeauct"),V=view(),P=G.p[V];if(!a||!P)return;
   const fresh=n&&(P.auctSeen||0)<(G.auctV||0)&&G.auction.some(it=>it.seller!==V);

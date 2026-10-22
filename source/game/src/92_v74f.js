@@ -14,7 +14,9 @@ const FA_WHEN="Automated actions take place only at the end of each phase of you
   for(const k of out){const s=src.find(x=>x&&typeof x.id==="string"&&x.id.slice(0,24)===k.id)||{};k.avoid=!!s.avoid;
     k.stackWith=[...new Set((Array.isArray(s.stackWith)?s.stackWith:[]).filter(v=>typeof v==="string").map(v=>v.slice(0,24)))].slice(0,24)}
   return out}}
-const clsBars=(k,o)=>!!k&&!!k.avoid&&!(o===k?k.stackWith.includes("self"):o?k.stackWith.includes(o.id):k.stackWith.includes("none"));
+if(Array.isArray(PREF.faClasses)&&PREF.faClasses.some(k=>k&&!Array.isArray(k.stackWith))){PREF.faClasses=clsClean(PREF.faClasses);savePrefs()}   // classes saved before v74f get the new fields
+const clsSW=k=>Array.isArray(k&&k.stackWith)?k.stackWith:[];   // a class saved before v74f has no list: it stacks with no one
+const clsBars=(k,o)=>!!k&&!!k.avoid&&!(o===k?clsSW(k).includes("self"):o?clsSW(k).includes(o.id):clsSW(k).includes("none"));
 function clsNoStack(list,grp,t){const there=t.cards.filter(x=>!isBase(x));if(!there.length)return false;
   const a=grp.filter(x=>!isBase(x)).map(x=>clsOfCard(x,list)),b=there.map(x=>clsOfCard(x,list));
   return a.some(ka=>b.some(kb=>clsBars(ka,kb)||clsBars(kb,ka)))}
@@ -22,9 +24,9 @@ function clsNoStack(list,grp,t){const there=t.cards.filter(x=>!isBase(x));if(!th
   ctx.noStack=(grp,t)=>clsNoStack(list,grp,t);return ctx}}
 let clsAvw=null;
 function clsAvoidHTML(k,L,pfx){const K=cfgKit("data-clv","data-clvact","clv"+pfx),opts=[["self","Its own cards"],["none","Cards in no class"],...L.filter(x=>x.id!==k.id).map(x=>[x.id,x.name])];
-  const names=opts.filter(([v])=>k.stackWith.includes(v)).map(([,t])=>t),open=clsAvw===k.id||clsWasOpen(`[data-clavw="${k.id}"]`);
+  const sw=clsSW(k),names=opts.filter(([v])=>sw.includes(v)).map(([,t])=>t),open=clsAvw===k.id||clsWasOpen(`[data-clavw="${k.id}"]`);
   return K.row(`${k.id}|avoid`,k.avoid,"Avoid stacking","Field Automation keeps its cards out of stacks with other cards, except the ones ticked below. Your own moves aren't stopped.")+
-    (k.avoid?`<details class="faextra clsavw" data-clavw="${k.id}" ${open?"open":""}><summary>Can still stack with <small class="dim">(${names.length?esc(names.join(", ")):"no one"})</small></summary><div class="opts fakinds">${opts.map(([v,t])=>`<label class="opt"><input type="checkbox" data-clv="${k.id}|sw:${esc(v)}" ${k.stackWith.includes(v)?"checked":""}><span>${esc(t)}</span></label>`).join("")}</div></details>`:"")}
+    (k.avoid?`<details class="faextra clsavw" data-clavw="${k.id}" ${open?"open":""}><summary>Can still stack with <small class="dim">(${names.length?esc(names.join(", ")):"no one"})</small></summary><div class="opts fakinds">${opts.map(([v,t])=>`<label class="opt"><input type="checkbox" data-clv="${k.id}|sw:${esc(v)}" ${sw.includes(v)?"checked":""}><span>${esc(t)}</span></label>`).join("")}</div></details>`:"")}
 {const _ch=clsHTML;clsHTML=function(pfx){const h=_ch.apply(this,arguments),L=clsList();
   return h.replace(/<details class="faextra clstg"[^>]*data-cltg="([^"]+)">/g,(m,id)=>{const k=L.find(x=>x.id===id);return k?`<p class="clsh">Stacking</p>${clsAvoidHTML(k,L,pfx||"")}${m}`:m})}}
 {const _cw=clsWire;clsWire=function(root){_cw.apply(this,arguments);
@@ -70,7 +72,7 @@ document.addEventListener("pointerup",e=>{if(e.pointerType!=="touch"||clsTargetA
 /* slightly see-through, for you only */
 const saShow=st=>!!G&&!!st&&st.owner===view()&&faMine().scope==="soft"&&st.cards.some(x=>x.sa&&!isBase(x));
 {const _sd=siegeDecor;siegeDecor=function(inner,st){const h=_sd.apply(this,arguments);if(!saShow(st))return h;return h.replace('<div class="stack','<div class="stack sauto')}}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view(),P=G.p[V],on=!!P&&faAllowed()&&faMine().scope==="soft";
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const V=view(),P=G.p[V],on=!!P&&faAllowed()&&faMine().scope==="soft";
   for(const b of document.querySelectorAll("#hand [data-h]")){const c=P&&P.hand[+b.dataset.h];b.classList.toggle("sauto",on&&!!(c&&c.sa))}}}
 /* at the top of Field Automation: what it automates, and when */
 {const _fp=faPanelHTML;faPanelHTML=function(c,pl,pfx){const h=_fp.apply(this,arguments),K=cfgKit("data-fa","data-faact","fa"+(pfx||""));

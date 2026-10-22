@@ -58,6 +58,6 @@ function helpToast(){let t=$("#helptoast");if(!t){t=document.createElement("div"
 /* the toast waits until no window or question is open (the setup's Ace, the animations question…), for half a minute at most */
 const dialogOpen=()=>[...document.querySelectorAll("#ov,#animask,#faask,#facfg,#menu,#pop")].some(e=>!e.hidden&&e.getClientRects().length>0&&e.innerHTML.trim()!=="");
 function toastWhenClear(n){if(n>30)return;setTimeout(()=>{if(dialogOpen())toastWhenClear(n+1);else helpToast()},n?1000:1500)}
-{const _r=render;render=function(){_r.apply(this,arguments);paintHelpHead()}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);paintHelpHead()}}
 mountMustKnow();paintHelpHead();
 if(window.__EC)Object.assign(window.__EC,{openMustKnow,helpToast});

@@ -230,7 +230,7 @@ function leaveJail(pl){const P=G.p[pl];if(!P.jail)return;P.cpu=P.jail.cpu;P.jail
   if(P.noLoans&&!P.jail)t.push(`<span class="debttag">No loans</span>`);
   if(venusBlessed(P.i))t.push(`<span class="saletag">Venus's blessing</span>`);
   return t}}
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G)return;
   const B=$("#board"),V=G.p[view()];if(!B)return;let js=B.querySelector(".jailstrip");
   if(V&&V.jail){if(!js){js=document.createElement("div");js.className="jailstrip";js.setAttribute("role","status");B.appendChild(js)}
     const n=jailLeft(V);js.innerHTML=`<b>You are in Jail</b><span>${n} round${n===1?"":"s"} left</span>`}

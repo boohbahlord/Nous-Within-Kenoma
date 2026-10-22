@@ -105,7 +105,7 @@ function nepTempRound(){const T=G.nepTemp;if(!T)return;const busy=T.k==="ev"?!!(
   G.nepEv=null;G._vis=null;applyMoonTheme();
   log(`Neptune leaves the sky: ${skyWord(sky())} comes back where it paused.`,"event")}
 /* the called cycle sounds like the eclipse: the deep tide and the sunken music */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.nepEv||!G.nepEv.spell||!nepEvOn())return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!G.nepEv||!G.nepEv.spell||!nepEvOn())return;
   try{if(typeof AUD!=="undefined"&&AUD.setAmb&&!G.eclipse)AUD.setAmb("ecl-neptune");if(window.ECMusic&&ECMusic.nep)ECMusic.nep(true)}catch(e){}}}
 
 /* ---------- Stray Mana ---------- */
@@ -130,7 +130,7 @@ const strayOn=pl=>{const S=G&&G.strayOn;return !strayIn&&S&&S.t===pl&&S.round===
     return out}finally{strayIn=false}}}
 
 /* a teammate under Lostness II: you see their stacks in a stranger's colors too */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view();if(V==null||nepEcState(V))return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const V=view();if(V==null||nepEcState(V))return;
   for(const P of G.p){const S=P.i!==V&&nepSelf(P.i);if(!S||S.k!=="ec"||isEnemy(P.i,V))continue;
     for(const t of document.querySelectorAll("#board button.tile")){const st=G.board[+t.dataset.r][+t.dataset.c],s=t.querySelector(".stack");if(!st||!s||st.owner!==P.i||!st.cards[0])continue;
       const col=COLORS[nepHash(st.cards[0].id+"|"+S.st.seed)%COLORS.length][1];s.style.setProperty("--pc",col);s.style.setProperty("--pcb",`color-mix(in oklab,${col} 44%,#211b16)`)}}}}

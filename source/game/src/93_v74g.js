@@ -9,7 +9,7 @@
 const EYE_SVG=`<svg viewBox="0 0 48 30" aria-hidden="true"><path d="M2 15C10 4 38 4 46 15 38 26 10 26 2 15Z" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/><circle cx="24" cy="15" r="7.5" fill="none" stroke="currentColor" stroke-width="2.6"/><circle cx="24" cy="15" r="3" fill="currentColor"/></svg>`;
 function handSeers(V){if(!G||!G.p[V]||G.passing)return [];const P=G.p[V];
   return G.p.filter(Q=>Q.i!==V&&!Q.out&&!isNPC(Q.i)&&Q.cpu!=="horde"&&(eclipseOn("sun")||P.shownBy!=null&&(P.shownBy===Q.i||!isEnemy(P.shownBy,Q.i)))).map(Q=>Q.i)}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view(),who=handSeers(V);
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const V=view(),who=handSeers(V);
   const sym=who.map(i=>{const Q=G.p[i];return `<i style="--pc:${Q.color}" title="${esc(Q.name)} can see it">${solidSVG(Q.solid,Q.color,12)}</i>`}).join(""),names=who.map(i=>G.p[i].name).join(", ");
   for(const b of document.querySelectorAll("#hand [data-h]")){b.querySelectorAll(".seeneye,.seers").forEach(x=>x.remove());b.classList.toggle("seen",!!who.length);if(!who.length)continue;
     b.insertAdjacentHTML("beforeend",`<span class="seeneye" aria-hidden="true">${EYE_SVG}</span><span class="seers">${sym}</span>`);
@@ -43,6 +43,6 @@ function spPaint(){if(!G)return;const V=view(),n=spFresh(V).length,h=$(".spellpa
     if(n&&!b){el.insertAdjacentHTML("beforeend",`<i class="bang spbang" aria-label="Something new at the Auction or the Bank">!</i>`)}else if(!n&&b)b.remove()}
   if(h&&!h.dataset.spw){h.dataset.spw=1;h.addEventListener("click",()=>{if(G&&spFresh(view()).length)spShow()})}
   if(t&&!t.dataset.spw){t.dataset.spw=1;t.addEventListener("click",()=>{setTimeout(()=>{if(!G)return;if(PREF.fsSp){if(spFresh(view()).length)spShow()}else{const b=$("#spnote");if(b)b.hidden=true}},0)})}}
-{const _r=render;render=function(){_r.apply(this,arguments);try{spPaint()}catch(e){console.error(e)}}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);try{spPaint()}catch(e){console.error(e)}}}
 
 if(window.__EC)Object.assign(window.__EC,{handSeers:V=>handSeers(V),spNotes:V=>spNotes(V),spFresh:V=>spFresh(V),spShow:()=>spShow()});

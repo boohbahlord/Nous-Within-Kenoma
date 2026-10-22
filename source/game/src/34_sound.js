@@ -132,7 +132,7 @@ const SKY_SND={moon:"moonchime",saturn:"bell",mars:"horn",venus:"harp",jupiter:"
   if(P&&!isHorde(pl)){if(planetUp("saturn")&&paysSaturn(pl))AUD.bell();if(sunUp()&&P.tribe!=="firm"&&P.sunNext!=null&&tnOf(pl)>=P.sunNext)AUD.drums()}
   return _ta.apply(this,arguments)}}
 {const _cr=cycleRound;cycleRound=async function(){const out=await _cr.apply(this,arguments);if(cycleNow("venus"))AUD.harp();if(cycleNow("mercury")){AUD.quill();setTimeout(()=>AUD.whispers(),2600)}return out}}
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G)return;
   // a deck that shrank without being drawn from has lost cards
   for(const P of G.p){if(isNPC(P.i)||isHorde(P.i))continue;const n=P.deck.length;if(P._deckN!=null&&n<P._deckN-(P._drawn||0)&&G.phase!=="setup"&&(P.i===view()||!isEnemy(P.i,view())))AUD.deckHit();P._deckN=n;P._drawn=0}
   const k=sky();if(G._sndSky!==k){if(G._sndSky!==undefined&&SKY_SND[k]){AUD[SKY_SND[k]]();if(k==="mercury")setTimeout(()=>AUD.whispers(),2600)}G._sndSky=k}

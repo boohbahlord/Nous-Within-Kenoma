@@ -52,13 +52,13 @@ function crossPlan(o){const two=o.big==="cross2",X=o.cross||{},small=X.size==="s
 {const _mp=mapPlan;mapPlan=function(o){if(o&&(o.big==="cross"||o.big==="cross2")&&o.mode!=="survival"&&o.layout!=="coop"){const M=crossPlan(o);if(o.layout==="koth"){const c=(M.cols-1)/2;HILL[0]=Math.floor(c);HILL[1]=Math.ceil(c)}return M}   // v73d: the Hill is the very middle
   if(o&&o.layout==="koth"){HILL[0]=10;HILL[1]=14}return _mp.apply(this,arguments)}}
 /* off the map is darker on the crosses, so their shape reads at a glance */
-{const _r=render;render=function(){_r.apply(this,arguments);const B=$("#board");if(B)B.classList.toggle("bigvoid",!!(G&&G.map&&["plus","round","cross","cross2"].includes(G.map.big)))}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);const B=$("#board");if(B)B.classList.toggle("bigvoid",!!(G&&G.map&&["plus","round","cross","cross2"].includes(G.map.big)))}}
 /* a large map opens on your own spawn (and on the next player's, when the device changes hands) */
 let camHomeKey=null;
 function camHome(V){const w=document.querySelector(".camwrap.on"),S=G&&G.map.seats[V];if(!w||!S)return;const ts=S.back.length?S.back:S.zone,[r,c]=ts[Math.floor(ts.length/2)]||[0,0];
   const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(!t)return;const wr=w.getBoundingClientRect(),tr=t.getBoundingClientRect();
   w.scrollLeft+=tr.left+tr.width/2-(wr.left+wr.width/2);w.scrollTop+=tr.top+tr.height/2-(wr.top+wr.height/2)}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!isLarge()||fsOn()||!G.map.seats)return;const V=view(),key=G.map.seed+":"+V;if(camHomeKey===key)return;camHomeKey=key;requestAnimationFrame(()=>camHome(V))}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!isLarge()||fsOn()||!G.map.seats)return;const V=view(),key=G.map.seed+":"+V;if(camHomeKey===key)return;camHomeKey=key;requestAnimationFrame(()=>camHome(V))}}
 /* the setup: the Cross's own options show under Large maps when a Cross is picked */
 function crossUp(n,big){const b=val("obig"),box=$("#crossopts");if(!box)return;const on=b==="cross"||b==="cross2";box.hidden=!on;if(!on)return;
   const sm=document.querySelector('input[name=oxsize][value=small]'),smOk=!(b==="cross2"&&n>2)&&!big;   // the small two-armed Cross holds two; factions and big teams need the standard size

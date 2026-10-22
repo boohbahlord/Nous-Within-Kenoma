@@ -49,7 +49,7 @@ function nepHidden(V,st,r,c){return !!(st&&st.lost&&V!=null&&st.owner===V&&!nepF
 {const _mt=moveTargets;moveTargets=function(){const s=G.sel,st=s&&G.board[s.r]&&G.board[s.r][s.c];if(st&&st.lost)return [];return _mt.apply(this,arguments)}}
 {const _cp=canPlace;canPlace=function(card,r,c){const st=G&&G.board[r]&&G.board[r][c];if(st&&st.lost)return false;return _cp.apply(this,arguments)}}
 {const _sd=siegeDecor;siegeDecor=function(inner,st,V,r,c){const h=_sd.apply(this,arguments);return st&&st.lost?h.replace('class="stack ','class="stack nlost '):h}}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!nepCloudOn())return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!nepCloudOn())return;
   for(const b of document.querySelectorAll("#board button.tile"))if(nepCloudAt(+b.dataset.r,+b.dataset.c)&&!b.querySelector(".nepcloud"))b.insertAdjacentHTML("beforeend",'<span class="nepcloud" aria-hidden="true"></span>')}}
 
 /* ---------- stray mana: once a round each player's earning or spending may go astray (1) or double (20) ---------- */
@@ -113,7 +113,7 @@ async function nepEventRound(){if(!nepUp()){G.nepEv=null;return}
   if(G.nepEv&&r>G.nepEv.until){G.nepEv=null;log("Neptune's cycle ends: the field and the numbers come back.","event");render()}
   const since=G.skySince;
   if(!G.nepEv&&!(typeof cyclesOff==="function"&&cyclesOff())&&since!=null&&r>since&&(r-since)%CYCLE===0){
-    const d=1;   // v75a: a cycle event lasts one roundG.nepEv={from:r,until:r+d-1};
+    const d=1;G.nepEv={from:r,until:r+d-1};   // v75a: a cycle event lasts one round
     log(`<b>Neptune's cycle</b> (every ${CYCLE} rounds, as long as the Moon's): for this round the tiles fade into the map and every player's numbers go dark. Sacrifices, the Bank's takings and drawn cards may drift away; the dead may sink to the Ether or the Outer Darkness.`,"event");
     popup("Neptune's cycle",`<p>For <b>this round</b> Neptune glows: the tiles fade into the map and every player's numbers go dark.</p><ul><li>A sacrifice's mana goes to another player on a 1 of 1d8.</li><li>Mana a purchase brings the Bank goes to a random player on a 1 of 1d10${survival()?" (not in Survival)":""}.</li><li>A drawn card is lost on a 1 of 1d20 (another from the same draw on a 1 of 1d3), and found 1d10 turns later by anyone.</li><li>A card that dies sinks, on a 1 of 1d4, to the Outer Darkness or the Ether.</li><li>Once a round a player may be let into the grave (a 1 of 1d8) to sacrifice its cards for mana.</li></ul>`);
     render();
@@ -168,7 +168,7 @@ let nepBuying=null;
     if(dark)toDark(c);else{if(c.captured&&c.captured.length){for(const s of c.captured)toGrave(s,"death");c.captured=[]}c.owner=null;if(c.hp!=null)c.hp=c.maxHp;G.ether.push(c)}
     log(`<b>Neptune</b>: ${esc(nameOf(c))} sinks into ${dark?"the Outer Darkness":"the Ether, for sale"}.`);notify(null,`<span class="nepword">♆ ${dark?"Darkness":"Ether"}</span> ${esc(nameOf(c))} sinks into ${dark?"the Outer Darkness":"the Ether"}.`);return}
   return _tg.apply(this,arguments)}}
-{const _r=render;render=function(){_r.apply(this,arguments);const V=G?view():null;document.documentElement.classList.toggle("nepev",!!G&&(nepEvFor(V)||G.p.some(P=>P.i!==V&&nepSelf(P.i)&&V!=null&&!isEnemy(P.i,V))))}}   // a teammate under Lostness clouds your view too
+{const _r=render;render=function(){rSafe(_r,this,arguments);const V=G?view():null;document.documentElement.classList.toggle("nepev",!!G&&(nepEvFor(V)||G.p.some(P=>P.i!==V&&nepSelf(P.i)&&V!=null&&!isEnemy(P.i,V))))}}   // a teammate under Lostness clouds your view too
 /* G.nepEv drives the glow in the picture too (planetSVG above) */
 
 /* ---------- v71c-3: Neptune's eclipse: 5% in each round of its cycle (v71i) (or Eclipse mode; never with eclipses off), as long as
@@ -231,7 +231,7 @@ for(const [name,get,set] of [["nepFoeAct",()=>nepFoeAct,f=>nepFoeAct=f]]){
   return _tc.apply(this,arguments)}}
 document.addEventListener("click",e=>{if(!G||!G.sel||!G.sel.nepFoe||!nepEcFor(view()))return;const b=e.target.closest&&e.target.closest("#selbox button");if(!b)return;
   e.preventDefault();e.stopPropagation();const S=G.sel;G.sel=null;nepFoeAct(view(),S.r,S.c,null,null);render()},true);   // the Selected box's buttons count as acting with it
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.sel||!G.sel.nepFoe||!nepEcFor(view()))return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!G.sel||!G.sel.nepFoe||!nepEcFor(view()))return;
   const T=nepFoeTargets(G.sel.r,G.sel.c,view()),B=$("#board");if(!T||!B)return;
   for(const [r,c] of T.tiles){const t=B.querySelector(`.tile[data-r="${r}"][data-c="${c}"]`);if(t)t.classList.add(T.mode==="attack"?"tatk":"tmove")}}}
 /* twice a round at most, a 1 of 1d20 sends a move or an attack astray */
@@ -244,7 +244,7 @@ const nepAstray=pl=>{const E=nepEcState(pl);if(!E)return false;const k=pl+"|"+G.
   return _at.apply(this,arguments)}}
 /* what the eclipse does to the screen */
 let nepMusicOn=false;
-{const _r=render;render=function(){_r.apply(this,arguments);const V=G?view():null,E=G?nepEcState(V):null,h=document.documentElement;
+{const _r=render;render=function(){rSafe(_r,this,arguments);const V=G?view():null,E=G?nepEcState(V):null,h=document.documentElement;
   h.classList.toggle("nepec",!!E);h.classList.toggle("nepflip",!!(E&&E.flip));
   if(!!E!==nepMusicOn){nepMusicOn=!!E;try{window.ECMusic&&ECMusic.nep&&ECMusic.nep(nepMusicOn)}catch(e){}}
   if(!E)return;

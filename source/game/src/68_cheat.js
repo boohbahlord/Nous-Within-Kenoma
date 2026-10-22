@@ -89,7 +89,7 @@ function wireCheat(root,V){
 function cheatWindow(){const V=view();if(!cheatHas(V))return;let w=$("#cheatw");if(!w){w=document.createElement("div");w.id="cheatw";w.className="faov";document.body.appendChild(w)}
   w.innerHTML=`<div class="ovbox wide cheatbox" role="dialog" aria-labelledby="cheatq"><button type="button" class="xclose" id="cheatX" aria-label="Close">×</button><h2 id="cheatq">Cheat mode</h2>${cheatHTML(V)}<p class="acts"><button type="button" class="btn" id="cheatOk">Done</button></p></div>`;
   w.hidden=false;wireCheat(w,V);const close=()=>{w.hidden=true};$("#cheatX").onclick=close;$("#cheatOk").onclick=close}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const on=cheatOn(),V=view(),has=on&&cheatHas(V);
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const on=cheatOn(),V=view(),has=on&&cheatHas(V);
   // the sign every player sees
   let b=$("#cheatbadge");if(on&&!b){b=document.createElement("div");b.id="cheatbadge";b.textContent="Cheat mode";b.title="Cheat mode is on in this game.";document.body.appendChild(b)}if(b)b.hidden=!on;
   // the Cheat button beside Configure

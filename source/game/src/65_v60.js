@@ -31,7 +31,7 @@ function wireRankDrags(root){if(!root)return;
 {const _p=paintFA;paintFA=function(){_p.apply(this,arguments);wireRankDrags($("#facfg"));wireRankDrags($("#fapanel"))}}
 
 /* ---------- the spell list in the colors of the schools' animations, faintly (T5) ---------- */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;
   document.querySelectorAll("#spells .spell, .spells .spell").forEach(b=>{const id=b.dataset.s||b.dataset.sp,sp=id&&SP(id);
     if(b.id==="openEther")return;   // the Ether keeps its own bright blue, so everyone finds it
     const sc=sp?sp.school:b.closest("[data-school]")?.dataset.school;const col=sc&&SCHOOL_COL[sc];
@@ -70,7 +70,7 @@ if(window.__EC)Object.assign(window.__EC,{seesTile:(...a)=>seesTile(...a),fogTil
 
 /* ---------- the dice box (T7): a fold of its own, just below the row of Grave, Ether, Outer Darkness and the rest;
    open by default, remembered on this device ---------- */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const sh=$("#shared"),t=$("#mytray");if(!sh||!t)return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const sh=$("#shared"),t=$("#mytray");if(!sh||!t)return;
   let d=$("#dicefold");if(!d){d=document.createElement("details");d.id="dicefold";d.className="dicefold";d.open=PREF.diceOpen!==false;d.innerHTML="<summary>Dice rolls</summary>";
     d.addEventListener("toggle",()=>{if(PREF.diceOpen===d.open)return;PREF.diceOpen=d.open;savePrefs()})}
   const at=sh&&!sh.closest(".spellpanel")?sh:($("#handslot")||sh);if(d.previousElementSibling!==at)at.after(d);if(t.parentNode!==d)d.appendChild(t);d.hidden=!t.innerHTML.trim()}}   // v72a: the piles went under the spells; the dice stay under the hand   // v74a: under the piles when they are under the hand

@@ -68,11 +68,11 @@ function paintMines(){if(!G)return;const V=view(),slots=mineSlots(V);let box=$("
   box.querySelector(".msfold").onclick=()=>{PREF.mineOpen=!open;savePrefs();paintMines()};
   const mv=box.querySelector(".msmove");if(mv)mv.onclick=()=>{PREF.mineAt=(at+1)%4;savePrefs();paintMines();box.scrollIntoView({block:"nearest"})};
   box.querySelectorAll("[data-ms]").forEach(b=>b.onclick=()=>{const s=slots.find(x=>x.k===b.dataset.ms);if(s)mineAct(s,V)})}
-{const _r=render;render=function(){_r.apply(this,arguments);try{paintMines()}catch(e){console.error(e)}}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);try{paintMines()}catch(e){console.error(e)}}}
 if(window.__EC)Object.assign(window.__EC,{mineSlots,mineStats,moonPlant:(...a)=>moonPlant(...a),paintMines});
 /* the wildcards' use line also in the Selected box (a wildcard picked in the hand, or in the stack picked on the field) and
    in the card's own tip */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const box=$("#selbox");if(!box||box.querySelector(".wilduse"))return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const box=$("#selbox");if(!box||box.querySelector(".wilduse"))return;
   let cards=[];if(G.selHand)cards=[G.selHand];else if(G.sel&&G.board[G.sel.r]&&G.board[G.sel.r][G.sel.c])cards=G.board[G.sel.r][G.sel.c].cards;
   const us=[...new Set(cards.filter(c=>c.unit&&WILD_USE[c.unit]).map(c=>c.unit))];if(!us.length)return;
   box.insertAdjacentHTML("afterbegin",us.map(u=>`<p class="wilduse"><b>${esc((UNIT[u].short||UNIT[u].name))}</b> ${esc(WILD_USE[u])}</p>`).join(""))}}
@@ -83,7 +83,7 @@ if(window.__EC)Object.assign(window.__EC,{mineSlots,mineStats,moonPlant:(...a)=>
 const nearRepair=(pl,r,c)=>stacksOf(pl).some(({st,r:a,c:b})=>st.cards.some(x=>x.unit==="repair")&&(a-r)**2+(b-c)**2<=5);   // a round circle of two
 {const _cp=canPlace;canPlace=function(card,r,c){if(_cp.apply(this,arguments))return true;
   if(!G||!card||kind(card)!=="wall"||G.phase==="setup"||isVoid(r,c)||G.board[r][c])return false;return nearRepair(G.active,r,c)}}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.selHand||kind(G.selHand)!=="wall")return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!G.selHand||kind(G.selHand)!=="wall")return;
   for(const {st,r,c} of stacksOf(G.active))if(st.cards.some(x=>x.unit==="repair")){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(t)t.classList.add("repsrc")}}}
 if(INFO.wall)INFO.wall[2]=INFO.wall[2].map(([k,v])=>k==="Moves"?[k,"never; it goes up on any empty tile of your spawn lines, or on any empty tile within two of one of your Repairmen"]:[k,v]);
 if(INFO.repair&&!INFO.repair[2].some(r=>r[0]==="Builds"))INFO.repair[2].splice(1,0,["Builds","a Wall from your hand can go up on any empty tile within two of him"]);

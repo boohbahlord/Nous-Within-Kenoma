@@ -141,9 +141,9 @@ function guardSVG(){const B=$("#board");if(!B||!G)return;const V=view();let list
       lines+=`<line class="gl" style="--gc:${pc}" x1="${f(b.x+ux*(R1+2))}" y1="${f(b.y+uy*(R1+2))}" x2="${f(a.x-ux*(R2+2))}" y2="${f(a.y-uy*(R2+2))}"/>`}}
   const svg=`<svg class="guards" aria-hidden="true" width="${B.scrollWidth}" height="${B.scrollHeight}">${lines}${[...crys.values()].join("")}${rings}</svg>`;
   if(old)old.remove();B.insertAdjacentHTML("beforeend",svg)}
-{const _r=render;render=function(){_r.apply(this,arguments);try{guardSVG()}catch(e){console.error(e)}}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);try{guardSVG()}catch(e){console.error(e)}}}
 if(typeof ResizeObserver==="function"){let q=0;const ro=new ResizeObserver(()=>{if(q)return;q=requestAnimationFrame(()=>{q=0;crysSig="";if(G)guardSVG()})});
   const hook=()=>{const B=$("#board");if(B&&!B.dataset.crysRo){B.dataset.crysRo="1";ro.observe(B)}};
-  {const _r=render;render=function(){_r.apply(this,arguments);hook()}}}
+  {const _r=render;render=function(){rSafe(_r,this,arguments);hook()}}}
 
 if(window.__EC)Object.assign(window.__EC,{crysPrep:(...a)=>crysPrep(...a),crysStop:(...a)=>crysStop(...a),crysGuards:pl=>crysGuards(pl),guardSVG:()=>guardSVG(),crysCands:(pl,c)=>crysCands(pl,c||crysCfg(pl)),faSaveW:c=>faSave(c),faMineW:()=>faMine(),faCleanW:c=>faClean(c)});

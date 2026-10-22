@@ -43,4 +43,4 @@ function etherTopUp(){if(!G||NET.role==="guest")return;etherSetup();
 {const _sb=spellBlock;spellBlock=function(sp){if(G&&G.opts.etherOff&&sp&&ETHER_IDS.has(sp.id))return "The Ether is off in this game.";return _sb.apply(this,arguments)}}
 {const _mb=mysteryBuy;mysteryBuy=function(pl){if(G&&G.opts.etherOff){if(G.p[pl]&&!G.p[pl].cpu)flash("The Ether is off in this game.");return null}return _mb.apply(this,arguments)}}
 /* an endless Ether shows ∞ */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.etherInf)return;const a=$("#seeether b");if(a)a.textContent="∞";const d=$("#openEther .dc");if(d)d.textContent="endless souls"}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!G.etherInf)return;const a=$("#seeether b");if(a)a.textContent="∞";const d=$("#openEther .dc");if(d)d.textContent="endless souls"}}

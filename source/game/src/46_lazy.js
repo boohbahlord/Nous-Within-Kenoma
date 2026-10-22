@@ -20,7 +20,7 @@ function lazyHTML(live){const ok=live&&lazyCan(),on=lazyAuto();
   $("#autoLazy").onclick=()=>{PREF.lazyAuto=!lazyAuto();lazyArmed=false;savePrefs();render()};
   $("#lhCfg").onclick=e=>{e.stopPropagation();faWindow("lazy")}}}
 /* while it is on, a click on a card in the hand places it */
-{const _r=render;render=function(){_r.apply(this,arguments);const h=$("#hand");if(!h||!G)return;const on=lazyOn()&&lazyCan();h.classList.toggle("lazy",on);if(!on)return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);const h=$("#hand");if(!h||!G)return;const on=lazyOn()&&lazyCan();h.classList.toggle("lazy",on);if(!on)return;
   h.querySelectorAll("[data-h]").forEach(b=>{const orig=b.onclick;b.onclick=e=>{if(!lazyOn()||!lazyCan())return orig&&orig.call(b,e);
     const c=G.p[view()].hand[+b.dataset.h];if(c&&lhExcluded(c,lhMine()))return orig&&orig.call(b,e);   // v47: kinds Lazy Hand leaves to you
     if(c&&!lazyPlace(c))return orig&&orig.call(b,e)}})}}

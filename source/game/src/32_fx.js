@@ -54,7 +54,7 @@ const barOf=(pl,cls)=>{const b=pboxEl(pl);return b&&b.querySelector(cls)};
 const later=f=>setTimeout(()=>{try{if(FX.on())f()}catch(e){console.error(e)}},0);
 
 /* ---------- the field's look: mist, New Moon, Full Moon ---------- */
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;const B=$("#board");if(!B)return;const m=G.moon;
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G)return;const B=$("#board");if(!B)return;const m=G.moon;
   B.classList.toggle("newmoon",!m.gone&&m.i===0&&!m.blood);B.classList.toggle("fullmoon",!m.gone&&m.i===4&&!m.blood);B.classList.toggle("bloodfield",!!m.blood)}}
 
 /* ---------- moves, placing, attacks, wounds, deaths ---------- */

@@ -99,7 +99,7 @@ function fsPaint(){if(!G||!fsOn())return;fsUI();const h=document.documentElement
   B.querySelectorAll("[data-fshist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.fshist,b)});
   h.style.setProperty("--fsrowh",row.offsetHeight+"px");const me=$("#me");if(me)h.style.setProperty("--fsmeh",(me.offsetHeight||36)+"px");
   if(P&&!P.cpu)h.style.setProperty("--fspc",P.color)}
-{const _r=render;render=function(){_r.apply(this,arguments);fsButton();fsPiles();if(G&&fsOn())fsPaint()}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);fsButton();fsPiles();if(G&&fsOn())fsPaint()}}
 /* v74a: the Grave, the Ether, the Outer Darkness and the Auction sit under the hand (as before v72a); in fullscreen, at the bottom of the spells */
 function fsPiles(){const sh=$("#shared"),sp=$(".spellpanel"),hs=$("#handslot");if(!sh||!sp||!hs)return;
   if(fsOn()){if(sh.parentNode!==sp)sp.appendChild(sh)}else if(sh.previousElementSibling!==hs)hs.after(sh);
@@ -191,7 +191,7 @@ document.addEventListener("keydown",e=>{if(e.code!=="Space"&&e.key!==" ")return;
 
 /* v75c: the turn bar names the phase on its left (Draw, Prep, Attack) wherever the phase line beside it isn't shown:
    in fullscreen, and with the turn buttons at the top */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const ctl=$("#controls");if(!ctl)return;let l=ctl.querySelector(".phl");
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const ctl=$("#controls");if(!ctl)return;let l=ctl.querySelector(".phl");
   const need=fsOn()||PREF.ctl!=="bottom",ph={draw:"Draw",prep:"Prep",attack:"Attack",setup:"Setup",moon:"The sky"}[G.phase];
   if(!need||!ph||G.over||G.passing){if(l)l.remove();return}
   if(!l){l=document.createElement("span");l.className="phl";ctl.prepend(l)}else if(ctl.firstElementChild!==l)ctl.prepend(l);

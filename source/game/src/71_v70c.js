@@ -65,7 +65,7 @@ SPELL_TEXT.mdel={e:"Choose an enemy: their mana bar lies by 1d3 either way for 1
 {const _bt=beginTurn;beginTurn=function(pl){const out=_bt.apply(this,arguments);if(illOf("blindHand",pl))shuffle(G.p[pl].hand);const m=illOf("manaDel",pl);if(m)m.off=delOff();return out}}
 {const _et=endTurn;endTurn=function(pl){for(const k of ["blindHand","manaDel"])if(G[k]){for(const x of G[k])if(x.t===pl)x.left--;G[k]=G[k].filter(x=>x.left>0)}return _et.apply(this,arguments)}}
 /* the blind hand, as its owner sees it */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view();if(!illOf("blindHand",V))return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const V=view();if(!illOf("blindHand",V))return;
   document.querySelectorAll("#hand .hc").forEach(h=>{const b=h.querySelector(".cardbtn");if(b){b.innerHTML=`<span class="cf blank"><b>?</b></span>`;b.setAttribute("aria-label","a hidden card")}
     h.querySelectorAll("[data-sh]").forEach(x=>{x.textContent="sac ?";x.title="Sacrifice this hidden card to your soul pile"});h.querySelectorAll("[data-sunh]").forEach(x=>{x.textContent="sun ?"})});
   if(G.selHand){const box=$("#selbox");if(box)box.innerHTML=`<p><b>A hidden card</b> selected (Blind Hand). Click a highlighted tile to place it.</p>`}}}
@@ -87,7 +87,7 @@ function faAskOff(yes){let box=$("#faask");if(!box){box=document.createElement("
 <p class="acts"><button type="button" class="btn" id="faY">Yes</button> <button type="button" class="btn ghost" id="faN">No</button></p></div>`;
   box.hidden=false;const close=()=>{box.hidden=true};$("#faY").onclick=()=>{close();yes()};$("#faN").onclick=close;$("#faX").onclick=close;$("#faN").focus()}
 {const _ft=faToggle;faToggle=function(){const V=view(),s=faState(V);if(s&&s.on&&faAlways()){faAskOff(()=>{G.p[V].faUserOff=true;_ft()});return}return _ft.apply(this,arguments)}}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!faAlways()||G.over||G.phase==="setup"||!faAllowed())return;const V=view(),P=G.p[V];
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!faAlways()||G.over||G.phase==="setup"||!faAllowed())return;const V=view(),P=G.p[V];
   if(!P||P.cpu||isNPC(V)||P.faUserOff||faOn(V)||(NET.role==="guest"&&NET.watch)||NET.ctx!=null&&NET.ctx!==V)return;
   const c=faMine();c.under=true;PREF.fa=c;savePrefs();setFieldAuto(V,true,c)}}
 const faAlwaysHTML=id=>`<label class="faalways" title="It turns itself on in every game where it can, and asks before you turn it off."><input type="checkbox" id="${id}" ${faAlways()?"checked":""}><span>Always leave Field Automation on</span></label>`;   // v73f: small, and only on the Field tab
@@ -149,5 +149,5 @@ function roundBanner(n,sub){let el=$("#roundban");if(!el){el=document.createElem
 if(window.__EC)Object.assign(window.__EC,{hordeCounters:()=>hordeCounters(),roundBanner:(...a)=>roundBanner(...a),hordeSpawnW:()=>hordeSpawn()});
 
 /* ---------- v70d: while the others finish drawing, the bar below the field says so ---------- */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.drawWait)return;const c=$("#controls");if(c&&!c.querySelector(".drawwait"))c.insertAdjacentHTML("beforeend",`<span class="drawwait" role="status">Waiting for players to draw…</span>`)}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!G.drawWait)return;const c=$("#controls");if(c&&!c.querySelector(".drawwait"))c.insertAdjacentHTML("beforeend",`<span class="drawwait" role="status">Waiting for players to draw…</span>`)}}
 if(window.__EC)Object.assign(window.__EC,{drawW:(...a)=>draw(...a),deckShort:(...a)=>deckShort(...a),takeDeck:(...a)=>takeDeck(...a),takeHand:(...a)=>takeHand(...a),effManaW:pl=>effMana(pl)});

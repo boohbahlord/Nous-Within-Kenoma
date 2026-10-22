@@ -149,13 +149,13 @@ function dipTwoLeft(){if(!G||!G.dip||!dipOn())return;const T=dipTeams();if(T.len
 
 /* ---------- the flag under the Bank, and the window ---------- */
 const dipIncoming=V=>G&&G.dip?G.dip.pend.filter(p=>p.to===V):[];
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;let b=$("#dipbar");
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;let b=$("#dipbar");
   if(!dipOn()){if(b)b.remove();return}if(!G.dip&&NET.role!=="guest")dipD();const V=view(),me=teamOf(V);if(me==null||isNPC(V))return;
-  const T=dipTeams().filter(t=>t!==me),cnt={war:0,peace:0,ally:0};for(const t of T)cnt[dipRel(me,t).s]=(cnt[dipRel(me,t).s]||0)+1;const inc=dipIncoming(V).length;
+  const T=dipTeams().filter(t=>t!==me),cnt={war:0,peace:0,ally:0};for(const t of T)cnt[dipRel(me,t).s]=(cnt[dipRel(me,t).s]||0)+1;const loans=typeof loanReqsFor==="function"?loanReqsFor(V).length:0,inc=dipIncoming(V).length+loans;   // loan requests are answered here too
   if(!b){b=document.createElement("button");b.type="button";b.id="dipbar";b.className="dipbar";b.onclick=()=>dipWin()}
   const slot=$("#bankslot");if(slot&&b.previousElementSibling!==slot)slot.after(b);
   b.classList.toggle("notify",!!inc);
-  b.innerHTML=`${FLAG_SVG}<span>Diplomacy</span><small>${[cnt.war?`${cnt.war} at war`:"",cnt.peace?`${cnt.peace} at peace`:"",cnt.ally?`${cnt.ally} allied`:""].filter(Boolean).join(" · ")}</small>${inc?`<i class="bang" aria-label="${inc} proposal${inc>1?"s":""} for you">!</i>`:""}`;
+  b.innerHTML=`${FLAG_SVG}<span>Diplomacy</span><small>${[cnt.war?`${cnt.war} at war`:"",cnt.peace?`${cnt.peace} at peace`:"",cnt.ally?`${cnt.ally} allied`:""].filter(Boolean).join(" · ")}</small>${inc?`<i class="bang" aria-label="${inc} ${loans?"proposal or loan request":"proposal"}${inc>1?"s":""} for you">!</i>`:""}`;
   if($("#dipwin")&&!$("#dipwin").hidden)dipPaint();
   dipAskCheck()}}
 let dipUI={brk:null};
@@ -204,9 +204,9 @@ function dipWin(){let w=$("#dipwin");if(!w){w=document.createElement("div");w.id
   const close=()=>{w.hidden=true;dipUI.brk=null};$("#dipX").onclick=$("#dipOk").onclick=close;w.onclick=e=>{if(e.target===w)close()}}
   w.hidden=false;dipPaint()}
 /* a proposal for you: it asks at once (online), or when your turn comes round (on one device) */
-const dipAsked=new Set();
-function dipAskCheck(){if(!G||G.over||G.passing)return;const V=view();if(!G.p[V]||G.p[V].cpu)return;const p=dipIncoming(V).find(x=>!dipAsked.has(x.id));if(!p)return;
-  if(document.querySelector("#ov:not([hidden]),#dipwin:not([hidden])"))return;dipAsked.add(p.id);
+const dipAsked=new Set();   // per game: proposal ids start again at 0 in every game
+function dipAskCheck(){if(!G||G.over||G.passing)return;const V=view();if(!G.p[V]||G.p[V].cpu)return;const gk=G.map.seed+":",p=dipIncoming(V).find(x=>!dipAsked.has(gk+x.id));if(!p)return;
+  if(document.querySelector("#ov:not([hidden]),#dipwin:not([hidden])"))return;dipAsked.add(gk+p.id);
   let a=$("#dipask");if(!a){a=document.createElement("div");a.id="dipask";a.className="faov";document.body.appendChild(a)}
   a.innerHTML=`<div class="ovbox dipbox" role="alertdialog" aria-labelledby="dipah"><h2 id="dipah">${FLAG_SVG} A proposal</h2>${dipIncHTML(p)}<p class="dim">It stays in Diplomacy (under the Bank) for two rounds if you'd rather decide later. <button type="button" class="link" id="dipLater">Later</button></p></div>`;
   a.hidden=false;dipWireInc(a);$("#dipLater").onclick=()=>{a.hidden=true}}
@@ -285,7 +285,8 @@ function dipTermsEnd(c,win){const D=dipD();D.contests=(D.contests||[]).filter(x=
   if(dipRel(c.a,c.b).s==="war")dipSet(c.a,c.b,"peace",{until:G.moon.round+1,n:2});render()}
 /* the middle of any field: the tiles within one of its center (off the void) */
 function dipMidTiles(){const rows=G.rows,cols=G.board[0].length,rc=(rows-1)/2,cc=(cols-1)/2,out=[];
-  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)if(Math.abs(r-rc)<=1&&Math.abs(c-cc)<=1&&!isVoid(r,c))out.push([r,c]);return out}
+  for(let d=1;!out.length&&d<=Math.max(rows,cols);d++)   // the middle reaches out until it holds ground (the Cross's hole is void)
+    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)if(Math.abs(r-rc)<=d&&Math.abs(c-cc)<=d&&!isVoid(r,c))out.push([r,c]);return out}
 const dipSideWorth=t=>{const ps=new Set(dipPlayersOf(t));let w=0;const aces=new Set();
   for(let r=0;r<G.rows;r++)for(let c=0;c<G.board[0].length;c++){const st=G.board[r][c];if(!st||!ps.has(st.owner))continue;for(const x of st.cards){w+=soulOf(x);const k=kind(x);if(k==="ace"||k==="tree")aces.add(x.id)}}
   return {w,aces}};
@@ -306,7 +307,7 @@ function dipTermsRound(){const D=G.dip;if(!D||!D.contests||!D.contests.length)re
     if(c.term==="middle"){const pa=new Set(dipPlayersOf(c.a)),pb=new Set(dipPlayersOf(c.b));let na=0,nb=0;for(const [rr,cc] of mid){const st=G.board[rr][cc];if(st&&pa.has(st.owner))na++;if(st&&pb.has(st.owner))nb++}
       if(na>nb)c.sa++;else if(nb>na)c.sb++}
     if(r>c.until)dipTermsEnd(c,c.term==="ace"?null:c.sa>c.sb?c.a:c.sb>c.sa?c.b:null)}}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.dip||!(G.dip.contests||[]).some(c=>c.term==="middle"))return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!G.dip||!(G.dip.contests||[]).some(c=>c.term==="middle"))return;
   for(const [r,c] of dipMidTiles()){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(t){t.classList.add("midterm");if(!/terms of war/.test(t.title||""))t.title=(t.title?t.title+" · ":"")+"The middle (terms of war)"}}}}
 const COUNCIL=[{id:"tithe",name:"The Ether's Tithe",text:"Every card from the Ether (every conjuring) costs 1 more mana."},
   {id:"wartax",name:"War Tax",text:"Every attack costs the attacker 1 mana, paid to the Bank."},
