@@ -2101,7 +2101,7 @@ html.ecfs,html.ecfs body{overflow:hidden!important;height:100%;overscroll-behavi
 html.ecfs main.game{position:fixed;inset:0;z-index:5;max-width:none;width:auto;margin:0;padding:0;background:transparent;overflow:hidden}
 html.ecfs main.game>nav.crumbs,html.ecfs main.game>header,html.ecfs main.game .gmid,html.ecfs main.game #who,html.ecfs main.game #round,html.ecfs main.game #blindnote,
 html.ecfs main.game #info,html.ecfs main.game #helphead,html.ecfs main.game #logwrap,html.ecfs main.game #quotes,html.ecfs main.game #camnote,html.ecfs main.game #dicefold,
-html.ecfs main.game #minepanel,html.ecfs main.game #actph,html.ecfs main.game #handh,html.ecfs #fieldround,html.ecfs #helptoast,html.ecfs #fsbtn{display:none!important}
+html.ecfs main.game #actph,html.ecfs main.game #handh,html.ecfs #fieldround,html.ecfs #helptoast,html.ecfs #fsbtn{display:none!important}
 @media (max-width:760px){html.ecfs .gbar,html.ecfs #gbar{display:none!important}}   /* a phone's display settings are in the pause menu's Settings */
 html.ecfs main.game .gtop,html.ecfs main.game .glayout,html.ecfs main.game .glayout>section,html.ecfs main.game .gside,html.ecfs main.game #sidehand,html.ecfs main.game #handslot,
 html.ecfs main.game #seltop,html.ecfs main.game #selbottom,html.ecfs main.game #actbar,html.ecfs main.game #ctlbottom,html.ecfs main.game #ctltop,html.ecfs main.game #selbottom{display:contents}
@@ -2289,3 +2289,18 @@ html.lite details.sub.mkgist>summary{animation:none}
 #moon .mfrac{display:block;font-size:11.5px;letter-spacing:.06em;color:var(--amber-hi);margin-top:2px}
 
 #mustknow{display:none!important}   /* v74c: its text is "At a glance" in Basics explained */
+
+/* v74d: the mining slots, small, above the hand cards (and in the fullscreen hand) */
+.minepanel.msmini{margin:2px 0 6px;padding:2px 6px 5px;background:color-mix(in srgb,var(--deep) 70%,transparent)}
+.minepanel.msmini .msfold{font-size:11px;padding:2px 0;letter-spacing:.08em}
+.minepanel.msmini .mshint{font-size:11px}
+.minepanel.msmini .msmove{font-size:11px;padding:1px 5px}
+.minepanel.msmini .msrow{gap:5px;margin-top:2px}
+.minepanel.msmini .mslot{display:grid;grid-template-columns:auto auto;grid-template-areas:"n n" "c s";align-items:center;column-gap:6px;row-gap:1px;width:auto;min-width:90px;max-width:260px;padding:3px 6px 4px}
+.minepanel.msmini .mslot .msn{grid-area:n}.minepanel.msmini .mslot .msc{grid-area:c}
+.minepanel.msmini .mslot .msn{font-size:11px;gap:4px}.minepanel.msmini .mslot .msn small,.minepanel.msmini .mslot .msn em{font-size:10px}
+.minepanel.msmini .mslot .msc{gap:3px;min-height:calc(48px * var(--ci));zoom:.66}
+.minepanel.msmini .mslot .msstat{grid-area:s;position:static;font-size:10px;padding:0;margin:0;background:none;border:0;color:var(--dim);white-space:nowrap}
+.minepanel.msmini .mslot .msstat b{color:var(--text)}
+.minepanel.msmini .mslot:has(.msstat){padding-bottom:4px}
+html.ecfs .minepanel.msmini{margin:0 0 6px}

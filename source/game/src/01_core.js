@@ -202,7 +202,8 @@ function newGame(opts){
 /* ---------------- decks and the Ether ----------------
    decks: 1 (the two players split one deck: one red and one black suit each), 2 (a full deck each), 3 (a full deck each and a whole third deck in the Ether)
    With more players: a full deck or half a deck each (free-for-all), one deck per team split two suits to a teammate (2v2), or one deck a team shares.
-   specials (J Q K A Joker): none (only the opening Ace; the rest wait in the Ether), half (the specials of half your suits), all
+   specials (J Q K A Joker): none (only the opening Ace; the rest wait in the Ether), half (the default since v74d: the Jacks, Queens and
+   Kings of half your suits, picked at random, one red and one black, and one more Ace and one Joker for each deck you hold), all
    Every player keeps at least one Joker unless that option is off. Whatever specials a player does not start with go to the Ether. */
 const RED=["H","D"],BLACK=["S","C"],RANKS=["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
 const isSpecial=c=>["jack","queen","king","ace","joker"].includes(kind(c));
@@ -238,19 +239,21 @@ function buildDecks(){
     let cards=[];for(const s of mySuits)for(const r of RANKS)cards.push(mk(r,s));
     for(const col of plan.jokers[k])cards.push(mk("JK",null,col));
     const kinds=[...new Set(mySuits)];let keepSuits=sp==="all"?kinds:sp==="half"?(kinds.length===4?[pick(RED),pick(BLACK)]:[pick(kinds)]):[];
-    const keepJokers=sp==="all"?9:sp==="half"?Math.floor(plan.jokers[k].length/2):0;let jk=0;
+    const keepJokers=sp==="all"?9:0;let jk=0;
     const deck=[],out=[];
     for(const c of cards){
       if(!isSpecial(c)){deck.push(c);continue}
       if(kind(c)==="joker"){if(jk<keepJokers){deck.push(c);jk++}else out.push(c);continue}
-      (keepSuits.includes(c.suit)?deck:out).push(c);
+      (keepSuits.includes(c.suit)&&!(sp==="half"&&kind(c)==="ace")?deck:out).push(c);
     }
     const take=(list,k2)=>{const i=list.findIndex(c=>kind(c)===k2);return i<0?null:list.splice(i,1)[0]};
     const ace=take(deck,"ace")||take(out,"ace")||mk("A",mySuits[0]);
     const jack=take(deck,"jack")||take(out,"jack")||mk("J",mySuits[0]);
-    if(o.jokerSure!==false&&!deck.some(c=>kind(c)==="joker"))deck.push(take(out,"joker")||mk("JK",null,pick(["red","black"])));
+    if(sp!=="half"&&o.jokerSure!==false&&!deck.some(c=>kind(c)==="joker"))deck.push(take(out,"joker")||mk("JK",null,pick(["red","black"])));
     P.opening=[ace,jack];P.opening2=[];
     if(o.hq&&o.mode!=="survival"){const a2=take(deck,"ace")||take(out,"ace")||mk("A",mySuits[mySuits.length-1]);a2.owner=pl;P.opening2=[a2]}
+    if(sp==="half"){const nd=Math.max(1,Math.round(mySuits.length/4)),best=k2=>{const i=out.findIndex(c=>kind(c)===k2&&keepSuits.includes(c.suit));return i>=0?out.splice(i,1)[0]:take(out,k2)};   // v74d: one more Ace and one Joker for each deck you hold
+      for(let i=0;i<nd;i++){deck.push(best("ace")||mk("A",keepSuits[0]||mySuits[0]));deck.push(take(out,"joker")||mk("JK",null,pick(["red","black"])))}}
     for(const c of [...deck,ace,jack])c.owner=pl;
     P.deck=shuffle(deck);G.ether.push(...out);
   });

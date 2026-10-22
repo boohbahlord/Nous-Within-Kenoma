@@ -32,7 +32,7 @@ function mineSlots(V){const out=[];if(!G||V==null||!G.p[V]||G.phase==="setup")re
   for(const {st,r,c} of stacksOf(V)){const ms=st.cards.filter(x=>x.unit==="miner"),ace=st.cards.find(x=>kind(x)==="ace");
     if(ace){out.push({k:"ace:"+ace.id,kind:"ace",name:"Ace",at:coord(r,c),r,c,st,ms,cap:2});continue}
     const cr=crystalAt(r,c);if(cr)out.push({k:"cr:"+r+"."+c,kind:"cr",name:"Crystal",at:coord(r,c),sub:`${cr.left} left`,r,c,st,ms,cap:1})}
-  for(const p of G.plots||[])if(p.owner===V)out.push({k:"plot:"+p.i,kind:"plot",name:`Plot ${p.i+1}`,at:"the Bank's land",p,ms:p.miners,cap:1});
+  for(const p of G.plots||[])if(p.owner===V)out.push({k:"plot:"+p.i,kind:"plot",name:`Plot ${p.i+1}`,at:"land from the Bank",p,ms:p.miners,cap:1});
   const MM=G.moonMiner,ML=G.moonLev,mine=MM&&MM.owner===V,lev=ML&&ML.owner===V;
   if(mine||lev)out.push({k:"moon",kind:"moon",name:"The Moon",at:lev?"the Leviathan's":"",ms:mine?[MM.card]:[],lev:lev?ML.card:null,cap:1});
   return out}
@@ -49,7 +49,7 @@ NETFN.moonPlant={get:()=>moonPlant,set:f=>moonPlant=f};{const orig=moonPlant;moo
 function mineAct(s,V){if(!mineFits(s,V))return;const m=G.selHand;
   if(s.kind==="ace"||s.kind==="cr")place(m,s.r,s.c);else if(s.kind==="plot"){plantMiner(V,s.p);G.selHand=null}else if(s.kind==="moon")moonPlant(V);
   render()}
-const MINE_POS=["field","auto","help"];
+const MINE_POS=["hand","field","auto","help"];   // v74d: above the hand cards by default (and always in fullscreen)
 function mineSlotHTML(s,V){const st=mineStats(V,s.k),fit=mineFits(s,V),empty=Math.max(0,s.cap-s.ms.length);
   const cards=(s.lev?face(s.lev,{cls:"sm",noci:true}):"")+s.ms.map(m=>face(m,{cls:"sm",noci:true})).join("")+Array.from({length:empty},()=>`<span class="msempty" aria-hidden="true"></span>`).join("");
   const stat=st?`<span class="msstat"><span>Rounds ${st.P.a}–${st.P.b}${st.P.done?"":"…"}: <b>${st.sum}</b> (<b>${st.avg}</b> a turn)</span><span>Ever: <b>${st.ever}</b> mana</span></span>`:"";
@@ -58,13 +58,15 @@ function mineSlotHTML(s,V){const st=mineStats(V,s.k),fit=mineFits(s,V),empty=Mat
 function paintMines(){if(!G)return;const V=view(),slots=mineSlots(V);let box=$("#minepanel");
   if(!slots.length){if(box)box.hidden=true;return}
   if(!box){box=document.createElement("section");box.id="minepanel";box.className="minepanel";box.setAttribute("aria-label","Mining slots")}
-  const pos=MINE_POS[PREF.minePos|0]||"field",anchor=pos==="auto"?($("#fapanel")||$("#helphead")):pos==="help"?$("#info"):($("#dicefold")||$("#shared"));
-  if(anchor&&box.previousElementSibling!==anchor)anchor.after(box);
+  const fs=typeof fsOn==="function"&&fsOn(),at=PREF.mineAt|0,pos=fs?"hand":MINE_POS[at]||"hand",hand=$("#hand");
+  if(pos==="hand"&&hand){if(box.nextElementSibling!==hand)hand.before(box)}
+  else{const anchor=pos==="auto"?($("#fapanel")||$("#helphead")):pos==="help"?$("#info"):($("#dicefold")||$("#shared"));if(anchor&&box.previousElementSibling!==anchor)anchor.after(box)}
+  box.classList.toggle("msmini",pos==="hand");
   const open=PREF.mineOpen!==false,picking=G.selHand&&G.selHand.unit==="miner";box.hidden=false;
-  const next=MINE_POS[((PREF.minePos|0)+1)%3];
-  box.innerHTML=`<div class="mshead"><button type="button" class="msfold" aria-expanded="${open}">${open?"▾":"▸"} Mining slots <span class="dim">${slots.length}</span></button>${picking&&open?`<span class="mshint">Pick a lit slot for your Miner.</span>`:""}<button type="button" class="msmove" title="${next==="auto"?"Move below Configure Automation":next==="help"?"Move below Help":"Move back below the field"}" aria-label="Move the mining slots">${next==="field"?"⇡":"⇣"}</button></div>${open?`<div class="msrow">${slots.map(s=>mineSlotHTML(s,V)).join("")}</div>`:""}`;
+  const next=MINE_POS[(at+1)%4],nt={hand:"Move back above your hand",field:"Move below the field",auto:"Move below Configure Automation",help:"Move below Help"}[next];
+  box.innerHTML=`<div class="mshead"><button type="button" class="msfold" aria-expanded="${open}">${open?"▾":"▸"} Mining slots <span class="dim">${slots.length}</span></button>${picking&&open?`<span class="mshint">Pick a lit slot for your Miner.</span>`:""}${fs?"":`<button type="button" class="msmove" title="${nt}" aria-label="${nt}">${next==="hand"?"⇡":"⇣"}</button>`}</div>${open?`<div class="msrow">${slots.map(s=>mineSlotHTML(s,V)).join("")}</div>`:""}`;
   box.querySelector(".msfold").onclick=()=>{PREF.mineOpen=!open;savePrefs();paintMines()};
-  box.querySelector(".msmove").onclick=()=>{PREF.minePos=((PREF.minePos|0)+1)%3;savePrefs();paintMines();box.scrollIntoView({block:"nearest"})};
+  const mv=box.querySelector(".msmove");if(mv)mv.onclick=()=>{PREF.mineAt=(at+1)%4;savePrefs();paintMines();box.scrollIntoView({block:"nearest"})};
   box.querySelectorAll("[data-ms]").forEach(b=>b.onclick=()=>{const s=slots.find(x=>x.k===b.dataset.ms);if(s)mineAct(s,V)})}
 {const _r=render;render=function(){_r.apply(this,arguments);try{paintMines()}catch(e){console.error(e)}}}
 if(window.__EC)Object.assign(window.__EC,{mineSlots,mineStats,moonPlant:(...a)=>moonPlant(...a),paintMines});
