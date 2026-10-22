@@ -1,17 +1,17 @@
 /* ---------------- v38: the online lobby ----------------
    Everyone in the room sees the lobby: who is there, what each of them has chosen, and what the host is doing (in the room, or
    setting up the game and on which tab). While the host sets up, a joined player chooses their own name, Emanation, color and
-   symbol in "Your player" (an Emanation someone else holds is greyed out, except the Beginner), and their own look in "Display",
+   symbol in "Your player" (an Emanation someone else holds is greyed out), and their own look in "Display",
    which is saved on their device like any display setting and carries into the game. When the host gives them a seat, their
    choices fill it. */
 
 const LOBBY_STATUS={room:"The host is in the room, waiting for everyone to join.",players:"The host is setting up the game: the players and seats.",
   map:"The host is setting up the game: the map.",deck:"The host is setting up the game: the decks.",rules:"The host is setting up the game: the rules.",
   display:"The host is setting up the game.",starting:"The game is starting."};
-const netPickOf=()=>{const p=PREF.netPick||{};return {name:NET.name||p.name||"Player",tribe:TRIBES[p.tribe]&&!TRIBES[p.tribe].soon&&p.tribe!=="random"?p.tribe:"beginner",
+const netPickOf=()=>{const p=PREF.netPick||{};return {name:NET.name||p.name||"Player",tribe:TRIBES[p.tribe]&&!TRIBES[p.tribe].soon&&!TRIBES[p.tribe].hidden?p.tribe:"random",
   color:COLORS.some(c=>c[1]===p.color)?p.color:COLORS[0][1],solid:SOLIDS[p.solid]?p.solid:"tetra"}};
 /* the host checks what a joined player sends */
-function cleanPick(p){p=p||{};return {name:String(p.name||"Player").slice(0,20),tribe:TRIBES[p.tribe]&&!TRIBES[p.tribe].soon&&p.tribe!=="random"?p.tribe:"beginner",
+function cleanPick(p){p=p||{};return {name:String(p.name||"Player").slice(0,20),tribe:TRIBES[p.tribe]&&!TRIBES[p.tribe].soon&&!TRIBES[p.tribe].hidden?p.tribe:"random",
   color:COLORS.some(c=>c[1]===p.color)?p.color:COLORS[0][1],solid:SOLIDS[p.solid]?p.solid:"tetra"}}
 const pickLook=p=>{const T=TRIBES[p.tribe]||{};return {color:T.color||p.color,solid:T.solid||p.solid}};
 
@@ -34,7 +34,7 @@ function setStatus(k){if(NET.status===k)return;NET.status=k;lobbySend()}
 /* a seat given to a joined player takes their name, Emanation, color and symbol */
 {const _sf=seatForm;seatForm=function(i,S,mode,L,taken){
   const apply=()=>{if(!(NET.role==="lobby-host"&&NET.inSetup)||!S.type||!String(S.type).startsWith("net:"))return false;const g=NET.guests[S.type.slice(4)];if(!g||!g.pick)return false;
-    const p=g.pick,before=JSON.stringify([S.name,S.tribe,S.color,S.solid]);S.name=p.name;if(!(taken&&taken.has(p.tribe))||p.tribe==="beginner")S.tribe=p.tribe;S.color=p.color;S.solid=p.solid;S.named=true;
+    const p=g.pick,before=JSON.stringify([S.name,S.tribe,S.color,S.solid]);S.name=p.name;if(!(taken&&taken.has(p.tribe))||p.tribe==="random")S.tribe=p.tribe;S.color=p.color;S.solid=p.solid;S.named=true;
     return JSON.stringify([S.name,S.tribe,S.color,S.solid])!==before};
   apply();let h=_sf(i,S,mode,L,taken);if(apply())h=_sf(i,S,mode,L,taken);
   if(NET.role==="lobby-host"&&NET.inSetup){NET.seatInfo[i]={type:S.type,tribe:S.tribe};if(String(S.type).startsWith("net:"))h=h.replace("<legend>",`<legend title="This player chooses their own name, Emanation, color and symbol in the lobby">`);lobbySend()}
@@ -65,15 +65,15 @@ function paintGuestLobby(){const L=NET.lobby,m=$("#onMsg"),r=$("#gRoster");if(!m
   r.innerHTML=`<ul class="lroster">${L.roster.map(x=>{const p=x.id===L.you?netPickOf():x.pick;const look=p?pickLook(p):null;
     return `<li>${look?solidSVG(look.solid,look.color,18):""} <b>${esc(x.id===L.you?netPickOf().name:x.name)}</b>${x.host?' <span class="dim">· the host</span>':""}${x.id===L.you?' <b class="youtag">You</b>':""}${p?` <span class="dim">· ${esc(TRIBES[p.tribe].name)}</span>`:x.host?"":' <span class="dim">· choosing…</span>'}${x.seat>=0?` <span class="seatag">P${x.seat+1}</span>`:x.host?"":' <span class="dim">· no seat yet</span>'}</li>`}).join("")}</ul>
 <p class="dim">The host gives each player a seat. Your choices in "Your player" fill your seat; your Display settings are your own.</p>`}
-/* Emanations other seats hold (the Beginner can be shared) */
+/* Emanations other seats hold (no two share one) */
 const takenByOthers=()=>{const L=NET.lobby;if(!L)return new Set();const me="net:"+L.you,s=new Set();
-  for(const t of L.taken||[])if(t.type!==me&&t.tribe&&t.tribe!=="beginner"&&t.tribe!=="random")s.add(t.tribe);
-  for(const x of L.roster)if(x.id!==L.you&&x.pick&&x.pick.tribe!=="beginner")s.add(x.pick.tribe);return s};
+  for(const t of L.taken||[])if(t.type!==me&&t.tribe&&t.tribe!=="random")s.add(t.tribe);
+  for(const x of L.roster)if(x.id!==L.you&&x.pick&&x.pick.tribe!=="random")s.add(x.pick.tribe);return s};
 function sendMe(){const p=netPickOf();PREF.netPick=p;PREF.netName=p.name;savePrefs();if(NET.role==="guest")sendHost({t:"me",pick:p})}
 function paintMe(){const box=$("#gMe");if(!box)return;const p=netPickOf(),taken=takenByOthers(),T=TRIBES[p.tribe]||{};
   box.innerHTML=`<fieldset class="pf seat" style="--pc:${T.color||p.color}"><legend>Your player</legend>
 <div class="srow"><label class="f">Name <input id="gName" value="${esc(p.name)}" maxlength="20"></label></div>
-<div class="f"><span>Emanation</span><div class="opts subs">${Object.entries(TRIBES).filter(([k,t])=>k!=="random"&&!t.hidden).map(([k,t])=>{const off=t.soon||taken.has(k)&&k!==p.tribe;
+<div class="f"><span>Emanation</span><div class="opts subs">${Object.entries(TRIBES).filter(([k,t])=>!t.hidden).map(([k,t])=>{const off=t.soon||taken.has(k)&&k!==p.tribe&&k!=="random";
   return `<label class="opt${off?" off":""}"><input type="radio" name="gTr" value="${k}" ${k===p.tribe?"checked":""} ${off?"disabled":""}><span>${t.solid?`<i class="subsym">${solidSVG(t.solid,t.color||"#f3d6a6",18)}</i>`:""}${t.name}<small>${taken.has(k)&&k!==p.tribe?"Another player has it.":esc(t.sub||"")}</small></span></label>`}).join("")}</div></div>
 ${T.color?`<p class="dim fixednote">${esc(T.name)} always plays in its own color and symbol: ${solidSVG(T.solid,T.color,20)}</p>`:`<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex])=>`<label class="sw" title="${nm}"><input type="radio" name="gCo" value="${hex}" ${hex===p.color?"checked":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}</div></div>
 ${T.solid?`<p class="dim fixednote">${esc(T.name)} always bears its own symbol: ${solidSVG(T.solid,p.color,20)}</p>`:`<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="gSo" value="${k}" ${k===p.solid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}</div></div>`}`}

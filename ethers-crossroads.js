@@ -95,7 +95,7 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random
 const BONE="#e9dfc4",SATAN_RED="#9c1428";
 const TRIBES={
  random:{name:"Random",sub:"One of the Emanations below, picked when the game starts."},
- beginner:{name:"Beginner",sub:"Eight starting cards, eight mana and an eight-card hand, a second Ace and a Joker in hand, three Grunts already on the field, and Please Don't Hurt Me once a game."},
+ beginner:{name:"Beginner",hidden:true,gone:true,sub:"Eight starting cards, eight mana and an eight-card hand, a second Ace and a Joker in hand, three Grunts already on the field, and Please Don't Hurt Me once a game."},
  angel:{name:"Angel Machine",sub:"Antony's Emanation. Always Bone white with the cracked mask. Samson in the deck, Lightning Strike from three bolts, and Three of Swords for 1 mana.",color:BONE,solid:"mask"},
  satan:{name:"Satan",sub:"Always dark crimson with the claw. The Satan card (three hearts, 6d12, stands alone) and the curse Hate.",color:SATAN_RED,solid:"claw"},
  binah:{name:"Binah",sub:"The Southern tribe of the Euclids. Three Slavemasters capture the soldiers they defeat, and the captured come back as armed Slaves. Jokers hit for +3."},
@@ -103,7 +103,7 @@ const TRIBES={
  tiph:{name:"Tiphareth of Kether",sub:"The Northern tribe of the Euclids. Three Traffickers chain the souls that die beside them and sell them at the Auction. The Blindfold, immunity to the Leviathan on the moon, and Jokers that hit for +1."},
  lucifer:{name:"Lucifer & Ouroboros",sub:"Always the ink and scroll. The Delusions of Ouroboros and of Lucifer, Deconjured, and Pleasure and Joy.",solid:"scroll"},
  leviathan:{name:"The Leviathan",sub:"The black serpent in the deck: three hearts, 6d4 + 1d2 + 6. On a New Moon it can rise onto the moon and tax every New Moon after. Its Jokers can exile souls to the Outer Darkness."},
- firm:{name:"The Firmament",sub:"Always the six-pointed star. Untouched by the Moon's and Saturn's harms and by meteors; a Miner on the moon; Blood Moon, Rain, Asteroid, Fog, and Mars in the sky.",solid:"hexa"},
+ firm:{name:"The Firmament",sub:"Always the eight-pointed star. Untouched by the Moon's and Saturn's harms and by meteors; a Miner on the moon; Blood Moon, Rain, Asteroid, Fog, and Mars in the sky.",solid:"star8"},
  yald:{name:"Yaldabaoth",sub:"Always the symbol of Saturn. Night's Judgement eats the moon, God Hunger eats cards, and seven eaten bring Saturn and its Debt Collectors.",solid:"saturn"},
  plain:{name:"No Emanation",sub:"The plain rules: no Emanation's advantages or drawbacks.",hidden:true}   // v70d: only through the host's No Emanations option
 };
@@ -2336,12 +2336,12 @@ const INFO={
  goatbull:["Goatbull (Jester Fool)","Goatbull",[["Comes back","when the BullGoat dies it goes back into the deck, and is drawn again as the Goatbull"],["Hearts","two"],["Horns","10d2 + 1d10, up close"],["Charge","10 + 2d20 at an enemy exactly two tiles away in a straight line with nothing between; it closes the gap"],["Stomp","an ability check: its 1d20 with advantage against the target's 1d20 with disadvantage (Samson rolls plain). Win: the stack is Behooved, pinned for 2d2 of its turns (1d2 on a tie), and can't move or attack. A 16 or more that the target doesn't match deals 1 damage; each later pinned round checks again and needs 5 less (11, then 6…)"],["Attacked","a Goatbull attacked while it pins loses its advantage in every later check"],["Falls","into the Outer Darkness"]],"The BullGoat, turned around."],
  scout:["Scout (support)","Scout",[["Sight","two tiles out through the fog of war, in a diamond (straight two, diagonal one); everything it sees, Assassins, ambushers, face-down cards and enemy Scouts included, is uncovered"],["Hidden","enemies see it only from right beside it, or with their own Scout in sight of it"],["Fights","never: no attack and no defense"],["Moves","one tile straight, two diagonal, or two forward or back"],["Comes","two in every deck; one with your opening Ace, and one with a later Ace while you have no Scout on the field (none for Lucifer & Ouroboros); the rest wait in the Ether for 1 mana"]],"A horse and a rider who sees far."],
  assassin:["Assassin (special)","Assassin",[["Hearts","two (a pair of Assassins has three)"],["Attack","10 + 1d12, the roll of a Jack"],["Defense","8, like an Infantry"],["Hidden","enemies see it only from right beside it, or with a Scout in sight of it"],["Moves","one tile straight, two diagonal, or two forward or back"],["Ambush","it can wait in ambush and strike, with advantage, any enemy that steps beside it"],["Stacks","with one other Assassin, nothing else"],["Conjure","2d2 + 1 mana; four per deck wait in the Ether"]],"The dagger in the dark."],
- archer:["Archer (standard)","Archer",[["Bow","1d20 + 1d10 at a stack exactly two tiles away, straight or diagonal (not the tiles right beside it); a miss costs it nothing"],["Suppress","instead of a shot: the target has disadvantage on its next attack, unless it waits out 1d2 of its turns; the Archer then rests 1d2 turns"],["Defense","none"],["Stacks","alone, with a Queen, or inside an Ace, the Tree or a Wall; never with another Archer"],["Conjure","1d2 mana (1 for the Beginner); eight per deck wait in the Ether"]],"A bow and an arrow."],
+ archer:["Archer (standard)","Archer",[["Bow","1d20 + 1d10 at a stack exactly two tiles away, straight or diagonal (not the tiles right beside it); a miss costs it nothing"],["Suppress","instead of a shot: the target has disadvantage on its next attack, unless it waits out 1d2 of its turns; the Archer then rests 1d2 turns"],["Defense","none"],["Stacks","alone, with a Queen, or inside an Ace, the Tree or a Wall; never with another Archer"],["Conjure","1d2 mana; eight per deck wait in the Ether"]],"A bow and an arrow."],
  cannon:["Cannon (standard)","Cannon",[["Fire","2d20 at a stack up to three tiles away in any direction, once every 1d2 + 2 turns; a miss costs it nothing"],["Against bases","two damage to a Wall; it can't take an Ace's last heart, and the Tree takes nothing from it"],["Defense","none; it can be captured when it stands alone"],["Moves","one step"],["Stacks","alone, or inside a base, where it still fires"],["Conjure","6 mana; one per deck"]],"Slow, loud and heavy."],
  healer:["Healer (support)","Healer",[["Shield","a blue shield over its stack turns one whole blow without anyone dying, then comes back in 1d4 rounds"],["Heal","one heart back to a card in its stack or beside it (not a base); then it waits 1d2 + 2 turns, and the shield is down for 3 turns"],["Either or","while the shield is broken it can't heal"],["Fights","never; it dies last in its stack, and can be captured when it stands alone"],["Stacks","with anything but a Queen; one per stack"],["Conjure","2 + 1d3 mana; four per deck"]],"The medical cross."],
  repair:["Repairman (support)","Repairman",[["Repair","one heart back to a Wall, an Ace or the Tree in his stack or beside it; then he rests 1d3 + 1 turns, and while he rests nothing fires from that base and it can't be repaired again"],["Strengthen","the Tree at full hearts goes up one, five at most"],["Upgrade","an Ace gets one more heart, once; he gives his life for it and goes to the grave"],["Fights","never; he dies last in his stack and can be captured when he stands alone"],["Conjure","2 mana; four per deck"]],"A hammer."],
  ram:["Battering Ram (support)","Ram",[["Ram","two damage to an enemy Wall right beside it, no roll; useless against Aces and the Tree"],["Crew","needs one or two Grunts, Infantry or Puppets in its stack; with nobody to push it, it can't move or ram"],["Can't die","blows never kill it: an enemy beside a lone Ram captures it (it joins a stack of soldiers that has room) or destroys it"],["Conjure","3 mana; four per deck"]],"A log on a frame."],
- miner:["Miner (support)","Miner",[["In an Ace","as many Miners as you like: each brings 1d2 − 1 mana at the start of every turn, from the round after it moves in"],["Crystal","on a crystal tile it digs: 1d2 each turn, and on a 2 it takes 1 + 1d3 of the crystal's 12 mana"],["In the open","1d6 − 5: one mana on a 6"],["First to fall","when its stack takes damage, the Miner goes first; an attacker beside it with a free capture slot takes it instead, and the blow still lands"],["Moves","one step"],["Stacks","two in an Ace, one with any other stack"],["Conjure","2 mana; four per deck; the Beginner's first Ace comes with one"]],"A pickaxe."],
+ miner:["Miner (support)","Miner",[["In an Ace","as many Miners as you like: each brings 1d2 − 1 mana at the start of every turn, from the round after it moves in"],["Crystal","on a crystal tile it digs: 1d2 each turn, and on a 2 it takes 1 + 1d3 of the crystal's 12 mana"],["In the open","1d6 − 5: one mana on a 6"],["First to fall","when its stack takes damage, the Miner goes first; an attacker beside it with a free capture slot takes it instead, and the blow still lands"],["Moves","one step"],["Stacks","two in an Ace, one with any other stack"],["Conjure","2 mana; four per deck"]],"A pickaxe."],
  wall:["Wall (base)","Wall",[["Hearts","five; the cards inside are safe until it falls, then they all die with it"],["Defense","10"],["Holds","one stack, like an Ace (up to six cards that could stand on the field by themselves); only ranged cards (Archers, Cannons) fire from it, one shot a turn"],["Moves","never; it goes up on any empty tile of your spawn lines"],["Hard hits","charges do double damage to it; Battering Rams and Cannons two; Lightning Strike two"],["Healing","a Healer can't heal it; a Repairman can"],["Conjure","4 mana; four per deck"]],"A fort wall."]
 };
 function infoHTML(){
@@ -2368,9 +2368,9 @@ function infoHTML(){
 <details class="cinfo"><summary>Card info</summary><div class="itabs">${tabs}</div><div id="ibody"></div></details>
 <details class="cinfo"><summary>Spells explained</summary><div class="spellinfo">${spells}<p class="dim">New Moon: Clairvoyance and Naked Hand cost 6. Full Moon: Clairvoyance costs 2, Naked Hand is free, and no necromancy is cast. Blood Moon: Full Moon prices with no Full Moon drawbacks; necromancy is allowed. The moon turns one phase per round, once every player has had a turn.</p></div></details>
 <details class="cinfo"><summary>Further explanations</summary>
-<details class="sub"><summary>Emanations explained</summary><dl class="spellinfo">${subs}</dl><p class="dim">Only the Beginner can be played by more than one player in a game. The full rules for each are on the All Rules page.</p></details>
+<details class="sub"><summary>Emanations explained</summary><dl class="spellinfo">${subs}</dl><p class="dim">No two players share an Emanation in a game. The full rules for each are on the All Rules page.</p></details>
 <details class="sub"><summary>Fog of war and stealth explained</summary><dl class="spellinfo"><dt>Fog of war</dt><dd>On by default (Rules tab). Each of your cards sees only the eight tiles around it, straight and diagonal; a Scout sees two tiles out in a diamond (two straight, one diagonal). Shaded tiles are out of sight: enemy cards there stay hidden, and the log only says that something moved out of sight.</dd><dt>Shooting into the fog</dt><dd>Archers, Cannons, Rifles and the Slugshot Cannon can fire at a fogged tile in reach. If nothing is there the shot is lost; if something is, it is a normal attack, but all you learn is whether it hit: you hear the blow land.</dd><dt>Scouts</dt><dd>Never attack or defend. Everything in a Scout's diamond of sight is uncovered: Assassins, ambushers, face-down cards and enemy Scouts. Every Ace you put down brings one from the Ether.</dd><dt>Assassins</dt><dd>Hidden from enemies unless one of their cards stands right beside it (straight, not diagonal) or a Scout is near. Two hearts; 10 + 1d12 to attack, 8 to defend. Only another Assassin stacks with one.</dd><dt>Face down</dt><dd>Tick "Place it face down" before putting a card down. Enemies see only its back. Double disadvantage to attack, advantage to defend; it turns face up once it attacks or is attacked.</dd><dt>Ambush</dt><dd>Select an Assassin or face-down stack in your prep phase and press "Set an ambush": it turns sideways, hides like an Assassin, and strikes with advantage, out of turn, at the first enemy that steps beside it (diagonals too for a Jack's reach). Moving it ends the ambush.</dd><dt>Quiet Eyes and Bird's Eye</dt><dd>Quiet Eyes (Illusion, 2 mana): on each enemy's next turn, and only that turn, they see only the tiles their own cards stand on; Scouts don't see through it. Bird's Eye (Sorcery) lifts the fog for your side for a round, but not a Delusion.</dd></dl></details>
-<details class="sub"><summary>Siege, support and mining explained</summary><dl class="spellinfo"><dt>Bought from the Ether</dt><dd>Archers, Cannons, Healers, Walls, Repairmen, Battering Rams and Miners all wait in the Ether, a set for every deck, and come into your deck with their Conjure spells. The Beginner starts with two Archers, a Wall, two Repairmen and a Battering Ram in the deck, and a Miner in the first Ace.</dd><dt>Shooting</dt><dd>Archers and Cannons fire from wherever they stand, inside an Ace, the Tree or a Wall too, where the rest can't fight. Select the stack in the attack phase and click a highlighted target; a miss costs the shooter nothing. Only one shot a turn leaves a base.</dd><dt>Support cards</dt><dd>Healers, Repairmen, Battering Rams and Miners never fight. In a stack they die last (Miners first). Standing alone they can't defend: an enemy beside them chooses Capture or Destroy instead of an attack. A captured card rides in the stack's capture slot (one per stack) until you set it to work beside the stack; then it is yours.</dd><dt>Heal and Repair</dt><dd>Select the stack in your prep phase and press Heal a heart or Repair. The status line under the cards shows every cooldown.</dd><dt>Crystals</dt><dd>A crystal rises in the middle of the field every 1d6 + 4 turns. A Miner on it digs 1 + 1d3 mana on a 2 of 1d2 each turn, until the crystal's 12 mana are gone.</dd><dt>Field Libation</dt><dd>Necromancy, free, not under the Full Moon: pour out cards from your field; each one is worth its mana on a 2 of 1d2, and goes to the grave for nothing on a 1.</dd></dl></details>
+<details class="sub"><summary>Siege, support and mining explained</summary><dl class="spellinfo"><dt>Bought from the Ether</dt><dd>Archers, Cannons, Healers, Walls, Repairmen, Battering Rams and Miners all wait in the Ether, a set for every deck, and come into your deck with their Conjure spells.</dd><dt>Shooting</dt><dd>Archers and Cannons fire from wherever they stand, inside an Ace, the Tree or a Wall too, where the rest can't fight. Select the stack in the attack phase and click a highlighted target; a miss costs the shooter nothing. Only one shot a turn leaves a base.</dd><dt>Support cards</dt><dd>Healers, Repairmen, Battering Rams and Miners never fight. In a stack they die last (Miners first). Standing alone they can't defend: an enemy beside them chooses Capture or Destroy instead of an attack. A captured card rides in the stack's capture slot (one per stack) until you set it to work beside the stack; then it is yours.</dd><dt>Heal and Repair</dt><dd>Select the stack in your prep phase and press Heal a heart or Repair. The status line under the cards shows every cooldown.</dd><dt>Crystals</dt><dd>A crystal rises in the middle of the field every 1d6 + 4 turns. A Miner on it digs 1 + 1d3 mana on a 2 of 1d2 each turn, until the crystal's 12 mana are gone.</dd><dt>Field Libation</dt><dd>Necromancy, free, not under the Full Moon: pour out cards from your field; each one is worth its mana on a 2 of 1d2, and goes to the grave for nothing on a 1.</dd></dl></details>
 ${bankExplainHTML()}
 ${skyExplainHTML()}
 </details>`;
@@ -2407,7 +2407,7 @@ function seatForm(i,S,mode,L,taken){taken=taken||new Set();
 <div class="srow"><label class="f">Name <input data-seat="${i}" data-k="name" value="${esc(S.name)}" maxlength="20"></label>${type}</div>
 <details class="look" ${S.open?"open":""}><summary>${tm?"Team, Emanation, color and symbol":"Emanation, color and symbol"} ${lsum}</summary>
 ${tm?`<div class="f"><span>Team</span><div class="opts">${[0,1].map(t=>`<label class="opt"><input type="radio" name="tm${n}" data-seat="${i}" data-k="team" value="${t}" ${S.team===t?"checked":""}><span>${t?"Side B":"Side A"}<small>${t?"Plays against Side A.":"Plays against Side B."} ${L==="koth"?"Each side needs at least one player.":"Each side needs two players."}</small></span></label>`).join("")}</div></div>`:""}
-${S.noSubs?`<p class="dim fixednote">No Emanations (the Table option): everyone plays by the plain rules.</p>`:`<div class="f"><span>Emanation</span><div class="opts subs">${Object.entries(TRIBES).filter(([k,t])=>!t.hidden).map(([k,t])=>{const off=t.soon||taken.has(k)&&k!==S.tribe;return `<label class="opt${off?" off":""}"><input type="radio" name="tr${n}" data-seat="${i}" data-k="tribe" value="${k}" ${k===S.tribe?"checked":""} ${off?"disabled":""}><span>${t.solid?`<i class="subsym">${solidSVG(t.solid,t.color||"#f3d6a6",18)}</i>`:""}${t.name}<small>${taken.has(k)&&k!==S.tribe?"Another player has it: only the Beginner can be played by more than one player.":t.sub}</small></span></label>`}).join("")}</div></div>`}
+${S.noSubs?`<p class="dim fixednote">No Emanations (the Table option): everyone plays by the plain rules.</p>`:`<div class="f"><span>Emanation</span><div class="opts subs">${Object.entries(TRIBES).filter(([k,t])=>!t.hidden).map(([k,t])=>{const off=t.soon||taken.has(k)&&k!==S.tribe;return `<label class="opt${off?" off":""}"><input type="radio" name="tr${n}" data-seat="${i}" data-k="tribe" value="${k}" ${k===S.tribe?"checked":""} ${off?"disabled":""}><span>${t.solid?`<i class="subsym">${solidSVG(t.solid,t.color||"#f3d6a6",18)}</i>`:""}${t.name}<small>${taken.has(k)&&k!==S.tribe?"Another player has it: no two players share an Emanation.":t.sub}</small></span></label>`}).join("")}</div></div>`}
 ${(()=>{const T=TRIBES[S.tribe]||{};
   const acc=c0=>`<div class="f"><span>Accent</span><div class="opts swatches accents">${ACCENTS.map(([v,nm])=>`<label class="sw" title="${nm}${v==="auto"?" (a light shade of the color)":""}"><input type="radio" name="ac${n}" data-seat="${i}" data-k="accent" value="${v}" ${v===(S.accent||"auto")?"checked":""}><span style="--pc:${v==="auto"?accentOf(c0&&c0!=="random"?c0:"#c9a274","auto"):v}"></span><em>${nm}</em></label>`).join("")}</div></div><p class="dim acnote">The accent is the thin frame around each of your cards, and the glow on the card you have selected.</p>`;   // v61: the frame of your cards (v71: and the selection glow)
   if(T.color)return `<p class="dim fixednote">${esc(T.name)} always plays in its own color and symbol: ${solidSVG(T.solid,T.color,20)}</p>`+acc(T.color);
@@ -2432,7 +2432,7 @@ function showStart(){
   }
   const mode=startMode,M=MODES.find(m=>m[0]===mode);
   const seatsS=[0,1,2,3,4,5,6,7].map(i=>({name:`P${i+1}`,type:i===0?"human":"medium",
-    tribe:i>0?"random":"beginner",color:"random",solid:"random",team:i%2,named:false}));   // v71m: color and symbol start on Random
+    tribe:"random",color:"random",solid:"random",team:i%2,named:false}));   // v71m: color and symbol start on Random
   let curLayout=null;
   const counts=mode==="survival"?[1,2,3,4]:mode==="online"?[2,3,4]:[2,3,4,5,6,7,8];
   const forms=`<fieldset class="pf"><legend>Table</legend>
@@ -2602,7 +2602,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
       if(k==="color"){S.lookSet=true;el.closest(".seat").style.setProperty("--pc",el.value);drawSeats();return}   // v61: the accents follow the color
       if(k==="tribe"||k==="color"||k==="solid")S.lookSet=true;
       if(k==="type"){if(el.value==="human"&&humans()>4){S.type="medium";flash("Four people can play on one device at most.");drawSeats();return}
-        if(!S.lookSet){const cpu=el.value!=="human";S.tribe=cpu?"random":"beginner";S.color="random";S.solid="random"}
+        if(!S.lookSet){const cpu=el.value!=="human";S.tribe="random";S.color="random";S.solid="random"}
         drawSeats();return}
       if(k==="team"){S.team=+el.value;drawSeats()}
       if(k==="tribe"){S.open=true;drawSeats()}
@@ -2678,7 +2678,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     });
     const blk=skyBlocked(val("omoonon")),bad=players.find(p=>blk.includes(p.tribe));if(bad){flash(`${TRIBES[bad.tribe].name} can't be played with that Heavenly Body in the sky.`);return}
     if($("#onosubs").checked)players.forEach(p=>{p.tribe="plain"});   // v70d: No Emanations: everyone plays by the plain rules
-    for(const t of Object.keys(TRIBES))if(t!=="random"&&t!=="beginner"&&t!=="plain"&&players.filter(p=>p.tribe===t).length>1){flash(`Only one player can be ${TRIBES[t].name}. The Beginner is the only Emanation more than one player can share.`);return}
+    for(const t of Object.keys(TRIBES))if(t!=="random"&&t!=="plain"&&players.filter(p=>p.tribe===t).length>1){flash(`Only one player can be ${TRIBES[t].name}: no two players share an Emanation.`);return}
     {const picked=players.filter(p=>!TRIBES[p.tribe].color&&p.color!=="random");if(new Set(picked.map(p=>p.color)).size<picked.length){flash("Every player needs a different color.");return}}   // Random finds a free color at the start
     if(L==="koth"&&$("#okteam").checked){players.forEach((p,i)=>p.team=seatsS[i].team?1:0);if(!players.some(p=>p.team===0)||!players.some(p=>p.team===1)){flash("Each side needs at least one player.");return}}
     if(L.startsWith("team")){ // seats alternate sides: A, B, A, B
@@ -2996,13 +2996,13 @@ function outerEdge(r,c,rot){
 /* Random becomes a real Emanation before the game starts; fixed colors and symbols are applied */
 function resolveSubstances(opts){
   const taken=new Set(skyBlocked(opts.moon));   // a Heavenly Body in the sky from the start keeps out the Emanation it would serve
-  // every Emanation but the Beginner is played by one player at most
-  for(const p of opts.players)if(p.tribe&&TRIBES[p.tribe]&&p.tribe!=="random"&&p.tribe!=="beginner"&&p.tribe!=="plain"&&!TRIBES[p.tribe].soon)taken.add(p.tribe);
+  // every Emanation is played by one player at most (v73a: the Beginner is gone; a seat left without one plays with No Emanation)
+  for(const p of opts.players)if(p.tribe&&TRIBES[p.tribe]&&p.tribe!=="random"&&p.tribe!=="plain"&&!TRIBES[p.tribe].soon&&!TRIBES[p.tribe].gone)taken.add(p.tribe);
   for(const p of opts.players){
     if(p.cpu==="horde")continue;
-    if(!p.tribe||!TRIBES[p.tribe]||p.tribe==="random"||TRIBES[p.tribe].soon){
-      const ban=opts.subBan||[],pool=PLAYABLE.filter(k=>(k==="beginner"||!taken.has(k))&&!ban.includes(k));
-      p.tribe=pool.length?pick(pool):"beginner";p.randomSub=true;if(p.tribe!=="beginner")taken.add(p.tribe);
+    if(!p.tribe||!TRIBES[p.tribe]||p.tribe==="random"||TRIBES[p.tribe].soon||TRIBES[p.tribe].gone){
+      const ban=opts.subBan||[],pool=PLAYABLE.filter(k=>!taken.has(k)&&!ban.includes(k));
+      p.tribe=pool.length?pick(pool):"plain";p.randomSub=true;if(p.tribe!=="plain")taken.add(p.tribe);
     }
     const T=TRIBES[p.tribe];if(T.color)p.color=T.color;if(T.solid)p.solid=T.solid;
   }
@@ -5521,7 +5521,7 @@ const SPELL_TEXT={
  ca:{e:"An Ace's soul comes from the Ether into your deck."},
  csc:{e:"A Scout's soul comes from the Ether into your deck.",l:"Scouts see two tiles out through the fog in a diamond and uncover Assassins, ambushers and face-down cards there, move like Assassins, and never fight."},
  cas:{e:"An Assassin's soul comes from the Ether into your deck.",l:"Two hearts, 10 + 1d12 to attack, 8 to defend. Hidden until an enemy stands right beside it. Can ambush. Only another Assassin stacks with it."},
- carch:{e:"An Archer's soul comes from the Ether into your deck.",l:"Shoots 1d20 + 1d10 at a stack exactly two tiles away, or suppresses it (disadvantage on its next attack). A miss costs nothing. No defense. 1 mana for the Beginner."},
+ carch:{e:"An Archer's soul comes from the Ether into your deck.",l:"Shoots 1d20 + 1d10 at a stack exactly two tiles away, or suppresses it (disadvantage on its next attack). A miss costs nothing. No defense."},
  ccan:{e:"A Cannon's soul comes from the Ether into your deck.",l:"Fires 2d20 at anything up to three tiles away, once every 1d2 + 2 turns, two damage to a Wall. A miss costs nothing. No defense. Moves one step."},
  cheal:{e:"A Healer's soul comes from the Ether into your deck.",l:"Its shield turns one blow from its stack and returns in 1d4 rounds; or it heals one heart in or beside its stack. Never stacks with a Queen."},
  cwall:{e:"A Wall's soul comes from the Ether into your deck.",l:"Five hearts, defense 10. Holds one stack like an Ace, but only ranged cards fire from it, one shot a turn. Never moves."},
@@ -6570,8 +6570,8 @@ if(window.__EC)Object.assign(window.__EC,{buyPlanet,raisePlanet,venusCycle,mercu
 
 /* ---------------- Prompt 12, part 2c (v29): striking Emanations and Heavenly Bodies before a game; the Sun and Saturn judge their buyer ----------------
    Emanations: a small check in every Emanation tile strikes it from the game: nobody can pick it and Random never rolls it. One ban list
-     for the whole table (it shows in every seat). At least one stays; Random fades out by itself when only one is left. Only the Beginner
-     can be shared, so it is the last to go: it can be struck only while there are still as many other Emanations as seats.
+     for the whole table (it shows in every seat). At least one stays; Random fades out by itself when only one is left. Every seat needs one of
+     its own (v73a: the Beginner is gone), so at least as many Emanations as seats stay.
      Survival has no bans.
    Planets: a check on each Heavenly Body in "Starting Heavenly Body" strikes it from Astrology: it can't be bought in the Heavenly Body shop and the
      Firmament can't raise it. The starting Heavenly Body itself can't be struck.
@@ -6589,13 +6589,12 @@ function banBtn(on,what){const b=document.createElement("button");b.type="button
   b.setAttribute("aria-label",on?`${what} is allowed in this game. Click to strike it.`:`${what} is struck from this game. Click to allow it.`);b.dataset.tip=on?"Allowed. Click to strike it from this game.":"Struck from this game. Click to allow it again.";return b}
 
 /* ---------- the rules for striking an Emanation ---------- */
-function subFloorFix(){const N=seatCount();if(SUB_BAN.has("beginner")&&subsAllowed().length<N){SUB_BAN.delete("beginner");saveBans();return true}return false}
+function subFloorFix(){const N=seatCount();let ch=false;for(const k of [...SUB_BAN]){if(subsAllowed().length>=N)break;SUB_BAN.delete(k);ch=true}if(ch)saveBans();return ch}   // v73a: every seat needs one of its own
 function toggleSub(k){
   if(SUB_BAN.has(k)){SUB_BAN.delete(k);saveBans();return true}
   const N=seatCount(),after=subsAllowed().filter(x=>x!==k);
   if(!after.length){flash("At least one Emanation has to stay.");return false}
-  if(!after.includes("beginner")&&after.length<N){
-    flash(k==="beginner"?`The Beginner stays until ${N} other Emanations are allowed: ${N} players need ${N} Emanations, and only the Beginner can be shared.`:`With the Beginner struck, ${N} players need at least ${N} Emanations.`);return false}
+  if(after.length<N){flash(`${N} players need at least ${N} Emanations: no two players share one.`);return false}
   SUB_BAN.add(k);saveBans();return true}
 /* seats sitting on a struck Emanation move to Random (or to the only one left) */
 function fixSeats(root){
@@ -6608,7 +6607,7 @@ function fixSeats(root){
 /* ---------- painting the checks into the setup ---------- */
 function applyBans(root){
   if(!root)return;const surv=setupSurvival();root.classList.toggle("nobans",surv);
-  if(!surv&&subFloorFix())flash("The Beginner is back: there are more seats than other Emanations.");
+  if(!surv&&subFloorFix())flash("An Emanation is back: every seat needs one of its own.");
   const A=subsAllowed();
   root.querySelectorAll('.seat label.opt input[name^="tr"]').forEach(inp=>{const lab=inp.closest("label.opt"),k=inp.value;
     if(surv){lab.classList.remove("banned");return}
@@ -7961,17 +7960,17 @@ function infoTree(){
 /* ---------------- v38: the online lobby ----------------
    Everyone in the room sees the lobby: who is there, what each of them has chosen, and what the host is doing (in the room, or
    setting up the game and on which tab). While the host sets up, a joined player chooses their own name, Emanation, color and
-   symbol in "Your player" (an Emanation someone else holds is greyed out, except the Beginner), and their own look in "Display",
+   symbol in "Your player" (an Emanation someone else holds is greyed out), and their own look in "Display",
    which is saved on their device like any display setting and carries into the game. When the host gives them a seat, their
    choices fill it. */
 
 const LOBBY_STATUS={room:"The host is in the room, waiting for everyone to join.",players:"The host is setting up the game: the players and seats.",
   map:"The host is setting up the game: the map.",deck:"The host is setting up the game: the decks.",rules:"The host is setting up the game: the rules.",
   display:"The host is setting up the game.",starting:"The game is starting."};
-const netPickOf=()=>{const p=PREF.netPick||{};return {name:NET.name||p.name||"Player",tribe:TRIBES[p.tribe]&&!TRIBES[p.tribe].soon&&p.tribe!=="random"?p.tribe:"beginner",
+const netPickOf=()=>{const p=PREF.netPick||{};return {name:NET.name||p.name||"Player",tribe:TRIBES[p.tribe]&&!TRIBES[p.tribe].soon&&!TRIBES[p.tribe].hidden?p.tribe:"random",
   color:COLORS.some(c=>c[1]===p.color)?p.color:COLORS[0][1],solid:SOLIDS[p.solid]?p.solid:"tetra"}};
 /* the host checks what a joined player sends */
-function cleanPick(p){p=p||{};return {name:String(p.name||"Player").slice(0,20),tribe:TRIBES[p.tribe]&&!TRIBES[p.tribe].soon&&p.tribe!=="random"?p.tribe:"beginner",
+function cleanPick(p){p=p||{};return {name:String(p.name||"Player").slice(0,20),tribe:TRIBES[p.tribe]&&!TRIBES[p.tribe].soon&&!TRIBES[p.tribe].hidden?p.tribe:"random",
   color:COLORS.some(c=>c[1]===p.color)?p.color:COLORS[0][1],solid:SOLIDS[p.solid]?p.solid:"tetra"}}
 const pickLook=p=>{const T=TRIBES[p.tribe]||{};return {color:T.color||p.color,solid:T.solid||p.solid}};
 
@@ -7994,7 +7993,7 @@ function setStatus(k){if(NET.status===k)return;NET.status=k;lobbySend()}
 /* a seat given to a joined player takes their name, Emanation, color and symbol */
 {const _sf=seatForm;seatForm=function(i,S,mode,L,taken){
   const apply=()=>{if(!(NET.role==="lobby-host"&&NET.inSetup)||!S.type||!String(S.type).startsWith("net:"))return false;const g=NET.guests[S.type.slice(4)];if(!g||!g.pick)return false;
-    const p=g.pick,before=JSON.stringify([S.name,S.tribe,S.color,S.solid]);S.name=p.name;if(!(taken&&taken.has(p.tribe))||p.tribe==="beginner")S.tribe=p.tribe;S.color=p.color;S.solid=p.solid;S.named=true;
+    const p=g.pick,before=JSON.stringify([S.name,S.tribe,S.color,S.solid]);S.name=p.name;if(!(taken&&taken.has(p.tribe))||p.tribe==="random")S.tribe=p.tribe;S.color=p.color;S.solid=p.solid;S.named=true;
     return JSON.stringify([S.name,S.tribe,S.color,S.solid])!==before};
   apply();let h=_sf(i,S,mode,L,taken);if(apply())h=_sf(i,S,mode,L,taken);
   if(NET.role==="lobby-host"&&NET.inSetup){NET.seatInfo[i]={type:S.type,tribe:S.tribe};if(String(S.type).startsWith("net:"))h=h.replace("<legend>",`<legend title="This player chooses their own name, Emanation, color and symbol in the lobby">`);lobbySend()}
@@ -8025,15 +8024,15 @@ function paintGuestLobby(){const L=NET.lobby,m=$("#onMsg"),r=$("#gRoster");if(!m
   r.innerHTML=`<ul class="lroster">${L.roster.map(x=>{const p=x.id===L.you?netPickOf():x.pick;const look=p?pickLook(p):null;
     return `<li>${look?solidSVG(look.solid,look.color,18):""} <b>${esc(x.id===L.you?netPickOf().name:x.name)}</b>${x.host?' <span class="dim">· the host</span>':""}${x.id===L.you?' <b class="youtag">You</b>':""}${p?` <span class="dim">· ${esc(TRIBES[p.tribe].name)}</span>`:x.host?"":' <span class="dim">· choosing…</span>'}${x.seat>=0?` <span class="seatag">P${x.seat+1}</span>`:x.host?"":' <span class="dim">· no seat yet</span>'}</li>`}).join("")}</ul>
 <p class="dim">The host gives each player a seat. Your choices in "Your player" fill your seat; your Display settings are your own.</p>`}
-/* Emanations other seats hold (the Beginner can be shared) */
+/* Emanations other seats hold (no two share one) */
 const takenByOthers=()=>{const L=NET.lobby;if(!L)return new Set();const me="net:"+L.you,s=new Set();
-  for(const t of L.taken||[])if(t.type!==me&&t.tribe&&t.tribe!=="beginner"&&t.tribe!=="random")s.add(t.tribe);
-  for(const x of L.roster)if(x.id!==L.you&&x.pick&&x.pick.tribe!=="beginner")s.add(x.pick.tribe);return s};
+  for(const t of L.taken||[])if(t.type!==me&&t.tribe&&t.tribe!=="random")s.add(t.tribe);
+  for(const x of L.roster)if(x.id!==L.you&&x.pick&&x.pick.tribe!=="random")s.add(x.pick.tribe);return s};
 function sendMe(){const p=netPickOf();PREF.netPick=p;PREF.netName=p.name;savePrefs();if(NET.role==="guest")sendHost({t:"me",pick:p})}
 function paintMe(){const box=$("#gMe");if(!box)return;const p=netPickOf(),taken=takenByOthers(),T=TRIBES[p.tribe]||{};
   box.innerHTML=`<fieldset class="pf seat" style="--pc:${T.color||p.color}"><legend>Your player</legend>
 <div class="srow"><label class="f">Name <input id="gName" value="${esc(p.name)}" maxlength="20"></label></div>
-<div class="f"><span>Emanation</span><div class="opts subs">${Object.entries(TRIBES).filter(([k,t])=>k!=="random"&&!t.hidden).map(([k,t])=>{const off=t.soon||taken.has(k)&&k!==p.tribe;
+<div class="f"><span>Emanation</span><div class="opts subs">${Object.entries(TRIBES).filter(([k,t])=>!t.hidden).map(([k,t])=>{const off=t.soon||taken.has(k)&&k!==p.tribe&&k!=="random";
   return `<label class="opt${off?" off":""}"><input type="radio" name="gTr" value="${k}" ${k===p.tribe?"checked":""} ${off?"disabled":""}><span>${t.solid?`<i class="subsym">${solidSVG(t.solid,t.color||"#f3d6a6",18)}</i>`:""}${t.name}<small>${taken.has(k)&&k!==p.tribe?"Another player has it.":esc(t.sub||"")}</small></span></label>`}).join("")}</div></div>
 ${T.color?`<p class="dim fixednote">${esc(T.name)} always plays in its own color and symbol: ${solidSVG(T.solid,T.color,20)}</p>`:`<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex])=>`<label class="sw" title="${nm}"><input type="radio" name="gCo" value="${hex}" ${hex===p.color?"checked":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}</div></div>
 ${T.solid?`<p class="dim fixednote">${esc(T.name)} always bears its own symbol: ${solidSVG(T.solid,p.color,20)}</p>`:`<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="gSo" value="${k}" ${k===p.solid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}</div></div>`}`}
@@ -11543,15 +11542,16 @@ function fxMinPaint(){const m=$("#menu");if(!m)return;const on=fxMin(),each=fxEa
 if(window.__EC)Object.assign(window.__EC,{stepStats,fxLvl,FX_LVLS,fxSeen:(e,id)=>fxSeen(e,id)});
 
 /* ---------- v71m: more symbols, card patterns, metal sheen, and black as a player's color ----------
-   - Five more shapes for the players' symbols, so a full table of eight never runs short: the Sphere, the Pyramid, the
-     Heart (v72a, in the Prism's place), the Pentagram and the Cuboctahedron, drawn like the Platonic solids.
+   - More shapes for the players' symbols, so a full table of eight never runs short: the Sphere, the Heart (v72a, in the
+     Prism's place), the Pentagram, the Cuboctahedron and (v73a) the six-pointed star; the Pyramid is gone.
    - Card patterns: each player's cards and stacks carry a faint pattern of their own. In the seat's look, Pattern is
      Random by default (a pattern nobody else has), None, or one of eight. A Display setting (on by default) shows them;
      Colorblind-safe colors always show them.
    - Metal sheen (off by default, per player): a slow shine sweeps across that player's cards and stacks.
    - Onyx (black) is a player's color: its names, symbols and dice get a light edge so they read on dark pages. */
-Object.assign(SOLIDS,{sphere:"Sphere",pyramid:"Pyramid",heart:"Heart",penta:"Pentagram",cubocta:"Cuboctahedron"});   // v72a: the Heart took the Prism's place
+Object.assign(SOLIDS,{sphere:"Sphere",heart:"Heart",penta:"Pentagram",cubocta:"Cuboctahedron",hexa:"Six-pointed star"});   // v72a: the Heart took the Prism's place; v73a: no Pyramid, and the six-pointed star is anyone's (the Firmament bears the eight-pointed one)
 {const _sp=solidPath;solidPath=function(s){
+  if(s==="star8")return ring(poly(4,9.8,-90))+ring(poly(4,9.8,-45));   // v73a: the Firmament's eight-pointed star
   if(s==="sphere")return "M-9,0A9,9 0 1,0 9,0A9,9 0 1,0 -9,0Z M-9,0A9,3.1 0 1,0 9,0A9,3.1 0 1,0 -9,0Z M0,-9A3.4,9 0 1,0 0,9A3.4,9 0 1,0 0,-9Z";
   if(s==="pyramid"){const T=[0,-9.5],L=[-9.5,5],F=[-1.5,8.8],R=[9.5,4.4];return ring([T,L,F,R])+seg(T,F)}
   if(s==="heart"||s==="prism")return "M0,8.8C-5.6,4.7 -9.7,1.2 -9.7,-3.3C-9.7,-6.7 -7.1,-8.9 -4.4,-8.9C-2.4,-8.9 -0.9,-7.7 0,-5.8C0.9,-7.7 2.4,-8.9 4.4,-8.9C7.1,-8.9 9.7,-6.7 9.7,-3.3C9.7,1.2 5.6,4.7 0,8.8Z M0,-5.8V8.8";   // a faceted heart (an old Prism draws as the Heart)
@@ -11568,7 +11568,7 @@ const darkCol=c=>typeof c==="string"&&/^#[0-9a-f]{6}$/i.test(c)&&labOf(c)[0]<14;
 /* patterns: one per player, chosen or random (none for the Bank's and the Demons' cards) */
 const PATTERNS=["Slant","Reverse","Dots","Upright","Flat","Hatch","Grid","Rings"];
 const SHEEN_T=6;
-{const _m=mkPlayer;mkPlayer=function(i,o){if(o&&o.solid==="prism")o=Object.assign({},o,{solid:"heart"});const P=_m.call(this,i,o);P.patSel=o&&o.pattern!=null?String(o.pattern):"random";P.sheen=!!(o&&o.sheen);return P}}
+{const _m=mkPlayer;mkPlayer=function(i,o){if(o&&o.solid==="prism")o=Object.assign({},o,{solid:"heart"});if(o&&o.solid==="pyramid")o=Object.assign({},o,{solid:"tetra"});const P=_m.call(this,i,o);P.patSel=o&&o.pattern!=null?String(o.pattern):"random";P.sheen=!!(o&&o.sheen);return P}}
 function dealPatterns(){if(!G||!G.p)return;const ps=G.p.filter(P=>P&&!P.npc&&!isNPC(P.i));
   for(const P of ps){const v=P.patSel;P.pattern=v==="none"?-1:/^\d$/.test(v)&&+v<PATTERNS.length?+v:null}
   const used=new Set(ps.map(P=>P.pattern).filter(x=>x!=null&&x>=0));
