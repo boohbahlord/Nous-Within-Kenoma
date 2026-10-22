@@ -1695,7 +1695,7 @@ summary .fasum{font-size:.72em;letter-spacing:.05em;vertical-align:1px}
 .ovbox.setup .seat .opts.subs{gap:4px;grid-template-columns:repeat(auto-fill,minmax(min(100%,132px),1fr))}
 /* ---------- v61: card faces in the players' colors (darkened, calmed), the accent as the frame, light lettering ---------- */
 .cf.v61,.stack.v61{--cb:var(--pcb,color-mix(in oklab,var(--pc) 44%,#211b16));--cbe:color-mix(in oklab,var(--cb) 78%,#000);--ct:#f4ead9;--cr:#ff9b90;
-  background:var(--clsg,none),var(--cbpat,none),linear-gradient(160deg,color-mix(in oklab,var(--cb) 86%,#fff) 0%,var(--cb) 55%,color-mix(in oklab,var(--cb) 82%,#000) 100%);color:var(--ct);
+  background:var(--clsg,none),var(--tmg,none),var(--cbpat,none),linear-gradient(160deg,color-mix(in oklab,var(--cb) 86%,#fff) 0%,var(--cb) 55%,color-mix(in oklab,var(--cb) 82%,#000) 100%);color:var(--ct);
   box-shadow:inset 0 0 0 2px var(--cb),inset 0 0 0 3px var(--ca),var(--stk,0 0 #0000),0 2px 4px #0008}
 .cf.v61.red,.stack.v61.red{color:var(--cr)}
 .v61 .ty{color:color-mix(in oklab,var(--ct) 80%,transparent);border-top-color:color-mix(in oklab,var(--ca) 45%,transparent)}
@@ -2202,4 +2202,9 @@ html.fs-sp:not(.fs-sel) #fstabSel{right:min(330px,86vw)}
 #board.bigvoid .tile.void{filter:brightness(.42) saturate(.6)}
 .crossopts{margin-top:8px;padding-left:10px;border-left:2px solid var(--rule)}
 .chk.off{opacity:.55}
+/* v73d: a side's color in the top-left and bottom-right corners (a class takes the other two), and its name in the player's box */
+@property --tmg{syntax:"*";inherits:false}
+.v61.tmark{--tmg:linear-gradient(135deg,var(--tmc) 0 10%,transparent 10.3% 89.7%,var(--tmc) 90%)}
+.tchip{display:inline-block;margin:0 6px;padding:0 6px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;line-height:1.6;color:#fff;background:color-mix(in oklab,var(--tc) 70%,#000);border:1px solid var(--tc);border-radius:3px;vertical-align:middle}
+#layoutf .gmodes .gmn{font-weight:inherit}
 

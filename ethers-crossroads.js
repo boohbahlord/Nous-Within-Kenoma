@@ -2396,6 +2396,11 @@ const LAYOUTS={
  koth:["King of the Hill","A 25 by 25 night field around a glowing Hill: hold it to score. 2 to 8 players, in teams by default."]};
 const LAYNEED={duel:[2],ffa:[3,4],"team-side":[4],"team-across":[4],"team-same":[4],koth:[2,3,4,5,6,7,8]};
 const LAYDEF={2:"duel",3:"ffa",4:"ffa",5:"koth",6:"koth",7:"koth",8:"koth"};
+/* v73d: the game is Free For All, Teams or King of the Hill; with Teams, where teammates spawn is its own choice (the layouts above stay underneath) */
+const GMODES=[["ffa","Free For All","Everyone for themselves, one player to each edge or arm (1v1 with two players)."],["teams","Teams","Two sides of two: choose where teammates spawn below. Needs 4 players."],
+  ["koth","King of the Hill","Hold the glowing Hill to score. 2 to 8 players, in teams by default."]];
+const TEAMARR=[["same","Side by side","Teammates spawn next to each other at one end of the field (on the Cross, both on one arm)."],["across","Opposite","Teammates face each other from opposite edges or arms, with the enemy on both flanks."],
+  ["side","On neighboring edges","Teammates hold two edges (or arms) that meet at a corner."]];
 function seatForm(i,S,mode,L,taken){taken=taken||new Set();
   const n=i+1,tm=L.startsWith("team")||L==="koth"&&SEAT_KOTH_TEAM,team=tm?`<span class="sidetag s${S.team}">${S.team?"Side B":"Side A"}</span>`:"";
   const you=!!S.you;   // v60: "You" is a tag in your own color beside your seat's name (v70d: when you are the only person at the table)
@@ -2437,7 +2442,9 @@ function showStart(){
   const counts=mode==="survival"?[1,2,3,4]:mode==="online"?[2,3,4]:[2,3,4,5,6,7,8];
   const forms=`<fieldset class="pf"><legend>Table</legend>
 <label class="f">${mode==="survival"?"Players against the Horde":"Players"} <select id="pcount">${counts.map(c=>`<option value="${c}" ${c===counts[0]?"selected":""}>${c}</option>`).join("")}</select></label>
-<div class="f" id="layoutf" ${mode==="survival"?"hidden":""}><span>Layout</span><div class="opts">${Object.entries(LAYOUTS).map(([k,[t,d]],i)=>`<label class="opt" data-lay="${k}"><input type="radio" name="olayout" value="${k}" ${i===0?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
+<div class="f" id="layoutf" ${mode==="survival"?"hidden":""}><span>Game</span><div class="opts gmodes">${GMODES.map(([k,t,d],i)=>`<label class="opt" data-gm="${k}"><input type="radio" name="ogmode" value="${k}" ${i===0?"checked":""}><span><b class="gmn">${t}</b><small>${d}</small></span></label>`).join("")}</div>
+<div class="f" id="teamarr" hidden><span>Teammates spawn</span><div class="opts">${TEAMARR.map(([k,t,d],i)=>`<label class="opt"><input type="radio" name="oteamarr" value="${k}" ${i===0?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
+<div hidden>${Object.entries(LAYOUTS).map(([k,[t,d]],i)=>`<label class="opt" data-lay="${k}"><input type="radio" name="olayout" value="${k}" ${i===0?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
 <p class="dim" id="laynote"></p>
 ${chk("oalike","Allow colors that look alike","Players may pick a color close to another player's (never the very same one). Off by default: a color too like another player's can't be picked.",false)}
 ${chk("onosubs","No Emanations","Every player plays by the plain rules, with no Emanation's advantages or drawbacks. On by default in Survival.",mode==="survival")}
@@ -2583,7 +2590,11 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
   const drawSeats=()=>{
     const n=count(),L=layout();
     if(mode!=="survival"){
-      document.querySelectorAll("#layoutf [data-lay]").forEach(o=>{const ok=LAYNEED[o.dataset.lay].includes(n);o.classList.toggle("off",!ok);const inp=o.querySelector("input");inp.disabled=!ok;inp.checked=o.dataset.lay===L})}
+      document.querySelectorAll("#layoutf [data-lay]").forEach(o=>{const ok=LAYNEED[o.dataset.lay].includes(n);o.classList.toggle("off",!ok);const inp=o.querySelector("input");inp.disabled=!ok;inp.checked=o.dataset.lay===L});
+      const gm=L==="koth"?"koth":L.startsWith("team")?"teams":"ffa";   // v73d: the Game choice follows the layout underneath
+      document.querySelectorAll("#layoutf [data-gm]").forEach(o=>{const k=o.dataset.gm,ok=k==="koth"||(k==="teams"?LAYNEED["team-same"].includes(n):n<=4),inp=o.querySelector("input");inp.disabled=!ok;o.classList.toggle("off",!ok);inp.checked=k===gm;
+        if(k==="ffa")o.querySelector(".gmn").textContent=n===2?"1v1":"Free For All"});
+      $("#teamarr").hidden=gm!=="teams";if(gm==="teams")document.querySelectorAll("input[name=oteamarr]").forEach(i=>i.checked="team-"+i.value===L)}
     const key=L+(L==="coop"?n:"");if(key!==curLayout){curLayout=key;sizeUp()}
     if($("#kothopts")){$("#kothopts").hidden=L!=="koth";SEAT_KOTH_TEAM=$("#okteam").checked;$("#oktug").disabled=!SEAT_KOTH_TEAM;kothMapUp(L)}
     $("#laynote").textContent=mode==="survival"?(n===1?"One survivor on the usual field.":`${n} survivors share the bottom of the field, and the Horde spawns once for each of you. Any seat can be a computer; people take their turns one after another on this device, and the Horde moves first each round.`):"";
@@ -2631,6 +2642,9 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
   $("#pcount").addEventListener("change",drawSeats);
   document.querySelectorAll('input[name=obig],input[name=oxsize]').forEach(i=>i.addEventListener("change",()=>crossUp(count())));   // v73c
   document.querySelectorAll('input[name=olayout]').forEach(i=>i.addEventListener("change",drawSeats));
+  const pickLay=k=>{const i=document.querySelector(`input[name=olayout][value="${k}"]`);if(i)i.checked=true;drawSeats()};   // v73d: Game and Teammates spawn set the layout underneath
+  document.querySelectorAll('input[name=ogmode]').forEach(i=>i.addEventListener("change",()=>{const n=count();pickLay(i.value==="koth"?"koth":i.value==="teams"?"team-"+(val("oteamarr")||"same"):n===2?"duel":"ffa")}));
+  document.querySelectorAll('input[name=oteamarr]').forEach(i=>i.addEventListener("change",()=>pickLay("team-"+i.value)));
   let mapUp=null;
   function sizeUp(){
     const L=layout(),box=$("#sizeother"),n=count();box.hidden=L==="duel";if(L==="duel"){box.innerHTML="";return}
@@ -12469,5 +12483,23 @@ function crossUp(n){const b=val("obig"),box=$("#crossopts");if(!box)return;const
 const crossOpts=()=>({size:val("oxsize")||"std",hole:!!($("#oxhole")&&$("#oxhole").checked),hollow:!!($("#oxhollow")&&$("#oxhollow").checked)&&val("oxsize")!=="small"});
 
 if(window.__EC)Object.assign(window.__EC,{crossPlan:o=>crossPlan(o)});
+
+/* ---------------- v73d: team colors ----------------
+   In a game of teams (2v2, King of the Hill in teams, and the factions to come) every card of a side carries its side's color
+   in its top-left and bottom-right corners (a class's color takes the other two), and each player's box names the side:
+   Red, Blue, Green or Yellow. Everyone sees them; Neptune's eclipse hides them with every other color. */
+const SIDE_COL=[["Red","#d7333b"],["Blue","#4c92e6"],["Green","#45b89c"],["Yellow","#e3b944"]];
+function teamsOn(){if(!G||!G.map)return false;const L=G.map.layout||"";return L.startsWith("team")||!!G.opts.factions||L==="koth"&&!!(G.opts.koth&&G.opts.koth.team)}
+function sideCol(pl){if(!teamsOn()||pl==null||!G.p[pl]||isNPC(pl)||G.p[pl].cpu==="horde")return null;const t=G.p[pl].team|0;return SIDE_COL[t]||null}
+const sideShown=()=>!(typeof nepEcState==="function"&&nepEcState(view()));
+{const _f=face;face=function(c,o={}){const h=_f.apply(this,arguments);if(!G||!c)return h;const own=o.owner!==undefined?o.owner:c.owner,s=sideCol(own);if(!s||!sideShown())return h;
+  return h.replace(/class="cf /,'class="cf tmark ').replace(/style="/,`style="--tmc:${cbMap(s[1])};`)}}
+{const _sd=siegeDecor;siegeDecor=function(inner,st){const h=_sd.apply(this,arguments);if(!st||!G)return h;const s=sideCol(st.owner);if(!s||!sideShown())return h;
+  return h.replace(/(<div class="stack)([^"]*")( style=")/,(m,a,b,c)=>`${a} tmark${b}${c}--tmc:${cbMap(s[1])};`)}}
+{const _pb=pboxHTML;pboxHTML=function(pl){const h=_pb.apply(this,arguments),s=sideCol(pl);if(!s||!sideShown())return h;
+  const name=G.opts.koth&&G.opts.koth.team&&G.map.layout==="koth"?(s[0]==="Red"?"Side A":"Side B"):`${s[0]} team`;
+  return h.replace("</b>",`</b><span class="tchip" style="--tc:${cbMap(s[1])}" title="${esc(name)}">${esc(name)}</span>`)}}
+
+if(window.__EC)Object.assign(window.__EC,{sideCol:pl=>sideCol(pl),teamsOn:()=>teamsOn()});
 
 })();
