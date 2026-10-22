@@ -36,7 +36,7 @@ function camWire(w){
       if(Math.abs(e.deltaX)>Math.abs(e.deltaY))return;e.preventDefault();const k=e.deltaMode===1?16:e.deltaMode===2?innerHeight:1;scrollBy(0,e.deltaY*k);return}
     e.preventDefault();const dir=(e.deltaY<0?1:-1)*(PREF.camInvWheel?-1:1);camZoom(dir>0?1.12:1/1.12,e.clientX,e.clientY)},{passive:false});
   let drag=null,moved=false;
-  w.addEventListener("pointerdown",e=>{if(!isLarge()||e.pointerType!=="mouse"||e.button!==0)return;if(e.target.closest(".stack,button,.ci,input,select,a"))return;
+  w.addEventListener("pointerdown",e=>{if(!isLarge()||e.pointerType!=="mouse"||e.button!==0||PREF.camDrag===false)return;   // v74a: dragging can be turned off (Controls)if(e.target.closest(".stack,button,.ci,input,select,a"))return;
     drag={x:e.clientX,y:e.clientY,l:w.scrollLeft,t:w.scrollTop};moved=false});
   addEventListener("pointermove",e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>5){moved=true;w.classList.add("dragging")}
     if(moved){w.scrollLeft=drag.l-dx;w.scrollTop=drag.t-dy}});

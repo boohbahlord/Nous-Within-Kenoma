@@ -1895,7 +1895,7 @@ html.th-rich .ovbox legend{color:var(--lab)}
 .cardbtn.on .cf,.tile.sel .stack{animation:selbreath 2.4s ease-in-out infinite;filter:drop-shadow(0 0 6px var(--ca,var(--amber-hi))) drop-shadow(0 0 2px var(--ca,var(--amber-hi)))}
 /* v71: every field sits in the middle of its frame; a large one still scrolls and zooms (auto margins fall to 0 once it is wider) */
 #board{margin-left:auto;margin-right:auto}
-.camwrap.on #board.large{margin:10px auto}
+.camwrap.on #board.large{margin:min(28vh,260px) min(32vw,380px)}
 /* ================= v71c: Neptune ================= */
 /* v71k: Neptune's cloud is fog of war with a slight tint of its blue (the color of the fog above it turns blue; the dark
    ground under it hardly changes), breathing slowly */
@@ -2108,7 +2108,7 @@ html.ecfs main.game #seltop,html.ecfs main.game #selbottom,html.ecfs main.game #
 /* the field */
 html.ecfs .camwrap.on{position:fixed;inset:0;z-index:0;max-height:none;margin:0;border:0;background:transparent;display:flex;overflow:auto;touch-action:none;overscroll-behavior:none;
   padding:96px 18px calc(var(--fsrowh,30px) + 118px);box-sizing:border-box;scrollbar-width:thin}
-html.ecfs .camwrap.on #board.large{margin:auto;flex:none}
+html.ecfs .camwrap.on #board.large{margin:max(45vh,240px) max(45vw,240px);flex:none;align-self:flex-start}   /* v74a: slack all around, to move the field past its edges */
 @media (max-height:520px){html.ecfs .camwrap.on{padding:70px 12px calc(var(--fsrowh,30px) + 74px)}}
 /* top left: the sky's body, then the other players */
 html.ecfs main.game #moon{position:fixed;top:6px;left:8px;z-index:20;display:block;cursor:help}
@@ -2239,3 +2239,20 @@ html.fs-sp:not(.fs-sel) #fstabSel{right:min(330px,86vw)}
 #clstgwin h2{margin-top:0}
 #clstgwin .clsh{margin:10px 0 4px;font-size:13px;letter-spacing:.06em;color:var(--amber-hi)}
 .sidetag[style*="--tc"]{color:var(--tc)!important;border-color:var(--tc)!important;background:color-mix(in oklab,var(--tc) 14%,transparent)!important}
+/* ---------------- v74a: fullscreen fixes ---------------- */
+#fieldround{display:flex;justify-content:flex-end;align-items:center;gap:8px}
+#fieldround #fsbtn{position:static;width:30px;height:30px;opacity:.68;border-radius:5px;box-shadow:none;flex:none}
+#fieldround #fsbtn:hover,#fieldround #fsbtn:focus-visible{opacity:1}
+#fieldround #fsbtn svg{width:18px;height:18px}
+body.hasfs main.game>nav.crumbs{padding-right:0}
+#fsctlb{position:fixed;top:8px;right:104px;z-index:33;display:flex;align-items:center;gap:6px;padding:7px 11px;cursor:pointer;font:inherit;font-size:13px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--amber-hi);background:color-mix(in oklab,var(--deep) 90%,transparent);border:1px solid var(--amber);border-radius:6px;box-shadow:0 2px 10px #000a}
+#fsctlb:hover,#fsctlb:focus-visible{color:#fff;background:var(--deep);outline:none;box-shadow:0 0 0 2px var(--amber-hi)}
+@media (max-width:600px){#fsctlb span{display:none}#fsctlb{padding:8px;right:52px}}
+#fsctl .fscbox{width:min(600px,100%);max-height:calc(100dvh - 32px);overflow:auto}
+#fsctl h2{margin-top:0}
+#fsctl .fsckeys{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;margin:6px 0 12px;font-size:13.5px}
+#fsctl .fsckeys dt{color:var(--amber-hi)}#fsctl .fsckeys dd{margin:0;color:var(--text)}
+#fsctl .fscopts{border-top:1px solid var(--rule);padding-top:8px}
+@media (max-width:520px){#fsctl .fsckeys{grid-template-columns:1fr}#fsctl .fsckeys dd{margin-bottom:6px}}
+
