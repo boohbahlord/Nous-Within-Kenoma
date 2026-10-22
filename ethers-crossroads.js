@@ -11059,17 +11059,37 @@ const nepHash=s=>{let h=2166136261;for(const ch of String(s))h=Math.imul(h^ch.ch
 /* acting with a stranger's stack */
 function nepFoePenalty(V){const lost=takeDeck(V,R(2),"Neptune's eclipse");for(const x of lost)toGrave(x,"burn");
   log(`Neptune's eclipse: that stack wasn't ${plName(V)}'s, and it costs ${lost.length} deck card${lost.length===1?"":"s"} (1d2).`,"event");flash(`That stack wasn't yours: Neptune takes ${lost.length} card${lost.length===1?"":"s"} from your deck.`)}
+/* v71p: a stranger's stack picked up shows where it could go (prep) or what it could hit (attack), exactly as if it were
+   yours; clicking one of those tiles, or a button in the Selected box, is acting with it: 1d2 deck cards, or once a round, on
+   a 1 of 1d6, it really moves there by accident. Clicking anywhere else only puts it down, as with your own. */
+function nepFoeTargets(fr,fc,V){const st=G.board[fr]&&G.board[fr][fc];if(!st||V==null)return null;
+  const mode=G.phase==="prep"?"move":G.phase==="attack"?"attack":null;if(!mode)return null;
+  const keep={owner:st.owner,moved:st.moved,attacked:st.attacked},sel=G.sel,vis=G._vis;
+  st.owner=V;st.moved=false;st.attacked=false;G.sel={r:fr,c:fc,pick:new Set(st.cards.filter(x=>!isBase(x)).map(x=>x.id))};G._vis=null;
+  try{return {mode,tiles:mode==="move"?moveTargets():attackTargets()}}catch(e){return null}finally{Object.assign(st,keep);G.sel=sel;G._vis=vis}}   // what it saw as yours is forgotten: no sight through it
+const nepFoeHit=(T,r,c)=>!!T&&T.tiles.some(([a,b])=>a===r&&b===c);
+/* acting with it: on the host (a joined player's act travels there) */
+function nepFoeAct(V,fr,fc,r,c){if(!G||G.over||!G.p[V]||!nepEcFor(V)||NET.ctx!=null&&NET.ctx!==V)return false;
+  const fs=G.board[fr]&&G.board[fr][fc];if(!fs||!isEnemy(fs.owner,V))return false;
+  const E=nepEcState(V)||{foe:{}},k=V+"|"+G.moon.round,T=r!=null?nepFoeTargets(fr,fc,V):null;
+  if(T&&T.mode==="move"&&nepFoeHit(T,r,c)&&!G.board[r][c]&&!E.foe[k]&&R(6)===1){E.foe=E.foe||{};E.foe[k]=1;G.board[r][c]=fs;G.board[fr][fc]=null;G._vis=null;
+    log(`Neptune's eclipse: ${plName(V)} moves a stranger's stack by accident, to ${coord(r,c)} (a 1 on 1d6).`,"event");render();return true}
+  nepFoePenalty(V);render();return true}
+for(const [name,get,set] of [["nepFoeAct",()=>nepFoeAct,f=>nepFoeAct=f]]){
+  NETFN[name]={get,set};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
 {const _tc=tileClick;tileClick=function(r,c){if(!G||!nepEcFor(view()))return _tc.apply(this,arguments);
   const V=view(),st=G.board[r][c],S=G.sel;
-  if(S&&S.nepFoe){G.sel=null;if(S.r===r&&S.c===c){render();return}
-    const E=nepEcState(V)||{foe:{}},k=V+"|"+G.moon.round,fs=G.board[S.r][S.c];
-    if(fs&&!E.foe[k]&&!G.board[r][c]&&!isVoid(r,c)&&Math.abs(r-S.r)+Math.abs(c-S.c)===1&&R(6)===1){E.foe[k]=1;G.board[r][c]=fs;G.board[S.r][S.c]=null;G._vis=null;
-      log(`Neptune's eclipse: ${plName(V)} moves a stranger's stack by accident, to ${coord(r,c)} (a 1 on 1d6).`,"event");render();return}
-    nepFoePenalty(V);render();return}
+  if(S&&S.nepFoe){
+    if(nepFoeHit(nepFoeTargets(S.r,S.c,V),r,c)){G.sel=null;nepFoeAct(V,S.r,S.c,r,c);render();return}
+    G.sel=null;G.mode=null;if(S.r===r&&S.c===c){render();return}
+    return tileClick(r,c)}   // put down, then the click counts as usual
   if(st&&isEnemy(st.owner,V)&&G.active===V&&(G.phase==="prep"||G.phase==="attack")&&!G.mode&&!G.selHand&&canAct()&&stFights(st)){G.sel={r,c,pick:new Set(st.cards.filter(x=>!isBase(x)).map(x=>x.id)),nepFoe:true};render();return}
   return _tc.apply(this,arguments)}}
 document.addEventListener("click",e=>{if(!G||!G.sel||!G.sel.nepFoe||!nepEcFor(view()))return;const b=e.target.closest&&e.target.closest("#selbox button");if(!b)return;
-  e.preventDefault();e.stopPropagation();G.sel=null;nepFoePenalty(view());render()},true);   // the Selected box's buttons count as acting with it
+  e.preventDefault();e.stopPropagation();const S=G.sel;G.sel=null;nepFoeAct(view(),S.r,S.c,null,null);render()},true);   // the Selected box's buttons count as acting with it
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.sel||!G.sel.nepFoe||!nepEcFor(view()))return;
+  const T=nepFoeTargets(G.sel.r,G.sel.c,view()),B=$("#board");if(!T||!B)return;
+  for(const [r,c] of T.tiles){const t=B.querySelector(`.tile[data-r="${r}"][data-c="${c}"]`);if(t)t.classList.add(T.mode==="attack"?"tatk":"tmove")}}}
 /* twice a round at most, a 1 of 1d20 sends a move or an attack astray */
 const nepAstray=pl=>{const E=nepEcState(pl);if(!E)return false;const k=pl+"|"+G.moon.round;if((E.mis[k]||0)>=2||R(20)!==1)return false;E.mis[k]=(E.mis[k]||0)+1;return true};
 {const _dm=doMove;doMove=function(r,c){if(nepEcFor(G.active)&&G.sel&&!G.sel.nepFoe&&nepAstray(G.active)){const alt=moveTargets().filter(([a,b])=>a!==r||b!==c);
@@ -11785,5 +11805,38 @@ const sunShows=V=>V!=null&&formOn("sun")&&!totalBlind(V)&&!sunBlind(V)&&!blindFo
 {const _sb=showsBack;showsBack=function(V){if(sunShows(V))return false;return _sb.apply(this,arguments)}}
 
 if(window.__EC)Object.assign(window.__EC,{formCycle:()=>formCycle(),formOn:k=>formOn(k),strifeTargets:(...a)=>strifeTargets(...a),jupiterGift:pl=>jupiterGift(pl),saturnTollW:pl=>saturnToll(pl),attackW:(...a)=>attack(...a),seesTileW:(...a)=>seesTile(...a),showsBackW:(...a)=>showsBack(...a),strifeStepW:(...a)=>strifeStep(...a)});
+
+/* ---------- v71p: Neptune's eclipse, more lies ----------
+   - A stranger's stack picked up looks like your own: its move or attack tiles (73_neptune.js), and a Selected box that
+     reads "Your stack" with your own buttons (any of them is acting with it, and costs 1d2 deck cards). Under the eclipse
+     no box or tip names a stack's owner, and the Selected box shows its cards in the same stranger's colors as the field.
+   - Card patterns, metal sheen and the cards' frames lie with the colors: each stack takes a stranger's pattern and frame too.
+   - Every player's deck and mana meters show, but filled with static, and their numbers are random, numerator and
+     denominator, rolling again every moment (with Data saving or reduced motion, at each redraw). */
+const nepDisg=(st,E)=>COLORS[nepHash(st.cards[0].id+"|"+E.seed)%COLORS.length][1];
+const nepPat=(st,E)=>nepHash(st.cards[0].id+"|p|"+E.seed)%(PATTERNS.length+1)-1;   // −1: none
+{const _rs=renderSel;renderSel=function(){const S=G&&G.sel,V=G?view():null,st=S&&S.nepFoe&&nepEcFor(V)&&G.board[S.r]&&G.board[S.r][S.c];
+  if(!st)return _rs.apply(this,arguments);
+  const keep={owner:st.owner,moved:st.moved,attacked:st.attacked},vis=G._vis;st.owner=V;st.moved=false;st.attacked=false;G._vis=null;
+  try{return _rs.apply(this,arguments)}finally{Object.assign(st,keep);G._vis=vis}}}   // drawn as yours, then given back
+{const _i=infoHTML1;infoHTML1=function(st){const h=_i.apply(this,arguments),E=G&&nepEcState(view());if(!E||!st||!st.cards||!st.cards[0])return h;
+  return h.replace(/ <span class="dim">· [^<]*<\/span>/,"").replace(/style="--pc:[^"]*"/,`style="--pc:${nepDisg(st,E)}"`)}}
+const nepPaint=(el,col,p)=>{if(col){el.style.setProperty("--pc",col);el.style.setProperty("--pcb",`color-mix(in oklab,${col} 44%,#211b16)`);el.style.setProperty("--ca",`color-mix(in oklab,${col} 55%,#f3e7d2)`)}   // the frame lies too
+  el.style.setProperty("--cbpat",p<0?"none":`var(--pat${p})`);el.classList.remove("sheen")};
+function nepMeters(){if(!document.documentElement.classList.contains("nepec"))return;
+  const roll=(lo,hi)=>lo+Math.floor(Math.random()*(hi-lo+1));
+  for(const b of document.querySelectorAll(".meters .meter b.mv,#foe.minis .mline b")){const deck=!!b.closest(".meter:not(.mana)")||/^Deck/.test((b.parentNode.querySelector("span")||{}).textContent||"");
+    b.textContent=deck?`${roll(0,60)}/${roll(1,60)}`:`${roll(0,24)}/${roll(1,20)}`;b.classList.add("nepnum");b.classList.remove("neg")}
+  for(const bar of document.querySelectorAll(".meters .deckbar,.meters .manabar"))bar.setAttribute("aria-label",`${bar.classList.contains("deckbar")?"Deck":"Mana"}: lost in Neptune's eclipse`)}
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view(),E=nepEcState(V);if(!E)return;
+  for(const t of document.querySelectorAll("#board button.tile")){const st=G.board[+t.dataset.r][+t.dataset.c];if(!st||!st.cards[0])continue;const p=nepPat(st,E);
+    const col=nepDisg(st,E);for(const el of t.querySelectorAll(".v61"))nepPaint(el,col,p)}
+  const box=$("#selbox"),S=G.sel,st=S&&G.board[S.r]&&G.board[S.r][S.c];
+  if(box&&st&&st.cards[0]){const col=nepDisg(st,E),p=nepPat(st,E);for(const el of box.querySelectorAll(".v61,.cin"))nepPaint(el,col,p);
+    const h=box.querySelector("p>b");if(h){let t=h.textContent;for(const P of G.p)if(P.name&&E.names[P.i])t=t.split(P.name).join(E.names[P.i]);if(t!==h.textContent)h.textContent=t}}
+  nepMeters()}}
+setInterval(()=>{if(!G||document.hidden)return;const h=document.documentElement;if(!h.classList.contains("nepec")||h.classList.contains("lite")||matchMedia("(prefers-reduced-motion: reduce)").matches)return;nepMeters()},1400);
+
+if(window.__EC)Object.assign(window.__EC,{nepMetersW:()=>nepMeters()});
 
 })();
