@@ -2347,3 +2347,23 @@ html.ecfs .minepanel.msmini{margin:0 0 6px}
 .sarow b{font-weight:400}
 .fascope .faopts .opt small{display:block}
 .clsavw{margin:4px 0 8px}
+/* v74g: cards another player can see: a see-through Eye, and the seers' symbols at the top */
+#hand [data-h]{position:relative}
+#hand [data-h] .seeneye{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;color:#f3ead6;opacity:.3;animation:eyefade 3.4s ease-in-out infinite;z-index:3}
+#hand [data-h] .seeneye svg{width:64%;max-width:48px;filter:drop-shadow(0 0 3px #000c)}
+@keyframes eyefade{0%,100%{opacity:.22}50%{opacity:.55}}
+html.still-magic #hand .seeneye,html.still-glow #hand .seeneye,html.lite #hand .seeneye{animation:none;opacity:.38}
+@media (prefers-reduced-motion:reduce){#hand .seeneye{animation:none;opacity:.3}}
+#hand [data-h] .seers{position:absolute;top:3px;left:50%;transform:translateX(-50%);display:flex;gap:2px;z-index:4;pointer-events:none;background:#0d0a08b8;border-radius:7px;padding:1px 3px;line-height:0}
+#hand [data-h] .seers i{display:inline-flex}
+/* v74g: something new at the Auction or the Bank: Spells glows with a "!", and its notice sits at the bottom of the spells */
+.spellpanel>h3.spnew{cursor:pointer;color:var(--amber-hi);animation:spglow 1.8s ease-in-out infinite}
+#fstabSp.spnew{color:var(--amber-hi);box-shadow:0 0 12px #f1d27a77;animation:spglow 1.8s ease-in-out infinite}
+@keyframes spglow{0%,100%{text-shadow:0 0 3px transparent}50%{text-shadow:0 0 12px #f1d27a}}
+html.still-glow .spnew{animation:none!important}
+#fstabSp .spbang{margin:6px 0 0}
+#spnote{position:sticky;bottom:0;margin:8px 0 0;padding:8px 10px;border:1px solid var(--amber);background:color-mix(in srgb,var(--deep) 95%,transparent);font-size:12.5px;line-height:1.45;z-index:6;box-shadow:0 -6px 14px #0008}
+#spnote[hidden]{display:none}
+#spnote p{margin:0}#spnote .spacts{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+#spnote .xclose{position:static;margin:0}
+.spping{outline:2px solid var(--amber)!important;outline-offset:2px;box-shadow:0 0 14px #f1d27a99}
