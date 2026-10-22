@@ -1,22 +1,24 @@
 /* ---------------- v73c: the Cross, and the two-armed Cross (large maps) ----------------
    The Cross is a real cross: four arms around a middle shaped like a diamond (a square turned on its point).
-   - Standard: each arm 6 wide and 6 long, around a diamond: a square about 12 on a side turned on its point, so its sides
+   - Standard: each arm 6 wide and 6 long, around a diamond: a square about 14 on a side (v76a; it was 12) turned on its point, so its sides
      show between the arms and each point reaches into an arm. Small: arms 3 by 3 around a diamond about 6 on a side (on an
      odd grid, so the 3-wide arms line up on its middle).
-   - The middle can have a hole in its very center (2 by 2; 1 tile on the small Cross), and on the standard size four hollow
-     tiles around it on the diagonals. Both are off by default.
+   - The middle can have a hole in its very center (2 by 2; 1 tile on the small Cross), and on the standard size four hollows
+     (2 by 2 each, v76a) out on the diagonals, one tile from the hole and one from the diamond's edge. Both are off by default.
    - Spawns: one player at the end of each arm, two rows deep and as wide as the arm. 2v2: teammates on opposite arms, on
      arms side by side, or (standard size) both on one arm, each in a box 3 wide and 2 deep.
    - The two-armed Cross keeps only the top and bottom arms: up to 4 players on the standard size (two to an arm, in boxes
      3 wide and 2 deep, once there are more than two), 2 on the small one.
    - The old 10 by 10 plus is now Cross Map 2. */
-function crossPlan(o){const two=o.big==="cross2",X=o.cross||{},small=X.size==="small",A=small?3:6,N=small?13:24,c0=(N-1)/2,R=small?4:8.5;   // the diamond: a square 12 across (6 small) turned on its point
+function crossPlan(o){const two=o.big==="cross2",X=o.cross||{},small=X.size==="small",A=small?3:6,N=small?13:26,c0=(N-1)/2,R=small?4:10;   // v76a: the diamond: a square about 14 across (6 small) turned on its point
   let theme=o.map||"random";if(theme==="random")theme=pick(["keep","sahel","forest","dungeon"]);if(theme==="river"||theme==="hill")theme="keep";
   const lo=c0-(A-1)/2,hi=c0+(A-1)/2,band=x=>x>=lo&&x<=hi;
   const V=Array.from({length:N},(_,r)=>Array.from({length:N},(_,c)=>!(Math.abs(r-c0)+Math.abs(c-c0)<=R||band(c)||!two&&band(r))));
   const holes=[],koth=o.layout==="koth";
-  if(X.hole&&!koth)holes.push(...(small?[[6,6]]:[[11,11],[11,12],[12,11],[12,12]]));
-  if(X.hollow&&!small)holes.push([10,10],[10,13],[13,10],[13,13]);
+  const cf=Math.floor(c0),cc=Math.ceil(c0);
+  if(X.hole&&!koth)holes.push(...(small?[[cf,cf]]:[[cf,cf],[cf,cc],[cc,cf],[cc,cc]]));
+  // v76a: four hollows, 2 by 2, out on the diagonals: one tile from the hole and one from the diamond's edge, all four alike
+  if(X.hollow&&!small)for(const sr of [-1,1])for(const sc of [-1,1])for(const a of [2.5,3.5])for(const b of [2.5,3.5])holes.push([c0+sr*a,c0+sc*b]);
   for(const [r,c] of holes)V[r][c]=true;
   const n=o.players.length,L=o.layout||"duel";
   // a tile at the end of an arm: d rows in from the edge, a tiles from the player's own left
