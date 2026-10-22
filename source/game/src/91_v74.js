@@ -46,3 +46,37 @@ function fsRowMore(){const o=fsOv("fsrowmore");const r=(name,cur,opts)=>`<div cl
   const row=$("#fsrow");if(row){row.dataset.sz=["s","m","l"].includes(PREF.fsRowSz)?PREF.fsRowSz:"s";document.documentElement.style.setProperty("--fsrowh",row.offsetHeight+"px")}}}
 
 if(window.__EC)Object.assign(window.__EC,{fsFoesHTML:()=>fsFoesHTML()});
+
+/* ---------------- v74c: Performance Settings; "At a glance" in Basics explained; the sky's cycle as a fraction ----------------
+   - The Menu's Particular animations fold is now Performance Settings: the connection (Default, Data saving, Poor
+     connection) at its top with a note, then (only with Data saving or Poor connection) "Show the background picture",
+     then each animation on its own.
+   - "What you must know" is gone as a button: its text is the first fold of Basics explained, "At a glance", which
+     glows softly like Basics explained.
+   - The sky's text (and its hover in fullscreen) says where its body is in its cycle: the Moon's phase 3/8, a planet's
+     round 4/6, your next judgement 2/3 turns, Saturn's tolls 5/9. Neptune waits for its own answer. */
+{const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu"),f=m&&m.querySelector("#mParts");if(!f||f.dataset.perf)return;f.dataset.perf=1;
+  const s=f.querySelector(":scope>summary");if(s)s.textContent="Performance Settings";
+  const net=m.querySelector("#mNet"),lab=net&&net.closest("label");
+  const box=document.createElement("div");box.className="perfnet";if(lab)box.appendChild(lab);
+  box.insertAdjacentHTML("beforeend",`<p class="dim">Data saving and Poor connection simply make the game run lighter: they improve performance.</p><label class="farow perfbg"${netLvl()>0?"":" hidden"}><span class="fal"><b>Show the background picture</b><small>Data saving and Poor connection leave it out; this brings it back.</small></span><input type="checkbox" id="mNetBg" ${PREF.netBg?"checked":""}></label><p class="clsh perfh">Animations</p>`);
+  if(s)s.after(box);else f.prepend(box);
+  $("#mNetBg").onchange=e=>{PREF.netBg=e.target.checked;savePrefs();applyPrefs()};
+  if(net)net.addEventListener("change",()=>{const r=f.querySelector(".perfbg");if(r)r.hidden=!(+net.value>0)})}}
+{const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);document.documentElement.classList.toggle("litebg",!!PREF.netBg)}}
+/* What you must know: into Basics explained, first, as "At a glance" */
+mountMustKnow=function(){const m=$("#mustknow");if(m)m.remove()};
+{const _ih=infoHTML;infoHTML=function(){const h=_ih.apply(this,arguments);
+  const gist=`<details class="sub mkgist"><summary>At a glance</summary><p class="mktldr"><b>In short</b> ${MK_TLDR}</p><p class="mkkey">${typeof MK_KEY==="string"?MK_KEY:""}</p><div class="mkbody">${MK_BODY}</div><details class="sub"><summary>Tell me more</summary>${MK_MORE.replace(/<h3>[^<]*<\/h3>/,"").replace(/<p class="mkpoint">[\s\S]*?<\/p>/,"")}</details></details>`;
+  return h.replace('<details class="cinfo basics"><summary>Basics explained</summary>',m=>m+gist)}}
+{const _ph=paintHelpHead;paintHelpHead=function(){_ph.apply(this,arguments);const l=$("#helpMk");if(l)l.remove()}}
+/* the sky's place in its cycle */
+function skyFrac(){if(!G||!G.moon)return "";const m=G.moon,k=sky(),V=view(),r=m.round;
+  if(!m.gone)return `Phase ${m.i+1}/8`;
+  if(["venus","mercury","mars","jupiter"].includes(k)){const since=G.skySince!=null&&G.skySince<=r?G.skySince:r,e=r-since;return e>0?`Round ${((e-1)%CYCLE)+1}/${CYCLE} of its cycle`:`Its cycle starts next round (0/${CYCLE})`}
+  if(k==="sun"){const P=G.p[V];if(!P||P.sunNext==null||P.tribe==="firm")return "";const tn=tnOf(V),from=P.sunFrom!=null&&P.sunFrom<P.sunNext?P.sunFrom:P.sunNext-2;return `Your judgement: turn ${Math.max(0,tn-from)}/${P.sunNext-from}`}
+  if(k==="saturn"){const P=G.p[V];return P&&P.oath==="saturn"?`Your tolls: ${P.satPaid||0}/9`:""}
+  return ""}
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const mi=$("#moon .minfo");if(!mi)return;const t=skyFrac();let f=mi.querySelector(".mfrac");
+  if(!t){if(f)f.remove();return}if(!f){f=document.createElement("span");f.className="mfrac";const n=mi.querySelector(".mname");if(n)n.after(f);else mi.prepend(f)}f.textContent=t;
+  const sv=$("#moon svg.moon");if(sv)sv.setAttribute("aria-label",t)}}
