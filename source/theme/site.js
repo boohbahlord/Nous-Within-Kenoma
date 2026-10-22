@@ -146,7 +146,7 @@
 <div class="naopts">
 <button type="button" data-n="0"><b>Default</b><span>Everything: the art, the fonts, the music and the animations.</span></button>
 <button type="button" data-n="1"><b>Data saving</b><span>Your device's own fonts, a plain background, nothing moving, and lighter online play. The music still plays: it is made on your device.</span></button>
-<button type="button" data-n="2"><b>Poor connection</b><span>For a weak or unreliable connection: all of Data saving, no music, fewer online updates, and longer patience when the connection drops.</span></button>
+<button type="button" data-n="2"><b>Poor connection</b><span>For a weak or unreliable connection: all of Data saving, fewer online updates, and longer patience when the connection drops. The music still plays.</span></button>
 </div></div>`;
     document.body.appendChild(w);
     const done=n=>{w.remove();apply(n)};
