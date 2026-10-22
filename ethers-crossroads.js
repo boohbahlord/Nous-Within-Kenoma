@@ -2133,7 +2133,7 @@ function render(){
       const [r,c]=toBoard(i,j);
       const st=hiddenFrom(V,r,c)?null:G.board[r][c],role=tileRole(r,c),edge=outerEdge(r,c,K),key=r+"."+c+"."+edge;   // a Delusion hides what lies beyond your reach
       const art=G.map.art[key]||(G.map.art[key]=tileArt(r,c,role,edge));
-      if(role==="void"||role==="water")return `<div class="tile ${role}" aria-hidden="true">${art}</div>`;
+      if(role==="void"||role==="water")return `<div class="tile ${role}" data-vr="${r}" data-vc="${c}" aria-hidden="true">${art}</div>`;
       const cls=["tile"];if(G.sel&&G.sel.r===r&&G.sel.c===c)cls.push("sel");
       if(isT(r,c,tgt))cls.push(G.mode==="attack"?"tatk":"tmove");if(isT(r,c,placeT))cls.push("tplace");
       const z=G.zone[r][c];if(!duel&&z>=0)cls.push("zone");
@@ -2583,8 +2583,8 @@ ${mode==="survival"?'<p class="dim">Survival always uses the midline: the field 
 </div>${chk("ocorners","Cut off the corners","The four corner tiles are removed from play. On by default for free-for-all and the 2v2 layouts on the edges.",false)}
 <div id="sizeother" class="sizesel" hidden></div>
 ${mode==="survival"?`<div class="f" id="bigset"><span>Large maps</span><div class="opts">${[["","Standard","The sizes above: only while every survivor gets at least five spawn tiles (four survivors always need the large map)."],["long","10 long, 6 wide (default)","The Horde holds the top two lines. Each survivor spawns in a box 3 wide and 2 deep at the bottom: two side by side, then a second row of boxes on top of them. One survivor holds the whole back line."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="obig" value="${v}" ${v==="long"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div><p class="dim">Large maps scroll inside a frame: the mouse wheel zooms, dragging an empty spot or WASD and the arrow keys move it, and Q and E (or C and V) zoom. The Menu has Large Map Controls.</p></div>`:`<div class="f" id="bigset"><span>Large maps</span><div class="opts">${[["","Standard (default)","The sizes above."],["long","10 long, 6 wide","1v1, or 2v2 with each team on one short end."],["sq","10 by 10","Any layout."],["cross","Cross","A real cross: four arms around a diamond middle; one player at the end of each arm."],["cross2","Two-armed Cross","The Cross with only its top and bottom arms; up to 4 players, two to an arm."],["plus","Cross Map 2","The 10 by 10 plus: arms 4 wide; everyone spawns at the end of an arm."],["round","Plus with a round middle","The cross with a round open middle; the hole option can open its center."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="obig" value="${v}" ${v?"":"checked"}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
-<div id="crossopts" class="crossopts" hidden><div class="f"><span>Cross size</span><div class="opts"><label class="opt"><input type="radio" name="oxsize" value="std" checked><span>Standard (default)<small>Arms 6 by 6 around a diamond (a square 12 on a side, turned on its point). With teams of two, teammates can share an arm.</small></span></label><label class="opt"><input type="radio" name="oxsize" value="small"><span>Small<small>Arms 3 by 3 around a diamond 6 on a side. One player to an arm: up to 4 (2 on the two-armed Cross).</small></span></label></div></div>
-${chk("oxhole","A hole in the very middle","The center of the diamond can't be played on: 2 by 2 (1 tile on the small Cross).",false)}${chk("oxhollow","Hollow tiles around the middle","Four tiles on the diagonals around the center can't be played on. Standard size only.",false)}</div><p class="dim">Large maps scroll inside a frame: the mouse wheel zooms, dragging an empty spot or WASD and the arrow keys move it, and Q and E (or C and V) zoom. The Menu has Large Map Controls.</p></div>`}
+<div id="crossopts" class="crossopts" hidden><div class="f"><span>Cross size</span><div class="opts"><label class="opt"><input type="radio" name="oxsize" value="std" checked><span>Standard (default)<small>Arms 6 by 6 around a diamond (a square about 14 on a side, turned on its point). With teams of two, teammates can share an arm.</small></span></label><label class="opt"><input type="radio" name="oxsize" value="small"><span>Small<small>Arms 3 by 3 around a diamond 6 on a side. One player to an arm: up to 4 (2 on the two-armed Cross).</small></span></label></div></div>
+${chk("oxhole","A hole in the very middle","The center of the diamond can't be played on: 2 by 2 (1 tile on the small Cross).",false)}${chk("oxhollow","Hollow tiles around the middle","Four hollows, 2 by 2 each, out on the diagonals of the middle (one tile from the hole and one from the diamond's edge), can't be played on. Standard size only.",false)}</div><p class="dim">Large maps scroll inside a frame: the mouse wheel zooms, dragging an empty spot or WASD and the arrow keys move it, and Q and E (or C and V) zoom. The Menu has Large Map Controls.</p></div>`}
 <p class="dim mapnote" id="rivernote" hidden>The River map is always 7 wide and 5 tall with the midline, and keeps its corners.</p>
 
 </fieldset>
@@ -12652,23 +12652,25 @@ document.addEventListener("keydown",e=>{if(e.code!=="Space"&&e.key!==" ")return;
 
 /* ---------------- v73c: the Cross, and the two-armed Cross (large maps) ----------------
    The Cross is a real cross: four arms around a middle shaped like a diamond (a square turned on its point).
-   - Standard: each arm 6 wide and 6 long, around a diamond: a square about 12 on a side turned on its point, so its sides
+   - Standard: each arm 6 wide and 6 long, around a diamond: a square about 14 on a side (v76a; it was 12) turned on its point, so its sides
      show between the arms and each point reaches into an arm. Small: arms 3 by 3 around a diamond about 6 on a side (on an
      odd grid, so the 3-wide arms line up on its middle).
-   - The middle can have a hole in its very center (2 by 2; 1 tile on the small Cross), and on the standard size four hollow
-     tiles around it on the diagonals. Both are off by default.
+   - The middle can have a hole in its very center (2 by 2; 1 tile on the small Cross), and on the standard size four hollows
+     (2 by 2 each, v76a) out on the diagonals, one tile from the hole and one from the diamond's edge. Both are off by default.
    - Spawns: one player at the end of each arm, two rows deep and as wide as the arm. 2v2: teammates on opposite arms, on
      arms side by side, or (standard size) both on one arm, each in a box 3 wide and 2 deep.
    - The two-armed Cross keeps only the top and bottom arms: up to 4 players on the standard size (two to an arm, in boxes
      3 wide and 2 deep, once there are more than two), 2 on the small one.
    - The old 10 by 10 plus is now Cross Map 2. */
-function crossPlan(o){const two=o.big==="cross2",X=o.cross||{},small=X.size==="small",A=small?3:6,N=small?13:24,c0=(N-1)/2,R=small?4:8.5;   // the diamond: a square 12 across (6 small) turned on its point
+function crossPlan(o){const two=o.big==="cross2",X=o.cross||{},small=X.size==="small",A=small?3:6,N=small?13:26,c0=(N-1)/2,R=small?4:10;   // v76a: the diamond: a square about 14 across (6 small) turned on its point
   let theme=o.map||"random";if(theme==="random")theme=pick(["keep","sahel","forest","dungeon"]);if(theme==="river"||theme==="hill")theme="keep";
   const lo=c0-(A-1)/2,hi=c0+(A-1)/2,band=x=>x>=lo&&x<=hi;
   const V=Array.from({length:N},(_,r)=>Array.from({length:N},(_,c)=>!(Math.abs(r-c0)+Math.abs(c-c0)<=R||band(c)||!two&&band(r))));
   const holes=[],koth=o.layout==="koth";
-  if(X.hole&&!koth)holes.push(...(small?[[6,6]]:[[11,11],[11,12],[12,11],[12,12]]));
-  if(X.hollow&&!small)holes.push([10,10],[10,13],[13,10],[13,13]);
+  const cf=Math.floor(c0),cc=Math.ceil(c0);
+  if(X.hole&&!koth)holes.push(...(small?[[cf,cf]]:[[cf,cf],[cf,cc],[cc,cf],[cc,cc]]));
+  // v76a: four hollows, 2 by 2, out on the diagonals: one tile from the hole and one from the diamond's edge, all four alike
+  if(X.hollow&&!small)for(const sr of [-1,1])for(const sc of [-1,1])for(const a of [2.5,3.5])for(const b of [2.5,3.5])holes.push([c0+sr*a,c0+sc*b]);
   for(const [r,c] of holes)V[r][c]=true;
   const n=o.players.length,L=o.layout||"duel";
   // a tile at the end of an arm: d rows in from the edge, a tiles from the player's own left
@@ -13332,5 +13334,33 @@ async function councilRound(){const D=dipD(),r=G.moon.round;D.councilAt=r;const 
   if(councilOn("dividend")&&!P.out&&giveMana(pl,1))log(`The Council's Dividend: ${plName(pl)} gains 1 mana.`);
   return out}}
 if(window.__EC)Object.assign(window.__EC,{dipTermsStart:(...a)=>dipTermsStart(...a),dipTermsRound:()=>dipTermsRound(),dipMidTiles:()=>dipMidTiles(),councilRound:()=>councilRound(),dipContest:(a,b)=>dipContest(a,b)});
+
+/* ---------- v76a: nothing outside the map ----------
+   The tiles that can't be played and reach the field's edge (around a cross, a plus or cut corners) are not drawn at all,
+   and the map's ground shows only under the rest (the tiles you can play on, and holes, mountains and the river inside
+   it), so the page's own background shows where the map isn't. Worked out once per map and board size. */
+let mapOutKey=null,mapOut=null,clipCache={key:null,url:null};
+function mapOutside(){const M=G.map,V=M&&M.void;if(!V)return null;const key=M.seed+"|"+V.length;if(mapOutKey===key)return mapOut;mapOutKey=key;
+  const rows=V.length,cols=V[0].length,out=Array.from({length:rows},()=>Array(cols).fill(false)),q=[];
+  const water=(r,c)=>typeof tileRole==="function"&&tileRole(r,c)==="water";
+  const push=(r,c)=>{if(r<0||c<0||r>=rows||c>=cols||out[r][c]||!V[r][c]||water(r,c))return;out[r][c]=true;q.push([r,c])};
+  for(let r=0;r<rows;r++){push(r,0);push(r,cols-1)}for(let c=0;c<cols;c++){push(0,c);push(rows-1,c)}
+  while(q.length){const [r,c]=q.pop();push(r+1,c);push(r-1,c);push(r,c+1);push(r,c-1)}
+  mapOut=out.some(x=>x.some(Boolean))?out:null;return mapOut}
+function mapClip(){const B=$("#board");if(!B||!G||!G.map)return;const out=mapOutside();B.classList.toggle("voidcut",!!out);if(!out)return;
+  for(const t of B.querySelectorAll(".tile[data-vr]"))t.classList.toggle("outvoid",!!(out[+t.dataset.vr]&&out[+t.dataset.vr][+t.dataset.vc]));
+  const bg=B.querySelector(".mapbg");if(!bg)return;const W=bg.offsetWidth,H=bg.offsetHeight;if(!W||!H)return;
+  const key=mapOutKey+"|"+W+"x"+H+"|"+view();if(bg.dataset.clip===key)return;
+  if(clipCache.key===key){mapClipSet(bg,clipCache.url,key);return}   // a new ground for the same board: the same clip
+  const pos=el=>{let x=0,y=0;for(let e=el;e&&e!==B;e=e.offsetParent){x+=e.offsetLeft;y+=e.offsetTop}return [x,y]},[bx,by]=[bg.offsetLeft,bg.offsetTop],g=2.5;
+  let rects="";for(const t of B.querySelectorAll(".tile:not(.outvoid)")){const row=t.closest(".row");if(!row)continue;const [tx]=pos(t),[,ry]=pos(row);
+    rects+=`<rect x="${(tx-bx-g).toFixed(1)}" y="${(ry-by-g).toFixed(1)}" width="${(t.offsetWidth+2*g).toFixed(1)}" height="${(row.offsetHeight+2*g).toFixed(1)}"/>`}
+  const url=`url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><g fill="#fff">${rects}</g></svg>`)}")`;
+  clipCache={key,url};mapClipSet(bg,url,key)}
+function mapClipSet(bg,url,key){for(const [k,v] of [["maskImage",url],["webkitMaskImage",url],["maskSize","100% 100%"],["webkitMaskSize","100% 100%"],["maskRepeat","no-repeat"],["webkitMaskRepeat","no-repeat"]])bg.style[k]=v;bg.dataset.clip=key}
+{const _r=render;render=function(){_r.apply(this,arguments);try{mapClip()}catch(e){console.error(e)}}}
+if(typeof ResizeObserver!=="undefined"){let ro=null;const watch=()=>{const B=$("#board");if(!B||B._clipRO)return;B._clipRO=1;ro=ro||new ResizeObserver(()=>{try{mapClip()}catch(e){}});ro.observe(B)};
+  {const _r=render;render=function(){_r.apply(this,arguments);watch()}}}
+if(window.__EC)Object.assign(window.__EC,{mapOutside:()=>mapOutside()});
 
 })();

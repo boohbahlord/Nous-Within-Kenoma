@@ -2411,3 +2411,6 @@ html.still-glow .dipbar.notify{animation:none}
 #board .tile.midterm{box-shadow:inset 0 0 0 2px #e53935,inset 0 0 14px #e5393566}
 .dterm{display:block;color:#f0b4ae;font-size:11.5px}
 .dipcouncil{margin:0 0 10px;font-size:13px}.dipcouncil b{font-weight:400;color:#cfdcf7}
+/* v76a: nothing outside the map: its outer void tiles aren't drawn (the ground is clipped to the rest in code) */
+#board.voidcut .tile.outvoid{visibility:hidden}
+#board.voidcut .mapbg{border:0}

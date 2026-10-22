@@ -148,7 +148,7 @@ function render(){
       const [r,c]=toBoard(i,j);
       const st=hiddenFrom(V,r,c)?null:G.board[r][c],role=tileRole(r,c),edge=outerEdge(r,c,K),key=r+"."+c+"."+edge;   // a Delusion hides what lies beyond your reach
       const art=G.map.art[key]||(G.map.art[key]=tileArt(r,c,role,edge));
-      if(role==="void"||role==="water")return `<div class="tile ${role}" aria-hidden="true">${art}</div>`;
+      if(role==="void"||role==="water")return `<div class="tile ${role}" data-vr="${r}" data-vc="${c}" aria-hidden="true">${art}</div>`;
       const cls=["tile"];if(G.sel&&G.sel.r===r&&G.sel.c===c)cls.push("sel");
       if(isT(r,c,tgt))cls.push(G.mode==="attack"?"tatk":"tmove");if(isT(r,c,placeT))cls.push("tplace");
       const z=G.zone[r][c];if(!duel&&z>=0)cls.push("zone");
