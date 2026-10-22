@@ -2091,3 +2091,111 @@ html.lite .v61.clsheen,html.still-glow .v61.clsheen{animation:none}
 .facls .clsacts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 4px}
 .facls .fakinds .opt.off{opacity:.5;cursor:not-allowed}
 #selbox .clsrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:6px 0 0}
+/* ---------------- v72f: Fullscreen (88_fullscreen.js): the same game, laid out over the whole screen ---------------- */
+#fsbtn{position:fixed;top:10px;right:10px;z-index:40;width:42px;height:42px;display:grid;place-items:center;padding:0;cursor:pointer;color:var(--amber-hi);
+  background:color-mix(in oklab,var(--deep) 88%,transparent);border:1px solid var(--amber);border-radius:7px;box-shadow:0 2px 10px #000a,inset 0 0 0 1px #0006}
+#fsbtn:hover,#fsbtn:focus-visible{background:var(--deep);color:#fff;box-shadow:0 0 0 2px var(--amber-hi),0 2px 12px #000c;outline:none}
+#fsbtn[hidden],body:has(#ov:not([hidden])) #fsbtn{display:none}
+body.hasfs main.game>nav.crumbs{padding-right:54px}
+html.ecfs,html.ecfs body{overflow:hidden!important;height:100%;overscroll-behavior:none}
+html.ecfs main.game{position:fixed;inset:0;z-index:5;max-width:none;width:auto;margin:0;padding:0;background:transparent;overflow:hidden}
+html.ecfs main.game>nav.crumbs,html.ecfs main.game>header,html.ecfs main.game .gmid,html.ecfs main.game #who,html.ecfs main.game #round,html.ecfs main.game #blindnote,
+html.ecfs main.game #info,html.ecfs main.game #helphead,html.ecfs main.game #logwrap,html.ecfs main.game #quotes,html.ecfs main.game #camnote,html.ecfs main.game #dicefold,
+html.ecfs main.game #minepanel,html.ecfs main.game #actph,html.ecfs main.game #handh,html.ecfs #fieldround,html.ecfs #helptoast,html.ecfs #fsbtn{display:none!important}
+@media (max-width:760px){html.ecfs .gbar,html.ecfs #gbar{display:none!important}}   /* a phone's display settings are in the pause menu's Settings */
+html.ecfs main.game .gtop,html.ecfs main.game .glayout,html.ecfs main.game .glayout>section,html.ecfs main.game .gside,html.ecfs main.game #sidehand,html.ecfs main.game #handslot,
+html.ecfs main.game #seltop,html.ecfs main.game #selbottom,html.ecfs main.game #actbar,html.ecfs main.game #ctlbottom,html.ecfs main.game #ctltop,html.ecfs main.game #selbottom{display:contents}
+/* the field */
+html.ecfs .camwrap.on{position:fixed;inset:0;z-index:0;max-height:none;margin:0;border:0;background:transparent;display:flex;overflow:auto;touch-action:none;overscroll-behavior:none;
+  padding:96px 18px calc(var(--fsrowh,30px) + 118px);box-sizing:border-box;scrollbar-width:thin}
+html.ecfs .camwrap.on #board.large{margin:auto;flex:none}
+@media (max-height:520px){html.ecfs .camwrap.on{padding:70px 12px calc(var(--fsrowh,30px) + 74px)}}
+/* top left: the sky's body, then the other players */
+html.ecfs main.game #moon{position:fixed;top:6px;left:8px;z-index:20;display:block;cursor:help}
+html.ecfs main.game #moon svg.moon{width:50px;height:50px;display:block;filter:drop-shadow(0 2px 6px #000c)}
+html.ecfs main.game #moon .minfo{display:none;position:absolute;top:calc(100% + 4px);left:0;width:min(330px,calc(100vw - 30px));padding:9px 12px;z-index:21;
+  background:color-mix(in oklab,var(--deep) 94%,transparent);border:1px solid var(--rule);box-shadow:0 8px 24px #000c}
+html.ecfs main.game #moon:hover .minfo,html.ecfs main.game #moon:focus-within .minfo,html.ecfs main.game #moon.fsopen .minfo{display:block}
+html.ecfs main.game #moon.moontarget::after{position:absolute;left:56px;top:14px;white-space:nowrap}
+html.ecfs main.game #foe{position:fixed;top:64px;left:8px;z-index:11;width:220px;max-height:calc(100dvh - var(--fsrowh,30px) - 250px);overflow:auto;margin:0;zoom:.78;
+  display:flex;flex-direction:column;gap:6px;scrollbar-width:thin}
+html.ecfs main.game #foe>*{flex:none;width:auto;margin:0;background:color-mix(in oklab,var(--deep) 86%,transparent)}
+/* top center: your deck and mana, then the turn bar */
+html.ecfs main.game #me{position:fixed;top:5px;left:50%;transform:translateX(-50%);z-index:12;width:min(470px,calc(100vw - 170px));margin:0;padding:3px 10px;
+  background:color-mix(in oklab,var(--deep) 86%,transparent);border:1px solid var(--rule)}
+html.ecfs main.game #me>:not(.meters){display:none}
+html.ecfs main.game #me .meters{margin:0;gap:2px 16px;font-size:11px}
+html.ecfs main.game #me .meters{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
+#fsphase{position:fixed;top:calc(var(--fsmeh,40px) + 8px);left:50%;transform:translateX(-50%);z-index:13;margin:0;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);white-space:nowrap;pointer-events:none}
+html.ecfs main.game #controls{position:fixed;top:calc(var(--fsmeh,40px) + 26px);left:50%;transform:translateX(-50%);z-index:13;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px;
+  max-width:calc(100vw - 130px);padding:4px 8px;background:color-mix(in oklab,var(--deep) 86%,transparent);border:1px solid var(--rule)}
+html.ecfs main.game #controls .btn{padding:4px 10px;font-size:13px}
+/* bottom left: the hand, and the thin row under it */
+html.ecfs main.game #handwrap{position:fixed;left:8px;bottom:calc(var(--fsrowh,30px) + 10px);z-index:12;max-width:min(62vw,760px);margin:0;padding:5px 8px;
+  background:color-mix(in oklab,var(--deep) 84%,transparent);border:1px solid var(--rule)}
+html.ecfs main.game #hand{flex-wrap:nowrap;overflow-x:auto;gap:7px;padding-bottom:2px;scrollbar-width:thin}
+html.ecfs main.game #hand>*{flex:none}
+#fsui{display:none}
+html.ecfs #fsui{display:block}
+#fsrow{position:fixed;left:8px;bottom:6px;z-index:30;display:flex;align-items:center;gap:6px;max-width:min(78vw,760px);font-size:12px;line-height:1.35;
+  background:color-mix(in oklab,var(--deep) 88%,transparent);border:1px solid var(--rule);padding:2px 4px}
+#fsrow #fsrowT,#fsrow #fsrowC{background:none;border:0;color:var(--amber-hi);font:inherit;cursor:pointer;padding:3px 6px;white-space:nowrap}
+#fsrow #fsrowT i{font-style:normal;margin-right:4px}
+#fsrow #fsrowT:hover,#fsrow #fsrowC:hover,#fsrow button:focus-visible{color:#fff;outline:1px solid var(--amber)}
+#fsrowB{min-width:0;overflow:hidden}#fsrow:not(.open) #fsrowB{display:none}
+#fsrowB .fsroll{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}#fsrowB .fsroll b{color:var(--pc)}#fsrowB .fsroll small{color:var(--dim)}
+#fsrowB .dice{display:inline-flex;gap:2px;vertical-align:middle}#fsrowB .dice svg{width:15px;height:15px}
+#fsrowB .fshist{margin-left:8px;font-size:11.5px}
+#fsrowB .fslog{display:inline-block;max-width:100%;font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+#fsrowM{position:absolute;left:0;bottom:calc(100% + 4px);display:grid;gap:4px;padding:8px;width:min(330px,calc(100vw - 30px));background:var(--deep);border:1px solid var(--amber);box-shadow:0 6px 18px #000c}
+#fsrowM[hidden]{display:none}
+#fsrowM .opt>span{padding:5px 8px;font-size:12.5px}
+/* right: the drawers and their named arrows */
+html.ecfs main.game .spellpanel,html.ecfs main.game #selwrap{position:fixed;right:0;z-index:14;width:min(330px,86vw);margin:0;overflow:auto;padding:8px 12px 10px;box-sizing:border-box;
+  background:color-mix(in oklab,var(--deep) 93%,transparent);border:1px solid var(--rule);border-right:0;box-shadow:-8px 0 24px #0009;
+  transform:translateX(105%);visibility:hidden;transition:transform .22s ease,visibility .22s;scrollbar-width:thin}
+html.ecfs main.game .spellpanel{top:62px;max-height:calc(100dvh - 120px);display:block;min-height:0;font-size:13px}
+html.ecfs main.game #selwrap{bottom:48px;max-height:calc(100dvh - 120px)}
+html.ecfs.fs-sp main.game .spellpanel,html.ecfs.fs-sel main.game #selwrap{transform:none;visibility:visible}
+html.ecfs.fs-sp.fs-sel main.game .spellpanel{max-height:calc(56dvh - 66px)}
+html.ecfs.fs-sp.fs-sel main.game #selwrap{max-height:calc(44dvh - 60px)}
+html.ecfs main.game .spellpanel>h3,html.ecfs main.game #selwrap>h3{margin:0 0 6px;font-size:12px}
+html.ecfs main.game #spells{max-height:none;overflow:visible}
+html.ecfs main.game #selbox{max-height:none;overflow:visible}
+html.ecfs main.game #spells details.school>summary,html.ecfs main.game #spells h4{font-size:10.5px;letter-spacing:.12em}
+@media (prefers-reduced-motion:reduce){html.ecfs main.game .spellpanel,html.ecfs main.game #selwrap{transition:none}}
+.fstab{position:fixed;right:0;z-index:31;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;cursor:pointer;writing-mode:vertical-rl;
+  font:inherit;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber-hi);background:color-mix(in oklab,var(--deep) 90%,transparent);
+  border:1px solid var(--amber);border-right:0;border-radius:7px 0 0 7px;box-shadow:-3px 2px 10px #000a;transition:right .22s ease}
+.fstab i{font-style:normal;writing-mode:horizontal-tb;font-size:14px}
+.fstab:hover,.fstab:focus-visible{color:#fff;background:var(--deep);outline:none;box-shadow:0 0 0 2px var(--amber-hi)}
+#fstabSp{top:96px}#fstabSel{top:218px}
+html.fs-sp #fstabSp{right:min(330px,86vw)}
+html.fs-sel #fstabSel{right:min(330px,86vw);top:auto;bottom:56px}
+html.fs-sp:not(.fs-sel) #fstabSel{right:min(330px,86vw)}
+.fstab.ping{border-color:var(--amber-hi);box-shadow:0 0 0 2px color-mix(in oklab,var(--amber-hi) 60%,transparent),-3px 2px 12px #000a}
+.fstab.ping::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--amber-hi);box-shadow:0 0 6px var(--amber-hi)}
+@media (prefers-reduced-motion:reduce){.fstab{transition:none}}
+/* top right: the pause menu */
+#fspauseb{position:fixed;top:8px;right:8px;z-index:33;display:flex;align-items:center;gap:6px;padding:7px 11px;cursor:pointer;font:inherit;font-size:13px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--amber-hi);background:color-mix(in oklab,var(--deep) 90%,transparent);border:1px solid var(--amber);border-radius:6px;box-shadow:0 2px 10px #000a}
+#fspauseb:hover,#fspauseb:focus-visible{color:#fff;background:var(--deep);outline:none;box-shadow:0 0 0 2px var(--amber-hi)}
+@media (max-width:600px){#fspauseb span{display:none}#fspauseb{padding:8px}html.ecfs main.game #me{width:calc(100vw - 132px)}html.ecfs main.game #foe{top:118px;width:180px;zoom:.66}
+  html.ecfs main.game #handwrap{max-width:calc(100vw - 16px)}#fstabSp{top:150px}#fstabSel{top:262px}}
+.fsov{position:fixed;inset:0;z-index:72;display:grid;place-items:center;padding:16px;background:#000c}
+.fsov[hidden]{display:none}
+#fspause .fspbox{width:min(380px,100%);text-align:center}
+#fspause h2{margin-top:0}
+#fspause .fspacts{display:grid;gap:8px;margin:14px 0 10px}
+#fspause .fspacts .btn{width:100%;padding:9px 12px}
+#fspause .fsask{border:1px dashed var(--amber);padding:8px 10px;margin:8px 0;text-align:left}
+#fspause .fsqlink{margin:10px 0 0;font-size:12px}
+#fshelp{z-index:74}
+#fshelp .fshbox{position:relative;width:min(900px,100%);max-height:calc(100dvh - 32px);overflow:auto;text-align:left}
+#fshelp .fshbox>details{margin:8px 0}
+#fshelp #info{display:block}
+#fsquote{z-index:76;background:radial-gradient(ellipse at center,#140d09,#030201)}
+#fsquote .fsqbox{width:min(900px,100%);max-height:calc(100dvh - 32px);overflow:auto;text-align:center}
+#fsquote blockquote{margin:0 auto 14px;font-family:"EB Garamond","Cormorant Garamond",Georgia,serif;font-style:italic;font-size:clamp(19px,3vw,32px);line-height:1.5;color:var(--text)}
+#fsquote #fsqs{color:var(--dim);font-size:13px;margin:0 0 18px}
+

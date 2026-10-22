@@ -7,7 +7,7 @@
    - WASD or the arrow keys move it (Shift: faster), Q and E or C and V zoom in and out (Menu: reversed). Not while typing.
    - Menu, Large Map Controls: the wheel, both reversals and the speed. The section is faded outside a large map. */
 const CAM={z:1,ZMIN:.45,ZMAX:2.2,TILE:64};
-const isLarge=()=>!!(G&&G.map&&(G.map.large||COLS>9||G.rows>9));
+const isLarge=()=>!!(G&&(fsOn()||G.map&&(G.map.large||COLS>9||G.rows>9)));   // v72f: fullscreen uses the same camera (88_fullscreen.js)
 const camSpeed=()=>Math.max(.4,Math.min(3,+PREF.camSpeed||1));
 function camWrap(){const B=$("#board");if(!B)return null;let w=B.parentNode&&B.parentNode.classList&&B.parentNode.classList.contains("camwrap")?B.parentNode:null;
   if(isLarge()&&!w){w=document.createElement("div");w.className="camwrap";B.parentNode.insertBefore(w,B);w.appendChild(B);camWire(w)}
