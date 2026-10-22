@@ -2054,3 +2054,15 @@ html.cvd .tile.tmove{border-color:#56b4e9}html.cvd .tile.tplace{border-color:#f0
 #rbwin .rbbox{max-width:720px}#rbwin .rbcode{margin:0;font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--dim)}
 #rbwin .rbtext{max-height:min(60vh,520px);overflow:auto;padding-right:6px;line-height:1.55}#rbwin .rbtext .rcode{font-family:var(--mono);font-size:.78em;color:var(--dim);margin-right:.35em;text-decoration:none}
 #rbwin .rbnav{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+/* v72d: Automated Strategies */
+.fastrat .strow{display:flex;align-items:stretch;gap:10px;margin:6px 0}
+.fastrat .stlist{flex:1;min-width:0;max-height:118px;overflow-y:auto;border:1px solid var(--rule);background:var(--deep);display:flex;flex-direction:column}
+.fastrat .strowi{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:5px 8px;border:0;border-bottom:1px solid #0006;background:transparent;color:var(--text);font:inherit;font-size:13px;cursor:pointer}
+.fastrat .strowi b{min-width:1.6em;font-weight:400;color:var(--dim);font-family:var(--mono)}.fastrat .strowi span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fastrat .strowi em{font-style:normal;font-size:11px;color:var(--amber)}
+.fastrat .strowi.on{background:color-mix(in srgb,var(--amber) 16%,transparent);box-shadow:inset 3px 0 0 var(--amber)}
+.fastrat .stuse{display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:13px}.fastrat .stuse input:disabled+span{opacity:.5}
+.fastrat .stacts,.fastrat .stform{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
+.fastrat .stform input{font-family:var(--mono);font-size:14px;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:4px 7px;max-width:240px}.fastrat .stform input[type=number]{width:4.5em}
+.fastrat .stinbox{border:1px dashed var(--amber);padding:6px 8px;margin:8px 0}.fastrat .stinbox p{margin:4px 0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fastrat .stnone{margin:6px 8px}
