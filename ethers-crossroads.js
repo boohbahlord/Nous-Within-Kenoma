@@ -2508,8 +2508,10 @@ ${chk("oskyrand","A random start","Every few rounds only. Each new Heavenly Body
 <label class="opt"><input type="checkbox" id="danimc" ${PREF.fxCards!==false?"checked":""}><span>Card animations (on by default)<small>Moves, strikes, wounds, deaths (a white skull rises), sacrifices, mana and shuffles.</small></span></label>
 <label class="opt"><input type="checkbox" id="danimm" ${PREF.fxMagic!==false?"checked":""}><span>Magic and other animations (on by default)<small>Spells, the sky, fire and weather, and the drifting fog. Off, the fog of war stands still.</small></span></label></div>
 <p class="dim">Turning animations off helps slower phones. Also in the Display bar at the bottom of the game.</p></fieldset>
+<fieldset class="pf"><legend>Accessibility</legend><div class="opts">
+<label class="opt"><input type="checkbox" id="ddys" ${PREF.dys?"checked":""}><span>Dyslexic mode (off by default)<small>Clear sans-serif letters in place of the Old English and the thin typewriter letters, more room between letters, words and lines, and no capitals-only or slanted text. On every Ether's Crossroads page, only on this device.</small></span></label>
+<label class="opt"><input type="checkbox" id="dcb" ${PREF.cb?"checked":""}><span>Colorblind-safe colors (off by default)<small>Every player shows in a color that red-green and blue-yellow colorblind eyes can tell apart, the nearest to the one they picked. Their cards and stacks carry a faint pattern of their own and always show their symbol, and the tiles you can move to, place on or attack are marked in colors and patterns those eyes tell apart. Only on this device.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Colors</legend><div class="opts">
-<label class="opt"><input type="checkbox" id="dcb" ${PREF.cb?"checked":""}><span>Colorblind-safe colors (off by default)<small>Every player shows in a color that red-green and blue-yellow colorblind eyes can tell apart, the nearest to the one they picked. Their cards and stacks carry a faint pattern of their own and always show their symbol. Only on this device.</small></span></label>
 <label class="opt"><input type="checkbox" id="dpat" ${PREF.pat===false?"":"checked"}><span>Card patterns (on by default)<small>Each player's cards and stacks carry a faint pattern of their own: each seat picks one, or Random.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Connection</legend><div class="opts">${NET_NAMES.map((t,i)=>`<label class="opt"><input type="radio" name="dnet" value="${i}" ${netLvl()===i?"checked":""}><span>${t}${i?"":" (default)"}<small>${NET_SUBS[i]}</small></span></label>`).join("")}</div>
 <p class="dim">How much the game loads and sends, on this device. Also in the Menu and the Display bar.</p></fieldset>
@@ -11913,5 +11915,36 @@ function etherTopUp(){if(!G||NET.role==="guest")return;etherSetup();
 {const _mb=mysteryBuy;mysteryBuy=function(pl){if(G&&G.opts.etherOff){if(G.p[pl]&&!G.p[pl].cpu)flash("The Ether is off in this game.");return null}return _mb.apply(this,arguments)}}
 /* an endless Ether shows ∞ */
 {const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.etherInf)return;const a=$("#seeether b");if(a)a.textContent="∞";const d=$("#openEther .dc");if(d)d.textContent="endless souls"}}
+
+/* ---------- v72b: Accessibility Settings: Colorblind-safe colors and Dyslexic mode ----------
+   The Menu (and Settings before a game) gathers them in an "Accessibility Settings" fold; the setup's Display tab has an
+   Accessibility box. Dyslexic mode (only on this device, on every Ether's Crossroads page): the blackletter and the thin
+   monospace give way to the device's clear sans-serif (Verdana, Tahoma or Arial), with more room between letters, words
+   and lines, and no all-capitals or italics (site.css; the pages' heads apply it before they draw). Colorblind-safe colors
+   now also mark the tiles you can move to (blue), place on (yellow, ruled) and attack (vermilion, hatched). */
+const DYS_FONTS='@font-face{font-family:"Grenze Gotisch";font-style:normal;font-weight:500;src:local("Verdana"),local("Tahoma"),local("Segoe UI"),local("Arial"),local("DejaVu Sans"),local("Liberation Sans")}@font-face{font-family:"UnifrakturMaguntia";font-style:normal;font-weight:400;src:local("Verdana"),local("Tahoma"),local("Segoe UI"),local("Arial"),local("DejaVu Sans"),local("Liberation Sans")}';
+function dysFonts(on){let y=document.getElementById("dysfonts");
+  if(on){if(!y){y=document.createElement("style");y.id="dysfonts";y.textContent=DYS_FONTS}document.head.appendChild(y)}   // last, so it wins over Data saving's fonts
+  else if(y)y.remove()}
+{const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);const on=PREF.dys===true;document.documentElement.classList.toggle("dys",on);dysFonts(on)}}
+{const _lf=liteFonts;liteFonts=function(){_lf.apply(this,arguments);dysFonts(PREF.dys===true)}}
+function dysSet(on){PREF.dys=!!on;savePrefs();applyPrefs();if(G)render();const m=$("#mDys");if(m)m.value=PREF.dys?"1":"0";const g=$("#gDys");if(g)g.value=PREF.dys?"1":"0"}
+/* the Menu: one fold for both */
+{const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu"),box=m&&m.querySelector(".ovbox");if(!box||box.querySelector(".maccess"))return;
+  const grid=box.querySelector(".mgrid");if(!grid)return;
+  const d=document.createElement("details");d.className="maccess";d.open=!!(PREF.cb||PREF.dys||PREF.accOpen);
+  d.innerHTML=`<summary>Accessibility Settings</summary><div class="mgrid"></div>`;const g=d.querySelector(".mgrid");
+  const cb=box.querySelector("#mCb");if(cb)g.appendChild(cb.closest("label"));
+  g.insertAdjacentHTML("beforeend",`<label class="f">Dyslexic mode <select id="mDys"><option value="0" ${PREF.dys?"":"selected"}>Off (default)</option><option value="1" ${PREF.dys?"selected":""}>On</option></select></label>`);
+  (box.querySelector(".mslides")||grid).after(d);
+  d.addEventListener("toggle",()=>{PREF.accOpen=d.open;savePrefs()});
+  $("#mDys").onchange=e=>dysSet(e.target.value==="1")}}
+/* the online Display tab */
+{const _pd=paintDisp;paintDisp=function(){_pd.apply(this,arguments);const a=$("#gCb");if(!a||$("#gDys"))return;
+  a.closest("label").insertAdjacentHTML("afterend",`<label class="f">Dyslexic mode <select id="gDys"><option value="0" ${PREF.dys?"":"selected"}>Off</option><option value="1" ${PREF.dys?"selected":""}>On</option></select></label>`);
+  $("#gDys").onchange=e=>dysSet(e.target.value==="1")}}
+document.addEventListener("change",e=>{if(e.target&&e.target.id==="ddys")dysSet(e.target.checked)});
+
+if(window.__EC)Object.assign(window.__EC,{dysSet:on=>dysSet(on)});
 
 })();

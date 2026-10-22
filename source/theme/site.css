@@ -233,3 +233,11 @@ html.lite #ecmusic,html.lite button.static-toggle,html.lite svg.strings,html.lit
 #netask .nax{position:absolute;top:10px;right:10px;width:32px;height:32px;padding:0;background:none;border:1px solid var(--rule);color:var(--text);font:inherit;font-size:18px;line-height:1;cursor:pointer}
 #netask .nax:hover,#netask .nax:focus-visible{border-color:var(--amber);outline:none}
 @media (max-width:640px){#netask .naopts{grid-template-columns:1fr}#netask .nabox{padding:18px 16px 16px}}
+
+/* v72b: Dyslexic mode (Ether's Crossroads pages, Accessibility Settings): clear sans-serif letters (the blackletter and the thin
+   monospace are swapped for the device's Verdana, Tahoma or Arial), more room between letters, words and lines, and no
+   all-capitals or italics */
+html.dys{--mono:Verdana,Tahoma,"Segoe UI",Arial,"DejaVu Sans","Liberation Sans",sans-serif}
+html.dys body{letter-spacing:.03em;word-spacing:.14em;line-height:1.6}
+html.dys *{text-transform:none!important;font-style:normal!important}
+html.dys :is(h1,h2,h3,h4,h5,legend,summary,.label,.stab){letter-spacing:.04em!important}
