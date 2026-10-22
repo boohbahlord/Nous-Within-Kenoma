@@ -2028,3 +2028,6 @@ html.nepec .meters .deckbar::after,html.nepec .meters .manabar::after,html.nepec
 html.nepec .meter b.mv.nepnum,html.nepec #foe.minis .mline b.nepnum{color:#9fc4f0;text-shadow:0 0 6px #3f9be088;letter-spacing:.02em}
 html.lite.nepec .meters .deckbar::after,html.lite.nepec .meters .manabar::after,html.lite.nepec #foe.minis .mline i::after{animation:none}
 @media (prefers-reduced-motion:reduce){html.nepec .meters .deckbar::after,html.nepec .meters .manabar::after,html.nepec #foe.minis .mline i::after{animation:none}}
+/* v71q: a sub-option sits under its option; a switch held by another looks held */
+.subchk{margin:-2px 0 6px 26px}
+label.chk.off{opacity:.55;cursor:not-allowed}

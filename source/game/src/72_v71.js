@@ -33,6 +33,8 @@ const cycLen=k=>k==="neptune"?10:CYCLE;   // v71c: Neptune's cycle comes every t
 function ecCycleNow(k){if(!G||G._skyK!==k||!planetUp(k))return false;const r=G.moon.round,s=G.skySince;
   if(k==="neptune")return !!(G.nepEv&&r>=G.nepEv.from&&r<=G.nepEv.until)||s!=null&&r>s&&(r-s)%cycLen(k)===0;
   return cycleNow(k)}
+/* v71q: Eclipse mode: every cycle event is an eclipse */
+function ecChance(){return G&&(G.opts.eclipseMode||G.opts.eclipseAlways)?1:.05}
 const cycleDone=k=>k==="moon"?G.moon.i===4&&G.moon.round>(G.skyArr||0):G.skySince!=null&&G.moon.round>G.skySince&&(G.moon.round-G.skySince)%cycLen(k)===0;
 function skyArrive(){const o=SKYCHG(),k=sky();G._chgK=k;G.skyCyc=0;G.skyArr=G.moon.round;
   G.skyKeepAt=o.mode==="bid"?2+R(2)-1:null;G.skyEveryN=o.mode==="cycles"||o.mode==="rounds"?skyEvery(o):null}

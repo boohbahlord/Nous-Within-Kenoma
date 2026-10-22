@@ -17,8 +17,9 @@ const fullDrawbacks=()=>G.moon.i===4&&!G.moon.blood;
 async function moonStart(){
   const m=G.moon;m.blood=false;
   if(G.moon.round===1&&G.opts.bloodStart){m.i=4;m.blood=true;log("The game opens under a <b>Blood Moon</b>.","event")}
+  else if(G.opts.eclipseAlways&&m.i>=0&&G.forceMoon!==0){m.blood=true;G.forceMoon=null}   // v71q: Always in eclipse: a Blood Moon at every phase
   else if(m.i===4){
-    const p=G.forceMoon!=null?G.forceMoon:.05;G.forceMoon=null;
+    const p=G.forceMoon!=null?G.forceMoon:ecChance();G.forceMoon=null;   // v71q: Eclipse mode: every Full Moon
     if(Math.random()<p){m.blood=true;log("The Full Moon turns red: a <b>Blood Moon</b>. Every card killed this round falls into the Outer Darkness.","event")}
   }
   applyMoonTheme();render();

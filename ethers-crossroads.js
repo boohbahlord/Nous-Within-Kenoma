@@ -825,8 +825,9 @@ const fullDrawbacks=()=>G.moon.i===4&&!G.moon.blood;
 async function moonStart(){
   const m=G.moon;m.blood=false;
   if(G.moon.round===1&&G.opts.bloodStart){m.i=4;m.blood=true;log("The game opens under a <b>Blood Moon</b>.","event")}
+  else if(G.opts.eclipseAlways&&m.i>=0&&G.forceMoon!==0){m.blood=true;G.forceMoon=null}   // v71q: Always in eclipse: a Blood Moon at every phase
   else if(m.i===4){
-    const p=G.forceMoon!=null?G.forceMoon:.05;G.forceMoon=null;
+    const p=G.forceMoon!=null?G.forceMoon:ecChance();G.forceMoon=null;   // v71q: Eclipse mode: every Full Moon
     if(Math.random()<p){m.blood=true;log("The Full Moon turns red: a <b>Blood Moon</b>. Every card killed this round falls into the Outer Darkness.","event")}
   }
   applyMoonTheme();render();
@@ -2461,7 +2462,8 @@ ${chk("oeach","Each player rolls their own","On by default with one deck; off by
 ${chk("omoon","Moon combat bonus","Every attack adds 1d2 at the Full Moon, and every defense adds 1d2 at the New Moon.",true)}
 ${chk("opshop","Heavenly Body shop","Any of the eight Heavenly Bodies can be bought for the sky (Astrology) for 7 + 1d3 + 1d12 mana, rolled every round. It rises at the start of the next round; then no Heavenly Body can be bought for six rounds.",true)}
 ${chk("oatk","Spells in the attack phase","Enchantments, curses, sorcery and illusions can also be cast while attacking. Necromancy, conjuring and sacrifices stay in prep.",false)}
-${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the game opens on a Blood Moon; each deck is shuffled and two thirds of it go to the grave; each player starts with a Joker in hand. With a Heavenly Body in the sky: the game opens under that Heavenly Body's eclipse.",false)}
+${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the game opens on a Blood Moon; each deck is shuffled and two thirds of it go to the grave; each player starts with a Joker in hand. With a Heavenly Body in the sky: the game opens under that Heavenly Body's eclipse. Then every cycle event is an eclipse: every Full Moon is a Blood Moon, and every Heavenly Body is eclipsed when its cycle comes round.",false)}
+<div class="subchk" id="oeclallw" hidden>${chk("oeclall","Always in eclipse","The eclipse never passes: the Moon stays a Blood Moon at every phase, and any other Heavenly Body stays eclipsed for as long as it hangs in the sky (a new one is eclipsed from the next round).",false)}</div>
 ${chk("ocycev","Cycle events (default)","Each Heavenly Body's cycle event when its cycle comes round: the Full Moon's toll, the cycles of Venus, Mercury, Mars, Jupiter and Saturn, and the Second Sun's judgements.",true)}
 ${chk("oeclipse","Eclipses (default)","Now and then a Heavenly Body is eclipsed, with its own strange effect.",true)}
 </fieldset>
@@ -2630,6 +2632,10 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     if(dn*ds>100){$("#oskydn").textContent=Math.max(1,Math.floor(100/ds))}$("#oskydtot").textContent=`(${$("#oskydn").textContent}d${ds}: ${$("#oskydn").textContent} to ${+$("#oskydn").textContent*ds} ${m==="rounds"?"rounds":"cycles"})`};
   $("#skychg").querySelectorAll("[data-sk]").forEach(b=>b.onclick=()=>{const k=b.dataset.sk,el=k==="n"?$("#oskyn"):$("#oskydn"),ds=+$("#oskyds").value,max=k==="n"?100:Math.max(1,Math.floor(100/ds));
     el.textContent=Math.max(1,Math.min(max,+el.textContent+ +b.dataset.d));skyUp()});
+  /* v71q: Eclipse mode shows Always in eclipse, and keeps Eclipses on */
+  const eclUp=()=>{const on=$("#oblood").checked,e=$("#oeclipse");$("#oeclallw").hidden=!on;if(!on)$("#oeclall").checked=false;
+    if(e){if(on)e.checked=true;e.disabled=on;e.closest("label").classList.toggle("off",on);e.closest("label").title=on?"Eclipse mode keeps eclipses on.":""}};
+  $("#oblood").addEventListener("change",eclUp);eclUp();
   ["#oskychg","#oskyds"].forEach(q=>$(q).addEventListener("change",skyUp));document.querySelectorAll('input[name=oskyhow]').forEach(i=>i.addEventListener("change",skyUp));skyUp();
   function skyChangeOpts(){const m=$("#oskychg").value;return {mode:m,dice:val("oskyhow")==="dice",n:+$("#oskyn").textContent,dn:+$("#oskydn").textContent,ds:+$("#oskyds").value,rand:m==="rounds"&&$("#oskyrand").checked}}
   mapUp=()=>{const rv=val("omap")==="river";$("#bridgeopt").hidden=!rv;$("#rivernote").hidden=!rv;
@@ -2660,7 +2666,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     startGame({mode,players,mid:mode==="survival"||(val("orowsd")?+val("orowsd")>4:true),aceLock:$("#olock").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,cheat:!!($("#ocheat")&&$("#ocheat").checked),hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off","saturn"].includes(val("omoonon")||"on"),
       map:L==="koth"?"hill":val("omap"),big:L==="koth"?"":val("obig")||"",koth:L==="koth"?{team:$("#okteam").checked,tug:$("#okteam").checked&&$("#oktug").checked,double:$("#okdouble").checked,contest:$("#okcontest").checked,target:+val("oktarget")||50,near:val("oknear")==="near",cpu:val("okcpu")||"each"}:null,cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:L==="duel"&&val("orowsd")?+val("orowsd"):undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
       deckPer:val("odeckper")||"1",etherPer:val("oetherper")||"same",noSubs:$("#onosubs").checked,specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:val("odeckper")==="half"&&L==="duel"&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
-      startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",cycleEvents:$("#ocycev").checked,alikeOk:!!($("#oalike")&&$("#oalike").checked),eclipses:$("#oeclipse").checked,skyChange:skyChangeOpts(),atkSpells:$("#oatk").checked,pshop:$("#opshop")?$("#opshop").checked:true,
+      startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",cycleEvents:$("#ocycev").checked,alikeOk:!!($("#oalike")&&$("#oalike").checked),eclipses:$("#oeclipse").checked||$("#oblood").checked,eclipseMode:$("#oblood").checked,eclipseAlways:$("#oblood").checked&&!!($("#oeclall")&&$("#oeclall").checked),skyChange:skyChangeOpts(),atkSpells:$("#oatk").checked,pshop:$("#opshop")?$("#opshop").checked:true,
       layout:L,turns:$("#oturns").value,timer:+$("#otimer").value,cpuSpeed:$("#ospeed").value,elimDark:val("oelim")==="dark",shareDeck:$("#oshare").checked});
   };
 }
@@ -5109,14 +5115,14 @@ async function eclipseRound(){
   if(G.peace&&G.peace.untilT==null&&r>G.peace.until){G.peace=null;log("<b>Peace ends.</b> The lines are open again.","event");notify(null,"Peace is over.")}
   if(G.war&&r>G.war.until){G.war=null;log("<b>Total War ends.</b>","event");notify(null,"Total War is over.")}
   if(G.war)G.warCurse=R(2)-1;
-  if(G.eclipse&&r>(G.eclipse.until!=null?G.eclipse.until:G.eclipse.round+(G.eclipse.k==="jupiter"?1:0))){endEclipse()}   // v71c: Neptune's lasts 2d3 rounds
+  if(G.eclipse&&(G.opts.eclipseAlways?G.eclipse.k!==sky():r>(G.eclipse.until!=null?G.eclipse.until:G.eclipse.round+(G.eclipse.k==="jupiter"?1:0)))){endEclipse()}   // v71q: Always in eclipse: it passes only when its Heavenly Body leaves   // v71c: Neptune's lasts 2d3 rounds
   // the Banker's bribes are paid every round
   for(const b of [...(G.bribes||[])]){if(r>b.until||G.p[b.by].out||G.p[b.target].out){G.bribes.splice(G.bribes.indexOf(b),1);log(`The bribe against ${plName(b.target)} runs out.`);continue}
     if(b.paid===r)continue;const c=R(2)+R(3)+R(3);if(mana(b.by)>=c){payQuiet(b.by,c);bankAdd(c);b.paid=r;log(`${plName(b.by)} keeps the Banker bribed (${c} mana): ${plName(b.target)} pays more.`)}
     else{G.bribes.splice(G.bribes.indexOf(b),1);log(`${plName(b.by)} can't pay the Banker: the bribe against ${plName(b.target)} ends.`)}}
   // each Heavenly Body: 5% in a round of its cycle event (v71i), or at once in Eclipse Mode
   const k=sky();
-  if(["sun","mars","venus","jupiter","mercury","neptune"].includes(k)&&!G.eclipse&&(ecCycleNow(k)&&Math.random()<.05||G.opts.eclipseStart&&!G.eclipsedOnce||G.forceEclipse)){G.forceEclipse=false;G.eclipsedOnce=true;await eclipse(k)}
+  if(["sun","mars","venus","jupiter","mercury","neptune"].includes(k)&&!G.eclipse&&(ecCycleNow(k)&&Math.random()<ecChance()||G.opts.eclipseStart&&!G.eclipsedOnce||G.opts.eclipseAlways||G.forceEclipse)){G.forceEclipse=false;G.eclipsedOnce=true;await eclipse(k)}
 }
 
 /* ---------- Peace ---------- */
@@ -6200,7 +6206,7 @@ async function saturnEclipse(){
 {const _ec=eclipse;eclipse=async function(k){if(k==="saturn")return saturnEclipse();return _ec(k)}}
 {const _ee=endEclipse;endEclipse=function(){if(G.eclipse&&G.eclipse.k==="saturn"){G.eclipse=null;log("The eclipse of Saturn passes.");applyMoonTheme();G._vis=null;return}return _ee()}}
 {const _er=eclipseRound;eclipseRound=async function(){await _er();if(G.over)return;
-  if(sky()==="saturn"&&!G.eclipse&&(ecCycleNow("saturn")&&Math.random()<.05||G.opts.eclipseStart&&!G.eclipsedOnce||G.forceEclipse)){G.forceEclipse=false;G.eclipsedOnce=true;await saturnEclipse()}}}
+  if(sky()==="saturn"&&!G.eclipse&&(ecCycleNow("saturn")&&Math.random()<ecChance()||G.opts.eclipseStart&&!G.eclipsedOnce||G.opts.eclipseAlways||G.forceEclipse)){G.forceEclipse=false;G.eclipsedOnce=true;await saturnEclipse()}}}
 
 /* ---------- Venus's eclipse also heals every card, and can mend a betrayal ---------- */
 {const _ec2=eclipse;eclipse=async function(k){await _ec2(k);if(k!=="venus")return;
@@ -10775,6 +10781,8 @@ const cycLen=k=>k==="neptune"?10:CYCLE;   // v71c: Neptune's cycle comes every t
 function ecCycleNow(k){if(!G||G._skyK!==k||!planetUp(k))return false;const r=G.moon.round,s=G.skySince;
   if(k==="neptune")return !!(G.nepEv&&r>=G.nepEv.from&&r<=G.nepEv.until)||s!=null&&r>s&&(r-s)%cycLen(k)===0;
   return cycleNow(k)}
+/* v71q: Eclipse mode: every cycle event is an eclipse */
+function ecChance(){return G&&(G.opts.eclipseMode||G.opts.eclipseAlways)?1:.05}
 const cycleDone=k=>k==="moon"?G.moon.i===4&&G.moon.round>(G.skyArr||0):G.skySince!=null&&G.moon.round>G.skySince&&(G.moon.round-G.skySince)%cycLen(k)===0;
 function skyArrive(){const o=SKYCHG(),k=sky();G._chgK=k;G.skyCyc=0;G.skyArr=G.moon.round;
   G.skyKeepAt=o.mode==="bid"?2+R(2)-1:null;G.skyEveryN=o.mode==="cycles"||o.mode==="rounds"?skyEvery(o):null}
