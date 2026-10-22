@@ -364,8 +364,8 @@
   function start(){if(playing)return;if(!ctx())return;if(ac.state==="suspended")ac.resume();playing=true;load(pick(MODE),true);next=ac.currentTime+.15;
     out.gain.cancelScheduledValues(ac.currentTime);out.gain.setTargetAtTime(LV(),ac.currentTime,.8);timer=setInterval(tick,90);tick()}
   function stop(){if(!playing)return;playing=false;clearInterval(timer);timer=null;if(ac){out.gain.cancelScheduledValues(ac.currentTime);out.gain.setTargetAtTime(0,ac.currentTime,.3)}}
-  // v71j: no music with Data saving or Poor connection, nor while the first visit's question is open
-  const wanted=()=>{const P=prefs();return themeOn(P)&&P.music!==false&&soundOn()&&!document.hidden&&!(+P.net>0)&&!document.getElementById("netask")};
+  // v71j: no music with Poor connection (v75b: Data saving keeps it: made here, it costs no data), nor while the first visit's question is open
+  const wanted=()=>{const P=prefs();return themeOn(P)&&P.music!==false&&soundOn()&&!document.hidden&&!(+P.net>1)&&!document.getElementById("netask")};
   function sync(){if(wanted())start();else stop();if(ac&&playing){out.gain.cancelScheduledValues(ac.currentTime);out.gain.setTargetAtTime(LV(),ac.currentTime,.15)}paint()}
   function setPref(k,v){const P=prefs();P[k]=v;try{localStorage.setItem("ec-prefs2",JSON.stringify(P))}catch(e){}}
   /* the landing and rules pages: a small control in the corner (the game has its own in the Display bar) */

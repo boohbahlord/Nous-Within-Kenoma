@@ -2395,3 +2395,5 @@ html.still-glow .dipbar.notify{animation:none}
 .dipinc p{margin:0 0 6px}
 .dippen{color:#f0c2b8;font-size:13px;border:1px solid #8b1e1e;padding:6px 10px;margin:0 0 10px}
 @media (max-width:720px){.diphead{display:none}.diprow{grid-template-columns:1fr 1fr}.dipact{grid-column:1/3}}
+/* v75b: Controls: keyboard and mouse, or touch */
+.fsctabs{display:flex;gap:6px;margin:0 0 10px}
