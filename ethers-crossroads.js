@@ -1606,7 +1606,7 @@ const AI=(()=>{
         if(best&&best.s>stay+.15){G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step([o.r,o.c],[best.r,best.c])}
         return}
       if(FAX&&isSupport(grp)){const tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets),stay=supportScore(pl,S,o.r,o.c,W,st);let best=null;
-        for(const [r,c] of tg){const sc=supportScore(pl,S,r,c,W,st)*jit(pl);if(!best||sc>best.s)best={r,c,s:sc}}
+        for(const [r,c] of tg){if(G.board[r][c]&&FAX.noStack&&FAX.noStack(grp,G.board[r][c]))continue;const sc=supportScore(pl,S,r,c,W,st)*jit(pl);if(!best||sc>best.s)best={r,c,s:sc}}
         if(best&&best.s>stay+.2){G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step([o.r,o.c],[best.r,best.c])}
         return}
       let stay=inAce?tileScore(pl,S,o.r,o.c,W,false)+(hq()?-1:W?.k==="def"?.6:0):tileScore(pl,S,o.r,o.c,W,true);
@@ -1614,6 +1614,7 @@ const AI=(()=>{
       let best=null;
       for(const [r,c] of tg){
         const t=G.board[r][c];
+        if(t&&FAX&&FAX.pl===pl&&FAX.noStack&&FAX.noStack(grp,t))continue;   // v74f: a class that avoids stacking
         let s;
         if(t){const M={cards:[...t.cards,...grp],owner:pl,hypo:0};s=tileScore(pl,M,r,c,W,true)-tileScore(pl,t,r,c,W,true)+.2+(W.stack||0)+(FAX&&FAX.pl===pl&&!hasBase(t)?FAX.stack||0:0)+(hasBase(t)?0:stackAdj(pl,fighters(M)))}
         else s=tileScore(pl,S,r,c,W,true);
@@ -8140,7 +8141,7 @@ const FA_KINDS=["grunt","infantry","puppet","jack","queen","king","joker","assas
 const FA_DEF={tgroup:true,tgorder:["wildcard","special","base","standard","support"],mode:"full",stance:"auto",rush:0,formation:"auto",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,
   ctl:{soldiers:true,specials:true,support:true,miners:true,ranged:true,wildcards:true},extra:[],hier:false,order:FA_PRINC.map(p=>p[0]),eq:[],under:false,
   noAttack:false,flee:false,tprio:false,torder:null,teq:[],tIgnoreGI:false,tSameGI:false,xminus:[],hill:true,hillHow:"army",grp:"normal",fLink:true,
-  tWeak:false,tStk:{strongest:true,weakest:true,minority:true,majority:true},ambFocus:false,crys:false,crysStance:false,crysLives:false,crysMiner:false,crysAsk:false,crysHow:false,crysShow:true,crysFight:false,hout:[]};   // v71n: the crystals, and the principles taken out of the ranking
+  tWeak:false,tStk:{strongest:true,weakest:true,minority:true,majority:true},ambFocus:false,crys:false,crysStance:false,crysLives:false,crysMiner:false,crysAsk:false,crysHow:false,crysShow:true,crysFight:false,hout:[],scope:"full"};   // v71n: the crystals, and the principles taken out of the ranking
 /* v47: the kinds of card the field can rank as targets, strongest first by default (suit doesn't matter) */
 const FA_TK=[["wildcards","Wildcards"],["joker","Jokers"],["king","Kings"],["ace","Aces"],["queen","Queens"],["jack","Jacks"],["wall","Walls"],["tree","The Tree"],["assassin","Assassins"],
   ["cannon","Cannons"],["infantry","Infantry"],["archer","Archers"],["grunt","Grunts"],["puppet","Puppets"],["healer","Healers"],["repair","Repairmen"],["ram","Rams"],["miner","Miners"],["claimer","Claimers"],["scout","Scouts"]];
@@ -8148,6 +8149,7 @@ const FA_TKEYS=FA_TK.map(x=>x[0]);
 const FA_OUT=["bases","crystals"];   // v71n: the principles that can be taken out of the ranking (× in it, + to bring them back)
 const faClean=c=>{c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringify(FA_DEF));
   for(const k of ["mode","stance","formation","lives","battles","hillHow","grp"])if(typeof c[k]==="string")o[k]=c[k];
+  o.scope=c.scope==="soft"?"soft":"full";   // v74f: Full field automation (the default) or Soft Automate
   o.rush=Math.max(0,Math.min(9,Math.round(+c.rush||0)));for(const k of ["ambush","bases","walls","hier","under","noAttack","flee","tprio","tIgnoreGI","tSameGI","tgroup","hill","fLink","ambFocus","crys","crysStance","crysLives","crysMiner","crysAsk","crysHow","crysShow","crysFight"])if(typeof c[k]==="boolean")o[k]=c[k];
   if(Array.isArray(c.tgorder))o.tgorder=[...c.tgorder.filter(k=>o.tgorder.includes(k)),...o.tgorder.filter(k=>!c.tgorder.includes(k))];   // v54: the ranking by kinds of card
   o.torder=Array.isArray(c.torder)?[...c.torder.filter(k=>FA_TKEYS.includes(k)),...FA_TKEYS.filter(k=>!c.torder.includes(k))]:[...FA_TKEYS];
@@ -8167,7 +8169,7 @@ const faLevel=()=>{const v=G&&G.opts.fieldAuto;return ["easy","medium","hard"].i
 const faState=pl=>G&&G.p[pl]&&G.p[pl].fa||null;
 const faOn=pl=>faAllowed()&&!!(faState(pl)&&faState(pl).on)&&!G.p[pl].cpu&&!isNPC(pl);
 /* the simple modes narrow everything to a few choices */
-function faEff(c){c=faClean(c);const d=JSON.parse(JSON.stringify(FA_DEF));d.hill=c.hill;d.hillHow=c.hillHow;   // Capture the Hill is the player's in every mode
+function faEff(c){c=faClean(c);const d=JSON.parse(JSON.stringify(FA_DEF));d.hill=c.hill;d.hillHow=c.hillHow;d.scope=c.scope;   // Capture the Hill is the player's in every mode
   if(c.mode==="full")return Object.assign(d,{mode:"full",under:c.under});
   if(c.mode==="mostly")return Object.assign(d,{mode:"mostly",stance:c.stance,ambush:c.ambush,ambFocus:c.ambFocus,under:c.under,noAttack:c.noAttack});
   if(c.mode==="attacks")return Object.assign(d,{mode:"attacks",ambush:false,under:c.under});
@@ -8230,14 +8232,13 @@ function faCtx(pl){
     gainMul:E=>{let m=tf(E);if(c.bases&&hasBase(E)&&!hasK(E,"wall"))m*=1+sc.bases;
       if(c.walls&&hasK(E,"wall")){const at=AI.enemyStacks(pl).find(e=>e.st===E);if(at&&!faWallBlocks(pl,at.r,at.c))m*=1-.7*sc.bases}return m}}}
 
-/* ---------- when it plays: the end of your prep phase (after you place and cast), the start of your attack phase ---------- */
+/* ---------- when it plays: the end of your prep phase (after you place and cast), and (v74f) the end of your attack phase ---------- */
 async function faRun(pl,ph){if(!faOn(pl)||G.over)return;const was=G.busy;G.busy=true;render();
   try{await AI.field(pl,ph,faCtx(pl))}catch(e){console.error(e);log("Field automation stumbles: "+esc(e.message))}
   G.busy=was;render()}
-{const _ap=actPhase;actPhase=async function(pl,ph){
-  if(ph==="attack"&&faOn(pl))await faRun(pl,"attack");
+{const _ap=actPhase;actPhase=async function(pl,ph){   // v74f: at the end of each phase, after you have acted with the cards yourself
   const out=await _ap.apply(this,arguments);
-  if(ph==="prep"&&faOn(pl)&&!G.over&&G.active===pl)await faRun(pl,"prep");
+  if((ph==="prep"||ph==="attack")&&faOn(pl)&&!G.over&&G.active===pl)await faRun(pl,ph);
   return out}}
 
 /* ---------- switching it on and off (a joined player's choice travels to the host) ---------- */
@@ -8247,7 +8248,7 @@ function setFieldAuto(pl,on,cfg){
   if(c.rush>0&&(!prev.cfg||prev.cfg.rush!==c.rush||prev.rushUntil==null||G.moon.round>prev.rushUntil))P.fa.rushUntil=G.moon.round+c.rush-1;
   if(!c.rush)P.fa.rushUntil=null;
   if(!!prev.on!==!!on){log(`${plName(pl)} ${on?"hands the field to the computer (Field Automation on)":"takes the field back (Field Automation off)"}.`,"event");
-    if(on&&G.active===pl&&G.phase==="attack"&&!G.busy)setTimeout(()=>{if(faOn(pl)&&G.active===pl&&G.phase==="attack")faRun(pl,"attack")},50)}
+}
   render()}
 /* this device's settings changed: keep them, and send them on if the automation is running */
 function faSave(c){PREF.fa=faClean(c);savePrefs();const V=view(),s=faState(V);if(G&&s&&s.on)setFieldAuto(V,true,PREF.fa);paintFA()}
@@ -8257,7 +8258,7 @@ function faAsk(yes){let box=$("#faask");if(!box){box=document.createElement("div
   box.innerHTML=`<div class="ovbox" role="alertdialog" aria-labelledby="faq"><button type="button" class="xclose" id="faX" aria-label="Close: no">×</button>
 <h2 id="faq">Automate your field?</h2>
 <p>The computer (${({easy:"Easy",medium:"Medium",hard:"Hard"})[faLevel()]}) moves and attacks with the cards on your field, following the settings in the small square beside the button: by default, every card, and it decides when to attack, defend or hold the center.</p>
-<p class="dim">Your hand, placing cards, spells and sacrifices stay yours. It moves your field at the end of your prep phase and attacks at the start of your attack phase; turn it off any time.</p>
+<p class="dim">Your hand, placing cards, spells and sacrifices stay yours. It acts only at the end of each phase of your turn: it moves when you end your prep phase and attacks when you end your attack phase, so until then you can act with these cards yourself. Turn it off any time.</p>
 <p class="acts"><button type="button" class="btn" id="faY">Yes</button> <button type="button" class="btn ghost" id="faN">No</button></p></div>`;
   box.hidden=false;const close=()=>{box.hidden=true};$("#faY").onclick=()=>{close();yes()};$("#faN").onclick=close;$("#faX").onclick=close;$("#faN").focus()}
 function faToggle(){const V=view(),s=faState(V);if(s&&s.on){setFieldAuto(V,false,faMine());return}
@@ -9144,8 +9145,9 @@ const FX_PARTS=[["moves","Cards moving"],["strikes","Strikes and hits"],["deaths
 const FX_PART={slide:"moves",strike:"strikes",hit:"strikes",blunt:"strikes",boom:"strikes",burst:"strikes",smoke:"deaths",skull:"deaths",pour:"mana",fill:"mana",dollar:"mana",pop:"mana",
   shuffle:"shuffles",wisp:"shuffles",sigil:"spells",symbol:"spells",area:"spells",spell:"spells",meteor:"weather",lightning:"weather",wind:"weather",rain:"weather",flames:"fire",fogroll:"fog"};
 const fxPartOn=k=>!(PREF.fxOff||[]).includes(k);
-/* v59: the fog's drifting is off by default (once, for everyone; it can be switched back on in the Menu) */
-if(!PREF.fogMig){PREF.fxOff=[...new Set([...(PREF.fxOff||[]),"fog"])];PREF.fogMig=1;savePrefs()}
+/* v59: the fog's drifting is off by default (once, for everyone; it can be switched back on in the Menu). v74f: off again, once
+   more for everyone (Performance Settings, "The fog drifting") */
+if((PREF.fogMig|0)<2){PREF.fxOff=[...new Set([...(PREF.fxOff||[]),"fog"])];if(PREF.fxFull&&Array.isArray(PREF.fxFull.off))PREF.fxFull.off=[...new Set([...PREF.fxFull.off,"fog"])];if(Array.isArray(PREF.fxOffEach))PREF.fxOffEach=[...new Set([...PREF.fxOffEach,"fog"])];PREF.fogMig=2;savePrefs()}
 for(const [m,k] of Object.entries(FX_PART)){const f=FX[m];if(typeof f!=="function")continue;FX[m]=function(){if(!fxPartOn(k))return m==="spell"?true:undefined;return f.apply(this,arguments)}}
 {const _cf=castFX;castFX=function(){if(!fxPartOn("spells"))return;return _cf.apply(this,arguments)}}
 {const _cb=critBanner;critBanner=function(){if(!fxPartOn("banners"))return;return _cb.apply(this,arguments)}}
@@ -10783,9 +10785,7 @@ askNever=function(){
   $("#mkNext").onclick=()=>{PREF.mkHide="next";savePrefs();ovHide();paintMustKnow()};
   $("#mkNo").onclick=openMustKnow};
 if($("#mkBtn"))$("#mkBtn").onclick=openMustKnow;if($("#helpMk"))$("#helpMk").onclick=openMustKnow;
-{const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu"),acts=m&&m.querySelector(".acts");if(!acts||PREF.mkHide!=="never"||m.querySelector("#mMk"))return;
-  acts.insertAdjacentHTML("beforebegin",`<p><button type="button" class="btn ghost" id="mMk">Show "What you must know" again</button></p>`);
-  $("#mMk").onclick=()=>{PREF.mkHide=null;savePrefs();paintMustKnow();$("#mMk").parentNode.remove();if(typeof flash==="function"&&G)flash('"What you must know" is back at the top of the page.')}}}
+/* v74f: the Menu's "Show What you must know again" is gone with the box (v74c: its text is the first fold of Basics) */
 /* Settings on the game's front page opens this same menu here, before any game */
 /* the front page's Settings opens this menu alone: no game and no mode window behind it, and closing it goes back to the front page */
 const SETTINGS_ONLY=location.hash==="#settings";
@@ -11991,7 +11991,7 @@ function dysSet(on){PREF.dys=!!on;savePrefs();applyPrefs();if(G)render();const m
 /* the Menu: one fold for both */
 {const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu"),box=m&&m.querySelector(".ovbox");if(!box||box.querySelector(".maccess"))return;
   const grid=box.querySelector(".mgrid");if(!grid)return;
-  const d=document.createElement("details");d.className="maccess";d.open=!!(PREF.cb||PREF.dys||PREF.accOpen);
+  const d=document.createElement("details");d.className="sub maccess";d.open=!!(PREF.cb||PREF.dys||PREF.accOpen);
   d.innerHTML=`<summary>Accessibility Settings</summary><div class="mgrid"></div>`;const g=d.querySelector(".mgrid");
   const cb=box.querySelector("#mCb");if(cb)g.appendChild(cb.closest("label"));
   g.insertAdjacentHTML("beforeend",`<label class="f">Dyslexic mode <select id="mDys"><option value="0" ${PREF.dys?"":"selected"}>Off (default)</option><option value="1" ${PREF.dys?"selected":""}>On</option></select></label>`);
@@ -12806,5 +12806,87 @@ function skyFrac(){if(!G||!G.moon)return "";const m=G.moon,k=sky(),V=view(),r=m.
 {const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const mi=$("#moon .minfo");if(!mi)return;const t=skyFrac();let f=mi.querySelector(".mfrac");
   if(!t){if(f)f.remove();return}if(!f){f=document.createElement("span");f.className="mfrac";const n=mi.querySelector(".mname");if(n)n.after(f);else mi.prepend(f)}f.textContent=t;
   const sv=$("#moon svg.moon");if(sv)sv.setAttribute("aria-label",t)}}
+
+/* ---------- v74f: Field Automation: classes that avoid stacking, Soft Automate, Full by default ----------
+   - A class can avoid stacking: Field Automation keeps its cards out of stacks with other cards, except those ticked in its
+     "Can still stack with" fold (its own cards, cards in no class, or other classes). It holds both ways: no card is moved
+     onto a stack that holds a card whose class bars it, nor the other way round. Your own moves are never stopped.
+   - What it automates, at the top of Field Automation: Full field automation (the default) or Soft Automate. Soft Automate
+     plays only the cards you mark: right-click a stack of yours (or a card in your hand), or double-tap it on a phone, and pick
+     Automate stack; the Selected box has the same switch. A marked card stays automated wherever it goes, even after it
+     splits off into another stack; marked stacks and hand cards look slightly see-through, for you only.
+   - It acts only at the end of each phase of your turn (moves when you end prep, attacks when you end the attack phase), so
+     you can act with the cards yourself first; the note says so. */
+const FA_WHEN="Automated actions take place only at the end of each phase of your turn, every round: it moves when you end your prep phase and attacks when you end your attack phase. Until then you can act with these cards yourself.";
+/* ---- a class that avoids stacking ---- */
+{const _cc=clsClean;clsClean=function(list){const out=_cc.apply(this,arguments),src=Array.isArray(list)?list:[];
+  for(const k of out){const s=src.find(x=>x&&typeof x.id==="string"&&x.id.slice(0,24)===k.id)||{};k.avoid=!!s.avoid;
+    k.stackWith=[...new Set((Array.isArray(s.stackWith)?s.stackWith:[]).filter(v=>typeof v==="string").map(v=>v.slice(0,24)))].slice(0,24)}
+  return out}}
+const clsBars=(k,o)=>!!k&&!!k.avoid&&!(o===k?k.stackWith.includes("self"):o?k.stackWith.includes(o.id):k.stackWith.includes("none"));
+function clsNoStack(list,grp,t){const there=t.cards.filter(x=>!isBase(x));if(!there.length)return false;
+  const a=grp.filter(x=>!isBase(x)).map(x=>clsOfCard(x,list)),b=there.map(x=>clsOfCard(x,list));
+  return a.some(ka=>b.some(kb=>clsBars(ka,kb)||clsBars(kb,ka)))}
+{const _fc=faCtx;faCtx=function(pl){const ctx=_fc.apply(this,arguments);const list=plClasses(pl);if(!list.some(k=>k.on&&k.avoid))return ctx;
+  ctx.noStack=(grp,t)=>clsNoStack(list,grp,t);return ctx}}
+let clsAvw=null;
+function clsAvoidHTML(k,L,pfx){const K=cfgKit("data-clv","data-clvact","clv"+pfx),opts=[["self","Its own cards"],["none","Cards in no class"],...L.filter(x=>x.id!==k.id).map(x=>[x.id,x.name])];
+  const names=opts.filter(([v])=>k.stackWith.includes(v)).map(([,t])=>t),open=clsAvw===k.id||clsWasOpen(`[data-clavw="${k.id}"]`);
+  return K.row(`${k.id}|avoid`,k.avoid,"Avoid stacking","Field Automation keeps its cards out of stacks with other cards, except the ones ticked below. Your own moves aren't stopped.")+
+    (k.avoid?`<details class="faextra clsavw" data-clavw="${k.id}" ${open?"open":""}><summary>Can still stack with <small class="dim">(${names.length?esc(names.join(", ")):"no one"})</small></summary><div class="opts fakinds">${opts.map(([v,t])=>`<label class="opt"><input type="checkbox" data-clv="${k.id}|sw:${esc(v)}" ${k.stackWith.includes(v)?"checked":""}><span>${esc(t)}</span></label>`).join("")}</div></details>`:"")}
+{const _ch=clsHTML;clsHTML=function(pfx){const h=_ch.apply(this,arguments),L=clsList();
+  return h.replace(/<details class="faextra clstg"[^>]*data-cltg="([^"]+)">/g,(m,id)=>{const k=L.find(x=>x.id===id);return k?`<p class="clsh">Stacking</p>${clsAvoidHTML(k,L,pfx||"")}${m}`:m})}}
+{const _cw=clsWire;clsWire=function(root){_cw.apply(this,arguments);
+  root.querySelectorAll("[data-clavw]").forEach(d=>d.addEventListener("toggle",()=>{clsAvw=d.open?d.dataset.clavw:(clsAvw===d.dataset.clavw?null:clsAvw)}));
+  root.querySelectorAll("[data-clv]").forEach(i=>i.addEventListener("change",()=>{const [id,key]=i.dataset.clv.split("|"),L=clsList(),k=L.find(x=>x.id===id);if(!k)return;
+    if(key==="avoid"){k.avoid=i.checked;if(i.checked)clsAvw=id}
+    else if(key.startsWith("sw:")){const v=key.slice(3),sw=Array.isArray(k.stackWith)?k.stackWith:[];k.stackWith=i.checked?[...new Set([...sw,v])]:sw.filter(x=>x!==v);clsAvw=id}
+    clsUI.open=id;PREF.faClasses=clsClean(L);clsResend()}))}}
+
+/* ---- Soft Automate ---- */
+{const _fc=faControls;faControls=function(c,cfg){if(cfg&&cfg.scope==="soft"&&!c.sa)return false;return _fc.apply(this,arguments)}}
+function setSoftAuto(pl,ids,on){if(!G||!G.p[pl]||NET.ctx!=null&&NET.ctx!==pl||!Array.isArray(ids))return false;const P=G.p[pl];
+  const mine=id=>{for(const r of G.board)for(const s of r)if(s&&s.owner===pl){const x=s.cards.find(y=>y.id===id);if(x)return x}return P.hand.find(y=>y.id===id)||null};
+  for(const id of ids){const x=mine(id);if(x&&!isBase(x)){if(on)x.sa=true;else delete x.sa}}render();return true}
+for(const [name,get,set] of [["setSoftAuto",()=>setSoftAuto,f=>setSoftAuto=f]]){
+  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+const softOn=()=>{if(!G||G.over||!faAllowed())return false;const V=view();return !!G.p[V]&&!G.p[V].cpu&&!isNPC(V)&&faMine().scope==="soft"};
+function saTargetAt(e){if(!softOn())return null;const V=view();
+  const t=e.target.closest&&e.target.closest("#board .tile");if(t){const st=G.board[+t.dataset.r]&&G.board[+t.dataset.r][+t.dataset.c];if(st&&st.owner===V&&st.cards.some(x=>!isBase(x)))return {st}}
+  const h=e.target.closest&&e.target.closest("#hand [data-h]");if(h){const c=G.p[V].hand[+h.dataset.h];if(c&&!isBase(c))return {card:c}}
+  return null}
+const saCards=t=>t.card?[t.card]:t.st.cards.filter(x=>!isBase(x));
+const saItems=t=>{const all=saCards(t).every(x=>x.sa);return `<p class="clsmh">Soft Automate</p><button type="button" role="menuitem" data-sam="${all?0:1}">${all?(t.card?"Stop automating this card":"Stop automating stack"):(t.card?"Automate this card":"Automate stack")}</button>`};
+const saAct=(t,on)=>setSoftAuto(view(),saCards(t).map(x=>x.id),on);
+function saPlace(m,x,y){const w=m.offsetWidth||180,h=m.offsetHeight||120;m.style.left=Math.max(6,Math.min(innerWidth-w-6,x))+scrollX+"px";m.style.top=Math.max(6,Math.min(innerHeight-h-6,y))+scrollY+"px"}
+function saWireMenu(m,t){const b=m.querySelector("[data-sam]");if(b)b.onclick=()=>{m.hidden=true;saAct(t,b.dataset.sam==="1")}}
+{const _cm=clsMenu;clsMenu=function(target,x,y){_cm.apply(this,arguments);if(!softOn())return;const m=$("#clsmenu");if(!m)return;
+  m.insertAdjacentHTML("afterbegin",saItems(target));saWireMenu(m,target);saPlace(m,x,y);const f=m.querySelector("button");if(f)f.focus({preventScroll:true})}}
+function saMenu(t,x,y){let m=$("#clsmenu");if(!m){m=document.createElement("div");m.id="clsmenu";m.setAttribute("role","menu");document.body.appendChild(m)}
+  m.innerHTML=saItems(t);m.hidden=false;saPlace(m,x,y);saWireMenu(m,t);const f=m.querySelector("button");if(f)f.focus({preventScroll:true})}
+document.addEventListener("contextmenu",e=>{if(clsTargetAt(e))return;const t=saTargetAt(e);if(!t)return;e.preventDefault();saMenu(t,e.clientX,e.clientY)});   // with classes, their menu carries it
+let saTap=null;
+document.addEventListener("pointerup",e=>{if(e.pointerType!=="touch"||clsTargetAt(e))return;const t=saTargetAt(e);if(!t){saTap=null;return}
+  const key=t.card?"h"+t.card.id:"s"+t.st.cards[0].id,now=performance.now();
+  if(saTap&&saTap.key===key&&now-saTap.t<350){saTap=null;setTimeout(()=>saMenu(t,e.clientX,e.clientY),0)}else saTap={key,t:now}});
+/* the Selected box, for your stack or the hand card you picked */
+{const _rs=renderSel;renderSel=function(){_rs.apply(this,arguments);if(!softOn())return;const V=view(),box=$("#selbox");if(!box)return;
+  let t=null;if(G.selHand&&G.p[V].hand.includes(G.selHand)&&!isBase(G.selHand))t={card:G.selHand};
+  else if(G.sel){const st=G.board[G.sel.r]&&G.board[G.sel.r][G.sel.c];if(st&&st.owner===V&&st.cards.some(x=>!isBase(x)))t={st}}
+  if(!t)return;const cs=saCards(t),all=cs.every(x=>x.sa),some=cs.some(x=>x.sa);
+  box.insertAdjacentHTML("beforeend",`<p class="clsrow sarow"><span class="dim">Soft Automate:</span> <b>${all?"automated":some?"partly automated":"not automated"}</b> <button type="button" class="btn sm ghost" id="saPick">${all?"Stop automating":t.card?"Automate this card":"Automate stack"}</button></p>`);
+  $("#saPick").onclick=()=>saAct(t,!all)}}
+/* slightly see-through, for you only */
+const saShow=st=>!!G&&!!st&&st.owner===view()&&faMine().scope==="soft"&&st.cards.some(x=>x.sa&&!isBase(x));
+{const _sd=siegeDecor;siegeDecor=function(inner,st){const h=_sd.apply(this,arguments);if(!saShow(st))return h;return h.replace('<div class="stack','<div class="stack sauto')}}
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view(),P=G.p[V],on=!!P&&faAllowed()&&faMine().scope==="soft";
+  for(const b of document.querySelectorAll("#hand [data-h]")){const c=P&&P.hand[+b.dataset.h];b.classList.toggle("sauto",on&&!!(c&&c.sa))}}}
+/* at the top of Field Automation: what it automates, and when */
+{const _fp=faPanelHTML;faPanelHTML=function(c,pl,pfx){const h=_fp.apply(this,arguments),K=cfgKit("data-fa","data-faact","fa"+(pfx||""));
+  const top=K.sec("What it automates",K.radio("scope",c.scope||"full",[["full","Full field automation","Every card on your field that the settings below give it. The default when you turn it on."],
+    ["soft","Soft Automate","Only the stacks you mark: right-click one of yours (or a card in your hand) and pick Automate stack; on a phone, double-tap it. The Selected box has it too. Marked cards stay automated wherever they go, even after splitting off, and look slightly see-through."]]),"fafull fascope","",FA_WHEN);
+  return top+h}}
+
+if(window.__EC)Object.assign(window.__EC,{setSoftAuto:(...a)=>setSoftAuto(...a),clsNoStack:(...a)=>clsNoStack(...a),softOn:()=>softOn()});
 
 })();

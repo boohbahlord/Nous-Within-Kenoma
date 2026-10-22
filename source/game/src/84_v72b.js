@@ -14,7 +14,7 @@ function dysSet(on){PREF.dys=!!on;savePrefs();applyPrefs();if(G)render();const m
 /* the Menu: one fold for both */
 {const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu"),box=m&&m.querySelector(".ovbox");if(!box||box.querySelector(".maccess"))return;
   const grid=box.querySelector(".mgrid");if(!grid)return;
-  const d=document.createElement("details");d.className="maccess";d.open=!!(PREF.cb||PREF.dys||PREF.accOpen);
+  const d=document.createElement("details");d.className="sub maccess";d.open=!!(PREF.cb||PREF.dys||PREF.accOpen);
   d.innerHTML=`<summary>Accessibility Settings</summary><div class="mgrid"></div>`;const g=d.querySelector(".mgrid");
   const cb=box.querySelector("#mCb");if(cb)g.appendChild(cb.closest("label"));
   g.insertAdjacentHTML("beforeend",`<label class="f">Dyslexic mode <select id="mDys"><option value="0" ${PREF.dys?"":"selected"}>Off (default)</option><option value="1" ${PREF.dys?"selected":""}>On</option></select></label>`);

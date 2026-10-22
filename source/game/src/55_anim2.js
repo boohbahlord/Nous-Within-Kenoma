@@ -8,8 +8,9 @@ const FX_PARTS=[["moves","Cards moving"],["strikes","Strikes and hits"],["deaths
 const FX_PART={slide:"moves",strike:"strikes",hit:"strikes",blunt:"strikes",boom:"strikes",burst:"strikes",smoke:"deaths",skull:"deaths",pour:"mana",fill:"mana",dollar:"mana",pop:"mana",
   shuffle:"shuffles",wisp:"shuffles",sigil:"spells",symbol:"spells",area:"spells",spell:"spells",meteor:"weather",lightning:"weather",wind:"weather",rain:"weather",flames:"fire",fogroll:"fog"};
 const fxPartOn=k=>!(PREF.fxOff||[]).includes(k);
-/* v59: the fog's drifting is off by default (once, for everyone; it can be switched back on in the Menu) */
-if(!PREF.fogMig){PREF.fxOff=[...new Set([...(PREF.fxOff||[]),"fog"])];PREF.fogMig=1;savePrefs()}
+/* v59: the fog's drifting is off by default (once, for everyone; it can be switched back on in the Menu). v74f: off again, once
+   more for everyone (Performance Settings, "The fog drifting") */
+if((PREF.fogMig|0)<2){PREF.fxOff=[...new Set([...(PREF.fxOff||[]),"fog"])];if(PREF.fxFull&&Array.isArray(PREF.fxFull.off))PREF.fxFull.off=[...new Set([...PREF.fxFull.off,"fog"])];if(Array.isArray(PREF.fxOffEach))PREF.fxOffEach=[...new Set([...PREF.fxOffEach,"fog"])];PREF.fogMig=2;savePrefs()}
 for(const [m,k] of Object.entries(FX_PART)){const f=FX[m];if(typeof f!=="function")continue;FX[m]=function(){if(!fxPartOn(k))return m==="spell"?true:undefined;return f.apply(this,arguments)}}
 {const _cf=castFX;castFX=function(){if(!fxPartOn("spells"))return;return _cf.apply(this,arguments)}}
 {const _cb=critBanner;critBanner=function(){if(!fxPartOn("banners"))return;return _cb.apply(this,arguments)}}
