@@ -218,7 +218,7 @@ html.th-office #ecmusic{background:#eef0f3ee}   /* v71: the music plays in every
 /* v71j: Data saving and Poor connection on the Ether's Crossroads pages (html.lite, html.poor; set in each page's head): the
    device's own fonts (Cascadia Code is never fetched), no background picture, no music corner, no static and no lines */
 html.lite{--mono:Consolas,"Courier New",Menlo,"DejaVu Sans Mono","Liberation Mono",monospace}
-html.lite.th-darkfantasy{background:radial-gradient(ellipse 120% 70% at 50% -10%,#231920,#0d0a0e 62%) fixed}
+html.lite:not(.litebg).th-darkfantasy{background:radial-gradient(ellipse 120% 70% at 50% -10%,#231920,#0d0a0e 62%) fixed}
 html.lite #ecmusic,html.lite button.static-toggle,html.lite svg.strings,html.lite canvas.static,html.lite .scan{display:none!important}
 /* the first visit asks once how the pages should load */
 #netask{position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;padding:16px;background:#000b}

@@ -2,7 +2,7 @@
 import json, html, os, re, shutil
 
 OUT = 'site'
-SITE_V = '58'   # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+SITE_V = '59'   # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 os.makedirs(OUT, exist_ok=True)
 shutil.copy('theme/site.js', f'{OUT}/site.js')
 shutil.copy('theme/ec-music.js', f'{OUT}/ec-music.js')
@@ -19,7 +19,7 @@ M={darkfantasy:["th-darkfantasy"],"":["th-rich"],dull:["th-dull","th-rich"],offi
 /* v71j: Data saving (1) and Poor connection (2) fetch nothing the page can do without: no fonts (the blackletter becomes the
    device's own serif), no music. Otherwise the fonts are preloaded and the music comes, as before. */
 try{var N=+(P&&P.net)||0,D=document.documentElement,H=document.head;
-if(N>0){D.classList.add("lite");if(N>1)D.classList.add("poor");var y=document.createElement("style");y.id="litefonts";
+if(N>0){D.classList.add("lite");if(P.netBg)D.classList.add("litebg");if(N>1)D.classList.add("poor");var y=document.createElement("style");y.id="litefonts";
 y.textContent='@font-face{font-family:"Grenze Gotisch";font-style:normal;font-weight:500;src:local("Old English Text MT"),local("Times New Roman"),local("Georgia"),local("Noto Serif"),local("DejaVu Serif"),local("Liberation Serif")}';H.appendChild(y)}
 else{var F=function(u){var l=document.createElement("link");l.rel="preload";l.as="font";l.type="font/woff2";l.crossOrigin="anonymous";l.href=u;H.appendChild(l)};
 if(!P.dys)F("cascadia-code-latin-200-normal.woff2");if(window.EC_BL)F("grenze-gotisch-latin-500-normal.woff2");

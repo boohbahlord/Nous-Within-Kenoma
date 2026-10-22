@@ -2278,4 +2278,14 @@ html.ecfs main.game #foe{zoom:1;width:auto;max-width:min(360px,46vw);gap:3px;max
 #fsrowmore .fsrmbox{width:min(520px,100%);max-height:calc(100dvh - 32px);overflow:auto}
 #fsrowmore h2{margin-top:0}#fsrowmore .clsh{margin:10px 0 4px;font-size:13px;color:var(--amber-hi)}
 #fsrowmore .opts{display:flex;flex-wrap:wrap;gap:4px}#fsrowmore .opts .opt>span{padding:4px 12px}
+/* ---------------- v74c ---------------- */
+#menu #mParts .perfnet{margin:6px 0 4px;padding-bottom:6px;border-bottom:1px solid var(--rule)}
+#menu #mParts .perfnet label.f{display:flex;gap:8px;align-items:center}
+#menu #mParts .perfh{margin:8px 0 2px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+details.sub.mkgist>summary{color:var(--amber-hi);text-shadow:0 0 6px #d9a44a66;animation:mkgistglow 3.2s ease-in-out infinite}
+@keyframes mkgistglow{0%,100%{text-shadow:0 0 4px #d9a44a44}50%{text-shadow:0 0 10px #d9a44acc}}
+@media (prefers-reduced-motion:reduce){details.sub.mkgist>summary{animation:none}}
+html.lite details.sub.mkgist>summary{animation:none}
+#moon .mfrac{display:block;font-size:11.5px;letter-spacing:.06em;color:var(--amber-hi);margin-top:2px}
 
+#mustknow{display:none!important}   /* v74c: its text is "At a glance" in Basics explained */
