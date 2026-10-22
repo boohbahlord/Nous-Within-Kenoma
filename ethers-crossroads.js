@@ -2564,7 +2564,9 @@ ${["river","none"].filter(k=>!(mode==="survival"&&k==="river")).map(k=>`<label c
 ${mode==="survival"?'<p class="dim">Survival always uses the midline: the field is 5 tall.</p>':`<div class="f"><span>Height</span><div class="opts">${[[4,"4 tall","No midline"],[5,"5 tall","One midline"],[6,"6 tall (default)","Two midlines"]].map(([h,t,d])=>`<label class="opt"><input type="radio" name="orowsd" value="${h}" ${h===6?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>`}
 </div>${chk("ocorners","Cut off the corners","The four corner tiles are removed from play. On by default for free-for-all and the 2v2 layouts on the edges.",false)}
 <div id="sizeother" class="sizesel" hidden></div>
-${mode==="survival"?"":`<div class="f" id="bigset"><span>Large maps</span><div class="opts">${[["","Standard (default)","The sizes above."],["long","10 long, 6 wide","1v1, or 2v2 with each team on one short end."],["sq","10 by 10","Any layout."],["plus","10 by 10 plus","A cross with arms 4 wide; everyone spawns at the end of an arm."],["round","Plus with a round middle","The cross with a round open middle; the hole option can open its center."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="obig" value="${v}" ${v?"":"checked"}><span>${t}<small>${d}</small></span></label>`).join("")}</div><p class="dim">Large maps scroll inside a frame: the mouse wheel zooms, dragging an empty spot or WASD and the arrow keys move it, and Q and E (or C and V) zoom. The Menu has Large Map Controls.</p></div>`}
+${mode==="survival"?"":`<div class="f" id="bigset"><span>Large maps</span><div class="opts">${[["","Standard (default)","The sizes above."],["long","10 long, 6 wide","1v1, or 2v2 with each team on one short end."],["sq","10 by 10","Any layout."],["cross","Cross","A real cross: four arms around a diamond middle; one player at the end of each arm."],["cross2","Two-armed Cross","The Cross with only its top and bottom arms; up to 4 players, two to an arm."],["plus","Cross Map 2","The 10 by 10 plus: arms 4 wide; everyone spawns at the end of an arm."],["round","Plus with a round middle","The cross with a round open middle; the hole option can open its center."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="obig" value="${v}" ${v?"":"checked"}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
+<div id="crossopts" class="crossopts" hidden><div class="f"><span>Cross size</span><div class="opts"><label class="opt"><input type="radio" name="oxsize" value="std" checked><span>Standard (default)<small>Arms 6 by 6 around a diamond (a square 12 on a side, turned on its point). With teams of two, teammates can share an arm.</small></span></label><label class="opt"><input type="radio" name="oxsize" value="small"><span>Small<small>Arms 3 by 3 around a diamond 6 on a side. One player to an arm: up to 4 (2 on the two-armed Cross).</small></span></label></div></div>
+${chk("oxhole","A hole in the very middle","The center of the diamond can't be played on: 2 by 2 (1 tile on the small Cross).",false)}${chk("oxhollow","Hollow tiles around the middle","Four tiles on the diagonals around the center can't be played on. Standard size only.",false)}</div><p class="dim">Large maps scroll inside a frame: the mouse wheel zooms, dragging an empty spot or WASD and the arrow keys move it, and Q and E (or C and V) zoom. The Menu has Large Map Controls.</p></div>`}
 <p class="dim mapnote" id="rivernote" hidden>The River map is always 7 wide and 5 tall with the midline, and keeps its corners.</p>
 
 </fieldset>
@@ -2611,7 +2613,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     $("#sizeduel").hidden=L!=="duel";
     if(!$("#ocorners").dataset.touched)$("#ocorners").checked=big;
     $("#ocorners").disabled=L==="coop";
-    document.querySelectorAll('input[name=obig]').forEach(i=>{const no=L==="coop"||i.value==="long"&&!(L==="duel"||L==="team-same");i.disabled=no;i.closest(".opt").classList.toggle("off",no);if(no&&i.checked)document.querySelector('input[name=obig][value=""]').checked=true});
+    document.querySelectorAll('input[name=obig]').forEach(i=>{const no=L==="coop"||i.value==="long"&&!(L==="duel"||L==="team-same");i.disabled=no;i.closest(".opt").classList.toggle("off",no);if(no&&i.checked)document.querySelector('input[name=obig][value=""]').checked=true});crossUp(n);
     document.querySelectorAll('input[name=omap][value=river]').forEach(i=>{i.disabled=L!=="duel";i.closest(".opt").classList.toggle("off",i.disabled);if(i.disabled&&i.checked)document.querySelector('input[name=omap][value=none]').checked=true});
     $("#teamdecks").hidden=!L.startsWith("team");
     if(!$("#decksset").dataset.touched){const d=L.startsWith("team")?"half":"1";document.querySelectorAll('input[name=odeckper]').forEach(i=>i.checked=i.value===d)}   // v70d: one deck each, half a deck each in 2v2
@@ -2627,6 +2629,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
   $("#oturns").addEventListener("change",()=>{$("#oturns").dataset.touched=1;turnUp()});
   $("#ocorners").addEventListener("change",()=>$("#ocorners").dataset.touched=1);
   $("#pcount").addEventListener("change",drawSeats);
+  document.querySelectorAll('input[name=obig],input[name=oxsize]').forEach(i=>i.addEventListener("change",()=>crossUp(count())));   // v73c
   document.querySelectorAll('input[name=olayout]').forEach(i=>i.addEventListener("change",drawSeats));
   let mapUp=null;
   function sizeUp(){
@@ -2689,7 +2692,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     if(mode==="survival")players.push({name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>!players.some(p=>p.solid===s)))||"dodeca",cpu:"horde"});
     PREF.hand=val("dhand")||PREF.hand;PREF.sel=val("dsel")||PREF.sel;PREF.ctl=val("dctl")||PREF.ctl;PREF.theme=val("dtheme")??PREF.theme;PREF.coords=val("dcoord")==="1";PREF.full=val("dfull")==="1";PREF.lines=val("dlines")!=="0";if($("#danimc")){PREF.fxCards=$("#danimc").checked;PREF.fxMagic=$("#danimm").checked}PREF.bright=+($("#dbright")||{}).value||1;savePrefs();applyPrefs();
     startGame({mode,players,mid:mode==="survival"||(val("orowsd")?+val("orowsd")>4:true),aceLock:$("#olock").checked,jokerDark:!$("#ojkdark")||$("#ojkdark").checked,etherOff:!!$("#oetheron")&&!$("#oetheron").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,cheat:!!($("#ocheat")&&$("#ocheat").checked),hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off","saturn"].includes(val("omoonon")||"on"),
-      map:L==="koth"?"hill":val("omap"),big:L==="koth"?"":val("obig")||"",koth:L==="koth"?{team:$("#okteam").checked,tug:$("#okteam").checked&&$("#oktug").checked,double:$("#okdouble").checked,contest:$("#okcontest").checked,target:+val("oktarget")||50,near:val("oknear")==="near",cpu:val("okcpu")||"each"}:null,cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:L==="duel"&&val("orowsd")?+val("orowsd"):undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
+      map:L==="koth"?"hill":val("omap"),big:L==="koth"?"":val("obig")||"",cross:crossOpts(),koth:L==="koth"?{team:$("#okteam").checked,tug:$("#okteam").checked&&$("#oktug").checked,double:$("#okdouble").checked,contest:$("#okcontest").checked,target:+val("oktarget")||50,near:val("oknear")==="near",cpu:val("okcpu")||"each"}:null,cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:L==="duel"&&val("orowsd")?+val("orowsd"):undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
       deckPer:val("odeckper")||"1",etherPer:val("oetherper")||"same",noSubs:$("#onosubs").checked,specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:val("odeckper")==="half"&&L==="duel"&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
       startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",cycleEvents:$("#ocycev").checked,alikeOk:!!($("#oalike")&&$("#oalike").checked),eclipses:$("#oeclipse").checked||$("#oblood").checked,eclipseMode:$("#oblood").checked,eclipseAlways:$("#oblood").checked&&!!($("#oeclall")&&$("#oeclall").checked),skyChange:skyChangeOpts(),atkSpells:$("#oatk").checked,pshop:$("#opshop")?$("#opshop").checked:true,
       layout:L,turns:$("#oturns").value,timer:+$("#otimer").value,cpuSpeed:$("#ospeed").value,elimDark:val("oelim")==="dark",shareDeck:$("#oshare").checked});
@@ -12411,5 +12414,60 @@ document.addEventListener("keydown",e=>{if(!fsOn()||e.key!=="Escape")return;
 {const _sg=startGame;startGame=function(){const out=_sg.apply(this,arguments);if(fsOn())requestAnimationFrame(fsFit);return out}}
 
 if(window.__EC)Object.assign(window.__EC,{fsEnter:()=>fsEnter(),fsExit:()=>fsExit(),fsFit:()=>fsFit(),fsOn:()=>fsOn(),fsPause:()=>fsPause()});
+
+/* ---------------- v73c: the Cross, and the two-armed Cross (large maps) ----------------
+   The Cross is a real cross: four arms around a middle shaped like a diamond (a square turned on its point).
+   - Standard: each arm 6 wide and 6 long, around a diamond: a square about 12 on a side turned on its point, so its sides
+     show between the arms and each point reaches into an arm. Small: arms 3 by 3 around a diamond about 6 on a side (on an
+     odd grid, so the 3-wide arms line up on its middle).
+   - The middle can have a hole in its very center (2 by 2; 1 tile on the small Cross), and on the standard size four hollow
+     tiles around it on the diagonals. Both are off by default.
+   - Spawns: one player at the end of each arm, two rows deep and as wide as the arm. 2v2: teammates on opposite arms, on
+     arms side by side, or (standard size) both on one arm, each in a box 3 wide and 2 deep.
+   - The two-armed Cross keeps only the top and bottom arms: up to 4 players on the standard size (two to an arm, in boxes
+     3 wide and 2 deep, once there are more than two), 2 on the small one.
+   - The old 10 by 10 plus is now Cross Map 2. */
+function crossPlan(o){const two=o.big==="cross2",X=o.cross||{},small=X.size==="small",A=small?3:6,N=small?13:24,c0=(N-1)/2,R=small?4:8.5;   // the diamond: a square 12 across (6 small) turned on its point
+  let theme=o.map||"random";if(theme==="random")theme=pick(["keep","sahel","forest","dungeon"]);if(theme==="river"||theme==="hill")theme="keep";
+  const lo=c0-(A-1)/2,hi=c0+(A-1)/2,band=x=>x>=lo&&x<=hi;
+  const V=Array.from({length:N},(_,r)=>Array.from({length:N},(_,c)=>!(Math.abs(r-c0)+Math.abs(c-c0)<=R||band(c)||!two&&band(r))));
+  const holes=[];
+  if(X.hole)holes.push(...(small?[[6,6]]:[[11,11],[11,12],[12,11],[12,12]]));
+  if(X.hollow&&!small)holes.push([10,10],[10,13],[13,10],[13,13]);
+  for(const [r,c] of holes)V[r][c]=true;
+  const n=o.players.length,L=o.layout||"duel";
+  // a tile at the end of an arm: d rows in from the edge, a tiles from the player's own left
+  const tile=(sd,d,a)=>sd==="bottom"?[N-1-d,lo+a]:sd==="top"?[d,hi-a]:sd==="left"?[lo+a,d]:[hi-a,N-1-d];
+  const seatOf=(sd,a0,w)=>{const back=[],zone=[];for(let d=0;d<2;d++)for(let a=a0;a<a0+w;a++){const t=tile(sd,d,a);zone.push(t);if(!d)back.push(t)}
+    return {side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back,zone}};
+  const arm=sd=>seatOf(sd,0,A),box=(sd,k)=>seatOf(sd,k*3,3);
+  const seats=[],teams=[];
+  if(two){
+    if(n<=2||small){seats.push(arm("bottom"),arm("top"));teams.push(0,1)}
+    else{const order=[box("bottom",0),box("top",0),box("bottom",1),box("top",1)].slice(0,n);seats.push(...order);teams.push(...order.map((_,i)=>L==="ffa"?i:i%2))}   // teammates share an arm
+  }else if(L==="ffa"){(n===3?["bottom","left","right"]:["bottom","left","top","right"]).slice(0,n).forEach((sd,i)=>{seats.push(arm(sd));teams.push(i)})}
+  else if(L==="team-same"&&!small){seats.push(box("bottom",0),box("top",0),box("bottom",1),box("top",1));teams.push(0,1,0,1)}
+  else if(L==="team-side"){["bottom","right","left","top"].forEach((sd,i)=>{seats.push(arm(sd));teams.push(i%2)})}   // teammates on arms side by side
+  else if(L.startsWith("team")){["bottom","left","top","right"].forEach((sd,i)=>{seats.push(arm(sd));teams.push(i%2)})}   // teammates on opposite arms
+  else{seats.push(arm("bottom"),arm("top"));teams.push(0,1)}
+  return {theme,cols:N,rows:N,mid:true,corners:false,bridge:"left",void:V,seed:(Math.random()*1e9)|0,layout:L,seats,teams,big:o.big,large:true,
+    cross:{small,two,hole:!!X.hole,hollow:!!X.hollow&&!small}}}
+{const _mp=mapPlan;mapPlan=function(o){if(o&&(o.big==="cross"||o.big==="cross2")&&o.layout!=="koth"&&o.mode!=="survival"&&o.layout!=="coop")return crossPlan(o);return _mp.apply(this,arguments)}}
+/* off the map is darker on the crosses, so their shape reads at a glance */
+{const _r=render;render=function(){_r.apply(this,arguments);const B=$("#board");if(B)B.classList.toggle("bigvoid",!!(G&&G.map&&["plus","round","cross","cross2"].includes(G.map.big)))}}
+/* a large map opens on your own spawn (and on the next player's, when the device changes hands) */
+let camHomeKey=null;
+function camHome(V){const w=document.querySelector(".camwrap.on"),S=G&&G.map.seats[V];if(!w||!S)return;const ts=S.back.length?S.back:S.zone,[r,c]=ts[Math.floor(ts.length/2)]||[0,0];
+  const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(!t)return;const wr=w.getBoundingClientRect(),tr=t.getBoundingClientRect();
+  w.scrollLeft+=tr.left+tr.width/2-(wr.left+wr.width/2);w.scrollTop+=tr.top+tr.height/2-(wr.top+wr.height/2)}
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!isLarge()||fsOn()||!G.map.seats)return;const V=view(),key=G.map.seed+":"+V;if(camHomeKey===key)return;camHomeKey=key;requestAnimationFrame(()=>camHome(V))}}
+/* the setup: the Cross's own options show under Large maps when a Cross is picked */
+function crossUp(n){const b=val("obig"),box=$("#crossopts");if(!box)return;const on=b==="cross"||b==="cross2";box.hidden=!on;if(!on)return;
+  const sm=document.querySelector('input[name=oxsize][value=small]'),smOk=!(b==="cross2"&&n>2);   // the small two-armed Cross holds two
+  sm.disabled=!smOk;sm.closest(".opt").classList.toggle("off",!smOk);if(!smOk&&sm.checked)document.querySelector('input[name=oxsize][value=std]').checked=true;
+  const small=val("oxsize")==="small",h=$("#oxhollow");h.disabled=small;h.closest(".chk").classList.toggle("off",small);if(small)h.checked=false}
+const crossOpts=()=>({size:val("oxsize")||"std",hole:!!($("#oxhole")&&$("#oxhole").checked),hollow:!!($("#oxhollow")&&$("#oxhollow").checked)&&val("oxsize")!=="small"});
+
+if(window.__EC)Object.assign(window.__EC,{crossPlan:o=>crossPlan(o)});
 
 })();
