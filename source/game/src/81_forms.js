@@ -1,5 +1,5 @@
 /* ---------- v71o: the cycle events of Mars, Jupiter, Saturn and the Second Sun, named after their Forms ----------
-   Every sixth round a Heavenly Body has hung in the sky (like Venus's and Mercury's cycles; off with the Cycle events option):
+   Every eighth round a Heavenly Body has hung in the sky (v75a: as long as the Moon's cycle; like Venus's and Mercury's cycles; off with the Cycle events option):
    - Mars, the Form of Strife: every attack adds 1d2 that round, and a stack that kills may move one tile at once (a person
      picks the tile or Cancels to stay; a computer, or Field Automation, steps when the tile is better).
    - Jupiter, the Form of Abundance: every Bank loan shrinks by 1d3, and whoever has the fewest cards on the field (everyone
