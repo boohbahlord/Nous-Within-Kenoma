@@ -114,6 +114,7 @@ const AI=(()=>{
     if(W.ctr){const d=ctrDist(r,c);p+=W.ctr*(d<=1?d*.3:d-.7)}   // v70c: the walk (around walls and water) to the middle tiles; on them or beside them it holds
     if(hp)p+=n*(hp*hillDist(r,c)-(isHill(r,c)?1.5:0));   // standing on the Hill is what scores
     if(FAX&&FAX.pl===pl&&FAX.crys)p+=FAX.crys(S,r,c,walk);   // v71n: a guard is drawn to its crystal (80_crystals.js)
+    if(FAX&&FAX.pl===pl&&FAX.extraPull)p+=FAX.extraPull(S,r,c,walk);   // v72e: a class keeps near the classes and kinds it clusters with
     return p}
   function ctrDist(r,c){let d=99;for(const [a,b] of centerTiles())d=Math.min(d,walk(r,c,a,b));return d===99?dist(r,c,(G.rows-1)/2,(COLS-1)/2):d}
   /* gathering an army: a stack drifts toward the biggest of its own */
@@ -235,28 +236,35 @@ const AI=(()=>{
   async function moves(pl,W){
     const lv=L(pl);
     const order=isHorde(pl)?stacksOf(pl).sort((a,b)=>stackRate(b.st)-stackRate(a.st)):stacksOf(pl).sort((a,b)=>{const na=Math.min(99,...enemyStacks(pl).map(e=>dist(a.r,a.c,e.r,e.c))),nb=Math.min(99,...enemyStacks(pl).map(e=>dist(b.r,b.c,e.r,e.c)));return na-nb});
+    if(FAX&&FAX.pl===pl&&FAX.clsOf){const lo=st=>{const k=FAX.clsOf(st);return k&&k.lowPrio?1:0};order.sort((a,b)=>lo(a.st)-lo(b.st))}   // v72e: a low-priority class moves last
     if(FAX&&FAX.pl===pl&&FAX.first)order.sort((a,b)=>FAX.first(b.st)-FAX.first(a.st));   // v71n: a crystal's guard sets out before anyone can join it
     for(const o of order){
       if(G.over)return;
-      const st=G.board[o.r][o.c];if(!st||st!==o.st||st.owner!==pl||st.moved)continue;
-      if(Math.random()<lv.skipMove)continue;
-      if(FAX&&FAX.pl===pl&&FAX.hold&&FAX.hold(st,o.r,o.c))continue;   // v72a: Focus on ambush: an ambusher near the enemy holds its ground
-      if(st.cards.every(c=>c.unit==="miner"))continue;   // lone Miners have their own errands
+      const F0=FAX,cx=FAX&&FAX.pl===pl&&FAX.clsOf&&G.board[o.r][o.c]===o.st?FAX.clsOf(o.st):null;if(cx)FAX=cx;   // v72e: a stack of a class plays by its class's rules
+      try{await moveOne(pl,o,cx&&cx.W||W)}finally{FAX=F0}
+    }
+  }
+  async function moveOne(pl,o,W){
+      const lv=L(pl);
+      const st=G.board[o.r][o.c];if(!st||st!==o.st||st.owner!==pl||st.moved)return;
+      if(Math.random()<lv.skipMove)return;
+      if(FAX&&FAX.pl===pl&&FAX.hold&&FAX.hold(st,o.r,o.c))return;   // v72a: Focus on ambush: an ambusher near the enemy holds its ground
+      if(st.cards.every(c=>c.unit==="miner"))return;   // lone Miners have their own errands
       let grp=st.cards.filter(c=>!isBase(c)&&!c.faLock&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter))&&!(c.unit==="miner"&&crystalAt(o.r,o.c)));   // v71n: a Miner digging a crystal stays at it   // v65: cards locked in place stay   // Miners, Repairmen and shooters stay in their base
-      if(!grp.length||st.stun)continue;
-      if(FAX&&!FAX.ok(grp))continue;   // Field Automation: a stack it doesn't control stays where the player put it
+      if(!grp.length||st.stun)return;
+      if(FAX&&!FAX.ok(grp))return;   // Field Automation: a stack it doesn't control stays where the player put it
       if(!stackLegal(grp)){ // too many to leave together (a full Ace): send out the strongest group that can stand on its own
-        const g2=[];for(const c of [...grp].sort((a,b)=>rate(b)-rate(a)))if(stackLegal([...g2,c]))g2.push(c);grp=g2;if(!grp.length)continue}
+        const g2=[];for(const c of [...grp].sort((a,b)=>rate(b)-rate(a)))if(stackLegal([...g2,c]))g2.push(c);grp=g2;if(!grp.length)return}
       const inAce=hasBase(st);const S={cards:grp,owner:pl,hypo:st.hypo};
       if(FAX&&FAX.flee&&!inAce&&(st.peak||0)>=2&&grp.length<=Math.floor(st.peak/2)){   // v47: Flee when low: pull back, toward friends
         const W2={atk:0,def:2.2,dist:-.5,ally:.6},tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets),stay=tileScore(pl,S,o.r,o.c,W2,false);let best=null;
         for(const [r,c] of tg){if(G.board[r][c])continue;const sc=tileScore(pl,S,r,c,W2,false)*jit(pl);if(!best||sc>best.s)best={r,c,s:sc}}
         if(best&&best.s>stay+.15){G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step([o.r,o.c],[best.r,best.c])}
-        continue}
+        return}
       if(FAX&&isSupport(grp)){const tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets),stay=supportScore(pl,S,o.r,o.c,W,st);let best=null;
         for(const [r,c] of tg){const sc=supportScore(pl,S,r,c,W,st)*jit(pl);if(!best||sc>best.s)best={r,c,s:sc}}
         if(best&&best.s>stay+.2){G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step([o.r,o.c],[best.r,best.c])}
-        continue}
+        return}
       let stay=inAce?tileScore(pl,S,o.r,o.c,W,false)+(hq()?-1:W?.k==="def"?.6:0):tileScore(pl,S,o.r,o.c,W,true);
       const tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets);
       let best=null;
@@ -271,12 +279,13 @@ const AI=(()=>{
       if(best&&best.s>stay+.15){
         G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step([o.r,o.c],[best.r,best.c]);
       }
-    }
   }
   /* ---------- attacks ---------- */
   function bestAttack(pl){
     const lv=L(pl);let best=null;
     for(const {st,r,c} of stacksOf(pl)){
+      const F0=FAX,cx=FAX&&FAX.pl===pl&&FAX.clsOf?FAX.clsOf(st):null;if(cx)FAX=cx;   // v72e: a stack of a class picks its fights by its class's rules
+      try{
       for(const o of attackOptions(r,c)){
         if(FAX&&!FAX.okAtk(st,o))continue;   // Field Automation: only the cards it controls
         const r2=o.r,c2=o.c,E=G.board[r2][c2];
@@ -290,8 +299,10 @@ const AI=(()=>{
         const late=isHorde(pl)?0:G.turnNo>90?Math.min(.25,.1+(G.turnNo-90)/200):!G.p[pl].deck.length?.1:0;
   
         const go=p>=(lv.thr-late-(onHill?.08:0)+(FAX?FAX.thrAdj:0))*(lvl(pl)==="easy"?(.7+Math.random()*.6):1)||(lvl(pl)!=="easy"&&sc>.4)||isHorde(pl);   // the Horde never holds back: whatever it can reach, it hits
+        if(cx&&cx.lowPrio)sc*=.8;   // v72e: a low-priority class lets the others strike first
         if(go&&(!best||sc>best.sc))best={r,c,r2,c2,sc,p,mode:o.mode};
       }
+      }finally{FAX=F0}
     }
     return best;
   }
@@ -495,8 +506,9 @@ const AI=(()=>{
     for(const {st} of stacksOf(pl))st.peak=Math.max(st.peak||0,st.cards.filter(c=>!isBase(c)).length);   // how big each stack has been, for Flee when low
     try{
       if(ph==="prep"){if(ctx.moves)await moves(pl,ctx.W);
-        if(ctx.ambushP>0)for(const {st,r,c} of stacksOf(pl)){if(!canAmbush(st)||st.ambush||st.moved||st.attacked||!ctx.ok(st.cards.filter(x=>!isBase(x))))continue;
-          if(!attackOptions(r,c).length&&Math.random()<ctx.ambushP){st.ambush=true;log(`${plName(pl)}'s field sets a stack in ambush.`,"ai")}}}
+        for(const {st,r,c} of stacksOf(pl)){const cx=ctx.clsOf?ctx.clsOf(st)||ctx:ctx;if(!(cx.ambushP>0))continue;   // v72e: each class its own ambushes
+          if(!canAmbush(st)||st.ambush||st.moved||st.attacked||!cx.ok(st.cards.filter(x=>!isBase(x))))continue;
+          if(!attackOptions(r,c).length&&Math.random()<cx.ambushP){st.ambush=true;log(`${plName(pl)}'s field sets a stack in ambush.`,"ai")}}}
       else if(ph==="attack")await attacks(pl);
     }finally{FAX=null;cache.clear();G.sel=null}}
   return{ARCH,phase,setup,choose,winP,value,LV,bestSpot,field,tileScore:(...a)=>tileScore(...a),stance:pl=>stance(pl),W:{PUSH,OFF,DEF},enemyStacks:pl=>enemyStacks(pl),hillHow:pl=>hillHow(pl),hillDist:(r,c)=>hillDist(r,c)};

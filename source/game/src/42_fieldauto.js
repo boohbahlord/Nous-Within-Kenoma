@@ -20,7 +20,7 @@ const FA_KINDS=["grunt","infantry","puppet","jack","queen","king","joker","assas
 const FA_DEF={tgroup:true,tgorder:["wildcard","special","base","standard","support"],mode:"full",stance:"auto",rush:0,formation:"auto",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,
   ctl:{soldiers:true,specials:true,support:true,miners:true,ranged:true,wildcards:true},extra:[],hier:false,order:FA_PRINC.map(p=>p[0]),eq:[],under:false,
   noAttack:false,flee:false,tprio:false,torder:null,teq:[],tIgnoreGI:false,tSameGI:false,xminus:[],hill:true,hillHow:"army",grp:"normal",fLink:true,
-  ambFocus:false,crys:false,crysStance:false,crysLives:false,crysMiner:false,crysAsk:false,crysHow:false,crysShow:true,crysFight:false,hout:[]};   // v71n: the crystals, and the principles taken out of the ranking
+  tWeak:false,tStk:{strongest:true,weakest:true,minority:true,majority:true},ambFocus:false,crys:false,crysStance:false,crysLives:false,crysMiner:false,crysAsk:false,crysHow:false,crysShow:true,crysFight:false,hout:[]};   // v71n: the crystals, and the principles taken out of the ranking
 /* v47: the kinds of card the field can rank as targets, strongest first by default (suit doesn't matter) */
 const FA_TK=[["wildcards","Wildcards"],["joker","Jokers"],["king","Kings"],["ace","Aces"],["queen","Queens"],["jack","Jacks"],["wall","Walls"],["tree","The Tree"],["assassin","Assassins"],
   ["cannon","Cannons"],["infantry","Infantry"],["archer","Archers"],["grunt","Grunts"],["puppet","Puppets"],["healer","Healers"],["repair","Repairmen"],["ram","Rams"],["miner","Miners"],["claimer","Claimers"],["scout","Scouts"]];
@@ -38,6 +38,8 @@ const faClean=c=>{c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringif
   if(c.ctl)for(const k in o.ctl)if(typeof c.ctl[k]==="boolean")o.ctl[k]=c.ctl[k];
   if(Array.isArray(c.extra))o.extra=c.extra.filter(k=>FA_KINDS.includes(k));if(Array.isArray(c.xminus))o.xminus=c.xminus.filter(k=>FA_KINDS.includes(k)&&!o.extra.includes(k));
   if(Array.isArray(c.order)&&c.order.length===FA_PRINC.length&&FA_PRINC.every(([k])=>c.order.includes(k)))o.order=[...c.order];
+  if(typeof c.tWeak==="boolean")o.tWeak=c.tWeak;if(c.tStk&&typeof c.tStk==="object"){o.tStk={};for(const k of ["strongest","weakest","minority","majority"])o.tStk[k]=c.tStk[k]!==false&&(c.tStk[k]===true||FA_DEF.tStk[k])}   // v72e
+  if(Array.isArray(c.classes)&&typeof clsClean==="function")o.classes=clsClean(c.classes);if(typeof c.classMulti==="boolean")o.classMulti=c.classMulti;   // v72e: the classes travel with the settings to the game
   if(Array.isArray(c.eq))o.eq=c.eq.filter(p=>Array.isArray(p)&&p.length===2&&p.every(k=>o.order.includes(k)&&!o.hout.includes(k)));return o};
 const faMine=()=>faClean(PREF.fa);   // this device's settings
 const faAllowed=()=>!!G&&(G.opts.fieldAuto||"medium")!=="off";
@@ -58,7 +60,7 @@ function faCat(c){const u=c.unit;if(u==="miner")return "miners";if(u&&UNIT[u]&&U
 function faControls(c,cfg){const k0=faKind(c);if((cfg.xminus||[]).includes(k0))return false;if(cfg.extra.includes(k0))return true;const k=faCat(c);return k==="miners"?cfg.ctl.support||cfg.ctl.miners:!!cfg.ctl[k]}
 
 /* ---------- the hierarchy: higher principles pull harder; equals share a rank, and the field decides between them ---------- */
-const FA_AGGR={noatk:c=>c.noAttack?-1:0,stance:c=>({offensive:1,defensive:-1}[c.stance]||0),   // Skirmish counts as neitherrush:c=>c.rush?1:0,lives:c=>({throw:1,preserve:-1}[c.lives]||0),
+const FA_AGGR={noatk:c=>c.noAttack?-1:0,stance:c=>({offensive:1,defensive:-1}[c.stance]||0),rush:c=>c.rush?1:0,lives:c=>({throw:1,preserve:-1}[c.lives]||0),   // Skirmish counts as neither
   battles:c=>({reckless:1,careful:-1}[c.battles]||0),formation:()=>0,bases:c=>c.bases?1:0,crystals:c=>c.crys?(c.crysFight?1:-1):0,ambush:c=>c.ambush?-1:0};
 function faScales(c,pl){const sc={};for(const [k] of FA_PRINC)sc[k]=1;if(!c.hier)return sc;
   const pairOf=k=>c.eq.find(p=>p.includes(k));let rank=0;const seen=new Set();
@@ -87,8 +89,11 @@ function faTargetFactor(cfg){if(!cfg.tprio)return ()=>1;
   return E=>{const ks=E.cards.map(x=>faTKind(x,cfg));const best=Math.min(...ks.map(k=>r[k]??n));let m=1.6-1.2*best/N;
     if(cfg.tIgnoreGI&&ks.every(k=>k==="grunt"||k==="infantry")){const v=AI.value(E),avg=E.cards.length*(1+.8+6/7);if(v>0)m*=avg/v}
     return Math.max(.2,m)}}
+/* v72e: a class's own settings stand in for the player's while its stacks are weighed (87_classes.js) */
+let FA_OVR=null;
+const faCfgOf=pl=>FA_OVR&&FA_OVR.pl===pl?FA_OVR.cfg:faEff(faState(pl)&&faState(pl).cfg);
 function faCtx(pl){
-  const s=faState(pl),c=faEff(s&&s.cfg),sc=faScales(c,pl);
+  const c=faCfgOf(pl),sc=faScales(c,pl);
   let W={...AI.stance(pl)};
   const fixed={offensive:FA_OFF,defensive:AI.W.DEF,center:FA_CENTER,skirmish:FA_SKIRM}[c.stance];if(fixed)W=faMix(W,fixed,sc.stance);
   if(faRushing(pl))W=faMix(W,AI.W.PUSH,sc.rush);
@@ -178,12 +183,14 @@ function faPanelHTML(c,pl,pfx){
     h+=sec("Which cards it controls",`<div class="facats">${FA_CATS.map(([k,t,s2])=>row("ctl."+k,c.ctl[k],t,s2)).join("")}${!c.ctl.support?row("ctl.miners",c.ctl.miners,"Miners","Even with Support off"):""}</div>
 <details class="faextra" ${c.extra.length||c.xminus.length?"open":""}><summary>Yes, and… (single kinds of card: + it controls them, − it leaves them to you)</summary>${K.pmChips(FA_KINDS.map(k=>[k,shortInfo(k)]),c.extra,c.xminus,"data-fapm")}</details>`,"fafull");
     /* v52: the two rankings open like the Yes-and lists: ▸ closed is off, ▾ open is on */
+    h+=sec("Hierarchical control",`<details class="faextra fadet" data-fadet="hier" ${c.hier?"open":""}><summary>Rank the principles <small class="dim">(${c.hier?"on":"off"})</small></summary><p class="dim">When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.</p>`+hierHTML(c.order.filter(k=>!c.hout.includes(k)),c.eq,faHierHTML.pending,k=>FA_PRINC.find(x=>x[0]===k)[1]+(FA_OUT.includes(k)?`<button type="button" class="faout" data-faact="out:${k}" aria-label="Take ${FA_PRINC.find(x=>x[0]===k)[1]} out of the ranking" title="Take it out of the ranking">×</button>`:""),k=>faVal(k,c),"")+
+      (c.hout.length?`<p class="fahin">${c.hout.map(k=>`<button type="button" class="btn ghost sm" data-faact="in:${k}" title="Add it to the ranking">+ ${FA_PRINC.find(x=>x[0]===k)[1]}</button>`).join(" ")}<small class="dim">Out of the ranking: ${c.hout.length>1?"they keep":"it keeps"} ${c.hout.length>1?"their":"its"} full weight.</small></p>`:"")+`</details>`,"fafull","",c.hier?FA_CAUTION:"");
     h+=sec("Target priority",`<details class="faextra fadet" data-fadet="tprio" ${c.tprio?"open":""}><summary>Rank the kinds of card to target <small class="dim">(${c.tprio?"on":"off: every target is weighed by the odds alone"})</small></summary>`+
       row("tgroup",c.tgroup,"Rank by kinds of card","On: Special, Base, Standard and so on. Off: every single kind, like the King.")+
       (c.tgroup?kindRankHTML(c.tgorder,"data-tgact",TGROUP_NAMES):row("tIgnoreGI",c.tIgnoreGI,"Ignore how strong a Grunt or Infantry is","A 2 and a 6 Grunt count the same when it picks a target.")+row("tSameGI",c.tSameGI,"Treat Grunts and Infantry alike","One kind instead of two in the ranking.")+
-      hierHTML((c.tSameGI?c.torder.filter(k=>k!=="infantry"):c.torder),c.teq,faHierHTML.tpending,k=>FA_TK.find(x=>x[0]===k)[1],()=>"","t"))+`<p class="dim">The kinds on the left are hunted first.</p></details>`,"fafull","",c.tprio?FA_CAUTION:"");
-    h+=sec("Hierarchical control",`<details class="faextra fadet" data-fadet="hier" ${c.hier?"open":""}><summary>Rank the principles <small class="dim">(${c.hier?"on":"off"})</small></summary><p class="dim">When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.</p>`+hierHTML(c.order.filter(k=>!c.hout.includes(k)),c.eq,faHierHTML.pending,k=>FA_PRINC.find(x=>x[0]===k)[1]+(FA_OUT.includes(k)?`<button type="button" class="faout" data-faact="out:${k}" aria-label="Take ${FA_PRINC.find(x=>x[0]===k)[1]} out of the ranking" title="Take it out of the ranking">×</button>`:""),k=>faVal(k,c),"")+
-      (c.hout.length?`<p class="fahin">${c.hout.map(k=>`<button type="button" class="btn ghost sm" data-faact="in:${k}" title="Add it to the ranking">+ ${FA_PRINC.find(x=>x[0]===k)[1]}</button>`).join(" ")}<small class="dim">Out of the ranking: ${c.hout.length>1?"they keep":"it keeps"} ${c.hout.length>1?"their":"its"} full weight.</small></p>`:"")+`</details>`,"fafull","",c.hier?FA_CAUTION:"");
+      hierHTML((c.tSameGI?c.torder.filter(k=>k!=="infantry"):c.torder),c.teq,faHierHTML.tpending,k=>FA_TK.find(x=>x[0]===k)[1],()=>"","t"))+`<p class="dim">The kinds on the left are hunted first.</p>`+
+      row("tWeak",c.tWeak,"Weakest Grunts and Infantry first","Off: the strongest of them first.")+
+      `<p class="dim fatsk">Go for a stack because of the kind it hunts when that kind is…</p>`+row("tStk.strongest",c.tStk.strongest,"…its strongest card","")+row("tStk.weakest",c.tStk.weakest,"…its weakest card","")+row("tStk.minority",c.tStk.minority,"…only a few of its cards","Not the most of them.")+row("tStk.majority",c.tStk.majority,"…most of its cards","")+`</details>`,"fafull","",c.tprio?FA_CAUTION:"");
     if(c.crys)h+=sec("Crystals",`<details class="faextra" open><summary>More options for Focus on crystals</summary>`+
       row("crysStance",c.crysStance,"Depends on the stance","It guards crystals only while your field defends or holds the center.")+
       row("crysLives",c.crysLives,"Depends on Lives","Preserve guards only where it's safe; Balanced unless it's badly outnumbered; Throw them in, whatever comes.")+
@@ -220,6 +227,7 @@ function faWire(root){
   root.querySelectorAll("[data-fa]").forEach(i=>{const path=i.dataset.fa;if(!path)return;i.onchange=()=>{const c2=faMine();
     if(path==="rushon")c2.rush=i.checked?Math.max(1,c2.rush||1):0;
     else if(path.startsWith("ctl."))c2.ctl[path.slice(4)]=i.checked;
+    else if(path.startsWith("tStk."))c2.tStk=Object.assign({},c2.tStk,{[path.slice(5)]:i.checked});
     else if(i.type==="checkbox")c2[path]=i.checked;else c2[path]=i.value;
     faSave(c2)}});
   root.querySelectorAll("[data-fapm]").forEach(b=>b.onclick=()=>{const c2=faMine(),k=b.dataset.fapm,[p,m]=pmCycle(c2.extra,c2.xminus,k);c2.extra=p;c2.xminus=m;faSave(c2)});

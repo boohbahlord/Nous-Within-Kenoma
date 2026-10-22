@@ -1695,7 +1695,7 @@ summary .fasum{font-size:.72em;letter-spacing:.05em;vertical-align:1px}
 .ovbox.setup .seat .opts.subs{gap:4px;grid-template-columns:repeat(auto-fill,minmax(min(100%,132px),1fr))}
 /* ---------- v61: card faces in the players' colors (darkened, calmed), the accent as the frame, light lettering ---------- */
 .cf.v61,.stack.v61{--cb:var(--pcb,color-mix(in oklab,var(--pc) 44%,#211b16));--cbe:color-mix(in oklab,var(--cb) 78%,#000);--ct:#f4ead9;--cr:#ff9b90;
-  background:var(--cbpat,none),linear-gradient(160deg,color-mix(in oklab,var(--cb) 86%,#fff) 0%,var(--cb) 55%,color-mix(in oklab,var(--cb) 82%,#000) 100%);color:var(--ct);
+  background:var(--clsg,none),var(--cbpat,none),linear-gradient(160deg,color-mix(in oklab,var(--cb) 86%,#fff) 0%,var(--cb) 55%,color-mix(in oklab,var(--cb) 82%,#000) 100%);color:var(--ct);
   box-shadow:inset 0 0 0 2px var(--cb),inset 0 0 0 3px var(--ca),var(--stk,0 0 #0000),0 2px 4px #0008}
 .cf.v61.red,.stack.v61.red{color:var(--cr)}
 .v61 .ty{color:color-mix(in oklab,var(--ct) 80%,transparent);border-top-color:color-mix(in oklab,var(--ca) 45%,transparent)}
@@ -2066,3 +2066,28 @@ html.cvd .tile.tmove{border-color:#56b4e9}html.cvd .tile.tplace{border-color:#f0
 .fastrat .stform input{font-family:var(--mono);font-size:14px;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:4px 7px;max-width:240px}.fastrat .stform input[type=number]{width:4.5em}
 .fastrat .stinbox{border:1px dashed var(--amber);padding:6px 8px;margin:8px 0}.fastrat .stinbox p{margin:4px 0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .fastrat .stnone{margin:6px 8px}
+/* v72e: Class Structures: the class's color in the bottom-left and top-right corners, under the accent line (only its owner sees it unless shown) */
+@property --clsg{syntax:"*";inherits:false}
+@property --clc{syntax:"<color>";inherits:false;initial-value:transparent}
+.v61.clsmark{--clc:var(--clb);--clsg:linear-gradient(45deg,var(--clc) 0 14%,transparent 14.3% 85.7%,var(--clc) 86%)}
+.v61.clsmark.clsheen{animation:clsheen 3.4s ease-in-out infinite}
+@keyframes clsheen{0%,100%{--clc:var(--clb)}50%{--clc:color-mix(in oklab,var(--clb) 40%,#fff)}}
+html.lite .v61.clsheen,html.still-glow .v61.clsheen{animation:none}
+@media (prefers-reduced-motion:reduce){.v61.clsheen{animation:none}}
+#clsmenu{position:absolute;z-index:120;min-width:170px;max-width:260px;max-height:70vh;overflow:auto;background:var(--deep);border:1px solid var(--amber);box-shadow:0 6px 20px #000b;padding:4px;display:flex;flex-direction:column;gap:2px}
+#clsmenu[hidden]{display:none}
+#clsmenu .clsmh{margin:2px 6px 4px;font-size:12px;color:var(--dim)}
+#clsmenu button{display:flex;align-items:center;gap:7px;text-align:left;background:none;border:0;color:var(--text);font:inherit;font-size:14px;padding:6px 8px;cursor:pointer;border-radius:3px}
+#clsmenu button:hover,#clsmenu button:focus-visible{background:color-mix(in oklab,var(--amber) 22%,transparent);outline:none}
+#clsmenu button.on{color:var(--amber-hi);font-weight:600}#clsmenu button.on::after{content:"✓";margin-left:auto}
+#clsmenu button.off{opacity:.7}#clsmenu .clsclear{border-top:1px solid var(--rule);margin-top:3px;color:var(--dim);font-size:13px}
+#clsmenu i,.clsdot{display:inline-block;width:12px;height:12px;flex:none;background:linear-gradient(45deg,var(--clb) 0 35%,transparent 36% 64%,var(--clb) 65%);border:1px solid var(--rule);border-radius:2px}
+.facls .clsone{border:1px solid var(--rule);padding:4px 8px;margin:6px 0}
+.facls .clsone>summary{cursor:pointer;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.facls .clsh{margin:9px 0 3px;font-size:13px;color:var(--amber-hi)}
+.facls .clsname{display:flex;gap:8px;align-items:center;margin:6px 0}.facls .clsname input{font-family:var(--mono);font-size:14px;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:4px 7px;max-width:220px}
+.facls .clsrank{margin:4px 0 4px 6px;padding:0;list-style:none}.facls .clsrank li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:1px 0;font-size:13px}
+.facls .clssw{display:flex;flex-wrap:wrap;gap:4px 6px}.facls .clssw .sw span{width:24px;height:24px}
+.facls .clsacts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 4px}
+.facls .fakinds .opt.off{opacity:.5;cursor:not-allowed}
+#selbox .clsrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:6px 0 0}
