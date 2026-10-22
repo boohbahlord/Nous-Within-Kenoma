@@ -269,7 +269,8 @@ function newGame(opts){
 /* ---------------- decks and the Ether ----------------
    decks: 1 (the two players split one deck: one red and one black suit each), 2 (a full deck each), 3 (a full deck each and a whole third deck in the Ether)
    With more players: a full deck or half a deck each (free-for-all), one deck per team split two suits to a teammate (2v2), or one deck a team shares.
-   specials (J Q K A Joker): none (only the opening Ace; the rest wait in the Ether), half (the specials of half your suits), all
+   specials (J Q K A Joker): none (only the opening Ace; the rest wait in the Ether), half (the default since v74d: the Jacks, Queens and
+   Kings of half your suits, picked at random, one red and one black, and one more Ace and one Joker for each deck you hold), all
    Every player keeps at least one Joker unless that option is off. Whatever specials a player does not start with go to the Ether. */
 const RED=["H","D"],BLACK=["S","C"],RANKS=["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
 const isSpecial=c=>["jack","queen","king","ace","joker"].includes(kind(c));
@@ -305,19 +306,21 @@ function buildDecks(){
     let cards=[];for(const s of mySuits)for(const r of RANKS)cards.push(mk(r,s));
     for(const col of plan.jokers[k])cards.push(mk("JK",null,col));
     const kinds=[...new Set(mySuits)];let keepSuits=sp==="all"?kinds:sp==="half"?(kinds.length===4?[pick(RED),pick(BLACK)]:[pick(kinds)]):[];
-    const keepJokers=sp==="all"?9:sp==="half"?Math.floor(plan.jokers[k].length/2):0;let jk=0;
+    const keepJokers=sp==="all"?9:0;let jk=0;
     const deck=[],out=[];
     for(const c of cards){
       if(!isSpecial(c)){deck.push(c);continue}
       if(kind(c)==="joker"){if(jk<keepJokers){deck.push(c);jk++}else out.push(c);continue}
-      (keepSuits.includes(c.suit)?deck:out).push(c);
+      (keepSuits.includes(c.suit)&&!(sp==="half"&&kind(c)==="ace")?deck:out).push(c);
     }
     const take=(list,k2)=>{const i=list.findIndex(c=>kind(c)===k2);return i<0?null:list.splice(i,1)[0]};
     const ace=take(deck,"ace")||take(out,"ace")||mk("A",mySuits[0]);
     const jack=take(deck,"jack")||take(out,"jack")||mk("J",mySuits[0]);
-    if(o.jokerSure!==false&&!deck.some(c=>kind(c)==="joker"))deck.push(take(out,"joker")||mk("JK",null,pick(["red","black"])));
+    if(sp!=="half"&&o.jokerSure!==false&&!deck.some(c=>kind(c)==="joker"))deck.push(take(out,"joker")||mk("JK",null,pick(["red","black"])));
     P.opening=[ace,jack];P.opening2=[];
     if(o.hq&&o.mode!=="survival"){const a2=take(deck,"ace")||take(out,"ace")||mk("A",mySuits[mySuits.length-1]);a2.owner=pl;P.opening2=[a2]}
+    if(sp==="half"){const nd=Math.max(1,Math.round(mySuits.length/4)),best=k2=>{const i=out.findIndex(c=>kind(c)===k2&&keepSuits.includes(c.suit));return i>=0?out.splice(i,1)[0]:take(out,k2)};   // v74d: one more Ace and one Joker for each deck you hold
+      for(let i=0;i<nd;i++){deck.push(best("ace")||mk("A",keepSuits[0]||mySuits[0]));deck.push(take(out,"joker")||mk("JK",null,pick(["red","black"])))}}
     for(const c of [...deck,ace,jack])c.owner=pl;
     P.deck=shuffle(deck);G.ether.push(...out);
   });
@@ -2552,13 +2555,14 @@ ${chk("oskyrand","A random start","Every few rounds only. Each new Heavenly Body
 ${[["half","Half a deck","One red and one black suit and one Joker. In 1v1 the two players split one deck; in 2v2 each team splits one (the default there)."],["1","One deck (default)","All four suits and both Jokers."],["2","Two decks","Two of every card. Set Specials and Aces to Half below."],["3","Three decks","Three of every card. Specials and Aces at Half suits it too."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="odeckper" value="${v}" ${v==="1"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
 <div class="f" id="suitmode" hidden><span>Suits (half a deck, 1v1)</span><div class="opts"><label class="opt"><input type="radio" name="osuitmode" value="random" checked><span>Random (default)<small>Each player is dealt one red and one black suit at random.</small></span></label><label class="opt"><input type="radio" name="osuitmode" value="choose"><span>Choose<small>Pick the two suits below.</small></span></label></div>${suitSel}</div>
 <div class="f"><span>Ether decks per player</span><div class="opts">
-${[["same",`Same as the players${startMode==="survival"?"":" (default)"}`,"As many decks' worth of Scouts, Assassins, Archers, Healers, Repairmen, Walls, Rams, Miners and Cannons as the players hold decks."],["half","Half a deck each",""],["1","One deck each",""],["2","Two decks each",""],["3","Three decks each",""],["inf",`Infinite${startMode==="survival"?" (default here)":""}`,"Every card the Ether holds comes back the moment it is taken: it never runs out. The default in Survival."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="oetherper" value="${v}" ${v===(startMode==="survival"?"inf":"same")?"checked":""}><span>${t}${d?`<small>${d}</small>`:""}</span></label>`).join("")}</div></div>
+${[["same","Same as the players","As many decks' worth of Scouts, Assassins, Archers, Healers, Repairmen, Walls, Rams, Miners and Cannons as the players hold decks."],["half","Half a deck each",""],["1",`One deck each${startMode==="survival"?"":" (default)"}`,"The Ether holds a deck of its own for every player: its Scouts, Assassins, Archers, Healers, Repairmen, Walls, Rams, Miners and Cannons."],["2","Two decks each",""],["3","Three decks each",""],["inf",`Infinite${startMode==="survival"?" (default here)":""}`,"Every card the Ether holds comes back the moment it is taken: it never runs out. The default in Survival."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="oetherper" value="${v}" ${v===(startMode==="survival"?"inf":"1")?"checked":""}><span>${t}${d?`<small>${d}</small>`:""}</span></label>`).join("")}</div></div>
 <p class="dim">With two decks per player (or three), set Specials and Aces to Half: everyone then starts with half the specials and bases, and the rest wait in the Ether.</p>
 <div id="teamdecks" hidden>${chk("oshare","Shared team deck","2v2 only. Teammates draw from one deck and spend from one soul pile, but keep their own hands.",false)}</div>
 </fieldset>
 <fieldset class="pf"><legend>Specials and Aces (Jacks, Queens, Kings, Jokers and Aces)</legend><div class="opts">
-${[["none","None (default)","Only your opening Ace and its Jack. Every other special waits in the Ether to be conjured."],["half","Half","The specials of half your suits; the rest wait in the Ether."],["all","All","Every special of your suits is in your deck."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="ospecials" value="${v}" ${v==="none"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
-${chk("ojoker","At least one Joker","Every player's deck holds at least one Joker, taken from the Ether if needed.",true)}
+${[["none","None","Only your opening Ace and its Jack. Every other special waits in the Ether to be conjured."],["half","Half (default)","The Jacks, Queens and Kings of half your suits, picked at random (one red and one black suit with a full deck), and one more Ace and one Joker. Every other special waits in the Ether."],["all","All","Every special of your suits is in your deck."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="ospecials" value="${v}" ${v==="half"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
+${chk("ojoker","At least one Joker","With None or All: every player's deck holds at least one Joker, taken from the Ether if needed. Half always holds one.",true)}
+${chk("ominer","A Miner in every deck","One Miner, taken from the Ether, shuffled into every player's deck.",true)}
 <p class="dim" id="decksum"></p>
 </fieldset>`;
   const mapTab=`<fieldset class="pf"><legend>Battle map</legend><div class="opts">
@@ -2669,14 +2673,14 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     const per=val("odeckper")||"1",half=per==="half",m=half?0:+per,sp=val("ospecials"),js=$("#ojoker").checked,L=layout(),N=Math.max(1,count());
     if(!$("#oeach").dataset.touched)$("#oeach").checked=half;
     $("#suitmode").hidden=!(half&&L==="duel");$("#suitpick").hidden=$("#suitmode").hidden||val("osuitmode")!=="choose";
-    const s=half?2:4*m,j=half?1:2*m,keptSp=sp==="all"?4*s+j:sp==="half"?4*s/2+Math.floor(j/2):0,keptJ=sp==="all"?j:sp==="half"?Math.floor(j/2):0;
-    const deck=9*s+keptSp-(keptSp?2:0)+(js&&!keptJ?1:0),outPer=4*s+j-keptSp-(keptSp?0:2)-(js&&!keptJ?1:0);
-    const ep=val("oetherper")||"same",ef=ep==="same"?(half?.5:m):ep==="half"?.5:+ep,ne=Math.max(1,Math.round(ef*Math.max(N,L==="duel"?2:1)));
-    const ether=outPer*N+41*ne-2*N+(half&&mode==="survival"&&N===1?26:0);
-    $("#decksum").textContent=`Each player's deck starts with ${deck} cards, plus the opening Ace and Jack on the field. The Ether starts with about ${ether} souls to conjure.`;
+    const s=half?2:4*m,j=half?1:2*m,nd=Math.max(1,Math.round(s/4)),mi=$("#ominer").checked?1:0;
+    const keptSp=sp==="all"?4*s+j-2:sp==="half"?3*s/2-1+2*nd:(js?1:0),deck=9*s+keptSp+2+mi,outPer=4*s+j-2-keptSp;   // v74d: Half: the J Q K of half the suits (less the opening Jack), and an Ace and a Joker per deck
+    const ep=val("oetherper")||"1",ef=ep==="same"?(half?.5:m):ep==="half"?.5:ep==="inf"?1:+ep,ne=Math.max(1,Math.round(ef*Math.max(N,L==="duel"?2:1)));
+    const ether=outPer*N+41*ne-(2+mi)*N+(half&&mode==="survival"&&N===1?26:0);
+    $("#decksum").textContent=`Each player's deck starts with ${deck} cards (${sp==="half"?`${3*s/2-1} Jacks, Queens and Kings, ${nd===1?"an Ace and a Joker":`${nd} Aces and ${nd} Jokers`}, `:""}two Scouts${mi?" and a Miner":""} among them), plus the opening Ace and Jack on the field. The Ether starts with about ${ether} souls to conjure${ep==="inf"?", and every one comes back when taken":""}.`;
   };
   $("#oeach").addEventListener("change",()=>$("#oeach").dataset.touched=1);
-  document.querySelectorAll('input[name=odeckper],input[name=oetherper],input[name=ospecials],input[name=osuitmode],#ojoker').forEach(i=>i.addEventListener("change",()=>{if(i.name==="odeckper")$("#decksset").dataset.touched=1;sumUp()}));sumUp();
+  document.querySelectorAll('input[name=odeckper],input[name=oetherper],input[name=ospecials],input[name=osuitmode],#ojoker,#ominer').forEach(i=>i.addEventListener("change",()=>{if(i.name==="odeckper")$("#decksset").dataset.touched=1;sumUp()}));sumUp();
   $("#onosubs").addEventListener("change",drawSeats);$("#oalike").addEventListener("change",drawSeats);
   const SKY_NOTE={bid:"Every 2 + 1d2 − 1 completed cycles, the Heavenly Body announces it is leaving. Players bid mana to keep it for one more cycle, or to see it go; the highest bid wins (an Oath of that Heavenly Body adds half again to a bid on a 2 of 1d2). If nobody bids to keep it, a new Heavenly Body takes the sky.",never:"The Heavenly Body stays until a spell, the shop or an Emanation changes it.",cycles:"After this many of its cycles, a new Heavenly Body takes the sky.",rounds:"After this many rounds, a new Heavenly Body takes the sky, wherever it is in its cycle."};
   const skyUp=()=>{const m=$("#oskychg").value,ev=m==="cycles"||m==="rounds",dice=val("oskyhow")==="dice";$("#skychgnote").textContent=SKY_NOTE[m];
@@ -2723,7 +2727,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     PREF.hand=val("dhand")||PREF.hand;PREF.sel=val("dsel")||PREF.sel;PREF.ctl=val("dctl")||PREF.ctl;PREF.theme=val("dtheme")??PREF.theme;PREF.coords=val("dcoord")==="1";PREF.full=val("dfull")==="1";PREF.lines=val("dlines")!=="0";if($("#danimc")){PREF.fxCards=$("#danimc").checked;PREF.fxMagic=$("#danimm").checked}PREF.bright=+($("#dbright")||{}).value||1;savePrefs();applyPrefs();
     startGame({mode,players,mid:mode==="survival"||(val("orowsd")?+val("orowsd")>4:true),aceLock:$("#olock").checked,jokerDark:!$("#ojkdark")||$("#ojkdark").checked,etherOff:!!$("#oetheron")&&!$("#oetheron").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,cheat:!!($("#ocheat")&&$("#ocheat").checked),hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off","saturn"].includes(val("omoonon")||"on"),
       map:L==="koth"?"hill":val("omap"),big:L==="koth"?(["cross","small"].includes(val("okfield"))?"cross":""):val("obig")||"",cross:L==="koth"?{size:val("okfield")==="small"?"small":"std"}:crossOpts(),factions:L==="factions",koth:L==="koth"?{team:$("#okteam").checked,tug:$("#okteam").checked&&$("#oktug").checked,double:$("#okdouble").checked,contest:$("#okcontest").checked,target:+val("oktarget")||50,near:val("oknear")==="near",cpu:val("okcpu")||"each"}:null,cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:L==="duel"&&val("orowsd")?+val("orowsd"):undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
-      deckPer:val("odeckper")||"1",etherPer:val("oetherper")||"same",noSubs:$("#onosubs").checked,specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:val("odeckper")==="half"&&L==="duel"&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
+      deckPer:val("odeckper")||"1",etherPer:val("oetherper")||"1",noSubs:$("#onosubs").checked,specials:val("ospecials"),jokerSure:$("#ojoker").checked,deckMiner:$("#ominer").checked,suits:val("odeckper")==="half"&&L==="duel"&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
       startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",cycleEvents:$("#ocycev").checked,alikeOk:!!($("#oalike")&&$("#oalike").checked),eclipses:$("#oeclipse").checked||$("#oblood").checked,eclipseMode:$("#oblood").checked,eclipseAlways:$("#oblood").checked&&!!($("#oeclall")&&$("#oeclall").checked),skyChange:skyChangeOpts(),atkSpells:$("#oatk").checked,pshop:$("#opshop")?$("#opshop").checked:true,
       layout:L,turns:$("#oturns").value,timer:+$("#otimer").value,cpuSpeed:$("#ospeed").value,elimDark:val("oelim")==="dark",shareDeck:$("#oshare").checked});
   };
@@ -4114,6 +4118,7 @@ function siegeDecks(pls){
   for(const pl of pls){const P=G.p[pl];if(P.tribe!=="beginner")continue;
     for(const u in BEGINNER_KIT)for(let i=0;i<BEGINNER_KIT[u]&&pool[u]>0;i++){P.deck.push(mkUnit(u,pl));pool[u]--}
     shuffle(P.deck)}
+  if(G.opts.deckMiner)for(const pl of pls){const P=G.p[pl];P.deck.push(mkUnit("miner",pl));if(pool.miner>0)pool.miner--;shuffle(P.deck)}   // v74d: one Miner shuffled into every deck (the default)
   for(const u in pool)for(let i=0;i<pool[u];i++)G.ether.push(mkUnit(u,null));
 }
 
@@ -10279,7 +10284,7 @@ function mineSlots(V){const out=[];if(!G||V==null||!G.p[V]||G.phase==="setup")re
   for(const {st,r,c} of stacksOf(V)){const ms=st.cards.filter(x=>x.unit==="miner"),ace=st.cards.find(x=>kind(x)==="ace");
     if(ace){out.push({k:"ace:"+ace.id,kind:"ace",name:"Ace",at:coord(r,c),r,c,st,ms,cap:2});continue}
     const cr=crystalAt(r,c);if(cr)out.push({k:"cr:"+r+"."+c,kind:"cr",name:"Crystal",at:coord(r,c),sub:`${cr.left} left`,r,c,st,ms,cap:1})}
-  for(const p of G.plots||[])if(p.owner===V)out.push({k:"plot:"+p.i,kind:"plot",name:`Plot ${p.i+1}`,at:"the Bank's land",p,ms:p.miners,cap:1});
+  for(const p of G.plots||[])if(p.owner===V)out.push({k:"plot:"+p.i,kind:"plot",name:`Plot ${p.i+1}`,at:"land from the Bank",p,ms:p.miners,cap:1});
   const MM=G.moonMiner,ML=G.moonLev,mine=MM&&MM.owner===V,lev=ML&&ML.owner===V;
   if(mine||lev)out.push({k:"moon",kind:"moon",name:"The Moon",at:lev?"the Leviathan's":"",ms:mine?[MM.card]:[],lev:lev?ML.card:null,cap:1});
   return out}
@@ -10296,7 +10301,7 @@ NETFN.moonPlant={get:()=>moonPlant,set:f=>moonPlant=f};{const orig=moonPlant;moo
 function mineAct(s,V){if(!mineFits(s,V))return;const m=G.selHand;
   if(s.kind==="ace"||s.kind==="cr")place(m,s.r,s.c);else if(s.kind==="plot"){plantMiner(V,s.p);G.selHand=null}else if(s.kind==="moon")moonPlant(V);
   render()}
-const MINE_POS=["field","auto","help"];
+const MINE_POS=["hand","field","auto","help"];   // v74d: above the hand cards by default (and always in fullscreen)
 function mineSlotHTML(s,V){const st=mineStats(V,s.k),fit=mineFits(s,V),empty=Math.max(0,s.cap-s.ms.length);
   const cards=(s.lev?face(s.lev,{cls:"sm",noci:true}):"")+s.ms.map(m=>face(m,{cls:"sm",noci:true})).join("")+Array.from({length:empty},()=>`<span class="msempty" aria-hidden="true"></span>`).join("");
   const stat=st?`<span class="msstat"><span>Rounds ${st.P.a}–${st.P.b}${st.P.done?"":"…"}: <b>${st.sum}</b> (<b>${st.avg}</b> a turn)</span><span>Ever: <b>${st.ever}</b> mana</span></span>`:"";
@@ -10305,13 +10310,15 @@ function mineSlotHTML(s,V){const st=mineStats(V,s.k),fit=mineFits(s,V),empty=Mat
 function paintMines(){if(!G)return;const V=view(),slots=mineSlots(V);let box=$("#minepanel");
   if(!slots.length){if(box)box.hidden=true;return}
   if(!box){box=document.createElement("section");box.id="minepanel";box.className="minepanel";box.setAttribute("aria-label","Mining slots")}
-  const pos=MINE_POS[PREF.minePos|0]||"field",anchor=pos==="auto"?($("#fapanel")||$("#helphead")):pos==="help"?$("#info"):($("#dicefold")||$("#shared"));
-  if(anchor&&box.previousElementSibling!==anchor)anchor.after(box);
+  const fs=typeof fsOn==="function"&&fsOn(),at=PREF.mineAt|0,pos=fs?"hand":MINE_POS[at]||"hand",hand=$("#hand");
+  if(pos==="hand"&&hand){if(box.nextElementSibling!==hand)hand.before(box)}
+  else{const anchor=pos==="auto"?($("#fapanel")||$("#helphead")):pos==="help"?$("#info"):($("#dicefold")||$("#shared"));if(anchor&&box.previousElementSibling!==anchor)anchor.after(box)}
+  box.classList.toggle("msmini",pos==="hand");
   const open=PREF.mineOpen!==false,picking=G.selHand&&G.selHand.unit==="miner";box.hidden=false;
-  const next=MINE_POS[((PREF.minePos|0)+1)%3];
-  box.innerHTML=`<div class="mshead"><button type="button" class="msfold" aria-expanded="${open}">${open?"▾":"▸"} Mining slots <span class="dim">${slots.length}</span></button>${picking&&open?`<span class="mshint">Pick a lit slot for your Miner.</span>`:""}<button type="button" class="msmove" title="${next==="auto"?"Move below Configure Automation":next==="help"?"Move below Help":"Move back below the field"}" aria-label="Move the mining slots">${next==="field"?"⇡":"⇣"}</button></div>${open?`<div class="msrow">${slots.map(s=>mineSlotHTML(s,V)).join("")}</div>`:""}`;
+  const next=MINE_POS[(at+1)%4],nt={hand:"Move back above your hand",field:"Move below the field",auto:"Move below Configure Automation",help:"Move below Help"}[next];
+  box.innerHTML=`<div class="mshead"><button type="button" class="msfold" aria-expanded="${open}">${open?"▾":"▸"} Mining slots <span class="dim">${slots.length}</span></button>${picking&&open?`<span class="mshint">Pick a lit slot for your Miner.</span>`:""}${fs?"":`<button type="button" class="msmove" title="${nt}" aria-label="${nt}">${next==="hand"?"⇡":"⇣"}</button>`}</div>${open?`<div class="msrow">${slots.map(s=>mineSlotHTML(s,V)).join("")}</div>`:""}`;
   box.querySelector(".msfold").onclick=()=>{PREF.mineOpen=!open;savePrefs();paintMines()};
-  box.querySelector(".msmove").onclick=()=>{PREF.minePos=((PREF.minePos|0)+1)%3;savePrefs();paintMines();box.scrollIntoView({block:"nearest"})};
+  const mv=box.querySelector(".msmove");if(mv)mv.onclick=()=>{PREF.mineAt=(at+1)%4;savePrefs();paintMines();box.scrollIntoView({block:"nearest"})};
   box.querySelectorAll("[data-ms]").forEach(b=>b.onclick=()=>{const s=slots.find(x=>x.k===b.dataset.ms);if(s)mineAct(s,V)})}
 {const _r=render;render=function(){_r.apply(this,arguments);try{paintMines()}catch(e){console.error(e)}}}
 if(window.__EC)Object.assign(window.__EC,{mineSlots,mineStats,moonPlant:(...a)=>moonPlant(...a),paintMines});

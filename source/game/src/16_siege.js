@@ -9,6 +9,7 @@ function siegeDecks(pls){
   for(const pl of pls){const P=G.p[pl];if(P.tribe!=="beginner")continue;
     for(const u in BEGINNER_KIT)for(let i=0;i<BEGINNER_KIT[u]&&pool[u]>0;i++){P.deck.push(mkUnit(u,pl));pool[u]--}
     shuffle(P.deck)}
+  if(G.opts.deckMiner)for(const pl of pls){const P=G.p[pl];P.deck.push(mkUnit("miner",pl));if(pool.miner>0)pool.miner--;shuffle(P.deck)}   // v74d: one Miner shuffled into every deck (the default)
   for(const u in pool)for(let i=0;i<pool[u];i++)G.ether.push(mkUnit(u,null));
 }
 
