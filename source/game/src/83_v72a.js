@@ -19,8 +19,8 @@
   return ctx}}
 
 /* Always leave Field Automation on: in the controls under the field as well as in the window */
-{const _p=paintFA;paintFA=function(){_p.apply(this,arguments);const d=$("#fapanel"),b=d&&d.querySelector(".fawide");if(!b||b.querySelector("#faAlwaysU"))return;
-  b.insertAdjacentHTML("afterbegin",`<label class="farow faalways"><span class="fal"><b>Always leave Field Automation on</b><small>It turns itself on in every game where it can, and asks before you turn it off.</small></span><input type="checkbox" id="faAlwaysU" ${faAlways()?"checked":""}></label>`);
+{const _p=paintFA;paintFA=function(){_p.apply(this,arguments);const d=$("#fapanel"),b=d&&d.querySelector(".fawide");if(!b||b.querySelector("#faAlwaysU")||autoTab!=="field")return;
+  const t=b.querySelector(".atabs");if(t)t.insertAdjacentHTML("afterend",faAlwaysHTML("faAlwaysU"));else b.insertAdjacentHTML("afterbegin",faAlwaysHTML("faAlwaysU"));
   $("#faAlwaysU").onchange=e=>{PREF.faAlways=e.target.checked;savePrefs();if(G)render();paintFA()}}}
 
 if(window.__EC)Object.assign(window.__EC,{faCtxW2:pl=>faCtx(pl)});
