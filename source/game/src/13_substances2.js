@@ -60,6 +60,10 @@ function end2(pl){
 }
 async function turnAsync(pl){   // the start of a turn that may ask something: Saturn's tax, the Second Sun's judgement
   await skyAsync(pl);if(G.over)return;
+  await saturnToll(pl);
+}
+/* Saturn's toll (v71o: its own function, so Saturn's cycle can take it twice) */
+async function saturnToll(pl){
   const S=G.saturnBy,P=G.p[pl];
   if(G.moon.gone!=="saturn"||S!=null&&(G.p[S].out||!isEnemy(pl,S))||isHorde(pl)||P.out)return;
   if(P.tribe==="firm"){log(`${plName(pl)} ignores Saturn's tax: the Firmament stands above it.`);return}
@@ -72,7 +76,7 @@ async function turnAsync(pl){   // the start of a turn that may ask something: S
     if(P.deck.length)opts.push({id:"deck",label:"The top card of your deck"});
     if(mana(pl)>=1)opts.push({id:"mana",label:"1 mana"});
     opts.push({id:"no",label:"Refuse",sub:S==null?"The Bank sends a Debt Collector after you.":"Yaldabaoth regurgitates a Debt Collector onto the field."});
-    const ch=opts.length===1?"no":await ask(pl,{kind:"choice",id:"saturn",title:`Saturn: ${esc(P.name)} owes ${n-i} more`,options:opts,
+    const ch=opts.length===1?"no":await ask(pl,{kind:"choice",id:"saturn",title:`${G.satSecond?"Saturn's cycle, the second toll":"Saturn"}: ${esc(P.name)} owes ${n-i} more`,options:opts,
       ai:()=>P.deck.length>8?"deck":mana(pl)>=2?"mana":P.hand.length?"hand":P.deck.length?"deck":"no"});
     if(ch==="no"||ch==null){spawnDebt(pl);if(G.satStrict&&!oathNow(pl,"saturn")&&!(G.satStrictSafe||[]).includes(pl))spawnDebt(pl);saturnMissed(pl);break}
     let c=null;

@@ -204,7 +204,7 @@ const SKY_OPTS=[
  ["off","No Starting Heavenly Body","No moon and no Heavenly Body: no phases, no gifts, no tolls, no Blood Moon. Yaldabaoth can still bring Saturn."],
  ["saturn","Saturn","Everyone but Binah and the Firmament pays 1 a turn to the Bank, or a Debt Collector comes. No Yaldabaoth."],
  ["mars","Mars","Each turn, stacks of only Grunts and Infantry may get advantage on their next attack. No Firmament."],
- ["sun","The Second Sun","No fog of war; every 2d2 turns each player pays the Bank or goes blind for a turn. No Firmament."],
+ ["sun","The Second Sun","No fog of war; every 2d2 turns each player pays the Bank or goes blind for 1d3 turns. No Firmament."],
  ["venus","Venus","The Oath of Venus rewards turns without attacking a player. No Firmament."],
  ["mercury","Mercury","Votes for Peace or Total War, and the Oath of Mercury. No Firmament."],
  ["jupiter","Jupiter","Ace miners bring 1d2, conjurings go on sale, cards trade at the Auction. No Firmament."],

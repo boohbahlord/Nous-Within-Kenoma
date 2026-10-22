@@ -169,7 +169,7 @@ ${chk("omoon","Moon combat bonus","Every attack adds 1d2 at the Full Moon, and e
 ${chk("opshop","Heavenly Body shop","Any of the eight Heavenly Bodies can be bought for the sky (Astrology) for 7 + 1d3 + 1d12 mana, rolled every round. It rises at the start of the next round; then no Heavenly Body can be bought for six rounds.",true)}
 ${chk("oatk","Spells in the attack phase","Enchantments, curses, sorcery and illusions can also be cast while attacking. Necromancy, conjuring and sacrifices stay in prep.",false)}
 ${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the game opens on a Blood Moon; each deck is shuffled and two thirds of it go to the grave; each player starts with a Joker in hand. With a Heavenly Body in the sky: the game opens under that Heavenly Body's eclipse.",false)}
-${chk("ocycev","Cycle events (default)","Each Heavenly Body's cycle event when its cycle comes round: the Full Moon's toll, Venus's and Mercury's cycles, the Second Sun's judgement and the rest.",true)}
+${chk("ocycev","Cycle events (default)","Each Heavenly Body's cycle event when its cycle comes round: the Full Moon's toll, the cycles of Venus, Mercury, Mars, Jupiter and Saturn, and the Second Sun's judgements.",true)}
 ${chk("oeclipse","Eclipses (default)","Now and then a Heavenly Body is eclipsed, with its own strange effect.",true)}
 </fieldset>
 <fieldset class="pf" id="skychg"><legend>How the sky changes</legend>
