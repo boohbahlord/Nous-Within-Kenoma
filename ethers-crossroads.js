@@ -1521,7 +1521,7 @@ const AI=(()=>{
     return o>1?OFF:DEF;
   }
   function withSel(r,c,ids,fn){const old=G.sel;G.sel={r,c,pick:new Set(ids)};try{return fn()}finally{G.sel=old}}
-  const step=()=>{render();return sleep(G.p[G.active].cpu==="horde"?260:420)};
+  const step=(...ts)=>{render();return sleep(ts.length&&!stepSeen(ts)?25:G.p[G.active].cpu==="horde"?260:420)};   // v71r: a step no person at the table can see doesn't wait (78_anim3.js)
 
   /* ---------- placement ---------- */
   function placeScore(pl,card,r,c,W){
@@ -1563,7 +1563,7 @@ const AI=(()=>{
         const s=placeScore(pl,card,r,c,W);if(!best||s>best.s)best={card,r,c,s};
       }
       if(!best||best.s<.6)return;
-      place(best.card,best.r,best.c);cache.clear();await step();
+      place(best.card,best.r,best.c);cache.clear();await step([best.r,best.c]);
     }
   }
   /* ---------- movement ---------- */
@@ -1585,11 +1585,11 @@ const AI=(()=>{
       if(FAX&&FAX.flee&&!inAce&&(st.peak||0)>=2&&grp.length<=Math.floor(st.peak/2)){   // v47: Flee when low: pull back, toward friends
         const W2={atk:0,def:2.2,dist:-.5,ally:.6},tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets),stay=tileScore(pl,S,o.r,o.c,W2,false);let best=null;
         for(const [r,c] of tg){if(G.board[r][c])continue;const sc=tileScore(pl,S,r,c,W2,false)*jit(pl);if(!best||sc>best.s)best={r,c,s:sc}}
-        if(best&&best.s>stay+.15){G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step()}
+        if(best&&best.s>stay+.15){G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step([o.r,o.c],[best.r,best.c])}
         continue}
       if(FAX&&isSupport(grp)){const tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets),stay=supportScore(pl,S,o.r,o.c,W,st);let best=null;
         for(const [r,c] of tg){const sc=supportScore(pl,S,r,c,W,st)*jit(pl);if(!best||sc>best.s)best={r,c,s:sc}}
-        if(best&&best.s>stay+.2){G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step()}
+        if(best&&best.s>stay+.2){G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step([o.r,o.c],[best.r,best.c])}
         continue}
       let stay=inAce?tileScore(pl,S,o.r,o.c,W,false)+(hq()?-1:W?.k==="def"?.6:0):tileScore(pl,S,o.r,o.c,W,true);
       const tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets);
@@ -1603,7 +1603,7 @@ const AI=(()=>{
         if(!best||s>best.s)best={r,c,s};
       }
       if(best&&best.s>stay+.15){
-        G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step();
+        G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step([o.r,o.c],[best.r,best.c]);
       }
     }
   }
@@ -1633,7 +1633,7 @@ const AI=(()=>{
     for(let guard=0;guard<24;guard++){
       if(G.over)return;cache.clear();pcache.clear();
       const b=bestAttack(pl);if(!b)return;
-      attack(b.r,b.c,b.r2,b.c2,b.mode);await sleep(isHorde(pl)?420:650);render();
+      attack(b.r,b.c,b.r2,b.c2,b.mode);await sleep(stepSeen([[b.r,b.c],[b.r2,b.c2]])?(isHorde(pl)?420:650):25);render();
     }
   }
   /* ---------- spells ---------- */
@@ -1726,7 +1726,7 @@ const AI=(()=>{
   async function economy(pl){const P=G.p[pl],A=archOf(pl),e=A?A.econ:1;
     // a Miner in the hand goes into one of its Aces that has a free slot, anywhere on the field (the mining slots)
     for(const m of P.hand.filter(c=>c.unit==="miner")){const at=stacksOf(pl).filter(x=>hasK(x.st,"ace")&&x.st.cards.filter(y=>y.unit==="miner").length<2&&stackLegal([...x.st.cards,m])).sort((a,b)=>value(b.st)-value(a.st))[0];
-      if(!at)break;place(m,at.r,at.c);cache.clear();await step()}
+      if(!at)break;place(m,at.r,at.c);cache.clear();await step([at.r,at.c])}
     // very rarely, a plot of the Bank's land, with a Miner to work it
     if(typeof buyPlot==="function"&&typeof bankOpen==="function"&&bankOpen()&&G.plots){
       const p=G.plots.find(q=>q.owner==null),price=p?plotPrice(p):99,miner=P.hand.find(c=>c.unit==="miner");
@@ -11460,6 +11460,12 @@ function fxSeen(e,id){if(!G||!e||!FX_TILED.has(e.k))return true;const V=seatOfGu
   const ts=[];if(e.r!=null&&e.c!=null)ts.push([e.r,e.c]);for(const k of ["a","b","from"])if(Array.isArray(e[k])&&e[k].length===2)ts.push(e[k]);
   return !ts.length||ts.some(([r,c])=>!fogTile(V,r,c))}
 
+/* v71r: a computer's step that no person at the table can see (in the fog for all of them, or a hidden card) doesn't wait:
+   the people on this device, and online every joined player; with nobody but computers, whoever is watching */
+const stepStats={seen:0,hidden:0};
+function stepSeen(ts){if(!G)return true;let eyes=G.p.filter(P=>!P.out&&!P.cpu&&!isNPC(P.i)).map(P=>P.i);if(!eyes.length)eyes=[view()];
+  const ok=eyes.some(V=>V!=null&&!totalBlind(V)&&ts.some(([r,c])=>r!=null&&G.board[r]&&!fogTile(V,r,c)&&!(G.board[r][c]&&hiddenFrom(V,r,c))));
+  stepStats[ok?"seen":"hidden"]++;return ok}
 const FX_LVLS=[[],["moves","strikes"],["moves","strikes","deaths","banners","spells"],["moves","strikes","deaths","banners","spells","mana","shuffles","weather"],
   ["moves","strikes","deaths","banners","spells","mana","shuffles","weather","fire","glow","blood","sky"]];
 const FX_LVL_NAME=["None","Moves and strikes","Fights and spells","Nothing constant","Nearly all"];
@@ -11498,7 +11504,7 @@ function fxMinPaint(){const m=$("#menu");if(!m)return;const on=fxMin(),each=fxEa
   const parts=m.querySelector("#mParts");if(parts)parts.addEventListener("change",e=>{if(e.target.dataset.fxp!=null&&fxMin()&&fxEach()){PREF.fxOffEach=[...(PREF.fxOff||[])];savePrefs()}});
   fxMinPaint()}}
 
-if(window.__EC)Object.assign(window.__EC,{fxMinSet,fxLvl,FX_LVLS,fxSeen:(e,id)=>fxSeen(e,id)});
+if(window.__EC)Object.assign(window.__EC,{stepStats,fxLvl,FX_LVLS,fxSeen:(e,id)=>fxSeen(e,id)});
 
 /* ---------- v71m: more symbols, card patterns, metal sheen, and black as a player's color ----------
    - Five more shapes for the players' symbols, so a full table of eight never runs short: the Sphere, the Pyramid, the

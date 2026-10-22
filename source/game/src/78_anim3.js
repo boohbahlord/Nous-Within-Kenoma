@@ -12,6 +12,12 @@ function fxSeen(e,id){if(!G||!e||!FX_TILED.has(e.k))return true;const V=seatOfGu
   const ts=[];if(e.r!=null&&e.c!=null)ts.push([e.r,e.c]);for(const k of ["a","b","from"])if(Array.isArray(e[k])&&e[k].length===2)ts.push(e[k]);
   return !ts.length||ts.some(([r,c])=>!fogTile(V,r,c))}
 
+/* v71r: a computer's step that no person at the table can see (in the fog for all of them, or a hidden card) doesn't wait:
+   the people on this device, and online every joined player; with nobody but computers, whoever is watching */
+const stepStats={seen:0,hidden:0};
+function stepSeen(ts){if(!G)return true;let eyes=G.p.filter(P=>!P.out&&!P.cpu&&!isNPC(P.i)).map(P=>P.i);if(!eyes.length)eyes=[view()];
+  const ok=eyes.some(V=>V!=null&&!totalBlind(V)&&ts.some(([r,c])=>r!=null&&G.board[r]&&!fogTile(V,r,c)&&!(G.board[r][c]&&hiddenFrom(V,r,c))));
+  stepStats[ok?"seen":"hidden"]++;return ok}
 const FX_LVLS=[[],["moves","strikes"],["moves","strikes","deaths","banners","spells"],["moves","strikes","deaths","banners","spells","mana","shuffles","weather"],
   ["moves","strikes","deaths","banners","spells","mana","shuffles","weather","fire","glow","blood","sky"]];
 const FX_LVL_NAME=["None","Moves and strikes","Fights and spells","Nothing constant","Nearly all"];
@@ -50,4 +56,4 @@ function fxMinPaint(){const m=$("#menu");if(!m)return;const on=fxMin(),each=fxEa
   const parts=m.querySelector("#mParts");if(parts)parts.addEventListener("change",e=>{if(e.target.dataset.fxp!=null&&fxMin()&&fxEach()){PREF.fxOffEach=[...(PREF.fxOff||[])];savePrefs()}});
   fxMinPaint()}}
 
-if(window.__EC)Object.assign(window.__EC,{fxMinSet,fxLvl,FX_LVLS,fxSeen:(e,id)=>fxSeen(e,id)});
+if(window.__EC)Object.assign(window.__EC,{stepStats,fxLvl,FX_LVLS,fxSeen:(e,id)=>fxSeen(e,id)});
