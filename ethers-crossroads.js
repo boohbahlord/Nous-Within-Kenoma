@@ -2462,7 +2462,7 @@ ${chk("omoon","Moon combat bonus","Every attack adds 1d2 at the Full Moon, and e
 ${chk("opshop","Heavenly Body shop","Any of the eight Heavenly Bodies can be bought for the sky (Astrology) for 7 + 1d3 + 1d12 mana, rolled every round. It rises at the start of the next round; then no Heavenly Body can be bought for six rounds.",true)}
 ${chk("oatk","Spells in the attack phase","Enchantments, curses, sorcery and illusions can also be cast while attacking. Necromancy, conjuring and sacrifices stay in prep.",false)}
 ${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the game opens on a Blood Moon; each deck is shuffled and two thirds of it go to the grave; each player starts with a Joker in hand. With a Heavenly Body in the sky: the game opens under that Heavenly Body's eclipse.",false)}
-${chk("ocycev","Cycle events (default)","Each Heavenly Body's cycle event when its cycle comes round: the Full Moon's toll, Venus's and Mercury's cycles, the Second Sun's judgement and the rest.",true)}
+${chk("ocycev","Cycle events (default)","Each Heavenly Body's cycle event when its cycle comes round: the Full Moon's toll, the cycles of Venus, Mercury, Mars, Jupiter and Saturn, and the Second Sun's judgements.",true)}
 ${chk("oeclipse","Eclipses (default)","Now and then a Heavenly Body is eclipsed, with its own strange effect.",true)}
 </fieldset>
 <fieldset class="pf" id="skychg"><legend>How the sky changes</legend>
@@ -3271,6 +3271,10 @@ function end2(pl){
 }
 async function turnAsync(pl){   // the start of a turn that may ask something: Saturn's tax, the Second Sun's judgement
   await skyAsync(pl);if(G.over)return;
+  await saturnToll(pl);
+}
+/* Saturn's toll (v71o: its own function, so Saturn's cycle can take it twice) */
+async function saturnToll(pl){
   const S=G.saturnBy,P=G.p[pl];
   if(G.moon.gone!=="saturn"||S!=null&&(G.p[S].out||!isEnemy(pl,S))||isHorde(pl)||P.out)return;
   if(P.tribe==="firm"){log(`${plName(pl)} ignores Saturn's tax: the Firmament stands above it.`);return}
@@ -3283,7 +3287,7 @@ async function turnAsync(pl){   // the start of a turn that may ask something: S
     if(P.deck.length)opts.push({id:"deck",label:"The top card of your deck"});
     if(mana(pl)>=1)opts.push({id:"mana",label:"1 mana"});
     opts.push({id:"no",label:"Refuse",sub:S==null?"The Bank sends a Debt Collector after you.":"Yaldabaoth regurgitates a Debt Collector onto the field."});
-    const ch=opts.length===1?"no":await ask(pl,{kind:"choice",id:"saturn",title:`Saturn: ${esc(P.name)} owes ${n-i} more`,options:opts,
+    const ch=opts.length===1?"no":await ask(pl,{kind:"choice",id:"saturn",title:`${G.satSecond?"Saturn's cycle, the second toll":"Saturn"}: ${esc(P.name)} owes ${n-i} more`,options:opts,
       ai:()=>P.deck.length>8?"deck":mana(pl)>=2?"mana":P.hand.length?"hand":P.deck.length?"deck":"no"});
     if(ch==="no"||ch==null){spawnDebt(pl);if(G.satStrict&&!oathNow(pl,"saturn")&&!(G.satStrictSafe||[]).includes(pl))spawnDebt(pl);saturnMissed(pl);break}
     let c=null;
@@ -5634,7 +5638,7 @@ const SKY_OPTS=[
  ["off","No Starting Heavenly Body","No moon and no Heavenly Body: no phases, no gifts, no tolls, no Blood Moon. Yaldabaoth can still bring Saturn."],
  ["saturn","Saturn","Everyone but Binah and the Firmament pays 1 a turn to the Bank, or a Debt Collector comes. No Yaldabaoth."],
  ["mars","Mars","Each turn, stacks of only Grunts and Infantry may get advantage on their next attack. No Firmament."],
- ["sun","The Second Sun","No fog of war; every 2d2 turns each player pays the Bank or goes blind for a turn. No Firmament."],
+ ["sun","The Second Sun","No fog of war; every 2d2 turns each player pays the Bank or goes blind for 1d3 turns. No Firmament."],
  ["venus","Venus","The Oath of Venus rewards turns without attacking a player. No Firmament."],
  ["mercury","Mercury","Votes for Peace or Total War, and the Oath of Mercury. No Firmament."],
  ["jupiter","Jupiter","Ace miners bring 1d2, conjurings go on sale, cards trade at the Auction. No Firmament."],
@@ -6425,6 +6429,7 @@ async function cycleRound(){
   if(G.mban&&G.moon.round>G.mban.until){log(`Mercury's ban on ${G.mban.school} ends.`,"event");G.mban=null}
   if(cycleNow("venus"))venusCycle();
   if(cycleNow("mercury"))await mercuryCycle();
+  await formCycle();   // v71o: Mars, Jupiter, Saturn and the Second Sun (81_forms.js)
   render();
 }
 {const _nr=newRound;newRound=async function(){await _nr();if(G.over)return;await cycleRound()}}
@@ -6523,9 +6528,10 @@ function leaveJail(pl){const P=G.p[pl];if(!P.jail)return;P.cpu=P.jail.cpu;P.jail
 {const _c=skyCommon;skyCommon=function(L){_c(L);const S=SH(),r=G.moon.round;
   if(S.pend)L.push(`${plN(S.pend.by)} bought ${skyWord(S.pend.k)}: it takes the sky next round.`);
   else if(shopOn()&&r<S.next)L.push(`Heavenly Body shop: no Heavenly Body can be bought until round ${S.next}.`);
-  const nx=cycleNext();
-  if(planetUp("venus"))L.push(cycleNow("venus")?`<b>Venus's cycle</b> this round: ${G.venusCyc&&G.venusCyc.who.length?G.venusCyc.who.map(plN).join(", ")+" blessed":"nobody blessed"}.`:`Venus's cycle every ${CYCLE} rounds: under her Oath, support and base conjurings cost 1 less and every wounded card heals a heart (without it, a 4 on 1d4). Next: round ${nx}.`);
-  if(planetUp("mercury"))L.push(cycleNow("mercury")?"<b>Mercury's cycle</b> this round: the Bank can be robbed.":`Mercury's cycle every ${CYCLE} rounds: a vote bans one school of spells for 1d3 rounds, and the Bank can be robbed. Next: round ${nx}.`);
+  const nx=cycleNext(),off=cyclesOff();   // v71o: no cycle lines when cycle events are off
+  if(off);else if(planetUp("venus"))L.push(cycleNow("venus")?`<b>Venus's cycle</b> this round: ${G.venusCyc&&G.venusCyc.who.length?G.venusCyc.who.map(plN).join(", ")+" blessed":"nobody blessed"}.`:`Venus's cycle every ${CYCLE} rounds: under her Oath, support and base conjurings cost 1 less and every wounded card heals a heart (without it, a 4 on 1d4). Next: round ${nx}.`);
+  else if(planetUp("mercury"))L.push(cycleNow("mercury")?"<b>Mercury's cycle</b> this round: the Bank can be robbed.":`Mercury's cycle every ${CYCLE} rounds: a vote bans one school of spells for 1d3 rounds, and the Bank can be robbed. Next: round ${nx}.`);
+  else if(FORM_LINE[sky()])L.push(formLine(sky(),nx));
   if(banOn())L.push(`<b>Mercury's ban</b>: no ${esc(G.mban.school)} spells until the end of round ${G.mban.until}.`);
   else if(G.mban)L.push(`Mercury's ban on ${esc(G.mban.school)} starts next round.`)}}
 
@@ -6646,7 +6652,10 @@ function moonPieces(){const m=G.moon;
 const pip=(col,ev,filled)=>`<svg viewBox="-9 -9 18 18" width="18" height="18">${ev?`<path d="M0,-7L2,-2L7,0L2,2L0,7L-2,2L-7,0L-2,-2Z" fill="${filled?col:"none"}" stroke="${col}" stroke-width="1"/>`:`<circle r="${filled?4.2:3.6}" fill="${filled?col:"none"}" stroke="${col}" stroke-width="1" opacity="${filled?1:.7}"/>`}</svg>`;
 const CYC_TXT={venus:"Venus's cycle. Under her Oath, support and base cards from the Ether cost 1 less this round (never below 1 mana) and every wounded card of yours heals a heart. Without her Oath, only on a 4 of 1d4.",
   mercury:"Mercury's cycle. Everyone votes to ban one school of spells for 1d3 rounds from the next round; a tie is a d20 roll-off, and the Oath of Mercury wins it. Anyone can try to Rob the Bank, once."};
-const CYC_COL={venus:"#ffd9a0",mercury:"#b9c8dc"};
+const CYC_COL={venus:"#ffd9a0",mercury:"#b9c8dc",mars:"#f08a6c",jupiter:"#e2b882"};
+/* v71o: Mars's and Jupiter's cycles (their strips are the rounds, like Venus's and Mercury's) */
+Object.assign(CYC_TXT,{mars:"Mars's cycle, the Form of Strife. Every attack adds 1d2 this round, and a stack that kills may move one tile at once.",
+  jupiter:"Jupiter's cycle, the Form of Abundance. Every Bank loan shrinks by 1d3, and whoever has the fewest cards on the field takes a free card from the Ether."});
 function roundPieces(k){const r=G.moon.round,since=G.skySince!=null&&G.skySince<=r?G.skySince:r,e=r-since;
   const base=e>0?since+CYCLE*Math.floor((e-1)/CYCLE):since,cur=e>0?((e-1)%CYCLE)+1:0;
   return Array.from({length:CYCLE},(_,j)=>{const s=j+1,rd=base+s,ev=s===CYCLE,d=rd-r;
@@ -6655,7 +6664,7 @@ function roundPieces(k){const r=G.moon.round,since=G.skySince!=null&&G.skySince<
 function sunPieces(V){const P=G.p[V];if(!P||P.tribe==="firm"||isHorde(V)||P.sunNext==null)return "";
   const tn=tnOf(V),from=P.sunFrom!=null&&P.sunFrom<P.sunNext?P.sunFrom:P.sunNext-2,n=P.sunNext-from,cur=tn-from;
   return Array.from({length:n},(_,j)=>{const s=j+1,t=from+s,ev=s===n,d=t-tn;
-    const tip=`Your turn ${t}${d>0?` (in ${trns(d)})`:d===0?" (this turn)":""}: ${ev?"the Second Sun judges you: 1 mana, a wound to one of your stacks, or two deck cards; refuse and you are blind for that turn. Then it waits 2d2 turns again.":"nothing."}`;
+    const tip=`Your turn ${t}${d>0?` (in ${trns(d)})`:d===0?" (this turn)":""}: ${ev?"the Second Sun judges you: 1d6 mana to the Bank, 1d2 damage to your stacks, or 1d2 + 1d3 deck cards; refuse and you are blind for 1d3 turns. Then it waits 2d2 turns again.":"nothing."}`;
     return `<span class="${s===cur?"on":""}${ev?" ev":""}" data-tip="${esc(tip)}">${pip("#a78bff",ev,s<=cur)}</span>`}).join("")}
 function saturnPieces(V){const P=G.p[V];if(!P||P.oath!=="saturn")return "";const paid=P.satPaid||0;
   return Array.from({length:9},(_,j)=>{const s=j+1,ev=!!SAT_MILES[s],n=SAT_MILES[s];
@@ -6664,7 +6673,7 @@ function saturnPieces(V){const P=G.p[V];if(!P||P.oath!=="saturn")return "";const
 moonStrip=function(){
   const m=G.moon,k=sky(),V=view();let h="",lab="";
   if(!m.gone){h=moonPieces();lab="Moon phases"}
-  else if(k==="venus"||k==="mercury"){h=roundPieces(k);lab=`${SHOP_NAME[k]}'s cycle`}
+  else if(k==="venus"||k==="mercury"||k==="mars"||k==="jupiter"){h=roundPieces(k);lab=`${SHOP_NAME[k]}'s cycle`}
   else if(k==="sun"){h=sunPieces(V);lab="Your next judgement"}
   else if(k==="saturn"){h=saturnPieces(V);lab="Your tolls to Saturn"}
   return h?`<div class="mstrip cyc-${k}" aria-label="${lab}">${h}</div>`:""};
@@ -6675,7 +6684,7 @@ document.addEventListener("pointerover",e=>{if(e.target.closest&&e.target.closes
 function skyLit(){const m=G.moon,k=sky();
   if(G.skyGlow||G.eclipse)return true;
   if(!m.gone)return m.i===0||m.i===4;
-  if(k==="venus"||k==="mercury")return cycleNow(k);
+  if(["venus","mercury","mars","jupiter","saturn","sun"].includes(k))return cycleNow(k)&&!cyclesOff();   // v71o: every cycle event shimmers
   return false}
 {const _ta=turnAsync;turnAsync=async function(pl){const P=G.p[pl];
   const due=!!P&&!isHorde(pl)&&(planetUp("saturn")&&paysSaturn(pl)||sunUp()&&P.tribe!=="firm"&&P.sunNext!=null&&tnOf(pl)>=P.sunNext);
@@ -6686,12 +6695,12 @@ function skyLit(){const m=G.moon,k=sky();
 /* ---------- clicking the sky: the whole story in a paragraph ---------- */
 const SKY_PARA={
  moon:"The Moon turns one phase every round, after everyone has played, through eight phases; two of them do something. Its cycle is complete at the Full Moon (not the New Moon). At the New Moon everyone raises 1d2 cards from the grave, Clairvoyance and Naked Hand cost 6, and every defense adds 1d2. At the Full Moon everyone pays its toll (a random stack of two, or else one card from the field, or else three cards from the shuffled deck; refusing costs 2d2 + 2 mana, even below zero), every deck is shuffled, nobody draws or casts necromancy, Clairvoyance costs 2 and Naked Hand is free, and every attack adds 1d2. One Full Moon in twenty turns red: a Blood Moon gives New Moon gifts at Full Moon prices, and every card killed falls into the Outer Darkness. Anyone can swear the Oath of the Moon.",
- saturn:"Saturn hangs in the Moon's place and stops its phases. At the start of each of their turns, everyone who owes it (every enemy of whoever raised it, or everyone if nobody did; never Binah or the Firmament) pays 1: a hand card, the top deck card or 1 mana. Whoever refuses gets a Debt Collector, and every Debt Collector still standing at the start of a round raises the price by one. Those who pay can swear the Oath of Saturn: Puppets fight for them after the 1st, 3rd, 6th and 9th toll, but one missed toll is a betrayal that locks the Oath and sends Saturn's own Puppets after them. Saturn has an eclipse (5% when its cycle comes round, every sixth round) with seven possible outcomes.",
- mars:"Mars, the Form of Strife, stops the Moon's phases. At the start of each turn, every stack made only of Grunts, Infantry or Puppets has a 5 in 8 chance (1 to 5 on 1d8) of advantage on its next attack. A Leviathan can coil on Mars; its toll and its weak spot come every eighth round. Yaldabaoth can eat Mars, and then it never comes back. Like every Heavenly Body but the Moon, it can be eclipsed (5% when its cycle comes round, every sixth round).",
- sun:"The Second Sun burns the fog of war away (Delusions still blind). Every 2d2 of your turns it judges you: pay 1 mana, take a wound on one of your stacks, or burn two deck cards; refuse and you are blind for that turn. What it takes goes to whoever raised it, or to the Bank. It never judges the Firmament. Yaldabaoth can make it cry; three times and it goes out as the Black Sun. Anyone else can swear the Oath of the Second Sun for fire mana, Scorched Earth and Blindness. The Leviathan can't lie on it.",
+ saturn:"Saturn hangs in the Moon's place and stops its phases. At the start of each of their turns, everyone who owes it (every enemy of whoever raised it, or everyone if nobody did; never Binah or the Firmament) pays 1: a hand card, the top deck card or 1 mana. Whoever refuses gets a Debt Collector, and every Debt Collector still standing at the start of a round raises the price by one. Those who pay can swear the Oath of Saturn: Puppets fight for them after the 1st, 3rd, 6th and 9th toll, but one missed toll is a betrayal that locks the Oath and sends Saturn's own Puppets after them. Every sixth round is Saturn's cycle, the Form of Limitation: the toll is taken twice that round, and whoever pays both in full gets one more maximum mana for good. Saturn has an eclipse (5% when its cycle comes round, every sixth round) with seven possible outcomes.",
+ mars:"Mars, the Form of Strife, stops the Moon's phases. At the start of each turn, every stack made only of Grunts, Infantry or Puppets has a 5 in 8 chance (1 to 5 on 1d8) of advantage on its next attack. A Leviathan can coil on Mars; its toll and its weak spot come every eighth round. Every sixth round is Mars's cycle, the Form of Strife: every attack adds 1d2 that round, and a stack that kills may move one tile at once. Yaldabaoth can eat Mars, and then it never comes back. Like every Heavenly Body but the Moon, it can be eclipsed (5% when its cycle comes round, every sixth round).",
+ sun:"The Second Sun burns the fog of war away (Delusions still blind). Every 2d2 of your turns it judges you: 1d6 mana to the Bank, 1d2 damage to your stacks, or 1d2 + 1d3 deck cards burned; refuse and you are blind for 1d3 turns. It never judges the Firmament. Every sixth round is its cycle, the Form of Judgement: it judges everyone at once, and for that round it shows everything hidden on the field (face-down cards, Assassins, ambushes and Scouts). Yaldabaoth can make it cry; three times and it goes out as the Black Sun. Anyone else can swear the Oath of the Second Sun for fire mana, Scorched Earth and Blindness. The Leviathan can't lie on it.",
  blacksun:"The Second Sun cried three times and went out: this is the Black Sun. The fog of war is back. The Firmament that raised it pays Yaldabaoth 1d2 mana or 1d2 deck cards every 1d2 of its turns. If it falls, it destroys the tile it lands on for good.",
  venus:"Venus, the Form of Harmony. Whoever raised it chose a gift: +2 mana a turn and +2 maximum for one of their side, or +1 a turn while every enemy gets +2 maximum. Under the Oath of Venus, every turn you start without having attacked a player gives +2 mana and +2 maximum, and each attack on a player costs 1d2 mana and two maximum for 1d3 turns. Every sixth round is Venus's cycle: her sworn pay 1 less for support and base cards from the Ether that round, and every wounded card of theirs heals a heart; anyone else gets the same on a 4 of 1d4. Her eclipse doubles her gifts, heals every card and can mend a betrayal.",
- jupiter:"Jupiter, the Form of Abundance. Miners in an Ace bring 1d2 a turn instead of 1d2 − 1. Every round two conjurings go on sale. Hand cards can be traded at the Auction, and a Jester's Sacrificial Suicide brings 1d2 − 1 more. Whoever raised it may get a mana when others buy on sale or trade. Under the Oath of Jupiter every conjuring costs one less, unless it already costs one.",
+ jupiter:"Jupiter, the Form of Abundance. Miners in an Ace bring 1d2 a turn instead of 1d2 − 1. Every round two conjurings go on sale. Hand cards can be traded at the Auction, and a Jester's Sacrificial Suicide brings 1d2 − 1 more. Whoever raised it may get a mana when others buy on sale or trade. Every sixth round is Jupiter's cycle, the Form of Abundance: every Bank loan shrinks by 1d3, and whoever has the fewest cards on the field takes a free card from the Ether. Under the Oath of Jupiter every conjuring costs one less, unless it already costs one.",
  mercury:"Mercury, the Form of Guile. Anyone can call a vote for Peace or Total War (everyone must agree), or buy Peace for two rounds. Under the Oath of Mercury, Betrayal, Declare War and Bribe the Banker open up. Every sixth round is Mercury's cycle: everyone votes to ban one school of spells for 1d3 rounds from the next round (a tie is a d20 roll-off, and the Oath of Mercury wins it), and anyone can try to Rob the Bank, once.",
  eaten:"Yaldabaoth ate what hung here. Nothing turns: no phases, no gifts, no tolls. What was eaten never comes back, but another Heavenly Body can still be raised or bought.",
  fallen:"The Second Sun fell to the ground and the sky is empty: no phases, no gifts, no tolls, until another Heavenly Body is raised or bought.",
@@ -11666,5 +11675,115 @@ if(typeof ResizeObserver==="function"){let q=0;const ro=new ResizeObserver(()=>{
   {const _r=render;render=function(){_r.apply(this,arguments);hook()}}}
 
 if(window.__EC)Object.assign(window.__EC,{crysPrep:(...a)=>crysPrep(...a),crysStop:(...a)=>crysStop(...a),crysGuards:pl=>crysGuards(pl),guardSVG:()=>guardSVG(),crysCands:(pl,c)=>crysCands(pl,c||crysCfg(pl)),faSaveW:c=>faSave(c),faMineW:()=>faMine(),faCleanW:c=>faClean(c)});
+
+/* ---------- v71o: the cycle events of Mars, Jupiter, Saturn and the Second Sun, named after their Forms ----------
+   Every sixth round a Heavenly Body has hung in the sky (like Venus's and Mercury's cycles; off with the Cycle events option):
+   - Mars, the Form of Strife: every attack adds 1d2 that round, and a stack that kills may move one tile at once (a person
+     picks the tile or Cancels to stay; a computer, or Field Automation, steps when the tile is better).
+   - Jupiter, the Form of Abundance: every Bank loan shrinks by 1d3, and whoever has the fewest cards on the field (everyone
+     tied for it) picks one of three cards from the Ether, free, into their hand.
+   - Saturn, the Form of Limitation: the toll is taken twice that round; whoever pays both in full gets one more maximum mana,
+     for good.
+   - The Second Sun, the Form of Judgement: it judges everyone at once (their own countdown keeps running), and for that round
+     it shows what hides on the field: face-down cards, Assassins, ambushes and Scouts (not hands). */
+const FORM_CYC_NAME={mars:"The Form of Strife",jupiter:"The Form of Abundance",saturn:"The Form of Limitation",sun:"The Form of Judgement"};
+const FORM_OF={mars:"Mars",jupiter:"Jupiter",saturn:"Saturn",sun:"the Second Sun"};
+const FORM_LINE={mars:"every attack adds 1d2, and a stack that kills may move one tile at once.",
+  jupiter:"every Bank loan shrinks by 1d3, and whoever has the fewest cards on the field takes a free card from the Ether.",
+  saturn:"the toll is taken twice; whoever pays both in full gets one more maximum mana, for good.",
+  sun:"it judges everyone at once, and shows what hides on the field: face-down cards, Assassins, ambushes and Scouts."};
+const capF=s=>s.charAt(0).toUpperCase()+s.slice(1);
+/* the sky box's line: this round, or when it comes */
+function formLine(k,nx){const nm=FORM_CYC_NAME[k];
+  return cycleNow(k)?`<b>${nm}</b>, ${FORM_OF[k]}'s cycle, this round: ${FORM_LINE[k]}`:`${capF(FORM_OF[k])}'s cycle every ${CYCLE} rounds, ${nm.replace(/^The/,"the")}: ${FORM_LINE[k]} Next: round ${nx}.`}
+const formOn=k=>!!(G&&G.formCyc&&G.formCyc.k===k&&G.formCyc.round===G.moon.round&&planetUp(k)&&!cyclesOff());
+
+/* ---------- the start of the round (called from cycleRound, after Venus's and Mercury's) ---------- */
+async function formCycle(){if(!G||G.over||cyclesOff())return;const k=sky();if(!FORM_CYC_NAME[k]||!cycleNow(k))return;
+  G.formCyc={k,round:G.moon.round};later(()=>planetFX(k));
+  try{const s=SKY_SND[k];if(s&&AUD[s])AUD[s]();if(hostOnline()&&s)netFX({k:"snd",s})}catch(e){}
+  if(k==="mars")return marsForm();if(k==="jupiter")return jupiterForm();if(k==="saturn")return saturnForm();if(k==="sun")return sunForm()}
+
+/* Mars: the announcement; the dice and the step are below */
+function marsForm(){log(`<b>The Form of Strife</b> (Mars's cycle): every attack adds 1d2 this round, and a stack that kills may move one tile at once.`,"event");
+  popup("The Form of Strife",`<p>Mars's cycle. This round every attack adds 1d2, and a stack that kills may move one tile at once, wherever its cards can step.</p>`)}
+{const _rs=rollStack;rollStack=function(st,mode){const out=_rs.apply(this,arguments);
+  if(mode==="atk"&&out&&out.parts&&st&&formOn("mars")&&!hasK(st,"satan")){const v=R(2);out.total+=v;if(out.dice)out.dice.push({s:2,v});out.parts.push(`Strife +${v}`)}   // Satan takes no modifiers
+  return out}}
+/* a kill: the attacking stack may step one tile (only for an attack made as an attack, not an ambush on a move) */
+let strifeIn=0,strifePend=null;
+{const _ar=attackRun;attackRun=function(r1,c1,r2,c2){const A=G.board[r1]&&G.board[r1][c1],D=G.board[r2]&&G.board[r2][c2],n0=D?D.cards.length:0;const out=_ar.apply(this,arguments);
+  try{if(strifeIn===1&&A&&D&&formOn("mars")&&G.board[r1][c1]===A&&(G.board[r2][c2]!==D||D.cards.length<n0))strifePend={A,r:r1,c:c1}}catch(e){console.error(e)}
+  return out}}
+{const _a=attack;attack=function(){strifeIn++;if(strifeIn===1)strifePend=null;let out;try{out=_a.apply(this,arguments)}finally{strifeIn--}
+  const p=strifeIn===0?strifePend:null;if(p){strifePend=null;try{strifeStep(p.A,p.r,p.c)}catch(e){console.error(e)}}
+  return out}}
+function strifeTargets(A,r,c){const grp=A.cards.filter(x=>!isBase(x));if(!grp.length||hasBase(A))return [];   // a base doesn't step
+  const old=G.sel,was=A.moved;G.sel={r,c,pick:new Set(grp.map(x=>x.id))};A.moved=false;let tg=[];try{tg=moveTargets()}finally{A.moved=was;G.sel=old}
+  return tg.filter(([a,b])=>Math.max(Math.abs(a-r),Math.abs(b-c))===1&&!G.board[a][b])}   // one tile, onto open ground (it doesn't join a stack that may still attack)
+function strifeMove(A,r,c,tr,tc){const pl=A.owner;if(G.board[r][c]!==A||G.over)return;
+  G.sel={r,c,pick:new Set(A.cards.filter(x=>!isBase(x)).map(x=>x.id))};G.mode=null;doMove(tr,tc);
+  const N=G.board[tr]&&G.board[tr][tc];if(N&&N.owner===pl){N.attacked=true;N.moved=true}   // the step is the kill's reward: no second attack
+  log(`<b>Strife</b>: ${plName(pl)}'s stack steps from ${coord(r,c)} to ${coord(tr,tc)} after its kill.`,"event")}
+function strifeStep(A,r,c){const pl=A.owner,P=G.p[pl];if(pl==null||!P||P.out||isNPC(pl)||isHorde(pl))return;
+  const tg=strifeTargets(A,r,c);if(!tg.length)return;
+  if(P.cpu||G.busy){   // a computer, or Field Automation: steps when the tile is better
+    const S={cards:A.cards.filter(x=>!isBase(x)),owner:pl,hypo:A.hypo},W=AI.stance(pl),stay=AI.tileScore(pl,S,r,c,W,true);let best=null;
+    for(const [a,b] of tg){const s=AI.tileScore(pl,S,a,b,W,true);if(!best||s>best.s)best={a,b,s}}
+    if(best&&best.s>stay+.15){const keep=G.sel;strifeMove(A,r,c,best.a,best.b);G.sel=P.cpu?null:keep}
+    return}
+  setTimeout(async()=>{if(!G||G.over||G.board[r][c]!==A||G.aim)return;const was=G.busy;G.busy=true;let t=null;
+    try{t=await aimTile(pl,"The Form of Strife: your stack killed. Click a marked tile to move it one tile, or Cancel to stay.",(a,b)=>strifeTargets(A,r,c).some(([x,y])=>x===a&&y===b),()=>null)}
+    finally{G.busy=was}
+    if(t&&G.board[r][c]===A&&strifeTargets(A,r,c).some(([x,y])=>x===t[0]&&y===t[1]))strifeMove(A,r,c,t[0],t[1]);render()},0)}
+
+/* Jupiter: loans shrink, and the one with the fewest cards on the field takes a card from the Ether */
+async function jupiterForm(){const rows=[];
+  for(const pl of realPlayers()){const P=G.p[pl];if(P.out||!(P.loans||[]).some(L=>L.owed>0))continue;
+    const d=R(3);let left=d;for(const L of P.loans){if(left<=0)break;const x=Math.min(left,Math.max(0,L.owed));L.owed-=x;left-=x}
+    P.loans=P.loans.filter(L=>L.owed>0);tray(pl,"Jupiter's cycle",[{s:3,v:d}],"off your loans",true);rows.push(`${plName(pl)} −${d-left}`)}
+  const live=realPlayers().filter(pl=>!G.p[pl].out),cnt=pl=>stacksOf(pl).reduce((a,x)=>a+x.st.cards.length,0),low=live.length?Math.min(...live.map(cnt)):0,who=live.filter(pl=>cnt(pl)===low);
+  log(`<b>The Form of Abundance</b> (Jupiter's cycle): ${rows.length?`Bank loans shrink by 1d3 (${rows.join(", ")})`:"nobody owes the Bank a loan"}; ${who.length&&G.ether.length?`${who.map(plName).join(", ")} ${who.length>1?"have":"has"} the fewest cards on the field (${low}) and take${who.length>1?"":"s"} a card from the Ether`:"the Ether has nothing to give"}.`,"event");
+  popup("The Form of Abundance",`<p>Jupiter's cycle. Every Bank loan shrinks by 1d3, and whoever has the fewest cards on the field takes a free card from the Ether into their hand.</p>
+<p>${rows.length?`Loans: ${rows.join(", ")}.`:"Nobody owes the Bank a loan."}</p><p>${who.length&&G.ether.length?`Fewest cards on the field (${low}): ${who.map(plName).join(", ")}.`:"The Ether has nothing to give."}</p>`);
+  for(const pl of who){if(G.over||!G.ether.length)break;await jupiterGift(pl)}}
+async function jupiterGift(pl){const P=G.p[pl],pool=[...G.ether],offer=[],seen=new Set();
+  while(pool.length&&offer.length<3){const c=pool.splice(Math.floor(Math.random()*pool.length),1)[0],k=c.unit||c.rank;if(seen.has(k)&&pool.some(x=>!seen.has(x.unit||x.rank)))continue;seen.add(k);offer.push(c)}   // three different cards when it can
+  if(!offer.length)return;
+  const best=()=>{let b=0;offer.forEach((c,i)=>{if(etherPrice(c)>etherPrice(offer[b]))b=i});return b};
+  let i=await ask(pl,{kind:"cards",id:"jupgift",title:`The Form of Abundance: ${esc(P.name)} takes a card from the Ether, free`,sub:"It goes into your hand (into your deck if your hand is full).",cards:offer,ai:best});
+  if(i==null||!offer[i])i=best();const c=offer[i],j=G.ether.indexOf(c);if(j<0)return;
+  G.ether.splice(j,1);c.owner=pl;if(c.hp!=null&&c.maxHp!=null)c.hp=c.maxHp;
+  if(P.hand.length<handCap(pl))P.hand.push(c);else{P.deck.push(c);shuffle(P.deck)}
+  log(`Jupiter gives ${plName(pl)} ${esc(nameOf(c))} from the Ether.`);render()}
+
+/* Saturn: the toll is taken twice; both paid in full gives a maximum mana for good */
+function saturnForm(){log(`<b>The Form of Limitation</b> (Saturn's cycle): this round the toll is taken twice, and whoever pays both in full gets one more maximum mana for good.`,"event");
+  popup("The Form of Limitation",`<p>Saturn's cycle. This round everyone who owes Saturn pays its toll twice, at the start of their turn. Pay both in full and your maximum mana rises by one, for good.</p>`)}
+let satLast=null;
+{const _sp=saturnPaid;saturnPaid=function(pl,paid,n){satLast={pl,full:paid>=n};return _sp.apply(this,arguments)}}
+{const _st=saturnToll;saturnToll=async function(pl){if(!formOn("saturn"))return _st.apply(this,arguments);
+  satLast=null;await _st.apply(this,arguments);const a=satLast;if(!a||a.pl!==pl||G.over)return;   // nothing owed
+  G.satSecond=true;satLast=null;log(`<b>The Form of Limitation</b>: Saturn takes ${plName(pl)}'s toll a second time.`,"event");
+  try{await _st.apply(this,arguments)}finally{G.satSecond=false}
+  const b=satLast;if(G.over||!a.full||!b||b.pl!==pl||!b.full)return;
+  const P=G.p[pl];P.maxAdd=(P.maxAdd||0)+1;log(`<b>Saturn</b> rewards ${plName(pl)}: both tolls paid in full, one more maximum mana for good.`,"event");
+  notify(pl,`${esc(P.name)} paid Saturn twice: one more maximum mana, for good.`);render()}}
+
+/* the Second Sun: everyone is judged now; their own countdown keeps running */
+async function sunForm(){log(`<b>The Form of Judgement</b> (the Second Sun's cycle): it judges everyone at once, and shows what hides on the field this round.`,"event");
+  popup("The Form of Judgement",`<p>The Second Sun's cycle. It judges everyone now (not the Firmament), and until the end of the round it shows everything that hides on the field: face-down cards, Assassins, ambushes and Scouts.</p>`);
+  G._vis=null;
+  for(const pl of roundOrder()){const P=G.p[pl];if(!P||P.out||isHorde(pl)||P.tribe==="firm")continue;
+    const keep={n:P.sunNext,f:P.sunFrom};P.sunNext=tnOf(pl);G.skyGlow=true;render();
+    try{await skyAsync(pl)}finally{P.sunNext=keep.n;P.sunFrom=keep.f;G.skyGlow=false}
+    if(G.over)return}
+  render()}
+/* what hides on the field shows (not through blindness, a Delusion or Quiet Eyes) */
+const sunShows=V=>V!=null&&formOn("sun")&&!totalBlind(V)&&!sunBlind(V)&&!blindFor(V)&&!choked(V)&&!(typeof quietNow==="function"&&quietNow(V));
+{const _s=seesTile;seesTile=function(V,r,c){const out=_s.apply(this,arguments);if(out)return out;const st=G.board[r]&&G.board[r][c];return !!(st&&stealthy(st)&&sunShows(V))}}
+{const _sb=showsBack;showsBack=function(V){if(sunShows(V))return false;return _sb.apply(this,arguments)}}
+
+if(window.__EC)Object.assign(window.__EC,{formCycle:()=>formCycle(),formOn:k=>formOn(k),strifeTargets:(...a)=>strifeTargets(...a),jupiterGift:pl=>jupiterGift(pl),saturnTollW:pl=>saturnToll(pl),attackW:(...a)=>attack(...a),seesTileW:(...a)=>seesTile(...a),showsBackW:(...a)=>showsBack(...a),strifeStepW:(...a)=>strifeStep(...a)});
 
 })();

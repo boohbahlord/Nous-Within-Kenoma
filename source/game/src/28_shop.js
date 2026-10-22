@@ -140,6 +140,7 @@ async function cycleRound(){
   if(G.mban&&G.moon.round>G.mban.until){log(`Mercury's ban on ${G.mban.school} ends.`,"event");G.mban=null}
   if(cycleNow("venus"))venusCycle();
   if(cycleNow("mercury"))await mercuryCycle();
+  await formCycle();   // v71o: Mars, Jupiter, Saturn and the Second Sun (81_forms.js)
   render();
 }
 {const _nr=newRound;newRound=async function(){await _nr();if(G.over)return;await cycleRound()}}
@@ -238,9 +239,10 @@ function leaveJail(pl){const P=G.p[pl];if(!P.jail)return;P.cpu=P.jail.cpu;P.jail
 {const _c=skyCommon;skyCommon=function(L){_c(L);const S=SH(),r=G.moon.round;
   if(S.pend)L.push(`${plN(S.pend.by)} bought ${skyWord(S.pend.k)}: it takes the sky next round.`);
   else if(shopOn()&&r<S.next)L.push(`Heavenly Body shop: no Heavenly Body can be bought until round ${S.next}.`);
-  const nx=cycleNext();
-  if(planetUp("venus"))L.push(cycleNow("venus")?`<b>Venus's cycle</b> this round: ${G.venusCyc&&G.venusCyc.who.length?G.venusCyc.who.map(plN).join(", ")+" blessed":"nobody blessed"}.`:`Venus's cycle every ${CYCLE} rounds: under her Oath, support and base conjurings cost 1 less and every wounded card heals a heart (without it, a 4 on 1d4). Next: round ${nx}.`);
-  if(planetUp("mercury"))L.push(cycleNow("mercury")?"<b>Mercury's cycle</b> this round: the Bank can be robbed.":`Mercury's cycle every ${CYCLE} rounds: a vote bans one school of spells for 1d3 rounds, and the Bank can be robbed. Next: round ${nx}.`);
+  const nx=cycleNext(),off=cyclesOff();   // v71o: no cycle lines when cycle events are off
+  if(off);else if(planetUp("venus"))L.push(cycleNow("venus")?`<b>Venus's cycle</b> this round: ${G.venusCyc&&G.venusCyc.who.length?G.venusCyc.who.map(plN).join(", ")+" blessed":"nobody blessed"}.`:`Venus's cycle every ${CYCLE} rounds: under her Oath, support and base conjurings cost 1 less and every wounded card heals a heart (without it, a 4 on 1d4). Next: round ${nx}.`);
+  else if(planetUp("mercury"))L.push(cycleNow("mercury")?"<b>Mercury's cycle</b> this round: the Bank can be robbed.":`Mercury's cycle every ${CYCLE} rounds: a vote bans one school of spells for 1d3 rounds, and the Bank can be robbed. Next: round ${nx}.`);
+  else if(FORM_LINE[sky()])L.push(formLine(sky(),nx));
   if(banOn())L.push(`<b>Mercury's ban</b>: no ${esc(G.mban.school)} spells until the end of round ${G.mban.until}.`);
   else if(G.mban)L.push(`Mercury's ban on ${esc(G.mban.school)} starts next round.`)}}
 
