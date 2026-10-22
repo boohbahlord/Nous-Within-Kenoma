@@ -14,8 +14,8 @@ function crossPlan(o){const two=o.big==="cross2",X=o.cross||{},small=X.size==="s
   let theme=o.map||"random";if(theme==="random")theme=pick(["keep","sahel","forest","dungeon"]);if(theme==="river"||theme==="hill")theme="keep";
   const lo=c0-(A-1)/2,hi=c0+(A-1)/2,band=x=>x>=lo&&x<=hi;
   const V=Array.from({length:N},(_,r)=>Array.from({length:N},(_,c)=>!(Math.abs(r-c0)+Math.abs(c-c0)<=R||band(c)||!two&&band(r))));
-  const holes=[];
-  if(X.hole)holes.push(...(small?[[6,6]]:[[11,11],[11,12],[12,11],[12,12]]));
+  const holes=[],koth=o.layout==="koth";
+  if(X.hole&&!koth)holes.push(...(small?[[6,6]]:[[11,11],[11,12],[12,11],[12,12]]));
   if(X.hollow&&!small)holes.push([10,10],[10,13],[13,10],[13,13]);
   for(const [r,c] of holes)V[r][c]=true;
   const n=o.players.length,L=o.layout||"duel";
@@ -25,7 +25,13 @@ function crossPlan(o){const two=o.big==="cross2",X=o.cross||{},small=X.size==="s
     return {side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back,zone}};
   const arm=sd=>seatOf(sd,0,A),box=(sd,k)=>seatOf(sd,k*3,3);
   const seats=[],teams=[],pt=o.players.map(p=>p.team|0);
-  if(L==="factions"&&!two){   // v73d: each faction holds an arm, its two players side by side (one alone holds the whole end)
+  if(koth){   // v73d: King of the Hill on the Cross: one to an arm, then two (in boxes); in team mode each side holds two arms
+    const team=!!(o.koth&&o.koth.team),slots=n<=4||small?(n===2?["bottom","top"]:n===3?["bottom","left","right"]:["bottom","left","top","right"]).map(sd=>arm(sd)):
+      [box("bottom",0),box("top",0),box("left",0),box("right",0),box("bottom",1),box("top",1),box("left",1),box("right",1)];
+    if(team&&!small&&n>2){const arms=[["bottom","top"],["left","right"]];pt.forEach((t,i)=>{const mates=pt.map((g,j)=>g===t?j:-1).filter(j=>j>=0),k=mates.indexOf(i),sd=arms[t?1:0][k%2];
+      seats.push(mates.length<=2?arm(sd):box(sd,Math.floor(k/2)));teams.push(t?1:0)})}
+    else o.players.forEach((p,i)=>{seats.push(slots[i]);teams.push(team?(pt[i]?1:0):i)})}
+  else if(L==="factions"&&!two){   // v73d: each faction holds an arm, its two players side by side (one alone holds the whole end)
     const facs=[...new Set(pt)],sides=facs.length===3?["bottom","left","right"]:["bottom","left","top","right"];
     pt.forEach((f,i)=>{const sd=sides[facs.indexOf(f)],mates=pt.map((g,j)=>g===f?j:-1).filter(j=>j>=0);seats.push(mates.length>1&&!small?box(sd,mates.indexOf(i)):arm(sd));teams.push(f)})}
   else if(L.startsWith("team")&&n>4&&!two&&!small){   // v73d: two teams of up to four, two to an arm, on opposite arms or arms side by side
@@ -41,7 +47,8 @@ function crossPlan(o){const two=o.big==="cross2",X=o.cross||{},small=X.size==="s
   else{seats.push(arm("bottom"),arm("top"));teams.push(0,1)}
   return {theme,cols:N,rows:N,mid:true,corners:false,bridge:"left",void:V,seed:(Math.random()*1e9)|0,layout:L,seats,teams,big:o.big,large:true,
     cross:{small,two,hole:!!X.hole,hollow:!!X.hollow&&!small}}}
-{const _mp=mapPlan;mapPlan=function(o){if(o&&(o.big==="cross"||o.big==="cross2")&&o.layout!=="koth"&&o.mode!=="survival"&&o.layout!=="coop")return crossPlan(o);return _mp.apply(this,arguments)}}
+{const _mp=mapPlan;mapPlan=function(o){if(o&&(o.big==="cross"||o.big==="cross2")&&o.mode!=="survival"&&o.layout!=="coop"){const M=crossPlan(o);if(o.layout==="koth"){const c=(M.cols-1)/2;HILL[0]=Math.floor(c);HILL[1]=Math.ceil(c)}return M}   // v73d: the Hill is the very middle
+  if(o&&o.layout==="koth"){HILL[0]=10;HILL[1]=14}return _mp.apply(this,arguments)}}
 /* off the map is darker on the crosses, so their shape reads at a glance */
 {const _r=render;render=function(){_r.apply(this,arguments);const B=$("#board");if(B)B.classList.toggle("bigvoid",!!(G&&G.map&&["plus","round","cross","cross2"].includes(G.map.big)))}}
 /* a large map opens on your own spawn (and on the next player's, when the device changes hands) */

@@ -2457,6 +2457,7 @@ ${chk("okteam","Team mode","Players form two sides, Side A and Side B (not neces
 ${chk("oktug","Tug of war","Team mode only. One shared bar from −25 to +25: holding the Hill pulls it your side's way; when both sides hold it, it stops. Pull it all the way to win.",false)}
 ${chk("okdouble","Double points","Every point counts twice.",false)}
 ${chk("okcontest","Contest","When more than one side holds the Hill, nobody scores.",false)}</div></div>
+<div class="f" id="okfieldf"><span>Field</span><div class="opts">${[["hill","The Hill (default)","The 25 by 25 night field around a glowing Hill."],["cross","The Cross","The Hill is the very middle of the Cross's diamond (2 by 2). Up to 8 players: one to an arm, then two."],["small","The Small Cross","The Hill is the center tile of the Small Cross. Up to 4 players, one to an arm."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="okfield" value="${v}" ${v==="hill"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
 <div class="f"><span>Points to win</span><div class="opts">${[["30","30"],["50","50 (default)"],["100","Marathon: 100","Holding the Hill can raise mercenaries for your side."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="oktarget" value="${v}" ${v==="50"?"checked":""}><span>${t}${d?`<small>${d}</small>`:""}</span></label>`).join("")}</div></div>
 <div class="f"><span>Spawns</span><div class="opts"><label class="opt"><input type="radio" name="oknear" value="" checked><span>Apart (default)<small>Far enough from enemies, but not as far as possible.</small></span></label><label class="opt"><input type="radio" name="oknear" value="near"><span>Next to enemies<small>Everyone spawns closer to enemies than to teammates.</small></span></label></div></div>
 <div class="f"><span>Computers take the Hill</span><div class="opts">${[["each","Each its own way (default)","Every computer picks one of the three ways for the game."],["army","Gather an army first","They build a big army, then march on the Hill together."],["straight","Straight there","Every card heads for the Hill at once."],["groups","In small groups","Groups of two or three set out one after another."]].map(([v,t,d],i)=>`<label class="opt"><input type="radio" name="okcpu" value="${v}" ${i?"":"checked"}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
@@ -2603,7 +2604,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     const key=L+(L==="coop"?n:"");if(key!==curLayout){
       if(L==="factions"){const F=Math.min(4,Math.max(3,Math.ceil(n/2)));seatsS.forEach((S,i)=>S.team=i%F)}else seatsS.forEach(S=>{S.team=(S.team|0)%2});   // v73d: factions deal the seats out; two sides fold back
       curLayout=key;sizeUp()}
-    if($("#kothopts")){$("#kothopts").hidden=L!=="koth";SEAT_KOTH_TEAM=$("#okteam").checked;$("#oktug").disabled=!SEAT_KOTH_TEAM;kothMapUp(L)}
+    if($("#kothopts")){$("#kothopts").hidden=L!=="koth";{const sm=document.querySelector('input[name=okfield][value=small]');if(sm){const no=n>4;sm.disabled=no;sm.closest(".opt").classList.toggle("off",no);if(no&&sm.checked)document.querySelector('input[name=okfield][value=hill]').checked=true}}SEAT_KOTH_TEAM=$("#okteam").checked;$("#oktug").disabled=!SEAT_KOTH_TEAM;kothMapUp(L)}
     $("#laynote").textContent=mode==="survival"?(n===1?"One survivor on the usual field.":`${n} survivors share the bottom of the field, and the Horde spawns once for each of you. Any seat can be a computer; people take their turns one after another on this device, and the Horde moves first each round.`):"";
     const blk=skyBlocked(val("omoonon")),hum=humans(),ns=$("#onosubs")&&$("#onosubs").checked,alike=!!($("#oalike")&&$("#oalike").checked),near=(a,b)=>alike?a===b:colorNear(a,b);
     seatsS.forEach((S,i)=>{S.you=i===0&&S.type==="human"&&hum===1&&!NET.inSetup;S.noHuman=S.type!=="human"&&hum>=4;S.noSubs=ns;S.alikeOk=alike});   // v70d: four people on one device at most
@@ -2721,7 +2722,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     if(mode==="survival")players.push({name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>!players.some(p=>p.solid===s)))||"dodeca",cpu:"horde"});
     PREF.hand=val("dhand")||PREF.hand;PREF.sel=val("dsel")||PREF.sel;PREF.ctl=val("dctl")||PREF.ctl;PREF.theme=val("dtheme")??PREF.theme;PREF.coords=val("dcoord")==="1";PREF.full=val("dfull")==="1";PREF.lines=val("dlines")!=="0";if($("#danimc")){PREF.fxCards=$("#danimc").checked;PREF.fxMagic=$("#danimm").checked}PREF.bright=+($("#dbright")||{}).value||1;savePrefs();applyPrefs();
     startGame({mode,players,mid:mode==="survival"||(val("orowsd")?+val("orowsd")>4:true),aceLock:$("#olock").checked,jokerDark:!$("#ojkdark")||$("#ojkdark").checked,etherOff:!!$("#oetheron")&&!$("#oetheron").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,cheat:!!($("#ocheat")&&$("#ocheat").checked),hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off","saturn"].includes(val("omoonon")||"on"),
-      map:L==="koth"?"hill":val("omap"),big:L==="koth"?"":val("obig")||"",cross:crossOpts(),factions:L==="factions",koth:L==="koth"?{team:$("#okteam").checked,tug:$("#okteam").checked&&$("#oktug").checked,double:$("#okdouble").checked,contest:$("#okcontest").checked,target:+val("oktarget")||50,near:val("oknear")==="near",cpu:val("okcpu")||"each"}:null,cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:L==="duel"&&val("orowsd")?+val("orowsd"):undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
+      map:L==="koth"?"hill":val("omap"),big:L==="koth"?(["cross","small"].includes(val("okfield"))?"cross":""):val("obig")||"",cross:L==="koth"?{size:val("okfield")==="small"?"small":"std"}:crossOpts(),factions:L==="factions",koth:L==="koth"?{team:$("#okteam").checked,tug:$("#okteam").checked&&$("#oktug").checked,double:$("#okdouble").checked,contest:$("#okcontest").checked,target:+val("oktarget")||50,near:val("oknear")==="near",cpu:val("okcpu")||"each"}:null,cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:L==="duel"&&val("orowsd")?+val("orowsd"):undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
       deckPer:val("odeckper")||"1",etherPer:val("oetherper")||"same",noSubs:$("#onosubs").checked,specials:val("ospecials"),jokerSure:$("#ojoker").checked,suits:val("odeckper")==="half"&&L==="duel"&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
       startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",cycleEvents:$("#ocycev").checked,alikeOk:!!($("#oalike")&&$("#oalike").checked),eclipses:$("#oeclipse").checked||$("#oblood").checked,eclipseMode:$("#oblood").checked,eclipseAlways:$("#oblood").checked&&!!($("#oeclall")&&$("#oeclall").checked),skyChange:skyChangeOpts(),atkSpells:$("#oatk").checked,pshop:$("#opshop")?$("#opshop").checked:true,
       layout:L,turns:$("#oturns").value,timer:+$("#otimer").value,cpuSpeed:$("#ospeed").value,elimDark:val("oelim")==="dark",shareDeck:$("#oshare").checked});
@@ -12510,8 +12511,8 @@ function crossPlan(o){const two=o.big==="cross2",X=o.cross||{},small=X.size==="s
   let theme=o.map||"random";if(theme==="random")theme=pick(["keep","sahel","forest","dungeon"]);if(theme==="river"||theme==="hill")theme="keep";
   const lo=c0-(A-1)/2,hi=c0+(A-1)/2,band=x=>x>=lo&&x<=hi;
   const V=Array.from({length:N},(_,r)=>Array.from({length:N},(_,c)=>!(Math.abs(r-c0)+Math.abs(c-c0)<=R||band(c)||!two&&band(r))));
-  const holes=[];
-  if(X.hole)holes.push(...(small?[[6,6]]:[[11,11],[11,12],[12,11],[12,12]]));
+  const holes=[],koth=o.layout==="koth";
+  if(X.hole&&!koth)holes.push(...(small?[[6,6]]:[[11,11],[11,12],[12,11],[12,12]]));
   if(X.hollow&&!small)holes.push([10,10],[10,13],[13,10],[13,13]);
   for(const [r,c] of holes)V[r][c]=true;
   const n=o.players.length,L=o.layout||"duel";
@@ -12521,7 +12522,13 @@ function crossPlan(o){const two=o.big==="cross2",X=o.cross||{},small=X.size==="s
     return {side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back,zone}};
   const arm=sd=>seatOf(sd,0,A),box=(sd,k)=>seatOf(sd,k*3,3);
   const seats=[],teams=[],pt=o.players.map(p=>p.team|0);
-  if(L==="factions"&&!two){   // v73d: each faction holds an arm, its two players side by side (one alone holds the whole end)
+  if(koth){   // v73d: King of the Hill on the Cross: one to an arm, then two (in boxes); in team mode each side holds two arms
+    const team=!!(o.koth&&o.koth.team),slots=n<=4||small?(n===2?["bottom","top"]:n===3?["bottom","left","right"]:["bottom","left","top","right"]).map(sd=>arm(sd)):
+      [box("bottom",0),box("top",0),box("left",0),box("right",0),box("bottom",1),box("top",1),box("left",1),box("right",1)];
+    if(team&&!small&&n>2){const arms=[["bottom","top"],["left","right"]];pt.forEach((t,i)=>{const mates=pt.map((g,j)=>g===t?j:-1).filter(j=>j>=0),k=mates.indexOf(i),sd=arms[t?1:0][k%2];
+      seats.push(mates.length<=2?arm(sd):box(sd,Math.floor(k/2)));teams.push(t?1:0)})}
+    else o.players.forEach((p,i)=>{seats.push(slots[i]);teams.push(team?(pt[i]?1:0):i)})}
+  else if(L==="factions"&&!two){   // v73d: each faction holds an arm, its two players side by side (one alone holds the whole end)
     const facs=[...new Set(pt)],sides=facs.length===3?["bottom","left","right"]:["bottom","left","top","right"];
     pt.forEach((f,i)=>{const sd=sides[facs.indexOf(f)],mates=pt.map((g,j)=>g===f?j:-1).filter(j=>j>=0);seats.push(mates.length>1&&!small?box(sd,mates.indexOf(i)):arm(sd));teams.push(f)})}
   else if(L.startsWith("team")&&n>4&&!two&&!small){   // v73d: two teams of up to four, two to an arm, on opposite arms or arms side by side
@@ -12537,7 +12544,8 @@ function crossPlan(o){const two=o.big==="cross2",X=o.cross||{},small=X.size==="s
   else{seats.push(arm("bottom"),arm("top"));teams.push(0,1)}
   return {theme,cols:N,rows:N,mid:true,corners:false,bridge:"left",void:V,seed:(Math.random()*1e9)|0,layout:L,seats,teams,big:o.big,large:true,
     cross:{small,two,hole:!!X.hole,hollow:!!X.hollow&&!small}}}
-{const _mp=mapPlan;mapPlan=function(o){if(o&&(o.big==="cross"||o.big==="cross2")&&o.layout!=="koth"&&o.mode!=="survival"&&o.layout!=="coop")return crossPlan(o);return _mp.apply(this,arguments)}}
+{const _mp=mapPlan;mapPlan=function(o){if(o&&(o.big==="cross"||o.big==="cross2")&&o.mode!=="survival"&&o.layout!=="coop"){const M=crossPlan(o);if(o.layout==="koth"){const c=(M.cols-1)/2;HILL[0]=Math.floor(c);HILL[1]=Math.ceil(c)}return M}   // v73d: the Hill is the very middle
+  if(o&&o.layout==="koth"){HILL[0]=10;HILL[1]=14}return _mp.apply(this,arguments)}}
 /* off the map is darker on the crosses, so their shape reads at a glance */
 {const _r=render;render=function(){_r.apply(this,arguments);const B=$("#board");if(B)B.classList.toggle("bigvoid",!!(G&&G.map&&["plus","round","cross","cross2"].includes(G.map.big)))}}
 /* a large map opens on your own spawn (and on the next player's, when the device changes hands) */
