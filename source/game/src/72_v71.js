@@ -25,10 +25,10 @@ ${max<1?`<p class="dim">You have no mana to bid.</p>`:""}
 const SKYCHG=()=>Object.assign({mode:"bid",dice:false,n:4,dn:2,ds:6,rand:false},G.opts.skyChange||{});
 const skyEvery=o=>Math.max(1,Math.min(100,o.dice?sum(rollN(Math.max(1,o.dn),o.ds)):o.n));
 const skyFixed=k=>["off","eaten","fallen"].includes(k);   // no Heavenly Body there to change
-/* a cycle of the body in the sky completes this round: the Moon at the Full Moon, the others every sixth round */
-const cycLen=k=>k==="neptune"?10:CYCLE;   // v71c: Neptune's cycle comes every ten rounds
+/* a cycle of the body in the sky completes this round: the Moon at the Full Moon, the others every eighth round (v75a) */
+const cycLen=k=>CYCLE;   // v75a: every Heavenly Body's cycle as long as the Moon's, Neptune's too
 /* v71i: an eclipse can only come in a round of its Heavenly Body's cycle event: the round its cycle comes round (every
-   sixth round it has hung in the sky), or for Neptune any round of its cycle (every tenth round, for 2d3 rounds). Rolled
+   eighth round it has hung in the sky), or for Neptune any round of its cycle (every eighth round, for one round). Rolled
    before the round's cycle events, so a Heavenly Body that has just risen waits for its first cycle. */
 function ecCycleNow(k){if(!G||G._skyK!==k||!planetUp(k))return false;const r=G.moon.round,s=G.skySince;
   if(k==="neptune")return !!(G.nepEv&&r>=G.nepEv.from&&r<=G.nepEv.until)||s!=null&&r>s&&(r-s)%cycLen(k)===0;

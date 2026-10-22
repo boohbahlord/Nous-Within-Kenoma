@@ -2,7 +2,7 @@
    The Heavenly Body shop (a setting, on by default): any of the eight Heavenly Bodies can be bought for the sky for 7 + 1d3 + 1d12 mana, each
      rolled every round. Everyone is told at once; the Heavenly Body rises at the start of the next round, with a second popup. After a
      purchase no Heavenly Body can be bought for six rounds. Nobody's Emanation changes.
-   Cycles: a Heavenly Body's cycle comes every sixth round it has hung in the sky.
+   Cycles: a Heavenly Body's cycle comes every eighth round it has hung in the sky (v75a: as long as the Moon's cycle).
      Venus: under its Oath, support and base conjurings cost 1 less that round and every card heals a heart; without the Oath,
        only on a 4 of 1d4.
      Mercury: a vote to ban one school of spells for 1d3 rounds from the next round (a tie is a d20 roll-off; a Mercury Oath
@@ -13,7 +13,7 @@
 
 const SHOP_PL=["moon","mercury","venus","sun","mars","jupiter","saturn","neptune"];   // v71c: Neptune
 const SHOP_NAME={moon:"The Moon",mercury:"Mercury",venus:"Venus",sun:"The Second Sun",mars:"Mars",jupiter:"Jupiter",saturn:"Saturn",neptune:"Neptune"};
-const SHOP_LOCK=6,CYCLE=6;
+const SHOP_LOCK=6,CYCLE=8;   // v75a: every Heavenly Body's cycle is as long as the Moon's (eight rounds)
 const skyWord=k=>SHOP_NAME[k]?SHOP_NAME[k].replace(/^The /,"the "):k==="blacksun"?"the Black Sun":"the empty sky";
 const shopOn=()=>!!G&&G.opts.pshop!==false;
 const SH=()=>G.shop||(G.shop={pend:null,next:0});
@@ -85,7 +85,7 @@ DRAWERS.shop={title:"Heavenly Body shop",fill:shopHTML};
   return h+`<button class="spell drawerbtn shop ${live?"":"off"}" id="openShop" data-tip="The Heavenly Body shop: buy any of the eight Heavenly Bodies for the sky. It rises at the start of the next round."><span class="sn">Heavenly Body shop<small class="dc">${esc(st)}</small></span><em>›</em></button>`}}
 {const _w=wireAstroPins;wireAstroPins=function(){_w();if($("#openShop"))$("#openShop").onclick=()=>openDrawer("shop")}}
 
-/* ---------- cycles: every sixth round a Heavenly Body has hung in the sky ---------- */
+/* ---------- cycles: every eighth round a Heavenly Body has hung in the sky (as long as the Moon's cycle) ---------- */
 const cycleNow=k=>planetUp(k)&&G.skySince!=null&&G.moon.round>G.skySince&&(G.moon.round-G.skySince)%CYCLE===0;
 const cycleNext=()=>{if(G.skySince==null)return null;let n=G.skySince+CYCLE;while(n<G.moon.round)n+=CYCLE;return n};
 const VENUS_CJ=new Set(["csc","cmine","crep","cram","cheal","ca","cwall"]);   // the Ether's support and base cards
@@ -97,7 +97,7 @@ function venusCycle(){
   G.venusCyc={round:G.moon.round,who};let healed=0;
   for(const pl of who)for(const {st} of stacksOf(pl))for(const c of st.cards)if(c.maxHp&&c.hp<c.maxHp){c.hp++;healed++}
   log(`<b>Venus's cycle</b>: ${who.length?`${who.map(plName).join(", ")} ${who.length===1?"is":"are"} blessed this round (support and base conjurings 1 less, ${healed} heart${healed===1?"":"s"} healed)`:"Venus blesses no one this round"}.`,"event");
-  popup("Venus's cycle",`<p>Every sixth round Venus is generous to those sworn to her: this round their support and base cards from the Ether (Scout, Miner, Repairman, Battering Ram, Healer, Ace, Wall) cost 1 less (never below 1 mana), and every wounded card of theirs heals one heart.</p>
+  popup("Venus's cycle",`<p>Every eighth round Venus is generous to those sworn to her: this round their support and base cards from the Ether (Scout, Miner, Repairman, Battering Ram, Healer, Ace, Wall) cost 1 less (never below 1 mana), and every wounded card of theirs heals one heart.</p>
 <p>${who.length?`Blessed: ${who.map(plName).join(", ")}.`:"Nobody is blessed this time."}</p>${rolls.length?`<p class="dim">Without her Oath, a 4 on 1d4: ${rolls.map(([pl,d])=>`${plName(pl)} ${d}`).join(", ")}.</p>`:""}`);
 }
 {const _sc=spellCost;spellCost=function(sp){let c=_sc(sp);if(sp&&c>0&&VENUS_CJ.has(sp.id)&&G&&venusBlessed(G.active))c=Math.max(0,c-1);return c}}

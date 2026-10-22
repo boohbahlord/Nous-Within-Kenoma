@@ -6365,7 +6365,7 @@ if(window.__EC)window.__EC.render=()=>render();
    The Heavenly Body shop (a setting, on by default): any of the eight Heavenly Bodies can be bought for the sky for 7 + 1d3 + 1d12 mana, each
      rolled every round. Everyone is told at once; the Heavenly Body rises at the start of the next round, with a second popup. After a
      purchase no Heavenly Body can be bought for six rounds. Nobody's Emanation changes.
-   Cycles: a Heavenly Body's cycle comes every sixth round it has hung in the sky.
+   Cycles: a Heavenly Body's cycle comes every eighth round it has hung in the sky (v75a: as long as the Moon's cycle).
      Venus: under its Oath, support and base conjurings cost 1 less that round and every card heals a heart; without the Oath,
        only on a 4 of 1d4.
      Mercury: a vote to ban one school of spells for 1d3 rounds from the next round (a tie is a d20 roll-off; a Mercury Oath
@@ -6376,7 +6376,7 @@ if(window.__EC)window.__EC.render=()=>render();
 
 const SHOP_PL=["moon","mercury","venus","sun","mars","jupiter","saturn","neptune"];   // v71c: Neptune
 const SHOP_NAME={moon:"The Moon",mercury:"Mercury",venus:"Venus",sun:"The Second Sun",mars:"Mars",jupiter:"Jupiter",saturn:"Saturn",neptune:"Neptune"};
-const SHOP_LOCK=6,CYCLE=6;
+const SHOP_LOCK=6,CYCLE=8;   // v75a: every Heavenly Body's cycle is as long as the Moon's (eight rounds)
 const skyWord=k=>SHOP_NAME[k]?SHOP_NAME[k].replace(/^The /,"the "):k==="blacksun"?"the Black Sun":"the empty sky";
 const shopOn=()=>!!G&&G.opts.pshop!==false;
 const SH=()=>G.shop||(G.shop={pend:null,next:0});
@@ -6448,7 +6448,7 @@ DRAWERS.shop={title:"Heavenly Body shop",fill:shopHTML};
   return h+`<button class="spell drawerbtn shop ${live?"":"off"}" id="openShop" data-tip="The Heavenly Body shop: buy any of the eight Heavenly Bodies for the sky. It rises at the start of the next round."><span class="sn">Heavenly Body shop<small class="dc">${esc(st)}</small></span><em>›</em></button>`}}
 {const _w=wireAstroPins;wireAstroPins=function(){_w();if($("#openShop"))$("#openShop").onclick=()=>openDrawer("shop")}}
 
-/* ---------- cycles: every sixth round a Heavenly Body has hung in the sky ---------- */
+/* ---------- cycles: every eighth round a Heavenly Body has hung in the sky (as long as the Moon's cycle) ---------- */
 const cycleNow=k=>planetUp(k)&&G.skySince!=null&&G.moon.round>G.skySince&&(G.moon.round-G.skySince)%CYCLE===0;
 const cycleNext=()=>{if(G.skySince==null)return null;let n=G.skySince+CYCLE;while(n<G.moon.round)n+=CYCLE;return n};
 const VENUS_CJ=new Set(["csc","cmine","crep","cram","cheal","ca","cwall"]);   // the Ether's support and base cards
@@ -6460,7 +6460,7 @@ function venusCycle(){
   G.venusCyc={round:G.moon.round,who};let healed=0;
   for(const pl of who)for(const {st} of stacksOf(pl))for(const c of st.cards)if(c.maxHp&&c.hp<c.maxHp){c.hp++;healed++}
   log(`<b>Venus's cycle</b>: ${who.length?`${who.map(plName).join(", ")} ${who.length===1?"is":"are"} blessed this round (support and base conjurings 1 less, ${healed} heart${healed===1?"":"s"} healed)`:"Venus blesses no one this round"}.`,"event");
-  popup("Venus's cycle",`<p>Every sixth round Venus is generous to those sworn to her: this round their support and base cards from the Ether (Scout, Miner, Repairman, Battering Ram, Healer, Ace, Wall) cost 1 less (never below 1 mana), and every wounded card of theirs heals one heart.</p>
+  popup("Venus's cycle",`<p>Every eighth round Venus is generous to those sworn to her: this round their support and base cards from the Ether (Scout, Miner, Repairman, Battering Ram, Healer, Ace, Wall) cost 1 less (never below 1 mana), and every wounded card of theirs heals one heart.</p>
 <p>${who.length?`Blessed: ${who.map(plName).join(", ")}.`:"Nobody is blessed this time."}</p>${rolls.length?`<p class="dim">Without her Oath, a 4 on 1d4: ${rolls.map(([pl,d])=>`${plName(pl)} ${d}`).join(", ")}.</p>`:""}`);
 }
 {const _sc=spellCost;spellCost=function(sp){let c=_sc(sp);if(sp&&c>0&&VENUS_CJ.has(sp.id)&&G&&venusBlessed(G.active))c=Math.max(0,c-1);return c}}
@@ -6774,7 +6774,7 @@ const SKY_PARA={
  blacksun:"The Second Sun cried three times and went out: this is the Black Sun. The fog of war is back. The Firmament that raised it pays Yaldabaoth 1d2 mana or 1d2 deck cards every 1d2 of its turns. If it falls, it destroys the tile it lands on for good.",
  venus:"Venus, the Form of Harmony. Whoever raised it chose a gift: +2 mana a turn and +2 maximum for one of their side, or +1 a turn while every enemy gets +2 maximum. Under the Oath of Venus, every turn you start without having attacked a player gives +2 mana and +2 maximum, and each attack on a player costs 1d2 mana and two maximum for 1d3 turns. Every sixth round is Venus's cycle: her sworn pay 1 less for support and base cards from the Ether that round, and every wounded card of theirs heals a heart; anyone else gets the same on a 4 of 1d4. Her eclipse doubles her gifts, heals every card and can mend a betrayal.",
  jupiter:"Jupiter, the Form of Abundance. Miners in an Ace bring 1d2 a turn instead of 1d2 − 1. Every round two conjurings go on sale. Hand cards can be traded at the Auction, and a Jester's Sacrificial Suicide brings 1d2 − 1 more. Whoever raised it may get a mana when others buy on sale or trade. Every sixth round is Jupiter's cycle, the Form of Abundance: every Bank loan shrinks by 1d3, and whoever has the fewest cards on the field takes a free card from the Ether. Under the Oath of Jupiter every conjuring costs one less, unless it already costs one.",
- mercury:"Mercury, the Form of Guile. Anyone can call a vote for Peace or Total War (everyone must agree), or buy Peace for two rounds. Under the Oath of Mercury, Betrayal, Declare War and Bribe the Banker open up. Every sixth round is Mercury's cycle: everyone votes to ban one school of spells for 1d3 rounds from the next round (a tie is a d20 roll-off, and the Oath of Mercury wins it), and anyone can try to Rob the Bank, once.",
+ mercury:"Mercury, the Form of Guile. Anyone can call a vote for Peace or Total War (everyone must agree), or buy Peace for two rounds. Under the Oath of Mercury, Betrayal, Declare War and Bribe the Banker open up. Every eighth round is Mercury's cycle: everyone votes to ban one school of spells for 1d3 rounds from the next round (a tie is a d20 roll-off, and the Oath of Mercury wins it), and anyone can try to Rob the Bank, once.",
  eaten:"Yaldabaoth ate what hung here. Nothing turns: no phases, no gifts, no tolls. What was eaten never comes back, but another Heavenly Body can still be raised or bought.",
  fallen:"The Second Sun fell to the ground and the sky is empty: no phases, no gifts, no tolls, until another Heavenly Body is raised or bought.",
  off:"This game started with no Heavenly Body: no phases, no gifts, no tolls, no Blood Moon. One can still be raised or bought."};
@@ -10851,10 +10851,10 @@ ${max<1?`<p class="dim">You have no mana to bid.</p>`:""}
 const SKYCHG=()=>Object.assign({mode:"bid",dice:false,n:4,dn:2,ds:6,rand:false},G.opts.skyChange||{});
 const skyEvery=o=>Math.max(1,Math.min(100,o.dice?sum(rollN(Math.max(1,o.dn),o.ds)):o.n));
 const skyFixed=k=>["off","eaten","fallen"].includes(k);   // no Heavenly Body there to change
-/* a cycle of the body in the sky completes this round: the Moon at the Full Moon, the others every sixth round */
-const cycLen=k=>k==="neptune"?10:CYCLE;   // v71c: Neptune's cycle comes every ten rounds
+/* a cycle of the body in the sky completes this round: the Moon at the Full Moon, the others every eighth round (v75a) */
+const cycLen=k=>CYCLE;   // v75a: every Heavenly Body's cycle as long as the Moon's, Neptune's too
 /* v71i: an eclipse can only come in a round of its Heavenly Body's cycle event: the round its cycle comes round (every
-   sixth round it has hung in the sky), or for Neptune any round of its cycle (every tenth round, for 2d3 rounds). Rolled
+   eighth round it has hung in the sky), or for Neptune any round of its cycle (every eighth round, for one round). Rolled
    before the round's cycle events, so a Heavenly Body that has just risen waits for its first cycle. */
 function ecCycleNow(k){if(!G||G._skyK!==k||!planetUp(k))return false;const r=G.moon.round,s=G.skySince;
   if(k==="neptune")return !!(G.nepEv&&r>=G.nepEv.from&&r<=G.nepEv.until)||s!=null&&r>s&&(r-s)%cycLen(k)===0;
@@ -10947,7 +10947,7 @@ if(window.__EC)Object.assign(window.__EC,{eclipseW:k=>eclipse(k),venusCycleW:()=
    for 1d3 + 1d2 − 1 of their turns: they can't see it or command it (nor can their automation), it never attacks, it
    defends itself, and it wanders. Found (another of their stacks beside it) it shows to them, see-through, as it does to
    everyone who can see it. Each round the first mana a player earns or spends rolls 1d20: a 1 sends it to another
-   player (a spender still pays), a 20 doubles it. Its cycle (every ten rounds) and eclipse come next. */
+   player (a spender still pays), a 20 doubles it. Its cycle (every eighth round, for one round: v75a) and eclipse come next. */
 const NEP_COL="#3f9be0";
 const nepUp=()=>!!(G&&planetUp("neptune"));
 const NEP=()=>G.nep||(G.nep={next:null,cloud:null});
@@ -11034,9 +11034,9 @@ ${ec?`<circle r="43" fill="url(#nepdark)"/>`:""}<circle r="40" fill="url(#nepglo
   const lost=V!=null&&G.p[V]?stacksOf(V).filter(x=>x.st.lost).length:0;if(lost)L.push(`${lost} of your stacks ${lost===1?"is":"are"} lost in the cloud.`);
   L.push("The first mana each player earns or spends each round rolls 1d20: a 1 sends it to another player (a spender still pays), a 20 doubles it.","The moon's phases are stopped.");
   skyCommon(L);return skyBox("Neptune","",L,"neptune")}}
-SKY_PARA.neptune="Neptune, the Form of Dissolve, stops the Moon's phases. Every 4d2 turns a cloud in its blue settles over the tiles around the cards for 2d4 turns, drifting with every turn. Its tiles are in fog for everyone, even beside your own cards (a tile with your own stack stays yours). At the start of each player's turn in the cloud, a 1 on 1d20 loses one of their stacks for 1d3 + 1d2 − 1 of their turns: they can't see it or command it, nor can their automation; it never attacks, defends itself, and wanders. Another of their stacks beside it finds it: then they see it, see-through, as everyone does. The first mana each player earns or spends each round rolls 1d20: a 1 sends it to another player (a spender still pays), a 20 doubles it. Its cycle, every ten rounds, lasts 2d3 rounds: the tiles fade into the map and everyone's numbers go dark; a sacrifice's mana goes to another player on a 1 of 1d8; the mana a purchase brings the Bank goes to a random player on a 1 of 1d10 (not in Survival); a drawn card is lost at sea on a 1 of 1d20 (another from the same draw on a 1 of 1d3), found 1d10 turns later by anyone; a card that dies sinks on a 1 of 1d4, to the Outer Darkness (1 on 1d2) or the Ether (2); at its start Neptune offers each player a free Clairvoyance or 2d6 + 1d2 mana for 1d6 deck cards; and once a round, on a 1 of 1d8, a player may sacrifice up to three cards from the grave for their soul worth. Its eclipse (5% in each round of its cycle) lasts 2d3 rounds and brings its whole cycle with it: everyone's numbers lie and hands go blank and shuffled, every deck is shuffled, names turn to random letters and numbers, every stack on the field takes a stranger's color (a stranger's stack can be picked up, but acting with it costs 1d2 deck cards; once a round, on a 1 of 1d6, it moves by accident), a 1 of 1d20 sends a move or an attack astray (twice a round at most), prices, the Ether's counts and the Bank's mana lie (one price in eight reads free), Field Automation and Lazy Hand wait (still On, crossed out), the field may turn around, and the music sinks an octave and a half step, muffled.";
+SKY_PARA.neptune="Neptune, the Form of Dissolve, stops the Moon's phases. Every 4d2 turns a cloud in its blue settles over the tiles around the cards for 2d4 turns, drifting with every turn. Its tiles are in fog for everyone, even beside your own cards (a tile with your own stack stays yours). At the start of each player's turn in the cloud, a 1 on 1d20 loses one of their stacks for 1d3 + 1d2 − 1 of their turns: they can't see it or command it, nor can their automation; it never attacks, defends itself, and wanders. Another of their stacks beside it finds it: then they see it, see-through, as everyone does. The first mana each player earns or spends each round rolls 1d20: a 1 sends it to another player (a spender still pays), a 20 doubles it. Its cycle, every eighth round (as long as the Moon's), lasts that one round: the tiles fade into the map and everyone's numbers go dark; a sacrifice's mana goes to another player on a 1 of 1d8; the mana a purchase brings the Bank goes to a random player on a 1 of 1d10 (not in Survival); a drawn card is lost at sea on a 1 of 1d20 (another from the same draw on a 1 of 1d3), found 1d10 turns later by anyone; a card that dies sinks on a 1 of 1d4, to the Outer Darkness (1 on 1d2) or the Ether (2); at its start Neptune offers each player a free Clairvoyance or 2d6 + 1d2 mana for 1d6 deck cards; and once a round, on a 1 of 1d8, a player may sacrifice up to three cards from the grave for their soul worth. Its eclipse (5% in the round of its cycle) lasts 2d3 rounds and brings its whole cycle with it: everyone's numbers lie and hands go blank and shuffled, every deck is shuffled, names turn to random letters and numbers, every stack on the field takes a stranger's color (a stranger's stack can be picked up, but acting with it costs 1d2 deck cards; once a round, on a 1 of 1d6, it moves by accident), a 1 of 1d20 sends a move or an attack astray (twice a round at most), prices, the Ether's counts and the Bank's mana lie (one price in eight reads free), Field Automation and Lazy Hand wait (still On, crossed out), the field may turn around, and the music sinks an octave and a half step, muffled.";
 
-/* ---------- v71c-2: Neptune's cycle, every ten rounds it has hung in the sky, for 2d3 rounds ----------
+/* ---------- v71c-2: Neptune's cycle, every eighth round it has hung in the sky (as long as the Moon's), for one round (v75a) ----------
    It glows; the tiles lose their outlines into the map and everyone's numbers go dark. A sacrifice's mana goes to a random
    other player on a 1 of 1d8. Mana a purchase brings the Bank goes to a random player (the buyer too) on a 1 of 1d10 (not
    in Survival). A drawn card is lost on a 1 of 1d20 (another from that draw on a 1 of 1d3), found 1d10 turns later by any
@@ -11054,10 +11054,10 @@ async function nepEventRound(){if(!nepUp()){G.nepEv=null;return}
   const r=G.moon.round;
   if(G.nepEv&&r>G.nepEv.until){G.nepEv=null;log("Neptune's cycle ends: the field and the numbers come back.","event");render()}
   const since=G.skySince;
-  if(!G.nepEv&&!(typeof cyclesOff==="function"&&cyclesOff())&&since!=null&&r>since&&(r-since)%10===0){
-    const d=sum(rollN(2,3));G.nepEv={from:r,until:r+d-1};
-    log(`<b>Neptune's cycle</b> (every ten rounds): for ${d} rounds (2d3) the tiles fade into the map and every player's numbers go dark. Sacrifices, the Bank's takings and drawn cards may drift away; the dead may sink to the Ether or the Outer Darkness.`,"event");
-    popup("Neptune's cycle",`<p>For <b>${d} round${d>1?"s":""}</b> (2d3) Neptune glows: the tiles fade into the map and every player's numbers go dark.</p><ul><li>A sacrifice's mana goes to another player on a 1 of 1d8.</li><li>Mana a purchase brings the Bank goes to a random player on a 1 of 1d10${survival()?" (not in Survival)":""}.</li><li>A drawn card is lost on a 1 of 1d20 (another from the same draw on a 1 of 1d3), and found 1d10 turns later by anyone.</li><li>A card that dies sinks, on a 1 of 1d4, to the Outer Darkness or the Ether.</li><li>Once a round a player may be let into the grave (a 1 of 1d8) to sacrifice its cards for mana.</li></ul>`);
+  if(!G.nepEv&&!(typeof cyclesOff==="function"&&cyclesOff())&&since!=null&&r>since&&(r-since)%CYCLE===0){
+    const d=1;   // v75a: a cycle event lasts one roundG.nepEv={from:r,until:r+d-1};
+    log(`<b>Neptune's cycle</b> (every ${CYCLE} rounds, as long as the Moon's): for this round the tiles fade into the map and every player's numbers go dark. Sacrifices, the Bank's takings and drawn cards may drift away; the dead may sink to the Ether or the Outer Darkness.`,"event");
+    popup("Neptune's cycle",`<p>For <b>this round</b> Neptune glows: the tiles fade into the map and every player's numbers go dark.</p><ul><li>A sacrifice's mana goes to another player on a 1 of 1d8.</li><li>Mana a purchase brings the Bank goes to a random player on a 1 of 1d10${survival()?" (not in Survival)":""}.</li><li>A drawn card is lost on a 1 of 1d20 (another from the same draw on a 1 of 1d3), and found 1d10 turns later by anyone.</li><li>A card that dies sinks, on a 1 of 1d4, to the Outer Darkness or the Ether.</li><li>Once a round a player may be let into the grave (a 1 of 1d8) to sacrifice its cards for mana.</li></ul>`);
     render();
     for(const pl of nepRealPl()){if(G.over)return;await nepOffer(pl)}}
   if(nepEvOn())for(const pl of nepRealPl()){if(G.over)return;if(R(8)===1)await nepGraveSac(pl)}}
@@ -11790,7 +11790,7 @@ if(typeof ResizeObserver==="function"){let q=0;const ro=new ResizeObserver(()=>{
 if(window.__EC)Object.assign(window.__EC,{crysPrep:(...a)=>crysPrep(...a),crysStop:(...a)=>crysStop(...a),crysGuards:pl=>crysGuards(pl),guardSVG:()=>guardSVG(),crysCands:(pl,c)=>crysCands(pl,c||crysCfg(pl)),faSaveW:c=>faSave(c),faMineW:()=>faMine(),faCleanW:c=>faClean(c)});
 
 /* ---------- v71o: the cycle events of Mars, Jupiter, Saturn and the Second Sun, named after their Forms ----------
-   Every sixth round a Heavenly Body has hung in the sky (like Venus's and Mercury's cycles; off with the Cycle events option):
+   Every eighth round a Heavenly Body has hung in the sky (v75a: as long as the Moon's cycle; like Venus's and Mercury's cycles; off with the Cycle events option):
    - Mars, the Form of Strife: every attack adds 1d2 that round, and a stack that kills may move one tile at once (a person
      picks the tile or Cancels to stay; a computer, or Field Automation, steps when the tile is better).
    - Jupiter, the Form of Abundance: every Bank loan shrinks by 1d3, and whoever has the fewest cards on the field (everyone
@@ -12803,7 +12803,7 @@ mountMustKnow=function(){const m=$("#mustknow");if(m)m.remove()};
 /* the sky's place in its cycle */
 function skyFrac(){if(!G||!G.moon)return "";const m=G.moon,k=sky(),V=view(),r=m.round;
   if(!m.gone)return `Phase ${m.i+1}/8`;
-  if(["venus","mercury","mars","jupiter"].includes(k)){const since=G.skySince!=null&&G.skySince<=r?G.skySince:r,e=r-since;return e>0?`Round ${((e-1)%CYCLE)+1}/${CYCLE} of its cycle`:`Its cycle starts next round (0/${CYCLE})`}
+  if(["venus","mercury","mars","jupiter","neptune"].includes(k)){const since=G.skySince!=null&&G.skySince<=r?G.skySince:r,e=r-since;return e>0?`Round ${((e-1)%CYCLE)+1}/${CYCLE} of its cycle`:`Its cycle starts next round (0/${CYCLE})`}
   if(k==="sun"){const P=G.p[V];if(!P||P.sunNext==null||P.tribe==="firm")return "";const tn=tnOf(V),from=P.sunFrom!=null&&P.sunFrom<P.sunNext?P.sunFrom:P.sunNext-2;return `Your judgement: turn ${Math.max(0,tn-from)}/${P.sunNext-from}`}
   if(k==="saturn"){const P=G.p[V];return P&&P.oath==="saturn"?`Your tolls: ${P.satPaid||0}/9`:""}
   return ""}
