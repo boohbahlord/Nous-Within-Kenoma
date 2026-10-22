@@ -13044,18 +13044,20 @@ const dipPenOn=pl=>{const t=teamOf(pl),p=G&&G.dip&&t!=null&&G.dip.pen[t];return 
   return out}}
 
 /* ---------- proposals, answers, breaking ---------- */
-const dipKindTxt=(k,n,tr)=>k==="peace"?`Peace for ${n} round${n>1?"s":""}`:k==="trade"?`a trade deal for ${n} round${n>1?"s":""} (${tr?tr.a:0} mana a round from them, ${tr?tr.b:0} back)`:"an Alliance";
+const dipKindTxt=(k,n,tr)=>k==="terms"?`terms of war: ${tr&&DIP_TERMS[tr.term]?DIP_TERMS[tr.term].name:""}`:k==="peace"?`Peace for ${n} round${n>1?"s":""}`:k==="trade"?`a trade deal for ${n} round${n>1?"s":""} (${tr?tr.a:0} mana a round from them, ${tr?tr.b:0} back)`:"an Alliance";
 /* v75c: envoys: Jokers sent as diplomats (two a player); each is a point with the side it is sent to */
 const envoysOf=pl=>G.p[pl]&&G.p[pl].envoys||[];
 const envoyPts=(from,to)=>dipPlayersOf(from).reduce((a,i)=>a+envoysOf(i).filter(e=>e.to===to).length,0);
 function strengthOfTeam(t){return dipPlayersOf(t).reduce((a,i)=>a+strength(i),0)}
 function dipCommonFoe(a,b){return dipTeams().some(c=>c!==a&&c!==b&&dipRel(a,c).s==="war"&&dipRel(b,c).s==="war")}
 function aiDipAccept(t,from,kind,n,terms){const tr=dipTrust(t,from)+10*envoyPts(from,t),me=strengthOfTeam(t),them=Math.max(1,strengthOfTeam(from));   // v75c: every envoy counts for 10
+  if(kind==="terms"){if(dipRel(t,from).s!=="war"||tr<=-60)return false;return me>=them*.9||Math.random()<.4}
   if(kind==="trade"){if(dipRel(t,from).s!=="ally"||!terms)return false;return terms.a>=terms.b||tr>=40&&terms.b-terms.a<=1}
   if(kind==="peace"){if(tr<=-60)return false;return me<them*1.1||tr>=0||Math.random()<.25+tr/200}
   if(kind==="ally"){if(dipTeams().length<=2)return false;const need=dipRel(t,from).s==="peace"?25:40;return tr>=need&&dipCommonFoe(t,from)}
   return false}
 function dipApply(kind,a,b,n,terms){
+  if(kind==="terms"){dipTermsStart(a,b,terms.term);render();return}
   if(kind==="trade"){(dipD().deals=dipD().deals||[]).push({ft:a,tt:b,a:terms.a,b:terms.b,until:G.moon.round+n-1});
     log(`<b>A trade deal</b> between ${dipTN(a)} and ${dipTN(b)} for ${n} round${n>1?"s":""}: ${dipTN(a)} send${dipPlayersOf(a).length>1?"":"s"} ${terms.a} mana a round, ${dipTN(b)} ${terms.b}.`,"event");render();return}
   if(kind==="peace"){dipSet(a,b,"peace",{until:G.moon.round+n-1,n});dipTrustAdd(a,b,15);dipTrustAdd(b,a,15);
@@ -13065,11 +13067,12 @@ function dipApply(kind,a,b,n,terms){
   render()}
 function dipPropose(pl,toT,kind,n,terms){if(!G||!dipOn()||NET.ctx!=null&&NET.ctx!==pl)return false;const a=teamOf(pl);if(a==null||a===toT||!dipTeams().includes(toT))return false;
   n=Math.max(1,Math.min(4,+n||2));const rel=dipRel(a,toT).s;
+  if(kind==="terms"){if(rel!=="war"||!terms||!DIP_TERMS[terms.term]||(dipD().contests||[]).some(c=>c.a===a&&c.b===toT||c.a===toT&&c.b===a))return false;terms={term:terms.term}}
   if(kind==="trade"){if(rel!=="ally"||!terms)return false;terms={a:Math.max(0,Math.min(5,+terms.a|0)),b:Math.max(0,Math.min(5,+terms.b|0))};if(!terms.a&&!terms.b)return false}
   if(kind==="peace"&&rel!=="war")return false;if(kind==="ally"&&(rel==="ally"||dipTeams().length<=2))return false;
   const D=dipD();if(D.pend.some(p=>p.ft===a&&p.tt===toT))return false;
   const hum=dipPlayersOf(toT).filter(i=>!G.p[i].cpu);
-  const tx=kind==="trade"?`a trade deal for ${n} round${n>1?"s":""}: ${terms.a} mana a round to them, ${terms.b} back`:dipKindTxt(kind,n);
+  const tx=kind==="terms"?dipKindTxt("terms",n,terms):kind==="trade"?`a trade deal for ${n} round${n>1?"s":""}: ${terms.a} mana a round to them, ${terms.b} back`:dipKindTxt(kind,n);
   log(`${plName(pl)} offers ${dipTN(toT)} ${tx}.`,"event");
   if(hum.length){D.pend.push({id:++D.n,from:pl,ft:a,tt:toT,kind,n,tr:terms||null,to:hum[0],round:G.moon.round});render();return true}
   const yes=aiDipAccept(toT,a,kind,n,terms);
@@ -13081,7 +13084,7 @@ function dipAnswer(pl,id,yes,counter){if(!G||NET.ctx!=null&&NET.ctx!==pl)return 
     const hum=dipPlayersOf(p.ft).filter(i=>!G.p[i].cpu);
     if(hum.length&&dipRel(p.ft,p.tt).s==="war"){D.pend.push({id:++D.n,from:pl,ft:p.tt,tt:p.ft,kind:"peace",n:+counter,to:hum[0],round:G.moon.round});render();return true}
     if(aiDipAccept(p.ft,p.tt,"peace",+counter))dipApply("peace",p.tt,p.ft,+counter);else log(`${dipTN(p.ft)} decline${dipPlayersOf(p.ft).length>1?"":"s"} the counter.`,"event");render();return true}
-  if(yes&&(p.kind!=="ally"||dipTeams().length>2)&&(p.kind!=="peace"||dipRel(p.ft,p.tt).s==="war")&&(p.kind!=="trade"||dipRel(p.ft,p.tt).s==="ally"))dipApply(p.kind,p.ft,p.tt,p.n,p.tr);
+  if(yes&&(p.kind!=="ally"||dipTeams().length>2)&&(p.kind!=="peace"||dipRel(p.ft,p.tt).s==="war")&&(p.kind!=="trade"||dipRel(p.ft,p.tt).s==="ally")&&(p.kind!=="terms"||dipRel(p.ft,p.tt).s==="war"))dipApply(p.kind,p.ft,p.tt,p.n,p.tr);
   else{log(`${plName(pl)} declines ${dipKindTxt(p.kind,p.n)}.`,"event");render()}
   return true}
 function dipBreakNow(pl,toT,how){const a=teamOf(pl),rel=dipRel(a,toT).s;if(rel!=="peace"&&rel!=="ally")return false;const tw=warOn();
@@ -13153,12 +13156,12 @@ function dipRowHTML(me,t,V){const rel=dipRel(me,t),cpu=dipCpuTeam(t),out=G.dip&&
   const st=rel.s==="war"?`<b class="dst dwar">War</b>`:rel.s==="peace"?`<b class="dst dpeace">Peace</b> <small>${Math.max(0,rel.until-G.moon.round+1)} round${rel.until-G.moon.round+1===1?"":"s"} left${tw?" · lifted by Total War":""}</small>`:`<b class="dst dally">Alliance</b>`;
   let act="";
   if(out)act=`<span class="dim">Waiting for their answer…</span>`;
-  else if(rel.s==="war")act=`<label class="dpn">Peace for <select data-dpn="${t}">${[1,2,3,4].map(n=>`<option value="${n}" ${n===2?"selected":""}>${n} round${n>1?"s":""}</option>`).join("")}</select></label><button type="button" class="btn sm" data-dact="peace|${t}">Offer peace</button>${many?`<button type="button" class="btn ghost sm" data-dact="ally|${t}">Propose an alliance</button>`:""}`;
+  else if(rel.s==="war")act=`<label class="dpn">Peace for <select data-dpn="${t}">${[1,2,3,4].map(n=>`<option value="${n}" ${n===2?"selected":""}>${n} round${n>1?"s":""}</option>`).join("")}</select></label><button type="button" class="btn sm" data-dact="peace|${t}">Offer peace</button>${many?`<button type="button" class="btn ghost sm" data-dact="ally|${t}">Propose an alliance</button>`:""}${dipContest(me,t)?"":`<label class="dpn">or settle by <select data-dterm="${t}">${Object.entries(DIP_TERMS).map(([k,v])=>`<option value="${k}" title="${esc(v.tip)}">${esc(v.name)}</option>`).join("")}</select></label><button type="button" class="btn ghost sm" data-dact="terms|${t}" title="Terms of war: the side that wins them takes tribute, and Peace follows for 2 rounds">Propose terms</button>`}`;
   else if(rel.s==="peace")act=`${many?`<button type="button" class="btn sm" data-dact="ally|${t}">Propose an alliance</button>`:""}${dipUI.brk===t?`<span class="dsure">Break the peace? Their trust falls all the way. <button type="button" class="btn sm danger" data-dact="brk|${t}">Break it</button> <button type="button" class="btn ghost sm" data-dact="nobrk|${t}">Keep it</button></span>`:`<button type="button" class="btn ghost sm" data-dact="ask|${t}">Break the peace</button>`}`;
   else act=dipAllyTools(me,t,V)+(dipUI.brk===t?`<span class="dsure">Break the alliance? ${tw?"Under Total War it costs less.":"Trust falls hard and the Banker disapproves for 8 rounds."} <button type="button" class="btn sm danger" data-dact="brk|${t}">Break it</button> <button type="button" class="btn ghost sm" data-dact="nobrk|${t}">Keep it</button></span>`:`<button type="button" class="btn ghost sm" data-dact="ask|${t}">Break the alliance</button>`);
-  return `<div class="diprow" style="--dc:${dipTeamCol(t)}"><div class="dipwho">${dipTN(t)}${G.opts.factions?`<small>${dipPlayersOf(t).map(i=>esc(G.p[i].name)).join(", ")}</small>`:""}${envoyPts(me,t)?`<small class="envn">✉ ${envoyPts(me,t)} envoy${envoyPts(me,t)>1?"s":""} of yours with them</small>`:""}${envoyPts(t,me)?`<small class="envn">✉ ${envoyPts(t,me)} of their envoys with you</small>`:""}</div><div class="dipst">${st}</div><div class="diptr">${cpu?trustChip(dipTrust(t,me)):`<span class="dim" title="People decide for themselves">person</span>`}</div><div class="dipact">${act}</div></div>`}
+  return `<div class="diprow" style="--dc:${dipTeamCol(t)}"><div class="dipwho">${dipTN(t)}${G.opts.factions?`<small>${dipPlayersOf(t).map(i=>esc(G.p[i].name)).join(", ")}</small>`:""}${envoyPts(me,t)?`<small class="envn">✉ ${envoyPts(me,t)} envoy${envoyPts(me,t)>1?"s":""} of yours with them</small>`:""}${envoyPts(t,me)?`<small class="envn">✉ ${envoyPts(t,me)} of their envoys with you</small>`:""}</div><div class="dipst">${st}${dipContestHTML(me,t)}</div><div class="diptr">${cpu?trustChip(dipTrust(t,me)):`<span class="dim" title="People decide for themselves">person</span>`}</div><div class="dipact">${act}</div></div>`}
 function dipPaint(){const w=$("#dipwin");if(!w||!G)return;const V=view(),me=teamOf(V);const T=dipTeams().filter(t=>t!==me),inc=dipIncoming(V),pen=dipPenOn(V);
-  w.querySelector(".dipbody").innerHTML=`${inc.map(p=>dipIncHTML(p)).join("")}
+  w.querySelector(".dipbody").innerHTML=`${inc.map(p=>dipIncHTML(p)).join("")}${dipCouncilLine()}
 ${pen?`<p class="dippen">The Banker disapproves of you for ${G.dip.pen[me].until-G.moon.round+1} more round${G.dip.pen[me].until-G.moon.round+1===1?"":"s"}: loans grow half as fast again, the Ether and spells cost more.</p>`:""}
 <div class="diphead"><span>Side</span><span>Relation</span><span>Their trust in you</span><span></span></div>${T.map(t=>dipRowHTML(me,t,V)).join("")||'<p class="dim">No other side is left.</p>'}
 ${dipEnvoyHTML(V,T)}
@@ -13169,6 +13172,8 @@ ${dipEnvoyHTML(V,T)}
 <li><b>Breaking an alliance</b>: trust falls hard (−70 with them, −40 with everyone else), and for 8 rounds Bank loans grow half as fast again, cards from the Ether cost 1d3 − 2 more and other spells 1d4 − 3 more. Under Total War none of that, and trust falls less.</li>
 <li><b>Envoys</b>: a Joker from your hand or the field can go as your diplomat, two at most. Each envoy is a point with the side it is with: a computer side trusts you 4 more every round, and counts it for 10 more when you propose. Recalled, it goes back into your deck as it was; souls it had captured go to the grave when it leaves the field.</li>
 <li><b>Allies</b> can give each other mana or a card from the hand, and agree trade deals: mana each round, each way, for 1 to 4 rounds. A deal one side can't pay ends, and trust falls.</li>
+<li><b>Terms of war</b> (between sides at war, both agreeing): first to kill an Ace of the other (or the Tree, when a Jester has one on the field), within 8 rounds; holding the middle longest over 4 rounds (the middle tiles are outlined in red while it runs; each round's end, whoever holds more of them scores); or the most value killed over 4 rounds (each card killed scores its soul's worth). The winner takes 2 + 1d6 mana in tribute, and Peace follows for 2 rounds; a tie brings the peace without tribute.</li>
+<li><b>The Council</b> meets on the first round after every cycle (every 8 rounds): one resolution, put to a vote; each player has a vote, and one more for each envoy they have out. More votes for than against passes it for 8 rounds.</li>
 <li><b>Loans between players</b> are asked and answered here; a computer lends by its trust in you.</li>
 <li><b>Trust</b> (the computers'): it starts at −20 at war, rises with peace and more with an alliance, and falls with every attack. ${TRUST_BANDS.map(b=>`<span class="trustchip" style="--tc:${b[2]}">${b[1]}</span>`).join(" ")}</li></ul></details>`;
   w.querySelectorAll("[data-dact]").forEach(btn=>btn.onclick=()=>{const [a,t0]=btn.dataset.dact.split("|"),t=+t0;
@@ -13176,6 +13181,7 @@ ${dipEnvoyHTML(V,T)}
     else if(a==="ally")dipPropose(V,t,"ally");
     else if(a==="gm"){const s=w.querySelector(`[data-dgm="${t}"]`);dipGift(V,t,"mana",s?+s.value:1)}
     else if(a==="gc"){const s=w.querySelector(`[data-dgc="${t}"]`);if(s&&s.value)dipGift(V,t,"card",+s.value)}
+    else if(a==="terms"){const s=w.querySelector(`[data-dterm="${t}"]`);if(s)dipPropose(V,t,"terms",2,{term:s.value})}
     else if(a==="trade"){const g=k=>{const s=w.querySelector(`[data-${k}="${t}"]`);return s?+s.value:0};dipPropose(V,t,"trade",g("dtr")||2,{a:g("dta"),b:g("dtb")})}
     else if(a==="ask")dipUI.brk=t;else if(a==="nobrk")dipUI.brk=null;else if(a==="brk"){dipUI.brk=null;dipBreak(V,t)}
     dipPaint();render()});
@@ -13246,5 +13252,85 @@ function dipWireP2P(w,V){const re=()=>{dipPaint();render()};
 {const _al=aiLend;aiLend=function(L){if(!dipOn())return _al.apply(this,arguments);const m=mana(L.to);if(m<L.n+3)return false;
   const tr=dipTrust(teamOf(L.to),teamOf(L.from))+10*envoyPts(teamOf(L.from),teamOf(L.to));if(tr<-30)return false;if(tr>=30)return true;return Math.random()<.25+(tr+30)/120}}
 if(window.__EC)Object.assign(window.__EC,{dipEnvoy:(...a)=>dipEnvoy(...a),dipRecall:(...a)=>dipRecall(...a),dipGift:(...a)=>dipGift(...a),dipJokersOf:pl=>dipJokersOf(pl)});
+
+/* ---------- v75d: terms of war, and the Council ----------
+   Terms of war (two sides at war, both agreeing): the first to kill an Ace of the other (or the Tree, when a Jester has
+   one on the field) within 8 rounds; holding the middle longest over 4 rounds (the middle tiles are outlined in red while
+   it runs, and at each round's end whoever holds more of them scores); or the most value killed over 4 rounds (each card
+   killed scores its soul's worth). The winner takes 2 + 1d6 mana in tribute, and Peace follows for 2 rounds; a tie
+   brings the peace without tribute.
+   The Council meets on the first round after every cycle (every 8 rounds): one resolution, put to a vote. Each player has
+   a vote, and one more for each envoy they have out. More votes for than against passes it until the next Council. */
+const DIP_TERMS={ace:{name:"First to kill an Ace",tip:"The first side to kill an Ace of the other (or the Tree, when a Jester has one on the field) within 8 rounds wins."},
+  middle:{name:"Hold the middle longest",tip:"Over 4 rounds the middle tiles are outlined in red on the field; at each round's end, whoever holds more of them scores."},
+  value:{name:"Most value killed",tip:"Over 4 rounds, each card killed scores its soul's worth in mana for the side that killed it."}};
+const dipContest=(a,b)=>(G.dip&&G.dip.contests||[]).find(c=>c.a===a&&c.b===b||c.a===b&&c.b===a)||null;
+function dipContestHTML(me,t){const c=dipContest(me,t);if(!c)return "";const mine=c.a===me?c.sa:c.sb,theirs=c.a===me?c.sb:c.sa;
+  return `<small class="dterm" title="${esc(DIP_TERMS[c.term].tip)}">Terms: ${esc(DIP_TERMS[c.term].name)}${c.term==="ace"?"":` · you ${mine}, them ${theirs}`} · until round ${c.until}</small>`}
+function dipTermsStart(a,b,term){const D=dipD(),r=G.moon.round;(D.contests=D.contests||[]).push({a,b,term,from:r,until:r+(term==="ace"?7:3),sa:0,sb:0});
+  log(`<b>Terms of war</b> between ${dipTN(a)} and ${dipTN(b)}: ${DIP_TERMS[term].name.toLowerCase()}${term==="ace"?" (within 8 rounds)":" (over 4 rounds)"}. The winner takes tribute, and Peace follows.`,"event");
+  popup("Terms of war",`<p>${esc(dipTeamName(a))} and ${esc(dipTeamName(b))} agree on terms: <b>${DIP_TERMS[term].name}</b>.</p><p>${DIP_TERMS[term].tip}</p><p>The winner takes 2 + 1d6 mana from the other in tribute, and Peace follows for 2 rounds; a tie brings the peace without tribute.</p>`);
+  G._vis=null}
+function dipTermsEnd(c,win){const D=dipD();D.contests=(D.contests||[]).filter(x=>x!==c);const lose=win==null?null:win===c.a?c.b:c.a;
+  if(win!=null){const pw=dipPlayersOf(win)[0],pl=dipPlayersOf(lose)[0],n=pl!=null&&pw!=null?Math.min(mana(pl),2+R(6)):0;if(n>0)giveMana(pw,payQuiet(pl,n));
+    log(`<b>${esc(dipTeamName(win))} win${dipPlayersOf(win).length>1?"":"s"} the terms</b> (${DIP_TERMS[c.term].name.toLowerCase()})${n?`: ${dipTN(lose)} pay${dipPlayersOf(lose).length>1?"":"s"} ${n} mana in tribute`:""}. Peace for 2 rounds.`,"event")}
+  else log(`The terms between ${dipTN(c.a)} and ${dipTN(c.b)} end in a tie: Peace for 2 rounds, no tribute.`,"event");
+  if(dipRel(c.a,c.b).s==="war")dipSet(c.a,c.b,"peace",{until:G.moon.round+1,n:2});render()}
+/* the middle of any field: the tiles within one of its center (off the void) */
+function dipMidTiles(){const rows=G.rows,cols=G.board[0].length,rc=(rows-1)/2,cc=(cols-1)/2,out=[];
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)if(Math.abs(r-rc)<=1&&Math.abs(c-cc)<=1&&!isVoid(r,c))out.push([r,c]);return out}
+const dipSideWorth=t=>{const ps=new Set(dipPlayersOf(t));let w=0;const aces=new Set();
+  for(let r=0;r<G.rows;r++)for(let c=0;c<G.board[0].length;c++){const st=G.board[r][c];if(!st||!ps.has(st.owner))continue;for(const x of st.cards){w+=soulOf(x);const k=kind(x);if(k==="ace"||k==="tree")aces.add(x.id)}}
+  return {w,aces}};
+/* every attack: an Ace (or the Tree) killed, and the value killed, for the terms between the two sides */
+{const _at=attack;attack=function(r1,c1,r2,c2,mode){const A=G&&G.board[r1]&&G.board[r1][c1],D=G&&G.board[r2]&&G.board[r2][c2];
+  const on=NET.role!=="guest"&&G&&G.dip&&dipOn()&&A&&D;const ta=on?teamOf(A.owner):null,td=on?teamOf(D.owner):null;
+  const c=on&&ta!==td?dipContest(ta,td):null,res=on&&G.dip.council&&G.moon.round<=G.dip.council.until?G.dip.council.id:null;
+  if(res==="wartax"&&on&&!isNPC(A.owner)&&mana(A.owner)>0){const p=payQuiet(A.owner,1);if(typeof bankAdd==="function")bankAdd(p);log(`The Council's War Tax: ${plName(A.owner)} pays 1 mana to attack.`)}
+  const b4=c?{a:dipSideWorth(ta),d:dipSideWorth(td)}:null;
+  const out=_at.apply(this,arguments);
+  if(c&&dipContest(ta,td)===c){const af={a:dipSideWorth(ta),d:dipSideWorth(td)};
+    if(c.term==="ace"){const lostD=[...b4.d.aces].some(id=>!af.d.aces.has(id)),lostA=[...b4.a.aces].some(id=>!af.a.aces.has(id));if(lostD||lostA){dipTermsEnd(c,lostD&&!lostA?ta:lostA&&!lostD?td:null);return out}}
+    else if(c.term==="value"){const kd=Math.max(0,b4.d.w-af.d.w),ka=Math.max(0,b4.a.w-af.a.w);if(c.a===ta){c.sa+=kd;c.sb+=ka}else{c.sb+=kd;c.sa+=ka}}}
+  return out}}
+/* each round: the middle scores, terms run out, and the Council */
+function dipTermsRound(){const D=G.dip;if(!D||!D.contests||!D.contests.length)return;const r=G.moon.round,mid=dipMidTiles();
+  for(const c of [...D.contests]){if(!dipTeams().includes(c.a)||!dipTeams().includes(c.b)){D.contests.splice(D.contests.indexOf(c),1);continue}
+    if(c.term==="middle"){const pa=new Set(dipPlayersOf(c.a)),pb=new Set(dipPlayersOf(c.b));let na=0,nb=0;for(const [rr,cc] of mid){const st=G.board[rr][cc];if(st&&pa.has(st.owner))na++;if(st&&pb.has(st.owner))nb++}
+      if(na>nb)c.sa++;else if(nb>na)c.sb++}
+    if(r>c.until)dipTermsEnd(c,c.term==="ace"?null:c.sa>c.sb?c.a:c.sb>c.sa?c.b:null)}}
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.dip||!(G.dip.contests||[]).some(c=>c.term==="middle"))return;
+  for(const [r,c] of dipMidTiles()){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(t){t.classList.add("midterm");if(!/terms of war/.test(t.title||""))t.title=(t.title?t.title+" · ":"")+"The middle (terms of war)"}}}}
+const COUNCIL=[{id:"tithe",name:"The Ether's Tithe",text:"Every card from the Ether (every conjuring) costs 1 more mana."},
+  {id:"wartax",name:"War Tax",text:"Every attack costs the attacker 1 mana, paid to the Bank."},
+  {id:"dividend",name:"The Bank's Dividend",text:"Every player gains 1 mana at the start of each of their turns."},
+  {id:"credit",name:"Cheap Credit",text:"Loans from the Bank don't grow."},
+  {id:"silence",name:"The Silence",text:"No one may cast Sorcery spells."}];
+const councilOn=id=>!!(G&&G.dip&&G.dip.council&&G.dip.council.id===id&&G.moon.round<=G.dip.council.until&&dipOn());
+function dipCouncilLine(){const C=G.dip&&G.dip.council;if(!C||G.moon.round>C.until)return `<p class="dipcouncil dim">The Council meets on the first round after every cycle (every 8 rounds).</p>`;
+  const R0=COUNCIL.find(x=>x.id===C.id);return `<p class="dipcouncil"><b>The Council's ${esc(R0.name)}</b> holds until round ${C.until}: ${esc(R0.text)}</p>`}
+function aiCouncil(pl,res){const P=G.p[pl],rich=mana(pl)>=6,weak=strength(pl)<Math.max(1,...realPlayers().filter(i=>i!==pl).map(strength));
+  if(res.id==="dividend")return Math.random()<.85;if(res.id==="credit")return (P.loans||[]).length>0||Math.random()<.35;
+  if(res.id==="wartax")return weak?Math.random()<.8:Math.random()<.25;if(res.id==="tithe")return rich?Math.random()<.3:Math.random()<.55;return Math.random()<.5}
+async function councilRound(){const D=dipD(),r=G.moon.round;D.councilAt=r;const pool=COUNCIL.filter(x=>!D.council||x.id!==D.council.id),res=pick(pool);
+  log(`<b>The Council meets</b>: ${esc(res.name)}. ${esc(res.text)}`,"event");
+  let yes=0,no=0;const tally=[];
+  for(const pl of realPlayers()){if(G.over)return;const w=1+envoysOf(pl).length;
+    const ok=await ask(pl,{kind:"yesno",id:"council",title:`The Council: ${esc(res.name)}`,text:`${esc(res.text)} If it passes, it holds for 8 rounds. Your vote counts ${w} (one, and one for each envoy you have out).`,yes:"For",no:"Against",ai:()=>aiCouncil(pl,res)});
+    if(ok)yes+=w;else no+=w;tally.push(`${G.p[pl].name} ${ok?"for":"against"}${w>1?` (${w})`:""}`)}
+  const pass=yes>no;D.council=pass?{id:res.id,until:r+CYCLE-1}:D.council&&r<=D.council.until?D.council:null;
+  log(`The Council ${pass?"passes":"rejects"} ${esc(res.name)}, ${yes} to ${no} (${esc(tally.join(", "))}).${pass?` It holds until round ${r+CYCLE-1}.`:""}`,"event");
+  if(pass)popup("The Council",`<p>The Council passes <b>${esc(res.name)}</b>, ${yes} votes to ${no}.</p><p>${esc(res.text)} It holds until round ${r+CYCLE-1}.</p>`);render()}
+{const _cr=cycleRound;cycleRound=async function(){await _cr.apply(this,arguments);if(!G||G.over||!dipOn()||NET.role==="guest")return;
+  try{dipTermsRound()}catch(e){console.error(e)}
+  const r=G.moon.round,D=dipD();if(r>1&&(r-1)%CYCLE===0&&D.councilAt!==r)await councilRound()}}
+/* what the Council's resolutions do */
+{const _sc=spellCost;spellCost=function(sp){const c=_sc.apply(this,arguments);if(sp&&c>0&&sp.school==="Conjuring"&&councilOn("tithe"))return c+1;return c}}
+{const _sb=spellBlock;spellBlock=function(sp){if(sp&&sp.school==="Sorcery"&&councilOn("silence"))return "The Council's Silence: no Sorcery until it ends.";return _sb.apply(this,arguments)}}
+{const _bt=bankTurn;bankTurn=function(pl){const P=G&&G.p[pl],cr=P&&councilOn("credit"),before=cr?(P.loans||[]).map(L=>L.owed):null;const out=_bt.apply(this,arguments);if(!P||isNPC(pl))return out;
+  if(cr)(P.loans||[]).forEach((L,i)=>{const d=L.owed-(before[i]==null?L.owed:before[i]);if(d>0)L.owed-=d});
+  if(councilOn("dividend")&&!P.out&&giveMana(pl,1))log(`The Council's Dividend: ${plName(pl)} gains 1 mana.`);
+  return out}}
+if(window.__EC)Object.assign(window.__EC,{dipTermsStart:(...a)=>dipTermsStart(...a),dipTermsRound:()=>dipTermsRound(),dipMidTiles:()=>dipMidTiles(),councilRound:()=>councilRound(),dipContest:(a,b)=>dipContest(a,b)});
 
 })();
