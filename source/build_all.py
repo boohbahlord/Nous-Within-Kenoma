@@ -2,7 +2,7 @@
 import json, html, os, re, shutil
 
 OUT = 'site'
-SITE_V = '57'   # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+SITE_V = '58'   # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 os.makedirs(OUT, exist_ok=True)
 shutil.copy('theme/site.js', f'{OUT}/site.js')
 shutil.copy('theme/ec-music.js', f'{OUT}/ec-music.js')
@@ -22,8 +22,10 @@ try{var N=+(P&&P.net)||0,D=document.documentElement,H=document.head;
 if(N>0){D.classList.add("lite");if(N>1)D.classList.add("poor");var y=document.createElement("style");y.id="litefonts";
 y.textContent='@font-face{font-family:"Grenze Gotisch";font-style:normal;font-weight:500;src:local("Old English Text MT"),local("Times New Roman"),local("Georgia"),local("Noto Serif"),local("DejaVu Serif"),local("Liberation Serif")}';H.appendChild(y)}
 else{var F=function(u){var l=document.createElement("link");l.rel="preload";l.as="font";l.type="font/woff2";l.crossOrigin="anonymous";l.href=u;H.appendChild(l)};
-F("cascadia-code-latin-200-normal.woff2");if(window.EC_BL)F("grenze-gotisch-latin-500-normal.woff2");
-var m=document.createElement("script");m.src="ec-music.js?v=@@SITE_V@@";H.appendChild(m)}}catch(e){}</script>'''.replace('@@SITE_V@@', SITE_V)
+if(!P.dys)F("cascadia-code-latin-200-normal.woff2");if(window.EC_BL)F("grenze-gotisch-latin-500-normal.woff2");
+var m=document.createElement("script");m.src="ec-music.js?v=@@SITE_V@@";H.appendChild(m)}}catch(e){}/* v72b: Dyslexic mode: clear sans-serif letters in place of the blackletter and the thin monospace */
+try{if(P&&P.dys){D.classList.add("dys");var z=document.createElement("style");z.id="dysfonts";z.textContent='@font-face{font-family:"Grenze Gotisch";font-style:normal;font-weight:500;src:local("Verdana"),local("Tahoma"),local("Segoe UI"),local("Arial"),local("DejaVu Sans"),local("Liberation Sans")}@font-face{font-family:"UnifrakturMaguntia";font-style:normal;font-weight:400;src:local("Verdana"),local("Tahoma"),local("Segoe UI"),local("Arial"),local("DejaVu Sans"),local("Liberation Sans")}';H.appendChild(z)}}catch(e){}
+</script>'''.replace('@@SITE_V@@', SITE_V)
 def head(title, extra='', static=1, fx='strings bars', theme='', ec=False):
     cls = f' class="{theme}"' if theme else ''
     return f'''<!doctype html>
