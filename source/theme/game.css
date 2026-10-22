@@ -2238,3 +2238,4 @@ html.fs-sp:not(.fs-sel) #fstabSel{right:min(330px,86vw)}
 #clstgwin .clstgbox{width:min(640px,100%);max-height:calc(100dvh - 32px);overflow:auto}
 #clstgwin h2{margin-top:0}
 #clstgwin .clsh{margin:10px 0 4px;font-size:13px;letter-spacing:.06em;color:var(--amber-hi)}
+.sidetag[style*="--tc"]{color:var(--tc)!important;border-color:var(--tc)!important;background:color-mix(in oklab,var(--tc) 14%,transparent)!important}

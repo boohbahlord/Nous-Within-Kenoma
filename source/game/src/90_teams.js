@@ -11,7 +11,7 @@ const sideShown=()=>!(typeof nepEcState==="function"&&nepEcState(view()));
 {const _sd=siegeDecor;siegeDecor=function(inner,st){const h=_sd.apply(this,arguments);if(!st||!G)return h;const s=sideCol(st.owner);if(!s||!sideShown())return h;
   return h.replace(/(<div class="stack)([^"]*")( style=")/,(m,a,b,c)=>`${a} tmark${b}${c}--tmc:${cbMap(s[1])};`)}}
 {const _pb=pboxHTML;pboxHTML=function(pl){const h=_pb.apply(this,arguments),s=sideCol(pl);if(!s||!sideShown())return h;
-  const name=G.opts.koth&&G.opts.koth.team&&G.map.layout==="koth"?(s[0]==="Red"?"Side A":"Side B"):`${s[0]} team`;
+  const name=G.opts.koth&&G.opts.koth.team&&G.map.layout==="koth"?(s[0]==="Red"?"Side A":"Side B"):`${s[0]} ${G.opts.factions?"faction":"team"}`;
   return h.replace("</b>",`</b><span class="tchip" style="--tc:${cbMap(s[1])}" title="${esc(name)}">${esc(name)}</span>`)}}
 
 if(window.__EC)Object.assign(window.__EC,{sideCol:pl=>sideCol(pl),teamsOn:()=>teamsOn()});

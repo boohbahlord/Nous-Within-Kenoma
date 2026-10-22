@@ -24,8 +24,14 @@ function crossPlan(o){const two=o.big==="cross2",X=o.cross||{},small=X.size==="s
   const seatOf=(sd,a0,w)=>{const back=[],zone=[];for(let d=0;d<2;d++)for(let a=a0;a<a0+w;a++){const t=tile(sd,d,a);zone.push(t);if(!d)back.push(t)}
     return {side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back,zone}};
   const arm=sd=>seatOf(sd,0,A),box=(sd,k)=>seatOf(sd,k*3,3);
-  const seats=[],teams=[];
-  if(two){
+  const seats=[],teams=[],pt=o.players.map(p=>p.team|0);
+  if(L==="factions"&&!two){   // v73d: each faction holds an arm, its two players side by side (one alone holds the whole end)
+    const facs=[...new Set(pt)],sides=facs.length===3?["bottom","left","right"]:["bottom","left","top","right"];
+    pt.forEach((f,i)=>{const sd=sides[facs.indexOf(f)],mates=pt.map((g,j)=>g===f?j:-1).filter(j=>j>=0);seats.push(mates.length>1&&!small?box(sd,mates.indexOf(i)):arm(sd));teams.push(f)})}
+  else if(L.startsWith("team")&&n>4&&!two&&!small){   // v73d: two teams of up to four, two to an arm, on opposite arms or arms side by side
+    const arms=L==="team-side"?[["bottom","left"],["top","right"]]:[["bottom","top"],["left","right"]];
+    pt.forEach((t,i)=>{const k=pt.slice(0,i).filter(x=>x===t).length,sd=arms[t?1:0][k%2];seats.push(box(sd,Math.floor(k/2)));teams.push(t?1:0)})}
+  else if(two){
     if(n<=2||small){seats.push(arm("bottom"),arm("top"));teams.push(0,1)}
     else{const order=[box("bottom",0),box("top",0),box("bottom",1),box("top",1)].slice(0,n);seats.push(...order);teams.push(...order.map((_,i)=>L==="ffa"?i:i%2))}   // teammates share an arm
   }else if(L==="ffa"){(n===3?["bottom","left","right"]:["bottom","left","top","right"]).slice(0,n).forEach((sd,i)=>{seats.push(arm(sd));teams.push(i)})}
@@ -45,10 +51,20 @@ function camHome(V){const w=document.querySelector(".camwrap.on"),S=G&&G.map.sea
   w.scrollLeft+=tr.left+tr.width/2-(wr.left+wr.width/2);w.scrollTop+=tr.top+tr.height/2-(wr.top+wr.height/2)}
 {const _r=render;render=function(){_r.apply(this,arguments);if(!G||!isLarge()||fsOn()||!G.map.seats)return;const V=view(),key=G.map.seed+":"+V;if(camHomeKey===key)return;camHomeKey=key;requestAnimationFrame(()=>camHome(V))}}
 /* the setup: the Cross's own options show under Large maps when a Cross is picked */
-function crossUp(n){const b=val("obig"),box=$("#crossopts");if(!box)return;const on=b==="cross"||b==="cross2";box.hidden=!on;if(!on)return;
-  const sm=document.querySelector('input[name=oxsize][value=small]'),smOk=!(b==="cross2"&&n>2);   // the small two-armed Cross holds two
+function crossUp(n,big){const b=val("obig"),box=$("#crossopts");if(!box)return;const on=b==="cross"||b==="cross2";box.hidden=!on;if(!on)return;
+  const sm=document.querySelector('input[name=oxsize][value=small]'),smOk=!(b==="cross2"&&n>2)&&!big;   // the small two-armed Cross holds two; factions and big teams need the standard size
   sm.disabled=!smOk;sm.closest(".opt").classList.toggle("off",!smOk);if(!smOk&&sm.checked)document.querySelector('input[name=oxsize][value=std]').checked=true;
   const small=val("oxsize")==="small",h=$("#oxhollow");h.disabled=small;h.closest(".chk").classList.toggle("off",small);if(small)h.checked=false}
 const crossOpts=()=>({size:val("oxsize")||"std",hole:!!($("#oxhole")&&$("#oxhole").checked),hollow:!!($("#oxhollow")&&$("#oxhollow").checked)&&val("oxsize")!=="small"});
 
 if(window.__EC)Object.assign(window.__EC,{crossPlan:o=>crossPlan(o)});
+
+/* ---------- v73d: factions on the 10 by 10 map: each faction an edge, its players in boxes 3 wide and 2 deep, side by side ---------- */
+{const _mp=mapPlan;mapPlan=function(o){if(!(o&&o.layout==="factions"&&o.big!=="cross"))return _mp.apply(this,arguments);
+  const M=_mp.call(this,Object.assign({},o,{layout:"ffa",big:"sq",players:o.players.slice(0,4)})),N=M.cols,pt=o.players.map(p=>p.team|0),facs=[...new Set(pt)];
+  const sides=facs.length===3?["bottom","left","right"]:["bottom","left","top","right"];
+  const tile=(sd,d,a)=>sd==="bottom"?[N-1-d,a]:sd==="top"?[d,N-1-a]:sd==="left"?[a,d]:[N-1-a,N-1-d];
+  const seatOf=(sd,a0,w)=>{const back=[],zone=[];for(let d=0;d<2;d++)for(let a=a0;a<a0+w;a++){const t=tile(sd,d,a);if(M.void[t[0]][t[1]])continue;zone.push(t);if(!d)back.push(t)}return {side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back,zone}};
+  const seats=[],teams=[];
+  pt.forEach((f,i)=>{const sd=sides[facs.indexOf(f)],mates=pt.map((g,j)=>g===f?j:-1).filter(j=>j>=0);seats.push(mates.length>1?seatOf(sd,mates.indexOf(i)?5:2,3):seatOf(sd,3,4));teams.push(f)});
+  return Object.assign(M,{layout:"factions",seats,teams})}}
