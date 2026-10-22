@@ -2052,7 +2052,7 @@ html.cvd .tile.tmove{border-color:#56b4e9}html.cvd .tile.tplace{border-color:#f0
 .rbook li.lv2{padding-left:14px}.rbook li.lv3{padding-left:28px}.rbook li.lv4{padding-left:42px}.rbook li.hd>.rbent{color:var(--amber)}
 .rbent{text-align:left;font-size:13px;line-height:1.35;color:var(--text)}.rbent b{display:inline-block;min-width:3.6em;font-weight:400;color:var(--dim);font-family:var(--mono)}
 #rbwin .rbbox{max-width:720px}#rbwin .rbcode{margin:0;font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--dim)}
-#rbwin .rbtext{max-height:min(60vh,520px);overflow:auto;padding-right:6px;line-height:1.55}#rbwin .rbtext .rcode{font-family:var(--mono);font-size:.78em;color:var(--dim);margin-right:.35em;text-decoration:none}
+#rbwin .rbtext .rcode{font-family:var(--mono);font-size:.78em;color:var(--dim);margin-right:.35em;text-decoration:none}
 #rbwin .rbnav{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 /* v72d: Automated Strategies */
 .fastrat .strow{display:flex;align-items:stretch;gap:10px;margin:6px 0}
@@ -2304,3 +2304,42 @@ html.lite details.sub.mkgist>summary{animation:none}
 .minepanel.msmini .mslot .msstat b{color:var(--text)}
 .minepanel.msmini .mslot:has(.msstat){padding-bottom:4px}
 html.ecfs .minepanel.msmini{margin:0 0 6px}
+/* v74e: the Rule book: the window (All Rules) and its two optional folds */
+#rbwin .rbbox{max-width:760px;width:100%;outline:none}
+.rbbar{display:flex;align-items:center;gap:10px;min-height:30px;padding-right:34px}
+.rbbar .rbback{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rbfold .rbbar,.rbook .rbbar{padding-right:0}
+.rbwhere{font-size:12.5px}
+.rbfindrow{display:flex;align-items:flex-start;gap:8px;margin:8px 0 4px;flex-wrap:wrap}
+.rbfindrow .rbq{flex:1 1 220px;min-width:0;font-family:var(--mono);font-size:14px;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:6px 8px}
+.rbfindrow .rbq:focus{outline:1px solid var(--amber);border-color:var(--amber)}
+.rbopts{font-size:12.5px;align-self:center}.rbopts>summary{cursor:pointer;color:var(--dim);list-style-position:inside}
+.rbopts[open]{flex:1 1 100%;border:1px solid var(--rule);padding:6px 8px;background:color-mix(in srgb,var(--deep) 80%,transparent)}
+.rbopts .rbchk{display:flex;gap:8px;align-items:flex-start;margin:4px 0;cursor:pointer}.rbopts p{margin:6px 0 0;font-size:12px}
+.rbkeys{margin:0 0 6px;font-size:11px;color:var(--dim);letter-spacing:.02em}
+.rbview{overflow:auto;min-height:0;flex:1 1 auto;padding-right:4px}
+#rbwin .rbview{max-height:min(66vh,560px)}
+.rbook .rbview{max-height:min(70vh,640px)}
+.rbtop{list-style:none;margin:4px 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:6px}
+.rbsecb{display:grid;grid-template-columns:2.4em 1fr;grid-template-rows:auto auto;align-items:baseline;column-gap:6px;width:100%;height:100%;text-align:left;padding:8px 10px;background:var(--well);border:1px solid var(--rule);color:var(--text);font:inherit;font-size:13.5px;line-height:1.3;cursor:pointer}
+.rbsecb b{grid-row:1/3;font:400 18px/1 var(--mono);color:var(--amber)}.rbsecb small{grid-column:2;color:var(--dim);font-size:11px}
+.rbsecb:hover,.rbsecb:focus-visible{border-color:var(--amber);outline:none;background:color-mix(in srgb,var(--amber) 8%,var(--well))}
+.rbh{margin:6px 0 6px;font-weight:400;color:var(--amber-hi)}.rbh .rbc{font-family:var(--mono);color:var(--amber);margin-right:.4em}
+.rbwhole{margin:0 0 6px}.rbent.rbfirst{color:var(--amber)}
+.rbsecl,.rbhits,.rbkids{list-style:none;margin:4px 0 8px;padding:0}.rbsecl li,.rbhits li,.rbkids li{margin:1px 0}
+.rbsecl li.lv2{padding-left:0}.rbsecl li.lv3{padding-left:16px}.rbsecl li.lv4{padding-left:32px}.rbsecl li.hd>.rbent{color:var(--amber)}
+.rbhits li{padding:3px 0;border-bottom:1px solid #0005}.rbhits small{display:block;color:var(--dim);font-size:12px;line-height:1.4;padding-left:calc(3.6em + 4px)}
+.rbhits mark{background:color-mix(in srgb,var(--amber) 35%,transparent);color:inherit;padding:0 1px}
+.rbkids{border-top:1px solid var(--rule);padding-top:6px}
+.rbcode{margin:0;font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--dim)}
+.rbtext{line-height:1.55}.rbtext .rcode{font-family:var(--mono);font-size:.78em;color:var(--dim);margin-right:.35em;text-decoration:none}
+.rbnav{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 0}
+#rbfoot{margin:18px 0 8px}
+.rbbox .rbent,.rbook .rbent{display:inline;font-family:inherit;font-size:13.5px;line-height:1.4;color:var(--text);text-align:left;border:0;text-decoration:none}
+.rbbox .rbent:hover,.rbook .rbent:hover,.rbbox .rbent:focus-visible,.rbook .rbent:focus-visible{color:var(--amber-hi)}
+.rbbox .rbent b,.rbook .rbent b{display:inline-block;min-width:3.6em;font-weight:400;color:var(--amber);font-family:var(--mono)}
+.rbbox .rbsecl li.hd>.rbent,.rbook .rbsecl li.hd>.rbent{color:var(--amber-hi)}
+.rbbox .rbtext,.rbook .rbtext{font-size:15px}
+.rbook .rbbody{padding:8px 12px 12px}
+.cinfo .rbopts>summary{padding:0;font-size:12.5px;letter-spacing:normal;text-transform:none;color:var(--dim)}
+.rbook .rbh{font-size:16px;letter-spacing:normal;text-transform:none}

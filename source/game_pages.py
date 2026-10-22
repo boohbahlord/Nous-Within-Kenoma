@@ -317,11 +317,12 @@ rules = rules.replace('</main>', '''<a class="totop" href="#index" hidden>↑ In
 <script>(function(){var b=document.querySelector(".totop"),i=document.getElementById("index");if(!b||!i)return;
 function f(){b.hidden=i.getBoundingClientRect().bottom>0}addEventListener("scroll",f,{passive:true});f();
 b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({behavior:"smooth"});history.replaceState(null,"","#index")})})();</script>
+<script>''' + open('game/text/rules_reader.js').read() + '''</script>
 </main>''', 1)
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
 # v71j: EC_BL asks the page's head to preload the blackletter (unless the device saves data)
-play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel="stylesheet" href="ethers-crossroads.css?v=125">', ec=True) + f'''<main class="wide game">
+play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel="stylesheet" href="ethers-crossroads.css?v=126">', ec=True) + f'''<main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
@@ -358,8 +359,8 @@ play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel
 </main>
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
-<script>window.EC_QSRC="ethers-crossroads-quotes.js?v=125"</script>
-<script src="ethers-crossroads.js?v=125"></script>
+<script>window.EC_QSRC="ethers-crossroads-quotes.js?v=126"</script>
+<script src="ethers-crossroads.js?v=126"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 
