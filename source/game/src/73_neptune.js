@@ -203,17 +203,37 @@ const nepHash=s=>{let h=2166136261;for(const ch of String(s))h=Math.imul(h^ch.ch
 /* acting with a stranger's stack */
 function nepFoePenalty(V){const lost=takeDeck(V,R(2),"Neptune's eclipse");for(const x of lost)toGrave(x,"burn");
   log(`Neptune's eclipse: that stack wasn't ${plName(V)}'s, and it costs ${lost.length} deck card${lost.length===1?"":"s"} (1d2).`,"event");flash(`That stack wasn't yours: Neptune takes ${lost.length} card${lost.length===1?"":"s"} from your deck.`)}
+/* v71p: a stranger's stack picked up shows where it could go (prep) or what it could hit (attack), exactly as if it were
+   yours; clicking one of those tiles, or a button in the Selected box, is acting with it: 1d2 deck cards, or once a round, on
+   a 1 of 1d6, it really moves there by accident. Clicking anywhere else only puts it down, as with your own. */
+function nepFoeTargets(fr,fc,V){const st=G.board[fr]&&G.board[fr][fc];if(!st||V==null)return null;
+  const mode=G.phase==="prep"?"move":G.phase==="attack"?"attack":null;if(!mode)return null;
+  const keep={owner:st.owner,moved:st.moved,attacked:st.attacked},sel=G.sel,vis=G._vis;
+  st.owner=V;st.moved=false;st.attacked=false;G.sel={r:fr,c:fc,pick:new Set(st.cards.filter(x=>!isBase(x)).map(x=>x.id))};G._vis=null;
+  try{return {mode,tiles:mode==="move"?moveTargets():attackTargets()}}catch(e){return null}finally{Object.assign(st,keep);G.sel=sel;G._vis=vis}}   // what it saw as yours is forgotten: no sight through it
+const nepFoeHit=(T,r,c)=>!!T&&T.tiles.some(([a,b])=>a===r&&b===c);
+/* acting with it: on the host (a joined player's act travels there) */
+function nepFoeAct(V,fr,fc,r,c){if(!G||G.over||!G.p[V]||!nepEcFor(V)||NET.ctx!=null&&NET.ctx!==V)return false;
+  const fs=G.board[fr]&&G.board[fr][fc];if(!fs||!isEnemy(fs.owner,V))return false;
+  const E=nepEcState(V)||{foe:{}},k=V+"|"+G.moon.round,T=r!=null?nepFoeTargets(fr,fc,V):null;
+  if(T&&T.mode==="move"&&nepFoeHit(T,r,c)&&!G.board[r][c]&&!E.foe[k]&&R(6)===1){E.foe=E.foe||{};E.foe[k]=1;G.board[r][c]=fs;G.board[fr][fc]=null;G._vis=null;
+    log(`Neptune's eclipse: ${plName(V)} moves a stranger's stack by accident, to ${coord(r,c)} (a 1 on 1d6).`,"event");render();return true}
+  nepFoePenalty(V);render();return true}
+for(const [name,get,set] of [["nepFoeAct",()=>nepFoeAct,f=>nepFoeAct=f]]){
+  NETFN[name]={get,set};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
 {const _tc=tileClick;tileClick=function(r,c){if(!G||!nepEcFor(view()))return _tc.apply(this,arguments);
   const V=view(),st=G.board[r][c],S=G.sel;
-  if(S&&S.nepFoe){G.sel=null;if(S.r===r&&S.c===c){render();return}
-    const E=nepEcState(V)||{foe:{}},k=V+"|"+G.moon.round,fs=G.board[S.r][S.c];
-    if(fs&&!E.foe[k]&&!G.board[r][c]&&!isVoid(r,c)&&Math.abs(r-S.r)+Math.abs(c-S.c)===1&&R(6)===1){E.foe[k]=1;G.board[r][c]=fs;G.board[S.r][S.c]=null;G._vis=null;
-      log(`Neptune's eclipse: ${plName(V)} moves a stranger's stack by accident, to ${coord(r,c)} (a 1 on 1d6).`,"event");render();return}
-    nepFoePenalty(V);render();return}
+  if(S&&S.nepFoe){
+    if(nepFoeHit(nepFoeTargets(S.r,S.c,V),r,c)){G.sel=null;nepFoeAct(V,S.r,S.c,r,c);render();return}
+    G.sel=null;G.mode=null;if(S.r===r&&S.c===c){render();return}
+    return tileClick(r,c)}   // put down, then the click counts as usual
   if(st&&isEnemy(st.owner,V)&&G.active===V&&(G.phase==="prep"||G.phase==="attack")&&!G.mode&&!G.selHand&&canAct()&&stFights(st)){G.sel={r,c,pick:new Set(st.cards.filter(x=>!isBase(x)).map(x=>x.id)),nepFoe:true};render();return}
   return _tc.apply(this,arguments)}}
 document.addEventListener("click",e=>{if(!G||!G.sel||!G.sel.nepFoe||!nepEcFor(view()))return;const b=e.target.closest&&e.target.closest("#selbox button");if(!b)return;
-  e.preventDefault();e.stopPropagation();G.sel=null;nepFoePenalty(view());render()},true);   // the Selected box's buttons count as acting with it
+  e.preventDefault();e.stopPropagation();const S=G.sel;G.sel=null;nepFoeAct(view(),S.r,S.c,null,null);render()},true);   // the Selected box's buttons count as acting with it
+{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.sel||!G.sel.nepFoe||!nepEcFor(view()))return;
+  const T=nepFoeTargets(G.sel.r,G.sel.c,view()),B=$("#board");if(!T||!B)return;
+  for(const [r,c] of T.tiles){const t=B.querySelector(`.tile[data-r="${r}"][data-c="${c}"]`);if(t)t.classList.add(T.mode==="attack"?"tatk":"tmove")}}}
 /* twice a round at most, a 1 of 1d20 sends a move or an attack astray */
 const nepAstray=pl=>{const E=nepEcState(pl);if(!E)return false;const k=pl+"|"+G.moon.round;if((E.mis[k]||0)>=2||R(20)!==1)return false;E.mis[k]=(E.mis[k]||0)+1;return true};
 {const _dm=doMove;doMove=function(r,c){if(nepEcFor(G.active)&&G.sel&&!G.sel.nepFoe&&nepAstray(G.active)){const alt=moveTargets().filter(([a,b])=>a!==r||b!==c);
