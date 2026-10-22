@@ -271,7 +271,7 @@ const survival=()=>G.opts.mode==="survival";
 const isHorde=pl=>!!(G.p[pl]&&(G.p[pl].cpu==="horde"||G.p[pl].cpu==="npc"));   // the Horde, and the Demons and the Bank (no deck, no hand, no mana)
 const hordeIx=()=>G.p.findIndex(P=>P.cpu==="horde");
 const alive=()=>G.p.filter(P=>!P.out).map(P=>P.i);
-const isEnemy=(a,b)=>a!=null&&b!=null&&a!==b&&G.p[a].team!==G.p[b].team;
+const isEnemy=(a,b)=>a!=null&&b!=null&&a!==b&&G.p[a].team!==G.p[b].team&&!(G.dip&&dipAllied(a,b));   // v75b: allies (Diplomacy) are not enemies
 const enemiesOf=pl=>alive().filter(i=>isEnemy(pl,i));
 const alliesOf=pl=>alive().filter(i=>i!==pl&&!isEnemy(pl,i));
 const me=()=>G.p[G.active], foe=()=>G.p[enemiesOf(G.active).filter(i=>!isNPC(i))[0]??(G.active===0?1:0)];

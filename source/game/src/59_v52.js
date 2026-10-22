@@ -88,7 +88,7 @@ function miniBoxHTML(pl){const P=G.p[pl],V=view(),act=pl===G.active&&G.phase!=="
   const N=Math.max(1,P.start||P.deck.length||1),n=P.deck.length,m=mana(pl)-(P.debt||0),cap=soulCap(pl);
   const line=(t,v,max,txt,neg)=>`<div class="mline${neg?" neg":""}"><span>${t}</span><i><u style="width:${Math.max(0,Math.min(100,v/max*100)).toFixed(1)}%"></u></i><b>${txt}</b></div>`;
   h+=line("Deck",n,N,n)+line("Mana",Math.max(0,m),cap,`${m}/${cap}`,m<0);
-  const open=eclipseOn("sun")&&!G.passing||P.shownBy!=null&&!G.passing&&(P.shownBy===V||!isEnemy(P.shownBy,V))||!isEnemy(pl,V)&&G.p.filter(Q=>!Q.cpu).length===1&&!G.passing;
+  const open=eclipseOn("sun")&&!G.passing||P.shownBy!=null&&!G.passing&&(P.shownBy===V||!isEnemy(P.shownBy,V))||G.p[pl].team===G.p[V].team&&G.p.filter(Q=>!Q.cpu).length===1&&!G.passing;
   const tags=[`<span>Hand <b>${P.hand.length}/${handCap(pl)}</b></span>`,...(open&&P.hand.length?[`<span class="seenmark" title="seen">${P.hand.map(c=>esc(short(c))).join(" ")}</span>`]:[]),...econTags(P)];
   if(P.tribe==="tiph"){const k=stacksOf(pl).reduce((a,x)=>a+x.st.cards.reduce((b,c)=>b+((c.prisoners||[]).length),0),0);if(k)tags.push(`<span>Prisoners <b>${k}</b></span>`)}
   if(P.tribe==="yald")tags.push(`<span>Hunger <b>${P.hunger||0}/7</b></span>`);

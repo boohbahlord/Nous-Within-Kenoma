@@ -155,6 +155,7 @@ ${chk("okcontest","Contest","When more than one side holds the Hill, nobody scor
 <p class="dim">When the timer runs out the game moves on to the next phase. During setup it places your cards for you, the way a Medium computer would.</p>
 <label class="f">Computer speed <select id="ospeed"><option value="slow">Slow</option><option value="normal" selected>Normal (default)</option><option value="fast">Fast</option></select></label>
 </fieldset>
+<fieldset class="pf" id="dipset" hidden><legend>Diplomacy</legend>${chk("odip","Diplomacy","A flag under the Bank opens Diplomacy between the sides: Peace (no attacks for 1 to 4 rounds) and Alliances (shared vision, friendly spells, surrounding together; no shared win), and the computers' trust. Everyone starts at war. On by default in Factions; an option in Free For All.",false)}</fieldset>
 <fieldset class="pf" id="elimset" hidden><legend>When a player falls</legend><div class="opts">
 <label class="opt"><input type="radio" name="oelim" value="grave" checked><span>To the grave (default)<small>Their deck and hand go to the grave, and the grave is shuffled.</small></span></label>
 <label class="opt"><input type="radio" name="oelim" value="dark"><span>To the Outer Darkness<small>Their deck and hand are gone for good.</small></span></label></div></fieldset>
@@ -327,6 +328,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     $("#teamdecks").hidden=!L.startsWith("team");
     if(!$("#decksset").dataset.touched){const d=L.startsWith("team")?"half":"1";document.querySelectorAll('input[name=odeckper]').forEach(i=>i.checked=i.value===d)}   // v70d: one deck each, half a deck each in 2v2
     $("#elimset").hidden=(mode==="survival"?n:n)<(mode==="survival"?2:3);
+    {const on=mode!=="survival"&&(L==="ffa"||L==="factions");$("#dipset").hidden=!on;if(!$("#odip").dataset.touched)$("#odip").checked=L==="factions"}   // v75b: Diplomacy
     turnUp();mapUp&&mapUp();sumUp();
   };
   const turnUp=()=>{
@@ -339,7 +341,8 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
   $("#ocorners").addEventListener("change",()=>$("#ocorners").dataset.touched=1);
   $("#pcount").addEventListener("change",drawSeats);
   document.querySelectorAll('input[name=obig],input[name=oxsize]').forEach(i=>i.addEventListener("change",()=>crossUp(count())));   // v73c
-  document.querySelectorAll('input[name=obig]').forEach(i=>i.addEventListener("change",()=>$("#sizeset").classList.toggle("survbig",mode==="survival"&&val("obig")==="long")));   // v73b: the large map has its own size
+  document.querySelectorAll('input[name=obig]').forEach(i=>i.addEventListener("change",()=>$("#sizeset").classList.toggle("survbig",mode==="survival"&&val("obig")==="long")));
+  $("#odip").addEventListener("change",()=>{$("#odip").dataset.touched=1});   // v73b: the large map has its own size
   document.querySelectorAll('input[name=olayout]').forEach(i=>i.addEventListener("change",drawSeats));
   const pickLay=k=>{const i=document.querySelector(`input[name=olayout][value="${k}"]`);if(i)i.checked=true;drawSeats()};   // v73d: Game and Teammates spawn set the layout underneath
   const teamLay=()=>{const n=count();if(n<4||val("oteamn")==="fac")return "factions";const a=val("oteamarr")||"same";return "team-"+(a==="same"&&n>4?"across":a)};
@@ -415,7 +418,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
       map:L==="koth"?"hill":val("omap"),big:L==="koth"?(["cross","small"].includes(val("okfield"))?"cross":""):val("obig")||"",cross:L==="koth"?{size:val("okfield")==="small"?"small":"std"}:crossOpts(),factions:L==="factions",koth:L==="koth"?{team:$("#okteam").checked,tug:$("#okteam").checked&&$("#oktug").checked,double:$("#okdouble").checked,contest:$("#okcontest").checked,target:+val("oktarget")||50,near:val("oknear")==="near",cpu:val("okcpu")||"each"}:null,cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:L==="duel"&&val("orowsd")?+val("orowsd"):undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
       deckPer:val("odeckper")||"1",etherPer:val("oetherper")||"1",noSubs:$("#onosubs").checked,specials:val("ospecials"),jokerSure:$("#ojoker").checked,deckMiner:$("#ominer").checked,suits:val("odeckper")==="half"&&L==="duel"&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
       startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",cycleEvents:$("#ocycev").checked,alikeOk:!!($("#oalike")&&$("#oalike").checked),eclipses:$("#oeclipse").checked||$("#oblood").checked,eclipseMode:$("#oblood").checked,eclipseAlways:$("#oblood").checked&&!!($("#oeclall")&&$("#oeclall").checked),skyChange:skyChangeOpts(),atkSpells:$("#oatk").checked,pshop:$("#opshop")?$("#opshop").checked:true,
-      layout:L,turns:$("#oturns").value,timer:+$("#otimer").value,cpuSpeed:$("#ospeed").value,elimDark:val("oelim")==="dark",shareDeck:$("#oshare").checked});
+      layout:L,diplomacy:!$("#dipset").hidden&&$("#odip").checked,turns:$("#oturns").value,timer:+$("#otimer").value,cpuSpeed:$("#ospeed").value,elimDark:val("oelim")==="dark",shareDeck:$("#oshare").checked});
   };
 }
 function startGame(opts){
