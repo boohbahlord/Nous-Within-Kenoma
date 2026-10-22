@@ -29,4 +29,4 @@ nepCloudTiles=function(){const N=NEP();let w=N.cloud&&N.cw;
 if(window.__EC)Object.assign(window.__EC,{nepCloudTilesW:()=>nepCloudTiles()});
 
 /* v71m: while Neptune is in the sky (or on a player through Lostness) its fog of war is bluish: html.nepup */
-{const _r=render;render=function(){_r.apply(this,arguments);document.documentElement.classList.toggle("nepup",!!(G&&(nepUp()||nepSelf(view()))))}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);document.documentElement.classList.toggle("nepup",!!(G&&(nepUp()||nepSelf(view()))))}}

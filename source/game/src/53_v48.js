@@ -7,7 +7,7 @@ function critBanner(k,n){let b=$("#critfx");if(!b){b=document.createElement("div
   const t=k==="hit"?"Crit Hit":k==="miss"?"Crit Miss":k==="success"?"Crit Success":"Miss";
   b.className="k-"+k;b.innerHTML=`<b>${t}</b>${k==="dodge"?"":D20_SVG(n)}`;b.hidden=false;b.classList.remove("go");void b.offsetWidth;b.classList.add("go");
   clearTimeout(critBanner.t);critBanner.t=setTimeout(()=>{b.hidden=true},1700)}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.log)return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!G.log)return;
   const e=G.log.find(l=>l.crit);if(!e)return;const id=e.n||e.t;if(!critSeen){critSeen=id;if(Date.now()-e.t>4000)return}
   if(id!==critSeen&&Date.now()-e.t<6000){critSeen=id;critBanner(e.crit.k,e.crit.n)}else critSeen=id}}
 

@@ -53,7 +53,7 @@ function setAutoCfg(pl,key,cfg){if(!G||!G.p[pl]||!["rdCfg","lhCfg"].includes(key
 const autoSent={};
 function autoSync(){if(!G||G.over)return;const V=view(),P=G.p[V];if(!P||P.cpu||isNPC(V))return;
   for(const [key,cfg] of [["rdCfg",rdMine()],["lhCfg",lhMine()]]){const j=JSON.stringify(cfg),k=V+key;if(autoSent[k]===j&&JSON.stringify(P[key])===j)continue;if(autoSent[k]===j&&NET.role==="guest")continue;autoSent[k]=j;setAutoCfg(V,key,cfg)}}
-{const _r=render;render=function(){_r.apply(this,arguments);autoSync()}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);autoSync()}}
 
 /* ---------- the window and the fold-down: three tabs ---------- */
 let autoTab=["field","ritual","lazy"].includes(PREF.autoTab)?PREF.autoTab:"field";

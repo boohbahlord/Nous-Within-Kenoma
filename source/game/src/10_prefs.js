@@ -86,7 +86,7 @@ function confirmLeave(go){
   $("#lvy").onclick=()=>{box.hidden=true;leaving=true;go()};$("#lvn").onclick=()=>{box.hidden=true};
 }
 function guardLinks(){
-  document.querySelectorAll(".game .crumbs a").forEach(a=>a.addEventListener("click",e=>{if(!inGame())return;e.preventDefault();confirmLeave(()=>{location.href=a.href})}));
+  document.querySelectorAll(".game .crumbs a").forEach(a=>a.addEventListener("click",e=>{if(!inGame()||e.ctrlKey||e.metaKey||e.shiftKey)return;e.preventDefault();confirmLeave(()=>{location.href=a.href})}));
 }
 /* the phone's Back button (and a swipe back) asks too: a game in progress keeps one extra history entry to catch it */
 let backTrap=false;
@@ -96,7 +96,7 @@ addEventListener("popstate",()=>{if(!backTrap)return;backTrap=false;
   confirmLeave(()=>{history.back()});
   const keep=$("#lvn");if(keep)keep.addEventListener("click",armBackTrap,{once:true})});
 addEventListener("beforeunload",e=>{if(inGame()&&!G.opts.fast&&!leaving){e.preventDefault();e.returnValue=""}});
-{const _rd=render;render=function(){_rd.apply(this,arguments);armBackTrap()}}
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);armBackTrap()}}
 
 /* passages from the book, for whoever is waiting */
 function mountQuotes(){

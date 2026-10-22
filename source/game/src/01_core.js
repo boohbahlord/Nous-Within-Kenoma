@@ -275,9 +275,12 @@ const alive=()=>G.p.filter(P=>!P.out).map(P=>P.i);
 const PERF={inRender:0,vk:null,sp:null,jobs:new Map(),raf:0};
 function perfFlush(){PERF.raf=0;const js=[...PERF.jobs.values()];PERF.jobs.clear();for(const f of js){try{f()}catch(e){console.error(e)}}}
 function perfLater(k,fn){PERF.jobs.set(k,fn);if(!PERF.raf)PERF.raf=typeof requestAnimationFrame==="function"?requestAnimationFrame(perfFlush):setTimeout(perfFlush,16)}
+/* a layer of the redraw that fails is logged and skipped: the layers around it, and the game, carry on */
+const rSafe=(f,t,a)=>{try{return f.apply(t,a)}catch(e){console.error(e)}};
 const isEnemy=(a,b)=>a!=null&&b!=null&&a!==b&&G.p[a].team!==G.p[b].team&&!(G.dip&&dipAllied(a,b));   // v75b: allies (Diplomacy) are not enemies
 const enemiesOf=pl=>alive().filter(i=>isEnemy(pl,i));
 const alliesOf=pl=>alive().filter(i=>i!==pl&&!isEnemy(pl,i));
+const teammatesOf=pl=>alive().filter(i=>i!==pl&&!isHorde(i)&&G.p[i].team===G.p[pl].team);   // the real team (Diplomacy allies are not on it)
 const me=()=>G.p[G.active], foe=()=>G.p[enemiesOf(G.active).filter(i=>!isNPC(i))[0]??(G.active===0?1:0)];
 const human=pl=>!G.p[pl].cpu;
 const humans=()=>G.p.filter(P=>!P.cpu&&!P.out).map(P=>P.i);
@@ -292,7 +295,7 @@ const seat=pl=>G.map.seats[pl];
 /* v53: you spawn in your own lines, or in a teammate's when they hold the same side of the field */
 const canSpawn=(pl,r,c)=>{const z=G.zone[r][c];if(z===pl)return true;if(z<0||!G.p[z]||!G.p[pl]||G.p[z].team!==G.p[pl].team||isNPC(z)||isNPC(pl))return false;
   const a=G.map.seats[z],b=G.map.seats[pl];return !!a&&!!b&&a.side===b.side};
-const isBack=(pl,r,c)=>G.backz[r][c]===pl;
+const isBack=(pl,r,c)=>G.backz[r][c]===pl||!!(G.map.seats[pl]&&G.map.seats[pl].back.some(([a,b])=>a===r&&b===c));   // teammates who share a back line (2v2, same side) each hold all of it
 const backTiles=pl=>seat(pl).back.filter(([r,c])=>!isVoid(r,c));
 const zoneTiles=pl=>seat(pl).zone.filter(([r,c])=>!isVoid(r,c));
 const isFront=(pl,r,c)=>canSpawn(pl,r,c)&&!isBack(pl,r,c);

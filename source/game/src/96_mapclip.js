@@ -21,7 +21,7 @@ function mapClip(){const B=$("#board");if(!B||!G||!G.map)return;const out=mapOut
   const url=`url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><g fill="#fff">${rects}</g></svg>`)}")`;
   clipCache={key,url};mapClipSet(bg,url,key)}
 function mapClipSet(bg,url,key){for(const [k,v] of [["maskImage",url],["webkitMaskImage",url],["maskSize","100% 100%"],["webkitMaskSize","100% 100%"],["maskRepeat","no-repeat"],["webkitMaskRepeat","no-repeat"]])bg.style[k]=v;bg.dataset.clip=key}
-{const _r=render;render=function(){_r.apply(this,arguments);if(G&&G.map)perfLater("mapclip",mapClip)}}   // v76b: just before the paint
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(G&&G.map)perfLater("mapclip",mapClip)}}   // v76b: just before the paint
 if(typeof ResizeObserver!=="undefined"){let ro=null;const watch=()=>{const B=$("#board");if(!B||B._clipRO)return;B._clipRO=1;ro=ro||new ResizeObserver(()=>{try{mapClip()}catch(e){}});ro.observe(B)};
-  {const _r=render;render=function(){_r.apply(this,arguments);watch()}}}
+  {const _r=render;render=function(){rSafe(_r,this,arguments);watch()}}}
 if(window.__EC)Object.assign(window.__EC,{mapOutside:()=>mapOutside()});

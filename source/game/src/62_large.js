@@ -13,7 +13,7 @@ function camWrap(){const B=$("#board");if(!B)return null;let w=B.parentNode&&B.p
   if(isLarge()&&!w){w=document.createElement("div");w.className="camwrap";B.parentNode.insertBefore(w,B);w.appendChild(B);camWire(w)}
   if(w){const on=isLarge();w.classList.toggle("on",on);B.classList.toggle("large",on);B.style.setProperty("--tw",Math.round(CAM.TILE*CAM.z)+"px")}
   return w}
-{const _r=render;render=function(){_r.apply(this,arguments);if(G){camWrap();camNote()}}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(G){camWrap();camNote()}}}
 /* ---------- the note under a large field: the controls, − and +, and the wheel's zoom switch ---------- */
 function camNote(){const w=camWrap();let n=$("#camnote");
   if(!w||!isLarge()){if(n)n.hidden=true;return}

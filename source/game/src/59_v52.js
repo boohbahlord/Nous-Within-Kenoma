@@ -36,7 +36,7 @@ function lhMaster(){const c=lhMine();
 {const _lc=lhClean;lhClean=function(c){const prev=c&&c.prev;const out=_lc(c);if(prev)out.prev={keep:!!prev.keep,autoPlace:!!prev.autoPlace,sac:!!prev.sac};return out}}
 
 /* ---------- Field Automation off for the game: the settings button stays ---------- */
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G||faAllowed())return;const ctl=$("#controls"),V=view();
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G||faAllowed())return;const ctl=$("#controls"),V=view();
   const show=!G.over&&G.phase!=="setup"&&G.p[V]&&!G.p[V].cpu&&!isNPC(V)&&!(NET.role==="guest"&&NET.watch);
   if(ctl&&show&&!ctl.querySelector(".fabar")){ctl.insertAdjacentHTML("beforeend",`<span class="fabar"><button type="button" class="btn ghost sm facfgb" data-tip="Configure Automation: Ritual Dice and Lazy Hand" aria-label="Configure Automation">▦</button></span>`);
     ctl.querySelector(".facfgb").onclick=()=>faWindow(autoTab==="field"?"ritual":autoTab)}}}
@@ -99,5 +99,5 @@ function miniBoxHTML(pl){const P=G.p[pl],V=view(),act=pl===G.active&&G.phase!=="
 function trayAllHTML(){const L=G.p.map((P,i)=>({P,i})).filter(x=>x.P.tray&&!isNPC(x.i)).sort((a,b)=>b.P.tray.t-a.P.tray.t);
   if(!L.length)return `<div class="trayall"><span class="tl">Dice</span><span class="dim">No rolls yet.</span></div>`;
   return `<div class="trayall"><span class="tl">Dice, newest first</span>${L.map(({P,i})=>{const t=P.tray;return `<button type="button" class="trow" data-hist="${i}" style="--pc:${P.color}" aria-label="${esc(P.name)}: show history"><b>${esc(P.name)}</b><small>${esc(t.label)}</small><span class="dice">${t.dice.length?t.dice.map(d=>dieSVG(d,P.color)).join(""):'<span class="dim">no dice</span>'}</span>${t.line?`<em>${esc(t.line)}</em>`:""}</button>`}).join("")}</div>`}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const foe=$("#foe");if(foe)foe.classList.toggle("minis",multiView());
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const foe=$("#foe");if(foe)foe.classList.toggle("minis",multiView());
   {const t=$("#mytray");if(t&&t.innerHTML){t.innerHTML=trayAllHTML();t.querySelectorAll("[data-hist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.hist,b)})}}}}   // v74b: always everyone's (the enemies' boxes lost their dice box)

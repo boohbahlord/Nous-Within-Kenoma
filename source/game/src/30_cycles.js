@@ -116,6 +116,6 @@ function addBars(root){if(!root||!G)return;
 {const _fe=fillEther;fillEther=function(){_fe();addBars($("#etherpanel"))}}
 {const _fd=fillDrawer;fillDrawer=function(){_fd();addBars($("#skypanel"))}}
 /* the sky box: lit while its event is on */
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;const M=$("#moon");if(M)M.classList.toggle("skylit",skyLit())}}
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G)return;const M=$("#moon");if(M)M.classList.toggle("skylit",skyLit())}}
 
 if(window.__EC)Object.assign(window.__EC,{coolOf,skyLit,moonStrip:()=>moonStrip(),moonInfoHTML:()=>moonInfoHTML()});

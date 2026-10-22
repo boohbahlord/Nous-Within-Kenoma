@@ -79,7 +79,7 @@ function kothWin(g,why){if(G.over)return;const w=g[0]==="t"?alive().find(i=>!isN
 {const _sb=substanceTurn;substanceTurn=function(pl){_sb.apply(this,arguments);if(kothOn()&&!G.over&&Math.random()<.05)meteor()}}
 
 /* ---------- on the screen: the Hill's tiles and the score ---------- */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;let bar=$("#kothbar");
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;let bar=$("#kothbar");
   if(!kothOn()){if(bar)bar.remove();return}
   const K=G.opts.koth,S=G.koth||(G.koth={score:{},tug:0,last:null}),hold=new Map();
   for(let r=HILL[0];r<=HILL[1];r++)for(let c=HILL[0];c<=HILL[1];c++){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(!t)continue;t.classList.add("hilltile");

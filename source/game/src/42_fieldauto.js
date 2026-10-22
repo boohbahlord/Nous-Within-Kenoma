@@ -256,7 +256,7 @@ function paintFA(){const V=G?view():null,c=faMine();
 
 /* ---------- the button by the turn buttons ---------- */
 let faSig="";
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;const ctl=$("#controls");const V=view();
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G)return;const ctl=$("#controls");const V=view();
   const show=faAllowed()&&!G.over&&G.phase!=="setup"&&G.p[V]&&!G.p[V].cpu&&!isNPC(V)&&!(NET.role==="guest"&&NET.watch);
   if(ctl&&show&&!ctl.querySelector(".fabar")){const on=faOn(V);
     ctl.insertAdjacentHTML("beforeend",`<span class="fabar"><button type="button" class="btn ${on?"":"ghost"} sm fatog" aria-pressed="${on}" title="The computer moves and attacks with the cards on your field">Auto field: ${on?"On":"Off"}</button><button type="button" class="btn ghost sm facfgb" title="Configure field automation" aria-label="Configure field automation">▦</button></span>`);

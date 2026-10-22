@@ -6,5 +6,5 @@
 /* the spells' scroll position, kept as it scrolls: a redraw never has to measure it */
 let spellsTop=0;document.addEventListener("scroll",e=>{const t=e.target;if(t&&t.id==="spells")spellsTop=t.scrollTop},{capture:true,passive:true});
 {const _r=render;render=function(){if(!PERF.inRender){PERF.vk=null;PERF.sp=spellsTop}
-  PERF.inRender++;try{return _r.apply(this,arguments)}finally{PERF.inRender--;if(!PERF.inRender){PERF.vk=null;PERF.sp=null}}}}
+  PERF.inRender++;try{return rSafe(_r,this,arguments)}finally{PERF.inRender--;if(!PERF.inRender){PERF.vk=null;PERF.sp=null}}}}
 if(window.__EC)Object.assign(window.__EC,{renderAll:()=>render(),perfFlush:()=>perfFlush()});

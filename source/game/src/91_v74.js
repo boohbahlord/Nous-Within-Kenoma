@@ -17,7 +17,7 @@ function fsFoesHTML(){const V=view(),E=typeof nepEcState==="function"&&nepEcStat
 ${P.cpu==="horde"?"":`<span class="fsfm" title="Deck ${q||n}"><span class="fsfbar"><i style="width:${q?50:pct(Math.min(n,N)/N)}%"></i></span><em>${q||n}</em></span>
 <span class="fsfm mana" title="Mana ${q||m}/${q||cap}"><span class="fsfbar"><i style="width:${q?50:pct(Math.max(0,m)/Math.max(1,cap))}%"></i></span><em>${q?"?/?":`${m}/${cap}`}</em></span>
 <span class="fsfh" title="Hand">✋${P.hand.length}</span>`}</div>`}).join("")}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!fsOn())return;const f=$("#foe");if(f)f.innerHTML=fsFoesHTML()}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!fsOn())return;const f=$("#foe");if(f)f.innerHTML=fsFoesHTML()}}
 
 /* ---------- the dice and log row: More options ---------- */
 const fsN=k=>[1,2,3,5].includes(PREF[k])?PREF[k]:1,fsWho=k=>["all","team","me"].includes(PREF[k])?PREF[k]:"all";
@@ -77,6 +77,6 @@ function skyFrac(){if(!G||!G.moon)return "";const m=G.moon,k=sky(),V=view(),r=m.
   if(k==="sun"){const P=G.p[V];if(!P||P.sunNext==null||P.tribe==="firm")return "";const tn=tnOf(V),from=P.sunFrom!=null&&P.sunFrom<P.sunNext?P.sunFrom:P.sunNext-2;return `Your judgement: turn ${Math.max(0,tn-from)}/${P.sunNext-from}`}
   if(k==="saturn"){const P=G.p[V];return P&&P.oath==="saturn"?`Your tolls: ${P.satPaid||0}/9`:""}
   return ""}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const mi=$("#moon .minfo");if(!mi)return;const t=skyFrac();let f=mi.querySelector(".mfrac");
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const mi=$("#moon .minfo");if(!mi)return;const t=skyFrac();let f=mi.querySelector(".mfrac");
   if(!t){if(f)f.remove();return}if(!f){f=document.createElement("span");f.className="mfrac";const n=mi.querySelector(".mname");if(n)n.after(f);else mi.prepend(f)}f.textContent=t;
   const sv=$("#moon svg.moon");if(sv)sv.setAttribute("aria-label",t)}}

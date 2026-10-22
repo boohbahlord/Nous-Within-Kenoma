@@ -81,10 +81,10 @@ function rbGo(pl,to){const s=rbState(pl);s.q="";
   else{const i=typeof to==="number"?to:rbAt(to);if(i<0)return;s.v="rule";s.i=i;s.sec=rbSec(RB[i])}
   rbPaint(pl);if(pl!=="win"){const h=rbHost(pl);if(h){const r=h.getBoundingClientRect();if(r.top<0)h.scrollIntoView({block:"start"})}}}
 /* Space forward, Shift+Space back: the sections, a section's list, then rule by rule */
-function rbStep(pl,d){const s=rbState(pl);if(s.q.trim())return;
+function rbStep(pl,d){if(!RB)return;const s=rbState(pl);if(s.q.trim())return;   // not loaded yet (or no connection): nothing to step through
   if(s.v==="top"){if(d>0){s.sec=rbSecs()[0].code;rbGo(pl,"sec")}return}
   if(s.v==="sec"){if(d>0)rbGo(pl,rbAt(s.sec));else rbGo(pl,"top");return}
-  const j=s.i+d;if(j>=0&&j<RB.length)rbGo(pl,j);else if(j<0)rbGo(pl,"top")}
+  const j=s.i+d;if(j>=0&&j<RB.length)rbGo(pl,j);else if(j<0)rbGo(pl,"sec")}   // back from the first rule: its section's list, as on the way in
 /* one set of handlers per place, on the place itself */
 function rbWire(host,pl){if(host.dataset.rbw===pl)return;host.dataset.rbw=pl;
   host.addEventListener("click",ev=>{const t=ev.target.closest("[data-rbopen],[data-rbsec],[data-rbto],[data-rbgo],[data-rbclear],[data-rbclose]");if(!t||!host.contains(t))return;ev.preventDefault();
@@ -107,9 +107,11 @@ function rbWin(code){let w=$("#rbwin");
   rbLoad().then(()=>{rbWire(box,"win");if(code)rbGo("win",code);else rbPaint("win")}).catch(()=>{box.innerHTML=`<button type="button" class="xclose" aria-label="Close">×</button><p class="dim">The rule book could not be opened (no connection?). <a class="link" href="ethers-crossroads-rules.html" target="_blank" rel="noopener">All Rules</a></p>`;box.querySelector(".xclose").onclick=rbClose})}
 const rbOpen=code=>rbWin(code);
 const rbWinOpen=()=>{const w=$("#rbwin");return !!w&&!w.hidden};
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&rbWinOpen()){rbClose();e.stopPropagation();e.preventDefault()}},true);
+const rbAbove=()=>{const p=$("#pop");return !!p&&!p.hidden&&p.getClientRects().length>0&&p.innerHTML.trim()!==""};   // a popup over the rule book takes the keys
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&rbWinOpen()&&!rbAbove()){rbClose();e.stopPropagation();e.preventDefault()}},true);
 window.addEventListener("keydown",e=>{if(!rbWinOpen()||e.code!=="Space"&&e.key!==" ")return;if(e.ctrlKey||e.metaKey||e.altKey)return;
-  const a=document.activeElement;if(a&&a.matches&&a.matches("input[type=search],input[type=text],textarea,select"))return;   // typing a space in the search bar
+  const a=document.activeElement;if(a&&a.matches&&(a.matches("input[type=search],input[type=text],textarea,select")||a.matches("input[type=checkbox],input[type=radio],summary")&&$("#rbwin").contains(a)))return;   // typing a space; ticking an option or opening a fold in the book
+  if(rbAbove())return;   // a popup over the book: Space is its own
   e.preventDefault();e.stopImmediatePropagation();rbStep("win",e.shiftKey?-1:1)},true);
 /* the folds: in Help below Further explanations, and at the bottom of the page; each an option */
 function rbMount(box,pl){if(!box)return;rbWire(box,pl);if(RB){rbPaint(pl);return}box.innerHTML='<p class="dim">Opening the rule book…</p>';

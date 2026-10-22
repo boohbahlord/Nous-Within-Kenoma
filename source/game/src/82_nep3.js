@@ -20,7 +20,7 @@ function nepMeters(){if(!document.documentElement.classList.contains("nepec"))re
   for(const b of document.querySelectorAll(".meters .meter b.mv,#foe.minis .mline b")){const deck=!!b.closest(".meter:not(.mana)")||/^Deck/.test((b.parentNode.querySelector("span")||{}).textContent||"");
     b.textContent=deck?`${roll(0,60)}/${roll(1,60)}`:`${roll(0,24)}/${roll(1,20)}`;b.classList.add("nepnum");b.classList.remove("neg")}
   for(const bar of document.querySelectorAll(".meters .deckbar,.meters .manabar"))bar.setAttribute("aria-label",`${bar.classList.contains("deckbar")?"Deck":"Mana"}: lost in Neptune's eclipse`)}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view(),E=nepEcState(V);if(!E)return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const V=view(),E=nepEcState(V);if(!E)return;
   for(const t of document.querySelectorAll("#board button.tile")){const st=G.board[+t.dataset.r][+t.dataset.c];if(!st||!st.cards[0])continue;const p=nepPat(st,E);
     const col=nepDisg(st,E);for(const el of t.querySelectorAll(".v61"))nepPaint(el,col,p)}
   const box=$("#selbox"),S=G.sel,st=S&&G.board[S.r]&&G.board[S.r][S.c];

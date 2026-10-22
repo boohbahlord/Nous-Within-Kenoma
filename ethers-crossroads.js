@@ -342,9 +342,12 @@ const alive=()=>G.p.filter(P=>!P.out).map(P=>P.i);
 const PERF={inRender:0,vk:null,sp:null,jobs:new Map(),raf:0};
 function perfFlush(){PERF.raf=0;const js=[...PERF.jobs.values()];PERF.jobs.clear();for(const f of js){try{f()}catch(e){console.error(e)}}}
 function perfLater(k,fn){PERF.jobs.set(k,fn);if(!PERF.raf)PERF.raf=typeof requestAnimationFrame==="function"?requestAnimationFrame(perfFlush):setTimeout(perfFlush,16)}
+/* a layer of the redraw that fails is logged and skipped: the layers around it, and the game, carry on */
+const rSafe=(f,t,a)=>{try{return f.apply(t,a)}catch(e){console.error(e)}};
 const isEnemy=(a,b)=>a!=null&&b!=null&&a!==b&&G.p[a].team!==G.p[b].team&&!(G.dip&&dipAllied(a,b));   // v75b: allies (Diplomacy) are not enemies
 const enemiesOf=pl=>alive().filter(i=>isEnemy(pl,i));
 const alliesOf=pl=>alive().filter(i=>i!==pl&&!isEnemy(pl,i));
+const teammatesOf=pl=>alive().filter(i=>i!==pl&&!isHorde(i)&&G.p[i].team===G.p[pl].team);   // the real team (Diplomacy allies are not on it)
 const me=()=>G.p[G.active], foe=()=>G.p[enemiesOf(G.active).filter(i=>!isNPC(i))[0]??(G.active===0?1:0)];
 const human=pl=>!G.p[pl].cpu;
 const humans=()=>G.p.filter(P=>!P.cpu&&!P.out).map(P=>P.i);
@@ -359,7 +362,7 @@ const seat=pl=>G.map.seats[pl];
 /* v53: you spawn in your own lines, or in a teammate's when they hold the same side of the field */
 const canSpawn=(pl,r,c)=>{const z=G.zone[r][c];if(z===pl)return true;if(z<0||!G.p[z]||!G.p[pl]||G.p[z].team!==G.p[pl].team||isNPC(z)||isNPC(pl))return false;
   const a=G.map.seats[z],b=G.map.seats[pl];return !!a&&!!b&&a.side===b.side};
-const isBack=(pl,r,c)=>G.backz[r][c]===pl;
+const isBack=(pl,r,c)=>G.backz[r][c]===pl||!!(G.map.seats[pl]&&G.map.seats[pl].back.some(([a,b])=>a===r&&b===c));   // teammates who share a back line (2v2, same side) each hold all of it
 const backTiles=pl=>seat(pl).back.filter(([r,c])=>!isVoid(r,c));
 const zoneTiles=pl=>seat(pl).zone.filter(([r,c])=>!isVoid(r,c));
 const isFront=(pl,r,c)=>canSpawn(pl,r,c)&&!isBack(pl,r,c);
@@ -1177,6 +1180,7 @@ const selStack=()=>G.sel&&G.board[G.sel.r]&&G.board[G.sel.r][G.sel.c];
 const selOwn=()=>selStack()&&selStack().owner===G.active;
 const selEnemy=()=>selStack()&&isEnemy(selStack().owner,G.active);
 /* spells aimed at another player: with several enemies, the caster picks one */
+const foeAny=()=>enemiesOf(G.active).some(pl=>!isHorde(pl));   // a player to aim at (with Diplomacy, everyone left may be an ally)
 async function pickFoe(id,title){const es=enemiesOf(G.active).filter(pl=>!isHorde(pl));const t=es.length<=1?es[0]:await ask(G.active,{kind:"player",id,title,players:es});G.histTarget=t;return t}
 const selOwnJoker=()=>selOwn()&&hasK(selStack(),"joker");
 const SCHOOLS=["Conjuring","Necromancy","Enchantment","Curse","Sorcery","Illusion"];   // v43: Conjuring (and the Ether) first
@@ -1188,10 +1192,10 @@ const SPELLS=[
  {id:"resur",dice:"1d2+1",name:"Resurrection",cost:6,school:"Necromancy",text:"Choose one card from the grave and bring it back into your hand.",ok:()=>G.grave.length>0&&me().hand.length<handCap(G.active),run:async()=>{await pickGrave(G.active,1,"Resurrection")}},
  {id:"divine",dice:"1d2+1",name:"Divine Odds",cost:3,school:"Enchantment",text:"Select your stack: advantage on all its dice for its next combat.",ok:()=>selOwn()&&!selStack().odds,run:async()=>{selStack().odds="adv";log("Divine Odds marks a stack.")}},
  {id:"hypo",name:"Hypostasis",cost:3,school:"Enchantment",text:"Select your stack: it cannot be attacked for two turns. While it lasts it cannot attack or step toward the enemy, only sideways or back. Costs 3 for one card, +1 for each more card in the stack. Needs at least two of your stacks on the field.",ok:()=>selOwn()&&!selStack().hypo&&stacksOf(G.active).length>=2,run:async()=>{const st=selStack();st.hypo=2;log(`Hypostasis: ${plName(G.active)}'s stack of ${st.cards.length} becomes untouchable for two turns.`)}},
- {id:"forced",dice:"1d2",name:"Forced Hand",cost:2,school:"Curse",text:"The other player draws 1d2 cards; any over the hand limit go to the grave (and cut their Grave Blessing).",ok:()=>!survival(),run:async()=>{const t=await pickFoe("forced","Forced Hand: who draws?");const n=R(2);tray(G.active,"Forced Hand",[{s:2,v:n}],`draw ${n}`);draw(t,n,"Forced Hand")}},
+ {id:"forced",dice:"1d2",name:"Forced Hand",cost:2,school:"Curse",text:"The other player draws 1d2 cards; any over the hand limit go to the grave (and cut their Grave Blessing).",ok:()=>!survival()&&foeAny(),run:async()=>{const t=await pickFoe("forced","Forced Hand: who draws?");const n=R(2);tray(G.active,"Forced Hand",[{s:2,v:n}],`draw ${n}`);draw(t,n,"Forced Hand")}},
  {id:"hexed",dice:"1d2+1",name:"Hexed Odds",cost:3,school:"Curse",text:"Select an enemy stack: disadvantage on all its dice for its next combat.",ok:()=>selEnemy()&&!selStack().odds,run:async()=>{selStack().odds="dis";log("Hexed Odds marks an enemy stack.")}},
- {id:"double",name:"Double Edged Sword",cost:1,school:"Curse",text:"Roll 3d6. Each 1 burns a card from your deck; each 6 burns a card from the enemy's deck.",ok:()=>!survival(),run:doubleEdge},
- {id:"three",dice:"1d3",name:"Three of Swords",cost:3,school:"Curse",text:"Roll 1d2. A 1 destroys one random card in the enemy's hand and one in yours; a 2 destroys two of each. If your hand runs short, the rest comes from your deck. The enemy loses nothing from the deck.",ok:()=>!survival(),run:threeSwords},
+ {id:"double",name:"Double Edged Sword",cost:1,school:"Curse",text:"Roll 3d6. Each 1 burns a card from your deck; each 6 burns a card from the enemy's deck.",ok:()=>!survival()&&foeAny(),run:doubleEdge},
+ {id:"three",dice:"1d3",name:"Three of Swords",cost:3,school:"Curse",text:"Roll 1d2. A 1 destroys one random card in the enemy's hand and one in yours; a 2 destroys two of each. If your hand runs short, the rest comes from your deck. The enemy loses nothing from the deck.",ok:()=>!survival()&&foeAny(),run:threeSwords},
  {id:"clair",dice:"2+1d2",name:"Clairvoyance",cost:3,school:"Sorcery",text:"Look at 2d6 cards from your deck, take one into your hand, then reshuffle. 6 mana at the New Moon, 2 at the Full Moon.",ok:()=>me().deck.length>0&&me().hand.length<handCap(G.active),run:clairvoyance},
  {id:"tele",dice:"1d2−1",name:"Teleport",cost:1,school:"Sorcery",text:"Select your stack in your own spawn lines with no enemy beside it and leave exactly one card checked; that card leaves the field now and comes back into your hand at the start of your next turn.",ok:teleOk,run:teleport},
  {id:"naked",dice:"1d2",name:"Naked Hand",cost:3,school:"Sorcery",text:"The other player's hand is shown to you for the rest of this turn, and both players are told it has been seen. 6 mana at the New Moon, free at the Full Moon.",ok:()=>!survival()&&enemiesOf(G.active).some(pl=>G.p[pl].hand.length>0),run:nakedHand},
@@ -1245,7 +1249,7 @@ async function cast(sp){
   const tile=G.sel&&["suicide","divine","hypo","hexed","tele"].includes(sp.id)?coord(G.sel.r,G.sel.c):null;G.histTarget=null;G.histTile=tile;
   if(cost){if(sp.id!=="ritual")G.spentOther=true;spend(G.active,cost);noteBuy(sp.id)}
   const paidCost=cost;   // spell mana goes to the Bank
-  try{await sp.run()}finally{G.histTile=null}
+  try{await sp.run()}catch(e){G.busy=wasBusy;throw e}finally{G.histTile=null}   // a spell that fails never leaves the turn stuck
   skyBought(sp,paidCost);mercuryBought(sp);
   hist(caster,{kind:"spell",name:sp.name,tile,cost,target:G.histTarget!=null?G.p[G.histTarget].name:null});
   log(`${plName(caster)} casts <b>${esc(sp.name)}</b>${tile?" on "+tile:""}${G.histTarget!=null?" at "+plName(G.histTarget):""}${cost?` (${cost} mana)`:""}.`,"cast");G.histTarget=null;
@@ -2680,6 +2684,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     const sel=(id,label,opts,def)=>`<label class="f">${label} <select id="${id}">${opts.map(v=>`<option value="${v}" ${v===def?"selected":""}>${v}${v===def?" (default)":""}</option>`).join("")}</select></label>`;
     const rng=(a,b)=>Array.from({length:b-a+1},(_,i)=>a+i);
     if(L==="ffa"||L==="team-side"||L==="team-across")box.innerHTML=sel("osize","Size (tiles on each side)",rng(5,9),7)+'<p class="dim">The field is square so every edge is the same. On a phone, 7 is the largest size that stays easy to read.</p>';
+    else if(L==="factions"||L==="koth")box.innerHTML=`<p class="dim">${L==="koth"?"King of the Hill has its own field: its size is in the King of the Hill options.":"Factions play on a 10 by 10 field, or on the Cross when you pick it under Large maps."}</p>`;
     else if(L==="team-same")box.innerHTML=sel("ocols2","Width",[6,7,8],6)+sel("orows2","Height",[4,5,6],6)+'<p class="dim">Each team holds two lines at one end. Height 4 has no midline, 5 has one line between the teams, and 6 has two.</p>';
     else{const h=n,W=SURV_STD_W[h]||[],dc=W.includes(h===2?6:9)?(h===2?6:9):W[0],dr=h===2?5:6;   // v73b: only widths that give every survivor the same five or more tiles
       box.innerHTML=W.length?sel("ocols2","Width",W,dc)+sel("orows2","Height",[5,6],dr)+'<p class="dim">With the standard sizes the survivors split the bottom two lines; the Horde holds the top two.</p>':'<p class="dim">Four survivors play on the large map: the standard sizes leave fewer than five spawn tiles each.</p>'}
@@ -2848,7 +2853,7 @@ function confirmLeave(go){
   $("#lvy").onclick=()=>{box.hidden=true;leaving=true;go()};$("#lvn").onclick=()=>{box.hidden=true};
 }
 function guardLinks(){
-  document.querySelectorAll(".game .crumbs a").forEach(a=>a.addEventListener("click",e=>{if(!inGame())return;e.preventDefault();confirmLeave(()=>{location.href=a.href})}));
+  document.querySelectorAll(".game .crumbs a").forEach(a=>a.addEventListener("click",e=>{if(!inGame()||e.ctrlKey||e.metaKey||e.shiftKey)return;e.preventDefault();confirmLeave(()=>{location.href=a.href})}));
 }
 /* the phone's Back button (and a swipe back) asks too: a game in progress keeps one extra history entry to catch it */
 let backTrap=false;
@@ -2858,7 +2863,7 @@ addEventListener("popstate",()=>{if(!backTrap)return;backTrap=false;
   confirmLeave(()=>{history.back()});
   const keep=$("#lvn");if(keep)keep.addEventListener("click",armBackTrap,{once:true})});
 addEventListener("beforeunload",e=>{if(inGame()&&!G.opts.fast&&!leaving){e.preventDefault();e.returnValue=""}});
-{const _rd=render;render=function(){_rd.apply(this,arguments);armBackTrap()}}
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);armBackTrap()}}
 
 /* passages from the book, for whoever is waiting */
 function mountQuotes(){
@@ -5331,7 +5336,7 @@ SPELLS.push(
  {id:"oath_mercury",name:"Oath of Mercury",cost:0,school:"Astrology",text:"Free. Unlocks Betrayal, Declare War and Bribe the Banker. Cast again to break the Oath.",
   ok:()=>oathFree("mercury"),run:async()=>{toggleOath("mercury")}},
  {id:"betray",dice:"1d2+2d3",name:"Betrayal",cost:6,school:"Astrology",text:"Oath of Mercury, in a team game. You leave your team for good. For two rounds every card killed falls into the Outer Darkness, and every damage between you and your former teammates pays its dealer the soul's worth + 1d2 − 1.",
-  ok:()=>oathOf(G.active)==="mercury"&&alliesOf(G.active).filter(i=>!isHorde(i)).length>0,run:async()=>{const pl=G.active,mates=alliesOf(pl).filter(i=>!isHorde(i));
+  ok:()=>oathOf(G.active)==="mercury"&&teammatesOf(G.active).length>0,run:async()=>{const pl=G.active,mates=teammatesOf(pl);
    const sure=await ask(pl,{kind:"yesno",id:"betray",title:"Betrayal",text:`Betray ${mates.map(i=>esc(G.p[i].name)).join(" and ")}? It can't be undone.`,yes:"Betray",no:"Stay loyal",ai:()=>true});
    if(!sure){giveMana(pl,spellCost(SP("betray")));log(`${plName(pl)} thinks better of it.`);return}
    G.p[pl].team=300+pl;G.betrayal={by:pl,mates,until:G.moon.round+1};G._vis=null;
@@ -5358,7 +5363,7 @@ async function aiMercury(pl,W,cast1){
     if(lv==="hard"&&me>them*1.4&&!warOn()&&mana(pl)>=(G.prices.warnow||6)+2)await cast1("warnow");
     else if(me>them*1.3&&!warOn()&&tryVote){P.voteRound=G.moon.round;await cast1("war")}
     if(lv==="hard"&&mana(pl)>=(G.prices.bribe||6)+4&&!(G.bribes||[]).some(b=>b.by===pl)&&Math.random()<.4)await cast1("bribe");
-    const mates=alliesOf(pl).filter(i=>!isHorde(i));   // betray only a teammate far weaker, when it pays
+    const mates=teammatesOf(pl);   // betray only a teammate far weaker, when it pays
     if(lv==="hard"&&mates.length&&mates.every(m=>strength(m)*2.5<me)&&realPlayers().length<=3&&Math.random()<.15)await cast1("betray");
   }
 }
@@ -6297,7 +6302,7 @@ async function saturnEclipse(){
     else log(`The betrayal of ${plName(b.by)} stays unmended.`)}
 }}
 /* remember who betrayed whom, so Venus can mend it */
-{const s=SP("betray");if(s){const run=s.run;s.run=async()=>{const pl=G.active,team=G.p[pl].team,mates=alliesOf(pl).filter(i=>!isHorde(i));await run();
+{const s=SP("betray");if(s){const run=s.run;s.run=async()=>{const pl=G.active,team=G.p[pl].team,mates=teammatesOf(pl);await run();
   if(G.p[pl].team!==team)(G.betrayed=G.betrayed||[]).push({by:pl,team,mates})}}}
 
 /* ---------- the strict economy and the collapse ---------- */
@@ -6361,7 +6366,7 @@ const sunSacOk=V=>V===G.active&&oathNow(V,"sun");
   if(P.satLocked)t.push(`<span class="debttag">Betrayed Saturn</span>`);
   if(oathNow(P.i,"saturn")&&!P.satLocked)t.push(`<span class="oathtag">Saturn ${P.satPaid||0} paid</span>`);
   return t}}
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G)return;
   const B=$("#board");if(B){const bl=totalBlind(view());B.classList.toggle("blinded",bl);
     let v=B.querySelector(".blindveil");if(bl&&!v){v=document.createElement("div");v.className="blindveil";v.innerHTML=`<b>Blind</b><span>You see nothing on the field this round, not even your own cards.</span>`;B.appendChild(v)}else if(!bl&&v)v.remove();
     if(G.aim&&(G.aim.pl==null||G.aim.pl===view())){const ok=(r,c)=>G.aim.valid?G.aim.valid(r,c):(G.aim.tiles||[]).some(t=>t[0]===r&&t[1]===c);B.querySelectorAll("button.tile").forEach(t=>{if(ok(+t.dataset.r,+t.dataset.c))t.classList.add("taim")})}}
@@ -6604,7 +6609,7 @@ function leaveJail(pl){const P=G.p[pl];if(!P.jail)return;P.cpu=P.jail.cpu;P.jail
   if(P.noLoans&&!P.jail)t.push(`<span class="debttag">No loans</span>`);
   if(venusBlessed(P.i))t.push(`<span class="saletag">Venus's blessing</span>`);
   return t}}
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G)return;
   const B=$("#board"),V=G.p[view()];if(!B)return;let js=B.querySelector(".jailstrip");
   if(V&&V.jail){if(!js){js=document.createElement("div");js.className="jailstrip";js.setAttribute("role","status");B.appendChild(js)}
     const n=jailLeft(V);js.innerHTML=`<b>You are in Jail</b><span>${n} round${n===1?"":"s"} left</span>`}
@@ -6829,7 +6834,7 @@ function addBars(root){if(!root||!G)return;
 {const _fe=fillEther;fillEther=function(){_fe();addBars($("#etherpanel"))}}
 {const _fd=fillDrawer;fillDrawer=function(){_fd();addBars($("#skypanel"))}}
 /* the sky box: lit while its event is on */
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;const M=$("#moon");if(M)M.classList.toggle("skylit",skyLit())}}
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G)return;const M=$("#moon");if(M)M.classList.toggle("skylit",skyLit())}}
 
 if(window.__EC)Object.assign(window.__EC,{coolOf,skyLit,moonStrip:()=>moonStrip(),moonInfoHTML:()=>moonInfoHTML()});
 
@@ -6982,9 +6987,9 @@ let bankTab="bank";
   if($("#p2pGo"))$("#p2pGo").onclick=()=>{askLoan(V,+$("#p2pTo").value,+$("#p2pN").value);bankTab="p2p";re()}}}
 
 /* ---------- notices: the Bank bar and the Auction ---------- */
-{const _bb=bankBarHTML;bankBarHTML=function(){const h=_bb();if(!h||!G)return h;const n=loanReqsFor(view()).length;
+{const _bb=bankBarHTML;bankBarHTML=function(){const h=_bb();if(!h||!G)return h;const n=dipOn()?0:loanReqsFor(view()).length;   // with Diplomacy, the flag under the Bank carries it
   return n?h.replace('class="bankbar"','class="bankbar notify"').replace("</button>",`<i class="bang" aria-label="${n} loan request${n>1?"s":""}">!</i></button>`):h}}
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G)return;
   const n=(G.auction||[]).length;if(n>(G._auctLen||0))G.auctV=(G.auctV||0)+1;G._auctLen=n;
   const a=$("#seeauct"),V=view(),P=G.p[V];if(!a||!P)return;
   const fresh=n&&(P.auctSeen||0)<(G.auctV||0)&&G.auction.some(it=>it.seller!==V);
@@ -7051,7 +7056,7 @@ const barOf=(pl,cls)=>{const b=pboxEl(pl);return b&&b.querySelector(cls)};
 const later=f=>setTimeout(()=>{try{if(FX.on())f()}catch(e){console.error(e)}},0);
 
 /* ---------- the field's look: mist, New Moon, Full Moon ---------- */
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;const B=$("#board");if(!B)return;const m=G.moon;
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G)return;const B=$("#board");if(!B)return;const m=G.moon;
   B.classList.toggle("newmoon",!m.gone&&m.i===0&&!m.blood);B.classList.toggle("fullmoon",!m.gone&&m.i===4&&!m.blood);B.classList.toggle("bloodfield",!!m.blood)}}
 
 /* ---------- moves, placing, attacks, wounds, deaths ---------- */
@@ -7342,7 +7347,7 @@ const SKY_SND={moon:"moonchime",saturn:"bell",mars:"horn",venus:"harp",jupiter:"
   if(P&&!isHorde(pl)){if(planetUp("saturn")&&paysSaturn(pl))AUD.bell();if(sunUp()&&P.tribe!=="firm"&&P.sunNext!=null&&tnOf(pl)>=P.sunNext)AUD.drums()}
   return _ta.apply(this,arguments)}}
 {const _cr=cycleRound;cycleRound=async function(){const out=await _cr.apply(this,arguments);if(cycleNow("venus"))AUD.harp();if(cycleNow("mercury")){AUD.quill();setTimeout(()=>AUD.whispers(),2600)}return out}}
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G)return;
   // a deck that shrank without being drawn from has lost cards
   for(const P of G.p){if(isNPC(P.i)||isHorde(P.i))continue;const n=P.deck.length;if(P._deckN!=null&&n<P._deckN-(P._drawn||0)&&G.phase!=="setup"&&(P.i===view()||!isEnemy(P.i,view())))AUD.deckHit();P._deckN=n;P._drawn=0}
   const k=sky();if(G._sndSky!==k){if(G._sndSky!==undefined&&SKY_SND[k]){AUD[SKY_SND[k]]();if(k==="mercury")setTimeout(()=>AUD.whispers(),2600)}G._sndSky=k}
@@ -7387,7 +7392,7 @@ function fogVeil(){const B=$("#board");if(!B)return;let v=B.querySelector(":scop
     const m="url(\"data:image/svg+xml;utf8,"+encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'><filter id='b' x='-20%' y='-20%' width='140%' height='140%'><feGaussianBlur stdDeviation='${Math.max(8,tw*.2).toFixed(1)}'/></filter><g fill='white' filter='url(%23b)'>${g}</g></svg>`).replace(/%2523/g,"%23")+"\")";
     v.style.maskImage=m;v.style.webkitMaskImage=m}
   v.style.setProperty("--c1",FOG_CLOUDS[0]);v.style.setProperty("--c2",FOG_CLOUDS[1])}
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;perfLater("fogveil",fogVeil)}}   // v76b: just before the paint
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G)return;perfLater("fogveil",fogVeil)}}   // v76b: just before the paint
 addEventListener("resize",()=>{fogKey="";if(G)try{fogVeil()}catch(e){}});
 
 /* ---------- Venus: gratitude and ingratitude ---------- */
@@ -7640,7 +7645,7 @@ function flushSnap(){clearTimeout(snapT);snapT=null;if(NET.role!=="host"||!G||!G
   for(const id of guestIds()){const st=NET.sent[id]||(NET.sent[id]={n:0,full:false});const full=!st.full;if(!base||full)base=snapshot(full);
     const lines=G.log.filter(l=>!full?(l.n||0)>st.n:true);
     sendTo(id,{t:"snap",full,g:base.g,aim:base.aim,log:lines.slice(0,full?600:200)});st.full=true;st.n=G.logN||0}}
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(NET.role==="host"&&G&&G.opts.online&&!snapT)snapT=setTimeout(flushSnap,60)}}
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(NET.role==="host"&&G&&G.opts.online&&!snapT)snapT=setTimeout(flushSnap,60)}}
 
 /* ---------- a joined player's screen ---------- */
 function applySnap(m){
@@ -7812,7 +7817,7 @@ const localSeats=()=>G?G.p.filter(P=>P.cpu==null&&!P.net&&!P.netAway).map(P=>P.i
 
 /* ---------- watching ---------- */
 {const _ca=canAct;canAct=function(){if(NET.role==="guest"&&NET.watch)return false;return _ca()}}
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G||NET.role!=="guest"||!NET.watch)return;const h=$("#hand");if(h)h.innerHTML='<p class="dim">You are watching this game.</p>';const hh=$("#handh");if(hh)hh.textContent="Watching"}}
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G||NET.role!=="guest"||!NET.watch)return;const h=$("#hand");if(h)h.innerHTML='<p class="dim">You are watching this game.</p>';const hh=$("#handh");if(hh)hh.textContent="Watching"}}
 
 /* ---------- rejoining ---------- */
 const REJOIN_KEY="ec-net-rejoin";
@@ -8393,7 +8398,7 @@ function paintFA(){const V=G?view():null,c=faMine();
 
 /* ---------- the button by the turn buttons ---------- */
 let faSig="";
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G)return;const ctl=$("#controls");const V=view();
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G)return;const ctl=$("#controls");const V=view();
   const show=faAllowed()&&!G.over&&G.phase!=="setup"&&G.p[V]&&!G.p[V].cpu&&!isNPC(V)&&!(NET.role==="guest"&&NET.watch);
   if(ctl&&show&&!ctl.querySelector(".fabar")){const on=faOn(V);
     ctl.insertAdjacentHTML("beforeend",`<span class="fabar"><button type="button" class="btn ${on?"":"ghost"} sm fatog" aria-pressed="${on}" title="The computer moves and attacks with the cards on your field">Auto field: ${on?"On":"Off"}</button><button type="button" class="btn ghost sm facfgb" title="Configure field automation" aria-label="Configure field automation">▦</button></span>`);
@@ -8582,7 +8587,7 @@ function lazyHTML(live){const ok=live&&lazyCan(),on=lazyAuto();
   $("#autoLazy").onclick=()=>{PREF.lazyAuto=!lazyAuto();lazyArmed=false;savePrefs();render()};
   $("#lhCfg").onclick=e=>{e.stopPropagation();faWindow("lazy")}}}
 /* while it is on, a click on a card in the hand places it */
-{const _r=render;render=function(){_r.apply(this,arguments);const h=$("#hand");if(!h||!G)return;const on=lazyOn()&&lazyCan();h.classList.toggle("lazy",on);if(!on)return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);const h=$("#hand");if(!h||!G)return;const on=lazyOn()&&lazyCan();h.classList.toggle("lazy",on);if(!on)return;
   h.querySelectorAll("[data-h]").forEach(b=>{const orig=b.onclick;b.onclick=e=>{if(!lazyOn()||!lazyCan())return orig&&orig.call(b,e);
     const c=G.p[view()].hand[+b.dataset.h];if(c&&lhExcluded(c,lhMine()))return orig&&orig.call(b,e);   // v47: kinds Lazy Hand leaves to you
     if(c&&!lazyPlace(c))return orig&&orig.call(b,e)}})}}
@@ -8648,7 +8653,7 @@ function helpToast(){let t=$("#helptoast");if(!t){t=document.createElement("div"
 /* the toast waits until no window or question is open (the setup's Ace, the animations question…), for half a minute at most */
 const dialogOpen=()=>[...document.querySelectorAll("#ov,#animask,#faask,#facfg,#menu,#pop")].some(e=>!e.hidden&&e.getClientRects().length>0&&e.innerHTML.trim()!=="");
 function toastWhenClear(n){if(n>30)return;setTimeout(()=>{if(dialogOpen())toastWhenClear(n+1);else helpToast()},n?1000:1500)}
-{const _r=render;render=function(){_r.apply(this,arguments);paintHelpHead()}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);paintHelpHead()}}
 mountMustKnow();paintHelpHead();
 if(window.__EC)Object.assign(window.__EC,{openMustKnow,helpToast});
 
@@ -8829,7 +8834,7 @@ function setAutoCfg(pl,key,cfg){if(!G||!G.p[pl]||!["rdCfg","lhCfg"].includes(key
 const autoSent={};
 function autoSync(){if(!G||G.over)return;const V=view(),P=G.p[V];if(!P||P.cpu||isNPC(V))return;
   for(const [key,cfg] of [["rdCfg",rdMine()],["lhCfg",lhMine()]]){const j=JSON.stringify(cfg),k=V+key;if(autoSent[k]===j&&JSON.stringify(P[key])===j)continue;if(autoSent[k]===j&&NET.role==="guest")continue;autoSent[k]=j;setAutoCfg(V,key,cfg)}}
-{const _r=render;render=function(){_r.apply(this,arguments);autoSync()}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);autoSync()}}
 
 /* ---------- the window and the fold-down: three tabs ---------- */
 let autoTab=["field","ritual","lazy"].includes(PREF.autoTab)?PREF.autoTab:"field";
@@ -8943,7 +8948,7 @@ function critBanner(k,n){let b=$("#critfx");if(!b){b=document.createElement("div
   const t=k==="hit"?"Crit Hit":k==="miss"?"Crit Miss":k==="success"?"Crit Success":"Miss";
   b.className="k-"+k;b.innerHTML=`<b>${t}</b>${k==="dodge"?"":D20_SVG(n)}`;b.hidden=false;b.classList.remove("go");void b.offsetWidth;b.classList.add("go");
   clearTimeout(critBanner.t);critBanner.t=setTimeout(()=>{b.hidden=true},1700)}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.log)return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!G.log)return;
   const e=G.log.find(l=>l.crit);if(!e)return;const id=e.n||e.t;if(!critSeen){critSeen=id;if(Date.now()-e.t>4000)return}
   if(id!==critSeen&&Date.now()-e.t<6000){critSeen=id;critBanner(e.crit.k,e.crit.n)}else critSeen=id}}
 
@@ -9177,7 +9182,7 @@ if(window.__EC)Object.assign(window.__EC,{moonTarget:pl=>moonTarget(pl),fullMoon
 /* ---------------- the round counter at the top of the play page, in blackletter (v49; v52: rounds only) ----------------
    A round is every player's turn once; a turn is one player's draw, prep and attack phases. The top shows the round, and a
    small label in the style of the line names sits at the top right of the field. */
-{const _r=render;render=function(){_r.apply(this,arguments);const h=document.querySelector(".game header");if(!h)return;let t=$("#turnctr");
+{const _r=render;render=function(){rSafe(_r,this,arguments);const h=document.querySelector(".game header");if(!h)return;let t=$("#turnctr");
   if(!t){t=document.createElement("div");t.id="turnctr";t.setAttribute("aria-live","off");h.appendChild(t)}
   if(!G){t.hidden=true;return}t.hidden=false;const n=Math.max(1,G.moon?G.moon.round:1);
   t.innerHTML=`<span>Round</span> <b>${n}</b>`;t.title=`Round ${n}: every player has a turn each round`;
@@ -9558,7 +9563,7 @@ function pxGroundURL(){const M=G.map,C=PXPAL[M.theme],P=pxPainter(COLS*20,G.rows
 /* a ground picture that came from another browser (online) or from the other style is drawn again here */
 {const _r=render;render=function(){if(G&&G.map&&G.map.ground){const px=/class="mapground px"/.test(G.map.ground),want=PREF.pxMap!==false&&G.map.theme!=="none";
   if(px!==want||px&&(!pxGroundNow||!G.map.ground.includes(pxGroundNow)||pxSeed!==G.map.seed)){G.map.ground=null;G.map.art={}}}
-  return _r.apply(this,arguments)}}
+  return rSafe(_r,this,arguments)}}
 /* the Menu switch: pixel-art maps or the old drawings */
 function pxMapToggle(on){PREF.pxMap=!!on;savePrefs();if(G&&G.map){G.map.ground=null;G.map.art={}}render()}
 {const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const s=$("#mPxMap");if(s)s.onchange=()=>pxMapToggle(s.value==="1")}}
@@ -9602,7 +9607,7 @@ function lhMaster(){const c=lhMine();
 {const _lc=lhClean;lhClean=function(c){const prev=c&&c.prev;const out=_lc(c);if(prev)out.prev={keep:!!prev.keep,autoPlace:!!prev.autoPlace,sac:!!prev.sac};return out}}
 
 /* ---------- Field Automation off for the game: the settings button stays ---------- */
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G||faAllowed())return;const ctl=$("#controls"),V=view();
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G||faAllowed())return;const ctl=$("#controls"),V=view();
   const show=!G.over&&G.phase!=="setup"&&G.p[V]&&!G.p[V].cpu&&!isNPC(V)&&!(NET.role==="guest"&&NET.watch);
   if(ctl&&show&&!ctl.querySelector(".fabar")){ctl.insertAdjacentHTML("beforeend",`<span class="fabar"><button type="button" class="btn ghost sm facfgb" data-tip="Configure Automation: Ritual Dice and Lazy Hand" aria-label="Configure Automation">▦</button></span>`);
     ctl.querySelector(".facfgb").onclick=()=>faWindow(autoTab==="field"?"ritual":autoTab)}}}
@@ -9665,7 +9670,7 @@ function miniBoxHTML(pl){const P=G.p[pl],V=view(),act=pl===G.active&&G.phase!=="
 function trayAllHTML(){const L=G.p.map((P,i)=>({P,i})).filter(x=>x.P.tray&&!isNPC(x.i)).sort((a,b)=>b.P.tray.t-a.P.tray.t);
   if(!L.length)return `<div class="trayall"><span class="tl">Dice</span><span class="dim">No rolls yet.</span></div>`;
   return `<div class="trayall"><span class="tl">Dice, newest first</span>${L.map(({P,i})=>{const t=P.tray;return `<button type="button" class="trow" data-hist="${i}" style="--pc:${P.color}" aria-label="${esc(P.name)}: show history"><b>${esc(P.name)}</b><small>${esc(t.label)}</small><span class="dice">${t.dice.length?t.dice.map(d=>dieSVG(d,P.color)).join(""):'<span class="dim">no dice</span>'}</span>${t.line?`<em>${esc(t.line)}</em>`:""}</button>`}).join("")}</div>`}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const foe=$("#foe");if(foe)foe.classList.toggle("minis",multiView());
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const foe=$("#foe");if(foe)foe.classList.toggle("minis",multiView());
   {const t=$("#mytray");if(t&&t.innerHTML){t.innerHTML=trayAllHTML();t.querySelectorAll("[data-hist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.hist,b)})}}}}   // v74b: always everyone's (the enemies' boxes lost their dice box)
 
 /* ---------------- v53: bounty Collectors in hand and deck, Demons, the Bank's black Collectors, crits on the cards ----------------
@@ -9836,7 +9841,7 @@ function camWrap(){const B=$("#board");if(!B)return null;let w=B.parentNode&&B.p
   if(isLarge()&&!w){w=document.createElement("div");w.className="camwrap";B.parentNode.insertBefore(w,B);w.appendChild(B);camWire(w)}
   if(w){const on=isLarge();w.classList.toggle("on",on);B.classList.toggle("large",on);B.style.setProperty("--tw",Math.round(CAM.TILE*CAM.z)+"px")}
   return w}
-{const _r=render;render=function(){_r.apply(this,arguments);if(G){camWrap();camNote()}}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(G){camWrap();camNote()}}}
 /* ---------- the note under a large field: the controls, − and +, and the wheel's zoom switch ---------- */
 function camNote(){const w=camWrap();let n=$("#camnote");
   if(!w||!isLarge()){if(n)n.hidden=true;return}
@@ -9968,7 +9973,7 @@ function kothWin(g,why){if(G.over)return;const w=g[0]==="t"?alive().find(i=>!isN
 {const _sb=substanceTurn;substanceTurn=function(pl){_sb.apply(this,arguments);if(kothOn()&&!G.over&&Math.random()<.05)meteor()}}
 
 /* ---------- on the screen: the Hill's tiles and the score ---------- */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;let bar=$("#kothbar");
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;let bar=$("#kothbar");
   if(!kothOn()){if(bar)bar.remove();return}
   const K=G.opts.koth,S=G.koth||(G.koth={score:{},tug:0,last:null}),hold=new Map();
   for(let r=HILL[0];r<=HILL[1];r++)for(let c=HILL[0];c<=HILL[1];c++){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(!t)continue;t.classList.add("hilltile");
@@ -10175,7 +10180,7 @@ function wireRankDrags(root){if(!root)return;
 {const _p=paintFA;paintFA=function(){_p.apply(this,arguments);wireRankDrags($("#facfg"));wireRankDrags($("#fapanel"))}}
 
 /* ---------- the spell list in the colors of the schools' animations, faintly (T5) ---------- */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;
   document.querySelectorAll("#spells .spell, .spells .spell").forEach(b=>{const id=b.dataset.s||b.dataset.sp,sp=id&&SP(id);
     if(b.id==="openEther")return;   // the Ether keeps its own bright blue, so everyone finds it
     const sc=sp?sp.school:b.closest("[data-school]")?.dataset.school;const col=sc&&SCHOOL_COL[sc];
@@ -10214,7 +10219,7 @@ if(window.__EC)Object.assign(window.__EC,{seesTile:(...a)=>seesTile(...a),fogTil
 
 /* ---------- the dice box (T7): a fold of its own, just below the row of Grave, Ether, Outer Darkness and the rest;
    open by default, remembered on this device ---------- */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const sh=$("#shared"),t=$("#mytray");if(!sh||!t)return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const sh=$("#shared"),t=$("#mytray");if(!sh||!t)return;
   let d=$("#dicefold");if(!d){d=document.createElement("details");d.id="dicefold";d.className="dicefold";d.open=PREF.diceOpen!==false;d.innerHTML="<summary>Dice rolls</summary>";
     d.addEventListener("toggle",()=>{if(PREF.diceOpen===d.open)return;PREF.diceOpen=d.open;savePrefs()})}
   const at=sh&&!sh.closest(".spellpanel")?sh:($("#handslot")||sh);if(d.previousElementSibling!==at)at.after(d);if(t.parentNode!==d)d.appendChild(t);d.hidden=!t.innerHTML.trim()}}   // v72a: the piles went under the spells; the dice stay under the hand   // v74a: under the piles when they are under the hand
@@ -10338,11 +10343,11 @@ function paintMines(){if(!G)return;const V=view(),slots=mineSlots(V);let box=$("
   box.querySelector(".msfold").onclick=()=>{PREF.mineOpen=!open;savePrefs();paintMines()};
   const mv=box.querySelector(".msmove");if(mv)mv.onclick=()=>{PREF.mineAt=(at+1)%4;savePrefs();paintMines();box.scrollIntoView({block:"nearest"})};
   box.querySelectorAll("[data-ms]").forEach(b=>b.onclick=()=>{const s=slots.find(x=>x.k===b.dataset.ms);if(s)mineAct(s,V)})}
-{const _r=render;render=function(){_r.apply(this,arguments);try{paintMines()}catch(e){console.error(e)}}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);try{paintMines()}catch(e){console.error(e)}}}
 if(window.__EC)Object.assign(window.__EC,{mineSlots,mineStats,moonPlant:(...a)=>moonPlant(...a),paintMines});
 /* the wildcards' use line also in the Selected box (a wildcard picked in the hand, or in the stack picked on the field) and
    in the card's own tip */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const box=$("#selbox");if(!box||box.querySelector(".wilduse"))return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const box=$("#selbox");if(!box||box.querySelector(".wilduse"))return;
   let cards=[];if(G.selHand)cards=[G.selHand];else if(G.sel&&G.board[G.sel.r]&&G.board[G.sel.r][G.sel.c])cards=G.board[G.sel.r][G.sel.c].cards;
   const us=[...new Set(cards.filter(c=>c.unit&&WILD_USE[c.unit]).map(c=>c.unit))];if(!us.length)return;
   box.insertAdjacentHTML("afterbegin",us.map(u=>`<p class="wilduse"><b>${esc((UNIT[u].short||UNIT[u].name))}</b> ${esc(WILD_USE[u])}</p>`).join(""))}}
@@ -10353,7 +10358,7 @@ if(window.__EC)Object.assign(window.__EC,{mineSlots,mineStats,moonPlant:(...a)=>
 const nearRepair=(pl,r,c)=>stacksOf(pl).some(({st,r:a,c:b})=>st.cards.some(x=>x.unit==="repair")&&(a-r)**2+(b-c)**2<=5);   // a round circle of two
 {const _cp=canPlace;canPlace=function(card,r,c){if(_cp.apply(this,arguments))return true;
   if(!G||!card||kind(card)!=="wall"||G.phase==="setup"||isVoid(r,c)||G.board[r][c])return false;return nearRepair(G.active,r,c)}}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.selHand||kind(G.selHand)!=="wall")return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!G.selHand||kind(G.selHand)!=="wall")return;
   for(const {st,r,c} of stacksOf(G.active))if(st.cards.some(x=>x.unit==="repair")){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(t)t.classList.add("repsrc")}}}
 if(INFO.wall)INFO.wall[2]=INFO.wall[2].map(([k,v])=>k==="Moves"?[k,"never; it goes up on any empty tile of your spawn lines, or on any empty tile within two of one of your Repairmen"]:[k,v]);
 if(INFO.repair&&!INFO.repair[2].some(r=>r[0]==="Builds"))INFO.repair[2].splice(1,0,["Builds","a Wall from your hand can go up on any empty tile within two of him"]);
@@ -10462,7 +10467,7 @@ function wireCheat(root,V){
 function cheatWindow(){const V=view();if(!cheatHas(V))return;let w=$("#cheatw");if(!w){w=document.createElement("div");w.id="cheatw";w.className="faov";document.body.appendChild(w)}
   w.innerHTML=`<div class="ovbox wide cheatbox" role="dialog" aria-labelledby="cheatq"><button type="button" class="xclose" id="cheatX" aria-label="Close">×</button><h2 id="cheatq">Cheat mode</h2>${cheatHTML(V)}<p class="acts"><button type="button" class="btn" id="cheatOk">Done</button></p></div>`;
   w.hidden=false;wireCheat(w,V);const close=()=>{w.hidden=true};$("#cheatX").onclick=close;$("#cheatOk").onclick=close}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const on=cheatOn(),V=view(),has=on&&cheatHas(V);
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const on=cheatOn(),V=view(),has=on&&cheatHas(V);
   // the sign every player sees
   let b=$("#cheatbadge");if(on&&!b){b=document.createElement("div");b.id="cheatbadge";b.textContent="Cheat mode";b.title="Cheat mode is on in this game.";document.body.appendChild(b)}if(b)b.hidden=!on;
   // the Cheat button beside Configure
@@ -10530,7 +10535,7 @@ const addTone=h=>h.replace(/style="--pc:([^";]*)/,(m,col)=>{const t=toneOf(col);
 {const _sd=siegeDecor;siegeDecor=function(){const h=_sd.apply(this,arguments);return h.replace(/(<div class="stack[^"]*v61[^"]*") style="--pc:([^";]*)/,(m,a,col)=>{const t=toneOf(col);return t?`${a} style="--pc:${col};--pcb:${t}`:m})}}
 
 /* ---------- the opening: a clear line above the field says where the Ace goes (U2) ---------- */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const b=$("#board");if(!b)return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const b=$("#board");if(!b)return;
   const host=b.closest(".camwrap,.boardwrap")||b;let h=$("#acehint");
   const want=G.phase==="setup"&&G.setupStep==="ace"&&canAct()&&!G.p[G.active].cpu;
   if(!want){if(h)h.remove();return}
@@ -10563,7 +10568,7 @@ SPELLS.push({id:"falock",name:"Lock in Place",cost:0,school:"Enchantment",
   ok:()=>{const st=selStack();return faOn(G.active)&&!!st&&st.owner===G.active&&lockIds(st).length>0},
   run:()=>{const st=selStack();if(st)setFaLock(G.active,G.sel.r,G.sel.c,lockIds(st),true)}});
 SPELL_TEXT.falock={n:"Field Automation only. Free.",e:"The cards you select stay where they are: Field Automation won't move them.",l:"Not on bases, pinned or stunned stacks, or cards already locked. Click the stack to unlock."};
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;if(!faOn(view()))document.querySelectorAll('[data-s="falock"]').forEach(b=>b.remove())}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;if(!faOn(view()))document.querySelectorAll('[data-s="falock"]').forEach(b=>b.remove())}}
 /* the Selected box: lock or unlock */
 {const _rs=renderSel;renderSel=function(live){_rs.apply(this,arguments);if(!G||!G.sel)return;const V=view(),st=selStack(),box=$("#selbox");
   if(!box||!st||st.owner!==V||!faOn(V)||isNPC(V)||showsBack(V,G.sel.r,G.sel.c))return;
@@ -10599,7 +10604,7 @@ function notePause(pl,what){const k=what+"|"+G.turnNo;G._blindNote=G._blindNote|
 {const _ls=lhAutoSac;lhAutoSac=async function(pl){if(G&&blindPause(pl))return;return _ls.apply(this,arguments)}}
 {const _l=lazyPlace;lazyPlace=function(card){if(G&&blindPause(G.active)){flash("Lazy Hand pauses while you are blind: place this card yourself.");return false}return _l.apply(this,arguments)}}   // v71k: false lets the click pick the card up
 /* the buttons say so */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view();if(V==null||!blindPause(V))return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const V=view();if(V==null||!blindPause(V))return;
   const nep=nepEcPause(V);   // v71c: in Neptune's eclipse the switches stay On, crossed out
   const t=document.querySelector(".fabar .fatog");if(t&&faOn(V)&&!t.dataset.blind){t.dataset.blind="1";if(nep){t.classList.add("nepcancel");t.title="Neptune's eclipse: Field Automation is lost in the fog until it ends."}else{t.textContent="Auto field: paused (blind)";t.title="Field Automation pauses while you are blind; it carries on when you can see again."}}
   const l=$("#lazyBtn");if(l&&!l.classList.contains("blindpause")){l.classList.add("blindpause");if(nep)l.classList.add("nepcancel");l.setAttribute("data-tip",nep?"Neptune's eclipse: Lazy Hand is lost in the fog until it ends.":"Lazy Hand pauses while you are blind.")}}}
@@ -10749,7 +10754,7 @@ SPELL_TEXT.mdel={e:"Choose an enemy: their mana bar lies by 1d3 either way for 1
 {const _bt=beginTurn;beginTurn=function(pl){const out=_bt.apply(this,arguments);if(illOf("blindHand",pl))shuffle(G.p[pl].hand);const m=illOf("manaDel",pl);if(m)m.off=delOff();return out}}
 {const _et=endTurn;endTurn=function(pl){for(const k of ["blindHand","manaDel"])if(G[k]){for(const x of G[k])if(x.t===pl)x.left--;G[k]=G[k].filter(x=>x.left>0)}return _et.apply(this,arguments)}}
 /* the blind hand, as its owner sees it */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view();if(!illOf("blindHand",V))return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const V=view();if(!illOf("blindHand",V))return;
   document.querySelectorAll("#hand .hc").forEach(h=>{const b=h.querySelector(".cardbtn");if(b){b.innerHTML=`<span class="cf blank"><b>?</b></span>`;b.setAttribute("aria-label","a hidden card")}
     h.querySelectorAll("[data-sh]").forEach(x=>{x.textContent="sac ?";x.title="Sacrifice this hidden card to your soul pile"});h.querySelectorAll("[data-sunh]").forEach(x=>{x.textContent="sun ?"})});
   if(G.selHand){const box=$("#selbox");if(box)box.innerHTML=`<p><b>A hidden card</b> selected (Blind Hand). Click a highlighted tile to place it.</p>`}}}
@@ -10771,7 +10776,7 @@ function faAskOff(yes){let box=$("#faask");if(!box){box=document.createElement("
 <p class="acts"><button type="button" class="btn" id="faY">Yes</button> <button type="button" class="btn ghost" id="faN">No</button></p></div>`;
   box.hidden=false;const close=()=>{box.hidden=true};$("#faY").onclick=()=>{close();yes()};$("#faN").onclick=close;$("#faX").onclick=close;$("#faN").focus()}
 {const _ft=faToggle;faToggle=function(){const V=view(),s=faState(V);if(s&&s.on&&faAlways()){faAskOff(()=>{G.p[V].faUserOff=true;_ft()});return}return _ft.apply(this,arguments)}}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!faAlways()||G.over||G.phase==="setup"||!faAllowed())return;const V=view(),P=G.p[V];
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!faAlways()||G.over||G.phase==="setup"||!faAllowed())return;const V=view(),P=G.p[V];
   if(!P||P.cpu||isNPC(V)||P.faUserOff||faOn(V)||(NET.role==="guest"&&NET.watch)||NET.ctx!=null&&NET.ctx!==V)return;
   const c=faMine();c.under=true;PREF.fa=c;savePrefs();setFieldAuto(V,true,c)}}
 const faAlwaysHTML=id=>`<label class="faalways" title="It turns itself on in every game where it can, and asks before you turn it off."><input type="checkbox" id="${id}" ${faAlways()?"checked":""}><span>Always leave Field Automation on</span></label>`;   // v73f: small, and only on the Field tab
@@ -10833,7 +10838,7 @@ function roundBanner(n,sub){let el=$("#roundban");if(!el){el=document.createElem
 if(window.__EC)Object.assign(window.__EC,{hordeCounters:()=>hordeCounters(),roundBanner:(...a)=>roundBanner(...a),hordeSpawnW:()=>hordeSpawn()});
 
 /* ---------- v70d: while the others finish drawing, the bar below the field says so ---------- */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.drawWait)return;const c=$("#controls");if(c&&!c.querySelector(".drawwait"))c.insertAdjacentHTML("beforeend",`<span class="drawwait" role="status">Waiting for players to draw…</span>`)}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!G.drawWait)return;const c=$("#controls");if(c&&!c.querySelector(".drawwait"))c.insertAdjacentHTML("beforeend",`<span class="drawwait" role="status">Waiting for players to draw…</span>`)}}
 if(window.__EC)Object.assign(window.__EC,{drawW:(...a)=>draw(...a),deckShort:(...a)=>deckShort(...a),takeDeck:(...a)=>takeDeck(...a),takeHand:(...a)=>takeHand(...a),effManaW:pl=>effMana(pl)});
 
 /* ---------------- v71 ----------------
@@ -11003,7 +11008,7 @@ function nepHidden(V,st,r,c){return !!(st&&st.lost&&V!=null&&st.owner===V&&!nepF
 {const _mt=moveTargets;moveTargets=function(){const s=G.sel,st=s&&G.board[s.r]&&G.board[s.r][s.c];if(st&&st.lost)return [];return _mt.apply(this,arguments)}}
 {const _cp=canPlace;canPlace=function(card,r,c){const st=G&&G.board[r]&&G.board[r][c];if(st&&st.lost)return false;return _cp.apply(this,arguments)}}
 {const _sd=siegeDecor;siegeDecor=function(inner,st,V,r,c){const h=_sd.apply(this,arguments);return st&&st.lost?h.replace('class="stack ','class="stack nlost '):h}}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!nepCloudOn())return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!nepCloudOn())return;
   for(const b of document.querySelectorAll("#board button.tile"))if(nepCloudAt(+b.dataset.r,+b.dataset.c)&&!b.querySelector(".nepcloud"))b.insertAdjacentHTML("beforeend",'<span class="nepcloud" aria-hidden="true"></span>')}}
 
 /* ---------- stray mana: once a round each player's earning or spending may go astray (1) or double (20) ---------- */
@@ -11067,7 +11072,7 @@ async function nepEventRound(){if(!nepUp()){G.nepEv=null;return}
   if(G.nepEv&&r>G.nepEv.until){G.nepEv=null;log("Neptune's cycle ends: the field and the numbers come back.","event");render()}
   const since=G.skySince;
   if(!G.nepEv&&!(typeof cyclesOff==="function"&&cyclesOff())&&since!=null&&r>since&&(r-since)%CYCLE===0){
-    const d=1;   // v75a: a cycle event lasts one roundG.nepEv={from:r,until:r+d-1};
+    const d=1;G.nepEv={from:r,until:r+d-1};   // v75a: a cycle event lasts one round
     log(`<b>Neptune's cycle</b> (every ${CYCLE} rounds, as long as the Moon's): for this round the tiles fade into the map and every player's numbers go dark. Sacrifices, the Bank's takings and drawn cards may drift away; the dead may sink to the Ether or the Outer Darkness.`,"event");
     popup("Neptune's cycle",`<p>For <b>this round</b> Neptune glows: the tiles fade into the map and every player's numbers go dark.</p><ul><li>A sacrifice's mana goes to another player on a 1 of 1d8.</li><li>Mana a purchase brings the Bank goes to a random player on a 1 of 1d10${survival()?" (not in Survival)":""}.</li><li>A drawn card is lost on a 1 of 1d20 (another from the same draw on a 1 of 1d3), and found 1d10 turns later by anyone.</li><li>A card that dies sinks, on a 1 of 1d4, to the Outer Darkness or the Ether.</li><li>Once a round a player may be let into the grave (a 1 of 1d8) to sacrifice its cards for mana.</li></ul>`);
     render();
@@ -11122,7 +11127,7 @@ let nepBuying=null;
     if(dark)toDark(c);else{if(c.captured&&c.captured.length){for(const s of c.captured)toGrave(s,"death");c.captured=[]}c.owner=null;if(c.hp!=null)c.hp=c.maxHp;G.ether.push(c)}
     log(`<b>Neptune</b>: ${esc(nameOf(c))} sinks into ${dark?"the Outer Darkness":"the Ether, for sale"}.`);notify(null,`<span class="nepword">♆ ${dark?"Darkness":"Ether"}</span> ${esc(nameOf(c))} sinks into ${dark?"the Outer Darkness":"the Ether"}.`);return}
   return _tg.apply(this,arguments)}}
-{const _r=render;render=function(){_r.apply(this,arguments);const V=G?view():null;document.documentElement.classList.toggle("nepev",!!G&&(nepEvFor(V)||G.p.some(P=>P.i!==V&&nepSelf(P.i)&&V!=null&&!isEnemy(P.i,V))))}}   // a teammate under Lostness clouds your view too
+{const _r=render;render=function(){rSafe(_r,this,arguments);const V=G?view():null;document.documentElement.classList.toggle("nepev",!!G&&(nepEvFor(V)||G.p.some(P=>P.i!==V&&nepSelf(P.i)&&V!=null&&!isEnemy(P.i,V))))}}   // a teammate under Lostness clouds your view too
 /* G.nepEv drives the glow in the picture too (planetSVG above) */
 
 /* ---------- v71c-3: Neptune's eclipse: 5% in each round of its cycle (v71i) (or Eclipse mode; never with eclipses off), as long as
@@ -11185,7 +11190,7 @@ for(const [name,get,set] of [["nepFoeAct",()=>nepFoeAct,f=>nepFoeAct=f]]){
   return _tc.apply(this,arguments)}}
 document.addEventListener("click",e=>{if(!G||!G.sel||!G.sel.nepFoe||!nepEcFor(view()))return;const b=e.target.closest&&e.target.closest("#selbox button");if(!b)return;
   e.preventDefault();e.stopPropagation();const S=G.sel;G.sel=null;nepFoeAct(view(),S.r,S.c,null,null);render()},true);   // the Selected box's buttons count as acting with it
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.sel||!G.sel.nepFoe||!nepEcFor(view()))return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!G.sel||!G.sel.nepFoe||!nepEcFor(view()))return;
   const T=nepFoeTargets(G.sel.r,G.sel.c,view()),B=$("#board");if(!T||!B)return;
   for(const [r,c] of T.tiles){const t=B.querySelector(`.tile[data-r="${r}"][data-c="${c}"]`);if(t)t.classList.add(T.mode==="attack"?"tatk":"tmove")}}}
 /* twice a round at most, a 1 of 1d20 sends a move or an attack astray */
@@ -11198,7 +11203,7 @@ const nepAstray=pl=>{const E=nepEcState(pl);if(!E)return false;const k=pl+"|"+G.
   return _at.apply(this,arguments)}}
 /* what the eclipse does to the screen */
 let nepMusicOn=false;
-{const _r=render;render=function(){_r.apply(this,arguments);const V=G?view():null,E=G?nepEcState(V):null,h=document.documentElement;
+{const _r=render;render=function(){rSafe(_r,this,arguments);const V=G?view():null,E=G?nepEcState(V):null,h=document.documentElement;
   h.classList.toggle("nepec",!!E);h.classList.toggle("nepflip",!!(E&&E.flip));
   if(!!E!==nepMusicOn){nepMusicOn=!!E;try{window.ECMusic&&ECMusic.nep&&ECMusic.nep(nepMusicOn)}catch(e){}}
   if(!E)return;
@@ -11320,7 +11325,7 @@ function nepTempRound(){const T=G.nepTemp;if(!T)return;const busy=T.k==="ev"?!!(
   G.nepEv=null;G._vis=null;applyMoonTheme();
   log(`Neptune leaves the sky: ${skyWord(sky())} comes back where it paused.`,"event")}
 /* the called cycle sounds like the eclipse: the deep tide and the sunken music */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.nepEv||!G.nepEv.spell||!nepEvOn())return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!G.nepEv||!G.nepEv.spell||!nepEvOn())return;
   try{if(typeof AUD!=="undefined"&&AUD.setAmb&&!G.eclipse)AUD.setAmb("ecl-neptune");if(window.ECMusic&&ECMusic.nep)ECMusic.nep(true)}catch(e){}}}
 
 /* ---------- Stray Mana ---------- */
@@ -11345,7 +11350,7 @@ const strayOn=pl=>{const S=G&&G.strayOn;return !strayIn&&S&&S.t===pl&&S.round===
     return out}finally{strayIn=false}}}
 
 /* a teammate under Lostness II: you see their stacks in a stranger's colors too */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view();if(V==null||nepEcState(V))return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const V=view();if(V==null||nepEcState(V))return;
   for(const P of G.p){const S=P.i!==V&&nepSelf(P.i);if(!S||S.k!=="ec"||isEnemy(P.i,V))continue;
     for(const t of document.querySelectorAll("#board button.tile")){const st=G.board[+t.dataset.r][+t.dataset.c],s=t.querySelector(".stack");if(!st||!s||st.owner!==P.i||!st.cards[0])continue;
       const col=COLORS[nepHash(st.cards[0].id+"|"+S.st.seed)%COLORS.length][1];s.style.setProperty("--pc",col);s.style.setProperty("--pcb",`color-mix(in oklab,${col} 44%,#211b16)`)}}}}
@@ -11439,7 +11444,7 @@ nepCloudTiles=function(){const N=NEP();let w=N.cloud&&N.cw;
 if(window.__EC)Object.assign(window.__EC,{nepCloudTilesW:()=>nepCloudTiles()});
 
 /* v71m: while Neptune is in the sky (or on a player through Lostness) its fog of war is bluish: html.nepup */
-{const _r=render;render=function(){_r.apply(this,arguments);document.documentElement.classList.toggle("nepup",!!(G&&(nepUp()||nepSelf(view()))))}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);document.documentElement.classList.toggle("nepup",!!(G&&(nepUp()||nepSelf(view()))))}}
 
 /* ---------- v71j: Default, Data saving or Poor connection (asked once, on the first visit to any Ether's Crossroads page) ----------
    A setting on this device (PREF.net: 0, 1 or 2).
@@ -11533,7 +11538,7 @@ flushSnap=function(){clearTimeout(snapT);snapT=null;if(NET.role!=="host"||!G||!G
     d=Object.assign({},d,{g});delete d.dg}
   return _on.call(this,from,d)}}
 /* a poor connection at the table: the host gathers its updates (a question still sends the game at once, before it asks) */
-{const _rd=render;render=function(){const had=!!snapT;_rd.apply(this,arguments);if(!had&&snapT&&NET.role==="host"&&netSlow()){clearTimeout(snapT);snapT=setTimeout(flushSnap,320)}}}
+{const _rd=render;render=function(){const had=!!snapT;rSafe(_rd,this,arguments);if(!had&&snapT&&NET.role==="host"&&netSlow()){clearTimeout(snapT);snapT=setTimeout(flushSnap,320)}}}
 
 if(window.__EC)Object.assign(window.__EC,{netLvl,netSet:(n,a)=>netSet(n,a),snapSplit,snapJoin,netQuiet});
 
@@ -11795,10 +11800,10 @@ function guardSVG(){const B=$("#board");if(!B||!G)return;const V=view();let list
       lines+=`<line class="gl" style="--gc:${pc}" x1="${f(b.x+ux*(R1+2))}" y1="${f(b.y+uy*(R1+2))}" x2="${f(a.x-ux*(R2+2))}" y2="${f(a.y-uy*(R2+2))}"/>`}}
   const svg=`<svg class="guards" aria-hidden="true" width="${B.scrollWidth}" height="${B.scrollHeight}">${lines}${[...crys.values()].join("")}${rings}</svg>`;
   if(old)old.remove();B.insertAdjacentHTML("beforeend",svg)}
-{const _r=render;render=function(){_r.apply(this,arguments);try{guardSVG()}catch(e){console.error(e)}}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);try{guardSVG()}catch(e){console.error(e)}}}
 if(typeof ResizeObserver==="function"){let q=0;const ro=new ResizeObserver(()=>{if(q)return;q=requestAnimationFrame(()=>{q=0;crysSig="";if(G)guardSVG()})});
   const hook=()=>{const B=$("#board");if(B&&!B.dataset.crysRo){B.dataset.crysRo="1";ro.observe(B)}};
-  {const _r=render;render=function(){_r.apply(this,arguments);hook()}}}
+  {const _r=render;render=function(){rSafe(_r,this,arguments);hook()}}}
 
 if(window.__EC)Object.assign(window.__EC,{crysPrep:(...a)=>crysPrep(...a),crysStop:(...a)=>crysStop(...a),crysGuards:pl=>crysGuards(pl),guardSVG:()=>guardSVG(),crysCands:(pl,c)=>crysCands(pl,c||crysCfg(pl)),faSaveW:c=>faSave(c),faMineW:()=>faMine(),faCleanW:c=>faClean(c)});
 
@@ -11934,7 +11939,7 @@ function nepMeters(){if(!document.documentElement.classList.contains("nepec"))re
   for(const b of document.querySelectorAll(".meters .meter b.mv,#foe.minis .mline b")){const deck=!!b.closest(".meter:not(.mana)")||/^Deck/.test((b.parentNode.querySelector("span")||{}).textContent||"");
     b.textContent=deck?`${roll(0,60)}/${roll(1,60)}`:`${roll(0,24)}/${roll(1,20)}`;b.classList.add("nepnum");b.classList.remove("neg")}
   for(const bar of document.querySelectorAll(".meters .deckbar,.meters .manabar"))bar.setAttribute("aria-label",`${bar.classList.contains("deckbar")?"Deck":"Mana"}: lost in Neptune's eclipse`)}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view(),E=nepEcState(V);if(!E)return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const V=view(),E=nepEcState(V);if(!E)return;
   for(const t of document.querySelectorAll("#board button.tile")){const st=G.board[+t.dataset.r][+t.dataset.c];if(!st||!st.cards[0])continue;const p=nepPat(st,E);
     const col=nepDisg(st,E);for(const el of t.querySelectorAll(".v61"))nepPaint(el,col,p)}
   const box=$("#selbox"),S=G.sel,st=S&&G.board[S.r]&&G.board[S.r][S.c];
@@ -11990,7 +11995,7 @@ function etherTopUp(){if(!G||NET.role==="guest")return;etherSetup();
 {const _sb=spellBlock;spellBlock=function(sp){if(G&&G.opts.etherOff&&sp&&ETHER_IDS.has(sp.id))return "The Ether is off in this game.";return _sb.apply(this,arguments)}}
 {const _mb=mysteryBuy;mysteryBuy=function(pl){if(G&&G.opts.etherOff){if(G.p[pl]&&!G.p[pl].cpu)flash("The Ether is off in this game.");return null}return _mb.apply(this,arguments)}}
 /* an endless Ether shows ∞ */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.etherInf)return;const a=$("#seeether b");if(a)a.textContent="∞";const d=$("#openEther .dc");if(d)d.textContent="endless souls"}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!G.etherInf)return;const a=$("#seeether b");if(a)a.textContent="∞";const d=$("#openEther .dc");if(d)d.textContent="endless souls"}}
 
 /* ---------- v72b: Accessibility Settings: Colorblind-safe colors and Dyslexic mode ----------
    The Menu (and Settings before a game) gathers them in an "Accessibility Settings" fold; the setup's Display tab has an
@@ -12106,10 +12111,10 @@ function rbGo(pl,to){const s=rbState(pl);s.q="";
   else{const i=typeof to==="number"?to:rbAt(to);if(i<0)return;s.v="rule";s.i=i;s.sec=rbSec(RB[i])}
   rbPaint(pl);if(pl!=="win"){const h=rbHost(pl);if(h){const r=h.getBoundingClientRect();if(r.top<0)h.scrollIntoView({block:"start"})}}}
 /* Space forward, Shift+Space back: the sections, a section's list, then rule by rule */
-function rbStep(pl,d){const s=rbState(pl);if(s.q.trim())return;
+function rbStep(pl,d){if(!RB)return;const s=rbState(pl);if(s.q.trim())return;   // not loaded yet (or no connection): nothing to step through
   if(s.v==="top"){if(d>0){s.sec=rbSecs()[0].code;rbGo(pl,"sec")}return}
   if(s.v==="sec"){if(d>0)rbGo(pl,rbAt(s.sec));else rbGo(pl,"top");return}
-  const j=s.i+d;if(j>=0&&j<RB.length)rbGo(pl,j);else if(j<0)rbGo(pl,"top")}
+  const j=s.i+d;if(j>=0&&j<RB.length)rbGo(pl,j);else if(j<0)rbGo(pl,"sec")}   // back from the first rule: its section's list, as on the way in
 /* one set of handlers per place, on the place itself */
 function rbWire(host,pl){if(host.dataset.rbw===pl)return;host.dataset.rbw=pl;
   host.addEventListener("click",ev=>{const t=ev.target.closest("[data-rbopen],[data-rbsec],[data-rbto],[data-rbgo],[data-rbclear],[data-rbclose]");if(!t||!host.contains(t))return;ev.preventDefault();
@@ -12132,9 +12137,11 @@ function rbWin(code){let w=$("#rbwin");
   rbLoad().then(()=>{rbWire(box,"win");if(code)rbGo("win",code);else rbPaint("win")}).catch(()=>{box.innerHTML=`<button type="button" class="xclose" aria-label="Close">×</button><p class="dim">The rule book could not be opened (no connection?). <a class="link" href="ethers-crossroads-rules.html" target="_blank" rel="noopener">All Rules</a></p>`;box.querySelector(".xclose").onclick=rbClose})}
 const rbOpen=code=>rbWin(code);
 const rbWinOpen=()=>{const w=$("#rbwin");return !!w&&!w.hidden};
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&rbWinOpen()){rbClose();e.stopPropagation();e.preventDefault()}},true);
+const rbAbove=()=>{const p=$("#pop");return !!p&&!p.hidden&&p.getClientRects().length>0&&p.innerHTML.trim()!==""};   // a popup over the rule book takes the keys
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&rbWinOpen()&&!rbAbove()){rbClose();e.stopPropagation();e.preventDefault()}},true);
 window.addEventListener("keydown",e=>{if(!rbWinOpen()||e.code!=="Space"&&e.key!==" ")return;if(e.ctrlKey||e.metaKey||e.altKey)return;
-  const a=document.activeElement;if(a&&a.matches&&a.matches("input[type=search],input[type=text],textarea,select"))return;   // typing a space in the search bar
+  const a=document.activeElement;if(a&&a.matches&&(a.matches("input[type=search],input[type=text],textarea,select")||a.matches("input[type=checkbox],input[type=radio],summary")&&$("#rbwin").contains(a)))return;   // typing a space; ticking an option or opening a fold in the book
+  if(rbAbove())return;   // a popup over the book: Space is its own
   e.preventDefault();e.stopImmediatePropagation();rbStep("win",e.shiftKey?-1:1)},true);
 /* the folds: in Help below Further explanations, and at the bottom of the page; each an option */
 function rbMount(box,pl){if(!box)return;rbWire(box,pl);if(RB){rbPaint(pl);return}box.innerHTML='<p class="dim">Opening the rule book…</p>';
@@ -12177,7 +12184,7 @@ const stSame=(a,b)=>JSON.stringify(stCfg(a))===JSON.stringify(stCfg(b));
 const stNewId=()=>"s"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const stName=n=>String(n||"").replace(/\s+/g," ").trim().slice(0,40);
 let stUI={sel:null,mode:null,inbox:null};
-function stUse(id){const s=stList().find(x=>x.id===id);if(!s)return;PREF.stratOn=id;stUI.sel=id;faSave(Object.assign(stCfg(s.cfg),{under:faMine().under}))}
+function stUse(id){const s=stList().find(x=>x.id===id);if(!s)return;PREF.stratOn=id;stUI.sel=id;faSave(Object.assign(stCfg(s.cfg),{under:faMine().under},s.cfg&&s.cfg.scope?{}:{scope:faMine().scope}))}   // a strategy saved before Soft Automate keeps the current choice
 /* any other change: the strategy is no longer in use */
 {const _fs=faSave;faSave=function(c){const out=_fs.apply(this,arguments);if(PREF.stratOn){const s=stList().find(x=>x.id===PREF.stratOn);if(!s||!stSame(s.cfg,PREF.fa)){PREF.stratOn=null;savePrefs();paintFA()}}return out}}
 /* sending, through the game (the host keeps each person's inbox) */
@@ -12560,7 +12567,7 @@ function fsPaint(){if(!G||!fsOn())return;fsUI();const h=document.documentElement
   B.querySelectorAll("[data-fshist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.fshist,b)});
   h.style.setProperty("--fsrowh",row.offsetHeight+"px");const me=$("#me");if(me)h.style.setProperty("--fsmeh",(me.offsetHeight||36)+"px");
   if(P&&!P.cpu)h.style.setProperty("--fspc",P.color)}
-{const _r=render;render=function(){_r.apply(this,arguments);fsButton();fsPiles();if(G&&fsOn())fsPaint()}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);fsButton();fsPiles();if(G&&fsOn())fsPaint()}}
 /* v74a: the Grave, the Ether, the Outer Darkness and the Auction sit under the hand (as before v72a); in fullscreen, at the bottom of the spells */
 function fsPiles(){const sh=$("#shared"),sp=$(".spellpanel"),hs=$("#handslot");if(!sh||!sp||!hs)return;
   if(fsOn()){if(sh.parentNode!==sp)sp.appendChild(sh)}else if(sh.previousElementSibling!==hs)hs.after(sh);
@@ -12652,7 +12659,7 @@ document.addEventListener("keydown",e=>{if(e.code!=="Space"&&e.key!==" ")return;
 
 /* v75c: the turn bar names the phase on its left (Draw, Prep, Attack) wherever the phase line beside it isn't shown:
    in fullscreen, and with the turn buttons at the top */
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const ctl=$("#controls");if(!ctl)return;let l=ctl.querySelector(".phl");
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const ctl=$("#controls");if(!ctl)return;let l=ctl.querySelector(".phl");
   const need=fsOn()||PREF.ctl!=="bottom",ph={draw:"Draw",prep:"Prep",attack:"Attack",setup:"Setup",moon:"The sky"}[G.phase];
   if(!need||!ph||G.over||G.passing){if(l)l.remove();return}
   if(!l){l=document.createElement("span");l.className="phl";ctl.prepend(l)}else if(ctl.firstElementChild!==l)ctl.prepend(l);
@@ -12712,13 +12719,13 @@ function crossPlan(o){const two=o.big==="cross2",X=o.cross||{},small=X.size==="s
 {const _mp=mapPlan;mapPlan=function(o){if(o&&(o.big==="cross"||o.big==="cross2")&&o.mode!=="survival"&&o.layout!=="coop"){const M=crossPlan(o);if(o.layout==="koth"){const c=(M.cols-1)/2;HILL[0]=Math.floor(c);HILL[1]=Math.ceil(c)}return M}   // v73d: the Hill is the very middle
   if(o&&o.layout==="koth"){HILL[0]=10;HILL[1]=14}return _mp.apply(this,arguments)}}
 /* off the map is darker on the crosses, so their shape reads at a glance */
-{const _r=render;render=function(){_r.apply(this,arguments);const B=$("#board");if(B)B.classList.toggle("bigvoid",!!(G&&G.map&&["plus","round","cross","cross2"].includes(G.map.big)))}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);const B=$("#board");if(B)B.classList.toggle("bigvoid",!!(G&&G.map&&["plus","round","cross","cross2"].includes(G.map.big)))}}
 /* a large map opens on your own spawn (and on the next player's, when the device changes hands) */
 let camHomeKey=null;
 function camHome(V){const w=document.querySelector(".camwrap.on"),S=G&&G.map.seats[V];if(!w||!S)return;const ts=S.back.length?S.back:S.zone,[r,c]=ts[Math.floor(ts.length/2)]||[0,0];
   const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(!t)return;const wr=w.getBoundingClientRect(),tr=t.getBoundingClientRect();
   w.scrollLeft+=tr.left+tr.width/2-(wr.left+wr.width/2);w.scrollTop+=tr.top+tr.height/2-(wr.top+wr.height/2)}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!isLarge()||fsOn()||!G.map.seats)return;const V=view(),key=G.map.seed+":"+V;if(camHomeKey===key)return;camHomeKey=key;requestAnimationFrame(()=>camHome(V))}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!isLarge()||fsOn()||!G.map.seats)return;const V=view(),key=G.map.seed+":"+V;if(camHomeKey===key)return;camHomeKey=key;requestAnimationFrame(()=>camHome(V))}}
 /* the setup: the Cross's own options show under Large maps when a Cross is picked */
 function crossUp(n,big){const b=val("obig"),box=$("#crossopts");if(!box)return;const on=b==="cross"||b==="cross2";box.hidden=!on;if(!on)return;
   const sm=document.querySelector('input[name=oxsize][value=small]'),smOk=!(b==="cross2"&&n>2)&&!big;   // the small two-armed Cross holds two; factions and big teams need the standard size
@@ -12775,7 +12782,7 @@ function fsFoesHTML(){const V=view(),E=typeof nepEcState==="function"&&nepEcStat
 ${P.cpu==="horde"?"":`<span class="fsfm" title="Deck ${q||n}"><span class="fsfbar"><i style="width:${q?50:pct(Math.min(n,N)/N)}%"></i></span><em>${q||n}</em></span>
 <span class="fsfm mana" title="Mana ${q||m}/${q||cap}"><span class="fsfbar"><i style="width:${q?50:pct(Math.max(0,m)/Math.max(1,cap))}%"></i></span><em>${q?"?/?":`${m}/${cap}`}</em></span>
 <span class="fsfh" title="Hand">✋${P.hand.length}</span>`}</div>`}).join("")}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!fsOn())return;const f=$("#foe");if(f)f.innerHTML=fsFoesHTML()}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!fsOn())return;const f=$("#foe");if(f)f.innerHTML=fsFoesHTML()}}
 
 /* ---------- the dice and log row: More options ---------- */
 const fsN=k=>[1,2,3,5].includes(PREF[k])?PREF[k]:1,fsWho=k=>["all","team","me"].includes(PREF[k])?PREF[k]:"all";
@@ -12835,7 +12842,7 @@ function skyFrac(){if(!G||!G.moon)return "";const m=G.moon,k=sky(),V=view(),r=m.
   if(k==="sun"){const P=G.p[V];if(!P||P.sunNext==null||P.tribe==="firm")return "";const tn=tnOf(V),from=P.sunFrom!=null&&P.sunFrom<P.sunNext?P.sunFrom:P.sunNext-2;return `Your judgement: turn ${Math.max(0,tn-from)}/${P.sunNext-from}`}
   if(k==="saturn"){const P=G.p[V];return P&&P.oath==="saturn"?`Your tolls: ${P.satPaid||0}/9`:""}
   return ""}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const mi=$("#moon .minfo");if(!mi)return;const t=skyFrac();let f=mi.querySelector(".mfrac");
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const mi=$("#moon .minfo");if(!mi)return;const t=skyFrac();let f=mi.querySelector(".mfrac");
   if(!t){if(f)f.remove();return}if(!f){f=document.createElement("span");f.className="mfrac";const n=mi.querySelector(".mname");if(n)n.after(f);else mi.prepend(f)}f.textContent=t;
   const sv=$("#moon svg.moon");if(sv)sv.setAttribute("aria-label",t)}}
 
@@ -12855,7 +12862,9 @@ const FA_WHEN="Automated actions take place only at the end of each phase of you
   for(const k of out){const s=src.find(x=>x&&typeof x.id==="string"&&x.id.slice(0,24)===k.id)||{};k.avoid=!!s.avoid;
     k.stackWith=[...new Set((Array.isArray(s.stackWith)?s.stackWith:[]).filter(v=>typeof v==="string").map(v=>v.slice(0,24)))].slice(0,24)}
   return out}}
-const clsBars=(k,o)=>!!k&&!!k.avoid&&!(o===k?k.stackWith.includes("self"):o?k.stackWith.includes(o.id):k.stackWith.includes("none"));
+if(Array.isArray(PREF.faClasses)&&PREF.faClasses.some(k=>k&&!Array.isArray(k.stackWith))){PREF.faClasses=clsClean(PREF.faClasses);savePrefs()}   // classes saved before v74f get the new fields
+const clsSW=k=>Array.isArray(k&&k.stackWith)?k.stackWith:[];   // a class saved before v74f has no list: it stacks with no one
+const clsBars=(k,o)=>!!k&&!!k.avoid&&!(o===k?clsSW(k).includes("self"):o?clsSW(k).includes(o.id):clsSW(k).includes("none"));
 function clsNoStack(list,grp,t){const there=t.cards.filter(x=>!isBase(x));if(!there.length)return false;
   const a=grp.filter(x=>!isBase(x)).map(x=>clsOfCard(x,list)),b=there.map(x=>clsOfCard(x,list));
   return a.some(ka=>b.some(kb=>clsBars(ka,kb)||clsBars(kb,ka)))}
@@ -12863,9 +12872,9 @@ function clsNoStack(list,grp,t){const there=t.cards.filter(x=>!isBase(x));if(!th
   ctx.noStack=(grp,t)=>clsNoStack(list,grp,t);return ctx}}
 let clsAvw=null;
 function clsAvoidHTML(k,L,pfx){const K=cfgKit("data-clv","data-clvact","clv"+pfx),opts=[["self","Its own cards"],["none","Cards in no class"],...L.filter(x=>x.id!==k.id).map(x=>[x.id,x.name])];
-  const names=opts.filter(([v])=>k.stackWith.includes(v)).map(([,t])=>t),open=clsAvw===k.id||clsWasOpen(`[data-clavw="${k.id}"]`);
+  const sw=clsSW(k),names=opts.filter(([v])=>sw.includes(v)).map(([,t])=>t),open=clsAvw===k.id||clsWasOpen(`[data-clavw="${k.id}"]`);
   return K.row(`${k.id}|avoid`,k.avoid,"Avoid stacking","Field Automation keeps its cards out of stacks with other cards, except the ones ticked below. Your own moves aren't stopped.")+
-    (k.avoid?`<details class="faextra clsavw" data-clavw="${k.id}" ${open?"open":""}><summary>Can still stack with <small class="dim">(${names.length?esc(names.join(", ")):"no one"})</small></summary><div class="opts fakinds">${opts.map(([v,t])=>`<label class="opt"><input type="checkbox" data-clv="${k.id}|sw:${esc(v)}" ${k.stackWith.includes(v)?"checked":""}><span>${esc(t)}</span></label>`).join("")}</div></details>`:"")}
+    (k.avoid?`<details class="faextra clsavw" data-clavw="${k.id}" ${open?"open":""}><summary>Can still stack with <small class="dim">(${names.length?esc(names.join(", ")):"no one"})</small></summary><div class="opts fakinds">${opts.map(([v,t])=>`<label class="opt"><input type="checkbox" data-clv="${k.id}|sw:${esc(v)}" ${sw.includes(v)?"checked":""}><span>${esc(t)}</span></label>`).join("")}</div></details>`:"")}
 {const _ch=clsHTML;clsHTML=function(pfx){const h=_ch.apply(this,arguments),L=clsList();
   return h.replace(/<details class="faextra clstg"[^>]*data-cltg="([^"]+)">/g,(m,id)=>{const k=L.find(x=>x.id===id);return k?`<p class="clsh">Stacking</p>${clsAvoidHTML(k,L,pfx||"")}${m}`:m})}}
 {const _cw=clsWire;clsWire=function(root){_cw.apply(this,arguments);
@@ -12911,7 +12920,7 @@ document.addEventListener("pointerup",e=>{if(e.pointerType!=="touch"||clsTargetA
 /* slightly see-through, for you only */
 const saShow=st=>!!G&&!!st&&st.owner===view()&&faMine().scope==="soft"&&st.cards.some(x=>x.sa&&!isBase(x));
 {const _sd=siegeDecor;siegeDecor=function(inner,st){const h=_sd.apply(this,arguments);if(!saShow(st))return h;return h.replace('<div class="stack','<div class="stack sauto')}}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view(),P=G.p[V],on=!!P&&faAllowed()&&faMine().scope==="soft";
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const V=view(),P=G.p[V],on=!!P&&faAllowed()&&faMine().scope==="soft";
   for(const b of document.querySelectorAll("#hand [data-h]")){const c=P&&P.hand[+b.dataset.h];b.classList.toggle("sauto",on&&!!(c&&c.sa))}}}
 /* at the top of Field Automation: what it automates, and when */
 {const _fp=faPanelHTML;faPanelHTML=function(c,pl,pfx){const h=_fp.apply(this,arguments),K=cfgKit("data-fa","data-faact","fa"+(pfx||""));
@@ -12932,7 +12941,7 @@ if(window.__EC)Object.assign(window.__EC,{setSoftAuto:(...a)=>setSoftAuto(...a),
 const EYE_SVG=`<svg viewBox="0 0 48 30" aria-hidden="true"><path d="M2 15C10 4 38 4 46 15 38 26 10 26 2 15Z" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/><circle cx="24" cy="15" r="7.5" fill="none" stroke="currentColor" stroke-width="2.6"/><circle cx="24" cy="15" r="3" fill="currentColor"/></svg>`;
 function handSeers(V){if(!G||!G.p[V]||G.passing)return [];const P=G.p[V];
   return G.p.filter(Q=>Q.i!==V&&!Q.out&&!isNPC(Q.i)&&Q.cpu!=="horde"&&(eclipseOn("sun")||P.shownBy!=null&&(P.shownBy===Q.i||!isEnemy(P.shownBy,Q.i)))).map(Q=>Q.i)}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;const V=view(),who=handSeers(V);
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const V=view(),who=handSeers(V);
   const sym=who.map(i=>{const Q=G.p[i];return `<i style="--pc:${Q.color}" title="${esc(Q.name)} can see it">${solidSVG(Q.solid,Q.color,12)}</i>`}).join(""),names=who.map(i=>G.p[i].name).join(", ");
   for(const b of document.querySelectorAll("#hand [data-h]")){b.querySelectorAll(".seeneye,.seers").forEach(x=>x.remove());b.classList.toggle("seen",!!who.length);if(!who.length)continue;
     b.insertAdjacentHTML("beforeend",`<span class="seeneye" aria-hidden="true">${EYE_SVG}</span><span class="seers">${sym}</span>`);
@@ -12966,7 +12975,7 @@ function spPaint(){if(!G)return;const V=view(),n=spFresh(V).length,h=$(".spellpa
     if(n&&!b){el.insertAdjacentHTML("beforeend",`<i class="bang spbang" aria-label="Something new at the Auction or the Bank">!</i>`)}else if(!n&&b)b.remove()}
   if(h&&!h.dataset.spw){h.dataset.spw=1;h.addEventListener("click",()=>{if(G&&spFresh(view()).length)spShow()})}
   if(t&&!t.dataset.spw){t.dataset.spw=1;t.addEventListener("click",()=>{setTimeout(()=>{if(!G)return;if(PREF.fsSp){if(spFresh(view()).length)spShow()}else{const b=$("#spnote");if(b)b.hidden=true}},0)})}}
-{const _r=render;render=function(){_r.apply(this,arguments);try{spPaint()}catch(e){console.error(e)}}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);try{spPaint()}catch(e){console.error(e)}}}
 
 if(window.__EC)Object.assign(window.__EC,{handSeers:V=>handSeers(V),spNotes:V=>spNotes(V),spFresh:V=>spFresh(V),spShow:()=>spShow()});
 
@@ -13152,13 +13161,13 @@ function dipTwoLeft(){if(!G||!G.dip||!dipOn())return;const T=dipTeams();if(T.len
 
 /* ---------- the flag under the Bank, and the window ---------- */
 const dipIncoming=V=>G&&G.dip?G.dip.pend.filter(p=>p.to===V):[];
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G)return;let b=$("#dipbar");
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;let b=$("#dipbar");
   if(!dipOn()){if(b)b.remove();return}if(!G.dip&&NET.role!=="guest")dipD();const V=view(),me=teamOf(V);if(me==null||isNPC(V))return;
-  const T=dipTeams().filter(t=>t!==me),cnt={war:0,peace:0,ally:0};for(const t of T)cnt[dipRel(me,t).s]=(cnt[dipRel(me,t).s]||0)+1;const inc=dipIncoming(V).length;
+  const T=dipTeams().filter(t=>t!==me),cnt={war:0,peace:0,ally:0};for(const t of T)cnt[dipRel(me,t).s]=(cnt[dipRel(me,t).s]||0)+1;const loans=typeof loanReqsFor==="function"?loanReqsFor(V).length:0,inc=dipIncoming(V).length+loans;   // loan requests are answered here too
   if(!b){b=document.createElement("button");b.type="button";b.id="dipbar";b.className="dipbar";b.onclick=()=>dipWin()}
   const slot=$("#bankslot");if(slot&&b.previousElementSibling!==slot)slot.after(b);
   b.classList.toggle("notify",!!inc);
-  b.innerHTML=`${FLAG_SVG}<span>Diplomacy</span><small>${[cnt.war?`${cnt.war} at war`:"",cnt.peace?`${cnt.peace} at peace`:"",cnt.ally?`${cnt.ally} allied`:""].filter(Boolean).join(" · ")}</small>${inc?`<i class="bang" aria-label="${inc} proposal${inc>1?"s":""} for you">!</i>`:""}`;
+  b.innerHTML=`${FLAG_SVG}<span>Diplomacy</span><small>${[cnt.war?`${cnt.war} at war`:"",cnt.peace?`${cnt.peace} at peace`:"",cnt.ally?`${cnt.ally} allied`:""].filter(Boolean).join(" · ")}</small>${inc?`<i class="bang" aria-label="${inc} ${loans?"proposal or loan request":"proposal"}${inc>1?"s":""} for you">!</i>`:""}`;
   if($("#dipwin")&&!$("#dipwin").hidden)dipPaint();
   dipAskCheck()}}
 let dipUI={brk:null};
@@ -13207,9 +13216,9 @@ function dipWin(){let w=$("#dipwin");if(!w){w=document.createElement("div");w.id
   const close=()=>{w.hidden=true;dipUI.brk=null};$("#dipX").onclick=$("#dipOk").onclick=close;w.onclick=e=>{if(e.target===w)close()}}
   w.hidden=false;dipPaint()}
 /* a proposal for you: it asks at once (online), or when your turn comes round (on one device) */
-const dipAsked=new Set();
-function dipAskCheck(){if(!G||G.over||G.passing)return;const V=view();if(!G.p[V]||G.p[V].cpu)return;const p=dipIncoming(V).find(x=>!dipAsked.has(x.id));if(!p)return;
-  if(document.querySelector("#ov:not([hidden]),#dipwin:not([hidden])"))return;dipAsked.add(p.id);
+const dipAsked=new Set();   // per game: proposal ids start again at 0 in every game
+function dipAskCheck(){if(!G||G.over||G.passing)return;const V=view();if(!G.p[V]||G.p[V].cpu)return;const gk=G.map.seed+":",p=dipIncoming(V).find(x=>!dipAsked.has(gk+x.id));if(!p)return;
+  if(document.querySelector("#ov:not([hidden]),#dipwin:not([hidden])"))return;dipAsked.add(gk+p.id);
   let a=$("#dipask");if(!a){a=document.createElement("div");a.id="dipask";a.className="faov";document.body.appendChild(a)}
   a.innerHTML=`<div class="ovbox dipbox" role="alertdialog" aria-labelledby="dipah"><h2 id="dipah">${FLAG_SVG} A proposal</h2>${dipIncHTML(p)}<p class="dim">It stays in Diplomacy (under the Bank) for two rounds if you'd rather decide later. <button type="button" class="link" id="dipLater">Later</button></p></div>`;
   a.hidden=false;dipWireInc(a);$("#dipLater").onclick=()=>{a.hidden=true}}
@@ -13288,7 +13297,8 @@ function dipTermsEnd(c,win){const D=dipD();D.contests=(D.contests||[]).filter(x=
   if(dipRel(c.a,c.b).s==="war")dipSet(c.a,c.b,"peace",{until:G.moon.round+1,n:2});render()}
 /* the middle of any field: the tiles within one of its center (off the void) */
 function dipMidTiles(){const rows=G.rows,cols=G.board[0].length,rc=(rows-1)/2,cc=(cols-1)/2,out=[];
-  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)if(Math.abs(r-rc)<=1&&Math.abs(c-cc)<=1&&!isVoid(r,c))out.push([r,c]);return out}
+  for(let d=1;!out.length&&d<=Math.max(rows,cols);d++)   // the middle reaches out until it holds ground (the Cross's hole is void)
+    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)if(Math.abs(r-rc)<=d&&Math.abs(c-cc)<=d&&!isVoid(r,c))out.push([r,c]);return out}
 const dipSideWorth=t=>{const ps=new Set(dipPlayersOf(t));let w=0;const aces=new Set();
   for(let r=0;r<G.rows;r++)for(let c=0;c<G.board[0].length;c++){const st=G.board[r][c];if(!st||!ps.has(st.owner))continue;for(const x of st.cards){w+=soulOf(x);const k=kind(x);if(k==="ace"||k==="tree")aces.add(x.id)}}
   return {w,aces}};
@@ -13309,7 +13319,7 @@ function dipTermsRound(){const D=G.dip;if(!D||!D.contests||!D.contests.length)re
     if(c.term==="middle"){const pa=new Set(dipPlayersOf(c.a)),pb=new Set(dipPlayersOf(c.b));let na=0,nb=0;for(const [rr,cc] of mid){const st=G.board[rr][cc];if(st&&pa.has(st.owner))na++;if(st&&pb.has(st.owner))nb++}
       if(na>nb)c.sa++;else if(nb>na)c.sb++}
     if(r>c.until)dipTermsEnd(c,c.term==="ace"?null:c.sa>c.sb?c.a:c.sb>c.sa?c.b:null)}}
-{const _r=render;render=function(){_r.apply(this,arguments);if(!G||!G.dip||!(G.dip.contests||[]).some(c=>c.term==="middle"))return;
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!G.dip||!(G.dip.contests||[]).some(c=>c.term==="middle"))return;
   for(const [r,c] of dipMidTiles()){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(t){t.classList.add("midterm");if(!/terms of war/.test(t.title||""))t.title=(t.title?t.title+" · ":"")+"The middle (terms of war)"}}}}
 const COUNCIL=[{id:"tithe",name:"The Ether's Tithe",text:"Every card from the Ether (every conjuring) costs 1 more mana."},
   {id:"wartax",name:"War Tax",text:"Every attack costs the attacker 1 mana, paid to the Bank."},
@@ -13366,9 +13376,9 @@ function mapClip(){const B=$("#board");if(!B||!G||!G.map)return;const out=mapOut
   const url=`url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><g fill="#fff">${rects}</g></svg>`)}")`;
   clipCache={key,url};mapClipSet(bg,url,key)}
 function mapClipSet(bg,url,key){for(const [k,v] of [["maskImage",url],["webkitMaskImage",url],["maskSize","100% 100%"],["webkitMaskSize","100% 100%"],["maskRepeat","no-repeat"],["webkitMaskRepeat","no-repeat"]])bg.style[k]=v;bg.dataset.clip=key}
-{const _r=render;render=function(){_r.apply(this,arguments);if(G&&G.map)perfLater("mapclip",mapClip)}}   // v76b: just before the paint
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(G&&G.map)perfLater("mapclip",mapClip)}}   // v76b: just before the paint
 if(typeof ResizeObserver!=="undefined"){let ro=null;const watch=()=>{const B=$("#board");if(!B||B._clipRO)return;B._clipRO=1;ro=ro||new ResizeObserver(()=>{try{mapClip()}catch(e){}});ro.observe(B)};
-  {const _r=render;render=function(){_r.apply(this,arguments);watch()}}}
+  {const _r=render;render=function(){rSafe(_r,this,arguments);watch()}}}
 if(window.__EC)Object.assign(window.__EC,{mapOutside:()=>mapOutside()});
 
 /* ---------- v76b: performance ----------
@@ -13379,7 +13389,7 @@ if(window.__EC)Object.assign(window.__EC,{mapOutside:()=>mapOutside()});
 /* the spells' scroll position, kept as it scrolls: a redraw never has to measure it */
 let spellsTop=0;document.addEventListener("scroll",e=>{const t=e.target;if(t&&t.id==="spells")spellsTop=t.scrollTop},{capture:true,passive:true});
 {const _r=render;render=function(){if(!PERF.inRender){PERF.vk=null;PERF.sp=spellsTop}
-  PERF.inRender++;try{return _r.apply(this,arguments)}finally{PERF.inRender--;if(!PERF.inRender){PERF.vk=null;PERF.sp=null}}}}
+  PERF.inRender++;try{return rSafe(_r,this,arguments)}finally{PERF.inRender--;if(!PERF.inRender){PERF.vk=null;PERF.sp=null}}}}
 if(window.__EC)Object.assign(window.__EC,{renderAll:()=>render(),perfFlush:()=>perfFlush()});
 
 })();

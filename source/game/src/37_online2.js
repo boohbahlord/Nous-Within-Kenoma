@@ -67,7 +67,7 @@ const localSeats=()=>G?G.p.filter(P=>P.cpu==null&&!P.net&&!P.netAway).map(P=>P.i
 
 /* ---------- watching ---------- */
 {const _ca=canAct;canAct=function(){if(NET.role==="guest"&&NET.watch)return false;return _ca()}}
-{const _rd=render;render=function(){_rd.apply(this,arguments);if(!G||NET.role!=="guest"||!NET.watch)return;const h=$("#hand");if(h)h.innerHTML='<p class="dim">You are watching this game.</p>';const hh=$("#handh");if(hh)hh.textContent="Watching"}}
+{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G||NET.role!=="guest"||!NET.watch)return;const h=$("#hand");if(h)h.innerHTML='<p class="dim">You are watching this game.</p>';const hh=$("#handh");if(hh)hh.textContent="Watching"}}
 
 /* ---------- rejoining ---------- */
 const REJOIN_KEY="ec-net-rejoin";

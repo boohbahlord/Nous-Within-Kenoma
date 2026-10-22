@@ -3,6 +3,7 @@ const selStack=()=>G.sel&&G.board[G.sel.r]&&G.board[G.sel.r][G.sel.c];
 const selOwn=()=>selStack()&&selStack().owner===G.active;
 const selEnemy=()=>selStack()&&isEnemy(selStack().owner,G.active);
 /* spells aimed at another player: with several enemies, the caster picks one */
+const foeAny=()=>enemiesOf(G.active).some(pl=>!isHorde(pl));   // a player to aim at (with Diplomacy, everyone left may be an ally)
 async function pickFoe(id,title){const es=enemiesOf(G.active).filter(pl=>!isHorde(pl));const t=es.length<=1?es[0]:await ask(G.active,{kind:"player",id,title,players:es});G.histTarget=t;return t}
 const selOwnJoker=()=>selOwn()&&hasK(selStack(),"joker");
 const SCHOOLS=["Conjuring","Necromancy","Enchantment","Curse","Sorcery","Illusion"];   // v43: Conjuring (and the Ether) first
@@ -14,10 +15,10 @@ const SPELLS=[
  {id:"resur",dice:"1d2+1",name:"Resurrection",cost:6,school:"Necromancy",text:"Choose one card from the grave and bring it back into your hand.",ok:()=>G.grave.length>0&&me().hand.length<handCap(G.active),run:async()=>{await pickGrave(G.active,1,"Resurrection")}},
  {id:"divine",dice:"1d2+1",name:"Divine Odds",cost:3,school:"Enchantment",text:"Select your stack: advantage on all its dice for its next combat.",ok:()=>selOwn()&&!selStack().odds,run:async()=>{selStack().odds="adv";log("Divine Odds marks a stack.")}},
  {id:"hypo",name:"Hypostasis",cost:3,school:"Enchantment",text:"Select your stack: it cannot be attacked for two turns. While it lasts it cannot attack or step toward the enemy, only sideways or back. Costs 3 for one card, +1 for each more card in the stack. Needs at least two of your stacks on the field.",ok:()=>selOwn()&&!selStack().hypo&&stacksOf(G.active).length>=2,run:async()=>{const st=selStack();st.hypo=2;log(`Hypostasis: ${plName(G.active)}'s stack of ${st.cards.length} becomes untouchable for two turns.`)}},
- {id:"forced",dice:"1d2",name:"Forced Hand",cost:2,school:"Curse",text:"The other player draws 1d2 cards; any over the hand limit go to the grave (and cut their Grave Blessing).",ok:()=>!survival(),run:async()=>{const t=await pickFoe("forced","Forced Hand: who draws?");const n=R(2);tray(G.active,"Forced Hand",[{s:2,v:n}],`draw ${n}`);draw(t,n,"Forced Hand")}},
+ {id:"forced",dice:"1d2",name:"Forced Hand",cost:2,school:"Curse",text:"The other player draws 1d2 cards; any over the hand limit go to the grave (and cut their Grave Blessing).",ok:()=>!survival()&&foeAny(),run:async()=>{const t=await pickFoe("forced","Forced Hand: who draws?");const n=R(2);tray(G.active,"Forced Hand",[{s:2,v:n}],`draw ${n}`);draw(t,n,"Forced Hand")}},
  {id:"hexed",dice:"1d2+1",name:"Hexed Odds",cost:3,school:"Curse",text:"Select an enemy stack: disadvantage on all its dice for its next combat.",ok:()=>selEnemy()&&!selStack().odds,run:async()=>{selStack().odds="dis";log("Hexed Odds marks an enemy stack.")}},
- {id:"double",name:"Double Edged Sword",cost:1,school:"Curse",text:"Roll 3d6. Each 1 burns a card from your deck; each 6 burns a card from the enemy's deck.",ok:()=>!survival(),run:doubleEdge},
- {id:"three",dice:"1d3",name:"Three of Swords",cost:3,school:"Curse",text:"Roll 1d2. A 1 destroys one random card in the enemy's hand and one in yours; a 2 destroys two of each. If your hand runs short, the rest comes from your deck. The enemy loses nothing from the deck.",ok:()=>!survival(),run:threeSwords},
+ {id:"double",name:"Double Edged Sword",cost:1,school:"Curse",text:"Roll 3d6. Each 1 burns a card from your deck; each 6 burns a card from the enemy's deck.",ok:()=>!survival()&&foeAny(),run:doubleEdge},
+ {id:"three",dice:"1d3",name:"Three of Swords",cost:3,school:"Curse",text:"Roll 1d2. A 1 destroys one random card in the enemy's hand and one in yours; a 2 destroys two of each. If your hand runs short, the rest comes from your deck. The enemy loses nothing from the deck.",ok:()=>!survival()&&foeAny(),run:threeSwords},
  {id:"clair",dice:"2+1d2",name:"Clairvoyance",cost:3,school:"Sorcery",text:"Look at 2d6 cards from your deck, take one into your hand, then reshuffle. 6 mana at the New Moon, 2 at the Full Moon.",ok:()=>me().deck.length>0&&me().hand.length<handCap(G.active),run:clairvoyance},
  {id:"tele",dice:"1d2−1",name:"Teleport",cost:1,school:"Sorcery",text:"Select your stack in your own spawn lines with no enemy beside it and leave exactly one card checked; that card leaves the field now and comes back into your hand at the start of your next turn.",ok:teleOk,run:teleport},
  {id:"naked",dice:"1d2",name:"Naked Hand",cost:3,school:"Sorcery",text:"The other player's hand is shown to you for the rest of this turn, and both players are told it has been seen. 6 mana at the New Moon, free at the Full Moon.",ok:()=>!survival()&&enemiesOf(G.active).some(pl=>G.p[pl].hand.length>0),run:nakedHand},
@@ -71,7 +72,7 @@ async function cast(sp){
   const tile=G.sel&&["suicide","divine","hypo","hexed","tele"].includes(sp.id)?coord(G.sel.r,G.sel.c):null;G.histTarget=null;G.histTile=tile;
   if(cost){if(sp.id!=="ritual")G.spentOther=true;spend(G.active,cost);noteBuy(sp.id)}
   const paidCost=cost;   // spell mana goes to the Bank
-  try{await sp.run()}finally{G.histTile=null}
+  try{await sp.run()}catch(e){G.busy=wasBusy;throw e}finally{G.histTile=null}   // a spell that fails never leaves the turn stuck
   skyBought(sp,paidCost);mercuryBought(sp);
   hist(caster,{kind:"spell",name:sp.name,tile,cost,target:G.histTarget!=null?G.p[G.histTarget].name:null});
   log(`${plName(caster)} casts <b>${esc(sp.name)}</b>${tile?" on "+tile:""}${G.histTarget!=null?" at "+plName(G.histTarget):""}${cost?` (${cost} mana)`:""}.`,"cast");G.histTarget=null;
