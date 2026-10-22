@@ -4,7 +4,7 @@
      stance keeps it out of reach of what it can't beat, so it falls back when stronger stacks come.
    - Focus on ambush: stacks that can ambush (Assassins, face-down stacks) hold their ground once an enemy is within four
      tiles, always set an ambush when nothing is in reach, and strike from it only with three chances in four. */
-{const _fc=faCtx;faCtx=function(pl){const ctx=_fc.apply(this,arguments),s=faState(pl),c=faEff(s&&s.cfg),ok=ctx.okAtk,gm=ctx.gainMul;
+{const _fc=faCtx;faCtx=function(pl){const ctx=_fc.apply(this,arguments),c=faCfgOf(pl),ok=ctx.okAtk,gm=ctx.gainMul;
   const mc=ctx.level==="hard"?48:ctx.level==="easy"?14:30;
   if(c.stance==="skirmish"){
     ctx.okAtk=(st,o)=>{if(!ok(st,o))return false;const E=G.board[o.r]&&G.board[o.r][o.c];if(!E)return false;const A=o.A||st;

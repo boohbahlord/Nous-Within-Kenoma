@@ -1455,6 +1455,7 @@ const AI=(()=>{
     if(W.ctr){const d=ctrDist(r,c);p+=W.ctr*(d<=1?d*.3:d-.7)}   // v70c: the walk (around walls and water) to the middle tiles; on them or beside them it holds
     if(hp)p+=n*(hp*hillDist(r,c)-(isHill(r,c)?1.5:0));   // standing on the Hill is what scores
     if(FAX&&FAX.pl===pl&&FAX.crys)p+=FAX.crys(S,r,c,walk);   // v71n: a guard is drawn to its crystal (80_crystals.js)
+    if(FAX&&FAX.pl===pl&&FAX.extraPull)p+=FAX.extraPull(S,r,c,walk);   // v72e: a class keeps near the classes and kinds it clusters with
     return p}
   function ctrDist(r,c){let d=99;for(const [a,b] of centerTiles())d=Math.min(d,walk(r,c,a,b));return d===99?dist(r,c,(G.rows-1)/2,(COLS-1)/2):d}
   /* gathering an army: a stack drifts toward the biggest of its own */
@@ -1576,28 +1577,35 @@ const AI=(()=>{
   async function moves(pl,W){
     const lv=L(pl);
     const order=isHorde(pl)?stacksOf(pl).sort((a,b)=>stackRate(b.st)-stackRate(a.st)):stacksOf(pl).sort((a,b)=>{const na=Math.min(99,...enemyStacks(pl).map(e=>dist(a.r,a.c,e.r,e.c))),nb=Math.min(99,...enemyStacks(pl).map(e=>dist(b.r,b.c,e.r,e.c)));return na-nb});
+    if(FAX&&FAX.pl===pl&&FAX.clsOf){const lo=st=>{const k=FAX.clsOf(st);return k&&k.lowPrio?1:0};order.sort((a,b)=>lo(a.st)-lo(b.st))}   // v72e: a low-priority class moves last
     if(FAX&&FAX.pl===pl&&FAX.first)order.sort((a,b)=>FAX.first(b.st)-FAX.first(a.st));   // v71n: a crystal's guard sets out before anyone can join it
     for(const o of order){
       if(G.over)return;
-      const st=G.board[o.r][o.c];if(!st||st!==o.st||st.owner!==pl||st.moved)continue;
-      if(Math.random()<lv.skipMove)continue;
-      if(FAX&&FAX.pl===pl&&FAX.hold&&FAX.hold(st,o.r,o.c))continue;   // v72a: Focus on ambush: an ambusher near the enemy holds its ground
-      if(st.cards.every(c=>c.unit==="miner"))continue;   // lone Miners have their own errands
+      const F0=FAX,cx=FAX&&FAX.pl===pl&&FAX.clsOf&&G.board[o.r][o.c]===o.st?FAX.clsOf(o.st):null;if(cx)FAX=cx;   // v72e: a stack of a class plays by its class's rules
+      try{await moveOne(pl,o,cx&&cx.W||W)}finally{FAX=F0}
+    }
+  }
+  async function moveOne(pl,o,W){
+      const lv=L(pl);
+      const st=G.board[o.r][o.c];if(!st||st!==o.st||st.owner!==pl||st.moved)return;
+      if(Math.random()<lv.skipMove)return;
+      if(FAX&&FAX.pl===pl&&FAX.hold&&FAX.hold(st,o.r,o.c))return;   // v72a: Focus on ambush: an ambusher near the enemy holds its ground
+      if(st.cards.every(c=>c.unit==="miner"))return;   // lone Miners have their own errands
       let grp=st.cards.filter(c=>!isBase(c)&&!c.faLock&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter))&&!(c.unit==="miner"&&crystalAt(o.r,o.c)));   // v71n: a Miner digging a crystal stays at it   // v65: cards locked in place stay   // Miners, Repairmen and shooters stay in their base
-      if(!grp.length||st.stun)continue;
-      if(FAX&&!FAX.ok(grp))continue;   // Field Automation: a stack it doesn't control stays where the player put it
+      if(!grp.length||st.stun)return;
+      if(FAX&&!FAX.ok(grp))return;   // Field Automation: a stack it doesn't control stays where the player put it
       if(!stackLegal(grp)){ // too many to leave together (a full Ace): send out the strongest group that can stand on its own
-        const g2=[];for(const c of [...grp].sort((a,b)=>rate(b)-rate(a)))if(stackLegal([...g2,c]))g2.push(c);grp=g2;if(!grp.length)continue}
+        const g2=[];for(const c of [...grp].sort((a,b)=>rate(b)-rate(a)))if(stackLegal([...g2,c]))g2.push(c);grp=g2;if(!grp.length)return}
       const inAce=hasBase(st);const S={cards:grp,owner:pl,hypo:st.hypo};
       if(FAX&&FAX.flee&&!inAce&&(st.peak||0)>=2&&grp.length<=Math.floor(st.peak/2)){   // v47: Flee when low: pull back, toward friends
         const W2={atk:0,def:2.2,dist:-.5,ally:.6},tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets),stay=tileScore(pl,S,o.r,o.c,W2,false);let best=null;
         for(const [r,c] of tg){if(G.board[r][c])continue;const sc=tileScore(pl,S,r,c,W2,false)*jit(pl);if(!best||sc>best.s)best={r,c,s:sc}}
         if(best&&best.s>stay+.15){G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step([o.r,o.c],[best.r,best.c])}
-        continue}
+        return}
       if(FAX&&isSupport(grp)){const tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets),stay=supportScore(pl,S,o.r,o.c,W,st);let best=null;
         for(const [r,c] of tg){const sc=supportScore(pl,S,r,c,W,st)*jit(pl);if(!best||sc>best.s)best={r,c,s:sc}}
         if(best&&best.s>stay+.2){G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step([o.r,o.c],[best.r,best.c])}
-        continue}
+        return}
       let stay=inAce?tileScore(pl,S,o.r,o.c,W,false)+(hq()?-1:W?.k==="def"?.6:0):tileScore(pl,S,o.r,o.c,W,true);
       const tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets);
       let best=null;
@@ -1612,12 +1620,13 @@ const AI=(()=>{
       if(best&&best.s>stay+.15){
         G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step([o.r,o.c],[best.r,best.c]);
       }
-    }
   }
   /* ---------- attacks ---------- */
   function bestAttack(pl){
     const lv=L(pl);let best=null;
     for(const {st,r,c} of stacksOf(pl)){
+      const F0=FAX,cx=FAX&&FAX.pl===pl&&FAX.clsOf?FAX.clsOf(st):null;if(cx)FAX=cx;   // v72e: a stack of a class picks its fights by its class's rules
+      try{
       for(const o of attackOptions(r,c)){
         if(FAX&&!FAX.okAtk(st,o))continue;   // Field Automation: only the cards it controls
         const r2=o.r,c2=o.c,E=G.board[r2][c2];
@@ -1631,8 +1640,10 @@ const AI=(()=>{
         const late=isHorde(pl)?0:G.turnNo>90?Math.min(.25,.1+(G.turnNo-90)/200):!G.p[pl].deck.length?.1:0;
   
         const go=p>=(lv.thr-late-(onHill?.08:0)+(FAX?FAX.thrAdj:0))*(lvl(pl)==="easy"?(.7+Math.random()*.6):1)||(lvl(pl)!=="easy"&&sc>.4)||isHorde(pl);   // the Horde never holds back: whatever it can reach, it hits
+        if(cx&&cx.lowPrio)sc*=.8;   // v72e: a low-priority class lets the others strike first
         if(go&&(!best||sc>best.sc))best={r,c,r2,c2,sc,p,mode:o.mode};
       }
+      }finally{FAX=F0}
     }
     return best;
   }
@@ -1836,8 +1847,9 @@ const AI=(()=>{
     for(const {st} of stacksOf(pl))st.peak=Math.max(st.peak||0,st.cards.filter(c=>!isBase(c)).length);   // how big each stack has been, for Flee when low
     try{
       if(ph==="prep"){if(ctx.moves)await moves(pl,ctx.W);
-        if(ctx.ambushP>0)for(const {st,r,c} of stacksOf(pl)){if(!canAmbush(st)||st.ambush||st.moved||st.attacked||!ctx.ok(st.cards.filter(x=>!isBase(x))))continue;
-          if(!attackOptions(r,c).length&&Math.random()<ctx.ambushP){st.ambush=true;log(`${plName(pl)}'s field sets a stack in ambush.`,"ai")}}}
+        for(const {st,r,c} of stacksOf(pl)){const cx=ctx.clsOf?ctx.clsOf(st)||ctx:ctx;if(!(cx.ambushP>0))continue;   // v72e: each class its own ambushes
+          if(!canAmbush(st)||st.ambush||st.moved||st.attacked||!cx.ok(st.cards.filter(x=>!isBase(x))))continue;
+          if(!attackOptions(r,c).length&&Math.random()<cx.ambushP){st.ambush=true;log(`${plName(pl)}'s field sets a stack in ambush.`,"ai")}}}
       else if(ph==="attack")await attacks(pl);
     }finally{FAX=null;cache.clear();G.sel=null}}
   return{ARCH,phase,setup,choose,winP,value,LV,bestSpot,field,tileScore:(...a)=>tileScore(...a),stance:pl=>stance(pl),W:{PUSH,OFF,DEF},enemyStacks:pl=>enemyStacks(pl),hillHow:pl=>hillHow(pl),hillDist:(r,c)=>hillDist(r,c)};
@@ -8091,7 +8103,7 @@ const FA_KINDS=["grunt","infantry","puppet","jack","queen","king","joker","assas
 const FA_DEF={tgroup:true,tgorder:["wildcard","special","base","standard","support"],mode:"full",stance:"auto",rush:0,formation:"auto",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,
   ctl:{soldiers:true,specials:true,support:true,miners:true,ranged:true,wildcards:true},extra:[],hier:false,order:FA_PRINC.map(p=>p[0]),eq:[],under:false,
   noAttack:false,flee:false,tprio:false,torder:null,teq:[],tIgnoreGI:false,tSameGI:false,xminus:[],hill:true,hillHow:"army",grp:"normal",fLink:true,
-  ambFocus:false,crys:false,crysStance:false,crysLives:false,crysMiner:false,crysAsk:false,crysHow:false,crysShow:true,crysFight:false,hout:[]};   // v71n: the crystals, and the principles taken out of the ranking
+  tWeak:false,tStk:{strongest:true,weakest:true,minority:true,majority:true},ambFocus:false,crys:false,crysStance:false,crysLives:false,crysMiner:false,crysAsk:false,crysHow:false,crysShow:true,crysFight:false,hout:[]};   // v71n: the crystals, and the principles taken out of the ranking
 /* v47: the kinds of card the field can rank as targets, strongest first by default (suit doesn't matter) */
 const FA_TK=[["wildcards","Wildcards"],["joker","Jokers"],["king","Kings"],["ace","Aces"],["queen","Queens"],["jack","Jacks"],["wall","Walls"],["tree","The Tree"],["assassin","Assassins"],
   ["cannon","Cannons"],["infantry","Infantry"],["archer","Archers"],["grunt","Grunts"],["puppet","Puppets"],["healer","Healers"],["repair","Repairmen"],["ram","Rams"],["miner","Miners"],["claimer","Claimers"],["scout","Scouts"]];
@@ -8109,6 +8121,8 @@ const faClean=c=>{c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringif
   if(c.ctl)for(const k in o.ctl)if(typeof c.ctl[k]==="boolean")o.ctl[k]=c.ctl[k];
   if(Array.isArray(c.extra))o.extra=c.extra.filter(k=>FA_KINDS.includes(k));if(Array.isArray(c.xminus))o.xminus=c.xminus.filter(k=>FA_KINDS.includes(k)&&!o.extra.includes(k));
   if(Array.isArray(c.order)&&c.order.length===FA_PRINC.length&&FA_PRINC.every(([k])=>c.order.includes(k)))o.order=[...c.order];
+  if(typeof c.tWeak==="boolean")o.tWeak=c.tWeak;if(c.tStk&&typeof c.tStk==="object"){o.tStk={};for(const k of ["strongest","weakest","minority","majority"])o.tStk[k]=c.tStk[k]!==false&&(c.tStk[k]===true||FA_DEF.tStk[k])}   // v72e
+  if(Array.isArray(c.classes)&&typeof clsClean==="function")o.classes=clsClean(c.classes);if(typeof c.classMulti==="boolean")o.classMulti=c.classMulti;   // v72e: the classes travel with the settings to the game
   if(Array.isArray(c.eq))o.eq=c.eq.filter(p=>Array.isArray(p)&&p.length===2&&p.every(k=>o.order.includes(k)&&!o.hout.includes(k)));return o};
 const faMine=()=>faClean(PREF.fa);   // this device's settings
 const faAllowed=()=>!!G&&(G.opts.fieldAuto||"medium")!=="off";
@@ -8129,7 +8143,7 @@ function faCat(c){const u=c.unit;if(u==="miner")return "miners";if(u&&UNIT[u]&&U
 function faControls(c,cfg){const k0=faKind(c);if((cfg.xminus||[]).includes(k0))return false;if(cfg.extra.includes(k0))return true;const k=faCat(c);return k==="miners"?cfg.ctl.support||cfg.ctl.miners:!!cfg.ctl[k]}
 
 /* ---------- the hierarchy: higher principles pull harder; equals share a rank, and the field decides between them ---------- */
-const FA_AGGR={noatk:c=>c.noAttack?-1:0,stance:c=>({offensive:1,defensive:-1}[c.stance]||0),   // Skirmish counts as neitherrush:c=>c.rush?1:0,lives:c=>({throw:1,preserve:-1}[c.lives]||0),
+const FA_AGGR={noatk:c=>c.noAttack?-1:0,stance:c=>({offensive:1,defensive:-1}[c.stance]||0),rush:c=>c.rush?1:0,lives:c=>({throw:1,preserve:-1}[c.lives]||0),   // Skirmish counts as neither
   battles:c=>({reckless:1,careful:-1}[c.battles]||0),formation:()=>0,bases:c=>c.bases?1:0,crystals:c=>c.crys?(c.crysFight?1:-1):0,ambush:c=>c.ambush?-1:0};
 function faScales(c,pl){const sc={};for(const [k] of FA_PRINC)sc[k]=1;if(!c.hier)return sc;
   const pairOf=k=>c.eq.find(p=>p.includes(k));let rank=0;const seen=new Set();
@@ -8158,8 +8172,11 @@ function faTargetFactor(cfg){if(!cfg.tprio)return ()=>1;
   return E=>{const ks=E.cards.map(x=>faTKind(x,cfg));const best=Math.min(...ks.map(k=>r[k]??n));let m=1.6-1.2*best/N;
     if(cfg.tIgnoreGI&&ks.every(k=>k==="grunt"||k==="infantry")){const v=AI.value(E),avg=E.cards.length*(1+.8+6/7);if(v>0)m*=avg/v}
     return Math.max(.2,m)}}
+/* v72e: a class's own settings stand in for the player's while its stacks are weighed (87_classes.js) */
+let FA_OVR=null;
+const faCfgOf=pl=>FA_OVR&&FA_OVR.pl===pl?FA_OVR.cfg:faEff(faState(pl)&&faState(pl).cfg);
 function faCtx(pl){
-  const s=faState(pl),c=faEff(s&&s.cfg),sc=faScales(c,pl);
+  const c=faCfgOf(pl),sc=faScales(c,pl);
   let W={...AI.stance(pl)};
   const fixed={offensive:FA_OFF,defensive:AI.W.DEF,center:FA_CENTER,skirmish:FA_SKIRM}[c.stance];if(fixed)W=faMix(W,fixed,sc.stance);
   if(faRushing(pl))W=faMix(W,AI.W.PUSH,sc.rush);
@@ -8249,12 +8266,14 @@ function faPanelHTML(c,pl,pfx){
     h+=sec("Which cards it controls",`<div class="facats">${FA_CATS.map(([k,t,s2])=>row("ctl."+k,c.ctl[k],t,s2)).join("")}${!c.ctl.support?row("ctl.miners",c.ctl.miners,"Miners","Even with Support off"):""}</div>
 <details class="faextra" ${c.extra.length||c.xminus.length?"open":""}><summary>Yes, and… (single kinds of card: + it controls them, − it leaves them to you)</summary>${K.pmChips(FA_KINDS.map(k=>[k,shortInfo(k)]),c.extra,c.xminus,"data-fapm")}</details>`,"fafull");
     /* v52: the two rankings open like the Yes-and lists: ▸ closed is off, ▾ open is on */
+    h+=sec("Hierarchical control",`<details class="faextra fadet" data-fadet="hier" ${c.hier?"open":""}><summary>Rank the principles <small class="dim">(${c.hier?"on":"off"})</small></summary><p class="dim">When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.</p>`+hierHTML(c.order.filter(k=>!c.hout.includes(k)),c.eq,faHierHTML.pending,k=>FA_PRINC.find(x=>x[0]===k)[1]+(FA_OUT.includes(k)?`<button type="button" class="faout" data-faact="out:${k}" aria-label="Take ${FA_PRINC.find(x=>x[0]===k)[1]} out of the ranking" title="Take it out of the ranking">×</button>`:""),k=>faVal(k,c),"")+
+      (c.hout.length?`<p class="fahin">${c.hout.map(k=>`<button type="button" class="btn ghost sm" data-faact="in:${k}" title="Add it to the ranking">+ ${FA_PRINC.find(x=>x[0]===k)[1]}</button>`).join(" ")}<small class="dim">Out of the ranking: ${c.hout.length>1?"they keep":"it keeps"} ${c.hout.length>1?"their":"its"} full weight.</small></p>`:"")+`</details>`,"fafull","",c.hier?FA_CAUTION:"");
     h+=sec("Target priority",`<details class="faextra fadet" data-fadet="tprio" ${c.tprio?"open":""}><summary>Rank the kinds of card to target <small class="dim">(${c.tprio?"on":"off: every target is weighed by the odds alone"})</small></summary>`+
       row("tgroup",c.tgroup,"Rank by kinds of card","On: Special, Base, Standard and so on. Off: every single kind, like the King.")+
       (c.tgroup?kindRankHTML(c.tgorder,"data-tgact",TGROUP_NAMES):row("tIgnoreGI",c.tIgnoreGI,"Ignore how strong a Grunt or Infantry is","A 2 and a 6 Grunt count the same when it picks a target.")+row("tSameGI",c.tSameGI,"Treat Grunts and Infantry alike","One kind instead of two in the ranking.")+
-      hierHTML((c.tSameGI?c.torder.filter(k=>k!=="infantry"):c.torder),c.teq,faHierHTML.tpending,k=>FA_TK.find(x=>x[0]===k)[1],()=>"","t"))+`<p class="dim">The kinds on the left are hunted first.</p></details>`,"fafull","",c.tprio?FA_CAUTION:"");
-    h+=sec("Hierarchical control",`<details class="faextra fadet" data-fadet="hier" ${c.hier?"open":""}><summary>Rank the principles <small class="dim">(${c.hier?"on":"off"})</small></summary><p class="dim">When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.</p>`+hierHTML(c.order.filter(k=>!c.hout.includes(k)),c.eq,faHierHTML.pending,k=>FA_PRINC.find(x=>x[0]===k)[1]+(FA_OUT.includes(k)?`<button type="button" class="faout" data-faact="out:${k}" aria-label="Take ${FA_PRINC.find(x=>x[0]===k)[1]} out of the ranking" title="Take it out of the ranking">×</button>`:""),k=>faVal(k,c),"")+
-      (c.hout.length?`<p class="fahin">${c.hout.map(k=>`<button type="button" class="btn ghost sm" data-faact="in:${k}" title="Add it to the ranking">+ ${FA_PRINC.find(x=>x[0]===k)[1]}</button>`).join(" ")}<small class="dim">Out of the ranking: ${c.hout.length>1?"they keep":"it keeps"} ${c.hout.length>1?"their":"its"} full weight.</small></p>`:"")+`</details>`,"fafull","",c.hier?FA_CAUTION:"");
+      hierHTML((c.tSameGI?c.torder.filter(k=>k!=="infantry"):c.torder),c.teq,faHierHTML.tpending,k=>FA_TK.find(x=>x[0]===k)[1],()=>"","t"))+`<p class="dim">The kinds on the left are hunted first.</p>`+
+      row("tWeak",c.tWeak,"Weakest Grunts and Infantry first","Off: the strongest of them first.")+
+      `<p class="dim fatsk">Go for a stack because of the kind it hunts when that kind is…</p>`+row("tStk.strongest",c.tStk.strongest,"…its strongest card","")+row("tStk.weakest",c.tStk.weakest,"…its weakest card","")+row("tStk.minority",c.tStk.minority,"…only a few of its cards","Not the most of them.")+row("tStk.majority",c.tStk.majority,"…most of its cards","")+`</details>`,"fafull","",c.tprio?FA_CAUTION:"");
     if(c.crys)h+=sec("Crystals",`<details class="faextra" open><summary>More options for Focus on crystals</summary>`+
       row("crysStance",c.crysStance,"Depends on the stance","It guards crystals only while your field defends or holds the center.")+
       row("crysLives",c.crysLives,"Depends on Lives","Preserve guards only where it's safe; Balanced unless it's badly outnumbered; Throw them in, whatever comes.")+
@@ -8291,6 +8310,7 @@ function faWire(root){
   root.querySelectorAll("[data-fa]").forEach(i=>{const path=i.dataset.fa;if(!path)return;i.onchange=()=>{const c2=faMine();
     if(path==="rushon")c2.rush=i.checked?Math.max(1,c2.rush||1):0;
     else if(path.startsWith("ctl."))c2.ctl[path.slice(4)]=i.checked;
+    else if(path.startsWith("tStk."))c2.tStk=Object.assign({},c2.tStk,{[path.slice(5)]:i.checked});
     else if(i.type==="checkbox")c2[path]=i.checked;else c2[path]=i.value;
     faSave(c2)}});
   root.querySelectorAll("[data-fapm]").forEach(b=>b.onclick=()=>{const c2=faMine(),k=b.dataset.fapm,[p,m]=pmCycle(c2.extra,c2.xminus,k);c2.extra=p;c2.xminus=m;faSave(c2)});
@@ -10420,7 +10440,7 @@ document.addEventListener("keydown",e=>{const w=$("#cheatq");if(e.key==="Escape"
      army first, straight there, or in small groups. Computers follow the setup's choice (each its own way by default);
      Field Automation has "Capture the Hill" (on by default) and the way, in every mode.
    - Field Automation: Attack groups (Normal, Big, Small), and Formation can shape them (Wide small, Tall big). */
-{const _fc=faCtx;faCtx=function(pl){const ctx=_fc.apply(this,arguments),s=faState(pl),c=faEff(s&&s.cfg);
+{const _fc=faCtx;faCtx=function(pl){const ctx=_fc.apply(this,arguments),c=faCfgOf(pl);
   ctx.hill=kothOn()&&c.hill?c.hillHow:null;
   ctx.grp=c.grp!=="normal"?c.grp:c.fLink?({wide:"small",deep:"big"}[c.formation]||"normal"):"normal";
   return ctx}}
@@ -11875,7 +11895,7 @@ if(window.__EC)Object.assign(window.__EC,{nepMetersW:()=>nepMeters()});
      stance keeps it out of reach of what it can't beat, so it falls back when stronger stacks come.
    - Focus on ambush: stacks that can ambush (Assassins, face-down stacks) hold their ground once an enemy is within four
      tiles, always set an ambush when nothing is in reach, and strike from it only with three chances in four. */
-{const _fc=faCtx;faCtx=function(pl){const ctx=_fc.apply(this,arguments),s=faState(pl),c=faEff(s&&s.cfg),ok=ctx.okAtk,gm=ctx.gainMul;
+{const _fc=faCtx;faCtx=function(pl){const ctx=_fc.apply(this,arguments),c=faCfgOf(pl),ok=ctx.okAtk,gm=ctx.gainMul;
   const mc=ctx.level==="hard"?48:ctx.level==="easy"?14:30;
   if(c.stance==="skirmish"){
     ctx.okAtk=(st,o)=>{if(!ok(st,o))return false;const E=G.board[o.r]&&G.board[o.r][o.c];if(!E)return false;const A=o.A||st;
@@ -12063,5 +12083,188 @@ function stWire(root){const L=stList(),sel=L.find(x=>x.id===stUI.sel),go=()=>{sa
 {const _fw=faWire;faWire=function(root){_fw.apply(this,arguments);if(root.querySelector(".fastrat"))stWire(root)}}
 
 if(window.__EC)Object.assign(window.__EC,{stList:()=>stList(),stUse:id=>stUse(id),stSend:(...a)=>stSend(...a)});
+
+/* ---------- v72e: Class Structures (Field Automation) ----------
+   A class is a named set of kinds of card with its own Field Automation rules: stance, lives, picking battles, formation,
+   attacking or not, ambushes, bases, its own ranking of the principles, its own target priority, a low priority, and the
+   classes and kinds it keeps near (cluster). A class works only while it is on, and only while Field Automation is on.
+   - Which cards: the kinds ticked in it. A kind can be in one class only, unless "Choose classes on the field" is on: then
+     a card follows the first class that holds its kind, unless you put it in another on the field.
+   - Mixed stacks: a stack with cards of the class and others plays by the class when the class holds its strongest card,
+     its weakest, only a few of its cards, or most of them, as ticked (any one is enough). Otherwise it plays by your own
+     settings, and goes back to the class's rules as soon as the stack is right again.
+   - Class Exceptions: right-click a stack or a hand card (on a phone, double-tap it), or use the Class line in the Selected
+     box, and pick a class. That stack or card plays by the class without its kind joining the class. The class rides on the
+     stack's strongest card that isn't of the class's kinds (its head): cards that leave the stack leave the class, the head
+     keeps it wherever it goes, even when a stronger card of the class's own kinds leaves. "No class" takes a stack or card
+     out of every class until you pick one again.
+   - Its look: the class's color fills the bottom-left and top-right corners of its cards, under their accent line, with a
+     sheen if you like; only you see it unless you show it to the other players. It can't be your own color, nor too like it
+     or another class's (those are greyed out, as in the setup). Hidden under Neptune's eclipse.
+   - Every Automated Strategy shares the same classes. */
+const CLS_CFG=["noAttack","stance","lives","battles","formation","ambush","ambFocus","bases","hier","order","eq"];
+const CLS_STK=["strongest","weakest","minority","majority"];
+const clsList=()=>Array.isArray(PREF.faClasses)?PREF.faClasses:(PREF.faClasses=[]);
+const clsPalette=()=>COLORS.map(([n,h])=>[n,h]);
+function clsClean(list){const ids=new Set();const out=[];
+  for(const k of Array.isArray(list)?list.slice(0,12):[]){if(!k||typeof k!=="object"||typeof k.id!=="string"||ids.has(k.id))continue;ids.add(k.id);
+    const base=faClean(Object.assign({},k.cfg||{},{mode:"custom"})),cfg={};for(const f of CLS_CFG)cfg[f]=JSON.parse(JSON.stringify(base[f]));
+    const st=k.stack||{},tg=k.tg||{},tst=tg.stack||{};
+    out.push({id:k.id.slice(0,24),name:String(k.name||"Class").replace(/[<>]/g,"").slice(0,30),on:k.on!==false,kinds:(Array.isArray(k.kinds)?k.kinds:[]).filter(x=>FA_KINDS.includes(x)),
+      color:typeof k.color==="string"&&/^#[0-9a-f]{6}$/i.test(k.color)?k.color:null,sheen:!!k.sheen,show:!!k.show,
+      stack:Object.fromEntries(CLS_STK.map(x=>[x,st[x]==null?(x==="strongest"||x==="majority"):!!st[x]])),lowPrio:!!k.lowPrio&&!cfg.hier,
+      cluster:(Array.isArray(k.cluster)?k.cluster:[]).filter(x=>typeof x==="string"&&x!==k.id).slice(0,24),cfg,
+      tg:{on:!!tg.on,order:Array.isArray(tg.order)?[...tg.order.filter(x=>FA_TKEYS.includes(x)),...FA_TKEYS.filter(x=>!tg.order.includes(x))]:[...FA_TKEYS],weak:!!tg.weak,
+        stack:Object.fromEntries(CLS_STK.map(x=>[x,tst[x]!==false]))}})}
+  return out}
+/* the classes go to the game with the field settings (the host plays them) */
+{const _sf=setFieldAuto;setFieldAuto=function(pl,on,cfg){if(cfg&&typeof cfg==="object"&&!Array.isArray(cfg.classes)&&G&&pl===view())cfg=Object.assign({},cfg,{classes:clsClean(clsList()),classMulti:PREF.faClassMulti===true});
+  return _sf.call(this,pl,on,cfg)}}
+function clsResend(){savePrefs();if(G){const V=view(),s=faState(V);if(s)setFieldAuto(V,!!s.on,faMine())}paintFA();if(G)render()}
+/* which class a card, or a stack, plays by (in the game: the classes the host holds for that player) */
+const plClasses=pl=>{const s=G&&faState(pl);return s&&s.on&&s.cfg&&Array.isArray(s.cfg.classes)?s.cfg.classes:[]};
+function clsOfCard(x,list){if(!x||isBase(x))return null;const on=list.filter(k=>k.on);
+  if(x.faClass==="none")return null;if(x.faClass){const k=on.find(k=>k.id===x.faClass);if(k)return k}
+  const kd=faKind(x);return on.find(k=>k.kinds.includes(kd))||null}
+function stackClass(pl,st,list){list=list||plClasses(pl);if(!st||!list.some(k=>k.on))return null;const cards=st.cards.filter(x=>!isBase(x));if(!cards.length)return null;
+  if(cards.some(x=>x.faClass==="none"))return null;   // "No class"
+  const head=cards.find(x=>x.faClass&&list.some(k=>k.on&&k.id===x.faClass));if(head)return list.find(k=>k.id===head.faClass);   // a Class Exception
+  const kd=x=>faKind(x),natural=k=>x=>k.kinds.includes(kd(x));
+  const by=[...cards].sort((a,b)=>rate(b)-rate(a)),strong=by[0],weak=by[by.length-1];
+  for(const k of list){if(!k.on)continue;const m=cards.filter(natural(k));if(!m.length)continue;if(m.length===cards.length)return k;
+    const maj=m.length*2>cards.length,R=k.stack;
+    if(R.strongest&&natural(k)(strong)||R.weakest&&natural(k)(weak)||R.minority&&!maj||R.majority&&maj)return k}
+  return null}
+/* the field plays a class's stacks by the class's rules */
+function clsCtx(pl,k){const full=faEff(faState(pl)&&faState(pl).cfg);
+  const over=Object.assign({},full,JSON.parse(JSON.stringify(k.cfg)),{mode:"custom",ctl:Object.fromEntries(Object.keys(FA_DEF.ctl).map(x=>[x,true])),extra:[],xminus:[]});delete over.classes;   // it plays all of its stacks
+  if(k.tg.on)Object.assign(over,{tprio:true,tgroup:false,torder:[...k.tg.order],teq:[],tIgnoreGI:false,tSameGI:false,tWeak:k.tg.weak,tStk:Object.assign({},k.tg.stack)});
+  FA_OVR={pl,cfg:faClean(over)};let cx;try{cx=faCtx(pl)}finally{FA_OVR=null}
+  cx=Object.assign({pl},cx,{lowPrio:k.lowPrio&&!k.cfg.hier,clsId:k.id});
+  if(k.cluster.length){const ids=new Set(k.cluster);
+    cx.extraPull=(S,r,c,walk)=>{const mine=new Set(S.cards.map(x=>x.id));let d=99;
+      for(const x of stacksOf(pl)){if(x.st.cards.some(y=>mine.has(y.id)))continue;const sk=stackClass(pl,x.st);if(!(sk&&ids.has(sk.id))&&!x.st.cards.some(y=>ids.has(faKind(y))))continue;d=Math.min(d,walk(r,c,x.r,x.c))}
+      return d===99?0:.35*Math.min(d,6)}}
+  return cx}
+{const _fc=faCtx;faCtx=function(pl){const ctx=_fc.apply(this,arguments);if(FA_OVR)return ctx;
+  const list=plClasses(pl);if(!list.some(k=>k.on))return ctx;const cache={};
+  ctx.clsOf=st=>{const k=stackClass(pl,st,list);return k?cache[k.id]||(cache[k.id]=clsCtx(pl,k)):null};
+  return ctx}}
+/* target priority (yours and each class's): the weakest or strongest Grunts and Infantry first, and which stacks it goes for */
+{const _tf=faTargetFactor;faTargetFactor=function(cfg){const f=_tf.apply(this,arguments);if(!cfg||!cfg.tprio)return f;const S=cfg.tStk||FA_DEF.tStk;
+  return E=>{const v=f(E),cards=E.cards;if(!cards.length)return v;
+    const each=cards.map(x=>f({cards:[x],owner:E.owner})),top=Math.max(...each),hunted=cards.filter((x,i)=>each[i]>=top-1e-9);
+    const by=[...cards].sort((a,b)=>rate(b)-rate(a)),maj=hunted.length*2>cards.length;
+    if(!(S.strongest&&hunted.includes(by[0])||S.weakest&&hunted.includes(by[by.length-1])||S.minority&&!maj||S.majority&&maj))return Math.min(v,1);   // not a stack it hunts for that
+    const gi=hunted.filter(x=>!x.unit&&!x.puppet&&(kind(x)==="grunt"||kind(x)==="infantry"));if(!gi.length)return v;
+    const n=Math.max(0,Math.min(1,(gi.reduce((a,x)=>a+rate(x),0)/gi.length-8)/10));return v*(cfg.tWeak?1.15-.3*n:.85+.3*n)}}}
+
+/* ---------- Class Exceptions: right-click (or double-tap), or the Selected box ---------- */
+function setCardClass(pl,ids,head,val){if(!G||!G.p[pl]||NET.ctx!=null&&NET.ctx!==pl||!Array.isArray(ids))return false;const P=G.p[pl];
+  const mine=id=>{for(const r of G.board)for(const s of r)if(s&&s.owner===pl){const x=s.cards.find(y=>y.id===id);if(x)return x}return P.hand.find(y=>y.id===id)||null};
+  for(const id of ids){const x=mine(id);if(x&&!isBase(x))delete x.faClass}
+  const h=mine(head);if(h&&!isBase(h)&&(val==="none"||typeof val==="string"&&val))h.faClass=val;render();return true}
+for(const [name,get,set] of [["setCardClass",()=>setCardClass,f=>setCardClass=f]]){
+  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+const clsReady=()=>{if(!G||G.over)return false;const V=view();return !!G.p[V]&&faOn(V)&&plClasses(V).length>0};
+/* the head of a stack for a class: its strongest card that isn't of the class's kinds (else its strongest) */
+function clsHead(st,k){const cards=st.cards.filter(x=>!isBase(x)).sort((a,b)=>rate(b)-rate(a));if(!k)return cards[0];return cards.find(x=>!k.kinds.includes(faKind(x)))||cards[0]}
+function clsChoose(target,val){const V=view(),list=plClasses(V);
+  if(target.card){setCardClass(V,[target.card.id],target.card.id,val);return}
+  const st=target.st;if(!st)return;const k=list.find(x=>x.id===val)||null,h=clsHead(st,k);if(!h)return;
+  setCardClass(V,st.cards.filter(x=>!isBase(x)).map(x=>x.id),h.id,val)}
+function clsMenu(target,x,y){const V=view(),list=plClasses(V);let m=$("#clsmenu");if(!m){m=document.createElement("div");m.id="clsmenu";m.setAttribute("role","menu");document.body.appendChild(m)}
+  const cur=target.card?target.card.faClass:(target.st.cards.find(c=>c.faClass)||{}).faClass;
+  m.innerHTML=`<p class="clsmh">${target.card?"This card's class":"This stack's class"}</p><button type="button" role="menuitem" data-clm="none" class="${cur==="none"?"on":""}">No class</button>${list.map(k=>`<button type="button" role="menuitem" data-clm="${esc(k.id)}" class="${cur===k.id?"on":""}${k.on?"":" off"}"><i style="--clb:${k.color||"#888"}"></i>${esc(k.name)}${k.on?"":" <small>(off)</small>"}</button>`).join("")}<button type="button" role="menuitem" data-clm="" class="clsclear">As its kind says</button>`;
+  m.hidden=false;const w=m.offsetWidth||180,h=m.offsetHeight||200;m.style.left=Math.max(6,Math.min(innerWidth-w-6,x))+scrollX+"px";m.style.top=Math.max(6,Math.min(innerHeight-h-6,y))+scrollY+"px";
+  m.querySelectorAll("[data-clm]").forEach(b=>b.onclick=()=>{m.hidden=true;clsChoose(target,b.dataset.clm||null)});
+  const f=m.querySelector("button");if(f)f.focus({preventScroll:true})}
+document.addEventListener("pointerdown",e=>{const m=$("#clsmenu");if(m&&!m.hidden&&!m.contains(e.target))m.hidden=true},true);
+document.addEventListener("keydown",e=>{const m=$("#clsmenu");if(e.key==="Escape"&&m&&!m.hidden)m.hidden=true});
+function clsTargetAt(e){if(!clsReady())return null;const V=view();
+  const t=e.target.closest&&e.target.closest("#board .tile");if(t){const st=G.board[+t.dataset.r]&&G.board[+t.dataset.r][+t.dataset.c];if(st&&st.owner===V&&st.cards.some(x=>!isBase(x)))return {st}}
+  const h=e.target.closest&&e.target.closest("#hand [data-h]");if(h){const c=G.p[V].hand[+h.dataset.h];if(c&&!isBase(c))return {card:c}}
+  return null}
+document.addEventListener("contextmenu",e=>{const t=clsTargetAt(e);if(!t)return;e.preventDefault();clsMenu(t,e.clientX,e.clientY)});
+/* a phone: a quick double-tap on the same stack or card */
+let clsTap=null;
+document.addEventListener("pointerup",e=>{if(e.pointerType!=="touch")return;const t=clsTargetAt(e);if(!t){clsTap=null;return}
+  const key=t.card?"h"+t.card.id:"s"+t.st.cards[0].id,now=performance.now();
+  if(clsTap&&clsTap.key===key&&now-clsTap.t<350){clsTap=null;setTimeout(()=>clsMenu(t,e.clientX,e.clientY),0)}else clsTap={key,t:now}});
+/* the Selected box: a Class line for your stack, or for the hand card you picked */
+{const _rs=renderSel;renderSel=function(){_rs.apply(this,arguments);if(!clsReady())return;const V=view(),box=$("#selbox");if(!box)return;
+  let target=null;if(G.selHand&&G.p[V].hand.includes(G.selHand)&&!isBase(G.selHand))target={card:G.selHand};
+  else if(G.sel){const st=G.board[G.sel.r]&&G.board[G.sel.r][G.sel.c];if(st&&st.owner===V&&st.cards.some(x=>!isBase(x)))target={st}}
+  if(!target)return;const list=plClasses(V),now=target.card?clsOfCard(target.card,list):stackClass(V,target.st,list);
+  box.insertAdjacentHTML("beforeend",`<p class="clsrow"><span class="dim">Class:</span> <b>${now?esc(now.name):"none"}</b> <button type="button" class="btn sm ghost" id="clsPick">Choose…</button></p>`);
+  $("#clsPick").onclick=e=>{const r=e.target.getBoundingClientRect();clsMenu(target,r.left,r.bottom+4)}}}
+
+/* ---------- the look: the class's color in two corners (only for you, unless shown) ---------- */
+function clsLook(owner,k){if(!k||!k.color||!G)return null;const V=view();if(nepEcState&&nepEcState(V))return null;if(owner!==V&&!k.show)return null;return k}
+const clsAttr=(h,k)=>h.replace(/class="(cf|stack) /,`class="$1 clsmark${k.sheen?" clsheen":""} `).replace(/style="/,`style="--clb:${cbMap(k.color)};`);
+{const _f=face;face=function(c,o={}){const h=_f.apply(this,arguments);if(!G||!c||isBase(c))return h;const own=o.owner!==undefined?o.owner:c.owner;if(own==null)return h;
+  const k=clsLook(own,clsOfCard(c,plClasses(own)));return k?clsAttr(h,k):h}}
+{const _sd=siegeDecor;siegeDecor=function(inner,st){const h=_sd.apply(this,arguments);if(!st||!G)return h;const k=clsLook(st.owner,stackClass(st.owner,st));if(!k)return h;
+  return h.replace(/(<div class="stack)([^"]*")( style=")/,(m,a,b,c)=>`${a} clsmark${k.sheen?" clsheen":""}${b}${c}--clb:${cbMap(k.color)};`)}}
+
+/* ---------- the settings: Class Structures, above the Automated Strategies ---------- */
+let clsUI={open:null,del:null};
+const clsTaken=(id,kd)=>clsList().find(k=>k.id!==id&&k.kinds.includes(kd));
+function clsRank(id,order,key,label){return `<ol class="clsrank">${order.map((x,i)=>`<li><span>${i+1}. ${esc(label(x))}</span><span><button type="button" class="btn ghost sm" data-clact="${id}|${key}up|${x}" ${i?"":"disabled"} aria-label="Higher">▲</button><button type="button" class="btn ghost sm" data-clact="${id}|${key}down|${x}" ${i<order.length-1?"":"disabled"} aria-label="Lower">▼</button></span></li>`).join("")}</ol>`}
+function clsHTML(pfx){const L=clsList(),V=G?view():null,mine=V!=null&&G&&G.p[V]?G.p[V].color:null,multi=PREF.faClassMulti===true;
+  const K=cfgKit("data-cl","data-clact","cl"+pfx),{row,radio}=K;
+  const one=k=>{const id=k.id,c=k.cfg,o=clsUI.open===id;const near=hex=>mine&&colorNear(hex,mine)||hex===mine||L.some(x=>x.id!==id&&x.color&&(x.color===hex||colorNear(x.color,hex)));
+    return `<details class="clsone" data-clid="${id}" ${o?"open":""}><summary><i class="clsdot" style="--clb:${k.color||"#888"}"></i><b>${esc(k.name)}</b> <small class="dim">${k.kinds.length?k.kinds.map(x=>esc(shortInfo(x))).join(", "):"no cards yet"}${k.on?"":" · off"}</small></summary>
+${row(`${id}|on`,k.on,"Class on","Its rules play its cards by themselves (while Field Automation is on).")}
+<label class="f clsname">Name <input type="text" maxlength="30" data-cl="${id}|name" value="${esc(k.name)}"></label>
+<p class="clsh">Its cards</p><div class="opts fakinds">${FA_KINDS.map(kd=>{const t=clsTaken(id,kd),dis=!!t&&!multi&&!k.kinds.includes(kd);return `<label class="opt${dis?" off":""}" ${t&&!k.kinds.includes(kd)?`title="In ${esc(t.name)}"`:""}><input type="checkbox" data-cl="${id}|kind:${kd}" ${k.kinds.includes(kd)?"checked":""} ${dis?"disabled":""}><span>${esc(shortInfo(kd))}</span></label>`}).join("")}</div>
+<p class="clsh">A stack mixing its cards with others plays by it when its cards are…</p>${row(`${id}|stack:strongest`,k.stack.strongest,"…the stack's strongest card","")}${row(`${id}|stack:weakest`,k.stack.weakest,"…the stack's weakest card","")}${row(`${id}|stack:minority`,k.stack.minority,"…only a few of its cards","Not the most of them.")}${row(`${id}|stack:majority`,k.stack.majority,"…most of its cards","")}
+<p class="clsh">Stance</p>${radio(`${id}|stance`,c.stance,[["auto","Automatic",""],["offensive","Offensive",""],["defensive","Defensive",""],["center","Center",""],["skirmish","Skirmish",""]])}
+<p class="clsh">Lives</p>${radio(`${id}|lives`,c.lives,[["preserve","Preserve",""],["balanced","Balanced",""],["throw","Throw them in",""]])}
+<p class="clsh">Picking battles</p>${radio(`${id}|battles`,c.battles,[["careful","Careful",""],["normal","Normal",""],["reckless","Reckless",""]])}
+<p class="clsh">Formation</p>${radio(`${id}|formation`,c.formation,[["auto","Automatic",""],["wide","Wide",""],["deep","Tall",""]])}
+${row(`${id}|noAttack`,c.noAttack,"Don't attack","")}${row(`${id}|ambush`,c.ambush,"Set ambushes","")}${c.ambush?row(`${id}|ambFocus`,c.ambFocus,"Focus on ambush",""):""}${row(`${id}|bases`,c.bases,"Target bases","")}
+${row(`${id}|hier`,c.hier,"Rank the principles","Its own order of the principles.")}${c.hier?clsRank(id,c.order,"h",x=>(FA_PRINC.find(p=>p[0]===x)||[x,x])[1]):""}
+${row(`${id}|lowPrio`,k.lowPrio&&!c.hier,"Low priority","It moves and strikes after your other stacks. Not while it ranks the principles.",c.hier)}
+<p class="clsh">Keeps near (cluster)</p><div class="opts fakinds">${[...L.filter(x=>x.id!==id).map(x=>[x.id,x.name]),...FA_KINDS.map(x=>[x,shortInfo(x)])].map(([v,t])=>`<label class="opt"><input type="checkbox" data-cl="${id}|cl:${esc(v)}" ${k.cluster.includes(v)?"checked":""}><span>${esc(t)}</span></label>`).join("")}</div>
+<details class="faextra"><summary>Target priority for this class <small class="dim">(${k.tg.on?"on":"off: your own"})</small></summary>${row(`${id}|tg:on`,k.tg.on,"Its own target priority","")}${k.tg.on?clsRank(id,k.tg.order,"t",x=>FA_TK.find(p=>p[0]===x)[1])+row(`${id}|tg:weak`,k.tg.weak,"Weakest Grunts and Infantry first","Off: the strongest of them first.")+
+  `<p class="dim">Go for a stack because of the kind it hunts when that kind is…</p>`+row(`${id}|tgs:strongest`,k.tg.stack.strongest,"…its strongest card","")+row(`${id}|tgs:weakest`,k.tg.stack.weakest,"…its weakest card","")+row(`${id}|tgs:minority`,k.tg.stack.minority,"…only a few of its cards","")+row(`${id}|tgs:majority`,k.tg.stack.majority,"…most of its cards",""):""}</details>
+<p class="clsh">Its look (only you see it unless shown)</p><div class="opts swatches clssw">${clsPalette().map(([nm,hex])=>{const n=near(hex)&&k.color!==hex;return `<label class="sw${n?" off":""}" title="${esc(nm)}${n?" (too like your color or another class's)":""}"><input type="radio" name="clc${pfx}${id}" data-cl="${id}|color" value="${hex}" ${k.color===hex?"checked":""} ${n?"disabled":""}><span style="--pc:${hex}"></span><em>${esc(nm)}</em></label>`}).join("")}</div>
+${row(`${id}|sheen`,k.sheen,"Sheen on its corners","")}${row(`${id}|show`,k.show,"Show the other players its look","")}
+<p class="clsacts">${clsUI.del===id?`Delete ${esc(k.name)}? <button type="button" class="btn sm" data-clact="${id}|delok">Delete</button> <button type="button" class="btn ghost sm" data-clact="${id}|delno">Keep it</button>`:`<button type="button" class="btn ghost sm" data-clact="${id}|del">Delete this class</button>`}</p></details>`};
+  return `<section class="fasec fafull facls"><h4>Class Structures</h4><details class="faextra clsfold" ${PREF.clsOpen||clsUI.open?"open":""}><summary>Your classes <small class="dim">(${L.length})</small></summary>
+${row("multi",multi,"Choose classes on the field","Needed for one kind of card to be in more than one class: a card then follows the first class that holds it, unless you put it in another on the field.")}
+<p class="dim">To put one stack or hand card in a class on its own (a Class Exception), right-click it while Field Automation is on (on a phone, double-tap it), or use the Class line in the Selected box. Every Automated Strategy shares these classes.</p>
+${L.map(one).join("")}<p><button type="button" class="btn ghost sm" data-clact="|new">+ New class</button></p></details></section>`}
+{const _fp=faPanelHTML;faPanelHTML=function(c,pl,pfx){const h=_fp.apply(this,arguments),i=h.indexOf('<section class="fasec fafull fastrat"');const add=clsHTML(pfx||"");return i<0?h+add:h.slice(0,i)+add+h.slice(i)}}
+function clsWire(root){const L=clsList(),find=id=>L.find(k=>k.id===id);
+  const fold=root.querySelector(".clsfold");if(fold)fold.addEventListener("toggle",()=>{PREF.clsOpen=fold.open;savePrefs()});
+  root.querySelectorAll("details.clsone").forEach(d=>d.addEventListener("toggle",()=>{if(d.open)clsUI.open=d.dataset.clid;else if(clsUI.open===d.dataset.clid)clsUI.open=null}));
+  root.querySelectorAll("[data-cl]").forEach(i=>{const [id,key]=i.dataset.cl.split("|");const ev=i.type==="text"?"change":"change";i.addEventListener(ev,()=>{
+    if(id==="multi"){PREF.faClassMulti=i.checked;clsResend();return}
+    const k=find(id);if(!k)return;clsUI.open=id;
+    if(key==="name")k.name=String(i.value||"").replace(/[<>]/g,"").slice(0,30)||k.name;
+    else if(key==="on"||key==="sheen"||key==="show"||key==="lowPrio")k[key]=i.checked;
+    else if(key==="color"){if(i.checked)k.color=i.value}
+    else if(key.startsWith("kind:")){const kd=key.slice(5);k.kinds=i.checked?[...new Set([...k.kinds,kd])]:k.kinds.filter(x=>x!==kd)}
+    else if(key.startsWith("stack:"))k.stack[key.slice(6)]=i.checked;
+    else if(key.startsWith("cl:")){const v=key.slice(3);k.cluster=i.checked?[...new Set([...k.cluster,v])]:k.cluster.filter(x=>x!==v)}
+    else if(key==="tg:on"||key==="tg:weak")k.tg[key.slice(3)]=i.checked;
+    else if(key.startsWith("tgs:"))k.tg.stack[key.slice(4)]=i.checked;
+    else if(CLS_CFG.includes(key))k.cfg[key]=i.type==="checkbox"?i.checked:i.value;
+    if(k.cfg.hier)k.lowPrio=false;PREF.faClasses=clsClean(L);clsResend()})});
+  root.querySelectorAll("[data-clact]").forEach(b=>b.onclick=()=>{const [id,a,x]=b.dataset.clact.split("|");
+    if(a==="new"){const mine=G&&G.p[view()]?G.p[view()].color:null,used=L.map(k=>k.color);const col=(clsPalette().find(([,h])=>h!==mine&&!(mine&&colorNear(h,mine))&&!used.some(u=>u===h||colorNear(u,h)))||clsPalette()[0])[1];
+      const base=faMine(),cfg={};for(const f of CLS_CFG)cfg[f]=JSON.parse(JSON.stringify(base[f]));const k={id:"c"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:`Class ${L.length+1}`,on:true,kinds:[],color:col,cfg};
+      PREF.faClasses=clsClean([...L,k]);clsUI.open=k.id;PREF.clsOpen=true;clsResend();return}
+    const k=find(id);if(!k)return;clsUI.open=id;
+    if(a==="del"){clsUI.del=id;paintFA();return}if(a==="delno"){clsUI.del=null;paintFA();return}
+    if(a==="delok"){clsUI.del=null;PREF.faClasses=clsClean(L.filter(y=>y.id!==id));clsResend();return}
+    const mv=(arr,dir)=>{const i=arr.indexOf(x),j=i+dir;if(i<0||j<0||j>=arr.length)return;[arr[i],arr[j]]=[arr[j],arr[i]]};
+    if(a==="hup"||a==="hdown")mv(k.cfg.order,a==="hup"?-1:1);if(a==="tup"||a==="tdown")mv(k.tg.order,a==="tup"?-1:1);
+    PREF.faClasses=clsClean(L);clsResend()})}
+{const _fw=faWire;faWire=function(root){_fw.apply(this,arguments);if(root.querySelector(".facls"))clsWire(root)}}
+
+if(window.__EC)Object.assign(window.__EC,{clsSetW:list=>{PREF.faClasses=clsClean(list);clsResend()},faCtxW3:pl=>faCtx(pl),clsList:()=>clsList(),stackClass:(...a)=>stackClass(...a),setCardClass:(...a)=>setCardClass(...a),clsOfCard:(...a)=>clsOfCard(...a),plClasses:pl=>plClasses(pl)});
 
 })();
