@@ -12560,18 +12560,23 @@ document.addEventListener("click",e=>{if(!fsOn())return;const m=e.target.closest
   if(m&&!mo.classList.contains("moontarget"))mo.classList.toggle("fsopen");else if(!m)mo.classList.remove("fsopen")});
 
 /* ---------- v74a: Controls: what moves what, and the options for it (a phone gets its own list) ---------- */
-function fsControls(){const o=fsOv("fsctl"),touch=isPhone()||matchMedia("(pointer:coarse)").matches,ck=(id,on,t,s)=>`<label class="farow"><span class="fal"><b>${t}</b>${s?`<small>${s}</small>`:""}</span><input type="checkbox" id="${id}" ${on?"checked":""}></label>`;
+/* v75b: the list follows the device's pointer, not the window's width: any mouse or trackpad shows the keyboard and mouse list
+   (a narrow window or a touchscreen computer too); only a device that is touch alone opens on the touch list. Either can be picked. */
+const fsTouchOnly=()=>typeof matchMedia!=="undefined"&&!matchMedia("(any-pointer:fine)").matches&&!matchMedia("(any-hover:hover)").matches;
+function fsControls(){const o=fsOv("fsctl"),touch=PREF.fsCtlTab?PREF.fsCtlTab==="touch":fsTouchOnly(),ck=(id,on,t,s)=>`<label class="farow"><span class="fal"><b>${t}</b>${s?`<small>${s}</small>`:""}</span><input type="checkbox" id="${id}" ${on?"checked":""}></label>`;
   const L=touch?[["Move the field","swipe it with one finger"],["Zoom","pinch with two fingers"],["Pick a stack or a card","tap it; tap it again to let go"],["A class (Field Automation)","double-tap a stack or a hand card"],
       ["Spells and Selected","the named arrows on the right"],["Dice and the log","the arrow at the bottom left; its ⚙ for more"],["The sky","tap the body at the top left"],["Leave fullscreen","Menu, then Exit fullscreen"]]
     :[["Move the field",`WASD or the arrow keys (Shift: faster)${PREF.camDrag!==false?", or drag an empty spot":""}; it can go past the edges`],["Zoom",`Q and E (or C and V)${PREF.fsWheel===true?", the mouse wheel":""}, a trackpad's pinch`],["The turn button","Space: Ready, the next phase, End turn"],
       ["Pick a stack or a card","click it"],["A class (Field Automation)","right-click a stack or a hand card"],["Compare two stacks","drag a card's corner tab onto another stack"],["Spells and Selected","the named arrows on the right"],
       ["Dice and the log","the arrow at the bottom left; its ⚙ for more"],["The sky","hover the body at the top left"],["Leave fullscreen",`Menu, then Exit fullscreen${document.fullscreenElement?"; Esc also leaves the browser's fullscreen (the browser's own key)":"; Esc opens the Menu"}`]];
   o.innerHTML=`<div class="ovbox fscbox" role="dialog" aria-modal="true" aria-labelledby="fsch"><button type="button" class="xclose" id="fscX" aria-label="Close">×</button><h2 id="fsch">Controls</h2>
+<div class="fsctabs" role="tablist"><button type="button" class="stab${touch?"":" on"}" role="tab" aria-selected="${!touch}" data-fsct="mouse">Keyboard and mouse</button><button type="button" class="stab${touch?" on":""}" role="tab" aria-selected="${touch}" data-fsct="touch">Touch</button></div>
 <dl class="fsckeys">${L.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl>
 <div class="fscopts">${touch?"":ck("fscWheel",PREF.fsWheel!==true,"Disable mouse scroll","On by default: the mouse wheel does nothing over the field. Off: it zooms.")+ck("fscDrag",PREF.camDrag!==false,"Drag to move the field","Dragging an empty spot moves the field (here and on large maps).")}
 ${ck("fscBrowser",PREF.fsBrowser===true,"Use the browser's own fullscreen","Hides the browser's bars too; the browser then shows its own notice about leaving it.")}</div>
 <p class="acts"><button type="button" class="btn" id="fscOk">Done</button></p></div>`;
   o.hidden=false;const close=()=>{o.hidden=true;const b=$("#fsctlb");if(b)b.focus()};$("#fscX").onclick=$("#fscOk").onclick=close;o.onclick=e=>{if(e.target===o)close()};$("#fscOk").focus();
+  o.querySelectorAll("[data-fsct]").forEach(b=>b.onclick=()=>{PREF.fsCtlTab=b.dataset.fsct;savePrefs();fsControls()});
   const on=(id,f)=>{const i=$("#"+id);if(i)i.onchange=()=>{f(i.checked);savePrefs()}};
   on("fscWheel",v=>{PREF.fsWheel=!v});on("fscDrag",v=>{PREF.camDrag=v});
   on("fscBrowser",v=>{PREF.fsBrowser=v;const h=document.documentElement;if(v&&h.requestFullscreen&&!document.fullscreenElement){try{const p=h.requestFullscreen({navigationUI:"hide"});FS.api=true;if(p&&p.catch)p.catch(()=>{FS.api=false})}catch(e){}}
