@@ -137,9 +137,10 @@ function stackLegal(cards){
   const att=cards.filter(isAttach);
   if(att.length){
     const rest=cards.filter(c=>!isAttach(c)),n=u=>att.filter(c=>c.unit===u).length;
-    if(n("healer")>1||n("repair")>1)return false;
+    const inAce=rest.some(c=>kind(c)==="ace");
+    if(n("healer")>1||n("repair")>1&&!inAce)return false;   // v72a: as many Repairmen in an Ace as you like
     if(n("healer")&&rest.some(c=>kind(c)==="queen"))return false;   // the Healer won't stand with a Queen
-    if(n("miner")>(rest.some(c=>kind(c)==="ace")?2:1))return false;   // two miner slots in an Ace, one Miner anywhere else
+    if(n("miner")>1&&!inAce)return false;   // v72a: as many Miners in an Ace as you like, one anywhere else
     if(rest.some(c=>c.unit==="ram"))return false;
     if(!rest.length)return true;
     cards=rest;

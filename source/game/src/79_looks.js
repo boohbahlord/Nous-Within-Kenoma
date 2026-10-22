@@ -1,16 +1,16 @@
 /* ---------- v71m: more symbols, card patterns, metal sheen, and black as a player's color ----------
    - Five more shapes for the players' symbols, so a full table of eight never runs short: the Sphere, the Pyramid, the
-     Prism, the Pentagram and the Cuboctahedron, drawn like the Platonic solids.
+     Heart (v72a, in the Prism's place), the Pentagram and the Cuboctahedron, drawn like the Platonic solids.
    - Card patterns: each player's cards and stacks carry a faint pattern of their own. In the seat's look, Pattern is
      Random by default (a pattern nobody else has), None, or one of eight. A Display setting (on by default) shows them;
      Colorblind-safe colors always show them.
    - Metal sheen (off by default, per player): a slow shine sweeps across that player's cards and stacks.
    - Onyx (black) is a player's color: its names, symbols and dice get a light edge so they read on dark pages. */
-Object.assign(SOLIDS,{sphere:"Sphere",pyramid:"Pyramid",prism:"Prism",penta:"Pentagram",cubocta:"Cuboctahedron"});
+Object.assign(SOLIDS,{sphere:"Sphere",pyramid:"Pyramid",heart:"Heart",penta:"Pentagram",cubocta:"Cuboctahedron"});   // v72a: the Heart took the Prism's place
 {const _sp=solidPath;solidPath=function(s){
   if(s==="sphere")return "M-9,0A9,9 0 1,0 9,0A9,9 0 1,0 -9,0Z M-9,0A9,3.1 0 1,0 9,0A9,3.1 0 1,0 -9,0Z M0,-9A3.4,9 0 1,0 0,9A3.4,9 0 1,0 0,-9Z";
   if(s==="pyramid"){const T=[0,-9.5],L=[-9.5,5],F=[-1.5,8.8],R=[9.5,4.4];return ring([T,L,F,R])+seg(T,F)}
-  if(s==="prism"){const f=[[-9,7.6],[1.4,7.6],[-3.8,-1.6]],b=[[-2.4,1.4],[8,1.4],[2.8,-7.8]];return ring(f)+seg(f[1],b[1])+seg(f[2],b[2])+seg(b[1],b[2])+seg(b[0],b[2])}
+  if(s==="heart"||s==="prism")return "M0,8.8C-5.6,4.7 -9.7,1.2 -9.7,-3.3C-9.7,-6.7 -7.1,-8.9 -4.4,-8.9C-2.4,-8.9 -0.9,-7.7 0,-5.8C0.9,-7.7 2.4,-8.9 4.4,-8.9C7.1,-8.9 9.7,-6.7 9.7,-3.3C9.7,1.2 5.6,4.7 0,8.8Z M0,-5.8V8.8";   // a faceted heart (an old Prism draws as the Heart)
   if(s==="penta"){const p=poly(5,9.8,-90);return "M"+[0,2,4,1,3].map(i=>p[i].join(",")).join("L")+"Z"}
   if(s==="cubocta"){const q=poly(4,9.6,45),m=q.map((v,i)=>{const w=q[(i+1)%4];return[(v[0]+w[0])/2,(v[1]+w[1])/2]});return ring(q)+ring(m)}
   return _sp.apply(this,arguments)}}
@@ -24,7 +24,7 @@ const darkCol=c=>typeof c==="string"&&/^#[0-9a-f]{6}$/i.test(c)&&labOf(c)[0]<14;
 /* patterns: one per player, chosen or random (none for the Bank's and the Demons' cards) */
 const PATTERNS=["Slant","Reverse","Dots","Upright","Flat","Hatch","Grid","Rings"];
 const SHEEN_T=6;
-{const _m=mkPlayer;mkPlayer=function(i,o){const P=_m.apply(this,arguments);P.patSel=o&&o.pattern!=null?String(o.pattern):"random";P.sheen=!!(o&&o.sheen);return P}}
+{const _m=mkPlayer;mkPlayer=function(i,o){if(o&&o.solid==="prism")o=Object.assign({},o,{solid:"heart"});const P=_m.call(this,i,o);P.patSel=o&&o.pattern!=null?String(o.pattern):"random";P.sheen=!!(o&&o.sheen);return P}}
 function dealPatterns(){if(!G||!G.p)return;const ps=G.p.filter(P=>P&&!P.npc&&!isNPC(P.i));
   for(const P of ps){const v=P.patSel;P.pattern=v==="none"?-1:/^\d$/.test(v)&&+v<PATTERNS.length?+v:null}
   const used=new Set(ps.map(P=>P.pattern).filter(x=>x!=null&&x>=0));
