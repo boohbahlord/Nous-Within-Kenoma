@@ -11434,7 +11434,7 @@ if(window.__EC)Object.assign(window.__EC,{nepCloudTilesW:()=>nepCloudTiles()});
 
 /* ---------- v71j: Default, Data saving or Poor connection (asked once, on the first visit to any Ether's Crossroads page) ----------
    A setting on this device (PREF.net: 0, 1 or 2).
-   Data saving: the pages fetch nothing they can do without (the background picture, the fonts, the music, the book's
+   Data saving: the pages fetch nothing they can do without (the background picture, the fonts, the book's
    passages: see each page's head and site.js), nothing on the field moves (animations, fog, fire, the sky's glow, static,
    lines), and online the host sends this player only the parts of the game that changed (a few kilobytes, not the
    whole game every time).
@@ -11444,8 +11444,8 @@ if(window.__EC)Object.assign(window.__EC,{nepCloudTilesW:()=>nepCloudTiles()});
 const netLvl=()=>Math.max(0,Math.min(2,+PREF.net||0));
 const NET_NAMES=["Default","Data saving","Poor connection"];
 const NET_SUBS=["Everything: the art, the fonts, the music and the animations.",
-  "Your device's own fonts, a plain background, no music, nothing moving, and lighter online play.",
-  "For a weak or unreliable connection: all of Data saving, fewer online updates, and longer patience when the connection drops."];
+  "Your device's own fonts, a plain background, nothing moving, and lighter online play. The music still plays: it is made on your device.",
+  "For a weak or unreliable connection: all of Data saving, no music, fewer online updates, and longer patience when the connection drops."];
 {const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);const h=document.documentElement,n=netLvl();
   h.classList.toggle("lite",n>0);h.classList.toggle("poor",n>1);
   if(n>0)for(const k of ["fog","fire","sky","glow","blood","magic"])h.classList.add("still-"+k);
@@ -11463,7 +11463,8 @@ const LITE_FONTS='@font-face{font-family:"Grenze Gotisch";font-style:normal;font
 function liteFonts(on){let y=document.getElementById("litefonts");if(on&&!y){y=document.createElement("style");y.id="litefonts";y.textContent=LITE_FONTS;document.head.appendChild(y)}else if(!on&&y)y.remove()}
 function netSet(n,asked){n=Math.max(0,Math.min(2,+n||0));PREF.net=n;if(asked)PREF.netAsked=1;savePrefs();applyPrefs();liteFonts(n>0);
   if(window.nwkLook)window.nwkLook();if(window.nwkStatic&&window.nwkStatic.refresh)window.nwkStatic.refresh();
-  if(n>0){if(window.ECMusic)window.ECMusic.stop()}else{loadMusic();mountQuotes()}
+  if(n>1){if(window.ECMusic)window.ECMusic.stop()}else loadMusic();if(!n)mountQuotes();   // v75b: Data saving keeps the music (made on the device)
+  if(window.ECMusic&&window.ECMusic.sync)window.ECMusic.sync();
   if(NET.role==="guest"&&NET.tr)sendHost({t:"lite",lvl:n,delta:1});
   if(G)render();else paintNetCtl()}
 window.ecSetNet=(n,asked)=>netSet(n,asked);   // the first visit's question (site.js) answers here on the game's page
