@@ -2198,4 +2198,8 @@ html.fs-sp:not(.fs-sel) #fstabSel{right:min(330px,86vw)}
 #fsquote .fsqbox{width:min(900px,100%);max-height:calc(100dvh - 32px);overflow:auto;text-align:center}
 #fsquote blockquote{margin:0 auto 14px;font-family:"EB Garamond","Cormorant Garamond",Georgia,serif;font-style:italic;font-size:clamp(19px,3vw,32px);line-height:1.5;color:var(--text)}
 #fsquote #fsqs{color:var(--dim);font-size:13px;margin:0 0 18px}
+/* v73c: off the map is darker on the crosses and the plus maps */
+#board.bigvoid .tile.void{filter:brightness(.42) saturate(.6)}
+.crossopts{margin-top:8px;padding-left:10px;border-left:2px solid var(--rule)}
+.chk.off{opacity:.55}
 
