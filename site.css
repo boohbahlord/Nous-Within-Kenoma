@@ -14,14 +14,14 @@
   src:url(cascadia-code-latin-ext-200-italic.woff2) format("woff2");
   unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
 :root{
-  --ground:#190e07;   /* page: dark burnt amber (v78x: a little darker and redder, less yellow) */
-  --well:#22130a;     /* raised panels */
-  --deep:#120904;     /* sunk panels */
-  --text:#ebc5a0;     /* light burnt amber, the reading text (11.8:1 on the page) */
-  --dim:#c08e66;      /* secondary text (6.6:1) */
-  --amber:#d97f3c;    /* accent, burnt amber (6.4:1) */
-  --amber-hi:#f0a565; /* hover */
-  --rule:#4b2b17;     /* hairlines */
+  --ground:#1b110a;   /* page: dark burnt amber (v79a: the older colors, a touch more burnt, the yellow kept) */
+  --well:#24170e;     /* raised panels */
+  --deep:#140c07;     /* sunk panels */
+  --text:#f3d2a3;     /* light burnt amber, the reading text (12.9:1 on the page) */
+  --dim:#c79d70;      /* secondary text (7.5:1) */
+  --amber:#e8994d;    /* accent (8:1) */
+  --amber-hi:#ffc07d; /* hover */
+  --rule:#4d311d;     /* hairlines */
   --string:#000;      /* background strings and cracks */
   --mono:"Cascadia Code","Cascadia Mono",Consolas,"Courier New",monospace;
   color-scheme:dark;
@@ -176,7 +176,7 @@ html.th-darkfantasy body{image-rendering:auto}
 /* v78c: Ether's Ten: the same dungeon in blue, loosely after Ten (white on indigo): grey and blue panels, gold and silver */
 html.th-darkfantasy.th-eten{--ground:#0a0b16;--well:#15172bea;--deep:#0c0d1cee;--text:#dcdeea;--dim:#a3a6c0;--rule:#2e3478;}   /* v78r: the picture shows as in the default, with no colour wash: only the UI changes colour */
 /* v78c: Ether's Kenoma: the same dungeon in Kenoma's burnt amber and orange */
-html.th-darkfantasy.th-eken{--ground:#150d07;--well:#23160dea;--deep:#120a05ee;--text:#f1d5a8;--dim:#c6a074;--amber:#e9a157;--amber-hi:#ffc98a;--rule:#5c3418;}   /* v78r: the picture shows as in the default, with no colour wash: only the UI changes colour */
+html.th-darkfantasy.th-eken{--ground:#150c06;--well:#23150cea;--deep:#120904ee;--text:#f0d1a4;--dim:#c49b70;--amber:#e8994d;--amber-hi:#ffc07d;--rule:#5b3317;}   /* v79a: a touch more burnt */   /* v78r: the picture shows as in the default, with no colour wash: only the UI changes colour */
 /* Office: white paper, light grey panels, a blue ribbon accent; inspired by an office suite, not a copy of one */
 html.th-office{--ground:#d9dadd;--well:#e6e7ea;--deep:#cfd1d5;--text:#232427;--dim:#575b61;--amber:#2b579a;--amber-hi:#1a3f78;--rule:#b3b6bb;--string:#b3b6bb;color-scheme:light}
 .crumbs .arrows a{margin:0 2px}
@@ -210,7 +210,7 @@ html.th-darkfantasy.th-eken.ecpage .rules h3{color:#9cc7b9}
 html.th-darkfantasy.th-eken.ecpage a.card{background:#21150ce0;border-color:#8a5a2c}
 html.th-darkfantasy.th-eken.ecpage .rules main,html.th-darkfantasy.th-eken.ecpage main.rules{background:#150d07b8;box-shadow:0 0 0 1px #5c341855}
 /* v71: every theme carries more than two colors, like the default: buttons, borders, labels, headings (used in game.css too) */
-html.th-rich{--b1:#8a3c14;--b2:#5e270b;--bh1:#a0461a;--bh2:#71300f;--bb:#d97f3c;--bt:#f7dcc0;--gb:#70472a;--pb:#70472a;--lab:#9cc7b9;--h1:#f0a565;--h1g:#b04e1866}
+html.th-rich{--b1:#96461a;--b2:#6a2e0f;--bh1:#ac531e;--bh2:#7e3713;--bb:#e8994d;--bt:#fbe4c4;--gb:#78512e;--pb:#78512e;--lab:#9cc7b9;--h1:#ffc07d;--h1g:#be561b66}
 html.th-dull.th-rich{--b1:#6d5d2e;--b2:#4c4120;--bh1:#7d6b35;--bh2:#584b25;--bb:#c8b273;--bt:#f0e6c6;--gb:#6b5d38;--pb:#6b5d38;--lab:#a8b6c8;--h1:#e6d49a;--h1g:#8a7a3a55}
 html.th-office.th-rich{--b1:#3467b2;--b2:#244f8e;--bh1:#3a72c4;--bh2:#2a5a9e;--bb:#1a3f78;--bt:#fff;--gb:#2b579a;--pb:#b3b6bb;--lab:#1d6b47;--h1:#b4462a;--h1g:transparent}
 html.th-officedark.th-rich{--b1:#3574cc;--b2:#2860ad;--bh1:#3d80dc;--bh2:#2e6bbd;--bb:#5b9bf0;--bt:#fff;--gb:#3a5f8f;--pb:#454a52;--lab:#6cc795;--h1:#ef8a6b;--h1g:#ef8a6b30}

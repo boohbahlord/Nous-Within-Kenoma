@@ -322,7 +322,7 @@ html.th-jester .game h1{font-size:clamp(30px,5vw,42px)}
 #board:not(.mapped) .tile.void{visibility:hidden}
 #board:not(.mapped) .tile.water{background:#1b2a3a}
 .tile.tmove::after,.tile.tplace::after,.tile.tatk::after,.tile.sel::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none}
-.tile.tmove::after{background:#d97f3c38;box-shadow:inset 0 0 0 2px var(--amber)}
+.tile.tmove::after{background:#e8994d38;box-shadow:inset 0 0 0 2px var(--amber)}
 .tile.tplace::after{background:#8fbf7440;box-shadow:inset 0 0 0 2px #8fbf74}
 .tile.tatk::after{background:#ff7a6640;box-shadow:inset 0 0 0 2px #ff7a66}
 .tile.sel::after{box-shadow:inset 0 0 0 2px var(--amber-hi)}
@@ -1272,12 +1272,12 @@ html.th-darkfantasy.th-eten .btn.ghost{background:#0c0d1ccc}
 html.th-darkfantasy.th-eten .label,html.th-darkfantasy.th-eten h3{color:#b9d6ea}
 html.th-darkfantasy.th-eten #log li{border-bottom-color:#2e347855}
 html.th-darkfantasy.th-eken .game h1,html.th-darkfantasy.th-eken .ovbox h2{color:#ff9a4a;text-shadow:0 0 12px #c2581c80}
-html.th-darkfantasy.th-eken .stab.on,html.th-darkfantasy.th-eken .btn{background:linear-gradient(#9a4a1c,#6e3010);border-color:#e9a157;color:#fbe7c6}
-html.th-darkfantasy.th-eken .btn:hover,html.th-darkfantasy.th-eken .btn:focus-visible{background:linear-gradient(#b0571f,#823914)}
-html.th-darkfantasy.th-eken .btn.ghost{background:#140c06cc;border-color:#7a5530}
+html.th-darkfantasy.th-eken .stab.on,html.th-darkfantasy.th-eken .btn{background:linear-gradient(#96461a,#6a2e0f);border-color:#e8994d;color:#fbe4c4}
+html.th-darkfantasy.th-eken .btn:hover,html.th-darkfantasy.th-eken .btn:focus-visible{background:linear-gradient(#ac531e,#7e3713)}
+html.th-darkfantasy.th-eken .btn.ghost{background:#140c06cc;border-color:#78512e}
 html.th-darkfantasy.th-eken .ovbox,html.th-darkfantasy.th-eken .pbox,html.th-darkfantasy.th-eken .cinfo,html.th-darkfantasy.th-eken .gbar{border-color:#8a5a2c}
 html.th-darkfantasy.th-eken .label,html.th-darkfantasy.th-eken h3{color:#9cc7b9}
-html.th-darkfantasy.th-eken #log li{border-bottom-color:#5c341855}
+html.th-darkfantasy.th-eken #log li{border-bottom-color:#5b331755}
 html.th-earth .btn{color:#0e130d}
 html.th-earth .btn.ghost{color:var(--amber)}html.th-earth .btn.ghost:hover{color:var(--amber-hi)}   /* v71: outline buttons keep light text */
 html.th-earth .game h1{color:#cfe08c;text-shadow:0 0 14px #9bbf5e40}
@@ -2595,9 +2595,20 @@ details[open]>summary,[data-fold][aria-expanded="true"]{text-shadow:0 0 6px colo
 #minepanel .mslot.kbmine{outline:2px solid var(--amber-hi);outline-offset:2px;box-shadow:0 0 12px color-mix(in oklab,var(--amber-hi) 60%,transparent)}   /* v78s: the slot chosen by keys */
 #clsmenu .fgrad{margin:4px 10px 2px;font-size:12px;color:var(--dim)}
 #clsmenu .fgradb{display:flex;gap:4px;padding:0 6px 4px}#clsmenu .fgradb button{flex:1}#clsmenu .fgradb button[disabled]{opacity:.4;cursor:default}
-html.ecfs #notes{top:calc(var(--fsctlb,104px) + 8px)}   /* v78s: in fullscreen the notes come down from the middle of the top, under the turn bar and the meters */
+html.ecfs #notes{top:var(--fsnotet,calc(var(--fsctlb,104px) + 8px))}   /* v79a: under everything at the top (set in 99e) */   /* v78s: in fullscreen the notes come down from the middle of the top, under the turn bar and the meters */
 #fsbfsb{position:fixed;top:8px;right:calc(110px + var(--fsctlw,118px));z-index:33;display:flex;align-items:center;gap:2px;padding:6px 8px;cursor:pointer;font:inherit;font-size:15px;line-height:1;
   color:var(--amber-hi);background:color-mix(in oklab,var(--deep) 90%,transparent);border:1px solid var(--amber);border-radius:6px;box-shadow:0 2px 10px #000a}
 #fsbfsb b{font-weight:600;opacity:.45}#fsbfsb:not(.on) b:last-child,#fsbfsb.on b:first-child{opacity:1}
 #fsbfsb:hover,#fsbfsb:focus-visible{color:#fff;background:var(--deep);outline:none;box-shadow:0 0 0 2px var(--amber-hi)}
 @media (max-width:600px){#fsbfsb{right:calc(58px + var(--fsctlw,36px))}}
+/* v79a: fullscreen notices: the left column on top of your hand and its mining slots (what you do), the top middle under the
+   turn bar (what happens on the table); both look alike */
+#fsleft{display:none}
+html.ecfs #fsleft{position:fixed;left:8px;bottom:var(--fsleftb,200px);z-index:136;display:flex;flex-direction:column;gap:6px;width:var(--fsleftw,440px);max-width:calc(100vw - 16px);pointer-events:none}
+html.ecfs #fsleft:not(:has(>:not([hidden]))){display:none}
+html.ecfs #fsleft>*{position:relative!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;transform:none!important;max-width:none!important;width:auto!important;margin:0!important;z-index:auto!important;font-family:var(--mono);font-size:13px;line-height:1.45;color:var(--text);background:rgba(0,0,0,.72);border:1px solid var(--fspc,var(--amber));border-radius:0;padding:8px 12px;box-shadow:none;overflow:hidden}
+html.ecfs #fsleft>*::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,#ffffff0d 0 1px,transparent 1px 3px);pointer-events:none}
+html.ecfs #fsleft>[hidden]{display:none!important}
+/* v79a: the field goes very dark while you draw */
+#board{transition:filter .35s}
+html.drawdark #board{filter:brightness(.22) saturate(.7)}
