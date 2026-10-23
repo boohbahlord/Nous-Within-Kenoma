@@ -283,7 +283,7 @@ main.game,#ov>.ovbox,#leavebox>.ovbox{zoom:var(--uiz)}
 #leavebox[hidden]{display:none}
 #leavebox .ovbox{max-width:480px}
 /* ---- bottom controls ---- */
-.gbar{position:fixed;bottom:max(10px,env(safe-area-inset-bottom,0px));z-index:50;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);background:rgba(0,0,0,.78);border:1px solid var(--rule);padding:3px 8px}
+.gbar{position:fixed;bottom:max(10px,env(safe-area-inset-bottom,0px));z-index:50;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);background:rgba(0,0,0,.35);border:1px solid var(--rule);padding:3px 8px}
 #gbarL{left:max(10px,env(safe-area-inset-left,0px))}
 #gbar{right:calc(max(10px,env(safe-area-inset-right,0px)) + 112px)}
 .gbar select{font-family:var(--mono);font-size:12.5px;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:2px 4px;text-transform:none;letter-spacing:0}
@@ -322,7 +322,7 @@ html.th-jester .game h1{font-size:clamp(30px,5vw,42px)}
 #board:not(.mapped) .tile.void{visibility:hidden}
 #board:not(.mapped) .tile.water{background:#1b2a3a}
 .tile.tmove::after,.tile.tplace::after,.tile.tatk::after,.tile.sel::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none}
-.tile.tmove::after{background:#e9a15738;box-shadow:inset 0 0 0 2px var(--amber)}
+.tile.tmove::after{background:#d97f3c38;box-shadow:inset 0 0 0 2px var(--amber)}
 .tile.tplace::after{background:#8fbf7440;box-shadow:inset 0 0 0 2px #8fbf74}
 .tile.tatk::after{background:#ff7a6640;box-shadow:inset 0 0 0 2px #ff7a66}
 .tile.sel::after{box-shadow:inset 0 0 0 2px var(--amber-hi)}
@@ -717,7 +717,8 @@ body.bigtext #selbox li{display:block}
 /* the bottom bar folds away: Display opens the sizes and switches */
 #gbar #gmore{display:none;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px 12px}
 #gbar.open #gmore{display:flex}
-#gbar.open{background:rgba(0,0,0,.92)}
+#gbar.open{background:rgba(0,0,0,.62)}
+#gbar{opacity:.88;transition:opacity .15s}#gbar .gtog,#gbar .static-toggle,#gbar .gctl button{background:rgba(0,0,0,.6)!important;text-shadow:0 0 3px #000}#gbar label,#gbar .gctl{text-shadow:0 0 3px #000,0 0 1px #000}html.th-office #gbar .gtog,html.th-office #gbar .static-toggle,html.th-office #gbar .gctl button{background:#ffffffb0!important}html.th-office #gbar label,html.th-office #gbar .gctl,html.th-office #gbar .gtog,html.th-office #gbar .static-toggle{text-shadow:none}#gbar:hover,#gbar:focus-within{opacity:1}   /* v78x: the Display bar and the static switch are see-through */
 @media (min-width:1100px){.pbox .meters{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);column-gap:22px}}
 .ovbox>.xclose,#menu .ovbox>.xclose,#pop .popbox>.xclose{position:absolute!important;top:8px;right:10px}
 .ovbox.bank .bstat dt{white-space:nowrap}
@@ -1143,7 +1144,7 @@ body.phone .cardbtn.on .cf{outline:2px solid var(--amber-hi);outline-offset:1px;
 /* long names break inside their box on a phone instead of running across the screen */
 body.phone .ovbox,body.phone #selbox,body.phone #info,body.phone .pbox,body.phone #log,body.phone #pop{overflow-wrap:anywhere}
 /* ================= v38: the Office theme: white and light grey panels, a blue accent ================= */
-html.th-office .gbar,html.th-office #gbar.open{background:#e6e7eaeb;border-color:var(--rule);color:var(--text);box-shadow:0 2px 10px #0002}
+html.th-office .gbar{background:#e6e7ea99}html.th-office #gbar.open{background:#e6e7eabb}html.th-office .gbar,html.th-office #gbar.open{border-color:var(--rule);color:var(--text);box-shadow:0 2px 10px #0002}
 html.th-office .tray,html.th-office #histpop,html.th-office #pop .popbox,html.th-office #aimbar{background:var(--well);color:var(--text);border-color:var(--rule)}
 html.th-office #pop{background:#0003}html.th-office #menu{background:#0004}
 html.th-office .deckbar,html.th-office .manabar{background:#e4e6ea;border-color:#b9bcc2}
