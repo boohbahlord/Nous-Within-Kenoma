@@ -187,9 +187,18 @@ document.addEventListener("keydown",e=>{if(!fsOn()||e.key!=="Escape"||e.defaultP
 
 if(window.__EC)Object.assign(window.__EC,{fsEnter:()=>fsEnter(),fsExit:()=>fsExit(),fsFit:()=>fsFit(),fsOn:()=>fsOn(),fsPause:()=>fsPause()});
 
+/* v78y: what the mouse (or a finger) put the focus on: a control focused within a moment of a press. The browser's own
+   :focus-visible can't tell, since any key pressed while a control has the focus makes it "focused by keys" */
+let fsPtrAt=0;const fsPtrFocus=new WeakSet();
+addEventListener("pointerdown",()=>{fsPtrAt=performance.now()},true);
+document.addEventListener("focusin",e=>{if(performance.now()-fsPtrAt<800)fsPtrFocus.add(e.target);else fsPtrFocus.delete(e.target)},true);
 /* v74a: Space is the turn button (Ready, the next phase, End turn) when nothing else is open and you aren't typing */
 document.addEventListener("keydown",e=>{if(!kmIs(e,"turn")||!G||G.over)return;   // v78d: Space, as bound
-  const a=document.activeElement;if(a&&(a.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))return;
+  let a=document.activeElement;if(a&&(a.isContentEditable||a.tagName==="TEXTAREA"||a.tagName==="INPUT"&&/^(text|search|number|email|password|url|tel|date|time|datetime-local|month|week)$/.test(a.type)))return;   // typing keeps Space
+  // v78y: Space never clicks again what the mouse last clicked (the browser's habit: a button, a box, a list, a menu's
+  // heading); that control lets go and Space goes on to the turn. A control reached by keys (Tab) keeps its own Space.
+  if(a&&a!==document.body&&fsPtrFocus.has(a)){if(a.tagName==="SELECT")e.preventDefault();a.blur();a=document.activeElement}
+  if(a&&/^(INPUT|SELECT)$/.test(a.tagName))return;
   if(a&&a!==document.body&&a.tagName==="BUTTON"&&!a.closest("#board,#hand"))return;   // a focused button keeps its own Space
   if(e.repeat){e.preventDefault();return}   // v78j: held down, it fires once
   const top=kbTop();if(top&&!top.matches(".drawer,#etherpanel"))return;   // v78j: a window has the keys (v78s: the Ether's and the sky's drawers don't)
