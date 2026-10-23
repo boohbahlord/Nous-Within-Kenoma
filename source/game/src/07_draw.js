@@ -54,7 +54,7 @@ function moonStrip(){
 }
 function face(c,o={}){
   const own=o.owner!==undefined?o.owner:c.owner,P=own!=null&&G.p[own]?G.p[own]:null;
-  const col=P?P.color:"#8a8a8a",k=kind(c),sm=o.cls==="sm";
+  const col=P?P.color:"#8a8a8a",sm=o.cls==="sm";
   if(c.unit){   // an Emanation card: its own symbol and its hearts
     const U=UNIT[c.unit],nm=U.short||U.name;
     return `<span class="cf unit u-${c.unit}${c.hate?" hated":""}${isBase(c)?" basecard":""} ${o.cls||""}" style="--pc:${col}" title="${esc(nameOf(c))}"><span class="cx"><b class="rk un">${esc(sm?nm.slice(0,4):nm)}</b></span><span class="uic">${unitSVG(c.unit,c.unit==="tree"?"#2d6b3a":c.unit==="satan"?"#8e1426":"#15100b",sm?18:30)}</span>${c.maxHp&&!sm?heartsHTML(c):""}${P?`<span class="so">${solidSVG(P.solid,col,sm?12:17)}</span>`:""}${sm?"":`<em class="ty">${esc(U.word)}</em>`}${o.price?`<span class="price">${costOf(c)} mana</span>`:""}${o.noci?"":`<span class="ci" data-cid="${c.id}" role="button" title="Card info"></span>`}</span>`;

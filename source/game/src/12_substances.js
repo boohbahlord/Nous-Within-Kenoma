@@ -29,7 +29,6 @@ function resolveSubstances(opts){
     used.push(p.color);
   }
 }
-const subOf=pl=>G.p[pl]?G.p[pl].tribe:null;
 const usedOnce=id=>!!(me().once&&me().once[id]);
 const treeOf=pl=>stacksOf(pl).find(x=>hasK(x.st,"tree"));
 

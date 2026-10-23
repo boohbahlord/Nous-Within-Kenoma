@@ -57,7 +57,6 @@ face=function(c,o={}){
 };
 
 /* ---------- the Puppet: its own card, with the score of a 2 ---------- */
-function makePuppet(suit,owner){const c=mk("2",suit);c.puppet=true;if(owner!=null)c.owner=owner;return c}
 /* a unit's type word is its name */
 for(const k in UNIT)TYPEWORD[k]=UNIT[k].short||UNIT[k].name;
 

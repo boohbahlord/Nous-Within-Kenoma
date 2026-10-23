@@ -145,7 +145,7 @@ let nepSacking=false;
 /* the Bank's takings from a purchase go to a random player on a 1 of 1d10 (not in Survival) */
 let nepBuying=null;
 {const _sp=spend;spend=function(pl,n){nepBuying=pl;try{return _sp.apply(this,arguments)}finally{nepBuying=null}}}
-{const _ba=bankAdd;bankAdd=function(n){if(nepBuying!=null&&n>0&&nepEvFor(nepBuying)&&!survival()&&!nepIn&&R(10)===1){nepBuying=null;const ps=nepRealPl();if(ps.length){const q=pick(ps);nepIn=true;let got=0;try{got=giveMana(q,n)}finally{nepIn=false}
+{const _ba=bankAdd;bankAdd=function(n){if(nepBuying!=null&&n>0&&nepEvFor(nepBuying)&&!survival()&&!nepIn&&R(10)===1){nepBuying=null;const ps=nepRealPl();if(ps.length){const q=pick(ps);nepIn=true;try{giveMana(q,n)}finally{nepIn=false}
     log(`<b>Neptune</b>: the ${n} mana the Bank takes for a purchase drifts to ${plName(q)} (a 1 on 1d10).`,"event");notify(null,`Neptune: ${n} of the Bank's mana drifts to ${esc(G.p[q].name)}.`);return}}
   return _ba.apply(this,arguments)}}
 /* drawn cards lost in the sea, found 1d10 turns later by anyone */

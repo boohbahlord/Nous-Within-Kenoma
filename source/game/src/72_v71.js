@@ -101,7 +101,6 @@ const cyclesOff=()=>!!G&&G.opts.cycleEvents===false,eclipsesOff=()=>!!G&&G.opts.
 
 /* ---------- the sky's lines: when it changes next ---------- */
 function skyChgLine(){if(!G||!G.moon)return "";const o=SKYCHG(),k=sky();if(skyFixed(k)||o.mode==="never"||G._chgK!==k)return "";
-  const cyc=k==="moon"?8:cycLen(k),start=k==="moon"?(G.skyArr||1):(G.skySince||G.moon.round);
   if(o.mode==="rounds"){const left=G.skyArr+G.skyEveryN-G.moon.round;return `A new Heavenly Body takes the sky in ${left} round${left===1?"":"s"}.`}
   const target=o.mode==="bid"?G.skyKeepAt:G.skyEveryN,leftC=Math.max(0,target-(G.skyCyc||0));
   return o.mode==="bid"?`Leaves after ${leftC===0?"this":leftC===1?"its next":`${leftC} more`} cycle${leftC>1?"s":""}, unless bids keep it (${G.skyCyc||0} of ${target} cycles done).`:`Leaves after ${leftC} more cycle${leftC===1?"":"s"} (${G.skyCyc||0} of ${target} done).`}

@@ -43,7 +43,8 @@ function wkAdjStart(el){WK.adj={el,old:el.value};el.classList.add("kbadj");
 const wkFire=(el,...ev)=>ev.forEach(t=>el.dispatchEvent(new Event(t,{bubbles:true})));
 function wkAdjStep(d,big){const el=WK.adj.el;
   if(el.tagName==="SELECT"){const o=[...el.options].filter(x=>!x.disabled);let i=o.indexOf(el.selectedOptions[0]);i=Math.max(0,Math.min(o.length-1,i+d));if(o[i]&&el.value!==o[i].value){el.value=o[i].value;wkFire(el,"input","change")}return}
-  const st=+el.step||1,mn=el.min!==""?+el.min:-Infinity,mx=el.max!==""?+el.max:Infinity;let v=(+el.value||0)+d*st*(big?10:1);v=+Math.max(mn,Math.min(mx,v)).toFixed(6);el.value=v;wkFire(el,"input")}
+  const st=+el.step||1,mn=el.min!==""?+el.min:-Infinity,mx=el.max!==""?+el.max:Infinity;let v=(+el.value||0)+d*st*(big?10:1);v=+Math.max(mn,Math.min(mx,v)).toFixed(6);
+  el.value=v;wkFire(el,"input")}
 function wkAdjEnd(keep){const a=WK.adj;if(!a)return;WK.adj=null;a.el.classList.remove("kbadj");if(!keep&&a.el.value!==a.old){a.el.value=a.old;wkFire(a.el,"input","change")}else if(a.el.tagName!=="SELECT")wkFire(a.el,"change");wkNote("");wkLater()}
 /* typing in a field */
 function wkType(el,first){WK.adj=null;el.classList.remove("kbadj");WK.typ=el;el.focus({preventScroll:true});if(first!=null)el.value=first;else try{el.select()}catch(e){}
@@ -56,11 +57,13 @@ function wkBad(el){const v=el.value.trim();if(el.type!=="number")return "";const
 function wkMove(d){const row=WK.mv&&wkCur(kbTop()||document.body);if(!row)return;const b=row.querySelector(`[data-faact*="${d}:"]`);if(b&&!b.disabled)b.click();wkLater()}
 /* tabs and sections */
 function wkTab(w,d){const T=[...w.querySelectorAll(".stab,[role=tab]")].filter(t=>t.getClientRects().length&&!t.disabled);if(T.length<2)return;
-  let i=T.findIndex(t=>t.classList.contains("on")||t.getAttribute("aria-selected")==="true");i=((i<0?0:i+d)%T.length+T.length)%T.length;T[i].click();setTimeout(()=>{const t=[...w.querySelectorAll(".stab,[role=tab]")].filter(x=>x.getClientRects().length)[i];if(t)wkMark(t)},0)}
+  let i=T.findIndex(t=>t.classList.contains("on")||t.getAttribute("aria-selected")==="true");i=((i<0?0:i+d)%T.length+T.length)%T.length;T[i].click();
+  setTimeout(()=>{const t=[...w.querySelectorAll(".stab,[role=tab]")].filter(x=>x.getClientRects().length)[i];if(t)wkMark(t)},0)}
 function wkSection(w,d){const H=[...w.querySelectorAll("h3,h4,summary,legend,.dsec>h4,.dhead")].filter(h=>h.getClientRects().length&&getComputedStyle(h).visibility!=="hidden");if(H.length<2)return;
   const cur=wkCur(w),y=cur?cur.getBoundingClientRect().top+1:-1e9;let at=-1;H.forEach((h,i)=>{if(h.getBoundingClientRect().top<=y)at=i});
   const j=Math.max(0,Math.min(H.length-1,at+d));if(j===at&&cur)return;const h=H[j];h.scrollIntoView({block:"start",behavior:"smooth"});
-  const items=wkItems(w),hy=h.getBoundingClientRect().top-1;const it=h.matches("summary")?h:items.find(x=>x.getBoundingClientRect().top>=hy&&(h.compareDocumentPosition(x)&Node.DOCUMENT_POSITION_FOLLOWING));wkMark(it||null)}
+  const items=wkItems(w),hy=h.getBoundingClientRect().top-1;
+  const it=h.matches("summary")?h:items.find(x=>x.getBoundingClientRect().top>=hy&&(h.compareDocumentPosition(x)&Node.DOCUMENT_POSITION_FOLLOWING));wkMark(it||null)}
 /* Ctrl or Shift pressed alone (as bound): the next or the previous section */
 addEventListener("keyup",e=>{if(typing(e.target)||WK.adj||WK.mv)return;const w=kbTop();if(!w)return;
   if(kmTap(e,"secNext"))wkSection(w,1);else if(kmTap(e,"secPrev"))wkSection(w,-1)},true);

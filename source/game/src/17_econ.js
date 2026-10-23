@@ -67,7 +67,6 @@ function loanWhy(pl){const P=G.p[pl];if((P.loans||[]).length)return "One loan at
   if(P.loanRound===G.moon.round)return "One loan a round.";const w=(P.loanNext||0)-tnOf(pl);if(w>0)return `Your next loan can be taken in ${w} turn${w>1?"s":""}.`;
   if(G.bank.mana<=BANK_FLOOR)return `The Bank is ${-BANK_FLOOR} in the red and can't lend.`;return ""}
 const loanDue=n=>Math.max(2,Math.ceil(n/2));   // 12 mana: 6 turns; never less than 2
-const loanRate=pl=>effMana(pl)<=-soulCap(pl)?.3:.2;
 function takeLoan(pl,n){const P=G.p[pl];n=Math.min(n,loanLimit(pl));if(n<=0)return 0;
   G.bank.mana-=n;const got=giveMana(pl,n),t=tnOf(pl);
   (P.loans=P.loans||[]).push({owed:n,at:t+3,due:t+loanDue(n),t0:t});rpOf(pl).loans+=n;P.loanRound=G.moon.round;P.loanNext=t+LOAN_GAP;
@@ -103,7 +102,7 @@ function bankTurn(pl){
   }
   if(P.saleUntil!=null&&n>P.saleUntil){P.saleUntil=null;log(`${plName(pl)}'s Ether sale ends.`)}
   // the meteor's fire
-  if(P.tribe!=="firm")for(const {st,r,c} of stacksOf(pl))if(meteorFireAt(r,c)&&R(20)===20){log(`The meteor's fire on ${coord(r,c)} burns ${plName(pl)}'s stack.`,"event");damage(r,c,1,false)}
+  if(P.tribe!=="firm")for(const {r,c} of stacksOf(pl))if(meteorFireAt(r,c)&&R(20)===20){log(`The meteor's fire on ${coord(r,c)} burns ${plName(pl)}'s stack.`,"event");damage(r,c,1,false)}
   checkDebt(pl);
 }
 
@@ -195,7 +194,7 @@ function openBank(){
   const notes=[];if(B.dead)notes.push("The Banker is dead: the Bank and the Ether are closed.");if(B.angry)notes.push("The Banker is angry about the Demons holding the middle: every price +1.");
   if(B.mana<0&&!B.dead)notes.push("The Bank is in the red: everything in the Ether costs 1 less.");const up=Object.keys(B.upsell);if(up.length)notes.push(`Upsold this round: ${up.map(id=>SP(id)?SP(id).name:id).join(", ")}.`);
   if(G.inflation&&G.turnNo<=G.inflation.until)notes.push(`After the collapse, prices wobble up for ${G.inflation.until-G.turnNo+1} more turn${G.inflation.until-G.turnNo+1===1?"":"s"}.`);
-  const cap=soulCap(V),pay=Math.min(mana(V),owed),why=loanWhy(V);
+  const cap=soulCap(V),why=loanWhy(V);
   // v71e: which loan to repay: the Bank's, or one from a player
   const payOpts=[...(owed?[["bank",`The Bank · ${owed} owed`,owed]]:[]),...(typeof p2pOf==="function"?p2pOf():[]).filter(x=>x.from===V&&["open","late"].includes(x.state)&&x.owed>0).map(x=>[`p2p:${x.id}`,`${esc(G.p[x.to].name)} · ${x.owed} owed${x.state==="late"?" · late":""}`,x.owed])];
   const payMax=k=>Math.min(mana(V),(payOpts.find(o=>o[0]===k)||[0,0,0])[2]),pay0=payOpts.length?payMax(payOpts[0][0]):0;

@@ -111,7 +111,6 @@ function render(){
   const m=G.moon,tags=[];
   if(m.blood)tags.push('<span class="tag blood">Blood Moon</span>');
   const eff=m.gone||G.moonLev?moonNote():m.blood?"New Moon gifts at Full Moon prices · the dead go to the Outer Darkness":m.i===4?"Toll paid, decks shuffled · no drawing, no necromancy":m.i===0?"1d2 cards from the grave · Clairvoyance and Naked Hand cost 6":"";
-  const rn=G.moon.round||1;
   $("#moon").classList.toggle("eclipsed",!!G.eclipse);$("#moon").classList.toggle("peacetime",peaceOn());$("#moon").classList.toggle("wartime",warOn());
   $("#moon").classList.toggle("moontarget",canAct()&&G.phase==="attack"&&!!G.sel&&moonAttackable(selStack()));
   $("#moon").innerHTML=`${moonSVG()}<div class="minfo"><span class="mname">${moonName()}</span>${tags.join("")}${moonStrip()}<span class="meff">${eff||"It turns once every player has had a turn"}</span></div>`;
@@ -121,7 +120,6 @@ function render(){
   if(G.phase==="setup")$("#phases").innerHTML=`<span class="ph-c on"><b>Setup</b><em>${G.setupStep==="ace"?(hq()&&!G.p[G.active].opening.length?"click a tile of your spawn lines for your second base Ace":"click a tile of your spawn lines for your Ace and Jack"):"place any opening cards, then press Done"}</em></span>`;
   else if(G.phase==="moon")$("#phases").innerHTML=`<span class="ph-c on"><b>Moon</b><em>${m.i<0?"no moon turns":"the "+MOON[m.i]+" takes effect"}</em></span>`;
   else $("#phases").innerHTML=PHASES.map(([id,n,help])=>{const draw=id==="prep"&&G.phase==="draw";return `<span class="ph-c ${G.phase===id||draw?"on":""}"><b>${n}</b><em>${draw?"drawing first: roll d4s, then Done drawing":help}</em></span>`}).join('<i>→</i>');
-  const who=me();
   $("#who").innerHTML=whoHTML();
   // board: turned so the viewer's side is at the bottom
   const DR=G.rows,DC=COLS;
@@ -229,7 +227,7 @@ function renderSel(live){
   if(showsBack(view(),G.sel.r,G.sel.c)){box.innerHTML=`<p><b>${esc(G.p[st.owner].name)}'s face-down stack</b> on ${coord(G.sel.r,G.sel.c)}. Its face is hidden; a Scout within two tiles would show it.</p>`;return}
   const mine=st.owner===G.active&&live,s=G.sel;
   const rows=st.cards.map(c=>{
-    const k=kind(c),cap=capMana(c);
+    const cap=capMana(c);
     const chk=mine&&!isBase(c)&&G.phase==="prep"?`<input type="checkbox" data-pk="${c.id}" ${s.pick.has(c.id)?"checked":""} aria-label="include ${esc(nameOf(c))} in the moving group">`:"";
     const sac=mine&&sacrificeAllowed()&&canSacOnField(st,c)?`<button class="mini-btn" data-sc="${c.id}">sac +${soulOf(c)}</button>${sunSacOk(view())?`<button class="mini-btn sunsac" data-sunc="${c.id}">sun +${soulOf(c)}</button>`:""}`:"";
     const stat=c.unit&&UNIT[c.unit].desc&&!UNIT[c.unit].shooter?UNIT[c.unit].desc:c.unit&&UNIT[c.unit].weapons?UNIT[c.unit].weapons.map(w=>w.name+": "+w.text).join("; "):`${nat(c)}${die(c)?" + d"+die(c):""}`;

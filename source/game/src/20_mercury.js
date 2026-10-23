@@ -77,7 +77,6 @@ function warDamagePay(atk,def,dmg,D){
 /* ---------- eclipses ---------- */
 async function eclipse(k){
   G.eclipse={k,round:G.moon.round};applyMoonTheme();
-  const nm=PLANETS[k].name;
   if(k==="sun"){
     log(`<b>An eclipse</b>: the Second Sun slides in front of the first. Every hand, every Assassin and every face-down card is shown, and everyone may take one of their own cards back out of the Outer Darkness.`,"event");
     popup("The suns align",`<p>The Second Sun crosses the first. The field darkens and the air shimmers.</p><p>This round every hand, every Assassin and every face-down card is shown, and each player can take one card that was theirs back out of the Outer Darkness. If Yaldabaoth eats the Sun now, he chokes on it: blind this round and the next.</p>`);

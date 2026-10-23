@@ -27,7 +27,6 @@ function spellRow(s,live){
   if(s.id==="bolt"){const b=G.p[G.active].bolts||0;extra+=`<span class="bolts" aria-label="${b} of 3 bolts">${[0,1,2].map(i=>`<i class="${i<b?"f":""}">${unitSVG("bolt",i<b?"#8fd0ff":"#4a5a66",13)}</i>`).join("")}</span>`}
   if(s.id==="slaves"){const n=(G.p[G.active].thralls||[]).length;extra+=`<span class="chips" aria-label="${n} of 10 thralls">${Array.from({length:10},(_,i)=>`<i class="${i<n?"f":""}">${unitSVG("chip",i<n?"#9fe8b4":"#3d4a40",11)}</i>`).join("")}</span>`}
   if(s.once)extra+=`<small class="dc once">${G.p[G.active].once&&G.p[G.active].once[s.id]?"used":"once"}</small>`;
-  const block=spellBlock(s);
   const btn=`<button class="spell${s.tribe?" subsp":""} ${ok?"":"off"} ${moon} ${s.school==="Necromancy"?"nec":""} ${s.id==="sever"&&P.sevArmed?"armed":""}" data-s="${s.id}" data-sp="${s.id}"><span class="sn">${esc(s.name)}${extra}</span><em>${s.fire?fireCost(s)+" fire":s.id==="hypo"&&!selOwn()?"3+":cost?cost+" mana":"free"}</em></button>`;
   if(s.id!=="bless")return btn;
   const on=!!G.p[view()].autoBless;
@@ -91,7 +90,7 @@ function fillEther(){
 function whoHTML(){
   if(G.over)return `<span class="sl-k">Game</span> Over.`;
   if(G.passing)return `<span class="sl-k">Turn</span> Passing the device…`;
-  const P=me(),many=G.p.filter(Q=>!Q.cpu).length>1,rn=G.moon.round||1;
+  const P=me(),many=G.p.filter(Q=>!Q.cpu).length>1;
   const ph=G.phase==="setup"?"Setup":G.phase==="moon"?"The sky turns":({draw:"Prep phase · drawing",prep:"Prep phase",attack:"Attack phase"})[G.phase]||"";
   const shared=!!G.shared&&G.phase!=="setup"&&G.phase!=="moon";
   const whoTxt=G.drawWait?`<b>Waiting for players to draw…</b>`:P.cpu?`<b>${esc(P.name)}</b> is playing…`:G.opts.online?(G.active===view()?`<b>Your turn</b>`:`<b>${esc(P.name)}</b> is playing…`):many?`<b>${esc(P.name)}</b>'s turn`:`<b>Your turn</b>`;

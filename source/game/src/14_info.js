@@ -35,7 +35,7 @@ function turn3(pl){
   for(const {st,r,c} of stacksOf(pl)){
     if(!st.pin)continue;const g=findCard(st.pin.by);
     if(!g){st.pin=null;log(`${plName(pl)}'s stack on ${coord(r,c)} is free: the Goatbull is gone.`);continue}
-    st.pin.k++;const need=16-5*(st.pin.k-1),{gd,vd,gv,vv}=abilityRolls(g.st.cards[0],st);
+    st.pin.k++;const need=16-5*(st.pin.k-1),{gd,gv,vv}=abilityRolls(g.st.cards[0],st);
     tray(g.st.owner,"Behooved check",gd,`${gv} vs ${vv}`,true);
     if(gv>=need&&vv<gv){log(`Behooved: the Goatbull rolls ${gv} (needs ${need}) against ${vv}; ${plName(pl)}'s stack on ${coord(r,c)} takes 1 damage.`);G.fight={A:g.st,D:st,atkPl:g.st.owner,defPl:pl};damage(r,c,1,true);G.fight=null}
     else log(`Behooved: the Goatbull rolls ${gv} (needs ${need}) against ${vv}; no damage.`);
@@ -126,7 +126,6 @@ function pop(html,x,y,cls){
   el.style.left=Math.max(10,Math.min(x,innerWidth-w-10))+scrollX+"px";el.style.top=y+scrollY+8+"px";
   return el;
 }
-const popHide=()=>{const el=$("#cinfo");if(el)el.hidden=true};
 const stackAtTile=t=>{if(!t)return null;const r=+t.dataset.r,c=+t.dataset.c;if(isNaN(r)||hiddenFrom(view(),r,c)||showsBack(view(),r,c))return null;const st=G.board[r][c];return st?{st,r,c}:null};
 const stackTitle=(s,r,c)=>`${s.cards.length>1?`Stack of ${s.cards.length}`:nameOf(s.cards[0])} on ${coord(r,c)}`;
 /* the corner tab on every stack: click for info, drag onto another stack to compare */

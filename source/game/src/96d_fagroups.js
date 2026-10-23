@@ -59,7 +59,8 @@ function fgTidy(pl){const D=G.p[pl]&&G.p[pl].fg;if(!D)return;
 function fgDo(pl,op,a,b,c){if(!G||!G.p[pl]||G.over||NET.ctx!=null&&NET.ctx!==pl||!faAllowed())return false;const D=fgData(pl);
   const at=p=>{if(!Array.isArray(p))return null;const st=G.board[p[0]]&&G.board[p[0]][p[1]];return st&&st.owner===pl?{st,r:p[0],c:p[1]}:null};
   const mark=(o,gid)=>{for(const x of o.st.cards)if(isBase(x)||!gid)delete x.fgId;else x.fgId=gid};
-  const out=o=>{const was=fgGid(pl,o.st),g=was&&D.g[was];if(g&&g.k==="squad"&&g.lead){const L=fgFind(pl,g.lead);if(L&&L.st===o.st)g.lead=null}mark(o,null)};   // a squadron's leader that goes leaves it leaderless
+  // a squadron's leader that goes leaves it leaderless
+  const out=o=>{const was=fgGid(pl,o.st),g=was&&D.g[was];if(g&&g.k==="squad"&&g.lead){const L=fgFind(pl,g.lead);if(L&&L.st===o.st)g.lead=null}mark(o,null)};
   const room=gid=>fgMembers(pl,gid).length<FG_MAX,newG=g=>{const id="g"+(++D.n);D.g[id]=g;return id};
   const o=at(a);
   if(op==="guard"){const L=at(b);if(!o||!L||o.st===L.st||!fgCanJoin(o.st))return false;
@@ -79,11 +80,11 @@ function fgDo(pl,op,a,b,c){if(!G||!G.p[pl]||G.over||NET.ctx!=null&&NET.ctx!==pl|
   else if(op==="dismiss"){if(!o)return false;for(const id of Object.keys(D.g)){const g=D.g[id],X=g.k==="guard"&&fgFind(pl,g.lead);if(X&&X.st===o.st)fgEnd(pl,id,"")}}
   else if(op==="strat"){if(!o)return false;const gid=fgGid(pl,o.st);let sid=null;
     if(c&&typeof c==="object"){sid="s"+(++D.n);D.s[sid]={name:stName(b)||"Strategy",cfg:stCfg(c)}}
-    if(gid)D.g[gid].sid=sid;else{for(const x of o.st.cards)delete x.fgStrat;const h=o.st.cards.filter(x=>!isBase(x)).sort((x,y)=>rate(y)-rate(x))[0];if(h&&sid)h.fgStrat=sid}}
+    if(gid)D.g[gid].sid=sid;
+    else{for(const x of o.st.cards)delete x.fgStrat;const h=o.st.cards.filter(x=>!isBase(x)).sort((x,y)=>rate(y)-rate(x))[0];if(h&&sid)h.fgStrat=sid}}
   else return false;
   fgTidy(pl);render();return true}
-for(const [name,get,set] of [["fgDo",()=>fgDo,f=>fgDo=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["fgDo",()=>fgDo,f=>fgDo=f]])netAny(name,get,set);
 
 /* ---------- how the field plays them (the automation's per-stack settings, as the classes do) ---------- */
 /* a strategy's settings in place of yours: every card of the stack under it */
@@ -150,7 +151,7 @@ function fgItems(o){const V=view(),D=G.p[V].fg||{g:{},s:{}},gid=fgGid(V,o.st),g=
     h+=`<p class="clsmh">Strategy for ${g?"the group":"this stack"}</p>`+b("strat:","Your own settings",!curName)+L.map(s=>b("strat:"+s.id,esc(s.name),curName===s.name)).join("")}
   return h}
 function fgWire(m,o){m.querySelectorAll("[data-fg]").forEach(btn=>btn.onclick=()=>{m.hidden=true;fgUse(btn.dataset.fg,o)})}
-function fgUse(op,o){const V=view(),D=G.p[V].fg||{g:{}},gid=fgGid(V,o.st),here=[o.r,o.c];
+function fgUse(op,o){const V=view(),gid=fgGid(V,o.st),here=[o.r,o.c];
   if(op==="guardsel"){const L=selStack();if(!L)return;if(!fgGuardRoom(V,L)){flash("Nine stacks already guard that one.");return}fgDo(V,"guard",here,[G.sel.r,G.sel.c]);flash("It guards the selected stack.")}
   else if(op==="guard")fgPick({op,from:here,text:"Click the stack it should guard"});
   else if(op==="area")fgPick({op,from:here,text:"Click the middle of the area it should guard (four tiles around it)"});
@@ -167,7 +168,8 @@ function fgTargetAt(e){if(!G||G.over)return null;const V=view();if(V==null||!G.p
   const t=e.target.closest&&e.target.closest("#board .tile");if(!t)return null;const r=+t.dataset.r,c=+t.dataset.c,st=G.board[r]&&G.board[r][c];
   return st&&st.owner===V?{st,r,c}:null}
 function fgMenu(o,x,y){let m=$("#clsmenu");if(!m){m=document.createElement("div");m.id="clsmenu";m.setAttribute("role","menu");document.body.appendChild(m)}
-  m.innerHTML=fgItems(o);m.hidden=false;const w=m.offsetWidth||200,h=m.offsetHeight||220;m.style.left=Math.max(6,Math.min(innerWidth-w-6,x))+scrollX+"px";m.style.top=Math.max(6,Math.min(innerHeight-h-6,y))+scrollY+"px";
+  m.innerHTML=fgItems(o);m.hidden=false;const w=m.offsetWidth||200,h=m.offsetHeight||220;m.style.left=Math.max(6,Math.min(innerWidth-w-6,x))+scrollX+"px";
+  m.style.top=Math.max(6,Math.min(innerHeight-h-6,y))+scrollY+"px";
   fgWire(m,o);const f=m.querySelector("button");if(f)f.focus({preventScroll:true})}
 /* the class menu carries the group's part when it opens on a stack */
 {const _cm=clsMenu;clsMenu=function(target){_cm.apply(this,arguments);const o=target&&target.st&&G&&fgFull(view())?fgLoc(target.st):null,m=$("#clsmenu");if(!o||!m)return;
@@ -176,7 +178,8 @@ document.addEventListener("contextmenu",e=>{if(FG.pick){e.preventDefault();const
   if(e.defaultPrevented)return;const o=fgTargetAt(e);if(!o)return;e.preventDefault();fgMenu(o,e.clientX,e.clientY)});
 let fgTap=null;
 document.addEventListener("pointerup",e=>{if(e.pointerType!=="touch"||clsTargetAt(e)||FG.pick)return;const o=fgTargetAt(e);if(!o){fgTap=null;return}
-  const key=o.st.cards[0].id,now=performance.now();if(fgTap&&fgTap.key===key&&now-fgTap.t<350){fgTap=null;setTimeout(()=>fgMenu(o,e.clientX,e.clientY),0)}else fgTap={key,t:now}});
+  const key=o.st.cards[0].id,now=performance.now();
+  if(fgTap&&fgTap.key===key&&now-fgTap.t<350){fgTap=null;setTimeout(()=>fgMenu(o,e.clientX,e.clientY),0)}else fgTap={key,t:now}});
 
 /* ---------- picking on the field: the stack to guard, the area, the stacks of a squadron ---------- */
 const FG={pick:null};
@@ -198,7 +201,8 @@ function fgPickPaint(){document.querySelectorAll(".fgok,.fgon,.fgfrom").forEach(
   if(!mine){fgPickEnd(true);return}   // open ground or not yours: done
   if(!fgCanJoin(st)){flash("A base alone can't join a squadron: it can be guarded.");return}
   if(p.op==="add"){if(fgMembers(V,p.gid).length>=FG_MAX){flash("A squadron holds nine stacks at most.");return}fgDo(V,"join",[r,c],p.gid);fgPickPaint();return}
-  const i=p.list.findIndex(([a,b])=>a===r&&b===c);if(i>=0)p.list.splice(i,1);else if(p.list.length+1>=FG_MAX)flash("A squadron holds nine stacks at most.");else p.list.push([r,c]);fgPickPaint()}}
+  const i=p.list.findIndex(([a,b])=>a===r&&b===c);if(i>=0)p.list.splice(i,1);else if(p.list.length+1>=FG_MAX)flash("A squadron holds nine stacks at most.");
+  else p.list.push([r,c]);fgPickPaint()}}
 addEventListener("keydown",e=>{if(!FG.pick||typing(e.target))return;if(e.key==="Escape"||kmIs(e,"close")){e.preventDefault();e.stopImmediatePropagation();fgPickEnd(true)}},true);
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(FG.pick){if(!G||G.over||!fgFull(view()))fgPickEnd(false);else fgPickPaint()}}}
 
@@ -230,7 +234,8 @@ function fgSVG(){const B=$("#board");if(!B||!G)return;const V=view(),D=V!=null&&
     return `<line class="fgu ${cls}" x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}"/><line class="fgl ${cls}" x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}"${arrow?` marker-end="url(#${arrow})"`:""}/>`};
   for(const it of items){const a=at(it[1],it[2]);if(!a)continue;
     if(it[0]==="ar"){const n=at(it[1],it[2]+1)||at(it[1],it[2]-1),pitch=n?Math.abs(n.x-a.x):a.s*1.08;
-      out+=`<circle class="fgc" cx="${f(a.x)}" cy="${f(a.y)}" r="${f(pitch*(FG_AREA+.5))}"/><circle class="fgcd" cx="${f(a.x)}" cy="${f(a.y)}" r="${f(a.s*.46)}"/>`;continue}
+      out+=`<circle class="fgc" cx="${f(a.x)}" cy="${f(a.y)}" r="${f(pitch*(FG_AREA+.5))}"/><circle class="fgcd" cx="${f(a.x)}" cy="${f(a.y)}" r="${f(a.s*.46)}"/>`;
+      continue}
     const b=at(it[3],it[4]);if(!b)continue;
     out+=it[0]==="gd"?line("gd",a,b,"fgag"):it[0]==="al"?line("al",a,b,null):it[0]==="sl"?line("sq",a,b,"fgab"):line("sq",a,b,null)}
   const mk=(id,col)=>`<marker id="${id}" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4.4" markerHeight="4.4" orient="auto" markerUnits="strokeWidth"><path d="M0,0L10,5L0,10L2.5,5z" fill="${col}"/></marker>`;

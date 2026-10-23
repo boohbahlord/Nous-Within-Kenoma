@@ -111,8 +111,7 @@ ${spec.how&&ans!=="no"?`<label class="f crysrow"><span>For how long</span><selec
 function crysStop(pl){if(!G||!G.p[pl]||NET.ctx!=null&&NET.ctx!==pl)return false;
   for(const {st} of stacksOf(pl))for(const x of st.cards)delete x.faCrys;
   G.p[pl].crysOff=G.moon.round+5;render();return true}
-for(const [name,get,set] of [["crysStop",()=>crysStop,f=>crysStop=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["crysStop",()=>crysStop,f=>crysStop=f]])netAny(name,get,set);
 {const _rs=renderSel;renderSel=function(live){_rs.apply(this,arguments);if(!G||!G.sel)return;const V=view(),st=selStack(),box=$("#selbox");
   if(!box||!st||st.owner!==V||!faOn(V)||!st.cards.some(x=>x.faCrys))return;
   let row=box.querySelector(".falockrow");if(!row){box.insertAdjacentHTML("beforeend",`<p class="falockrow"><span class="dim">Field Automation:</span></p>`);row=box.querySelector(".falockrow")}

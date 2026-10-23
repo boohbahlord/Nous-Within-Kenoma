@@ -93,8 +93,7 @@ function setCardClass(pl,ids,head,val){if(!G||!G.p[pl]||NET.ctx!=null&&NET.ctx!=
   const mine=id=>{for(const r of G.board)for(const s of r)if(s&&s.owner===pl){const x=s.cards.find(y=>y.id===id);if(x)return x}return P.hand.find(y=>y.id===id)||null};
   for(const id of ids){const x=mine(id);if(x&&!isBase(x))delete x.faClass}
   const h=mine(head);if(h&&!isBase(h)&&(val==="none"||typeof val==="string"&&val))h.faClass=val;render();return true}
-for(const [name,get,set] of [["setCardClass",()=>setCardClass,f=>setCardClass=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["setCardClass",()=>setCardClass,f=>setCardClass=f]])netAny(name,get,set);
 const clsReady=()=>{if(!G||G.over)return false;const V=view();return !!G.p[V]&&faOn(V)&&plClasses(V).length>0};
 /* the head of a stack for a class: its strongest card that isn't of the class's kinds (else its strongest) */
 function clsHead(st,k){const cards=st.cards.filter(x=>!isBase(x)).sort((a,b)=>rate(b)-rate(a));if(!k)return cards[0];return cards.find(x=>!k.kinds.includes(faKind(x)))||cards[0]}

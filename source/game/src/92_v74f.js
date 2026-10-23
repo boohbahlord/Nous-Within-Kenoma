@@ -41,8 +41,7 @@ function clsAvoidHTML(k,L,pfx){const K=cfgKit("data-clv","data-clvact","clv"+pfx
 function setSoftAuto(pl,ids,on){if(!G||!G.p[pl]||NET.ctx!=null&&NET.ctx!==pl||!Array.isArray(ids))return false;const P=G.p[pl];
   const mine=id=>{for(const r of G.board)for(const s of r)if(s&&s.owner===pl){const x=s.cards.find(y=>y.id===id);if(x)return x}return P.hand.find(y=>y.id===id)||null};
   for(const id of ids){const x=mine(id);if(x&&!isBase(x)){if(on)x.sa=true;else delete x.sa}}render();return true}
-for(const [name,get,set] of [["setSoftAuto",()=>setSoftAuto,f=>setSoftAuto=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["setSoftAuto",()=>setSoftAuto,f=>setSoftAuto=f]])netAny(name,get,set);
 const softOn=()=>{if(!G||G.over||!faAllowed())return false;const V=view();return !!G.p[V]&&!G.p[V].cpu&&!isNPC(V)&&faMine().scope==="soft"};
 function saTargetAt(e){if(!softOn())return null;const V=view();
   const t=e.target.closest&&e.target.closest("#board .tile");if(t){const st=G.board[+t.dataset.r]&&G.board[+t.dataset.r][+t.dataset.c];if(st&&st.owner===V&&st.cards.some(x=>!isBase(x)))return {st}}

@@ -99,7 +99,7 @@ const AI=(()=>{
     if(how==="groups")return n>=2?.8:.25;
     return armyGo(pl)?(n>=2?.9:.7):.08}
   /* the bonus or cost of merging into a stack of n cards */
-  function stackAdj(pl,n){const how=hillHow(pl),g=FAX&&FAX.pl===pl?FAX.grp:null;let s=0;
+  function stackAdj(pl,n){const how=hillHow(pl);let s=0;
     if(how==="groups")s+=n<=grpMax(pl)?.3:-1.4;
     if(how==="army"&&!armyGo(pl))s+=.8;
     if(FAX&&FAX.pl===pl&&FAX.form==="wide")s+=n>3?-.9:n>2?-.35:0;   // v71: Wide spreads its cards over more tiles
@@ -234,7 +234,6 @@ const AI=(()=>{
   }
   /* ---------- movement ---------- */
   async function moves(pl,W){
-    const lv=L(pl);
     const order=isHorde(pl)?stacksOf(pl).sort((a,b)=>stackRate(b.st)-stackRate(a.st)):stacksOf(pl).sort((a,b)=>{const na=Math.min(99,...enemyStacks(pl).map(e=>dist(a.r,a.c,e.r,e.c))),nb=Math.min(99,...enemyStacks(pl).map(e=>dist(b.r,b.c,e.r,e.c)));return na-nb});
     if(FAX&&FAX.pl===pl&&FAX.clsOf){const lo=st=>{const k=FAX.clsOf(st);return k?(k.lowPrio?1:0)+(k.late?2:0):0};order.sort((a,b)=>lo(a.st)-lo(b.st))}   // v72e: a low-priority class moves last; v78e: guards and a squadron's followers after everyone
     if(FAX&&FAX.pl===pl&&FAX.first)order.sort((a,b)=>FAX.first(b.st)-FAX.first(a.st));   // v71n: a crystal's guard sets out before anyone can join it
@@ -295,7 +294,7 @@ const AI=(()=>{
         const p0=o.mode==="stomp"?(E.pin?0:.62):winP(o.A||st,E,lv.mc,o.mode),p=o.ranged||o.mode==="stomp"?Math.min(1,p0+(1-p0)*.6):p0;   // a ranged miss (or a failed Stomp) costs nothing
         let sc=(p*gain(E)*(o.mode==="stomp"?.6:1)-(1-p)*loss(st))*jit(pl);
         const onHill=hillHow(pl)&&isHill(r2,c2);if(onHill)sc+=1.2*p;   // v64: knocking an enemy off the Hill is worth more
-        const g=FAX&&FAX.pl===pl?FAX.grp:null,n=fighters(st);
+        const g=FAX&&FAX.pl===pl?FAX.grp:null;
         if(g==="big"){const ring=stacksOf(pl).filter(x=>x.st!==st&&fighters(x.st)>0&&dist(x.r,x.c,r2,c2)===1).length;if(!ring&&p<.7&&!onHill)continue;sc*=1+.15*ring}   // v71: the army strikes together
         const late=isHorde(pl)?0:G.turnNo>90?Math.min(.25,.1+(G.turnNo-90)/200):!G.p[pl].deck.length?.1:0;
   

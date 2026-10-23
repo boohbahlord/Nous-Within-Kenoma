@@ -107,8 +107,7 @@ function dipBreakNow(pl,toT,how){const a=teamOf(pl),rel=dipRel(a,toT).s;if(rel!=
       :`<p>${esc(G.p[pl].name)} breaks the alliance with ${esc(dipTeamName(toT))}.</p><ul><li>Trust in ${esc(dipTeamName(a))} falls hard: −70 with them, −40 with everyone else.</li><li>For ${DIP_PEN_ROUNDS} rounds the Banker disapproves: Bank loans grow half as fast again, cards from the Ether cost 1d3 − 2 more (−1 to +1) and other spells 1d4 − 3 more (−2 to +1), rolled each turn: the dice can also make them cheaper (never below 0).</li></ul>`)}
   render();return true}
 function dipBreak(pl,toT){if(!G||!dipOn()||NET.ctx!=null&&NET.ctx!==pl)return false;return dipBreakNow(pl,toT,"choice")}
-for(const [name,get,set] of [["dipPropose",()=>dipPropose,f=>dipPropose=f],["dipAnswer",()=>dipAnswer,f=>dipAnswer=f],["dipBreak",()=>dipBreak,f=>dipBreak=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["dipPropose",()=>dipPropose,f=>dipPropose=f],["dipAnswer",()=>dipAnswer,f=>dipAnswer=f],["dipBreak",()=>dipBreak,f=>dipBreak=f]])netAny(name,get,set);
 
 /* ---------- each round: peace runs out, trust drifts, alliances end when two sides are left, computers propose ---------- */
 function dipRound(){if(!dipOn()||NET.role==="guest")return;const D=dipD(),r=G.moon.round,T=dipTeams();
@@ -243,8 +242,7 @@ function dipGift(pl,toT,what,val){if(!G||!dipOn()||NET.ctx!=null&&NET.ctx!==pl)r
   else{const P=G.p[pl],i=P.hand.findIndex(c=>c.id===+val);if(i<0)return false;const c=P.hand.splice(i,1)[0],Q=G.p[to];c.owner=to;
     if(Q.hand.length<handCap(to))Q.hand.push(c);else{Q.deck.push(c);shuffle(Q.deck)}if(dipCpuTeam(toT))dipTrustAdd(toT,a,3);log(`${plName(pl)} gives ${plName(to)} a card from the hand.`,"event")}
   render();return true}
-for(const [name,get,set] of [["dipEnvoy",()=>dipEnvoy,f=>dipEnvoy=f],["dipRecall",()=>dipRecall,f=>dipRecall=f],["dipGift",()=>dipGift,f=>dipGift=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["dipEnvoy",()=>dipEnvoy,f=>dipEnvoy=f],["dipRecall",()=>dipRecall,f=>dipRecall=f],["dipGift",()=>dipGift,f=>dipGift=f]])netAny(name,get,set);
 /* the loans between players: in Diplomacy while it is on (the Bank keeps its own loans and the land) */
 function dipWireP2P(w,V){const re=()=>{dipPaint();render()};
   w.querySelectorAll("[data-lend]").forEach(b=>b.onclick=()=>{const L=p2pOf().find(x=>x.id===+b.dataset.lend);const d=w.querySelector(`[data-ldue="${b.dataset.lend}"]`);if(L)answerLoan(L,true,d?+d.value:P2P_DUE);re()});

@@ -29,7 +29,7 @@ function oneOpen(root){root.addEventListener("toggle",e=>{const d=e.target;if(!d
   for(const s of d.parentElement.children)if(s!==d&&s.tagName==="DETAILS"&&s.classList.contains("ifold"))s.open=false},true)}
 function infoTree(){
   const box=$("#info");if(!box)return;
-  const [basics,cards,spells,further]=[...box.querySelectorAll(":scope > details.cinfo")];
+  const [,cards,spells,further]=[...box.querySelectorAll(":scope > details.cinfo")];
   // Card info
   if(cards){const tabs=cards.querySelector(".itabs");if(tabs)tabs.remove();const body=$("#ibody");body.innerHTML='<p class="dim">Pick a kind of card, then a card.</p>';
     cards.insertAdjacentHTML("beforeend",`<div class="ctree">${cardTreeHTML()}</div>`);cards.appendChild(body);

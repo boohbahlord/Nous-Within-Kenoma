@@ -160,7 +160,7 @@ function cfgKit(attr,act,pfx){
     sec:(t,body,cls="",hint,note)=>`<section class="fasec ${cls}"><h4${tip(hint)}>${t}</h4>${body}${hint&&ph?`<p class="dim">${hint}</p>`:""}${note?`<p class="fanote2">${note}</p>`:""}</section>`}}
 const FA_CAUTION="Careful: ranking is a powerful setting. A bad order can lose you cards, or the game.";
 function faPanelHTML(c,pl,pfx){
-  const K=cfgKit("data-fa","data-faact","fa"+pfx),{row,spin,radio,sec,tip}=K;
+  const K=cfgKit("data-fa","data-faact","fa"+pfx),{row,spin,radio,sec}=K;
   const s=pl!=null?faState(pl):null,left=s&&s.rushUntil!=null&&c.rush?Math.max(0,s.rushUntil-G.moon.round+1):null;
   const custom=c.mode==="custom",some=c.mode==="mostly"||custom;
   let h=sec("Simple mode",radio("mode",c.mode,[["full","Fully automatic","It decides everything, offense, defense or the center (the default)"],["mostly","Mostly automatic","You choose the stance, ambushes and whether it attacks"],
