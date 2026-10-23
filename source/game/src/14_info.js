@@ -129,26 +129,31 @@ function pop(html,x,y,cls){
 }
 const stackAtTile=t=>{if(!t)return null;const r=+t.dataset.r,c=+t.dataset.c;if(isNaN(r)||hiddenFrom(view(),r,c)||showsBack(view(),r,c))return null;const st=G.board[r][c];return st?{st,r,c}:null};
 const stackTitle=(s,r,c)=>`${s.cards.length>1?`Stack of ${s.cards.length}`:nameOf(s.cards[0])} on ${coord(r,c)}`;
+/* v78j: the browser pulls a fingertip tap near a corner tab onto the tab; one that lands outside it is the stack's or the card's */
+const ciMiss=(t,e)=>{if(e.pointerType!=="touch")return false;const b=t.getBoundingClientRect();return e.clientX<b.left-2||e.clientX>b.right+2||e.clientY<b.top-2||e.clientY>b.bottom+2};
 /* the corner tab on every stack: click for info, drag onto another stack to compare */
 function wireCorners(){
   document.querySelectorAll("#board .ci").forEach(t=>{
-    t.onclick=e=>{e.stopPropagation();e.preventDefault()};
+    t.onclick=e=>{if(t.dataset.miss){delete t.dataset.miss;return}e.stopPropagation();e.preventDefault()};   // a missed tap goes on to the tile
     t.onpointerdown=e=>{
+      if(ciMiss(t,e)){t.dataset.miss="1";return}delete t.dataset.miss;
       e.stopPropagation();e.preventDefault();const src=stackAtTile(t.closest(".tile"));if(!src)return;
       const ghost=document.createElement("div");ghost.className="ciline";document.body.appendChild(ghost);
       const x0=e.clientX,y0=e.clientY;let moved=false;
       const mv=ev=>{const dx=ev.clientX-x0,dy=ev.clientY-y0;if(Math.abs(dx)+Math.abs(dy)>6)moved=true;
         ghost.style.cssText=`left:${x0+scrollX}px;top:${y0+scrollY}px;width:${Math.hypot(dx,dy)}px;transform:rotate(${Math.atan2(dy,dx)}rad)`};
-      const up=ev=>{document.removeEventListener("pointermove",mv);document.removeEventListener("pointerup",up);ghost.remove();
+      const quit=()=>{document.removeEventListener("pointermove",mv);document.removeEventListener("pointerup",up);document.removeEventListener("pointercancel",quit);ghost.remove()};   // v78j: a cancelled touch leaves nothing behind
+      const up=ev=>{quit();
         if(!moved){pop(infoHTML1(src.st,stackTitle(src.st,src.r,src.c)),e.clientX,e.clientY,"info");return}
         const el=document.elementFromPoint(ev.clientX,ev.clientY),dst=stackAtTile(el&&el.closest(".tile"));
         if(dst&&dst.st!==src.st)pop(`<div class="cih"><b>Compare</b></div>`+compareHTML(src.st,dst.st,stackTitle(src.st,src.r,src.c),stackTitle(dst.st,dst.r,dst.c)),ev.clientX,ev.clientY,"info wide");
         else flash("Drop the corner onto another stack on the field to compare.");
       };
-      document.addEventListener("pointermove",mv);document.addEventListener("pointerup",up);
+      document.addEventListener("pointermove",mv);document.addEventListener("pointerup",up);document.addEventListener("pointercancel",quit);
     };
   });
-  document.querySelectorAll(".cf .ci").forEach(t=>{t.onclick=e=>{e.stopPropagation();e.preventDefault();const c=cardById(+t.dataset.cid);if(!c)return;
+  document.querySelectorAll(".cf .ci").forEach(t=>{t.onpointerdown=e=>{t.dataset.miss=ciMiss(t,e)?"1":""};
+    t.onclick=e=>{if(t.dataset.miss){t.dataset.miss="";return}e.stopPropagation();e.preventDefault();const c=cardById(+t.dataset.cid);if(!c)return;
     pop(infoHTML1({cards:[c],owner:c.owner},nameOf(c)),e.clientX,e.clientY,"info")}});
 }
 function cardById(id){

@@ -25,7 +25,7 @@ function kbClose(){const w=kbTop();if(!w)return false;const x=[...w.querySelecto
 const kbShow=el=>{if(!el)return;if(!fsOn())el.scrollIntoView({block:"center",behavior:"smooth"});el.classList.add("spping");setTimeout(()=>el.classList.remove("spping"),1600)};
 /* the camera on a tile: the large map's frame, or the page */
 function kbLook(r,c){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(!t)return;const w=camWrap();
-  if(w&&isLarge()){const [mx,my]=camMid(w),tr=t.getBoundingClientRect();w.scrollLeft+=tr.left+tr.width/2-mx;w.scrollTop+=tr.top+tr.height/2-my;if(!fsOn())w.scrollIntoView({block:"nearest"})}
+  if(w&&isLarge()){const [mx,my]=camMid(w),tr=t.getBoundingClientRect(),z=camZf(w);w.scrollLeft+=(tr.left+tr.width/2-mx)/z;w.scrollTop+=(tr.top+tr.height/2-my)/z;if(!fsOn())w.scrollIntoView({block:"nearest"})}
   else t.scrollIntoView({block:"center",behavior:"smooth"});t.classList.add("kbping");setTimeout(()=>t.classList.remove("kbping"),1200)}
 /* the spells: their schools, and the piles last */
 const kbSchools=()=>{const box=$("#spells");const out=box?[...box.querySelectorAll("details.school")].map(d=>({el:d,items:[...d.querySelectorAll("button.spell")]})):[];

@@ -163,7 +163,9 @@ async function together(players,phases){
     for(const pl of hs){setActive(pl);G.nextLabel=ph==="prep"?PHASE_LABEL.prep:PHASE_LABEL.attack;await actPhase(pl,ph);if(G!==g||G.over)return}
   }
   G.shared=false;
-  if(phases.includes("attack"))for(const pl of players)endTurn(pl);
+  if(phases.includes("attack")){G.fallTogether=[];   // v78j: the turns end at once, so those they leave with nothing fall together
+    try{for(const pl of players)endTurn(pl)}finally{const f=G.fallTogether;G.fallTogether=null;
+      if(f.length&&!G.over){const w=alive().filter(i=>!isNPC(i));if(new Set(w.map(i=>G.p[i].team)).size<=1)end(w[0]??null,f.join("; "))}}}
 }
 /* one player plays one phase: the computer in code, a person until they press the button (or the timer runs out) */
 async function actPhase(pl,ph){
@@ -213,6 +215,7 @@ async function timeUp(){
   // v78j: a spell still running finishes first, for its caster; its open question is answered as the computer would
   const g=G;for(let i=0;i<50&&G.busy;i++){const q=askOpen;if(q){askOpen=null;q.answer(q.spec.ai?q.spec.ai():AI.choose(q.pl,q.spec))}await sleep(100);if(G!==g)return}
   if(G.placing)cancelPlacing();
+  if($("#ov .ovbox.bank"))ovHide();   // v78j: Bank business ends with your prep
   if(G.waiter){const f=G.waiter;G.waiter=null;G.mode=null;G.selHand=null;f()}
 }
 

@@ -32,10 +32,12 @@ function camMid(w){const r=w.getBoundingClientRect(),l=Math.max(r.left,0),t=Math
 function camGrid(){const B=$("#board"),rows=B?B.querySelectorAll(":scope>.row"):[];if(!rows.length)return null;const a=rows[0].querySelectorAll(".tile");if(!a.length)return null;
   const r0=a[0].getBoundingClientRect(),b=rows.length>1?rows[1].querySelector(".tile"):null;
   return {x:r0.left,y:r0.top,px:(a.length>1?a[1].getBoundingClientRect().left-r0.left:r0.width)||1,py:(b?b.getBoundingClientRect().top-r0.top:r0.height)||1}}
+/* v78j: how many screen pixels one of the page's pixels takes (a zoomed page: phones, the interface size) */
+const camZf=w=>w&&w.offsetWidth?w.getBoundingClientRect().width/w.offsetWidth||1:1;
 function camZoom(f){const w=camWrap();if(!w||!isLarge())return;const z0=CAM.z,z1=Math.max(CAM.ZMIN,Math.min(CAM.ZMAX,z0*f));if(z1===z0)return;
   const [cx,cy]=camMid(w),g0=camGrid();CAM.z=z1;$("#board").style.setProperty("--tw",Math.round(CAM.TILE*z1)+"px");
-  const g1=g0&&camGrid();if(!g1)return;
-  w.scrollLeft+=g1.x+(cx-g0.x)/g0.px*g1.px-cx;w.scrollTop+=g1.y+(cy-g0.y)/g0.py*g1.py-cy}
+  const g1=g0&&camGrid();if(!g1)return;const z=camZf(w);
+  w.scrollLeft+=(g1.x+(cx-g0.x)/g0.px*g1.px-cx)/z;w.scrollTop+=(g1.y+(cy-g0.y)/g0.py*g1.py-cy)/z}
 function camPan(dx,dy){const w=camWrap();if(!w||!isLarge())return;w.scrollBy({left:dx,top:dy,behavior:"auto"})}
 function camWire(w){
   w.addEventListener("wheel",e=>{if(!isLarge()||e.ctrlKey)return;

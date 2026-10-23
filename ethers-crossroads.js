@@ -70,7 +70,7 @@ const $=s=>document.querySelector(s);
 const R=n=>1+Math.floor(Math.random()*n);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const SPEED={slow:1.7,normal:1,fast:.4};
-const sleep=ms=>{const g=G;return new Promise(r=>{const go=()=>{if(G!==g)return;if(G.paused){setTimeout(go,200);return}r()};setTimeout(go,G&&G.opts.fast?0:ms*(SPEED[G&&G.opts.cpuSpeed]||1)*(G&&G.speedMul||1))})}; // a new game silently ends the old game's waits; the menu pauses them
+const sleep=ms=>{const g=G;return new Promise(r=>{const go=()=>{if(G!==g||G.over)return;if(G.paused){setTimeout(go,200);return}r()};setTimeout(go,G&&G.opts.fast?0:ms*(SPEED[G&&G.opts.cpuSpeed]||1)*(G&&G.speedMul||1))})}; // a new game silently ends the old game's waits; the menu pauses them
 const SUITS={S:"♠",H:"♥",D:"♦",C:"♣"};
 const SUITNAME={S:"Spades",H:"Hearts",D:"Diamonds",C:"Clubs"};
 let COLS=5;const SOUL_CAP=6, HAND_CAP=6;   // COLS is set by the map for each game; SOUL_CAP is also what a Joker can hold
@@ -226,7 +226,7 @@ function stackLegal(cards){
     const inside=cards.filter(c=>!isBase(c));
     if(inside.length>6)return false;
     if(kind(aces[0])==="tree"&&inside.some(c=>kind(c)==="king"||c.rank==="10"))return false;   // the Jester doesn't like how Kings and tens taste
-    if(kind(aces[0])==="ace"&&G&&G.opts.aceLock&&inside.some(c=>c.color!==aces[0].color))return false;
+    if(kind(aces[0])==="ace"&&G&&G.opts.aceLock&&inside.some(c=>!c.unit&&c.color!==aces[0].color))return false;   // v78j: units have no colour
     const crew=inside.filter(c=>c.unit!=="scout");   // v70c: every base holds one stack, as it could stand on the field; Scouts (and support cards) ride along
     return !crew.length||stackLegal(crew);
   }
@@ -315,7 +315,8 @@ function buildDecks(){
     }
     const take=(list,k2)=>{const i=list.findIndex(c=>kind(c)===k2);return i<0?null:list.splice(i,1)[0]};
     const ace=take(deck,"ace")||take(out,"ace")||mk("A",mySuits[0]);
-    const jack=take(deck,"jack")||take(out,"jack")||mk("J",mySuits[0]);
+    const inCol=(list,col)=>{const i=list.findIndex(c=>kind(c)==="jack"&&c.color===col);return i<0?null:list.splice(i,1)[0]};   // v78j: in its Ace's colour
+    const jack=(o.aceLock&&(inCol(deck,ace.color)||inCol(out,ace.color)))||take(deck,"jack")||take(out,"jack")||mk("J",ace.suit||mySuits[0]);
     if(sp!=="half"&&o.jokerSure!==false&&!deck.some(c=>kind(c)==="joker"))deck.push(take(out,"joker")||mk("JK",null,pick(["red","black"])));
     P.opening=[ace,jack];P.opening2=[];
     if(o.hq&&o.mode!=="survival"){const a2=take(deck,"ace")||take(out,"ace")||mk("A",mySuits[mySuits.length-1]);a2.owner=pl;P.opening2=[a2]}
@@ -801,11 +802,10 @@ function bury(card,r,c,st){
 function fallen(pl){return hq()?!stacksOf(pl).some(x=>hasK(x.st,"ace")):!stacksOf(pl).length}
 function checkWin(){
   if(G.over||G.phase==="setup")return;
-  for(const pl of alive()){
-    if(isHorde(pl))continue;
-    if(fallen(pl))eliminate(pl,hq()?`every base ${plName(pl)} had is destroyed`:`every card ${plName(pl)} had on the field is destroyed`);
-    if(G.over)return;
-  }
+  const down=alive().filter(pl=>!isHorde(pl)&&fallen(pl));if(!down.length)return;   // v78j: all who fall in one event fall together
+  const why=pl=>hq()?`every base ${plName(pl)} had is destroyed`:`every card ${plName(pl)} had on the field is destroyed`;
+  if(!survival()&&!alive().some(i=>!isNPC(i)&&!down.includes(i))){for(const pl of down)G.p[pl].out=true;end(null,down.map(why).join("; "));return}
+  for(const pl of down){eliminate(pl,why(pl));if(G.over)return}
 }
 function checkEconomic(pl){
   if(survival()||G.p[pl].out)return;
@@ -814,24 +814,26 @@ function checkEconomic(pl){
 }
 /* a player is out: their cards leave play, then the game ends if one side is left */
 function eliminate(pl,why){
-  const P=G.p[pl];if(P.out)return;P.out=true;
+  const P=G.p[pl];if(P.out||G.over)return;P.out=true;   // v78j: not once the game is over
   if(survival()){
     log(`<b>${plName(pl)} falls</b>: ${why}.`,"event");
-    if(!G.p.some(Q=>!Q.out&&!isHorde(Q.i))){endSurvival();return}
+    if(!G.p.some(Q=>!Q.out&&!isHorde(Q.i))){endSurvival(why);return}
   }else{
     const teams=new Set(alive().filter(i=>!isNPC(i)).map(i=>G.p[i].team));
-    if(teams.size<=1){const w=alive()[0];end(w,why);return}
+    if(G.fallTogether)G.fallTogether.push(why);   // turns ending together: settled after the last one
+    else if(teams.size<=1){end(alive().find(i=>!isNPC(i))??null,why);return}   // v78j: never a side like the Demon Band; nobody left is a draw
     log(`<b>${plName(pl)} is eliminated</b>: ${why}.`,"event");
   }
   // what is left of them leaves the table
   const toOD=G.opts.elimDark;const dump=c=>{if(toOD||c.puppet)toDark(c);else{c.owner=pl;toGrave(c,"out")}};   // v78j: toGrave sorts out Emanation cards
   for(const {st,r,c} of stacksOf(pl)){for(const x of st.cards){for(const s of x.captured||[])dump(s);x.captured=[];dump(x)}if(st.captive){dump(st.captive);st.captive=null}G.board[r][c]=null}
-  const shared=alliesOf(pl).some(a=>G.p[a].deck===P.deck);
+  const shared=G.p.some(Q=>Q!==P&&!Q.out&&Q.deck===P.deck);   // v78j: whoever still holds it keeps it
   for(const c of P.hand.splice(0))dump(c);
   if(!shared){for(const c of P.deck.splice(0))dump(c);for(const c of P.souls.splice(0))dump(c)}
   if(!toOD)shuffle(G.grave);
   log(toOD?`${plName(pl)}'s hand and deck fall into the Outer Darkness.`:`${plName(pl)}'s hand and deck go to the grave, and the grave is shuffled.`);
   if(G.moonLev&&G.moonLev.owner===pl){const L=G.moonLev;G.moonLev=null;L.card.hp=L.card.maxHp;toDark(L.card);log("With its master gone, the Leviathan falls from the moon into the Outer Darkness.","event")}   // v78j
+  if(G.saturnBy===pl&&G.moon.gone==="saturn"){G.saturnBy=null;G.saturnDebt=0;log("With its master gone, Saturn answers to no one: everyone pays its toll, and the toll goes to the Bank.","event")}   // v78j
   if(G.active===pl&&G.waiter){const f=G.waiter;G.waiter=null;stopTimer();f()}   // v78j: out on their own turn: it ends (it waited for a button they no longer have)
 }
 
@@ -1000,7 +1002,9 @@ async function together(players,phases){
     for(const pl of hs){setActive(pl);G.nextLabel=ph==="prep"?PHASE_LABEL.prep:PHASE_LABEL.attack;await actPhase(pl,ph);if(G!==g||G.over)return}
   }
   G.shared=false;
-  if(phases.includes("attack"))for(const pl of players)endTurn(pl);
+  if(phases.includes("attack")){G.fallTogether=[];   // v78j: the turns end at once, so those they leave with nothing fall together
+    try{for(const pl of players)endTurn(pl)}finally{const f=G.fallTogether;G.fallTogether=null;
+      if(f.length&&!G.over){const w=alive().filter(i=>!isNPC(i));if(new Set(w.map(i=>G.p[i].team)).size<=1)end(w[0]??null,f.join("; "))}}}
 }
 /* one player plays one phase: the computer in code, a person until they press the button (or the timer runs out) */
 async function actPhase(pl,ph){
@@ -1050,6 +1054,7 @@ async function timeUp(){
   // v78j: a spell still running finishes first, for its caster; its open question is answered as the computer would
   const g=G;for(let i=0;i<50&&G.busy;i++){const q=askOpen;if(q){askOpen=null;q.answer(q.spec.ai?q.spec.ai():AI.choose(q.pl,q.spec))}await sleep(100);if(G!==g)return}
   if(G.placing)cancelPlacing();
+  if($("#ov .ovbox.bank"))ovHide();   // v78j: Bank business ends with your prep
   if(G.waiter){const f=G.waiter;G.waiter=null;G.mode=null;G.selHand=null;f()}
 }
 
@@ -1937,11 +1942,11 @@ function hordePlace(c){
   if(weak&&stackRate(weak.st)<rate(c)){G.board[weak.r][weak.col]={owner:pl,cards:[c],moved:false,attacked:false};return true}
   return false;
 }
-function endSurvival(){
-  G.over=true;const n=Math.max(0,G.round-1);
+function endSurvival(why){
+  G.over=true;stopTimer();closeEther();closeDrawer();const n=Math.max(0,G.round-1);   // v78j: the timer and the drawers end with it
   log(`<b>The Horde takes the field.</b> You survived ${n} round${n===1?"":"s"}.`,"win");render();
   $("#ov").className="";
-  $("#ov").innerHTML=`<div class="ovbox"><p class="bl roundbig">${roman(n)}</p><h2>You survived ${n} round${n===1?"":"s"}</h2><p class="dim">Your last card on the field fell in round ${roman(Math.max(1,G.round))}.</p><p><button class="btn" id="again">Play again</button></p></div>`;
+  $("#ov").innerHTML=`<div class="ovbox"><p class="bl roundbig">${roman(n)}</p><h2>You survived ${n} round${n===1?"":"s"}</h2><p class="dim">${why&&!/^every (card|base)/.test(why)?`${why.charAt(0).toUpperCase()+why.slice(1)}, in round ${roman(Math.max(1,G.round))}.`:`Your last card on the field fell in round ${roman(Math.max(1,G.round))}.`}</p><p><button class="btn" id="again">Play again</button></p></div>`;
   $("#ov").hidden=false;$("#again").onclick=showStart;
 }
 
@@ -2081,10 +2086,13 @@ function passScreen(msg,pl=G.active){
   });
 }
 function end(w,why){
-  G.over=true;G.busy=false;stopTimer();
+  G.over=true;G.busy=false;stopTimer();closeEther();closeDrawer();   // v78j: the drawers close with the game
+  if(w==null){log(`<b>A draw</b>: ${why}.`,"win");render();   // v78j: nobody is left standing
+    ovShow(`<div class="ovbox"><h2>A draw</h2><p>${why}.</p><p><button class="btn" id="again">New game</button></p></div>`);$("#again").onclick=showStart;return}
   const team=G.p.filter(P=>P.team===G.p[w].team).map(P=>P.i),names=team.map(plName).join(" and ");
   log(`<b>${names} win${team.length>1?"":"s"}</b>: ${why}.`,"win");render();
-  const hs=G.p.filter(P=>!P.cpu);const title=hs.length===1?(team.includes(hs[0].i)?(team.length>1?"Your side wins":"You win"):"The computer wins"):`${names} win${team.length>1?"":"s"}`;
+  const hs=G.p.filter(P=>!P.cpu||P.jail&&!P.jail.cpu);   // v78j: a person in Jail is still a person
+  const title=hs.length===1?(team.includes(hs[0].i)?(team.length>1?"Your side wins":"You win"):"The computer wins"):`${names} win${team.length>1?"":"s"}`;
   ovShow(`<div class="ovbox"><h2>${title}</h2><p>${why}.</p><p><button class="btn" id="again">New game</button></p></div>`);$("#again").onclick=showStart;
 }
 const PHASES=[["prep","Prep","draw first, then sacrifice, cast, place, move"],["attack","Attack","each stack may attack once"]];   // v70d: drawing is the first part of prep
@@ -2101,7 +2109,7 @@ function pboxHTML(pl,top){
   const P=G.p[pl],act=pl===G.active&&G.phase!=="setup";
   const tag=P.cpu==="horde"?"the Horde":(P.cpu?`computer · ${P.cpu}${P.arch&&AI.ARCH[P.arch]?" · "+AI.ARCH[P.arch].name:""} · `:"")+(TRIBES[P.tribe]?TRIBES[P.tribe].name:"");
   const V=view(),rel=pl===V?"":isEnemy(pl,V)?"":'<span class="ally">ally</span>';
-  let h=`<div class="ph" style="--pc:${P.color}"><button type="button" class="subst" data-stat="${pl}" title="Status: hover or click">${solidSVG(P.solid,P.color,18)}</button><b>${esc(P.name)}</b><span class="dim">${esc(tag)}</span>${rel}${P.out?'<span class="outmark">out</span>':act?'<span class="turnmark">to play</span>':""}</div>`;
+  let h=`<div class="ph" style="--pc:${P.color}"><button type="button" class="subst" data-stat="${pl}" title="Status: ${fsTouchOnly()?"tap":"hover or click"}">${solidSVG(P.solid,P.color,18)}</button><b>${esc(P.name)}</b><span class="dim">${esc(tag)}</span>${rel}${P.out?'<span class="outmark">out</span>':act?'<span class="turnmark">to play</span>':""}</div>`;
   if(P.out)return h;
   if(P.cpu==="horde"){
     const units=stacksOf(pl).reduce((a,x)=>a+x.st.cards.length,0);
@@ -2475,6 +2483,7 @@ const val=name=>{const e=document.querySelector(`input[name="${name}"]:checked`)
 const chk=(id,label,sub,on)=>`<label class="chk"><input type="checkbox" id="${id}" ${on?"checked":""}> <span><b>${label}</b>${sub?`<small>${sub}</small>`:""}</span></label>`;
 function showStart(){
   if(G)G.over=true;try{AUD.setAmb(null)}catch(e){}   // v78j: the eclipse's or the Blood Moon's sound ends with the game
+  stopTimer();closeEther();closeDrawer();   // v78j: and its timer and drawers
   applyMoonTheme();
   const q0=new URLSearchParams(location.search).get("mode"),q=q0==="cpu"?"local":q0;
   if(!startMode&&MODES.some(m=>m[0]===q))startMode=q;
@@ -2533,7 +2542,7 @@ ${chk("ocheat","Cheat mode","Off by default. Free magic, infinite mana, every sp
 <fieldset class="pf"><legend>Mana</legend>
 <label class="f">Starting mana <select id="omana"><option value="3d2" selected>3d2 (default)</option><option value="1d6">1d6</option><option value="none">None</option>${[1,2,3,4,5,6].map(n=>`<option value="${n}">${n}</option>`).join("")}</select></label>
 ${chk("obank","The Bank opens with mana","The Bank starts with (2 × players)d2 mana to lend. Off by default: it fills up from the mana spent on spells.",false)}
-${chk("oeach","Each player rolls their own","On by default with one deck; off by default otherwise, when one roll sets the same starting mana for everyone.",false)}
+${chk("oeach","Each player rolls their own","On by default with half a deck; off by default otherwise, when one roll sets the same starting mana for everyone.",false)}
 <p class="dim">Starting souls come from the Ether as soldier souls, worth 1 mana each.</p>
 </fieldset>
 <fieldset class="pf"><legend>Heavenly Bodies</legend>
@@ -2566,8 +2575,8 @@ ${chk("oskyrand","A random start","Every few rounds only. Each new Heavenly Body
 <label class="opt"><input type="radio" name="dctl" value="bottom" ${PREF.ctl!=="top"?"checked":""}><span>Under the field (default)<small>Roll, next phase and end turn sit in a bar right below the board, on the page.</small></span></label>
 <label class="opt"><input type="radio" name="dctl" value="top" ${PREF.ctl==="top"?"checked":""}><span>At the top<small>Beside the moon and the phases.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Tile names</legend><div class="opts">
-<label class="opt"><input type="radio" name="dcoord" value="0" ${PREF.coords?"":"checked"}><span>Off (default)<small>Like a chessboard without its letters and numbers.</small></span></label>
-<label class="opt"><input type="radio" name="dcoord" value="1" ${PREF.coords?"checked":""}><span>On<small>Each tile shows its name in a corner: columns A, B, C from the left, rows 1, 2, 3 from the bottom.</small></span></label></div>
+<label class="opt"><input type="radio" name="dcoord" value="0" ${PREF.coords?"":"checked"}><span>Off<small>Like a chessboard without its letters and numbers.</small></span></label>
+<label class="opt"><input type="radio" name="dcoord" value="1" ${PREF.coords?"checked":""}><span>On (default)<small>Each tile shows its name in a corner: columns A, B, C from the left, rows 1, 2, 3 from the bottom.</small></span></label></div>
 <p class="dim">Tile names are always used in the dice box history, either way.</p></fieldset>
 <fieldset class="pf pc-only"><legend>Page width</legend><div class="opts">
 <label class="opt"><input type="radio" name="dfull" value="0" ${PREF.full?"":"checked"}><span>Standard<small>The page keeps the width of the rest of the site.</small></span></label>
@@ -2575,7 +2584,7 @@ ${chk("oskyrand","A random start","Every few rounds only. Each new Heavenly Body
 <fieldset class="pf"><legend>Animations</legend><div class="opts">
 <label class="opt"><input type="checkbox" id="danimc" ${PREF.fxCards!==false?"checked":""}><span>Card animations (on by default)<small>Moves, strikes, wounds, deaths (a white skull rises), sacrifices, mana and shuffles.</small></span></label>
 <label class="opt"><input type="checkbox" id="danimm" ${PREF.fxMagic!==false?"checked":""}><span>Magic and other animations (on by default)<small>Spells, the sky, fire and weather, and the drifting fog. Off, the fog of war stands still.</small></span></label></div>
-<p class="dim">Turning animations off helps slower phones. Also in the Display bar at the bottom of the game.</p></fieldset>
+<p class="dim">Turning animations off helps slower phones. Also in the game's Menu.</p></fieldset>
 <fieldset class="pf"><legend>Accessibility</legend><div class="opts">
 <label class="opt"><input type="checkbox" id="ddys" ${PREF.dys?"checked":""}><span>Dyslexic mode (off by default)<small>Clear sans-serif letters in place of the Old English and the thin typewriter letters, more room between letters, words and lines, and no capitals-only or slanted text. On every Ether's Crossroads page, only on this device.</small></span></label>
 <label class="opt"><input type="checkbox" id="dcb" ${PREF.cb?"checked":""}><span>Colorblind-safe colors (off by default)<small>Every player shows in a color that red-green and blue-yellow colorblind eyes can tell apart, the nearest to the one they picked. Their cards and stacks carry a faint pattern of their own and always show their symbol, and the tiles you can move to, place on or attack are marked in colors and patterns those eyes tell apart. Only on this device.</small></span></label></div></fieldset>
@@ -2586,7 +2595,7 @@ ${chk("oskyrand","A random start","Every few rounds only. Each new Heavenly Body
 <fieldset class="pf"><legend>Background lines</legend><div class="opts">
 <label class="opt"><input type="radio" name="dlines" value="1" ${PREF.lines!==false?"checked":""}><span>On (default)<small>Thin black lines across the page behind everything, and now and then a black bar.</small></span></label>
 <label class="opt"><input type="radio" name="dlines" value="0" ${PREF.lines===false?"checked":""}><span>Off<small>A plain background, on every page of the site.</small></span></label></div></fieldset>
-<fieldset class="pf"><legend>Brightness</legend><label class="f">Brightness <select id="dbright">${[.7,.8,.9,1,1.1,1.2,1.3].map(v=>`<option value="${v}" ${Math.abs((PREF.bright||1)-v)<.01?"selected":""}>${Math.round(v*100)}%${v===1?" (default)":""}</option>`).join("")}</select></label><p class="dim">For the whole site. Also in the Display bar at the bottom of the game.</p></fieldset>
+<fieldset class="pf"><legend>Brightness</legend><label class="f">Brightness <select id="dbright">${[.7,.8,.9,1,1.1,1.2,1.3].map(v=>`<option value="${v}" ${Math.abs((PREF.bright||1)-v)<.01?"selected":""}>${Math.round(v*100)}%${v===1?" (default)":""}</option>`).join("")}</select></label><p class="dim">For the whole site. Also in the game's Menu.</p></fieldset>
 <fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({darkfantasy:"The default: an old dungeon in grey and crimson, gold and silver.",etherten:"The default\u2019s dungeon in blue, after Ten: grey and blue, gold and silver.",etherkenoma:"The default\u2019s dungeon in Kenoma\u2019s burnt amber and orange.","":"The burnt amber of the rest of the site.",dull:"The burnt amber, duller and less orange, with a faint yellow tint.",office:"Soft grey pages and panels with a blue accent, like an office suite; easy on the eyes.",officedark:"The Office theme in charcoal, for the night.",earth:"A night druid\u2019s grove: dark soil, moss and lichen gold.",jester:"Black, after chapter 26.",ten:"White on indigo, after chapters 1–4.",satan:"Crimson, after chapter 23."})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, text size, hand position, tile names, page width and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
   const suitSel=`<div id="suitpick" hidden><p class="dim">${mode==="survival"?"You pick; the other two suits wait in the Ether.":"P1 picks; P2 gets the other two suits."}</p>
 <label class="f">Red suit <select id="osuitR"><option value="H">♥ Hearts</option><option value="D">♦ Diamonds</option></select></label>
@@ -2598,7 +2607,7 @@ ${[["half","Half a deck","One red and one black suit and one Joker. In 1v1 the t
 <div class="f"><span>Ether decks per player</span><div class="opts">
 ${[["same","Same as the players","As many decks' worth of Scouts, Assassins, Archers, Healers, Repairmen, Walls, Rams, Miners and Cannons as the players hold decks."],["half","Half a deck each",""],["1",`One deck each${startMode==="survival"?"":" (default)"}`,"The Ether holds a deck of its own for every player: its Scouts, Assassins, Archers, Healers, Repairmen, Walls, Rams, Miners and Cannons."],["2","Two decks each",""],["3","Three decks each",""],["inf",`Infinite${startMode==="survival"?" (default here)":""}`,"Every card the Ether holds comes back the moment it is taken: it never runs out. The default in Survival."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="oetherper" value="${v}" ${v===(startMode==="survival"?"inf":"1")?"checked":""}><span>${t}${d?`<small>${d}</small>`:""}</span></label>`).join("")}</div></div>
 <p class="dim">With two decks per player (or three), set Specials and Aces to Half: everyone then starts with half the specials and bases, and the rest wait in the Ether.</p>
-<div id="teamdecks" hidden>${chk("oshare","Shared team deck","2v2 only. Teammates draw from one deck and spend from one soul pile, but keep their own hands.",false)}</div>
+<div id="teamdecks" hidden>${chk("oshare","Shared team deck","Team games. Teammates draw from one deck and spend from one soul pile, but keep their own hands.",false)}</div>
 </fieldset>
 <fieldset class="pf"><legend>Specials and Aces (Jacks, Queens, Kings, Jokers and Aces)</legend><div class="opts">
 ${[["none","None","Only your opening Ace and its Jack. Every other special waits in the Ether to be conjured."],["half","Half (default)","The Jacks, Queens and Kings of half your suits, picked at random (one red and one black suit with a full deck), and one more Ace and one Joker. Every other special waits in the Ether."],["all","All","Every special of your suits is in your deck."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="ospecials" value="${v}" ${v==="half"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
@@ -2682,7 +2691,8 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     const need=L==="factions"?["cross","sq"]:L.startsWith("team")&&n>4?["cross"]:null;   // v73d: factions and big teams need room for their sides
     if(mode==="survival"){const std=document.querySelector('input[name=obig][value=""]'),ok=survStdOk(n);if(std){std.disabled=!ok;std.closest(".opt").classList.toggle("off",!ok);if(!ok&&std.checked)document.querySelector('input[name=obig][value=long]').checked=true}   // v73b: no small field without five spawn tiles each
       const lg=val("obig")==="long";$("#sizeset").classList.toggle("survbig",lg)}
-    else{document.querySelectorAll('input[name=obig]').forEach(i=>{const no=L==="coop"||i.value==="long"&&!(L==="duel"||L==="team-same")||!!need&&!need.includes(i.value);i.disabled=no;i.closest(".opt").classList.toggle("off",no);if(no&&i.checked)document.querySelector(`input[name=obig][value="${need?need[0]:""}"]`).checked=true});
+    else{document.querySelectorAll('input[name=obig]').forEach(i=>{const no=L==="coop"||i.value==="long"&&!(L==="duel"||L==="team-same")||!!need&&!need.includes(i.value)||val("omap")==="river"&&L==="duel"&&i.value!=="";   // v78j: River keeps its own size
+      i.disabled=no;i.closest(".opt").classList.toggle("off",no);if(no&&i.checked)document.querySelector(`input[name=obig][value="${need?need[0]:""}"]`).checked=true});
     if(need&&!need.includes(val("obig")||""))document.querySelector(`input[name=obig][value="${need[0]}"]`).checked=true;crossUp(n,!!need)}
     document.querySelectorAll('input[name=omap][value=river]').forEach(i=>{i.disabled=L!=="duel";i.closest(".opt").classList.toggle("off",i.disabled);if(i.disabled&&i.checked)document.querySelector('input[name=omap][value=none]').checked=true});
     $("#teamdecks").hidden=!L.startsWith("team");
@@ -2727,10 +2737,10 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     const keptSp=sp==="all"?4*s+j-2:sp==="half"?3*s/2-1+2*nd:(js?1:0),deck=9*s+keptSp+2+mi,outPer=4*s+j-2-keptSp;   // v74d: Half: the J Q K of half the suits (less the opening Jack), and an Ace and a Joker per deck
     const ep=val("oetherper")||"1",ef=ep==="same"?(half?.5:m):ep==="half"?.5:ep==="inf"?1:+ep,ne=Math.max(1,Math.round(ef*Math.max(N,L==="duel"?2:1)));
     const ether=outPer*N+41*ne-(2+mi)*N+(half&&mode==="survival"&&N===1?26:0);
-    $("#decksum").textContent=`Each player's deck starts with ${deck} cards (${sp==="half"?`${3*s/2-1} Jacks, Queens and Kings, ${nd===1?"an Ace and a Joker":`${nd} Aces and ${nd} Jokers`}, `:""}two Scouts${mi?" and a Miner":""} among them), plus the opening Ace and Jack on the field. The Ether starts with about ${ether} souls to conjure${ep==="inf"?", and every one comes back when taken":""}.`;
+    $("#decksum").textContent=`Each player's deck starts with ${deck} cards (${sp==="half"?`${3*s/2-1} Jacks, Queens and Kings, ${nd===1?"an Ace and a Joker":`${nd} Aces and ${nd} Jokers`}, `:""}two Scouts${mi?" and a Miner":""} among them), plus the opening Ace and Jack on the field. ${$("#oetheron")&&!$("#oetheron").checked?"The Ether is off: nothing can be conjured.":`The Ether starts with about ${ether} souls to conjure${ep==="inf"?", and every one comes back when taken":""}.`}`;
   };
   $("#oeach").addEventListener("change",()=>$("#oeach").dataset.touched=1);
-  document.querySelectorAll('input[name=odeckper],input[name=oetherper],input[name=ospecials],input[name=osuitmode],#ojoker,#ominer').forEach(i=>i.addEventListener("change",()=>{if(i.name==="odeckper")$("#decksset").dataset.touched=1;sumUp()}));sumUp();
+  document.querySelectorAll('input[name=odeckper],input[name=oetherper],input[name=ospecials],input[name=osuitmode],#ojoker,#ominer,#oetheron').forEach(i=>i.addEventListener("change",()=>{if(i.name==="odeckper")$("#decksset").dataset.touched=1;sumUp()}));sumUp();
   $("#onosubs").addEventListener("change",drawSeats);$("#oalike").addEventListener("change",drawSeats);
   const SKY_NOTE={bid:"Every 2 + 1d2 − 1 completed cycles, the Heavenly Body announces it is leaving. Players bid mana to keep it for one more cycle, or to see it go; the highest bid wins (an Oath of that Heavenly Body adds half again to a bid on a 2 of 1d2). If nobody bids to keep it, a new Heavenly Body takes the sky.",never:"The Heavenly Body stays until a spell, the shop or an Emanation changes it.",cycles:"After this many of its cycles, a new Heavenly Body takes the sky.",rounds:"After this many rounds, a new Heavenly Body takes the sky, wherever it is in its cycle."};
   const skyUp=()=>{const m=$("#oskychg").value,ev=m==="cycles"||m==="rounds",dice=val("oskyhow")==="dice";$("#skychgnote").textContent=SKY_NOTE[m];
@@ -2747,7 +2757,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
   function skyChangeOpts(){const m=$("#oskychg").value;return {mode:m,dice:val("oskyhow")==="dice",n:+$("#oskyn").textContent,dn:+$("#oskydn").textContent,ds:+$("#oskyds").value,rand:m==="rounds"&&$("#oskyrand").checked}}
   mapUp=()=>{const rv=val("omap")==="river";$("#bridgeopt").hidden=!rv;$("#rivernote").hidden=!rv;
     document.querySelectorAll('#sizeduel input').forEach(i=>i.disabled=rv);};
-  document.querySelectorAll('input[name=omap]').forEach(i=>i.addEventListener("change",mapUp));
+  document.querySelectorAll('input[name=omap]').forEach(i=>i.addEventListener("change",()=>drawSeats()));   // v78j: the sizes too (River keeps its own); drawSeats calls mapUp
   document.querySelectorAll('input[name=omoonon]').forEach(i=>i.addEventListener("change",()=>{for(const S of seatsS)if(skyBlocked(val("omoonon")).includes(S.tribe))S.tribe="random";drawSeats()}));drawSeats();
   $("#back").onclick=()=>{startMode=null;history.replaceState(null,"",location.pathname);showStart()};
   $("#go").onclick=()=>{
@@ -2775,7 +2785,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     }
     if(mode==="survival")players.push({name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>!players.some(p=>p.solid===s)))||"dodeca",cpu:"horde"});
     PREF.hand=val("dhand")||PREF.hand;PREF.sel=val("dsel")||PREF.sel;PREF.ctl=val("dctl")||PREF.ctl;PREF.theme=val("dtheme")??PREF.theme;PREF.coords=val("dcoord")==="1";PREF.full=val("dfull")==="1";PREF.lines=val("dlines")!=="0";if($("#danimc")){PREF.fxCards=$("#danimc").checked;PREF.fxMagic=$("#danimm").checked}PREF.bright=+($("#dbright")||{}).value||1;savePrefs();applyPrefs();
-    startGame({mode,players,mid:mode==="survival"||(val("orowsd")?+val("orowsd")>4:true),aceLock:$("#olock").checked,jokerDark:!$("#ojkdark")||$("#ojkdark").checked,etherOff:!!$("#oetheron")&&!$("#oetheron").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,cheat:!!($("#ocheat")&&$("#ocheat").checked),hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off","saturn"].includes(val("omoonon")||"on"),
+    startGame({mode,players,mid:mode==="survival"||(val("orowsd")?+val("orowsd")>4:true),aceLock:$("#olock").checked,jokerDark:!$("#ojkdark")||$("#ojkdark").checked,etherOff:!!$("#oetheron")&&!$("#oetheron").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,cheat:!!($("#ocheat")&&$("#ocheat").checked),hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off"].includes(val("omoonon")||"on"),
       map:L==="koth"?"hill":val("omap"),big:L==="koth"?(["cross","small"].includes(val("okfield"))?"cross":""):val("obig")||"",cross:L==="koth"?{size:val("okfield")==="small"?"small":"std"}:crossOpts(),factions:L==="factions",koth:L==="koth"?{team:$("#okteam").checked,tug:$("#okteam").checked&&$("#oktug").checked,double:$("#okdouble").checked,contest:$("#okcontest").checked,target:+val("oktarget")||50,near:val("oknear")==="near",cpu:val("okcpu")||"each"}:null,cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:L==="duel"&&val("orowsd")?+val("orowsd"):undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
       deckPer:val("odeckper")||"1",etherPer:val("oetherper")||"1",noSubs:$("#onosubs").checked,specials:val("ospecials"),jokerSure:$("#ojoker").checked,deckMiner:$("#ominer").checked,suits:val("odeckper")==="half"&&L==="duel"&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
       startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",cycleEvents:$("#ocycev").checked,alikeOk:!!($("#oalike")&&$("#oalike").checked),eclipses:$("#oeclipse").checked||$("#oblood").checked,eclipseMode:$("#oblood").checked,eclipseAlways:$("#oblood").checked&&!!($("#oeclall")&&$("#oeclall").checked),skyChange:skyChangeOpts(),atkSpells:$("#oatk").checked,pshop:$("#opshop")?$("#opshop").checked:true,
@@ -3841,26 +3851,31 @@ function pop(html,x,y,cls){
 }
 const stackAtTile=t=>{if(!t)return null;const r=+t.dataset.r,c=+t.dataset.c;if(isNaN(r)||hiddenFrom(view(),r,c)||showsBack(view(),r,c))return null;const st=G.board[r][c];return st?{st,r,c}:null};
 const stackTitle=(s,r,c)=>`${s.cards.length>1?`Stack of ${s.cards.length}`:nameOf(s.cards[0])} on ${coord(r,c)}`;
+/* v78j: the browser pulls a fingertip tap near a corner tab onto the tab; one that lands outside it is the stack's or the card's */
+const ciMiss=(t,e)=>{if(e.pointerType!=="touch")return false;const b=t.getBoundingClientRect();return e.clientX<b.left-2||e.clientX>b.right+2||e.clientY<b.top-2||e.clientY>b.bottom+2};
 /* the corner tab on every stack: click for info, drag onto another stack to compare */
 function wireCorners(){
   document.querySelectorAll("#board .ci").forEach(t=>{
-    t.onclick=e=>{e.stopPropagation();e.preventDefault()};
+    t.onclick=e=>{if(t.dataset.miss){delete t.dataset.miss;return}e.stopPropagation();e.preventDefault()};   // a missed tap goes on to the tile
     t.onpointerdown=e=>{
+      if(ciMiss(t,e)){t.dataset.miss="1";return}delete t.dataset.miss;
       e.stopPropagation();e.preventDefault();const src=stackAtTile(t.closest(".tile"));if(!src)return;
       const ghost=document.createElement("div");ghost.className="ciline";document.body.appendChild(ghost);
       const x0=e.clientX,y0=e.clientY;let moved=false;
       const mv=ev=>{const dx=ev.clientX-x0,dy=ev.clientY-y0;if(Math.abs(dx)+Math.abs(dy)>6)moved=true;
         ghost.style.cssText=`left:${x0+scrollX}px;top:${y0+scrollY}px;width:${Math.hypot(dx,dy)}px;transform:rotate(${Math.atan2(dy,dx)}rad)`};
-      const up=ev=>{document.removeEventListener("pointermove",mv);document.removeEventListener("pointerup",up);ghost.remove();
+      const quit=()=>{document.removeEventListener("pointermove",mv);document.removeEventListener("pointerup",up);document.removeEventListener("pointercancel",quit);ghost.remove()};   // v78j: a cancelled touch leaves nothing behind
+      const up=ev=>{quit();
         if(!moved){pop(infoHTML1(src.st,stackTitle(src.st,src.r,src.c)),e.clientX,e.clientY,"info");return}
         const el=document.elementFromPoint(ev.clientX,ev.clientY),dst=stackAtTile(el&&el.closest(".tile"));
         if(dst&&dst.st!==src.st)pop(`<div class="cih"><b>Compare</b></div>`+compareHTML(src.st,dst.st,stackTitle(src.st,src.r,src.c),stackTitle(dst.st,dst.r,dst.c)),ev.clientX,ev.clientY,"info wide");
         else flash("Drop the corner onto another stack on the field to compare.");
       };
-      document.addEventListener("pointermove",mv);document.addEventListener("pointerup",up);
+      document.addEventListener("pointermove",mv);document.addEventListener("pointerup",up);document.addEventListener("pointercancel",quit);
     };
   });
-  document.querySelectorAll(".cf .ci").forEach(t=>{t.onclick=e=>{e.stopPropagation();e.preventDefault();const c=cardById(+t.dataset.cid);if(!c)return;
+  document.querySelectorAll(".cf .ci").forEach(t=>{t.onpointerdown=e=>{t.dataset.miss=ciMiss(t,e)?"1":""};
+    t.onclick=e=>{if(t.dataset.miss){t.dataset.miss="";return}e.stopPropagation();e.preventDefault();const c=cardById(+t.dataset.cid);if(!c)return;
     pop(infoHTML1({cards:[c],owner:c.owner},nameOf(c)),e.clientX,e.clientY,"info")}});
 }
 function cardById(id){
@@ -5399,6 +5414,10 @@ SPELLS.push(
    const sure=await ask(pl,{kind:"yesno",id:"betray",title:"Betrayal",text:`Betray ${mates.map(i=>esc(G.p[i].name)).join(" and ")}? It can't be undone.`,yes:"Betray",no:"Stay loyal",ai:()=>true});
    if(!sure){const back=giveMana(pl,spellCost(SP("betray")));if(G.bank)G.bank.mana-=back;log(`${plName(pl)} thinks better of it.`);return}   // v78j: from the Bank
    G.p[pl].team=300+pl;G.betrayal={by:pl,mates,until:G.moon.round+1};G._vis=null;
+   {const P=G.p[pl],n=1+mates.filter(m=>G.p[m].deck===P.deck).length;   // v78j: a shared deck and soul pile split, the betrayer taking their share
+    if(n>1){const share=(a,k)=>{const out=[];while(out.length<k&&a.length)out.push(a.splice(Math.floor(Math.random()*a.length),1)[0]);return out};
+      P.deck=share(P.deck,Math.floor(P.deck.length/n));P.souls=share(P.souls,Math.floor(P.souls.length/n));for(const c of [...P.deck,...P.souls])c.owner=pl;
+      log(`${plName(pl)} takes their share of the team's deck and soul pile.`)}}
    log(`<b>Betrayal</b>: ${plName(pl)} turns on ${mates.map(plName).join(" and ")}.`,"event");
    popup("Betrayal",`<p>${plName(pl)} betrays ${mates.map(plName).join(" and ")}. They are enemies now, for good.</p><p>For two rounds every card killed falls into the Outer Darkness, and every damage between them pays its dealer.</p>`,pl);checkWin()}},
  {id:"warnow",dice:"1d2+2d3",name:"Declare War",cost:6,school:"Astrology",text:"Oath of Mercury, without a vote: Total War for 1d2 rounds.",
@@ -8951,7 +8970,7 @@ function wireAuto(root){
   root.querySelectorAll("[data-atab]").forEach(b=>b.onclick=()=>{autoTab=b.dataset.atab;PREF.autoTab=autoTab;savePrefs();paintFA()});
   faWire(root);rdWire(root);lhWire(root);const t=root.querySelector("#faTogU");if(t)t.onclick=faToggle}
 faWindow=function(tab){if(typeof tab==="string")autoTab=tab;let box=$("#facfg");if(!box){box=document.createElement("div");box.id="facfg";box.className="faov";document.body.appendChild(box)}
-  box.hidden=false;paintFA()};
+  box.hidden=false;box.onclick=e=>{if(e.target===box)box.hidden=true};paintFA()};   // v78j: a click outside closes it
 paintFA=function(){const V=G?view():null,c=faMine();
   const w=$("#facfg");if(w&&!w.hidden){const sc=w.querySelector(".fabody")?w.querySelector(".fabody").scrollTop:0;
     w.innerHTML=`<div class="ovbox wide faconf" role="dialog" aria-labelledby="facq"><button type="button" class="xclose" id="facX" aria-label="Close">×</button><h2 id="facq">Configure Automation</h2>${whereHTML("w")}${autoTabsHTML()}<div class="fabody">${autoBodyHTML("w",false)}</div><p class="acts"><button type="button" class="btn" id="facOk">Done</button></p></div>`;
@@ -9965,10 +9984,12 @@ function camMid(w){const r=w.getBoundingClientRect(),l=Math.max(r.left,0),t=Math
 function camGrid(){const B=$("#board"),rows=B?B.querySelectorAll(":scope>.row"):[];if(!rows.length)return null;const a=rows[0].querySelectorAll(".tile");if(!a.length)return null;
   const r0=a[0].getBoundingClientRect(),b=rows.length>1?rows[1].querySelector(".tile"):null;
   return {x:r0.left,y:r0.top,px:(a.length>1?a[1].getBoundingClientRect().left-r0.left:r0.width)||1,py:(b?b.getBoundingClientRect().top-r0.top:r0.height)||1}}
+/* v78j: how many screen pixels one of the page's pixels takes (a zoomed page: phones, the interface size) */
+const camZf=w=>w&&w.offsetWidth?w.getBoundingClientRect().width/w.offsetWidth||1:1;
 function camZoom(f){const w=camWrap();if(!w||!isLarge())return;const z0=CAM.z,z1=Math.max(CAM.ZMIN,Math.min(CAM.ZMAX,z0*f));if(z1===z0)return;
   const [cx,cy]=camMid(w),g0=camGrid();CAM.z=z1;$("#board").style.setProperty("--tw",Math.round(CAM.TILE*z1)+"px");
-  const g1=g0&&camGrid();if(!g1)return;
-  w.scrollLeft+=g1.x+(cx-g0.x)/g0.px*g1.px-cx;w.scrollTop+=g1.y+(cy-g0.y)/g0.py*g1.py-cy}
+  const g1=g0&&camGrid();if(!g1)return;const z=camZf(w);
+  w.scrollLeft+=(g1.x+(cx-g0.x)/g0.px*g1.px-cx)/z;w.scrollTop+=(g1.y+(cy-g0.y)/g0.py*g1.py-cy)/z}
 function camPan(dx,dy){const w=camWrap();if(!w||!isLarge())return;w.scrollBy({left:dx,top:dy,behavior:"auto"})}
 function camWire(w){
   w.addEventListener("wheel",e=>{if(!isLarge()||e.ctrlKey)return;
@@ -10065,7 +10086,7 @@ function kothPlan(o){const N=KOTH_N,C=KOTH_C,spots=kothSpots(o),seats=spots.map(
   return {theme:"hill",cols:N,rows:N,mid:true,corners:false,bridge:"left",void:V,seed:(Math.random()*1e9)|0,layout:"koth",seats,teams,big:"koth",large:true}}
 
 /* ---------- the Hill: who holds it, the points, the win ---------- */
-const kothGroup=pl=>G.opts.koth.team?"t"+G.p[pl].team:"p"+pl;
+const kothGroup=pl=>G.opts.koth.team&&G.p[pl].team<2?"t"+G.p[pl].team:"p"+pl;   // v78j: a betrayer is their own side
 const kothGroupName=g=>g[0]==="t"?(g==="t0"?"Side A":"Side B"):G.p[+g.slice(1)].name;
 const kothGroupColor=g=>g[0]==="t"?TEAM_COL[+g.slice(1)]||"#ddd":G.p[+g.slice(1)].color;
 function kothHolders(){const h=new Map();
@@ -10074,7 +10095,7 @@ function kothHolders(){const h=new Map();
 function kothRound(){const K=G.opts.koth,S=G.koth||(G.koth={score:{},tug:0,last:null});if(G.moon.round<1)return;
   const h=[...kothHolders().keys()],pts=K.double?2:1;
   if(!h.length){S.last="Nobody holds the Hill.";return}
-  if(K.tug){if(h.length>1){S.last="Both sides hold the Hill: the rope doesn't move.";log(S.last);return}
+  if(K.tug){if(h.length>1||h[0][0]!=="t"){S.last=h.length>1?"The Hill is shared: the rope doesn't move.":`${kothGroupName(h[0])} holds the Hill alone: the rope doesn't move.`;log(S.last);return}
     S.tug=Math.max(-25,Math.min(25,S.tug+(h[0]==="t0"?-pts:pts)));S.last=`${kothGroupName(h[0])} pulls the rope (${S.tug>0?"+":""}${S.tug}).`;log(`<b>King of the Hill</b>: ${S.last}`,"event");
     if(Math.abs(S.tug)>=25)kothWin(S.tug<0?"t0":"t1","pulled the rope all the way");return}
   if(K.contest&&h.length>1){S.last="The Hill is contested: nobody scores.";log(`<b>King of the Hill</b>: ${S.last}`);return}
@@ -10105,7 +10126,7 @@ function kothWin(g,why){if(G.over)return;const w=g[0]==="t"?alive().find(i=>!isN
     const st=G.board[r][c];if(st&&!isNPC(st.owner)&&G.p[st.owner]){t.style.setProperty("--hc",cbMap(kothGroupColor(kothGroup(st.owner))));t.style.setProperty("--ho",cbMap(G.p[st.owner].color));t.classList.add("held")}}
   for(const [g] of kothHolders())hold.set(g,true);
   if(!bar){bar=document.createElement("div");bar.id="kothbar";const w=$(".camwrap")||$("#board");w.parentNode.insertBefore(bar,w)}
-  const groups=K.team?["t0","t1"]:alive().filter(i=>!isNPC(i)&&!isHorde(i)).map(i=>"p"+i);
+  const groups=K.team?["t0","t1",...alive().filter(i=>!isNPC(i)&&!isHorde(i)&&G.p[i].team>1).map(i=>"p"+i)]:alive().filter(i=>!isNPC(i)&&!isHorde(i)).map(i=>"p"+i);
   bar.innerHTML=K.tug?`<b class="kt">Tug of war</b><span class="tugname" style="--tc:${TEAM_COL[0]}">Side A</span><span class="tug"><i style="left:${50+S.tug*2}%"></i><u></u></span><span class="tugname" style="--tc:${TEAM_COL[1]}">Side B</span><small>${S.tug>0?"+":""}${S.tug} of ±25</small>`
     :`<b class="kt">King of the Hill</b><small>first to ${K.target}${K.double?" · double points":""}${K.contest?" · contested scores nothing":""}</small>${groups.map(g=>`<span class="ks${hold.has(g)?" on":""}" style="--tc:${kothGroupColor(g)}" title="${hold.has(g)?"Holds the Hill":""}"><em>${esc(kothGroupName(g))}</em><i style="width:${Math.min(100,(S.score[g]||0)/K.target*100)}%"></i><b>${S.score[g]||0}</b></span>`).join("")}`}}
 
@@ -12238,7 +12259,7 @@ const rbOptsHTML=()=>`<details class="rbopts"><summary>Options</summary>
 function rbHTML(pl){const win=pl==="win";
   return `<div class="rbbar">${rbBackHTML(pl)}${win?`<button type="button" class="xclose" data-rbclose="1" aria-label="Close the Rule book">×</button>`:""}</div>
 <div class="rbfindrow"><input type="search" class="rbq" value="${esc(rbState(pl).q)}" placeholder="Find a rule: a code (5.C) or any words (Joker)" aria-label="Find a rule by its code or its words">${rbOptsHTML()}</div>
-${win?`<p class="rbkeys">Space: forward · Shift+Space: back · they don't end your turn while this is open; × or Esc closes it</p>`:""}
+${win&&!fsTouchOnly()?`<p class="rbkeys">Space: forward · Shift+Space: back · they don't end your turn while this is open; × or Esc closes it</p>`:""}
 <div class="rbview">${rbViewHTML(pl)}</div>`}
 const rbHost=pl=>pl==="win"?$("#rbwin .rbbox"):pl==="help"?$("#info details.rbhelp .rbbody"):$("#rbfoot .rbbody");
 function rbPaint(pl,keepFocus){const h=rbHost(pl);if(!h||!RB)return;const openOpts=!!(h.querySelector(".rbopts")||{}).open;
@@ -12637,7 +12658,7 @@ function fsEnter(){if(!G||fsOn())return;const h=document.documentElement;FS.y=sc
 function fsExit(){if(!fsOn())return;fsCloseAll();const h=document.documentElement;h.classList.remove("ecfs","fs-sp","fs-sel");
   CAM.ZMIN=FS.zmin;CAM.ZMAX=FS.zmax||2.2;CAM.z=FS.z0;const api=FS.api;FS.api=false;
   if(api&&document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});
-  if(G)render();const y=FS.y;requestAnimationFrame(()=>scrollTo(0,y))}
+  if(G)render();if(typeof paintFolds==="function")paintFolds();const y=FS.y;requestAnimationFrame(()=>scrollTo(0,y))}   // v78j: and the folds as they were
 document.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement&&fsOn()&&FS.api){FS.api=false;fsExit()}else if(fsOn())fsFit()});
 /* fit the field to the screen, then center it */
 function fsFit(){if(!fsOn()||!G)return;const w=camWrap(),B=$("#board");if(!w||!B)return;
@@ -12646,8 +12667,8 @@ function fsFit(){if(!fsOn()||!G)return;const w=camWrap(),B=$("#board");if(!w||!B
     const bw=B.offsetWidth,bh=B.offsetHeight;if(!bw||!bh||pw<=0||ph<=0)return;
     CAM.z=Math.max(CAM.ZMIN,Math.min(CAM.ZMAX,CAM.z*Math.min(pw/bw,ph/bh)));B.style.setProperty("--tw",Math.round(CAM.TILE*CAM.z)+"px")};
   pass();requestAnimationFrame(()=>{pass();requestAnimationFrame(()=>fsCenter(w,B,pt,pb))})}
-function fsCenter(w,B,pt,pb){const wr=w.getBoundingClientRect(),br=B.getBoundingClientRect(),cy=wr.top+pt+(w.clientHeight-pt-pb)/2,cx=wr.left+w.clientWidth/2;   // the middle of the room between the panels
-  w.scrollLeft+=br.left+br.width/2-cx;w.scrollTop+=br.top+br.height/2-cy}
+function fsCenter(w,B,pt,pb){const z=camZf(w),wr=w.getBoundingClientRect(),br=B.getBoundingClientRect(),cy=wr.top+(pt+(w.clientHeight-pt-pb)/2)*z,cx=wr.left+w.clientWidth/2*z;   // the middle of the room between the panels (v78j: in screen pixels)
+  w.scrollLeft+=(br.left+br.width/2-cx)/z;w.scrollTop+=(br.top+br.height/2-cy)/z}
 /* a new orientation (or the first moments, while the browser goes fullscreen) fits it again; your own zoom stays otherwise */
 addEventListener("resize",()=>{if(!fsOn())return;const turned=(innerWidth>innerHeight)!==(FS.ow>FS.oh);FS.ow=innerWidth;FS.oh=innerHeight;
   if(turned||Date.now()<FS.fitUntil){clearTimeout(FS.rt);FS.rt=setTimeout(fsFit,120)}});
@@ -12661,12 +12682,12 @@ const FSP=new Map();let fsPan=null,fsPinch=null,fsMoved=false;
 document.addEventListener("pointerdown",e=>{if(!fsOn()||e.pointerType!=="touch"||!e.target.closest)return;const w=e.target.closest(".camwrap");if(!w||e.target.closest(".ci"))return;   // the corner tab drags to compare
   FSP.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(FSP.size===2){const [a,b]=[...FSP.values()];fsPinch={d:Math.hypot(a.x-b.x,a.y-b.y),z:CAM.z};fsMoved=true}
-  else if(FSP.size===1){fsPan={x:e.clientX,y:e.clientY,l:w.scrollLeft,t:w.scrollTop,w};fsMoved=false}},true);
+  else if(FSP.size===1){fsPan={x:e.clientX,y:e.clientY,l:w.scrollLeft,t:w.scrollTop,w,z:camZf(w)};fsMoved=false}},true);
 document.addEventListener("pointermove",e=>{if(!FSP.has(e.pointerId))return;FSP.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(FSP.size>=2&&fsPinch){const [a,b]=[...FSP.values()],d=Math.hypot(a.x-b.x,a.y-b.y);if(fsPinch.d>12)camZoom(fsPinch.z*d/fsPinch.d/CAM.z,(a.x+b.x)/2,(a.y+b.y)/2);return}
-  if(fsPan){const dx=e.clientX-fsPan.x,dy=e.clientY-fsPan.y;if(!fsMoved&&Math.abs(dx)+Math.abs(dy)>8)fsMoved=true;if(fsMoved){fsPan.w.scrollLeft=fsPan.l-dx;fsPan.w.scrollTop=fsPan.t-dy}}},true);
+  if(fsPan){const dx=e.clientX-fsPan.x,dy=e.clientY-fsPan.y;if(!fsMoved&&Math.abs(dx)+Math.abs(dy)>8)fsMoved=true;if(fsMoved){fsPan.w.scrollLeft=fsPan.l-dx/fsPan.z;fsPan.w.scrollTop=fsPan.t-dy/fsPan.z}}},true);   // v78j: the field follows the finger
 const fsUp=e=>{if(!FSP.has(e.pointerId))return;FSP.delete(e.pointerId);if(FSP.size<2)fsPinch=null;
-  if(FSP.size===1&&fsPan){const [p]=[...FSP.values()];fsPan={x:p.x,y:p.y,l:fsPan.w.scrollLeft,t:fsPan.w.scrollTop,w:fsPan.w}}   // one finger left: it goes on moving the field
+  if(FSP.size===1&&fsPan){const [p]=[...FSP.values()];fsPan={x:p.x,y:p.y,l:fsPan.w.scrollLeft,t:fsPan.w.scrollTop,w:fsPan.w,z:fsPan.z}}   // one finger left: it goes on moving the field
   if(!FSP.size){fsPan=null;if(fsMoved)setTimeout(()=>{fsMoved=false},60)}};
 document.addEventListener("pointerup",fsUp,true);document.addEventListener("pointercancel",fsUp,true);
 document.addEventListener("click",e=>{if(fsMoved&&fsOn()&&e.target.closest&&e.target.closest(".camwrap")){e.stopPropagation();e.preventDefault();fsMoved=false}},true);   // a swipe is not a click on a tile
@@ -13299,9 +13320,11 @@ function dipRound(){if(!dipOn()||NET.role==="guest")return;const D=dipD(),r=G.mo
     for(const u of T){if(u===t||D.pend.some(p=>p.ft===t&&p.tt===u))continue;const rel=dipRel(t,u).s,tr=dipTrust(t,u);
       if(rel==="war"&&tr>-50&&strengthOfTeam(t)<strengthOfTeam(u)*.9&&Math.random()<.2){dipPropose(pl,u,"peace",1+R(3));break}
       if(rel==="peace"&&tr>=30&&T.length>2&&dipCommonFoe(t,u)&&Math.random()<.15){dipPropose(pl,u,"ally");break}}}}
-function dipTwoLeft(){if(!G||!G.dip||!dipOn())return;const T=dipTeams();if(T.length>2)return;let n=0;
+function dipTwoLeft(){if(!G||!G.dip||!dipOn())return;const T=dipTeams();
+  const calm=T.length>2&&T.every((t,i)=>T.slice(i+1).every(u=>dipRel(t,u).s!=="war"));   // v78j: nobody left at war: the alliances end too
+  if(T.length>2&&!calm)return;let n=0;
   for(const k in G.dip.rel){const R0=G.dip.rel[k];if(R0.s==="ally"){R0.s="war";n++}}
-  if(n){G._vis=null;log("<b>Only two sides are left</b>: every alliance ends (peace is still allowed).","event")}}
+  if(n){G._vis=null;log(T.length>2?"<b>No side left is at war</b>: every alliance ends (peace is still allowed).":"<b>Only two sides are left</b>: every alliance ends (peace is still allowed).","event")}}
 {const _cr=cycleRound;cycleRound=async function(){await _cr.apply(this,arguments);if(G&&!G.over)try{dipRound()}catch(e){console.error(e)}}}
 {const _el=eliminate;eliminate=function(){const out=_el.apply(this,arguments);try{dipTwoLeft()}catch(e){}return out}}
 /* the Banker's disapproval: rolled at the start of each of the betrayer's turns */
@@ -14085,7 +14108,7 @@ function fgPickPaint(){document.querySelectorAll(".fgok,.fgon,.fgfrom").forEach(
     else if(p.op!=="area"&&(p.op==="guard"||fgCanJoin(o.st)))t.classList.add(p.list&&p.list.some(([a,b])=>a===o.r&&b===o.c)?"fgon":"fgok")}
   if(!bar){bar=document.createElement("div");bar.id="fgpick";bar.setAttribute("role","status");document.body.appendChild(bar)}
   const multi=p.op==="squad"||p.op==="add";
-  bar.innerHTML=`<span>${esc(p.text)}${p.list?` · ${p.list.length+1} of ${FG_MAX}`:""} · ${esc(kmShow("act"))} or a click${multi?"; Esc when done":"; Esc stops"}</span>${multi?`<button type="button" class="btn sm" id="fgDone">Done</button>`:""}<button type="button" class="btn ghost sm" id="fgStop">${multi?"Cancel":"Stop"}</button>`;
+  bar.innerHTML=`<span>${esc(p.text)}${p.list?` · ${p.list.length+1} of ${FG_MAX}`:""} · ${fsTouchOnly()?`tap a stack${multi?"; Done when done":""}`:`${esc(kmShow("act"))} or a click${multi?"; Esc when done":"; Esc stops"}`}</span>${multi?`<button type="button" class="btn sm" id="fgDone">Done</button>`:""}<button type="button" class="btn ghost sm" id="fgStop">${multi?"Cancel":"Stop"}</button>`;
   bar.hidden=false;const d=$("#fgDone");if(d)d.onclick=()=>fgPickEnd(true);$("#fgStop").onclick=()=>fgPickEnd(false)}
 {const _tc=tileClick;tileClick=function(r,c){const p=FG.pick;if(!p||!G)return _tc.apply(this,arguments);const V=view(),st=G.board[r]&&G.board[r][c],mine=st&&st.owner===V,from=p.from;
   if(r===from[0]&&c===from[1]&&p.op!=="area"){flash("That is the stack itself: click another.");return}
@@ -14386,7 +14409,7 @@ function kbClose(){const w=kbTop();if(!w)return false;const x=[...w.querySelecto
 const kbShow=el=>{if(!el)return;if(!fsOn())el.scrollIntoView({block:"center",behavior:"smooth"});el.classList.add("spping");setTimeout(()=>el.classList.remove("spping"),1600)};
 /* the camera on a tile: the large map's frame, or the page */
 function kbLook(r,c){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(!t)return;const w=camWrap();
-  if(w&&isLarge()){const [mx,my]=camMid(w),tr=t.getBoundingClientRect();w.scrollLeft+=tr.left+tr.width/2-mx;w.scrollTop+=tr.top+tr.height/2-my;if(!fsOn())w.scrollIntoView({block:"nearest"})}
+  if(w&&isLarge()){const [mx,my]=camMid(w),tr=t.getBoundingClientRect(),z=camZf(w);w.scrollLeft+=(tr.left+tr.width/2-mx)/z;w.scrollTop+=(tr.top+tr.height/2-my)/z;if(!fsOn())w.scrollIntoView({block:"nearest"})}
   else t.scrollIntoView({block:"center",behavior:"smooth"});t.classList.add("kbping");setTimeout(()=>t.classList.remove("kbping"),1200)}
 /* the spells: their schools, and the piles last */
 const kbSchools=()=>{const box=$("#spells");const out=box?[...box.querySelectorAll("details.school")].map(d=>({el:d,items:[...d.querySelectorAll("button.spell")]})):[];

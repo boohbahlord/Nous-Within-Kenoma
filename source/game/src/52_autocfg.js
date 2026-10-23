@@ -70,7 +70,7 @@ function wireAuto(root){
   root.querySelectorAll("[data-atab]").forEach(b=>b.onclick=()=>{autoTab=b.dataset.atab;PREF.autoTab=autoTab;savePrefs();paintFA()});
   faWire(root);rdWire(root);lhWire(root);const t=root.querySelector("#faTogU");if(t)t.onclick=faToggle}
 faWindow=function(tab){if(typeof tab==="string")autoTab=tab;let box=$("#facfg");if(!box){box=document.createElement("div");box.id="facfg";box.className="faov";document.body.appendChild(box)}
-  box.hidden=false;paintFA()};
+  box.hidden=false;box.onclick=e=>{if(e.target===box)box.hidden=true};paintFA()};   // v78j: a click outside closes it
 paintFA=function(){const V=G?view():null,c=faMine();
   const w=$("#facfg");if(w&&!w.hidden){const sc=w.querySelector(".fabody")?w.querySelector(".fabody").scrollTop:0;
     w.innerHTML=`<div class="ovbox wide faconf" role="dialog" aria-labelledby="facq"><button type="button" class="xclose" id="facX" aria-label="Close">×</button><h2 id="facq">Configure Automation</h2>${whereHTML("w")}${autoTabsHTML()}<div class="fabody">${autoBodyHTML("w",false)}</div><p class="acts"><button type="button" class="btn" id="facOk">Done</button></p></div>`;

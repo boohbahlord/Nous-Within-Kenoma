@@ -337,11 +337,10 @@ function bury(card,r,c,st){
 function fallen(pl){return hq()?!stacksOf(pl).some(x=>hasK(x.st,"ace")):!stacksOf(pl).length}
 function checkWin(){
   if(G.over||G.phase==="setup")return;
-  for(const pl of alive()){
-    if(isHorde(pl))continue;
-    if(fallen(pl))eliminate(pl,hq()?`every base ${plName(pl)} had is destroyed`:`every card ${plName(pl)} had on the field is destroyed`);
-    if(G.over)return;
-  }
+  const down=alive().filter(pl=>!isHorde(pl)&&fallen(pl));if(!down.length)return;   // v78j: all who fall in one event fall together
+  const why=pl=>hq()?`every base ${plName(pl)} had is destroyed`:`every card ${plName(pl)} had on the field is destroyed`;
+  if(!survival()&&!alive().some(i=>!isNPC(i)&&!down.includes(i))){for(const pl of down)G.p[pl].out=true;end(null,down.map(why).join("; "));return}
+  for(const pl of down){eliminate(pl,why(pl));if(G.over)return}
 }
 function checkEconomic(pl){
   if(survival()||G.p[pl].out)return;
@@ -350,23 +349,25 @@ function checkEconomic(pl){
 }
 /* a player is out: their cards leave play, then the game ends if one side is left */
 function eliminate(pl,why){
-  const P=G.p[pl];if(P.out)return;P.out=true;
+  const P=G.p[pl];if(P.out||G.over)return;P.out=true;   // v78j: not once the game is over
   if(survival()){
     log(`<b>${plName(pl)} falls</b>: ${why}.`,"event");
-    if(!G.p.some(Q=>!Q.out&&!isHorde(Q.i))){endSurvival();return}
+    if(!G.p.some(Q=>!Q.out&&!isHorde(Q.i))){endSurvival(why);return}
   }else{
     const teams=new Set(alive().filter(i=>!isNPC(i)).map(i=>G.p[i].team));
-    if(teams.size<=1){const w=alive()[0];end(w,why);return}
+    if(G.fallTogether)G.fallTogether.push(why);   // turns ending together: settled after the last one
+    else if(teams.size<=1){end(alive().find(i=>!isNPC(i))??null,why);return}   // v78j: never a side like the Demon Band; nobody left is a draw
     log(`<b>${plName(pl)} is eliminated</b>: ${why}.`,"event");
   }
   // what is left of them leaves the table
   const toOD=G.opts.elimDark;const dump=c=>{if(toOD||c.puppet)toDark(c);else{c.owner=pl;toGrave(c,"out")}};   // v78j: toGrave sorts out Emanation cards
   for(const {st,r,c} of stacksOf(pl)){for(const x of st.cards){for(const s of x.captured||[])dump(s);x.captured=[];dump(x)}if(st.captive){dump(st.captive);st.captive=null}G.board[r][c]=null}
-  const shared=alliesOf(pl).some(a=>G.p[a].deck===P.deck);
+  const shared=G.p.some(Q=>Q!==P&&!Q.out&&Q.deck===P.deck);   // v78j: whoever still holds it keeps it
   for(const c of P.hand.splice(0))dump(c);
   if(!shared){for(const c of P.deck.splice(0))dump(c);for(const c of P.souls.splice(0))dump(c)}
   if(!toOD)shuffle(G.grave);
   log(toOD?`${plName(pl)}'s hand and deck fall into the Outer Darkness.`:`${plName(pl)}'s hand and deck go to the grave, and the grave is shuffled.`);
   if(G.moonLev&&G.moonLev.owner===pl){const L=G.moonLev;G.moonLev=null;L.card.hp=L.card.maxHp;toDark(L.card);log("With its master gone, the Leviathan falls from the moon into the Outer Darkness.","event")}   // v78j
+  if(G.saturnBy===pl&&G.moon.gone==="saturn"){G.saturnBy=null;G.saturnDebt=0;log("With its master gone, Saturn answers to no one: everyone pays its toll, and the toll goes to the Bank.","event")}   // v78j
   if(G.active===pl&&G.waiter){const f=G.waiter;G.waiter=null;stopTimer();f()}   // v78j: out on their own turn: it ends (it waited for a button they no longer have)
 }

@@ -162,6 +162,10 @@ SPELLS.push(
    const sure=await ask(pl,{kind:"yesno",id:"betray",title:"Betrayal",text:`Betray ${mates.map(i=>esc(G.p[i].name)).join(" and ")}? It can't be undone.`,yes:"Betray",no:"Stay loyal",ai:()=>true});
    if(!sure){const back=giveMana(pl,spellCost(SP("betray")));if(G.bank)G.bank.mana-=back;log(`${plName(pl)} thinks better of it.`);return}   // v78j: from the Bank
    G.p[pl].team=300+pl;G.betrayal={by:pl,mates,until:G.moon.round+1};G._vis=null;
+   {const P=G.p[pl],n=1+mates.filter(m=>G.p[m].deck===P.deck).length;   // v78j: a shared deck and soul pile split, the betrayer taking their share
+    if(n>1){const share=(a,k)=>{const out=[];while(out.length<k&&a.length)out.push(a.splice(Math.floor(Math.random()*a.length),1)[0]);return out};
+      P.deck=share(P.deck,Math.floor(P.deck.length/n));P.souls=share(P.souls,Math.floor(P.souls.length/n));for(const c of [...P.deck,...P.souls])c.owner=pl;
+      log(`${plName(pl)} takes their share of the team's deck and soul pile.`)}}
    log(`<b>Betrayal</b>: ${plName(pl)} turns on ${mates.map(plName).join(" and ")}.`,"event");
    popup("Betrayal",`<p>${plName(pl)} betrays ${mates.map(plName).join(" and ")}. They are enemies now, for good.</p><p>For two rounds every card killed falls into the Outer Darkness, and every damage between them pays its dealer.</p>`,pl);checkWin()}},
  {id:"warnow",dice:"1d2+2d3",name:"Declare War",cost:6,school:"Astrology",text:"Oath of Mercury, without a vote: Total War for 1d2 rounds.",

@@ -40,10 +40,10 @@ function hordePlace(c){
   if(weak&&stackRate(weak.st)<rate(c)){G.board[weak.r][weak.col]={owner:pl,cards:[c],moved:false,attacked:false};return true}
   return false;
 }
-function endSurvival(){
-  G.over=true;const n=Math.max(0,G.round-1);
+function endSurvival(why){
+  G.over=true;stopTimer();closeEther();closeDrawer();const n=Math.max(0,G.round-1);   // v78j: the timer and the drawers end with it
   log(`<b>The Horde takes the field.</b> You survived ${n} round${n===1?"":"s"}.`,"win");render();
   $("#ov").className="";
-  $("#ov").innerHTML=`<div class="ovbox"><p class="bl roundbig">${roman(n)}</p><h2>You survived ${n} round${n===1?"":"s"}</h2><p class="dim">Your last card on the field fell in round ${roman(Math.max(1,G.round))}.</p><p><button class="btn" id="again">Play again</button></p></div>`;
+  $("#ov").innerHTML=`<div class="ovbox"><p class="bl roundbig">${roman(n)}</p><h2>You survived ${n} round${n===1?"":"s"}</h2><p class="dim">${why&&!/^every (card|base)/.test(why)?`${why.charAt(0).toUpperCase()+why.slice(1)}, in round ${roman(Math.max(1,G.round))}.`:`Your last card on the field fell in round ${roman(Math.max(1,G.round))}.`}</p><p><button class="btn" id="again">Play again</button></p></div>`;
   $("#ov").hidden=false;$("#again").onclick=showStart;
 }

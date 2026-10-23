@@ -28,7 +28,7 @@ function fsEnter(){if(!G||fsOn())return;const h=document.documentElement;FS.y=sc
 function fsExit(){if(!fsOn())return;fsCloseAll();const h=document.documentElement;h.classList.remove("ecfs","fs-sp","fs-sel");
   CAM.ZMIN=FS.zmin;CAM.ZMAX=FS.zmax||2.2;CAM.z=FS.z0;const api=FS.api;FS.api=false;
   if(api&&document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});
-  if(G)render();const y=FS.y;requestAnimationFrame(()=>scrollTo(0,y))}
+  if(G)render();if(typeof paintFolds==="function")paintFolds();const y=FS.y;requestAnimationFrame(()=>scrollTo(0,y))}   // v78j: and the folds as they were
 document.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement&&fsOn()&&FS.api){FS.api=false;fsExit()}else if(fsOn())fsFit()});
 /* fit the field to the screen, then center it */
 function fsFit(){if(!fsOn()||!G)return;const w=camWrap(),B=$("#board");if(!w||!B)return;
@@ -37,8 +37,8 @@ function fsFit(){if(!fsOn()||!G)return;const w=camWrap(),B=$("#board");if(!w||!B
     const bw=B.offsetWidth,bh=B.offsetHeight;if(!bw||!bh||pw<=0||ph<=0)return;
     CAM.z=Math.max(CAM.ZMIN,Math.min(CAM.ZMAX,CAM.z*Math.min(pw/bw,ph/bh)));B.style.setProperty("--tw",Math.round(CAM.TILE*CAM.z)+"px")};
   pass();requestAnimationFrame(()=>{pass();requestAnimationFrame(()=>fsCenter(w,B,pt,pb))})}
-function fsCenter(w,B,pt,pb){const wr=w.getBoundingClientRect(),br=B.getBoundingClientRect(),cy=wr.top+pt+(w.clientHeight-pt-pb)/2,cx=wr.left+w.clientWidth/2;   // the middle of the room between the panels
-  w.scrollLeft+=br.left+br.width/2-cx;w.scrollTop+=br.top+br.height/2-cy}
+function fsCenter(w,B,pt,pb){const z=camZf(w),wr=w.getBoundingClientRect(),br=B.getBoundingClientRect(),cy=wr.top+(pt+(w.clientHeight-pt-pb)/2)*z,cx=wr.left+w.clientWidth/2*z;   // the middle of the room between the panels (v78j: in screen pixels)
+  w.scrollLeft+=(br.left+br.width/2-cx)/z;w.scrollTop+=(br.top+br.height/2-cy)/z}
 /* a new orientation (or the first moments, while the browser goes fullscreen) fits it again; your own zoom stays otherwise */
 addEventListener("resize",()=>{if(!fsOn())return;const turned=(innerWidth>innerHeight)!==(FS.ow>FS.oh);FS.ow=innerWidth;FS.oh=innerHeight;
   if(turned||Date.now()<FS.fitUntil){clearTimeout(FS.rt);FS.rt=setTimeout(fsFit,120)}});
@@ -52,12 +52,12 @@ const FSP=new Map();let fsPan=null,fsPinch=null,fsMoved=false;
 document.addEventListener("pointerdown",e=>{if(!fsOn()||e.pointerType!=="touch"||!e.target.closest)return;const w=e.target.closest(".camwrap");if(!w||e.target.closest(".ci"))return;   // the corner tab drags to compare
   FSP.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(FSP.size===2){const [a,b]=[...FSP.values()];fsPinch={d:Math.hypot(a.x-b.x,a.y-b.y),z:CAM.z};fsMoved=true}
-  else if(FSP.size===1){fsPan={x:e.clientX,y:e.clientY,l:w.scrollLeft,t:w.scrollTop,w};fsMoved=false}},true);
+  else if(FSP.size===1){fsPan={x:e.clientX,y:e.clientY,l:w.scrollLeft,t:w.scrollTop,w,z:camZf(w)};fsMoved=false}},true);
 document.addEventListener("pointermove",e=>{if(!FSP.has(e.pointerId))return;FSP.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(FSP.size>=2&&fsPinch){const [a,b]=[...FSP.values()],d=Math.hypot(a.x-b.x,a.y-b.y);if(fsPinch.d>12)camZoom(fsPinch.z*d/fsPinch.d/CAM.z,(a.x+b.x)/2,(a.y+b.y)/2);return}
-  if(fsPan){const dx=e.clientX-fsPan.x,dy=e.clientY-fsPan.y;if(!fsMoved&&Math.abs(dx)+Math.abs(dy)>8)fsMoved=true;if(fsMoved){fsPan.w.scrollLeft=fsPan.l-dx;fsPan.w.scrollTop=fsPan.t-dy}}},true);
+  if(fsPan){const dx=e.clientX-fsPan.x,dy=e.clientY-fsPan.y;if(!fsMoved&&Math.abs(dx)+Math.abs(dy)>8)fsMoved=true;if(fsMoved){fsPan.w.scrollLeft=fsPan.l-dx/fsPan.z;fsPan.w.scrollTop=fsPan.t-dy/fsPan.z}}},true);   // v78j: the field follows the finger
 const fsUp=e=>{if(!FSP.has(e.pointerId))return;FSP.delete(e.pointerId);if(FSP.size<2)fsPinch=null;
-  if(FSP.size===1&&fsPan){const [p]=[...FSP.values()];fsPan={x:p.x,y:p.y,l:fsPan.w.scrollLeft,t:fsPan.w.scrollTop,w:fsPan.w}}   // one finger left: it goes on moving the field
+  if(FSP.size===1&&fsPan){const [p]=[...FSP.values()];fsPan={x:p.x,y:p.y,l:fsPan.w.scrollLeft,t:fsPan.w.scrollTop,w:fsPan.w,z:fsPan.z}}   // one finger left: it goes on moving the field
   if(!FSP.size){fsPan=null;if(fsMoved)setTimeout(()=>{fsMoved=false},60)}};
 document.addEventListener("pointerup",fsUp,true);document.addEventListener("pointercancel",fsUp,true);
 document.addEventListener("click",e=>{if(fsMoved&&fsOn()&&e.target.closest&&e.target.closest(".camwrap")){e.stopPropagation();e.preventDefault();fsMoved=false}},true);   // a swipe is not a click on a tile

@@ -356,7 +356,7 @@ if shutil.which('node'):
         sys.stderr.write('ethers-crossroads.js does not parse:\n' + (chk.stderr or chk.stdout)[-1500:] + '\n'); sys.exit(1)
 # v78j: a version note ("// v78j: …") is the end of its line: code after it would be commented out without a sound
 import glob, re
-_code = re.compile(r'if\(|\)return\b|return;|\)\{|\};|\b(?:const|let) \w+\s*=|=>')
+_code = re.compile(r'if\(|\)return\b|return;|\)\{|\};|(?:const|let) \w+\s*=|=>')
 _cut = [f'{os.path.basename(f)}:{i}' for f in sorted(glob.glob('game/src/*.js'))
         for i, l in enumerate(open(f, encoding='utf8'), 1)
         for m in re.finditer(r'//\s*v\d+[a-z]?\b', l) if _code.search(l[m.end():])]
