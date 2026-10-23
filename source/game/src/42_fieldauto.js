@@ -5,19 +5,20 @@
    In the game: a small "Auto field" button by the turn buttons (it asks first, the X counts as No), and a small square beside it
    that opens its settings. The field moves at the end of your prep phase (after you place and cast) and attacks at the start of
    your attack phase; the stacks it doesn't control are yours to move and attack with as usual.
-   The settings, top to bottom: the simple modes; Attack (always on); Stance; Ambush; then, for every option: Rush, Formation,
-   Lives, Picking battles, Target bases (with walls that don't block the way ignored) and Focus on crystals (v71n: its
+   The settings, top to bottom: the simple modes (Fully automatic, Attacks only, Every option); Attack; Stance; Aggression (with
+   Rush); Ambush; Formation (Wide: small groups; Tall: one army); Risk (v79g: Lives and Picking battles in one); Target bases
+   (Walls that don't block the way are always ignored) and Focus on crystals (v71n: its
    options and its guards are in 80_crystals.js), which cards it controls ("Yes, and…" adds
    single kinds of card), Hierarchical control (the order in which these principles win when they pull apart; two can be made
    equal, and then the state of the field decides between them; Target bases and Focus on crystals can be taken out of it with
    their ×, and brought back with +), and the same controls under the field instead of a window. */
 
-const FA_PRINC=[["noatk","Don't attack"],["stance","Stance"],["rush","Rush"],["lives","Lives"],["battles","Picking battles"],["formation","Formation"],["bases","Target bases"],["crystals","Focus on crystals"],["ambush","Ambush"]];
+const FA_PRINC=[["noatk","Don't attack"],["stance","Stance"],["rush","Rush"],["risk","Risk"],["formation","Formation"],["bases","Target bases"],["crystals","Focus on crystals"],["ambush","Ambush"]];
 const FA_CATS=[["soldiers","Soldiers","Grunts, Infantry, Puppets"],["specials","Specials","Jacks, Queens, Kings, Jokers, Assassins"],["support","Support","Scouts, Healers, Repairmen, Rams, Miners"],
   ["ranged","Ranged","Archers and Cannons"],["wildcards","Wildcards","the Emanations' own cards"]];
 const FA_KINDS=["grunt","infantry","puppet","jack","queen","king","joker","assassin","scout","healer","repair","ram","miner","archer","cannon",
   "samson","antony","satan","bullgoat","goatbull","slavemaster","slave","leviathan","trafficker","debt"];
-const FA_DEF={tgroup:true,tgorder:["wildcard","special","base","standard","support"],mode:"full",stance:"auto",rush:0,formation:"auto",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,
+const FA_DEF={tgroup:true,tgorder:["wildcard","special","base","standard","support"],mode:"full",stance:"auto",rush:0,formation:"auto",risk:"normal",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,
   ctl:{soldiers:true,specials:true,support:true,miners:true,ranged:true,wildcards:true},extra:[],hier:false,order:FA_PRINC.map(p=>p[0]),eq:[],under:false,
   noAttack:false,flee:false,tprio:false,torder:null,teq:[],tIgnoreGI:false,tSameGI:false,xminus:[],hill:true,hillHow:"army",grp:"normal",fLink:true,
   tWeak:false,tStk:{strongest:true,weakest:true,minority:true,majority:true},ambFocus:false,crys:false,crysStance:false,crysLives:false,crysMiner:false,crysAsk:false,crysHow:false,crysShow:true,crysFight:false,hout:[],scope:"full",grpSplit:"stay",aggr:true,aggrHow:"auto",aggrN:4};   // v79f: Aggression   // v71n: the crystals, and the principles taken out of the ranking
@@ -26,8 +27,17 @@ const FA_TK=[["wildcards","Wildcards"],["joker","Jokers"],["king","Kings"],["ace
   ["cannon","Cannons"],["infantry","Infantry"],["archer","Archers"],["grunt","Grunts"],["puppet","Puppets"],["healer","Healers"],["repair","Repairmen"],["ram","Rams"],["miner","Miners"],["claimer","Claimers"],["scout","Scouts"]];
 const FA_TKEYS=FA_TK.map(x=>x[0]);
 const FA_OUT=["bases","crystals"];   // v71n: the principles that can be taken out of the ranking (× in it, + to bring them back)
+const FA_RISK_LIVES={careful:"preserve",normal:"balanced",reckless:"throw"};
 const faClean=c=>{c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringify(FA_DEF));
+  /* v79g: Lives and Picking battles are one setting, Risk; older settings and rankings come over (Lives or Picking battles
+     where Risk now stands) */
+  const one=a=>[...new Set(a.map(k=>k==="lives"||k==="battles"?"risk":k))];
+  if(Array.isArray(c.order)&&c.order.some(k=>k==="lives"||k==="battles"))c={...c,order:one(c.order),eq:Array.isArray(c.eq)?c.eq.map(p=>Array.isArray(p)?one(p):p).filter(p=>Array.isArray(p)&&p.length===2):c.eq};
   for(const k of ["mode","stance","formation","lives","battles","hillHow","grp"])if(typeof c[k]==="string")o[k]=c[k];
+  if(!FA_RISK_LIVES[c.risk]){const s=({throw:1,preserve:-1}[c.lives]||0)+({reckless:1,careful:-1}[c.battles]||0);o.risk=s<0?"careful":s>0?"reckless":"normal"}else o.risk=c.risk;
+  o.lives=FA_RISK_LIVES[o.risk];o.battles=o.risk;
+  if(o.formation==="auto"&&(c.grp==="big"||c.grp==="small"))o.formation=c.grp==="big"?"deep":"wide";   // v79g: Attack groups went into Formation (Tall: one army; Wide: small groups)
+  if(o.mode==="mostly")o.mode="custom";   // v79g: Mostly automatic is gone
   o.grpSplit=c.grpSplit==="leave"?"leave":"stay";   // v78e: cards that leave a stack of a group stay in it, or leave it (96d_fagroups.js)
   o.scope=c.scope==="soft"?"soft":"full";
   if(typeof c.aggr==="boolean")o.aggr=c.aggr;if(["auto","radius","square"].includes(c.aggrHow))o.aggrHow=c.aggrHow;if(Number.isFinite(+c.aggrN)&&c.aggrN!=null)o.aggrN=Math.max(1,Math.min(12,Math.round(+c.aggrN)));   // v79f   // v74f: Full field automation (the default) or Soft Automate
@@ -43,7 +53,9 @@ const faClean=c=>{c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringif
   if(Array.isArray(c.order)&&c.order.length===FA_PRINC.length&&FA_PRINC.every(([k])=>c.order.includes(k)))o.order=[...c.order];
   if(typeof c.tWeak==="boolean")o.tWeak=c.tWeak;if(c.tStk&&typeof c.tStk==="object"){o.tStk={};for(const k of ["strongest","weakest","minority","majority"])o.tStk[k]=c.tStk[k]!==false&&(c.tStk[k]===true||FA_DEF.tStk[k])}   // v72e
   if(Array.isArray(c.classes)&&typeof clsClean==="function")o.classes=clsClean(c.classes);if(typeof c.classMulti==="boolean")o.classMulti=c.classMulti;   // v72e: the classes travel with the settings to the game
-  if(Array.isArray(c.eq))o.eq=c.eq.filter(p=>Array.isArray(p)&&p.length===2&&p.every(k=>o.order.includes(k)&&!o.hout.includes(k)));return o};
+  if(Array.isArray(c.eq))o.eq=c.eq.filter(p=>Array.isArray(p)&&p.length===2&&p.every(k=>o.order.includes(k)&&!o.hout.includes(k)));
+  o.grp="normal";o.fLink=true;o.walls=true;o.tIgnoreGI=false;o.tSameGI=false;   // v79g: these settings are gone; they always work this way
+  return o};
 const faMine=()=>faClean(PREF.fa);   // this device's settings
 const faAllowed=()=>!!G&&(G.opts.fieldAuto||"medium")!=="off";
 const faLevel=()=>{const v=G&&G.opts.fieldAuto;return ["easy","medium","hard"].includes(v)?v:"medium"};
@@ -52,7 +64,6 @@ const faOn=pl=>faAllowed()&&!!(faState(pl)&&faState(pl).on)&&!G.p[pl].cpu&&!isNP
 /* the simple modes narrow everything to a few choices */
 function faEff(c){c=faClean(c);const d=JSON.parse(JSON.stringify(FA_DEF));d.hill=c.hill;d.hillHow=c.hillHow;d.scope=c.scope;   // Capture the Hill is the player's in every mode
   if(c.mode==="full")return Object.assign(d,{mode:"full",under:c.under});
-  if(c.mode==="mostly")return Object.assign(d,{mode:"mostly",stance:c.stance,ambush:c.ambush,ambFocus:c.ambFocus,under:c.under,noAttack:c.noAttack,aggr:c.aggr,aggrHow:c.aggrHow,aggrN:c.aggrN});
   if(c.mode==="attacks")return Object.assign(d,{mode:"attacks",ambush:false,under:c.under});
   return c}
 
@@ -63,8 +74,8 @@ function faCat(c){const u=c.unit;if(u==="miner")return "miners";if(u&&UNIT[u]&&U
 function faControls(c,cfg){const k0=faKind(c);if((cfg.xminus||[]).includes(k0))return false;if(cfg.extra.includes(k0))return true;const k=faCat(c);return k==="miners"?cfg.ctl.support||cfg.ctl.miners:!!cfg.ctl[k]}
 
 /* ---------- the hierarchy: higher principles pull harder; equals share a rank, and the field decides between them ---------- */
-const FA_AGGR={noatk:c=>c.noAttack?-1:0,stance:c=>({offensive:1,defensive:-1}[c.stance]||0),rush:c=>c.rush?1:0,lives:c=>({throw:1,preserve:-1}[c.lives]||0),   // Skirmish counts as neither
-  battles:c=>({reckless:1,careful:-1}[c.battles]||0),formation:()=>0,bases:c=>c.bases?1:0,crystals:c=>c.crys?(c.crysFight?1:-1):0,ambush:c=>c.ambush?-1:0};
+const FA_AGGR={noatk:c=>c.noAttack?-1:0,stance:c=>({offensive:1,defensive:-1}[c.stance]||0),rush:c=>c.rush?1:0,risk:c=>({reckless:1,careful:-1}[c.risk]||0),   // Skirmish counts as neither
+  formation:()=>0,bases:c=>c.bases?1:0,crystals:c=>c.crys?(c.crysFight?1:-1):0,ambush:c=>c.ambush?-1:0};
 function faScales(c,pl){const sc={};for(const [k] of FA_PRINC)sc[k]=1;if(!c.hier)return sc;
   const pairOf=k=>c.eq.find(p=>p.includes(k));let rank=0;const seen=new Set();
   for(const k of c.order){if(seen.has(k)||c.hout.includes(k))continue;const p=pairOf(k);const grp=p?p:[k];for(const g of grp){seen.add(g);sc[g]=Math.max(.35,1-.15*rank)}rank++}   // one taken out of the ranking keeps its full weight
@@ -101,14 +112,14 @@ function faCtx(pl){
   const fixed={offensive:FA_OFF,defensive:AI.W.DEF,center:FA_CENTER,skirmish:FA_SKIRM}[c.stance];if(fixed)W=faMix(W,fixed,sc.stance);
   if(faRushing(pl))W=faMix(W,AI.W.PUSH,sc.rush);
   W.ally=(W.ally||0)+({wide:.1,deep:-.1}[c.formation]||0)*sc.formation;W.stack=({deep:.8,wide:-.3}[c.formation]||0)*sc.formation;   // v71: Wide surrounds (below), Tall stacks
-  const lv={preserve:1,balanced:0,throw:-1}[c.lives]||0;W.def=(W.def||0)*(1+.4*lv*sc.lives);
-  const thrAdj=(lv>0?.12:lv<0?-.15:0)*sc.lives+({careful:.08,reckless:-.1}[c.battles]||0)*sc.battles;
+  const lv={preserve:1,balanced:0,throw:-1}[c.lives]||0;W.def=(W.def||0)*(1+.4*lv*sc.risk);   // v79g: Risk (it was Lives and Picking battles)
+  const thrAdj=(lv>0?.12:lv<0?-.15:0)*sc.risk+({careful:.08,reckless:-.1}[c.battles]||0)*sc.risk;
   const ok=grp=>grp.length>0&&grp.every(x=>faControls(x,c));
   // Don't attack: on top it stops every attack; Rush or Target bases ranked above it still get their way
   const rk=faRanks(c),above=k=>c.hier&&rk[k]<rk.noatk,rushes=faRushing(pl)&&above("rush"),basesOnly=c.noAttack&&!rushes&&c.bases&&above("bases"),noAtk=c.noAttack&&!rushes&&!basesOnly;
   const tf=faTargetFactor(c);
   const ring=.3+({wide:.6,deep:-.15}[c.formation]||0)*sc.formation;   // v71: a stack of mine already beside the target counts for this much more
-  return {level:faLevel(),W,thrAdj,aggr:{on:c.aggr!==false&&!noAtk,how:c.aggrHow||"auto",n:c.aggrN||4},form:c.formation,ring,lossMul:1+.5*lv*sc.lives,moves:c.mode!=="attacks",ambushP:c.ambush?.7*sc.ambush:0,ok,flee:c.formation==="deep"&&c.flee,
+  return {level:faLevel(),W,thrAdj,aggr:{on:c.aggr!==false&&!noAtk,how:c.aggrHow||"auto",n:c.aggrN||4},form:c.formation,ring,lossMul:1+.5*lv*sc.risk,moves:c.mode!=="attacks",ambushP:c.ambush?.7*sc.ambush:0,ok,flee:c.formation==="deep"&&c.flee,
     okAtk:(st,o)=>{if(noAtk)return false;const E=G.board[o.r]&&G.board[o.r][o.c];if(basesOnly&&!(E&&hasBase(E)))return false;return o.card?faControls(o.card,c):ok(st.cards.filter(x=>!isBase(x)))},
     gainMul:E=>{let m=tf(E);if(c.bases&&hasBase(E)&&!hasK(E,"wall"))m*=1+sc.bases;
       if(c.walls&&hasK(E,"wall")){const at=AI.enemyStacks(pl).find(e=>e.st===E);if(at&&!faWallBlocks(pl,at.r,at.c))m*=1-.7*sc.bases}return m}}}
@@ -147,7 +158,7 @@ function faToggle(){const V=view(),s=faState(V);if(s&&s.on){setFieldAuto(V,false
 
 /* ---------- the settings, drawn the same in the window and under the field ---------- */
 const faVal=(k,c)=>({stance:{auto:"Automatic",offensive:"Offensive",defensive:"Defensive",center:"Center",skirmish:"Skirmish"}[c.stance],rush:c.rush?`${c.rush} round${c.rush>1?"s":""}`:"Off",
-  lives:{preserve:"Preserve",balanced:"Balanced",throw:"Throw them in"}[c.lives],battles:{careful:"Careful",normal:"Normal",reckless:"Reckless"}[c.battles],
+  risk:{careful:"Careful",normal:"Normal",reckless:"Reckless"}[c.risk],
   formation:{auto:"Automatic",wide:"Wide",deep:"Tall"}[c.formation],bases:c.bases?"On":"Off",crystals:c.crys?"On":"Off",ambush:c.ambush?"On":"Off",noatk:c.noAttack?"On":"Off"})[k];
 /* v47: one kit draws every automation panel the same way: the words on the left, the switch or the arrows on the right */
 function cfgKit(attr,act,pfx){
@@ -169,25 +180,23 @@ const FA_CAUTION="Careful: ranking is a powerful setting. A bad order can lose y
 function faPanelHTML(c,pl,pfx){
   const K=cfgKit("data-fa","data-faact","fa"+pfx),{row,spin,radio,sec}=K;
   const s=pl!=null?faState(pl):null,left=s&&s.rushUntil!=null&&c.rush?Math.max(0,s.rushUntil-G.moon.round+1):null;
-  const custom=c.mode==="custom",some=c.mode==="mostly"||custom;
-  let h=sec("Simple mode",radio("mode",c.mode,[["full","Fully automatic","It decides everything, offense, defense or the center (the default)"],["mostly","Mostly automatic","You choose the stance, ambushes and whether it attacks"],
+  const custom=c.mode==="custom",some=custom;
+  let h=sec("Simple mode",radio("mode",c.mode,[["full","Fully automatic","It decides everything, offense, defense or the center (the default)"],
     ["attacks","Attacks only","It only attacks; you move every card"],["custom","Every option","Choose each setting yourself"]]),"fafull famodes");
   h+=sec("Attack",some?row("noAttack",c.noAttack,"Don't attack","Your field moves but never attacks. On top of the ranking unless you move it."):row("",true,"Attacks when the odds say so","Your field attacks enemies in sight when the odds say so.",true),some?"":"falock");
   if(kothOn())h+=sec("Capture the Hill",row("hill",c.hill,"Capture the Hill","It goes for the Hill to score (on by default).")+(c.hill?radio("hillHow",c.hillHow,[["army","Gather an army first","Cards gather into a big army, then march on the Hill together"],["straight","Straight there","Every card heads for the Hill at once"],["groups","In small groups","Groups of two or three set out one after another"]]):""));
   if(some){h+=sec("Stance",radio("stance",c.stance,[["auto","Automatic","Changes with the field"],["offensive","Offensive",""],["defensive","Defensive",""],["center","Control the center",""],
       ["skirmish","Skirmish","Hit and run: it picks off equal or weaker stacks (small ones first) that have no edge over it, then falls back when stronger ones come"]]));
-    h+=sec("Aggression",faAggrHTML(K,c,"aggr","aggrHow","aggrN"),"","Whether cards go after the enemies near them, and how near an enemy must be.");
+    h+=sec("Aggression",faAggrHTML(K,c,"aggr","aggrHow","aggrN")+
+      row("rushon",c.rush>0,"Rush: all-out","Everything it controls goes for the enemy for the rounds below, whatever the stance and the distance.")+spin("For how long",left!=null?`${left?left+" left":"over"}`:"",Math.max(1,c.rush),"rush",`round${Math.max(1,c.rush)>1?"s":""}`,!c.rush),
+      "","Whether cards go after the enemies near them, how near an enemy must be, and Rush.");
     h+=sec("Ambush",row("ambush",c.ambush,"Set ambushes","Assassins and face-down stacks with nothing in reach wait in ambush.")+
       (c.ambush?row("ambFocus",c.ambFocus,"Focus on ambush","Stacks that can ambush hold their ground near the enemy and always wait in ambush; from an ambush they strike only with the odds well on their side."):""))}
   if(custom){
-    h+=sec("Rush the enemy",row("rushon",c.rush>0,"Rush","Everything it controls goes for the enemy, whatever the stance.")+spin("For how long",left!=null?`${left?left+" left":"over"}`:"",Math.max(1,c.rush),"rush",`round${Math.max(1,c.rush)>1?"s":""}`,!c.rush));
-    h+=sec("Formation",radio("formation",c.formation,[["auto","Automatic",""],["wide","Wide","Spread out, surround, take the advantage"],["deep","Tall","Columns: stack strength, even with fewer to stack with"]])+row("fLink",c.fLink,"Formation shapes the groups","Wide attacks in small groups, Tall in big ones, while Attack groups is Normal."));
-    h+=sec("Attack groups",radio("grp",c.grp,[["normal","Normal","Each stack as the odds say (the default)"],["big","Big","One army: the stacks keep together, move as one and strike together"],["small","Small","Several small clusters of two or three stacks, spread over the field"]]));
-    h+=sec("Lives",radio("lives",c.lives,[["preserve","Preserve","Keep cards alive first"],["balanced","Balanced","The default"],["throw","Throw them in","Trade cards freely to hurt the enemy"]])+(c.formation==="deep"?row("flee",c.flee,"Flee when low","A stack that has lost half its cards pulls back from the enemy."):""),"","",
-      "Lives is about your cards: how many it is willing to lose.");
-    h+=sec("Picking battles",radio("battles",c.battles,[["careful","Careful","Fights only with good odds"],["normal","Normal",""],["reckless","Reckless","Takes long shots"]]),"","Lives ranks above this unless you change the order in Hierarchical control.",
-      "Picking battles is about the odds: how sure a win must be before it attacks.");
-    h+=sec("Bases and crystals",row("bases",c.bases,"Target bases","Enemy Aces and the Tree are worth more to it.")+row("walls",c.walls,"Ignore Walls that aren't in the way","A Wall only matters when it stands between your field and a base.")+
+    h+=sec("Formation",radio("formation",c.formation,[["auto","Automatic","Each stack as the odds say"],["wide","Wide","Spread out in small groups of two or three stacks, surround, take the advantage"],["deep","Tall","One army: tall stacks that keep together, move as one and strike together"]]));
+    h+=sec("Risk",radio("risk",c.risk,[["careful","Careful","Keeps cards alive and fights only with good odds"],["normal","Normal","The default"],["reckless","Reckless","Trades cards freely and takes long shots"]])+(c.formation==="deep"?row("flee",c.flee,"Flee when low","A stack that has lost half its cards pulls back from the enemy."):""),"","",
+      "How much it risks: how sure a win must be before it attacks, and how freely it trades cards.");
+    h+=sec("Bases and crystals",row("bases",c.bases,"Target bases","Enemy Aces and the Tree are worth more to it (a Wall counts only when it stands between your field and a base).")+
       row("crys",c.crys,"Focus on crystals","Your field guards the crystals for your Miners until they're dug out. More options below."));
     h+=sec("Which cards it controls",`<div class="facats">${FA_CATS.map(([k,t,s2])=>row("ctl."+k,c.ctl[k],t,s2)).join("")}${!c.ctl.support?row("ctl.miners",c.ctl.miners,"Miners","Even with Support off"):""}</div>
 <details class="faextra" ${c.extra.length||c.xminus.length?"open":""}><summary>Yes, and… (single kinds of card: + it controls them, − it leaves them to you)</summary>${K.pmChips(FA_KINDS.map(k=>[k,shortInfo(k)]),c.extra,c.xminus,"data-fapm")}</details>`,"fafull");
@@ -196,11 +205,10 @@ function faPanelHTML(c,pl,pfx){
       (c.hout.length?`<p class="fahin">${c.hout.map(k=>`<button type="button" class="btn ghost sm" data-faact="in:${k}" title="Add it to the ranking">+ ${FA_PRINC.find(x=>x[0]===k)[1]}</button>`).join(" ")}<small class="dim">Out of the ranking: ${c.hout.length>1?"they keep":"it keeps"} ${c.hout.length>1?"their":"its"} full weight.</small></p>`:"")+`</details>`,"fafull","",c.hier?FA_CAUTION:"");
     h+=sec("Target priority",`<details class="faextra fadet" data-fadet="tprio" ${c.tprio?"open":""}><summary>Rank the kinds of card to target <small class="dim">(${c.tprio?"on":"off: every target is weighed by the odds alone"})</small></summary>`+
       row("tgroup",c.tgroup,"Rank by kinds of card","On: Special, Base, Standard and so on. Off: every single kind, like the King.")+
-      (c.tgroup?kindRankHTML(c.tgorder,"data-tgact",TGROUP_NAMES):row("tIgnoreGI",c.tIgnoreGI,"Ignore how strong a Grunt or Infantry is","A 2 and a 6 Grunt count the same when it picks a target.")+row("tSameGI",c.tSameGI,"Treat Grunts and Infantry alike","One kind instead of two in the ranking.")+
-      hierHTML((c.tSameGI?c.torder.filter(k=>k!=="infantry"):c.torder),c.teq,faHierHTML.tpending,k=>FA_TK.find(x=>x[0]===k)[1],()=>"","t"))+`<p class="dim">The kinds on the left are hunted first.</p>`+`</details>`,"fafull","",c.tprio?FA_CAUTION:"");
+      (c.tgroup?kindRankHTML(c.tgorder,"data-tgact",TGROUP_NAMES):hierHTML((c.tSameGI?c.torder.filter(k=>k!=="infantry"):c.torder),c.teq,faHierHTML.tpending,k=>FA_TK.find(x=>x[0]===k)[1],()=>"","t"))+`<p class="dim">The kinds on the left are hunted first.</p>`+`</details>`,"fafull","",c.tprio?FA_CAUTION:"");
     if(c.crys)h+=sec("Crystals",`<details class="faextra" open><summary>More options for Focus on crystals</summary>`+
       row("crysStance",c.crysStance,"Depends on the stance","It guards crystals only while your field defends or holds the center.")+
-      row("crysLives",c.crysLives,"Depends on Lives","Preserve guards only where it's safe; Balanced unless it's badly outnumbered; Throw them in, whatever comes.")+
+      row("crysLives",c.crysLives,"Depends on Risk","Careful guards only where it's safe; Normal unless it's badly outnumbered; Reckless, whatever comes.")+
       row("crysMiner",c.crysMiner,"Only with a Miner","Only while you have a Miner in your deck, your hand or on the field.")+
       row("crysAsk",c.crysAsk,"Ask me first","Before a stack sets out to guard a crystal: yes, no, or other stacks instead (at most once every five rounds).")+
       (c.crysAsk?row("crysHow",c.crysHow,"Ask how long","The same question asks how many rounds to guard it."):"")+

@@ -2,7 +2,7 @@
    "Focus on crystals" (beside Target bases, Every option): at the end of your prep phase your field sends a stack to guard
    each crystal that no enemy holds, for your Miners, until it's dug out. Its options (a fold that shows once it's checked):
    - Depends on the stance: it guards only while the field defends or holds the center.
-   - Depends on Lives: Preserve guards only where it's safe, Balanced unless badly outnumbered, Throw them in whatever comes.
+   - Depends on Risk (v79g; it was Lives): Careful guards only where it's safe, Normal unless badly outnumbered, Reckless whatever comes.
      With neither of these two, guarding comes before everything else, whatever the ranking; with either, they come first
      and then its place in the ranking.
    - Only with a Miner: only while you have a Miner in your deck, your hand or on the field (not one in an Ace's slot).
