@@ -94,7 +94,7 @@ function whoHTML(){
   const ph=G.phase==="setup"?"Setup":G.phase==="moon"?"The sky turns":({draw:"Prep phase · drawing",prep:"Prep phase",attack:"Attack phase"})[G.phase]||"";
   const shared=!!G.shared&&G.phase!=="setup"&&G.phase!=="moon";
   const whoTxt=G.drawWait?`<b>Waiting for players to draw…</b>`:P.cpu?`<b>${esc(P.name)}</b> is playing…`:G.opts.online?(G.active===view()?`<b>Your turn</b>`:`<b>${esc(P.name)}</b> is playing…`):many?`<b>${esc(P.name)}</b>'s turn`:`<b>Your turn</b>`;
-  return `${whoTxt}<span class="sl-sep">·</span>${ph}${shared?`<span class="sl-chip" data-tip="Every player takes this phase at the same time; it goes on when everyone is done.">Together</span>`:""}`;
+  return `${whoTxt}<span class="sl-sep">·</span>${phIcon(G.phase,G.active)}${ph}${shared?`<span class="sl-chip" data-tip="Every player takes this phase at the same time; it goes on when everyone is done.">Together</span>`:""}`;
 }
 
 /* ---------- windows: an X on every box that can be closed ---------- */
