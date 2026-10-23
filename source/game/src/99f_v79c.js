@@ -41,3 +41,4 @@ if(window.__EC)Object.assign(window.__EC,{phIcon:(...a)=>phIcon(...a)});
   const hh=$("#handh");if(hh){let s=hh.querySelector(".sacoff");if(shut&&!s){s=document.createElement("small");s.className="sacoff";s.textContent="Sacrifices closed: mana was spent";s.title="Sacrifices come first in the prep phase: once you spend mana (a spell, the Ether, the Bank, land), no more sacrifices until your next prep phase.";hh.appendChild(s)}else if(!shut&&s)s.remove();
     let c=hh.querySelector(".hcnt");if(!c){c=document.createElement("span");c.className="hcnt";hh.appendChild(c)}c.textContent=txt;c.classList.toggle("over",over);c.title=tip}
   const hw=$("#handwrap");if(hw){let t=hw.querySelector(":scope>.hcnttag");if(!t){t=document.createElement("span");t.className="hcnttag";hw.appendChild(t)}t.textContent="Hand "+txt;t.classList.toggle("over",over);t.title=tip}}}
+if(window.__EC)Object.assign(window.__EC,{flash:t=>flash(t),notify:(p,h)=>notify(p,h),kbRemind:()=>kbRemind()});

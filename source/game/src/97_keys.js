@@ -70,6 +70,9 @@ function kbCast(n){const S=kbSchools(),s=S[KB.sc];if(!s)return;const b=s.items[n
 
 /* the hand */
 const kbHand=()=>[...document.querySelectorAll("#hand [data-h]")];
+/* v79j: Shift+Q and Shift+E go through the hand from anywhere on the table (the first press starts picking from the hand) */
+function kbHandCycle(d){const H=kbHand();if(!H.length){flash("Your hand is empty.");return}if(KB.mode==="hand"){KB.h=(KB.h+d+H.length)%H.length}else{kbHandOn(true);KB.h=d>0?0:H.length-1}
+  kbPaint();const h=kbHand()[KB.h];if(h)h.scrollIntoView({block:"nearest",inline:"nearest"})}
 function kbHandOn(on){if(on&&kbSpellMode())kbOff();KB.mode=on?"hand":null;if(on){const H=kbHand();KB.h=Math.max(0,Math.min(H.length-1,KB.h));kbShow($("#handwrap"))}kbPaint()}
 /* the marks: the school and its numbers, the card in the hand, and (when chosen) the key letters on the buttons */
 const KB_HINTS=[["#bankslot .bankbar","bank"],["#openEther","ether"],["#dipbar","dip"],["#next","turn"],[".fabar .facfgb","faset"],["#fstabSp","spelllist"],[".spellpanel>h3",["spellbar","spelllist"]],["#handh","hand"],["#d4","roll"],
@@ -108,7 +111,7 @@ const KB_DO=[
   ["mineFold",()=>kbMineFold()],["aceBack",()=>kbAce(-1)],["aceNext",()=>kbAce(1)],["lookSel",()=>{if(G.sel)kbLook(G.sel.r,G.sel.c);else flash("Nothing is selected on the field.")}],
   ["faset",()=>{if(typeof faAllowed==="function"&&faAllowed())faWindow();else flash("Field Automation is off in this game.")}],
   ["spelllist",()=>kbList()],["spellbar",()=>kbBar()],["ether",()=>openEtherShop()],["bank",()=>{const b=$("#bankslot .bankbar");if(b)b.click();else openBank()}],
-  ["dice",()=>kbDice()],["log",()=>kbLog()],["hand",()=>kbHandOn(true)],["console",()=>cnOpen()],["consoleSwap",()=>cnSwap()],
+  ["dice",()=>kbDice()],["log",()=>kbLog()],["hand",()=>kbHandOn(true)],["hCycPrev",()=>kbHandCycle(-1)],["hCycNext",()=>kbHandCycle(1)],["console",()=>cnOpen()],["consoleSwap",()=>cnSwap()],
   ["roll",()=>{const d=$("#d4");if(d&&!d.disabled)d.click();else flash("There is nothing to roll now: the draw is in your draw phase.")}],
   ["sacrifice",()=>{const P=G.p[view()];if(!P)return false;   // v78s: the picked card, or (picking from the hand by keys) the highlighted one
     const hk=KB.mode==="hand"&&kbHand()[KB.h],i=G.selHand?P.hand.indexOf(G.selHand):hk?+hk.dataset.h:-1;if(i<0){flash("Pick a hand card first (G, then C or V).");return}
@@ -147,7 +150,7 @@ document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(
     if(is("spNext")||is("spPrev")){stop();const d=is("spNext")?1:-1;if(KB.mode==="bar")kbSchool(KB.sc+d);else kbStep(d);return}
     if(is("spCast")&&KB.mode==="list"){stop();const s=kbSchools()[KB.sc],b=s&&s.items[KB.li];if(b)b.click();return}}
   if(KB.mode==="hand"){const H=kbHand();
-    if(is("hNext")||is("hPrev")){stop();if(H.length){KB.h=(KB.h+(is("hNext")?1:-1)+H.length)%H.length;kbPaint();H[KB.h].scrollIntoView({block:"nearest",inline:"nearest"})}return}
+    if(is("hNext")||is("hPrev")||is("hCycNext")||is("hCycPrev")){stop();if(H.length){KB.h=(KB.h+(is("hNext")||is("hCycNext")?1:-1)+H.length)%H.length;kbPaint();H[KB.h].scrollIntoView({block:"nearest",inline:"nearest"})}return}
     if(is("hPick")){stop();if(H[KB.h])H[KB.h].click();kbPaint();
       if(G&&G.selHand&&G.selHand.unit==="miner"&&kbMineOn()){}   // v78s: a Miner goes to the mining slots first
       else if(G&&G.selHand&&fkToTargets()){kbHandOn(false);flash(`Now a tile — Move: ${kmShow4(["selUp","selLeft","selDown","selRight"])} · ${kmTipT("act","Place the card")}`)}return}   // v78s: a picked card hands over to the field
