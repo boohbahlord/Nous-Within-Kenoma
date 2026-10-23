@@ -338,11 +338,8 @@ function checkWin(){
   if(!survival()&&!alive().some(i=>!isNPC(i)&&!down.includes(i))){for(const pl of down)G.p[pl].out=true;end(null,down.map(why).join("; "));return}
   for(const pl of down){eliminate(pl,why(pl));if(G.over)return}
 }
-function checkEconomic(pl){
-  if(survival()||G.p[pl].out)return;
-  const P=G.p[pl];
-  if(!P.deck.length&&!P.hand.length&&!P.souls.length)eliminate(pl,`${esc(P.name)} has no deck, hand or soul pile left: economic victory`);
-}
+/* v78t: economic victory is sinking below the lowest mana allowed (checkDebt, at every debt); running out of cards no longer ends a game */
+function checkEconomic(pl){if(survival()||G.p[pl].out)return;checkDebt(pl)}
 /* a player is out: their cards leave play, then the game ends if one side is left */
 function eliminate(pl,why){
   const P=G.p[pl];if(P.out||G.over)return;P.out=true;   // v78j: not once the game is over

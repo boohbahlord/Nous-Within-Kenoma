@@ -77,7 +77,10 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 </ul>
 
 <h2>Major Rules</h2>
-<p>The goal is to either destroy all card placements in the field or have the other player run out of cards in their deck, hand, and soul pile. Running those cards out is called an <b>economic domination</b> or <b>economic victory</b>, and it is only valid when the other player completes their turn.</p>
+<p>There are two ways to beat a player, and the last side standing wins:</p>
+<ul><li><b>Domination</b>: every card the player has on the field is destroyed (in Headquarters, every base). Zero cards on the field and they are out.</li>
+<li><b>Economic victory</b>: the player sinks below the lowest mana allowed, −8 (−12 under the Oath of Jupiter). Mana can go below zero, through debts, tolls and an empty deck, down to that floor; one more mana below it (−9) and the Bank takes everything, and they are out.</li></ul>
+<p>Running out of cards in the deck, the hand and the soul pile doesn't end a player's game by itself: the deck is not a player's life. An empty deck only means there is nothing left to draw (your own draw roll takes just what is left, never mana).</p>
 <p>Certain rules can be changed as desired, such as the cards present in the Ethereal Realm, or the number of cards in the players' hands.</p>
 
 <h2>Game Setup</h2>

@@ -192,8 +192,9 @@ async function nextPhase(){
 const overdrewNow=pl=>G.p[pl]&&G.p[pl].odTurn===G.turnNo;
 function rollDraw(){
   if(overdrewNow(G.active)){flash("You overdrew this turn: no more draws until your next turn.");return}
+  if(!G.p[G.active].deck.length){flash("Your deck is empty: there is nothing to draw.");return}   // v78t
   const n=R(4);tray(G.active,"Draw",[{s:4,v:n}],`draw ${n}`);
-  log(`${plName(G.active)} rolls d4: ${n}.`);const r=draw(G.active,n);
+  log(`${plName(G.active)} rolls d4: ${n}.`);const r=draw(G.active,n,null,false,true);   // v78t: what the deck has, never mana
   if(r&&r.burned){G.p[G.active].odTurn=G.turnNo;log(`${plName(G.active)} overdrew: no more draws this turn.`)}
 }
 /* phase timer (off by default): 30, 60 or 90 seconds; the draw phase is 30 under the longer timers */
