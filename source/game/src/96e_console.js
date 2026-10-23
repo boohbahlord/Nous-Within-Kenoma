@@ -206,7 +206,7 @@ function cnPaint(){const el=cnBar(),chat=CN.mode==="chat",inp=el.querySelector("
   el.classList.toggle("chat",chat);el.querySelector(".cnmode").textContent=chat?"Chat":"›";
   inp.placeholder=chat?"Say something (a line starting with / is a command)":"A command, or a tile like B2 (help lists them)";
   inp.setAttribute("aria-label",chat?"Chat message":"Command");
-  el.querySelector(".cnnote").textContent=`Esc closes · ${chat?"":"Tab completes, ↑ ↓ choose · "}${kmShow("consoleSwap")} opens the ${chat?"command line":"chat"} instead`;
+  el.querySelector(".cnnote").textContent=`Close: Esc · ${chat?"":"Complete: Tab · Choose: ↑ ↓ · "}${kmTipT("consoleSwap",chat?"The command line instead":"The chat instead")}`;
   const log=el.querySelector(".cnchat");log.hidden=!chat;
   if(chat)log.innerHTML=(NET.chat||[]).slice(-6).map(m=>`<li><b>${esc(m.from)}</b> ${esc(m.text)}</li>`).join("")||'<li class="dim">Nothing yet.</li>'}
 function cnOpen(mode){if(!G||G.passing)return;if(mode)CN.mode=mode;if(CN.mode==="chat"&&!NET.role){CN.mode="cmd";flash("The chat is for online games: here is the command line.")}
