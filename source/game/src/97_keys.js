@@ -101,7 +101,7 @@ function kbAce(d){if(getSelection&&String(getSelection()).length)return false;co
 const KB_DO=[
   ["fullscreen",()=>fsOn()?fsExit():fsEnter()],["bfsOn",()=>bfsSet(true)],["bfsOff",()=>bfsSet(false)],["hints",()=>kbHints(PREF.keyHints!==true)],
   ["dip",()=>{const b=$("#dipbar");if(b)b.click();else flash("Diplomacy is off in this game.")}],
-  ["aceBack",()=>kbAce(-1)],["aceNext",()=>kbAce(1)],["lookSel",()=>{if(G.sel)kbLook(G.sel.r,G.sel.c);else flash("Nothing is selected on the field.")}],
+  ["mineFold",()=>kbMineFold()],["aceBack",()=>kbAce(-1)],["aceNext",()=>kbAce(1)],["lookSel",()=>{if(G.sel)kbLook(G.sel.r,G.sel.c);else flash("Nothing is selected on the field.")}],
   ["faset",()=>{if(typeof faAllowed==="function"&&faAllowed())faWindow();else flash("Field Automation is off in this game.")}],
   ["spelllist",()=>kbList()],["spellbar",()=>kbBar()],["ether",()=>openEtherShop()],["bank",()=>{const b=$("#bankslot .bankbar");if(b)b.click();else openBank()}],
   ["dice",()=>kbDice()],["log",()=>kbLog()],["hand",()=>kbHandOn(true)],["console",()=>cnOpen()],["consoleSwap",()=>cnSwap()],

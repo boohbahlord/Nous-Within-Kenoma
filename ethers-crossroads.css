@@ -2624,3 +2624,6 @@ html.drawdark #board>.drawveil{opacity:.82}
 .kmview{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0}
 .kmwhat b{display:block;font-weight:600;color:var(--amber-hi)}.kmwhat small{display:block;color:var(--dim);font-size:11.5px;line-height:1.3}
 .kmrow[hidden],.kmsub[hidden],details.kmgrp[hidden]{display:none}
+/* v79c: the phase's symbol beside its name (the turn bar and the turn line) */
+.phico{width:1.65em;height:1.65em;vertical-align:-.5em;margin-right:6px;flex:none;filter:drop-shadow(0 1px 1px #000a)}
+#controls .phl{display:inline-flex;align-items:center}#controls .phl .phico{width:22px;height:22px;margin-right:6px;vertical-align:middle}
