@@ -27,7 +27,7 @@ const CN_CMDS=[
   ["end","the turn button: Ready, the next phase, End turn"],["roll","roll the draw"],
   ["bank","the Bank"],["ether","the Ether"],["diplomacy","Diplomacy"],["log","the log"],["dice","the dice"],["rules","the Rule book"],["keys","every key"],["menu","the settings"],["fullscreen","fullscreen on and off"],
   ["auto","Field Automation: auto on, auto off","onoff"],
-  ["guard","B2 guards the stack on A1: guard B2 A1","mine mine"],["area","B2 guards the area around C4: area B2 C4","mine tile"],["squad","a squadron: squad B2 C2 D2","mine+"],
+  ["guard","B2 guards the stack on A1: guard B2 A1","mine mine"],["area","B2 guards the area around C4: area B2 C4","mine tile"],["defend","B2 defends the area around C4, boldly: defend B2 C4","mine tile"],["target","B2 goes after the enemy stack on E5 until it is gone: target B2 E5","mine tile"],["squad","a squadron: squad B2 C2 D2","mine+"],
   ["lead","B2 leads its squadron: lead B2","mine"],["leave","B2 leaves its group: leave B2","mine"],
   ["advance","a step toward the nearest enemy: advance B2","mine"],["retreat","a step back toward your base: retreat B2","mine"],
   ["hold","lock in place (Field Automation leaves it): hold B2","mine"],["ambush","set a stack in ambush (or out of it): ambush B2","mine"],
@@ -137,10 +137,10 @@ function cnRun(line){line=String(line||"").trim();if(!line||G&&G.passing)return;
     case "auto":{const want=arg[0]==="on"?true:arg[0]==="off"?false:null,V=view(),on=faOn(V),b=document.querySelector(".fabar .fatog");
       if(want==null){cnSay(`Field Automation is ${on?"on":"off"}: auto on, or auto off.`);return}if(!faAllowed()){cnSay("Field Automation is off in this game.",true);return}
       if(want===on){cnSay(`Field Automation is already ${on?"on":"off"}.`);return}if(want)cnClose();if(b)b.click();else setFieldAuto(V,want,faMine());return}
-    case "guard":case "area":case "squad":case "lead":case "leave":{const V=view();if(!fgFull(V)){cnSay("Groups need Field Automation playing your whole field (auto on).",true);return}
+    case "guard":case "area":case "defend":case "target":case "squad":case "lead":case "leave":{const V=view();if(!fgFull(V)){cnSay("Groups need Field Automation playing your whole field (auto on).",true);return}
       const T=arg.map(cnTile);if(!T[0]){cnSay("Which stack? (a tile like B2)",true);return}const p=T.map(x=>x&&[x.r,x.c]);
-      const ok=cmd==="guard"?T[1]&&fgDo(V,"guard",p[0],p[1]):cmd==="area"?T[1]&&fgDo(V,"area",p[0],p[1]):cmd==="squad"?fgDo(V,"squad",p.filter(Boolean)):fgDo(V,cmd,p[0]);
-      cnSay(ok?({guard:"It guards it.",area:"It guards the area.",squad:"A squadron.",lead:"It leads its squadron.",leave:"Out of its group."})[cmd]:"That can't be done (one of your stacks? a full group?).",!ok);
+      const ok=cmd==="guard"?T[1]&&fgDo(V,"guard",p[0],p[1]):cmd==="area"||cmd==="defend"?T[1]&&fgDo(V,cmd,p[0],p[1]):cmd==="target"?T[1]&&fgDo(V,"attack",p[0],p[1]):cmd==="squad"?fgDo(V,"squad",p.filter(Boolean)):fgDo(V,cmd,p[0]);
+      cnSay(ok?({guard:"It guards it.",area:"It guards the area.",defend:"It defends the area.",target:"It goes after that stack.",squad:"A squadron.",lead:"It leads its squadron.",leave:"Out of its group."})[cmd]:"That can't be done (one of your stacks? a full group?).",!ok);
       return}
     case "advance":case "retreat":{const f=need(cnTile(arg[0]),"stack");if(f)cnLean(f,cmd==="advance");return}
     case "hold":{const f=need(cnTile(arg[0]),"stack");if(!f)return;const st=G.board[f.r][f.c],V=view();if(!st||st.owner!==V){cnSay("That isn't your stack.",true);return}
