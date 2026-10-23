@@ -292,9 +292,8 @@ function view(){ // which player sits at the bottom of the screen
   return G.lastView??hs[0];
 }
 const seat=pl=>G.map.seats[pl];
-/* v53: you spawn in your own lines, or in a teammate's when they hold the same side of the field */
-const canSpawn=(pl,r,c)=>{const z=G.zone[r][c];if(z===pl)return true;if(z<0||!G.p[z]||!G.p[pl]||G.p[z].team!==G.p[pl].team||isNPC(z)||isNPC(pl))return false;
-  const a=G.map.seats[z],b=G.map.seats[pl];return !!a&&!!b&&a.side===b.side};
+/* you spawn in your own lines; v78a: in a teammate's or an ally's only when they allow it (Diplomacy, 96b_spawnshare.js) */
+const canSpawn=(pl,r,c)=>{const z=G.zone[r][c];if(z===pl)return true;if(z<0||!G.p[z]||!G.p[pl]||isNPC(z)||isNPC(pl))return false;return spawnShared(z,pl)};
 const isBack=(pl,r,c)=>G.backz[r][c]===pl||!!(G.map.seats[pl]&&G.map.seats[pl].back.some(([a,b])=>a===r&&b===c));   // teammates who share a back line (2v2, same side) each hold all of it
 const backTiles=pl=>seat(pl).back.filter(([r,c])=>!isVoid(r,c));
 const zoneTiles=pl=>seat(pl).zone.filter(([r,c])=>!isVoid(r,c));

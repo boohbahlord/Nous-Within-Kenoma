@@ -36,7 +36,7 @@ land = head(EC + ' · Nous Within Kenoma', extra='<style>' + open('game/text/rul
 <h2>Getting Started</h2>
 <p>{EC} is a card game for two players. Each player brings a deck of playing cards with both Jokers, and the table needs a handful of dice: d2, d4, d6, d8, d12 and d20. Cards are soldiers, knights and royalty placed on a field of lines; dice decide every fight; the dead become souls that can be spent as mana on spells, or raised again from the shared grave; and the moon turns one phase every round.</p>
 <ol>
-<li><b>Raise your Ace.</b> Each player takes one Ace and one Jack from their own deck (or from the Ether, when the specials are set to wait there). The Ace goes on any tile of your backline you choose, with the Jack inside it.</li>
+<li><b>Raise your Ace.</b> Each player takes one Ace and one Jack from their own deck (or from the Ether, when the specials are set to wait there). The Ace goes on any tile of your spawn lines you choose, with the Jack inside it.</li>
 <li><b>Draw.</b> Each player draws 2d4 cards from their own shuffled deck. A hand holds six cards at most.</li>
 <li><b>Roll for the opening.</b> Both players roll. The highest roll sets up first, placing any opening cards on their own two lines, then the other player sets up. The highest roller also takes the first turn.</li>
 <li><b>Take turns.</b> Every turn runs <span class="flow">Prep → Attack</span>. The prep phase starts with drawing: roll a d4 as many times as you like and draw that many cards. Then place, move and sacrifice cards and cast spells. In the attack phase, each of your stacks may attack once. The very first turn of the game has no draw phase.</li>
@@ -59,7 +59,7 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 
 <h2>How to Start</h2>
 <ul>
-<li>Every player starts with one Ace from their own deck already on the field, on any tile of their backline they choose. Every Ace spawns with one Jack from that player's deck inside it, wherever it is placed. Which Ace or Jack doesn't matter.</li>
+<li>Every player starts with one Ace from their own deck already on the field, on any tile of their spawn lines they choose. Every Ace spawns with one Jack from that player's deck inside it, wherever it is placed. Which Ace or Jack doesn't matter.</li>
 <li>First when starting, draw 2d4 cards for both sides.</li>
 <li>Second, both players roll dice; whoever goes first by highest roll will set up their cards on the field first, then the second player places their cards on the field.</li>
 <li>Third, the one with the highest roll takes the first game-starting turn, with the <b>prep phase</b> as the first part of this turn. The player will be able to move cards, place cards, or even sacrifice cards, and during this prep phase, the starting player's attack will not happen yet.</li>
@@ -138,7 +138,7 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 <h3>Joker (Necromancer)</h3>
 <ul><li>Any enemy killed next to the Joker goes to its sacrifice pile (Soul Capture): an upside-down stack inside the Joker, its personal sacrifice pile.</li><li>Has no Dice Max, so it can stack with four Grunts, three Infantry, one King, a King and Queen, or a King with his one soldier.</li><li>When the Joker sacrifices himself, the player gains access to its sacrifice pile.</li><li>The Joker's personal sacrifice pile holds up to six, though players can change this for balance.</li><li>A captured soul stays inside the Joker until the Joker dies, when the Joker and its souls go to the grave, or until it uses Sacrificial Suicide.</li><li>If the Joker is defeated by enemies, its cards go to the grave pile.</li><li>If a Joker kills itself during a Blood Moon, it sends itself and every card it held to the Outer Darkness.</li><li>Can only spawn on a card of the same color (red or black).</li></ul>
 <h3>Ace</h3>
-<ul><li>Each player opens the game with one Ace on their backline, holding one Jack, with a Miner already in it (that first Ace only; an Ace holds as many Miners and Repairmen as you like).</li><li>Cannot move or attack, and is always in defense.</li><li>Can only be placed in open tiles in the backlines.</li><li>Anything inside an Ace cannot use modifiers for defense.</li><li>An Ace holds one stack inside it: up to six cards that could stand together on the field (Scouts, Healers, Repairmen and Miners ride along). Every base works the same way.</li><li>If an Ace is destroyed, all cards inside are destroyed.</li><li>Cannot be sacrificed while on the field.</li><li>Each Ace on the field grants +1d6 for pulling cards from the grave.</li></ul>
+<ul><li>Each player opens the game with one Ace in their spawn lines, holding one Jack, with a Miner already in it (that first Ace only; an Ace holds as many Miners and Repairmen as you like).</li><li>Cannot move or attack, and is always in defense.</li><li>Can only be placed in open tiles in the backlines.</li><li>Anything inside an Ace cannot use modifiers for defense.</li><li>An Ace holds one stack inside it: up to six cards that could stand together on the field (Scouts, Healers, Repairmen and Miners ride along). Every base works the same way.</li><li>If an Ace is destroyed, all cards inside are destroyed.</li><li>Cannot be sacrificed while on the field.</li><li>Each Ace on the field grants +1d6 for pulling cards from the grave.</li></ul>
 <h3>Optional Ace rule</h3>
 <p>Card placement inside Aces can be locked to only the Ace's color (red, black) or suit (diamonds, spades, hearts, clubs).</p>
 
@@ -322,7 +322,7 @@ b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({beha
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
 # v71j: EC_BL asks the page's head to preload the blackletter (unless the device saves data)
-play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel="stylesheet" href="ethers-crossroads.css?v=145">', ec=True) + f'''<main class="wide game">
+play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel="stylesheet" href="ethers-crossroads.css?v=146">', ec=True) + f'''<main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
@@ -359,8 +359,8 @@ play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel
 </main>
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
-<script>window.EC_QSRC="ethers-crossroads-quotes.js?v=145"</script>
-<script src="ethers-crossroads.js?v=145"></script>
+<script>window.EC_QSRC="ethers-crossroads-quotes.js?v=146"</script>
+<script src="ethers-crossroads.js?v=146"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 
