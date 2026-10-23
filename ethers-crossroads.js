@@ -210,6 +210,7 @@ function stackLegal(cards){
     if(n("miner")>1&&!inAce)return false;   // v72a: as many Miners in an Ace as you like, one anywhere else
     if(rest.some(c=>c.unit==="ram"))return false;
     if(!rest.length)return true;
+    if((n("miner")||n("repair"))&&!rest.some(isBase)&&rest.some(c=>isHero(c)||c.unit&&(UNIT[c.unit].solo==="alone"||c.unit==="cannon"||c.unit==="assassin")))return false;   // v78t: not with a card that stands alone
     cards=rest;
   }
   const cnt=u=>cards.filter(c=>c.unit===u).length;
@@ -684,7 +685,7 @@ function attackRun(r1,c1,r2,c2,mode,forced){
     if(opt.mode==="charge"||opt.mode==="charge2"){dmgD*=2;notes.push("A charge hits a Wall twice as hard.")}
     if(w&&w.id==="cannon"){dmgD=Math.max(dmgD,2);notes.push("Cannon fire: two damage to the Wall.")}
   }
-  if(dmgD>0&&w&&w.id==="cannon"){const ace=D.cards.find(x=>kind(x)==="ace");if(ace&&(ace.hp||1)<=1&&!D.cards.some(x=>x.unit==="miner")){dmgD=0;notes.push("A Cannon can't take an Ace's last heart.")}}
+  if(dmgD>0&&w&&w.id==="cannon"){const ace=D.cards.find(x=>kind(x)==="ace");if(ace&&(ace.hp||1)<=1){dmgD=0;notes.push("A Cannon can't take an Ace's last heart.")}}
   if(LR.miss){dmgD=0;dmgA=0;notes.push("Crit Miss: the attack misses.")}
   else if(LR.dodge){dmgD=0;dmgA=0;notes.push("The Assassin dodges: Miss.")}
   else if(LR.crit){if(!dmgD)dmgD=1;dmgA=0;notes.push("Crit Hit: the blow lands whatever the scores.")}
@@ -726,13 +727,9 @@ function dicePlusRoll(){let total=0;const dice=[],q=[R(12)];let guard=0;
 function damage(r,c,n,defending){
   const st=G.board[r][c];if(!st)return 0;
   if(n>0&&shieldUp(st)){breakShield(st,r,c);return 0}   // the Healer's shield turns the whole blow
-  const dead=[],F=G.fight;
+  const dead=[];
   for(let i=0;i<n&&st.cards.length;i++){
-    // a Miner is the first to go: an attacker beside it with a free capture slot takes it (and the blow still lands), or it dies
-    const mi=st.cards.findIndex(x=>x.unit==="miner");
-    if(mi>=0&&st.cards.some(x=>x.unit!=="miner")){const m=st.cards[mi],A=F&&F.D===st&&!F.ranged?F.A:null;
-      if(A&&!A.captive&&G.board.flat().includes(A)){st.cards.splice(mi,1);takeCaptive(A,m);log(`${plName(A.owner)} captures a Miner from ${coord(r,c)}, and the blow still lands.`)}
-      else{st.cards.splice(mi,1);dead.push(m);log(`The Miner on ${coord(r,c)} is the first to fall.`);continue}}
+    // v78t: Miners and Repairmen are hit last: they hide behind every card that can defend them (and can be taken only once none is left)
     if(!st.cards.length)break;
     const lh=st.cards.find(x=>x.unit==="lighthouse");   // v70c: the stack inside a Lighthouse takes the blows first; the tower, once nothing else can
     const base=st.cards.find(x=>isBase(x)&&x!==lh)||(lh&&!st.cards.some(x=>x!==lh&&x.unit!=="ram")?lh:null);
@@ -11038,7 +11035,7 @@ if(window.__EC)Object.assign(window.__EC,{drawW:(...a)=>draw(...a),deckShort:(..
 /* the bid: Keep it or Let it go, an amount with arrows, Bid or Pass; nobody sees the others' bids */
 {const _ah=askHuman;askHuman=function(pl,spec){if(!spec||spec.kind!=="bid")return _ah.apply(this,arguments);
   return new Promise(res=>{const max=Math.max(0,Math.floor(spec.max||0));let n=Math.min(Math.max(1,spec.n||1),Math.max(1,max)),side=null;
-    const who=G.p.filter(P=>!P.cpu).length>1&&!G.opts.online?`<p class="dim">${esc(G.p[pl].name)} bids. The others don't see it.</p>`:"";
+    const who=G.p.filter(P=>!P.cpu).length>1&&!G.opts.online?`<p class="dim">${esc(G.p[pl].name)} bids. Every bid is open: everyone sees it.</p>`:"";   // v78t
     const paint=()=>{ovShow(`<div class="ovbox bidbox" role="dialog" aria-labelledby="bidh"><h2 id="bidh">${spec.title}</h2>${who}<p>${spec.text}</p>
 <div class="opts bidside">${[["keep",spec.keepLabel||"Keep it"],["go",spec.goLabel||"Let it go"]].map(([k,t])=>`<label class="opt"><input type="radio" name="bidside" value="${k}" ${side===k?"checked":""} ${max<1?"disabled":""}><span>${t}</span></label>`).join("")}</div>
 <p class="skynum bidamt"><button type="button" class="mstep" data-bd="-1" aria-label="less" ${max<1?"disabled":""}>◀</button> <b id="bidn">${max<1?0:n}</b> mana <button type="button" class="mstep" data-bd="1" aria-label="more" ${max<1?"disabled":""}>▶</button> <span class="dim">you have ${max}</span></p>
@@ -11082,37 +11079,50 @@ function skySwap(k,why){const old=sky(),o=SKYCHG();
   G._vis=null;applyMoonTheme();skyArrive();
   log(`<b>${esc(SHOP_NAME[k])}</b> takes the sky: it replaces ${skyWord(old)} (${why}).`,"event");
   popup(`${SHOP_NAME[k]} takes the sky`,`<p><b>${esc(SHOP_NAME[k])}</b> replaces ${skyWord(old)} (${esc(why)}).</p>${k==="moon"?`<p>The Moon comes back as ${MOON[G.moon.i].replace(/^(\w)/,c=>/[AEIOU]/.test(c)?"an "+c:"a "+c)}.</p>`:""}`)}
-/* the bid: everyone at once, in secret; keeping wins a tie; only the winner pays, to the Bank */
-function aiSkyBid(pl,k){const P=G.p[pl],m=mana(pl);if(m<2)return null;
-  const mine=P.oath&&(P.oath===k||OATH_SKY[k]===P.oath);
+/* v78t: the bid is open, at the end of the round of the cycle event (after the last attack phase): everyone sees the bids as
+   they come and can raise them, round after round of asking, until nobody raises; keeping wins a tie; only the winner pays,
+   to the Bank; the change comes at the start of the next round */
+function aiSkyBid(pl,k,cx){const P=G.p[pl],m=mana(pl);if(m<2)return null;
+  const mine=P.oath&&(P.oath===k||OATH_SKY[k]===P.oath),want=mine?"keep":k==="saturn"&&P.oath!=="saturn"&&!(G.saturnBy===pl)?"go":null;
+  if(cx&&cx.pass>0){if(!want||!cx.cur)return null;const other=cx.top(want==="keep"?"go":"keep"),need=other?other.eff+(want==="go"?1:0):0;   // raise only to win your own side back
+    const cap=mine?m-1:Math.min(m-1,3);return need>cx.cur.eff&&need<=cap?{side:want,n:need}:null}
   if(mine)return {side:"keep",n:Math.min(m-1,1+R(3))};
-  if(k==="saturn"&&P.oath!=="saturn"&&!(G.saturnBy===pl))return Math.random()<.6?{side:"go",n:Math.min(m-1,1+R(2))}:null;
+  if(want==="go")return Math.random()<.6?{side:"go",n:Math.min(m-1,1+R(2))}:null;
   return Math.random()<.2?{side:Math.random()<.5?"keep":"go",n:Math.min(m-1,R(2))}:null}
 async function skyAuction(){const k=sky(),name=SHOP_NAME[k]||skyWord(k);
   log(`<b>${esc(name)}</b> has completed its ${G.skyCyc}${["th","st","nd","rd"][G.skyCyc%10>3||Math.floor(G.skyCyc/10)===1?0:G.skyCyc%10]} cycle and announces that it is leaving. Bids decide whether it stays for one more cycle.`,"event");
   notify(null,`${esc(name)} is leaving the sky: bid mana to keep it for one more cycle, or to see it go.`);
-  const bids=[];
-  for(const pl of realPlayers()){if(G.over)return;
-    const b=await ask(pl,{kind:"bid",id:"skybid",title:`${esc(name)} is leaving`,text:`${esc(name)} has completed its cycle and will leave the sky. Bid mana to keep it for one more cycle, or to see it go; or pass. The highest bid wins (keeping wins a tie), and only the winner pays, to the Bank.${G.p[pl].oath&&(G.p[pl].oath===k||OATH_SKY[k]===G.p[pl].oath)?" Under its Oath, your bid counts half again on a 2 of 1d2.":""}`,
-      max:mana(pl),keepLabel:`Keep ${skyWord(k)}`,goLabel:"Let it go",ai:()=>aiSkyBid(pl,k)});
-    if(!b||!(b.n>0)||!["keep","go"].includes(b.side))continue;const n=Math.min(Math.floor(b.n),mana(pl));if(n<1)continue;
-    const P=G.p[pl],oath=P.oath&&(P.oath===k||OATH_SKY[k]===P.oath);let eff=n,d=null;
-    if(oath){d=R(2);if(d===2)eff=Math.floor(n*1.5);tray(pl,"Oath bid",[{s:2,v:d}],d===2?`×1.5: ${eff}`:`${eff}`)}
-    bids.push({pl,side:b.side,n,eff})}
-  const top=s=>bids.filter(b=>b.side===s).sort((a,b)=>b.eff-a.eff)[0]||null;
+  const B=new Map(),top=s=>[...B.values()].filter(b=>b.side===s).sort((a,b)=>b.eff-a.eff)[0]||null;
+  const standing=()=>{const L=[...B.values()];if(!L.length)return "No bids yet.";const K=top("keep"),Gx=top("go"),lead=K&&(!Gx||K.eff>=Gx.eff)?"keep":Gx?"go":null;
+    return `Bids now: ${L.map(b=>`${esc(G.p[b.pl].name)} ${b.side==="keep"?"keeps":"lets go"} ${b.n}${b.eff!==b.n?` (counts ${b.eff})`:""}`).join(", ")}. Leading: <b>${lead==="keep"?`keep ${skyWord(k)}`:"let it go"}</b>.`};
+  for(let pass=0;pass<5;pass++){let raised=false;
+    for(const pl of realPlayers()){if(G.over)return;const cur=B.get(pl)||null;
+      if(pass>0){const K=top("keep"),Gx=top("go"),lead=K&&(!Gx||K.eff>=Gx.eff)?K:Gx;if(lead&&lead.pl===pl)continue;if(mana(pl)<1)continue}   // the leader waits; the others may answer
+      const other=s=>{const t=top(s==="keep"?"go":"keep");return t?t.eff+(s==="go"?1:0):1};
+      const b=await ask(pl,{kind:"bid",id:"skybid",title:`${esc(name)} is leaving`+(pass?" · raise?":""),text:`${esc(name)} has completed its cycle. Bid mana to keep it for one more cycle, or to see it go; or pass${cur?" (your bid stands)":""}. The highest bid wins (keeping wins a tie), and only the winner pays, to the Bank; the change comes at the start of the next round.${G.p[pl].oath&&(G.p[pl].oath===k||OATH_SKY[k]===G.p[pl].oath)?" Under its Oath, your bid counts half again on a 2 of 1d2.":""}<br><span class="bidnow">${standing()}</span>`,
+        max:mana(pl),n:Math.min(mana(pl),Math.max(1,other(cur?cur.side:"keep"))),keepLabel:`Keep ${skyWord(k)}`,goLabel:"Let it go",ai:()=>aiSkyBid(pl,k,{pass,cur,top})});
+      if(!b||!(b.n>0)||!["keep","go"].includes(b.side))continue;const n=Math.min(Math.floor(b.n),mana(pl));if(n<1)continue;
+      if(cur&&cur.side===b.side&&n<=cur.n)continue;   // the same or less: nothing changes
+      const P=G.p[pl],oath=P.oath&&(P.oath===k||OATH_SKY[k]===P.oath);let eff=n,d=null;
+      if(oath){d=R(2);if(d===2)eff=Math.floor(n*1.5);tray(pl,"Oath bid",[{s:2,v:d}],d===2?`×1.5: ${eff}`:`${eff}`)}
+      B.set(pl,{pl,side:b.side,n,eff});raised=true;
+      log(`${plName(pl)} bids <b>${n}</b> to ${b.side==="keep"?`keep ${skyWord(k)}`:"let it go"}${eff!==n?` (counts ${eff})`:""}.`,"event");notify(null,`${esc(G.p[pl].name)} bids ${n} to ${b.side==="keep"?"keep it":"let it go"}.`)}
+    if(!raised)break}
+  const bids=[...B.values()];
   const K=top("keep"),Gx=top("go"),list=bids.length?bids.map(b=>`${plName(b.pl)}: ${b.side==="keep"?"keep":"let go"} ${b.n}${b.eff!==b.n?` (counts ${b.eff})`:""}`).join(", "):"no bids";
   if(K&&(!Gx||K.eff>=Gx.eff)){payQuiet(K.pl,K.n);bankAdd(K.n);G.skyKeepAt=G.skyCyc+1;
     log(`<b>${esc(name)} stays</b> for one more cycle: ${plName(K.pl)}'s bid of ${K.n} wins (${list}).`,"event");
     popup(`${name} stays`,`<p>${plName(K.pl)} keeps ${skyWord(k)} in the sky for one more cycle with a bid of <b>${K.n}</b> mana (paid to the Bank).</p><p class="dim">Bids: ${list}.</p>`);return}
   if(Gx){payQuiet(Gx.pl,Gx.n);bankAdd(Gx.n)}
   const nk=skyPick();if(!nk){G.skyKeepAt=G.skyCyc+1;log(`No other Heavenly Body can take the sky: ${esc(name)} stays.`,"event");return}
-  log(`<b>${esc(name)} leaves</b> (${K?`${plName(Gx.pl)}'s bid of ${Gx.n} beats keeping`:"nobody bid to keep it"}; ${list}).`,"event");
-  skySwap(nk,K||Gx?"the bids decided":"nobody bid to keep the old one")}
+  log(`<b>${esc(name)} leaves</b> at the start of the next round (${K?`${plName(Gx.pl)}'s bid of ${Gx.n} beats keeping`:"nobody bid to keep it"}; ${list}).`,"event");
+  G.skyNext={k:nk,why:K||Gx?"the bids decided":"nobody bid to keep the old one"}}   // v78t: it changes when the next round begins
 async function skyChangeRound(){const o=SKYCHG(),k=sky();if(G.over||skyFixed(k))return;
   if(G._chgK!==k)skyArrive();   // a new Heavenly Body (the shop, a spell, the start of the game): its count starts over
   if(SH().pend)return;          // something bought rises next round
   const done=cycleDone(k);if(done)G.skyCyc++;
-  if(o.mode==="bid"&&done&&G.skyCyc>=G.skyKeepAt)await skyAuction();
+  if(o.mode==="bid"&&done&&G.skyCyc>=G.skyKeepAt){G.skyBidDue=G.moon.round;const nm=SHOP_NAME[k]||skyWord(k);   // v78t: the bid comes at the end of this round
+    log(`<b>${esc(nm)}</b> completes its cycle: when this round's last attack phase ends, bids decide whether it stays or leaves.`,"event");notify(null,`${esc(nm)} completes its cycle: the bidding comes at the end of this round.`)}
   else if(o.mode==="cycles"&&done&&G.skyCyc>=G.skyEveryN){const nk=skyPick();if(nk)skySwap(nk,`its ${G.skyCyc} cycles are over`)}
   else if(o.mode==="rounds"&&G.moon.round-G.skyArr>=G.skyEveryN){const nk=skyPick();if(nk)skySwap(nk,`its ${G.skyEveryN} rounds are over`)}
   render()}
@@ -11140,6 +11150,15 @@ function skyChgLine(){if(!G||!G.moon)return "";const o=SKYCHG(),k=sky();if(skyFi
   const B=G.bank;if(B&&B.owes)for(const o of B.owes)if(o.atT!=null&&G.turnNo>=o.atT){o.owed=Math.ceil(o.owed*1.2);o.atT=G.turnNo+R(2)}   // what the Bank owes grows 20% every 1d2 turns
   return out}}
 if(window.__EC)Object.assign(window.__EC,{eclipseW:k=>eclipse(k),venusCycleW:()=>venusCycle(),fullMoonTollW:()=>fullMoonToll(),skyChangeRound:()=>skyChangeRound(),skySwap:(...a)=>skySwap(...a),skyAuction:()=>skyAuction(),skyArrive:()=>skyArrive(),skyChgLine:()=>skyChgLine(),cycleRoundW:()=>cycleRound()});
+
+/* v78t: the end of a round with a sky bid due: the bid, once every player's last attack phase is over (before the next round
+   is counted); a Heavenly Body that loses leaves at the start of the next round, its round line naming the new one */
+{const _nr=newRound;newRound=async function(){
+  if(G&&!G.over&&G.skyBidDue!=null&&G.skyBidDue===G.moon.round){G.skyBidDue=null;await skyAuction();render();if(G.over)return}
+  return _nr.apply(this,arguments)}}
+{const _ms=moonStart;moonStart=async function(){
+  if(G&&G.skyNext){const s=G.skyNext;G.skyNext=null;skySwap(s.k,s.why);const h=G.log.find(l=>l.cls==="turn");if(h)h.html=h.html.replace(/ · [^·—]+ —$/,` · ${moonName()} —`)}
+  return _ms.apply(this,arguments)}}
 
 /* ---------------- v71c: Neptune, the Form of Dissolve ----------------
    In the sky (the shop, a change of sky, or the start): every 4d2 turns a cloud in Neptune's blue settles over the tiles
@@ -12682,7 +12701,7 @@ function fsButton(){let b=$("#fsbtn");if(!b){b=document.createElement("button");
 function fsEnter(){if(!G||fsOn())return;const h=document.documentElement;FS.y=scrollY;FS.zmin=CAM.ZMIN;FS.zmax=CAM.ZMAX;FS.z0=CAM.z;CAM.ZMIN=.2;CAM.ZMAX=3.4;
   h.classList.add("ecfs");h.classList.toggle("fs-sp",PREF.fsSp===true);h.classList.toggle("fs-sel",PREF.fsSel===true);scrollTo(0,0);
   FS.api=false;if(PREF.fsBrowser===true&&h.requestFullscreen&&!document.fullscreenElement){   // v74a: the browser's own fullscreen only when chosen (it shows its own notice)
-    try{const p=h.requestFullscreen({navigationUI:"hide"});FS.api=true;if(p&&p.catch)p.catch(()=>{FS.api=false})}catch(e){FS.api=false}}
+    try{const p=h.requestFullscreen({navigationUI:"show"});FS.api=true;if(p&&p.catch)p.catch(()=>{FS.api=false})}catch(e){FS.api=false}}
   FS.fitUntil=Date.now()+1500;FS.ow=innerWidth;FS.oh=innerHeight;render();fsFit()}
 function fsExit(){if(!fsOn())return;fsCloseAll();const h=document.documentElement;h.classList.remove("ecfs","fs-sp","fs-sel");
   CAM.ZMIN=FS.zmin;CAM.ZMAX=FS.zmax||2.2;CAM.z=FS.z0;const api=FS.api;FS.api=false;
@@ -12734,6 +12753,8 @@ function fsUI(){let u=$("#fsui");if(u)return u;u=document.createElement("div");u
   $("#fspauseb").onclick=fsPause;
   u.insertAdjacentHTML("afterbegin",`<button type="button" id="fsctlb" aria-haspopup="dialog" title="Controls"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="2.5" y="6.5" width="19" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 10h1M9 10h1M12 10h1M15 10h1M18 10h0.5M7 14h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Controls</span></button>`);
   $("#fsctlb").onclick=fsControls;
+  u.insertAdjacentHTML("afterbegin",`<button type="button" id="fsbfsb" data-tip="The browser's own fullscreen (hides the browser's bars): + turns it on, − turns it off. The keys + and − do the same, except while you type."><b>+</b><b>−</b></button>`);   // v78t
+  $("#fsbfsb").onclick=()=>bfsSet(!document.fullscreenElement);
   const tab=(id,key,cls)=>{$(id).onclick=()=>{PREF[key]=!PREF[key];savePrefs();document.documentElement.classList.toggle(cls,PREF[key]);fsPaint()}};
   tab("#fstabSp","fsSp","fs-sp");tab("#fstabSel","fsSel","fs-sel");
   $("#fsrowT").onclick=()=>{PREF.fsRowOpen=!PREF.fsRowOpen;savePrefs();fsPaint()};
@@ -12759,6 +12780,7 @@ function fsPaint(){if(!G||!fsOn())return;fsUI();const h=document.documentElement
   B.querySelectorAll("[data-fshist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.fshist,b)});
   h.style.setProperty("--fsrowh",row.offsetHeight+"px");const me=$("#me");if(me)h.style.setProperty("--fsmeh",(me.offsetHeight||36)+"px");
   const ct=$("#controls");if(ct&&ct.offsetHeight)h.style.setProperty("--fsctlb",ct.offsetTop+ct.offsetHeight+"px");
+  const cb=$("#fsctlb");if(cb&&cb.offsetWidth)h.style.setProperty("--fsctlw",cb.offsetWidth+"px");   // the +/− button sits beside Controls
   const hw=$("#handwrap");if(hw&&hw.offsetHeight)h.style.setProperty("--fshandh",hw.offsetHeight+"px");   // v78s: the field keys' note sits on it   // v78p: a phone's drawers start under the whole turn bar
   if(P&&!P.cpu)h.style.setProperty("--fspc",P.color)}
 {const _r=render;render=function(){rSafe(_r,this,arguments);fsButton();fsPiles();if(G&&fsOn())fsPaint()}}
@@ -12791,7 +12813,7 @@ ${ck("fscBrowser",PREF.fsBrowser===true,"Use the browser's own fullscreen","Hide
   if($("#fscKeys"))$("#fscKeys").onclick=()=>kbKeysWin();   // v78q: every key, in its own window
   const on=(id,f)=>{const i=$("#"+id);if(i)i.onchange=()=>{f(i.checked);savePrefs()}};
   on("fscWheel",v=>{PREF.fsWheel=!v});on("fscDrag",v=>{PREF.camDrag=v});
-  on("fscBrowser",v=>{PREF.fsBrowser=v;const h=document.documentElement;if(v&&h.requestFullscreen&&!document.fullscreenElement){try{const p=h.requestFullscreen({navigationUI:"hide"});FS.api=true;if(p&&p.catch)p.catch(()=>{FS.api=false})}catch(e){}}
+  on("fscBrowser",v=>{PREF.fsBrowser=v;const h=document.documentElement;if(v&&h.requestFullscreen&&!document.fullscreenElement){try{const p=h.requestFullscreen({navigationUI:"show"});FS.api=true;if(p&&p.catch)p.catch(()=>{FS.api=false})}catch(e){}}
     else if(!v&&document.fullscreenElement&&document.exitFullscreen){FS.api=false;document.exitFullscreen().catch(()=>{})}})}
 /* ---------- the pause menu, Help, a passage from the book ---------- */
 function fsOv(id){let o=$("#"+id);if(!o){o=document.createElement("div");o.id=id;o.className="fsov";document.body.appendChild(o)}return o}
@@ -12848,8 +12870,9 @@ document.addEventListener("keydown",e=>{if(!kmIs(e,"turn")||!G||G.over)return;  
   const a=document.activeElement;if(a&&(a.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))return;
   if(a&&a!==document.body&&a.tagName==="BUTTON"&&!a.closest("#board,#hand"))return;   // a focused button keeps its own Space
   if(e.repeat){e.preventDefault();return}   // v78j: held down, it fires once
-  const top=kbTop();if(top&&!top.matches(".drawer,#etherpanel"))return;   // v78j: a window has the keys (v78s: a side drawer doesn't)
-  if(KB.mode){if(kbModeKey(e))return;kbModeOff()}   // v78s: with the spells or the hand open by keys, Space ends the phase too (unless it's bound there)
+  const top=kbTop();if(top&&!top.matches(".drawer,#etherpanel"))return;   // v78j: a window has the keys (v78s: the Ether's and the sky's drawers don't)
+  if(KB.mode)return;   // v78t: the spells (the bar or the list) or the hand picked by keys keep Space: it doesn't end the turn there
+  if(fsOn()&&(PREF.fsSp||PREF.fsSel)){e.preventDefault();return}   // v78t: nor with the Spells or the Selected drawer open
   if([...document.querySelectorAll("#ov,#menu,#facfg,#fspause,#fshelp,#fsquote,#fsctl,#pop,#histpop,#rbwin,#clstgwin,#leavebox,.faov")].some(x=>!x.hidden&&x.getClientRects().length&&x.innerHTML.trim()))return;
   const n=$("#next");if(!n||n.disabled||!n.getClientRects().length)return;e.preventDefault();n.click()},true);
 /* v74a: the history of rolls opens above its button when there is no room below (the dice row at the bottom of fullscreen) */
@@ -12865,6 +12888,12 @@ document.addEventListener("keydown",e=>{if(!kmIs(e,"turn")||!G||G.over)return;  
   if(!need||!ph||G.over||G.passing){if(l)l.remove();return}
   if(!l){l=document.createElement("span");l.className="phl";ctl.prepend(l)}else if(ctl.firstElementChild!==l)ctl.prepend(l);
   l.textContent=me()&&me().cpu?`${me().name}: ${ph}`:`${ph} phase`}}
+
+/* v78t: the browser's own fullscreen by the + and − keys (and the +/− button beside Controls); typing never triggers them */
+function bfsSet(on){const h=document.documentElement;
+  if(on&&!document.fullscreenElement&&h.requestFullscreen){try{const p=h.requestFullscreen({navigationUI:"show"});FS.api=true;if(p&&p.catch)p.catch(()=>{FS.api=false;flash("The browser didn't allow its fullscreen here.")})}catch(e){FS.api=false}}
+  else if(!on&&document.fullscreenElement&&document.exitFullscreen){FS.api=false;document.exitFullscreen().catch(()=>{})}}
+document.addEventListener("fullscreenchange",()=>{const b=$("#fsbfsb");if(b)b.classList.toggle("on",!!document.fullscreenElement)});
 
 /* ---------------- v73c: the Cross, and the two-armed Cross (large maps) ----------------
    The Cross is a real cross: four arms around a middle shaped like a diamond (a square turned on its point).
@@ -13692,6 +13721,7 @@ const KM_ACTS=[
   ["dice","table","Shortcuts","The dice",["Shift+L"]],
   ["fullscreen","table","Shortcuts","Fullscreen on and off",["Shift+Backspace"]],
   ["hints","table","Shortcuts","Show or hide the key letters on the buttons",["Shift+/"]],
+  ["bfsOn","table","Shortcuts","The browser's own fullscreen on (the + key)",["Shift+=","NumPlus"]],["bfsOff","table","Shortcuts","The browser's own fullscreen off (the − key)",["-","Num-"]],
   ["console","table","Shortcuts","The command line (online: or the chat, whichever you used last)",["T"]],
   ["consoleSwap","table","Shortcuts","The other one of the two: the chat, or the command line",["Shift+T"]],
   ["camUp","table","Camera","Move the camera up (Shift: faster; two at once: diagonally)",["W"],1],
@@ -14537,7 +14567,7 @@ function kbAce(d){if(getSelection&&String(getSelection()).length)return false;co
   if(!A.length){flash("You have no Ace on the field.");return}KB.ace=((KB.ace+d)%A.length+A.length)%A.length;kbLook(...A[KB.ace])}
 /* the table's shortcuts: [action, what it does]; one that returns false leaves the key to the browser */
 const KB_DO=[
-  ["fullscreen",()=>fsOn()?fsExit():fsEnter()],["hints",()=>kbHints(PREF.keyHints!==true)],
+  ["fullscreen",()=>fsOn()?fsExit():fsEnter()],["bfsOn",()=>bfsSet(true)],["bfsOff",()=>bfsSet(false)],["hints",()=>kbHints(PREF.keyHints!==true)],
   ["dip",()=>{const b=$("#dipbar");if(b)b.click();else flash("Diplomacy is off in this game.")}],
   ["aceBack",()=>kbAce(-1)],["aceNext",()=>kbAce(1)],["lookSel",()=>{if(G.sel)kbLook(G.sel.r,G.sel.c);else flash("Nothing is selected on the field.")}],
   ["faset",()=>{if(typeof faAllowed==="function"&&faAllowed())faWindow();else flash("Field Automation is off in this game.")}],

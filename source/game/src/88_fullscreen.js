@@ -23,7 +23,7 @@ function fsButton(){let b=$("#fsbtn");if(!b){b=document.createElement("button");
 function fsEnter(){if(!G||fsOn())return;const h=document.documentElement;FS.y=scrollY;FS.zmin=CAM.ZMIN;FS.zmax=CAM.ZMAX;FS.z0=CAM.z;CAM.ZMIN=.2;CAM.ZMAX=3.4;
   h.classList.add("ecfs");h.classList.toggle("fs-sp",PREF.fsSp===true);h.classList.toggle("fs-sel",PREF.fsSel===true);scrollTo(0,0);
   FS.api=false;if(PREF.fsBrowser===true&&h.requestFullscreen&&!document.fullscreenElement){   // v74a: the browser's own fullscreen only when chosen (it shows its own notice)
-    try{const p=h.requestFullscreen({navigationUI:"hide"});FS.api=true;if(p&&p.catch)p.catch(()=>{FS.api=false})}catch(e){FS.api=false}}
+    try{const p=h.requestFullscreen({navigationUI:"show"});FS.api=true;if(p&&p.catch)p.catch(()=>{FS.api=false})}catch(e){FS.api=false}}
   FS.fitUntil=Date.now()+1500;FS.ow=innerWidth;FS.oh=innerHeight;render();fsFit()}
 function fsExit(){if(!fsOn())return;fsCloseAll();const h=document.documentElement;h.classList.remove("ecfs","fs-sp","fs-sel");
   CAM.ZMIN=FS.zmin;CAM.ZMAX=FS.zmax||2.2;CAM.z=FS.z0;const api=FS.api;FS.api=false;
@@ -75,6 +75,8 @@ function fsUI(){let u=$("#fsui");if(u)return u;u=document.createElement("div");u
   $("#fspauseb").onclick=fsPause;
   u.insertAdjacentHTML("afterbegin",`<button type="button" id="fsctlb" aria-haspopup="dialog" title="Controls"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="2.5" y="6.5" width="19" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 10h1M9 10h1M12 10h1M15 10h1M18 10h0.5M7 14h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Controls</span></button>`);
   $("#fsctlb").onclick=fsControls;
+  u.insertAdjacentHTML("afterbegin",`<button type="button" id="fsbfsb" data-tip="The browser's own fullscreen (hides the browser's bars): + turns it on, − turns it off. The keys + and − do the same, except while you type."><b>+</b><b>−</b></button>`);   // v78t
+  $("#fsbfsb").onclick=()=>bfsSet(!document.fullscreenElement);
   const tab=(id,key,cls)=>{$(id).onclick=()=>{PREF[key]=!PREF[key];savePrefs();document.documentElement.classList.toggle(cls,PREF[key]);fsPaint()}};
   tab("#fstabSp","fsSp","fs-sp");tab("#fstabSel","fsSel","fs-sel");
   $("#fsrowT").onclick=()=>{PREF.fsRowOpen=!PREF.fsRowOpen;savePrefs();fsPaint()};
@@ -100,6 +102,7 @@ function fsPaint(){if(!G||!fsOn())return;fsUI();const h=document.documentElement
   B.querySelectorAll("[data-fshist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.fshist,b)});
   h.style.setProperty("--fsrowh",row.offsetHeight+"px");const me=$("#me");if(me)h.style.setProperty("--fsmeh",(me.offsetHeight||36)+"px");
   const ct=$("#controls");if(ct&&ct.offsetHeight)h.style.setProperty("--fsctlb",ct.offsetTop+ct.offsetHeight+"px");
+  const cb=$("#fsctlb");if(cb&&cb.offsetWidth)h.style.setProperty("--fsctlw",cb.offsetWidth+"px");   // the +/− button sits beside Controls
   const hw=$("#handwrap");if(hw&&hw.offsetHeight)h.style.setProperty("--fshandh",hw.offsetHeight+"px");   // v78s: the field keys' note sits on it   // v78p: a phone's drawers start under the whole turn bar
   if(P&&!P.cpu)h.style.setProperty("--fspc",P.color)}
 {const _r=render;render=function(){rSafe(_r,this,arguments);fsButton();fsPiles();if(G&&fsOn())fsPaint()}}
@@ -132,7 +135,7 @@ ${ck("fscBrowser",PREF.fsBrowser===true,"Use the browser's own fullscreen","Hide
   if($("#fscKeys"))$("#fscKeys").onclick=()=>kbKeysWin();   // v78q: every key, in its own window
   const on=(id,f)=>{const i=$("#"+id);if(i)i.onchange=()=>{f(i.checked);savePrefs()}};
   on("fscWheel",v=>{PREF.fsWheel=!v});on("fscDrag",v=>{PREF.camDrag=v});
-  on("fscBrowser",v=>{PREF.fsBrowser=v;const h=document.documentElement;if(v&&h.requestFullscreen&&!document.fullscreenElement){try{const p=h.requestFullscreen({navigationUI:"hide"});FS.api=true;if(p&&p.catch)p.catch(()=>{FS.api=false})}catch(e){}}
+  on("fscBrowser",v=>{PREF.fsBrowser=v;const h=document.documentElement;if(v&&h.requestFullscreen&&!document.fullscreenElement){try{const p=h.requestFullscreen({navigationUI:"show"});FS.api=true;if(p&&p.catch)p.catch(()=>{FS.api=false})}catch(e){}}
     else if(!v&&document.fullscreenElement&&document.exitFullscreen){FS.api=false;document.exitFullscreen().catch(()=>{})}})}
 /* ---------- the pause menu, Help, a passage from the book ---------- */
 function fsOv(id){let o=$("#"+id);if(!o){o=document.createElement("div");o.id=id;o.className="fsov";document.body.appendChild(o)}return o}
@@ -189,8 +192,9 @@ document.addEventListener("keydown",e=>{if(!kmIs(e,"turn")||!G||G.over)return;  
   const a=document.activeElement;if(a&&(a.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))return;
   if(a&&a!==document.body&&a.tagName==="BUTTON"&&!a.closest("#board,#hand"))return;   // a focused button keeps its own Space
   if(e.repeat){e.preventDefault();return}   // v78j: held down, it fires once
-  const top=kbTop();if(top&&!top.matches(".drawer,#etherpanel"))return;   // v78j: a window has the keys (v78s: a side drawer doesn't)
-  if(KB.mode){if(kbModeKey(e))return;kbModeOff()}   // v78s: with the spells or the hand open by keys, Space ends the phase too (unless it's bound there)
+  const top=kbTop();if(top&&!top.matches(".drawer,#etherpanel"))return;   // v78j: a window has the keys (v78s: the Ether's and the sky's drawers don't)
+  if(KB.mode)return;   // v78t: the spells (the bar or the list) or the hand picked by keys keep Space: it doesn't end the turn there
+  if(fsOn()&&(PREF.fsSp||PREF.fsSel)){e.preventDefault();return}   // v78t: nor with the Spells or the Selected drawer open
   if([...document.querySelectorAll("#ov,#menu,#facfg,#fspause,#fshelp,#fsquote,#fsctl,#pop,#histpop,#rbwin,#clstgwin,#leavebox,.faov")].some(x=>!x.hidden&&x.getClientRects().length&&x.innerHTML.trim()))return;
   const n=$("#next");if(!n||n.disabled||!n.getClientRects().length)return;e.preventDefault();n.click()},true);
 /* v74a: the history of rolls opens above its button when there is no room below (the dice row at the bottom of fullscreen) */
@@ -206,3 +210,9 @@ document.addEventListener("keydown",e=>{if(!kmIs(e,"turn")||!G||G.over)return;  
   if(!need||!ph||G.over||G.passing){if(l)l.remove();return}
   if(!l){l=document.createElement("span");l.className="phl";ctl.prepend(l)}else if(ctl.firstElementChild!==l)ctl.prepend(l);
   l.textContent=me()&&me().cpu?`${me().name}: ${ph}`:`${ph} phase`}}
+
+/* v78t: the browser's own fullscreen by the + and − keys (and the +/− button beside Controls); typing never triggers them */
+function bfsSet(on){const h=document.documentElement;
+  if(on&&!document.fullscreenElement&&h.requestFullscreen){try{const p=h.requestFullscreen({navigationUI:"show"});FS.api=true;if(p&&p.catch)p.catch(()=>{FS.api=false;flash("The browser didn't allow its fullscreen here.")})}catch(e){FS.api=false}}
+  else if(!on&&document.fullscreenElement&&document.exitFullscreen){FS.api=false;document.exitFullscreen().catch(()=>{})}}
+document.addEventListener("fullscreenchange",()=>{const b=$("#fsbfsb");if(b)b.classList.toggle("on",!!document.fullscreenElement)});
