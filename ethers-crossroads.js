@@ -2235,7 +2235,7 @@ function render(){
     if(!(G.phase==="setup"&&G.setupStep==="more"||G.phase==="prep")){flash(G.phase==="setup"?"Place your Ace and Jack first.":"Cards are placed during setup or the prep phase.");return}
     if(G.placing){flash("Put the Slave down first.");return}
     const c=P.hand[+b.dataset.h];G.selHand=G.selHand===c?null:c;G.mode=null;G.faceDown=false;render()});   // v78j: the tick is for one card
-  $("#hand").querySelectorAll("[data-sh]").forEach(b=>b.onclick=()=>{if(!canAct())return;sacrifice(P.hand[+b.dataset.sh],"hand");render()});
+  $("#hand").querySelectorAll("[data-sh]").forEach(b=>b.onclick=()=>{if(!canAct())return;const c=P.hand[+b.dataset.sh];sacrifice(c,"hand");if(G.selHand===c&&!P.hand.includes(c))G.selHand=null;render()});   // v78s: a sacrificed card is no longer picked
   $("#hand").querySelectorAll("[data-sunh]").forEach(b=>b.onclick=()=>{if(!canAct())return;sacrificeToSun(P.hand[+b.dataset.sunh],"hand");render()});
   $("#mytray").innerHTML=hidden?"":trayHTML(P,V);
   // controls
@@ -11010,6 +11010,7 @@ const banCycle=()=>{const k=G.moon.gone;return k&&cycleNow(k)?`${banBody(k).repl
 {const _nr=newRound;newRound=async function(){const out=await _nr.apply(this,arguments);
   if(G&&!G.over){const sub=[];
     if(survival()){const H=hordeIx(),none=H<0||!stacksOf(H).length,coming=G.round>=(G.hordeNextR==null?4:G.hordeNextR);if(none&&!coming)sub.push(G.round<=3?"Grace period · the Horde gathers":"Grace · no Horde this round")}
+    if(!G.moon.gone&&(G.moon.i===0||G.moon.i===4))sub.push(G.moon.blood?"A Blood Moon":MOON[G.moon.i]);   // v78s: the New Moon and the Full Moon are told too
     try{const c=banCycle();if(c)sub.push(c)}catch(e){console.error(e)}
     if(G.eclipse&&G.eclipse.round===G.moon.round)sub.push(`The eclipse of ${banBody(G.eclipse.k==="saturn"&&G.eclipse.what?"saturn":G.eclipse.k)}`);
     roundBanner(banRound(),sub.join(" · "))}
@@ -12757,7 +12758,8 @@ function fsPaint(){if(!G||!fsOn())return;fsUI();const h=document.documentElement
   const B=$("#fsrowB");B.innerHTML=open?(mode==="dice"?fsRollHTML():mode==="log"?fsLogHTML():fsRollHTML()+"<br>"+fsLogHTML()):"";
   B.querySelectorAll("[data-fshist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.fshist,b)});
   h.style.setProperty("--fsrowh",row.offsetHeight+"px");const me=$("#me");if(me)h.style.setProperty("--fsmeh",(me.offsetHeight||36)+"px");
-  const ct=$("#controls");if(ct&&ct.offsetHeight)h.style.setProperty("--fsctlb",ct.offsetTop+ct.offsetHeight+"px");   // v78p: a phone's drawers start under the whole turn bar
+  const ct=$("#controls");if(ct&&ct.offsetHeight)h.style.setProperty("--fsctlb",ct.offsetTop+ct.offsetHeight+"px");
+  const hw=$("#handwrap");if(hw&&hw.offsetHeight)h.style.setProperty("--fshandh",hw.offsetHeight+"px");   // v78s: the field keys' note sits on it   // v78p: a phone's drawers start under the whole turn bar
   if(P&&!P.cpu)h.style.setProperty("--fspc",P.color)}
 {const _r=render;render=function(){rSafe(_r,this,arguments);fsButton();fsPiles();if(G&&fsOn())fsPaint()}}
 /* v74a: the Grave, the Ether, the Outer Darkness and the Auction sit under the hand (as before v72a); in fullscreen, at the bottom of the spells */
@@ -12846,7 +12848,8 @@ document.addEventListener("keydown",e=>{if(!kmIs(e,"turn")||!G||G.over)return;  
   const a=document.activeElement;if(a&&(a.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))return;
   if(a&&a!==document.body&&a.tagName==="BUTTON"&&!a.closest("#board,#hand"))return;   // a focused button keeps its own Space
   if(e.repeat){e.preventDefault();return}   // v78j: held down, it fires once
-  if(KB.mode||kbTop())return;   // v78j: a spell list, the hand, a drawer or any window has the keys
+  const top=kbTop();if(top&&!top.matches(".drawer,#etherpanel"))return;   // v78j: a window has the keys (v78s: a side drawer doesn't)
+  if(KB.mode){if(kbModeKey(e))return;kbModeOff()}   // v78s: with the spells or the hand open by keys, Space ends the phase too (unless it's bound there)
   if([...document.querySelectorAll("#ov,#menu,#facfg,#fspause,#fshelp,#fsquote,#fsctl,#pop,#histpop,#rbwin,#clstgwin,#leavebox,.faov")].some(x=>!x.hidden&&x.getClientRects().length&&x.innerHTML.trim()))return;
   const n=$("#next");if(!n||n.disabled||!n.getClientRects().length)return;e.preventDefault();n.click()},true);
 /* v74a: the history of rolls opens above its button when there is no room below (the dice row at the bottom of fullscreen) */
@@ -13953,8 +13956,9 @@ if(window.__EC)Object.assign(window.__EC,{KM,kmBinds:id=>kmBinds(id),kmLoad:id=>
      stack does it at once. Up to nine stacks guard one. A green line runs from each guard to it, ending in an arrow.
      Guards keep one or two tiles from it, on the side the enemy comes from and beside its way rather than in it; they
      move after it, so they follow it, and strike first at what comes near it, turning bold while it is threatened.
-   - Guard an area…, then click a tile: the stack holds the ground within four tiles of it and fights what comes in.
-     A dashed green circle shows the area; up to nine stacks guard one.
+   - Guard an area…, then click a tile: the stack holds the ground within two tiles of it and fights what comes in.
+     A light dashed green circle shows the area; up to nine stacks guard one. (v78s: a guard's right-click menu makes the
+     area wider or smaller, from its own tile only up to six tiles around it, and stays open while you do.)
    - A squadron, up to nine stacks: New squadron…, then click the stacks to bring in (Esc or Done when finished); Join the
      selected stack's squadron; Add stacks…; Promote to Leader; Disband. Blue lines join it and it keeps together; with a
      leader they become arrows pointing at it, the leader moves first and the rest keep within two tiles of it.
@@ -13966,7 +13970,8 @@ if(window.__EC)Object.assign(window.__EC,{KM,kmBinds:id=>kmBinds(id),kmLoad:id=>
    default) or leave it. Only you see the lines. The group is marked on its cards (x.fgId, so it goes wherever they go; a
    stack's own strategy rides on its strongest card, x.fgStrat); the groups and the strategies they play by are kept with
    the player (G.p[pl].fg), so the host plays them. */
-const FG_MAX=9,FG_AREA=4;
+const FG_MAX=9,FG_RAD=2,FG_RADMAX=6;   // v78s: an area's radius in tiles: 2 unless changed (0, its own tile only, to 6)
+const fgRad=g=>g&&Number.isInteger(g.rad)?Math.max(0,Math.min(FG_RADMAX,g.rad)):FG_RAD;
 const fgData=pl=>{const P=G.p[pl];if(!P.fg||typeof P.fg!=="object")P.fg={n:0,g:{},s:{}};return P.fg};
 const fgFull=pl=>faOn(pl)&&(faState(pl).cfg||{}).scope!=="soft";
 const fgCheb=(a,b,c,d)=>Math.max(Math.abs(a-c),Math.abs(b-d));
@@ -14027,6 +14032,8 @@ function fgDo(pl,op,a,b,c){if(!G||!G.p[pl]||G.over||NET.ctx!=null&&NET.ctx!==pl|
   else if(op==="leave"){if(!o||!fgGid(pl,o.st))return false;out(o)}
   else if(op==="disband"){if(!D.g[a])return false;fgEnd(pl,a,"")}
   else if(op==="dismiss"){if(!o)return false;for(const id of Object.keys(D.g)){const g=D.g[id],X=g.k==="guard"&&fgFind(pl,g.lead);if(X&&X.st===o.st)fgEnd(pl,id,"")}}
+  else if(op==="rad"){const gid=o&&fgGid(pl,o.st),g=gid&&D.g[gid];if(!g||g.k!=="area")return false;   // v78s: the area wider or smaller
+    const r=Math.max(0,Math.min(FG_RADMAX,fgRad(g)+(b>0?1:-1)));if(r===fgRad(g))return false;g.rad=r}
   else if(op==="strat"){if(!o)return false;const gid=fgGid(pl,o.st);let sid=null;
     if(c&&typeof c==="object"){sid="s"+(++D.n);D.s[sid]={name:stName(b)||"Strategy",cfg:stCfg(c)}}
     if(gid)D.g[gid].sid=sid;
@@ -14055,10 +14062,12 @@ function fgShape(pl,gid,g,base,role){const cx=Object.assign({},base,{pl}),foes=A
     cx.gainMul=E=>{const e=pos.get(E);if(!e)return gm(E);const d=fgCheb(e.r,e.c,L0.r,L0.c);return gm(E)*(d<=1?3.2:d<=2?2.4:d<=3?1.5:1)};
     if(foes.some(e=>fgCheb(e.r,e.c,L0.r,L0.c)<=4)){cx.W=faMix(base.W,FA_OFF,.65);cx.thrAdj=(base.thrAdj||0)-.12}   // threatened: bold
     return cx}
-  if(g.k==="area"){const [ar,ac]=g.at,inA=(r,c)=>Math.hypot(r-ar,c-ac)<=FG_AREA+.3;
-    pull((S,r,c)=>{const d=Math.hypot(r-ar,c-ac);return d>FG_AREA+.3?2.6*(d-FG_AREA)+1:.12*d});
-    cx.gainMul=E=>{const e=pos.get(E);return gm(E)*(e?(inA(e.r,e.c)?2.2:.55):1)};
-    if(foes.some(e=>inA(e.r,e.c))){cx.W=faMix(base.W,FA_OFF,.55);cx.thrAdj=(base.thrAdj||0)-.08}
+  if(g.k==="area"){const [ar,ac]=g.at,R=fgRad(g),inA=(r,c)=>Math.hypot(r-ar,c-ac)<=R+.3;
+    pull((S,r,c)=>{const d=Math.hypot(r-ar,c-ac);return d>R+.3?2.6*(d-R)+1:.12*d});
+    // v78s: a guard caught outside its area fights the enemies in its way back (nearer the area than it is, within two tiles of it)
+    const away=fgMembers(pl,gid).filter(m=>!inA(m.r,m.c)),inWay=e=>away.some(m=>Math.hypot(e.r-ar,e.c-ac)<Math.hypot(m.r-ar,m.c-ac)&&fgCheb(e.r,e.c,m.r,m.c)<=2);
+    cx.gainMul=E=>{const e=pos.get(E);return gm(E)*(e?(inA(e.r,e.c)?2.2:inWay(e)?2.4:.55):1)};
+    if(foes.some(e=>inA(e.r,e.c))||away.length&&foes.some(inWay)){cx.W=faMix(base.W,FA_OFF,.55);cx.thrAdj=(base.thrAdj||0)-.08}
     return cx}
   /* a squadron: the leader leads (not too far ahead of the rest); the others keep within two tiles of it, or (no leader) of one another */
   if(role==="L"){pull((S,r,c)=>{const M=fgMembers(pl,gid).filter(o=>!S.cards.some(x=>o.st.cards.includes(x)));if(!M.length)return 0;
@@ -14089,6 +14098,7 @@ function fgItems(o){const V=view(),D=G.p[V].fg||{g:{},s:{}},gid=fgGid(V,o.st),g=
   const b=(op,t,on)=>`<button type="button" role="menuitem" data-fg="${op}"${on?' class="on"':""}>${t}</button>`;
   let h=`<p class="clsmh">Field Automation group</p>`;
   if(g){h+=`<p class="fgnow">${esc(fgName(V,gid,g,o))}</p>`;
+    if(g.k==="area"){const r=fgRad(g);h+=`<p class="fgrad">Area: ${r?`${r} tile${r>1?"s":""} around ${coord(g.at[0],g.at[1])}`:`${coord(g.at[0],g.at[1])} only`}</p><div class="fgradb">${b("rad+","Wider area (+1 tile)").replace("<button",r>=FG_RADMAX?"<button disabled":"<button")}${b("rad-","Smaller area (−1 tile)").replace("<button",r<=0?"<button disabled":"<button")}</div>`}
     if(g.k==="squad"){if(!(g.lead&&o.st.cards.some(x=>x.id===g.lead.h)))h+=b("lead","Promote to Leader");if(fgMembers(V,gid).length<FG_MAX)h+=b("add","Add stacks…")}
     h+=b("leave","Leave group");if(g.k==="squad")h+=b("disband","Disband the squadron")}
   if(fgCanJoin(o.st)){
@@ -14099,11 +14109,14 @@ function fgItems(o){const V=view(),D=G.p[V].fg||{g:{},s:{}},gid=fgGid(V,o.st),g=
   const L=stList();if(L.length&&fgCanJoin(o.st)){const cur=g?g.sid:(o.st.cards.find(x=>x.fgStrat)||{}).fgStrat,curName=cur&&D.s[cur]?D.s[cur].name:null;
     h+=`<p class="clsmh">Strategy for ${g?"the group":"this stack"}</p>`+b("strat:","Your own settings",!curName)+L.map(s=>b("strat:"+s.id,esc(s.name),curName===s.name)).join("")}
   return h}
-function fgWire(m,o){m.querySelectorAll("[data-fg]").forEach(btn=>btn.onclick=()=>{m.hidden=true;fgUse(btn.dataset.fg,o)})}
+function fgWire(m,o){m.querySelectorAll("[data-fg]").forEach(btn=>btn.onclick=()=>{
+  if(btn.dataset.fg==="rad+"||btn.dataset.fg==="rad-"){fgDo(view(),"rad",[o.r,o.c],btn.dataset.fg==="rad+"?1:-1);   // v78s: the menu stays open while the area changes
+    const box=m.querySelector(".fgmenu");if(box)box.innerHTML=fgItems(o);else m.innerHTML=fgItems(o);fgWire(m,o);const again=m.querySelector(`[data-fg="${btn.dataset.fg}"]:not([disabled])`)||m.querySelector('[data-fg^="rad"]:not([disabled])');if(again)again.focus({preventScroll:true});return}
+  m.hidden=true;fgUse(btn.dataset.fg,o)})}
 function fgUse(op,o){const V=view(),gid=fgGid(V,o.st),here=[o.r,o.c];
   if(op==="guardsel"){const L=selStack();if(!L)return;if(!fgGuardRoom(V,L)){flash("Nine stacks already guard that one.");return}fgDo(V,"guard",here,[G.sel.r,G.sel.c]);flash("It guards the selected stack.")}
   else if(op==="guard")fgPick({op,from:here,text:"Click the stack it should guard"});
-  else if(op==="area")fgPick({op,from:here,text:"Click the middle of the area it should guard (four tiles around it)"});
+  else if(op==="area")fgPick({op,from:here,text:"Click the middle of the area it should guard (two tiles around it; its right-click menu makes it wider or smaller)"});
   else if(op==="squad")fgPick({op,from:here,list:[],text:"Click the stacks to bring into the squadron (up to nine)"});
   else if(op==="add")fgPick({op,from:here,gid,text:"Click the stacks to add to the squadron"});
   else if(op==="joinsel"){const sg=fgGid(V,selStack());if(fgMembers(V,sg).length>=FG_MAX){flash("A squadron holds nine stacks at most.");return}fgDo(V,"join",here,sg)}
@@ -14172,7 +14185,7 @@ function fgTree(M){const out=[],inT=[M[0]];const rest=M.slice(1);while(rest.leng
 function fgSVG(){const B=$("#board");if(!B||!G)return;const V=view(),D=V!=null&&G.p[V]&&G.p[V].fg,items=[];const old=B.querySelector(":scope>svg.fagroups");
   if(D&&!G.over&&fgFull(V))for(const [gid,g] of Object.entries(D.g)){const M=fgMembers(V,gid);
     if(g.k==="guard"){const L=fgFind(V,g.lead);if(L)for(const m of M)if(m.st!==L.st)items.push(["gd",m.r,m.c,L.r,L.c])}
-    else if(g.k==="area"){items.push(["ar",g.at[0],g.at[1]]);for(const m of M)items.push(["al",m.r,m.c,g.at[0],g.at[1]])}
+    else if(g.k==="area"){items.push(["ar",g.at[0],g.at[1],fgRad(g)]);for(const m of M)items.push(["al",m.r,m.c,g.at[0],g.at[1]])}
     else{const L=g.lead?fgFind(V,g.lead):null;if(L){for(const m of M)if(m.st!==L.st)items.push(["sl",m.r,m.c,L.r,L.c])}else if(M.length>1)for(const [a,b] of fgTree(M))items.push(["sq",a.r,a.c,b.r,b.c])}}
   if(!items.length){if(old)old.remove();fgSig="";return}
   const sig=JSON.stringify([items,B.offsetWidth,B.offsetHeight]);if(old&&sig===fgSig)return;fgSig=sig;
@@ -14183,7 +14196,7 @@ function fgSVG(){const B=$("#board");if(!B||!G)return;const V=view(),D=V!=null&&
     return `<line class="fgu ${cls}" x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}"/><line class="fgl ${cls}" x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}"${arrow?` marker-end="url(#${arrow})"`:""}/>`};
   for(const it of items){const a=at(it[1],it[2]);if(!a)continue;
     if(it[0]==="ar"){const n=at(it[1],it[2]+1)||at(it[1],it[2]-1),pitch=n?Math.abs(n.x-a.x):a.s*1.08;
-      out+=`<circle class="fgc" cx="${f(a.x)}" cy="${f(a.y)}" r="${f(pitch*(FG_AREA+.5))}"/><circle class="fgcd" cx="${f(a.x)}" cy="${f(a.y)}" r="${f(a.s*.46)}"/>`;
+      out+=`<circle class="fgc" cx="${f(a.x)}" cy="${f(a.y)}" r="${f(pitch*(it[3]+.5))}"/><circle class="fgcd" cx="${f(a.x)}" cy="${f(a.y)}" r="${f(a.s*.46)}"/>`;
       continue}
     const b=at(it[3],it[4]);if(!b)continue;
     out+=it[0]==="gd"?line("gd",a,b,"fgag"):it[0]==="al"?line("al",a,b,null):it[0]==="sl"?line("sq",a,b,"fgab"):line("sq",a,b,null)}
@@ -14218,6 +14231,7 @@ const CN_CMDS=[
   ["move","move a stack: move B2 C3, or B2 C3, or B2 up left","from to"],
   ["attack","attack: attack B2 C3; attack B2 C3 2 uses its second way","from atk n"],
   ["place","place a hand card: place 5♠ B1","card spot"],
+  ["autoplace","place your hand cards where Field Automation would, by its settings (while it is on)"],
   ["cast","cast a spell: cast Lightning Strike","spell"],
   ["end","the turn button: Ready, the next phase, End turn"],["roll","roll the draw"],
   ["bank","the Bank"],["ether","the Ether"],["diplomacy","Diplomacy"],["log","the log"],["dice","the dice"],["rules","the Rule book"],["keys","every key"],["menu","the settings"],["fullscreen","fullscreen on and off"],
@@ -14228,7 +14242,7 @@ const CN_CMDS=[
   ["hold","lock in place (Field Automation leaves it): hold B2","mine"],["ambush","set a stack in ambush (or out of it): ambush B2","mine"],
   ["look","the camera to a tile: look B2","tile"],["info","what stands on a tile: info B2","tile"],["chat","say something to the table (online): chat hello","text"]];
 const CN_ALIAS={x:"close",exit:"close",quit:"close","?":"help",next:"end",ready:"end",sel:"select",go:"move",m:"move",a:"attack",p:"place",c:"cast",spell:"cast",
-  dip:"diplomacy",rulebook:"rules",settings:"menu",fs:"fullscreen",say:"chat",squadron:"squad",lock:"hold",fwd:"advance",forward:"advance",back:"retreat",fallback:"retreat"};
+  dip:"diplomacy",rulebook:"rules",settings:"menu",fs:"fullscreen",say:"chat",squadron:"squad",lock:"hold",ap:"autoplace",fwd:"advance",forward:"advance",back:"retreat",fallback:"retreat"};
 const cnCmd=w=>{const k=String(w||"").toLowerCase();return CN_CMDS.find(c=>c[0]===k)?k:CN_ALIAS[k]||null};
 
 /* ---------- tiles, cards and spells by name ---------- */
@@ -14267,7 +14281,7 @@ function cnSuggest(text){const t=text.replace(/^\s+/,""),parts=t.split(/\s+/),la
   if(CN.mode==="chat"&&!t.startsWith("/"))return out;
   const mine=cnMine(),tileSug=(list,final,hintOf)=>{for(const o of list){const n=cnName(o.r,o.c);if(n.toLowerCase().startsWith(lc))add(pre+n+(final?"":" "),n,hintOf?hintOf(o):cnTileHint(o.r,o.c),final)}};
   const w0=(words[0]||"").replace(/^\//,""),cmd=cnCmd(w0),from=cnTile(cmd?words[1]:w0);
-  if(!words.length){const lw=lc.replace(/^\//,"");for(const [k,d,takes] of CN_CMDS)if(k.startsWith(lw))add((t.startsWith("/")?"/":"")+k+(takes?" ":""),k,d,!takes);
+  if(!words.length){const lw=lc.replace(/^\//,"");for(const [k,d,takes] of CN_CMDS)if(k.startsWith(lw)&&(k!=="autoplace"||faOn(view())))add((t.startsWith("/")?"/":"")+k+(takes?" ":""),k,d,!takes);
     if(!t.startsWith("/"))tileSug(mine,false);return out}
   const moves=(f,n)=>{const T=cnTargets(f.r,f.c);for(const [a,b] of T.move){const nm=cnName(a,b);if(nm.toLowerCase().startsWith(lc))add(pre+nm,nm,G.board[a][b]?"join "+cnStackHint(G.board[a][b]):"move",true)}
     for(const [a,b] of T.atk){const nm=cnName(a,b);if(nm.toLowerCase().startsWith(lc))add(pre+nm,nm,"attack "+cnTileHint(a,b),true)}
@@ -14308,6 +14322,13 @@ function cnRun(line){line=String(line||"").trim();if(!line||G&&G.passing)return;
       const card=cnHandCard(arg[0]),to=cnTile(arg[1]);if(!card){cnSay(`No “${arg[0]||""}” in your hand.`,true);return}if(!need(to,"tile"))return;
       if(!canAct()){cnSay("Not your move now.",true);return}if(!canPlace(card,to.r,to.c)){cnSay(`${short(card)} can't be placed on ${cnName(to.r,to.c)}.`,true);return}
       place(card,to.r,to.c);render();cnSay(`${short(card)} placed on ${cnName(to.r,to.c)}.`);return}
+    case "autoplace":{const V=view();   // v78s: the hand's cards where Field Automation would put them, by its settings
+      if(!faOn(V)){cnSay("autoplace works while Field Automation is on (auto on).",true);return}
+      if(!canAct()||G.phase!=="prep"){cnSay("Cards are placed in your prep phase.",true);return}
+      const done=[];for(const card of [...G.p[V].hand]){if(!G.p[V].hand.includes(card))continue;const t=lazySpot(V,card);if(!t||!canPlace(card,t[0],t[1]))continue;
+        G.selHand=card;place(card,t[0],t[1]);G.selHand=null;done.push(`${short(card)} on ${cnName(t[0],t[1])}`)}
+      render();if(!done.length){cnSay("Field Automation finds no card it would place now.");return}
+      log(`Field Automation places ${done.length} card${done.length>1?"s":""} for ${plName(V)}.`);cnSay(`Placed ${done.join(", ")}.`);return}
     case "cast":{const q=arg.join(" ").toLowerCase();const S=cnSpells(),s=S.find(x=>x.name.toLowerCase()===q)||S.find(x=>x.name.toLowerCase().startsWith(q));
       if(!q||!s){cnSay(q?`No spell “${arg.join(" ")}” here.`:"Which spell?",true);return}if(s.off){cnSay(`${s.name} can't be cast now.`,true);return}s.b.click();
       cnSay(`${s.name}.`);return}
@@ -14436,7 +14457,8 @@ const kbVis=el=>!el.hidden&&el.getClientRects().length>0&&el.innerHTML.trim()!==
 function kbTop(){let best=null,bz=-1e9;for(const el of document.querySelectorAll(KB_WINS)){if(!kbVis(el))continue;const z=+getComputedStyle(el).zIndex||0;if(z>=bz){bz=z;best=el}}return best}
 function kbEsc(){KB.synth=true;try{document.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",code:"Escape",bubbles:true,cancelable:true}))}finally{KB.synth=false}}
 /* close the window on top: its × when it has one, else what Esc does for it */
-function kbClose(){const w=kbTop();if(!w)return false;const x=[...w.querySelectorAll(".xclose,[data-x],[data-rbclose],button[aria-label^='Close']")].find(b=>b.getClientRects().length);
+function kbClose(){const w=kbTop();if(!w)return false;if(w.id==="clsmenu"){w.hidden=true;return true}   // v78s: the right-click menu too
+  const x=[...w.querySelectorAll(".xclose,[data-x],[data-rbclose],button[aria-label^='Close']")].find(b=>b.getClientRects().length);
   if(x)x.click();else kbEsc();return true}
 const kbShow=el=>{if(!el)return;if(!fsOn())el.scrollIntoView({block:"center",behavior:"smooth"});el.classList.add("spping");setTimeout(()=>el.classList.remove("spping"),1600)};
 /* the camera on a tile: the large map's frame, or the page */
@@ -14476,7 +14498,10 @@ function kbBarPaint(){let el=$("#kbbar");if(KB.mode!=="bar"||!G){if(el)el.remove
 <p class="kbhelp">1–9 and 0 cast · Shift+1 to Shift+0 the next ten · ${kk("spPrev")} and ${kk("spNext")}, or ${kk("spSchoolNext")}, the school before and after · ${kk("spFirst")} the first, ${kk("spLast")} the piles · ${kk("close")} closes</p>`;
   el.querySelectorAll("[data-kbi]").forEach(b=>b.onclick=()=>kbCast(+b.dataset.kbi+1));
   el.querySelectorAll("[data-kbs]").forEach(b=>b.onclick=()=>kbSchool(+b.dataset.kbs));el.querySelector(".xclose").onclick=kbOff}
-function kbCast(n){const S=kbSchools(),s=S[KB.sc];if(!s)return;const b=s.items[n-1];if(!b){flash(`${s.piles?"The piles have":"This school has"} no ${n}${n===1?"st":n===2?"nd":n===3?"rd":"th"} entry.`);return}b.click()}
+function kbCast(n){const S=kbSchools(),s=S[KB.sc];if(!s)return;const b=s.items[n-1];if(!b){flash(`${s.piles?"The piles have":"This school has"} no ${n}${n===1?"st":n===2?"nd":n===3?"rd":"th"} entry.`);return}b.click();
+  if(!kbTop()&&fkToTargets())kbModeOff()}   // v78s: a spell that waits for a tile hands over to the field selector
+/* v78s: a key that the open spells or hand use (Space then belongs to them, not to the turn button) */
+const kbModeKey=e=>KB.mode==="hand"?["hNext","hPrev","hPick","hInfo"].some(id=>kmIs(e,id)):["spSchoolNext","spSchoolPrev","spFirst","spLast","spNext","spPrev","spCast"].some(id=>kmIs(e,id))||!!kbDigit(e);
 /* the hand */
 const kbHand=()=>[...document.querySelectorAll("#hand [data-h]")];
 function kbHandOn(on){if(on&&kbSpellMode())kbOff();KB.mode=on?"hand":null;if(on){const H=kbHand();KB.h=Math.max(0,Math.min(H.length-1,KB.h));kbShow($("#handwrap"))}kbPaint()}
@@ -14519,8 +14544,11 @@ const KB_DO=[
   ["spelllist",()=>kbList()],["spellbar",()=>kbBar()],["ether",()=>openEtherShop()],["bank",()=>{const b=$("#bankslot .bankbar");if(b)b.click();else openBank()}],
   ["dice",()=>kbDice()],["log",()=>kbLog()],["hand",()=>kbHandOn(true)],["console",()=>cnOpen()],["consoleSwap",()=>cnSwap()],
   ["roll",()=>{const d=$("#d4");if(d&&!d.disabled)d.click();else flash("There is nothing to roll now: the draw is in your draw phase.")}],
-  ["sacrifice",()=>{const P=G.p[view()],i=P&&G.selHand?P.hand.indexOf(G.selHand):-1;if(i<0)return false;
-    const b=document.querySelector(`#hand [data-sh="${i}"]`);if(b)b.click();else flash("That card can't be sacrificed now.")}]];
+  ["sacrifice",()=>{const P=G.p[view()];if(!P)return false;   // v78s: the picked card, or (picking from the hand by keys) the highlighted one
+    const hk=KB.mode==="hand"&&kbHand()[KB.h],i=G.selHand?P.hand.indexOf(G.selHand):hk?+hk.dataset.h:-1;if(i<0){flash("Pick a hand card first (G, then C or V).");return}
+    const b=document.querySelector(`#hand [data-sh="${i}"]`);if(!b){flash("That card can't be sacrificed now.");return}b.click();
+    if(G.selHand&&!P.hand.includes(G.selHand)){G.selHand=null;G.mode=null;render()}   // the sacrificed card is no longer picked
+    if(KB.mode==="hand"){const H=kbHand();KB.h=Math.max(0,Math.min(H.length-1,KB.h));kbPaint()}}]];
 /* Ctrl or Shift pressed alone in the spells: the next or the previous school */
 document.addEventListener("keyup",e=>{if(!G||!kbSpellMode()||kbTop()||typing(e.target))return;
   if(kmTap(e,"spSchoolNext"))kbSchool(KB.sc+1);else if(kmTap(e,"spSchoolPrev"))kbSchool(KB.sc-1)});
@@ -14539,7 +14567,9 @@ document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(
   if(is("music")){stop();if(typeof musicSync==="function"){PREF.music=PREF.music===false;savePrefs();musicSync();flash(PREF.music===false?"Music off.":"Music on.")}return}
   if(is("rulebook")){stop();rbWin();return}
   /* closing: the window on top first (its ×), then the spells or the hand; Esc for the windows that have no Esc of their own */
-  if(is("close")){if(kbTop()){stop();kbClose()}else if(KB.mode){stop();kbModeOff()}return}
+  if(is("close")){if(kbTop()){stop();kbClose()}else if(KB.mode){stop();kbModeOff()}
+    else if(G&&!G.over&&(G.selHand||G.sel||G.placing)){stop();if(G.placing)cancelPlacing();G.selHand=null;G.sel=null;G.mode=null;G.faceDown=false;FK.tgt=null;render();flash("Let go.")}   // v78s: the picked card or the selected stack
+    return}
   if(e.key==="Escape"){const w=kbTop();
     if(w){if(w.matches("#ov,.faov,#menu,#animask,#leavebox")){const x=[...w.querySelectorAll(".xclose,[data-x],button[aria-label^='Close']")].find(b=>b.getClientRects().length);if(x){stop();x.click()}}return}   // the rest close on their own Esc
     if(KB.mode){stop();kbModeOff()}return}
@@ -14552,7 +14582,9 @@ document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(
     if(is("spCast")&&KB.mode==="list"){stop();const s=kbSchools()[KB.sc],b=s&&s.items[KB.li];if(b)b.click();return}}
   if(KB.mode==="hand"){const H=kbHand();
     if(is("hNext")||is("hPrev")){stop();if(H.length){KB.h=(KB.h+(is("hNext")?1:-1)+H.length)%H.length;kbPaint();H[KB.h].scrollIntoView({block:"nearest",inline:"nearest"})}return}
-    if(is("hPick")){stop();if(H[KB.h])H[KB.h].click();kbPaint();return}
+    if(is("hPick")){stop();if(H[KB.h])H[KB.h].click();kbPaint();
+      if(G&&G.selHand&&G.selHand.unit==="miner"&&kbMineOn()){}   // v78s: a Miner goes to the mining slots first
+      else if(G&&G.selHand&&fkToTargets()){kbHandOn(false);flash(`Now a tile: ${kmShow4(["selUp","selLeft","selDown","selRight"])} move, ${kmShow("act")} places the card.`)}return}   // v78s: a picked card hands over to the field
     if(is("hInfo")){stop();const ci=H[KB.h]&&H[KB.h].querySelector(".ci");if(ci)ci.click();return}}
   const a=KB_DO.find(([id])=>is(id));if(a&&e.repeat){stop();return}if(a&&a[1]()!==false)stop();   // v78j: one press, one action (held, a window flickered open and shut)
 },true);
@@ -14636,6 +14668,8 @@ function wkCur(w){if(WK.el&&w.contains(WK.el)&&wkShown(WK.el)&&!WK.el.disabled)r
   if(!it){let bd=1e18;for(const x of items){const r=x.getBoundingClientRect(),d=(r.left+r.width/2-m.pos.x)**2+(r.top+r.height/2-m.pos.y)**2;if(d<bd){bd=d;it=x}}}
   WK.el=it;WK.sig=wkSig(it);return it}
 function wkMark(el){document.querySelectorAll(".kbfoc").forEach(x=>x.classList.remove("kbfoc"));WK.el=el;if(!el)return;WK.sig=wkSig(el);el.classList.add("kbfoc");el.scrollIntoView({block:"nearest",inline:"nearest"});
+  {const w=el.closest(KB_WINS),it=w?wkItems(w):[],i=it.indexOf(el),edge=i===0?-1:i===it.length-1?1:0;   // v78s: at the first or the last item, the window shows its very top or bottom
+    if(edge)for(let p=el.parentElement;p&&p!==document.documentElement;p=p.parentElement){if(p.scrollHeight>p.clientHeight+2&&/auto|scroll/.test(getComputedStyle(p).overflowY))p.scrollTop=edge<0?0:p.scrollHeight;if(p===w)break}}
   const r=el.getBoundingClientRect();WK.pos={x:r.left+r.width/2,y:r.top+r.height/2};const w=el.closest(KB_WINS);if(w)WK_MEM.set(w,{sig:WK.sig,pos:WK.pos})}
 function wkRemark(){const w=kbTop();if(!w||!WK.sig)return;const c=wkCur(w);if(c&&!c.classList.contains("kbfoc"))c.classList.add("kbfoc")}
 const wkLater=()=>{for(const ms of [0,60,200])setTimeout(wkRemark,ms)};
@@ -14728,7 +14762,7 @@ if(window.__EC)Object.assign(window.__EC,{WK,wkItems:w=>wkItems(w)});
      history. X or Esc stops.
    - I: what stands on the tile under the selector.
    A stack selected by keys is brought to the middle of the camera. A click on the field hides the selector. */
-const FK={on:false,cur:null,tgt:null,foe:false,pm:false,p:0,pi:0,dir:null,tdir:null,t:0,tt:0};
+const FK={on:false,cur:null,tgt:null,foe:false,pm:false,p:0,pi:0,dir:null,tdir:null,t:0,tt:0,ifo:"field"};   // v78s: ifo: with a hand card picked, what I and the second highlight are on (the card or the field)
 const fkTile=(r,c)=>document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);
 function fkGrid(){return [...document.querySelectorAll("#board>.row")].map(row=>[...row.querySelectorAll(":scope>.tile")].map(t=>t.dataset.r!=null?{r:+t.dataset.r,c:+t.dataset.c}:null))}
 function fkAt(grid,r,c){for(let i=0;i<grid.length;i++){const j=grid[i].findIndex(x=>x&&x.r===r&&x.c===c);if(j>=0)return [i,j]}return null}
@@ -14774,6 +14808,22 @@ function fkAct(how){const p=FK.tgt||FK.cur;if(!p)return;const live=canAct(),s=G.
   if(how==="atk"){flash(s?"No attack on that tile.":"Select a stack of yours first.");return}
   if(how==="move"){flash(s?"It can't go there.":"Select a stack of yours first.");return}
   FK.tgt=null;tileClick(p.r,p.c);fkFollow()}
+/* v78s: something waits for a tile (a card picked from the hand, a spell's target): the selector goes to the nearest
+   highlighted tile, so the arrows (or WASD) move it and Enter uses it */
+function fkToTargets(){FK.ifo="field";const T=[...document.querySelectorAll("#board .tile.tplace,#board .tile.tmove,#board .tile.tatk,#board .tile.taim")];if(!T.length)return false;
+  let best=T[0];if(FK.cur){let bd=1e9;for(const t of T){const d=Math.abs(+t.dataset.r-FK.cur.r)+Math.abs(+t.dataset.c-FK.cur.c);if(d<bd){bd=d;best=t}}}
+  fkSet(+best.dataset.r,+best.dataset.c);return true}
+/* v78s: I: the info box of the picked hand card (when Tab put the second highlight on it) or of the stack under the selector */
+function fkInfo(){if(G.selHand&&FK.ifo==="hand"){const b=$("#hand .cardbtn.on"),r=b?b.getBoundingClientRect():{right:200,top:200};
+    pop(infoHTML1({cards:[G.selHand],owner:G.selHand.owner},nameOf(G.selHand)),r.right+4,r.top,"info");return}
+  const t=FK.cur&&fkTile(FK.cur.r,FK.cur.c);if(!t)return;const src=stackAtTile(t),r=t.getBoundingClientRect();
+  if(src)pop(infoHTML1(src.st,stackTitle(src.st,src.r,src.c)),r.right+4,r.top,"info");else flash(t.getAttribute("aria-label")||"")}
+/* v78s: a Miner picked by keys: the lit mining slots, chosen with C and V (or the arrows), Enter puts it in, Tab goes to the
+   field instead, X lets go */
+const mineLit=()=>[...document.querySelectorAll("#minepanel .mslot.tplace")].filter(b=>b.getClientRects().length);
+function kbMineOn(){if(PREF.mineOpen===false){PREF.mineOpen=true;savePrefs();paintMines()}const L=mineLit();if(!L.length)return false;
+  KB.mode="mine";KB.m=0;kbPaint();mineMark();flash(`A mining slot: ${kmShow("hPrev")} or ${kmShow("hNext")} choose, ${kmShow("act")} puts the Miner in, ${kmShow("rowNext")} the field instead, ${kmShow("close")} lets go.`);return true}
+function mineMark(){document.querySelectorAll(".kbmine,.kbifo").forEach(e=>e.classList.remove("kbmine","kbifo"));const L=mineLit(),b=L[KB.m];if(b){b.classList.add("kbmine");b.scrollIntoView({block:"nearest",inline:"nearest"})}}
 function fkFollow(){if(G.sel){FK.cur={r:G.sel.r,c:G.sel.c};fkCenter(G.sel.r,G.sel.c)}fkPaint()}
 /* Y: the actions of what you selected, numbered */
 function fkActItems(){const box=$("#selbox");if(!box)return [];return [...box.querySelectorAll("button,input[type=checkbox],summary")].filter(e=>e.getClientRects().length&&!e.disabled)}
@@ -14807,9 +14857,12 @@ function fkPaint(){document.querySelectorAll(".kbcur,.kbpl,.kbplp").forEach(e=>e
   if(FK.pm){const b=fkBoxes()[FK.p];if(b){b.classList.add("kbpl");const parts=[...b.children].filter(e=>e.getClientRects().length&&e.textContent.trim());if(parts[FK.pi])parts[FK.pi].classList.add("kbplp")}}
   if(!FK.on||!G||!FK.cur){if(lab)lab.hidden=true;return}
   const t=fkTile(FK.cur.r,FK.cur.c);if(t)t.classList.add("kbcur");
+  document.querySelectorAll(".kbifo").forEach(e=>e.classList.remove("kbifo"));
+  if(G.selHand){const h=FK.ifo==="hand"?$("#hand .cardbtn.on"):t;if(h)h.classList.add("kbifo")}   // v78s: the second highlight: what I and Tab are on
   if(!lab){lab=document.createElement("div");lab.id="fkmode";lab.setAttribute("aria-live","polite");document.body.appendChild(lab)}
   lab.hidden=false;
-  lab.innerHTML=`${esc(kmShow("rowNext"))} steps through: <b>${FK.foe?"the enemy's cards":"your cards"}</b> <kbd>${esc(kmShow("foeSwap"))}</kbd> switches`;
+  lab.innerHTML=G.selHand?`<kbd>${esc(kmShow("rowNext"))}</kbd> <b>${FK.ifo==="hand"?"the picked card":"the field"}</b> (or ${FK.ifo==="hand"?"the field":"the picked card"}) · <kbd>${esc(kmShow("info"))}</kbd> its info · <kbd>${esc(kmShow("act"))}</kbd> places · <kbd>${esc(kmShow("close"))}</kbd> lets go`
+    :`${esc(kmShow("rowNext"))} steps through: <b>${FK.foe?"the enemy's cards":"your cards"}</b> <kbd>${esc(kmShow("foeSwap"))}</kbd> switches`;
   if(FK.tgt&&G.sel){const B=$("#board"),a=fkTile(G.sel.r,G.sel.c),b=fkTile(FK.tgt.r,FK.tgt.c);if(!B||!a||!b)return;const br=B.getBoundingClientRect(),ra=a.getBoundingClientRect(),rb=b.getBoundingClientRect();
     const x1=ra.left+ra.width/2-br.left,y1=ra.top+ra.height/2-br.top,x2=rb.left+rb.width/2-br.left,y2=rb.top+rb.height/2-br.top;
     B.insertAdjacentHTML("beforeend",`<svg id="fkarrow" aria-hidden="true" width="${Math.ceil(br.width)}" height="${Math.ceil(br.height)}"><defs><marker id="fkhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0L10,5L0,10z" fill="#f1d27a"/></marker></defs><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#f1d27a" stroke-width="4" stroke-linecap="round" marker-end="url(#fkhead)"/></svg>`)}}
@@ -14824,21 +14877,29 @@ addEventListener("keydown",e=>{if(KB.synth||typing(e.target)||!G||G.passing)retu
     const n=kmName(e.code,e.key);if(plain&&!e.shiftKey&&(n==="C"||n==="V")){stop();fkPart(n==="V"?1:-1);return}
     if(plain&&!e.shiftKey&&n==="Enter"){stop();const b=fkBoxes()[FK.p],h=b&&b.querySelector("[data-hist]");if(h)h.click();return}
     if(is("close")||e.key==="Escape"){stop();fkPlayersOff();return}}
+  if(KB.mode==="mine"){const L=mineLit();if(!L.length||!G.selHand){KB.mode=null;mineMark();return}   // v78s: the mining slots by keys
+    if(is("hPrev")||is("selLeft")||is("selUp")){stop();KB.m=(KB.m-1+L.length)%L.length;mineMark();return}
+    if(is("hNext")||is("selRight")||is("selDown")){stop();KB.m=(KB.m+1)%L.length;mineMark();return}
+    if(is("act")||is("hPick")){stop();const b=L[KB.m];KB.mode=null;mineMark();b.click();kbPaint();return}
+    if(is("rowNext")||is("rowPrev")){stop();KB.mode=null;mineMark();if(!fkToTargets())flash("No tile on the field takes it.");return}
+    if(is("close")||e.key==="Escape"){stop();KB.mode=null;mineMark();G.selHand=null;render();flash("Let go.");return}
+    return}
   if(KB.mode&&(kmIn(e,KB.mode==="hand"?"hand":"spell")||kbSpellMode()&&kbDigit(e)||is("close")||e.key==="Escape"))return;   // the spells and the hand keep their keys
   const sel=Object.keys(FK_SEL).find(is);if(sel){stop();fkArrow(sel);return}
   const aim=Object.keys(FK_AIM).find(is);if(aim){stop();fkAim(aim);return}
   if(is("menu")){stop();fkMenu();return}
+  if((is("rowNext")||is("rowPrev"))&&G.selHand&&FK.cur){stop();FK.ifo=FK.ifo==="hand"?"field":"hand";fkPaint();return}   // v78s: a picked card: Tab goes between it and the field
   if(is("rowNext")||is("rowPrev")){stop();FK.on=true;fkRowStep(is("rowNext")?1:-1);return}
   if(is("foeSwap")){stop();FK.foe=!FK.foe;FK.on=true;if(!FK.cur)fkRowStep(1);else fkPaint();return}
   if(is("foeNext")||is("foePrev")){stop();fkFoeStep(is("foeNext")?1:-1);return}
   if(is("plNext")||is("plPrev")){stop();fkPlayers(is("plNext")?1:-1);return}
   if(is("acts")){stop();fkActs();return}
   if(FK.on&&(is("rowDown")||is("rowUp"))){stop();fkColStep(is("rowDown")?1:-1);return}   // bound to a key (alone, Ctrl and Shift act on letting go)
+  if(is("info")&&(G.selHand&&FK.ifo==="hand"||FK.on&&FK.cur)){stop();fkInfo();return}   // v78s: the picked card's info, or what stands under the selector
   if(!FK.on||!FK.cur)return;   // the rest acts on the selector, once the keys have put it on the field
   if(is("act")){stop();fkAct("any");return}
   if(is("move")){stop();fkAct("move");return}
   if(is("attack")){stop();fkAct("atk");return}
-  if(is("info")){stop();const t=fkTile(FK.cur.r,FK.cur.c);flash(t?t.getAttribute("aria-label")||"":"");return}
 },true);
 /* Ctrl or Shift pressed alone on the field (as bound): the next row down or up (only once the keys are on the field) */
 addEventListener("keyup",e=>{if(typing(e.target)||!G||!FK.on||KB.mode||kbTop())return;if(kmTap(e,"rowDown"))fkColStep(1);else if(kmTap(e,"rowUp"))fkColStep(-1)},true);
