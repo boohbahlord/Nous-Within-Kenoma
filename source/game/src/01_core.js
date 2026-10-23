@@ -284,6 +284,7 @@ const teammatesOf=pl=>alive().filter(i=>i!==pl&&!isHorde(i)&&G.p[i].team===G.p[p
 const me=()=>G.p[G.active];
 const human=pl=>!G.p[pl].cpu;
 function view(){ // which player sits at the bottom of the screen
+  if(G.viewAs!=null&&G.p[G.viewAs])return G.viewAs;   // v78j: a question passed to someone else on this device
   const hs=G.p.filter(P=>!P.cpu).map(P=>P.i);
   if(!hs.length)return G.lastView??0;
   if(hs.length===1)return hs[0];
@@ -310,6 +311,7 @@ function setActive(pl){
   if(pl===G.active&&G.p[pl].ctx)return;
   const P=G.p[G.active];if(P){P.ctx={};for(const k of TURNKEYS)P.ctx[k]=G[k]}
   G.active=pl;const Q=G.p[pl];if(Q.ctx)for(const k of TURNKEYS)G[k]=Q.ctx[k];
+  const s=G.sel;if(s&&(!G.board[s.r][s.c]||hiddenFrom(pl,s.r,s.c))){G.sel=null;G.mode=null}   // v78j: what left your sight leaves your selection
 }
 /* every action a player takes goes through here: it is recorded, so a later online version can send it to the table */
 /* tile names, like chess squares: columns A, B, C… from the left of the field, rows 1, 2, 3… from the bottom */

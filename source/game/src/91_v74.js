@@ -17,7 +17,7 @@ function fsFoesHTML(){const V=view(),E=typeof nepEcState==="function"&&nepEcStat
 <span class="fsfn">${solidSVG(P.solid,P.color,13)}<b>${esc(nm)}</b>${!E&&!isEnemy(P.i,V)?'<i class="fsally">ally</i>':""}${P.out?'<i class="fsout">out</i>':act?'<i class="fsact">▸</i>':""}</span>
 ${P.cpu==="horde"?"":`<span class="fsfm" title="Deck ${q||n}"><span class="fsfbar"><i style="width:${q?50:pct(Math.min(n,N)/N)}%"></i></span><em>${q||n}</em></span>
 <span class="fsfm mana" title="Mana ${q||m}/${q||cap}"><span class="fsfbar"><i style="width:${q?50:pct(Math.max(0,m)/Math.max(1,cap))}%"></i></span><em>${q?"?/?":`${m}/${cap}`}</em></span>
-<span class="fsfh" title="Hand">✋${P.hand.length}</span>`}</div>`}).join("")}
+<span class="fsfh" title="Hand">✋${P.hand.length}</span>${handOpen(P.i,V)&&P.hand.length?`<span class="fsfh seenmark" title="seen">${P.hand.map(c=>esc(short(c))).join(" ")}</span>`:""}`}</div>`}).join("")}   // v78j: Naked Hand and the suns' eclipse here too
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!fsOn())return;const f=$("#foe");if(f)f.innerHTML=fsFoesHTML()}}
 
 /* ---------- the dice and log row: More options ---------- */

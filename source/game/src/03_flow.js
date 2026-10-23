@@ -130,10 +130,10 @@ function endTurn(pl){
 }
 const PHASE_LABEL={draw:"Done drawing →",prep:"To attack phase →",attack:"End turn →"};   // v70d: drawing is the first part of prep
 async function playerTurn(pl,phases,continuing){
-  const g=G;
+  const g=G,pass=human(pl)&&G.p.filter(P=>!P.cpu).length>1&&G.atDevice!==pl;   // v78j: who holds the device, not whom the screen last showed
   if(!continuing)beginTurn(pl);else setActive(pl);
   if(!continuing&&!isHorde(pl))log(`— ${plName(pl)}'s turn —`,"turn");
-  if(human(pl)&&G.p.filter(P=>!P.cpu).length>1&&G.lastView!==pl)await passScreen(`${G.p[pl].name}'s turn`);
+  if(pass)await passScreen(`${G.p[pl].name}'s turn`);
   if(!continuing){await turnAsync(pl);if(G!==g||G.over)return}
   for(let k=0;k<phases.length;k++){
     const ph=phases[k];if(ph==="draw"&&G.noDraw)continue;
@@ -264,7 +264,7 @@ async function opening(){
 }
 function placeOpening(pl,r,c){
   const P=G.p[pl];
-  if(P.opening.length){G.board[r][c]={owner:pl,cards:P.opening.splice(0),moved:true,attacked:false};log(`${plName(pl)} raises the opening Ace with its Jack on ${coord(r,c)}.`);aceScout(pl,r,c,true)}
+  if(P.opening.length){G.board[r][c]={owner:pl,cards:P.opening.splice(0),moved:true,attacked:false};fogLog(pl,r,c,`${plName(pl)} raises the opening Ace with its Jack.`);log(`${plName(pl)} raises the opening Ace with its Jack on ${coord(r,c)}.`);aceScout(pl,r,c,true)}
   else{G.board[r][c]={owner:pl,cards:P.opening2.splice(0),moved:true,attacked:false};log(`${plName(pl)} raises a second Ace as a base on ${coord(r,c)}.`);aceScout(pl,r,c)}
   G.setupStep=P.opening.length||(P.opening2&&P.opening2.length)?"ace":"more";
   if(G.setupStep==="more")setupDone(pl);   // Emanations that start with cards on the field

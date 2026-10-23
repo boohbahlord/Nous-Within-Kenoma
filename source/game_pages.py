@@ -360,7 +360,7 @@ play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
 <script>window.EC_QSRC="ethers-crossroads-quotes.js?v=152"</script>
-<script src="ethers-crossroads.js?v=157"></script>
+<script src="ethers-crossroads.js?v=158"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 
