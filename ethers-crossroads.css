@@ -2439,3 +2439,21 @@ details.school.kbsch{outline:1px dashed #f1d27a88;outline-offset:2px}
 .kblog li{padding:4px 0;border-bottom:1px solid #2a1d12}
 kbd{font:600 11px/1 var(--mono,monospace);background:#1e150d;border:1px solid #6e5323;border-radius:3px;padding:2px 5px;color:var(--amber);white-space:nowrap}
 .kblist li{margin:4px 0}
+/* v77d: the spell bar (F) at the bottom of the screen, and the spell under the keys in the list (Shift+F) */
+#kbbar{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);z-index:65;width:min(1100px,calc(100vw - 24px));box-sizing:border-box;background:#120c08f2;border:1px solid var(--amber);border-radius:8px;padding:8px 10px 6px;box-shadow:0 8px 30px #000c}
+#kbbar .kbtabs{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin:0 26px 8px 0;position:relative}
+#kbbar .kbtabs .xclose{position:absolute;right:-26px;top:-2px}
+#kbbar .kbk{font:700 10px/1 var(--mono,monospace);color:#120c08;background:#f1d27a;border-radius:3px;padding:3px 4px}
+#kbbar .kbtab{font:600 11px/1 var(--mono,monospace);text-transform:uppercase;letter-spacing:.07em;padding:6px 8px;border:1px solid #3a2a18;border-radius:4px;color:#b9a27a;background:none;cursor:pointer}
+#kbbar .kbtab.on{color:#120c08;background:var(--amber);border-color:var(--amber)}
+#kbbar .kbtiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;max-height:38vh;overflow:auto}
+#kbbar .kbtile{display:flex;align-items:center;gap:8px;text-align:left;padding:7px 9px;border:1px solid #4a3620;border-radius:5px;background:#1b130c;color:#efe2c8;cursor:pointer;font:inherit;min-width:0}
+#kbbar .kbtile:hover{border-color:var(--amber)}
+#kbbar .kbtile.off{opacity:.5}
+#kbbar .kbtile .kn{font:700 11px/1 var(--mono,monospace);background:#f1d27a;color:#120c08;border-radius:3px;padding:3px 4px;min-width:16px;text-align:center;flex:none}
+#kbbar .kbtile .kt{flex:1;min-width:0}
+#kbbar .kbtile .kt b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#kbbar .kbtile .kt small{display:block;color:#b9a27a;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#kbbar .kbtile em{font-style:normal;font-size:11px;color:#f1d27a;white-space:nowrap;flex:none}
+#kbbar .kbhelp{font-size:11px;color:#b9a27a;margin:6px 0 0}
+.spell.kbli,#shared .kbli{outline:2px solid var(--amber)!important;outline-offset:1px;box-shadow:0 0 12px #f1d27a88}
