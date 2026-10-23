@@ -31,6 +31,8 @@ const KM_ACTS=[
   ["dice","table","Shortcuts","The dice",["Shift+L"]],
   ["fullscreen","table","Shortcuts","Fullscreen on and off",["Shift+Backspace"]],
   ["hints","table","Shortcuts","Show or hide the key letters on the buttons",["Shift+/"]],
+  ["console","table","Shortcuts","The command line (online: or the chat, whichever you used last)",["T"]],
+  ["consoleSwap","table","Shortcuts","The other one of the two: the chat, or the command line",["Shift+T"]],
   ["camUp","table","Camera","Move the camera up (Shift: faster; two at once: diagonally)",["W"],1],
   ["camLeft","table","Camera","Move the camera left",["A"],1],
   ["camDown","table","Camera","Move the camera down",["S"],1],

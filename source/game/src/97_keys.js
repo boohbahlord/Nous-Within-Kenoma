@@ -99,7 +99,7 @@ const KB_DO=[
   ["aceBack",()=>kbAce(-1)],["aceNext",()=>kbAce(1)],["lookSel",()=>{if(G.sel)kbLook(G.sel.r,G.sel.c);else flash("Nothing is selected on the field.")}],
   ["faset",()=>{if(typeof faAllowed==="function"&&faAllowed())faWindow();else flash("Field Automation is off in this game.")}],
   ["spelllist",()=>kbList()],["spellbar",()=>kbBar()],["ether",()=>openEtherShop()],["bank",()=>{const b=$("#bankslot .bankbar");if(b)b.click();else openBank()}],
-  ["dice",()=>kbDice()],["log",()=>kbLog()],["hand",()=>kbHandOn(true)],
+  ["dice",()=>kbDice()],["log",()=>kbLog()],["hand",()=>kbHandOn(true)],["console",()=>cnOpen()],["consoleSwap",()=>cnSwap()],
   ["roll",()=>{const d=$("#d4");if(d&&!d.disabled)d.click();else flash("There is nothing to roll now: the draw is in your draw phase.")}],
   ["sacrifice",()=>{const P=G.p[view()],i=P&&G.selHand?P.hand.indexOf(G.selHand):-1;if(i<0)return false;
     const b=document.querySelector(`#hand [data-sh="${i}"]`);if(b)b.click();else flash("That card can't be sacrificed now.")}]];
@@ -147,7 +147,8 @@ function kbListHTML(id){const row=(k,t)=>`<li><kbd>${esc(k)}</kbd> ${esc(t)}</li
     row("A slider, a list or a number",`${K("winUse")}, then ${K("winUp")} or ${K("winRight")} up, ${K("winDown")} or ${K("winLeft")} down (Shift: ten), or type a number; ${K("winUse")} keeps it, Esc puts it back`),
     row("A text field",`${K("winUse")} to type; Enter again (or Esc) when done`),
     row("A line of a ranking",`${K("winUse")} takes hold: ${K("winUp")} up, ${K("winDown")} down, Space equal to the one above, Enter lets go`),
-    row("A player's box",`after ${K("plNext")}: C and V read it, Enter opens its history`));
+    row("A player's box",`after ${K("plNext")}: C and V read it, Enter opens its history`),
+    row("The command line",`after ${K("console")}: type a command or a tile (help lists them); Tab completes, Tab again or ↑ ↓ choose, Enter runs, Esc closes (or type x)`));
   return `<ul class="mklist kblist">${out.join("")}</ul><p class="dim">Every one of them can be changed: the settings, Controls, Key bindings.</p><label class="farow"><span class="fal"><b>Key letters on the buttons</b><small>Each button shows its key. ${esc(kmShow("hints"))} switches them too.</small></span><input type="checkbox" id="${id}" ${PREF.keyHints===true?"checked":""}></label>`}
 {const _fp=fsPause;fsPause=function(){_fp.apply(this,arguments);const o=$("#fspause"),box=o&&o.querySelector(".fspbox");if(!box||box.querySelector(".kbfold"))return;
   const d=document.createElement("details");d.className="sub kbfold";d.innerHTML=`<summary>Keyboard controls</summary>${kbListHTML("fsKeyHints")}`;
