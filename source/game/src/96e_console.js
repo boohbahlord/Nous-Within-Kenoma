@@ -17,7 +17,7 @@ const CN_DIRALIAS={u:"up",d:"down",l:"left",r:"right",ul:"up left",ur:"up right"
   n:"up",s:"down",w:"left",e:"right",nw:"up left",ne:"up right",sw:"down left",se:"down right",north:"up",south:"down",west:"left",east:"right"};
 /* [name, what it does (for help and the suggestions), what it takes] */
 const CN_CMDS=[
-  ["help","every command"],["close","close the command line (x too)"],
+  ["help","every command"],["close","close the command line (x too)"],["clear","clear what the command line said"],
   ["select","select what stands on a tile: select B2, or just B2","tile"],
   ["move","move a stack: move B2 C3, or B2 C3, or B2 up left","from to"],
   ["attack","attack: attack B2 C3; attack B2 C3 2 uses its second way","from atk n"],
@@ -33,7 +33,7 @@ const CN_CMDS=[
   ["hold","lock in place (Field Automation leaves it): hold B2","mine"],["ambush","set a stack in ambush (or out of it): ambush B2","mine"],
   ["look","the camera to a tile: look B2","tile"],["info","what stands on a tile: info B2","tile"],["chat","say something to the table (online): chat hello","text"]];
 const CN_ALIAS={x:"close",exit:"close",quit:"close","?":"help",next:"end",ready:"end",sel:"select",go:"move",m:"move",a:"attack",p:"place",c:"cast",spell:"cast",
-  dip:"diplomacy",rulebook:"rules",settings:"menu",fs:"fullscreen",say:"chat",squadron:"squad",lock:"hold",ap:"autoplace",fwd:"advance",forward:"advance",back:"retreat",fallback:"retreat"};
+  dip:"diplomacy",rulebook:"rules",settings:"menu",fs:"fullscreen",say:"chat",squadron:"squad",lock:"hold",ap:"autoplace",fwd:"advance",forward:"advance",back:"retreat",fallback:"retreat",cls:"clear"};
 const cnCmd=w=>{const k=String(w||"").toLowerCase();return CN_CMDS.find(c=>c[0]===k)?k:CN_ALIAS[k]||null};
 
 /* ---------- tiles, cards and spells by name ---------- */
@@ -104,6 +104,7 @@ function cnRun(line){line=String(line||"").trim();if(!line||G&&G.passing)return;
   if(!cmd){const f=cnTile(w[0]);if(!f){cnSay(`“${w[0]}” isn't a command or a tile. Type help.`,true);return}
     if(w.length===1){cnSelect(f);return}cnMove(f,w.slice(1).join(" "));return}
   switch(cmd){
+    case "clear":{const o=$("#cmdline .cnout");if(o){o.textContent="";o.classList.remove("bad")}CN.err=false;return}   // v79k
     case "help":cnSay("Commands: "+CN_CMDS.map(c=>c[0]).join(", ")+". A tile alone selects; a tile then a tile or a direction moves.");return;
     case "close":cnClose();return;
     case "select":{const f=need(cnTile(arg[0]),"tile");if(f)cnSelect(f);return}
@@ -209,8 +210,8 @@ function cnPaint(){const el=cnBar(),chat=CN.mode==="chat",inp=el.querySelector("
   el.querySelector(".cnnote").textContent=`Close: Esc · ${chat?"":"Complete: Tab · Choose: ↑ ↓ · "}${kmTipT("consoleSwap",chat?"The command line instead":"The chat instead")}`;
   const log=el.querySelector(".cnchat");log.hidden=!chat;
   if(chat)log.innerHTML=(NET.chat||[]).slice(-6).map(m=>`<li><b>${esc(m.from)}</b> ${esc(m.text)}</li>`).join("")||'<li class="dim">Nothing yet.</li>'}
-function cnOpen(mode){if(!G||G.passing)return;if(mode)CN.mode=mode;if(CN.mode==="chat"&&!NET.role){CN.mode="cmd";flash("The chat is for online games: here is the command line.")}
-  const el=cnBar(),ht=$("#helptoast");if(ht)ht.hidden=true;CN.open=true;el.hidden=false;cnPaint();el.querySelector(".cnout").textContent="";
+function cnOpen(mode){if(!G||G.passing)return;if(mode)CN.mode=mode;const offChat=CN.mode==="chat"&&!NET.role;if(offChat)CN.mode="cmd";   // v79k: said in the command line, not over the screen
+  const el=cnBar(),ht=$("#helptoast");if(ht)ht.hidden=true;CN.open=true;el.hidden=false;cnPaint();el.querySelector(".cnout").textContent=offChat?"The chat is for online games: this is the command line.":"";el.querySelector(".cnout").classList.remove("bad");
   const inp=el.querySelector(".cnin");inp.value="";CN.frozen=false;CN.nav=false;cnFill();setTimeout(()=>inp.focus(),0);
   if(CN.mode==="chat"){NET.unread=0;if(typeof chatPaint==="function")chatPaint()}}
 function cnMode(m){CN.mode=m;cnOpen()}

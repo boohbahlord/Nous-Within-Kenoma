@@ -13806,8 +13806,8 @@ const KM_ACTS=[
   ["camLeft","table","Camera","Move the camera left",["A"],1],
   ["camDown","table","Camera","Move the camera down",["S"],1],
   ["camRight","table","Camera","Move the camera right",["D"],1],
-  ["zoomIn","table","Camera","Zoom in, around the middle of the screen",["E"]],
-  ["zoomOut","table","Camera","Zoom out",["Q"]],
+  ["zoomIn","table","Camera","Zoom in, around the middle of the screen",["E","Shift+V"]],   // v79k: Shift turns C/V and Q/E around: Shift+C/V zoom,
+  ["zoomOut","table","Camera","Zoom out",["Q","Shift+C"]],                                   // Shift+Q/E go back and forth like C/V
   ["aceBack","table","Camera","The camera to your previous Ace",["Ctrl+C"]],
   ["aceNext","table","Camera","The camera to your next Ace",["Ctrl+V"]],
   ["lookSel","table","Camera","The camera to what you selected",["Ctrl+1"]],
@@ -13838,8 +13838,8 @@ const KM_ACTS=[
   ["winLeft","win","","The nearest item left (there: down)",["A"],1],
   ["winDown","win","","The nearest item down (there: down)",["S"],1],
   ["winRight","win","","The nearest item right (there: up)",["D"],1],
-  ["winPrev","win","","The item before",["C"],1],
-  ["winNext","win","","The item after",["V"],1],
+  ["winPrev","win","","The item before",["C","Shift+Q"],1],
+  ["winNext","win","","The item after",["V","Shift+E"],1],
   ["winScrollUp","win","","Scroll the window up (hold Alt; Shift: faster)",["Alt+W","Alt+C"],1],
   ["winScrollDown","win","","Scroll the window down",["Alt+S","Alt+V"],1],
   ["winScrollLeft","win","","Scroll the window left",["Alt+A"],1],
@@ -13852,15 +13852,15 @@ const KM_ACTS=[
   ["winInfo","win","","What the item does",["I"]],
   ["rbNext","win","","In the Rule book: the next rule",["Space"]],
   ["rbPrev","win","","In the Rule book: the rule before",["Shift+Space"]],
-  ["spPrev","spell","","The school before (the bar); the spell before (the list)",["C"]],
-  ["spNext","spell","","The school after (the bar); the spell after (the list)",["V"]],
-  ["spFirst","spell","","The first school",["Shift+C"]],
-  ["spLast","spell","","The last: the piles",["Shift+V"]],
+  ["spPrev","spell","","The school before (the bar); the spell before (the list)",["C","Shift+Q"]],
+  ["spNext","spell","","The school after (the bar); the spell after (the list)",["V","Shift+E"]],
+  ["spFirst","spell","","The first school",["Home"]],
+  ["spLast","spell","","The last: the piles",["End"]],
   ["spSchoolNext","spell","","The next school",["Tab","Ctrl"]],
   ["spSchoolPrev","spell","","The previous school",["Shift+Tab","Shift"]],
   ["spCast","spell","","Cast the spell (the list)",["Enter"]],
-  ["hPrev","hand","","The card before",["C"]],
-  ["hNext","hand","","The card after",["V"]],
+  ["hPrev","hand","","The card before",["C","Shift+Q"]],
+  ["hNext","hand","","The card after",["V","Shift+E"]],
   ["hPick","hand","","Pick the card (again: let it go)",["Enter"]],
   ["hInfo","hand","","The card's info",["I"]]];
 const KM_GROUPS=[["any","Everywhere"],["table","The table"],["win","Windows"],["spell","The spells: the bar and the list"],["hand","The hand"]];
@@ -13976,7 +13976,7 @@ const kmHeldOf=ids=>ids.filter(id=>kmBinds(id).some(s=>{const c=s&&kmParse(s);if
 const kmModOnly=e=>!!KM_MODKEY[e.key]||e.key==="CapsLock";
 
 /* ---------- presets ---------- */
-const KM_ALT={camUp:["Up"],camLeft:["Left"],camDown:["Down"],camRight:["Right"],zoomIn:["E","PageUp"],zoomOut:["Q","PageDown"],
+const KM_ALT={camUp:["Up"],camLeft:["Left"],camDown:["Down"],camRight:["Right"],zoomIn:["E","PageUp","Shift+V"],zoomOut:["Q","PageDown","Shift+C"],
   selUp:["W"],selLeft:["A"],selDown:["S"],selRight:["D"],aimUp:["Shift+W","U"],aimLeft:["Shift+A","H"],aimDown:["Shift+S","J"],aimRight:["Shift+D","K"]};
 const KM_LOCKED=[{id:"default",name:"Default",map:{},locked:true},{id:"alt",name:"Alternative Controls",map:KM_ALT,locked:true}];
 const kmPresets=()=>[...KM_LOCKED,...kmState().mine];
@@ -14436,7 +14436,7 @@ const CN_DIRALIAS={u:"up",d:"down",l:"left",r:"right",ul:"up left",ur:"up right"
   n:"up",s:"down",w:"left",e:"right",nw:"up left",ne:"up right",sw:"down left",se:"down right",north:"up",south:"down",west:"left",east:"right"};
 /* [name, what it does (for help and the suggestions), what it takes] */
 const CN_CMDS=[
-  ["help","every command"],["close","close the command line (x too)"],
+  ["help","every command"],["close","close the command line (x too)"],["clear","clear what the command line said"],
   ["select","select what stands on a tile: select B2, or just B2","tile"],
   ["move","move a stack: move B2 C3, or B2 C3, or B2 up left","from to"],
   ["attack","attack: attack B2 C3; attack B2 C3 2 uses its second way","from atk n"],
@@ -14452,7 +14452,7 @@ const CN_CMDS=[
   ["hold","lock in place (Field Automation leaves it): hold B2","mine"],["ambush","set a stack in ambush (or out of it): ambush B2","mine"],
   ["look","the camera to a tile: look B2","tile"],["info","what stands on a tile: info B2","tile"],["chat","say something to the table (online): chat hello","text"]];
 const CN_ALIAS={x:"close",exit:"close",quit:"close","?":"help",next:"end",ready:"end",sel:"select",go:"move",m:"move",a:"attack",p:"place",c:"cast",spell:"cast",
-  dip:"diplomacy",rulebook:"rules",settings:"menu",fs:"fullscreen",say:"chat",squadron:"squad",lock:"hold",ap:"autoplace",fwd:"advance",forward:"advance",back:"retreat",fallback:"retreat"};
+  dip:"diplomacy",rulebook:"rules",settings:"menu",fs:"fullscreen",say:"chat",squadron:"squad",lock:"hold",ap:"autoplace",fwd:"advance",forward:"advance",back:"retreat",fallback:"retreat",cls:"clear"};
 const cnCmd=w=>{const k=String(w||"").toLowerCase();return CN_CMDS.find(c=>c[0]===k)?k:CN_ALIAS[k]||null};
 
 /* ---------- tiles, cards and spells by name ---------- */
@@ -14523,6 +14523,7 @@ function cnRun(line){line=String(line||"").trim();if(!line||G&&G.passing)return;
   if(!cmd){const f=cnTile(w[0]);if(!f){cnSay(`“${w[0]}” isn't a command or a tile. Type help.`,true);return}
     if(w.length===1){cnSelect(f);return}cnMove(f,w.slice(1).join(" "));return}
   switch(cmd){
+    case "clear":{const o=$("#cmdline .cnout");if(o){o.textContent="";o.classList.remove("bad")}CN.err=false;return}   // v79k
     case "help":cnSay("Commands: "+CN_CMDS.map(c=>c[0]).join(", ")+". A tile alone selects; a tile then a tile or a direction moves.");return;
     case "close":cnClose();return;
     case "select":{const f=need(cnTile(arg[0]),"tile");if(f)cnSelect(f);return}
@@ -14628,8 +14629,8 @@ function cnPaint(){const el=cnBar(),chat=CN.mode==="chat",inp=el.querySelector("
   el.querySelector(".cnnote").textContent=`Close: Esc · ${chat?"":"Complete: Tab · Choose: ↑ ↓ · "}${kmTipT("consoleSwap",chat?"The command line instead":"The chat instead")}`;
   const log=el.querySelector(".cnchat");log.hidden=!chat;
   if(chat)log.innerHTML=(NET.chat||[]).slice(-6).map(m=>`<li><b>${esc(m.from)}</b> ${esc(m.text)}</li>`).join("")||'<li class="dim">Nothing yet.</li>'}
-function cnOpen(mode){if(!G||G.passing)return;if(mode)CN.mode=mode;if(CN.mode==="chat"&&!NET.role){CN.mode="cmd";flash("The chat is for online games: here is the command line.")}
-  const el=cnBar(),ht=$("#helptoast");if(ht)ht.hidden=true;CN.open=true;el.hidden=false;cnPaint();el.querySelector(".cnout").textContent="";
+function cnOpen(mode){if(!G||G.passing)return;if(mode)CN.mode=mode;const offChat=CN.mode==="chat"&&!NET.role;if(offChat)CN.mode="cmd";   // v79k: said in the command line, not over the screen
+  const el=cnBar(),ht=$("#helptoast");if(ht)ht.hidden=true;CN.open=true;el.hidden=false;cnPaint();el.querySelector(".cnout").textContent=offChat?"The chat is for online games: this is the command line.":"";el.querySelector(".cnout").classList.remove("bad");
   const inp=el.querySelector(".cnin");inp.value="";CN.frozen=false;CN.nav=false;cnFill();setTimeout(()=>inp.focus(),0);
   if(CN.mode==="chat"){NET.unread=0;if(typeof chatPaint==="function")chatPaint()}}
 function cnMode(m){CN.mode=m;cnOpen()}
@@ -14655,7 +14656,7 @@ if(window.__EC)Object.assign(window.__EC,{CN,cnRun:l=>cnRun(l),cnSuggest:t=>cnSu
      forth · Ctrl+1 to what you selected on the field · Shift+X+. (period) the music on and off · Shift+/ (?) the key letters.
    - v77d: F opens the spell bar at the bottom of the screen (made for the keys): the schools as tabs and the school's
      spells as numbered tiles. 1 to 9 and 0 cast the first ten, Shift+1 to Shift+0 the next ten; C and V (or Tab and
-     Shift+Tab) the school before and after, Shift+C the first, Shift+V the last (the piles: the Grave, the Ether, the
+     Shift+Tab) the school before and after, Home the first, End the last (the piles: the Grave, the Ether, the
      Outer Darkness, the Auction). Shift+F opens the spell list as it is (in fullscreen, its drawer), worked by the keys:
      C and V move from spell to spell, Ctrl and Shift (pressed alone) to the next and the previous school (its sections),
      Enter casts, and the numbers work there too. (Tab is for tabs: the bar's schools are tabs, the list's are sections.)
