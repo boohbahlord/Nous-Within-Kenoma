@@ -41,6 +41,7 @@ function fgTidy(pl){const D=G.p[pl]&&G.p[pl].fg;if(!D)return;
     if(g.k==="guard"){if(!L){fgEnd(pl,gid,"The stack your guards protected is gone: they stand down.");continue}
       for(const x of L.st.cards)if(x.fgId===gid)delete x.fgId}   // a guard that joins the stack it guards is no longer its guard
     if(g.k==="squad"&&g.lead&&!L){fgEnd(pl,gid,"Your squadron's leader fell: the squadron breaks up.");continue}
+    if(g.k==="squad"&&L&&!L.st.cards.some(x=>x.fgId===gid))g.lead=null;   // v78j: it left the squadron
     const n=fgMembers(pl,gid).length;if(!n||g.k==="squad"&&n<2)fgEnd(pl,gid,g.k==="squad"&&n?"Your squadron breaks up: only one stack is left in it.":"")}
   const used=new Set(Object.values(D.g).map(g=>g.sid).filter(Boolean));for(const o of stacksOf(pl))for(const x of o.st.cards)if(x.fgStrat)used.add(x.fgStrat);
   for(const sid of Object.keys(D.s))if(!used.has(sid))delete D.s[sid]}
@@ -58,7 +59,7 @@ function fgTidy(pl){const D=G.p[pl]&&G.p[pl].fg;if(!D)return;
 /* ---------- what you do with them (the host does it) ---------- */
 function fgDo(pl,op,a,b,c){if(!G||!G.p[pl]||G.over||NET.ctx!=null&&NET.ctx!==pl||!faAllowed())return false;const D=fgData(pl);
   const at=p=>{if(!Array.isArray(p))return null;const st=G.board[p[0]]&&G.board[p[0]][p[1]];return st&&st.owner===pl?{st,r:p[0],c:p[1]}:null};
-  const mark=(o,gid)=>{for(const x of o.st.cards)if(isBase(x)||!gid)delete x.fgId;else x.fgId=gid};
+  const mark=(o,gid)=>{for(const x of o.st.cards)if(isBase(x)||!gid)delete x.fgId;else{x.fgId=gid;delete x.faCrys}};   // v78j: and off its crystal
   // a squadron's leader that goes leaves it leaderless
   const out=o=>{const was=fgGid(pl,o.st),g=was&&D.g[was];if(g&&g.k==="squad"&&g.lead){const L=fgFind(pl,g.lead);if(L&&L.st===o.st)g.lead=null}mark(o,null)};
   const room=gid=>fgMembers(pl,gid).length<FG_MAX,newG=g=>{const id="g"+(++D.n);D.g[id]=g;return id};
@@ -88,7 +89,7 @@ for(const [name,get,set] of [["fgDo",()=>fgDo,f=>fgDo=f]])netAny(name,get,set);
 
 /* ---------- how the field plays them (the automation's per-stack settings, as the classes do) ---------- */
 /* a strategy's settings in place of yours: every card of the stack under it */
-function fgStratCtx(pl,cfg){const over=Object.assign({},faEff(cfg),{ctl:Object.fromEntries(Object.keys(FA_DEF.ctl).map(x=>[x,true])),extra:[],xminus:[]});delete over.classes;
+function fgStratCtx(pl,cfg){const over=Object.assign({},faEff(cfg),{ctl:Object.fromEntries(Object.keys(FA_DEF.ctl).map(x=>[x,true])),extra:[],xminus:[],scope:"full"});delete over.classes;   // v78j: scope
   FA_OVR={pl,cfg:faClean(over)};try{return Object.assign({pl},faCtx(pl))}finally{FA_OVR=null}}
 /* the side the enemy comes from: the near ones weigh most; with none in sight, their ground */
 function fgThreat(pl,r,c,foes){let vr=0,vc=0;for(const e of foes){const d=Math.max(1,Math.abs(e.r-r)+Math.abs(e.c-c));vr+=(e.r-r)/(d*d);vc+=(e.c-c)/(d*d)}

@@ -41,16 +41,17 @@ function crossPlan(o){const two=o.big==="cross2",X=o.cross||{},small=X.size==="s
     pt.forEach((t,i)=>{const k=pt.slice(0,i).filter(x=>x===t).length,sd=arms[t?1:0][k%2];seats.push(box(sd,Math.floor(k/2)));teams.push(t?1:0)})}
   else if(two){
     if(n<=2||small){seats.push(arm("bottom"),arm("top"));teams.push(0,1)}
+    else if(L==="team-across"){const order=[box("bottom",0),box("bottom",1),box("top",0),box("top",1)].slice(0,n);seats.push(...order);teams.push(...order.map((_,i)=>i%2))}   // v78j: teammates on opposite arms
     else{const order=[box("bottom",0),box("top",0),box("bottom",1),box("top",1)].slice(0,n);seats.push(...order);teams.push(...order.map((_,i)=>L==="ffa"?i:i%2))}   // teammates share an arm
   }else if(L==="ffa"){(n===3?["bottom","left","right"]:["bottom","left","top","right"]).slice(0,n).forEach((sd,i)=>{seats.push(arm(sd));teams.push(i)})}
   else if(L==="team-same"&&!small){seats.push(box("bottom",0),box("top",0),box("bottom",1),box("top",1));teams.push(0,1,0,1)}
-  else if(L==="team-side"){["bottom","right","left","top"].forEach((sd,i)=>{seats.push(arm(sd));teams.push(i%2)})}   // teammates on arms side by side
+  else if(L==="team-side"||L==="team-same"){["bottom","right","left","top"].forEach((sd,i)=>{seats.push(arm(sd));teams.push(i%2)})}   // teammates on arms side by side (v78j: "same side" too on the small Cross, where an arm holds one)
   else if(L.startsWith("team")){["bottom","left","top","right"].forEach((sd,i)=>{seats.push(arm(sd));teams.push(i%2)})}   // teammates on opposite arms
   else{seats.push(arm("bottom"),arm("top"));teams.push(0,1)}
   return {theme,cols:N,rows:N,mid:true,corners:false,bridge:"left",void:V,seed:(Math.random()*1e9)|0,layout:L,seats,teams,big:o.big,large:true,
     cross:{small,two,hole:!!X.hole,hollow:!!X.hollow&&!small}}}
-{const _mp=mapPlan;mapPlan=function(o){if(o&&(o.big==="cross"||o.big==="cross2")&&o.mode!=="survival"&&o.layout!=="coop"){const M=crossPlan(o);if(o.layout==="koth"){const c=(M.cols-1)/2;HILL[0]=Math.floor(c);HILL[1]=Math.ceil(c)}return M}   // v73d: the Hill is the very middle
-  if(o&&o.layout==="koth"){HILL[0]=10;HILL[1]=14}return _mp.apply(this,arguments)}}
+{const _mp=mapPlan;mapPlan=function(o){if(o&&(o.big==="cross"||o.big==="cross2")&&o.mode!=="survival"&&o.layout!=="coop"){const M=crossPlan(o);if(o.layout==="koth"){const c=(M.cols-1)/2;HILL[0]=Math.floor(c);HILL[1]=Math.ceil(c);M.hill=[HILL[0],HILL[1]]}return M}   // v73d: the Hill is the very middle
+  if(o&&o.layout==="koth"){HILL[0]=10;HILL[1]=14}const M=_mp.apply(this,arguments);if(o&&o.layout==="koth"&&M)M.hill=[HILL[0],HILL[1]];return M}}
 /* off the map is darker on the crosses, so their shape reads at a glance */
 {const _r=render;render=function(){rSafe(_r,this,arguments);const B=$("#board");if(B)B.classList.toggle("bigvoid",!!(G&&G.map&&["plus","round","cross","cross2"].includes(G.map.big)))}}
 /* a large map opens on your own spawn (and on the next player's, when the device changes hands) */

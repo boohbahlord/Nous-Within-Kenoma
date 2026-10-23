@@ -29,7 +29,7 @@ function askHuman(pl,spec){
 /* v45: a long list of cards to pick from (the grave, a hand, the Outer Darkness) reads like the Ether: tabs by kind of card,
    each kind under its heading, and the same card folded into one button with a count */
 const pickKey=c=>[c.unit||"",c.rank,c.suit||"",c.color||"",c.puppet?"p":"",c.hp!=null?c.hp:""].join("|");
-function pickTabsHTML(groups,n){return `<div class="pktabs" role="tablist"><button type="button" class="pktab on" data-pt="all">All <b>${n}</b></button>${groups.map(([k,l])=>`<button type="button" class="pktab" data-pt="${k}">${k} <b>${l.length}</b></button>`).join("")}</div>`}
+function pickTabsHTML(groups,n){return `<div class="pktabs" role="tablist"><button type="button" class="pktab on" role="tab" aria-selected="true" data-pt="all">All <b>${n}</b></button>${groups.map(([k,l])=>`<button type="button" class="pktab" role="tab" aria-selected="false" data-pt="${k}">${k} <b>${l.length}</b></button>`).join("")}</div>`}
 function pickCardsHTML(cards,opt,extra){const btn=(c,i,n)=>{const x=extra?extra(i):null;return `<span class="ecount${x?" priced":""}"><button class="pk" data-i="${i}" aria-label="${esc(nameOf(c))}${n>1?` (${n})`:""}${x?`, ${x.tag}`:""}" ${x&&x.off?'disabled data-tip="You can\'t afford this one."':""}>${face(c,opt(c))}</button>${n>1?`<b>×${n}</b>`:""}${x?`<small class="pkprice${x.off?" off":""}">${x.tag}</small>`:""}</span>`};
   if(cards.length<=8)return `<div class="pickrow">${cards.map((c,i)=>btn(c,i,1)).join("")}</div>`;
   const idx=new Map(cards.map((c,i)=>[c,i])),groups=pileGroups([...cards]);

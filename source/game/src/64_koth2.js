@@ -72,7 +72,7 @@ function kothFillEther(decks){const per=kothDeckCounts(),have={};for(const c of 
 const CROWN_SVG=c=>`<svg viewBox="-12 -12 24 24" width="16" height="16" aria-hidden="true"><path d="M-9,6L-10,-6L-4,-1L0,-9L4,-1L10,-6L9,6Z" fill="${c}" stroke="#15100b" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
 function kothMercs(pl){const K=G.opts.koth;if(K.target<100||isNPC(pl)||isHorde(pl)||!G.p[pl]||G.p[pl].out)return;
   const g=kothGroup(pl);if(!kothHolders().has(g)||R(4)!==1)return;
-  const ring=[];for(let r=HILL[0]-2;r<=HILL[1]+2;r++)for(let c=HILL[0]-2;c<=HILL[1]+2;c++){if(isHill(r,c)||isVoid(r,c)||G.board[r][c])continue;ring.push([r,c])}
+  const ring=[],[h0,h1]=hillSpan();for(let r=h0-2;r<=h1+2;r++)for(let c=h0-2;c<=h1+2;c++){if(isHill(r,c)||isVoid(r,c)||G.board[r][c])continue;ring.push([r,c])}
   shuffle(ring);const stacks=Math.min(ring.length,2+R(2)-1);let cards=0;
   for(let i=0;i<stacks;i++){const [r,c]=ring[i],n=1+R(3),cs=Array.from({length:n},()=>{const x=mk(String(1+R(9)),pick(["S","H","D","C"]));x.owner=pl;x.merc=true;return x});
     if(!stackLegal(cs))cs.splice(1);G.board[r][c]={owner:pl,cards:cs,moved:true,attacked:true,merc:g};cards+=cs.length}

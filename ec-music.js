@@ -106,7 +106,7 @@
   ];  const BASE=.17;
    // 100% volume, kept low on purpose
   let HOLD=false;const LV=()=>BASE*vol(prefs())*allV(prefs())*(HOLD?.18:1);   // v70: the music's level, lower while an event's sound is held
-  const prefs=()=>{try{return JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){return {}}};
+  const prefs=()=>{try{const p=JSON.parse(localStorage.getItem("ec-prefs2")||"{}");return p&&typeof p==="object"&&!Array.isArray(p)?p:{}}catch(e){return {}}};   // v78j: an object, whatever is stored
   const soundOn=()=>{try{return localStorage.getItem("ec-sound")!=="off"}catch(e){return true}};
   const themeOn=P=>true;   // v71: the music plays in every theme
   const vol=P=>Math.max(0,Math.min(1.5,P.musicVol==null?1:+P.musicVol));
@@ -377,8 +377,9 @@
     document.body.appendChild(box);
     box.querySelector(".mt").onclick=()=>{const P=prefs();setPref("music",P.music===false);sync()};
     box.querySelectorAll(".mvb").forEach(b=>b.onclick=()=>{const P=prefs();setPref("musicVol",Math.round(Math.max(0,Math.min(1.5,vol(P)+ +b.dataset.d*.05))*100)/100);sync()});paint()}
-  document.addEventListener("pointerdown",()=>{if(wanted()&&!playing)start()},true);
-  document.addEventListener("keydown",()=>{if(wanted()&&!playing)start()},true);
+  const wake=()=>{if(!wanted())return;if(!playing)start();else if(ac&&ac.state!=="running")ac.resume()};   // v78j: a context started before a gesture is resumed by one
+  document.addEventListener("pointerdown",wake,true);
+  document.addEventListener("keydown",wake,true);
   document.addEventListener("visibilitychange",sync);
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",mountCorner);else mountCorner();
   function nextSong(){if(!playing||!ac)return;load(pick(MODE));next=ac.currentTime+.15;tick()}

@@ -11,7 +11,7 @@ function paintSndTop(){const b=$("#sndtop");if(b){b.textContent="Sound: "+(SND.o
   for(const [k] of SND_SRC)show("mSrc_"+k,Math.round(srcV(k)*100))}
 function wireAudioSliders(){const all=$("#mAll"),a=$("#mSfx"),m=$("#mMus");
   if(all)all.oninput=()=>{const v=+all.value/100;if(!v){if(SND.on)SND.toggle()}else{PREF.allVol=v;savePrefs();if(!SND.on)SND.toggle()}paintSndTop();sndVol()};
-  if(a)a.oninput=()=>{const v=+a.value/100;if(!v){if(SND.on)SND.toggle()}else{PREF.sfxVol=v;savePrefs();if(!SND.on)SND.toggle()}paintSndTop();sndVol()};
+  if(a)a.oninput=()=>{const v=+a.value/100;PREF.sfxVol=v;savePrefs();if(v&&!SND.on)SND.toggle();paintSndTop();sndVol()};   // v78j: 0 is the effects alone
   if(m)m.oninput=()=>{const v=+m.value/100;if(!v)PREF.music=false;else{PREF.music=true;PREF.musicVol=v;if(!SND.on)SND.toggle()}savePrefs();paintSndTop();sndVol()};
   for(const [k] of SND_SRC){const s=$("#mSrc_"+k);if(s)s.oninput=()=>{PREF.srcVol=Object.assign({},PREF.srcVol,{[k]:+s.value/100});savePrefs();paintSndTop();sndVol()}}
   paintSndTop()}

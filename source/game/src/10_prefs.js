@@ -3,6 +3,10 @@
 const PHONE_Q="(pointer:coarse) and (max-width:1000px), (max-width:600px)";
 const isPhone=()=>typeof matchMedia!=="undefined"&&matchMedia(PHONE_Q).matches;
 const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){}
+  if(!p||typeof p!=="object"||Array.isArray(p))p={};   // v78j: an object, whatever is stored
+  for(const k of ["ci","ui","tz","bright","sfxVol","allVol","musicVol","mapOp"])if(k in p){const n=p[k]==null||p[k]===""?NaN:+p[k];if(Number.isFinite(n))p[k]=n;else delete p[k]}   // numbers, not text
+  for(const k of ["fxOff","fxOffEach","shut","subBan","planetBan"])if(k in p&&!Array.isArray(p[k]))delete p[k];   // lists
+  if(p.fxFull!=null&&!(typeof p.fxFull==="object"&&Array.isArray(p.fxFull.off)))delete p.fxFull;
   // v20: full width is the default on a computer screen (once; a later choice sticks)
   if(!p.v20){p.v20=1;if(typeof matchMedia!=="undefined"&&matchMedia("(min-width:901px)").matches)p.full=true}
   // v38: on a phone the Selected box sits above the spells by default (once; a later choice sticks)
@@ -10,9 +14,9 @@ const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{
   // v43: the Ether's Crossroads theme is the default (once, for anyone who had never chosen a theme)
   if(!p.v43t){p.v43t=1;if(p.theme==null||p.theme==="")p.theme="darkfantasy"}
   return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:true,full:false,theme:"darkfantasy",lines:true,bright:1},p)})();
-const sfxV=()=>Math.max(0,Math.min(1.5,PREF.sfxVol==null?1:+PREF.sfxVol));   // v43: the sound effects' volume, 0 to 150%
+const sfxV=()=>{const n=PREF.sfxVol==null?1:+PREF.sfxVol;return Number.isFinite(n)?Math.max(0,Math.min(1.5,n)):1};   // v43: the sound effects' volume, 0 to 150%
 /* v78c: All sound scales the effects and the music together; each source of sound has its own volume too (0 to 150%) */
-const volOf=v=>Math.max(0,Math.min(1.5,v==null?1:+v));
+const volOf=v=>{const n=v==null?1:+v;return Number.isFinite(n)?Math.max(0,Math.min(1.5,n)):1};   // v78j: never NaN
 const allV=()=>volOf(PREF.allVol);
 const SND_SRC=[["ui","Buttons and cards"],["table","Placing and moving"],["battle","Battle"],["dice","Dice"],["mana","Mana and decks"],["spells","Spells"],["sky","The sky's sounds"],["amb","Ambience"]];
 const srcV=k=>volOf(PREF.srcVol&&PREF.srcVol[k]);
@@ -88,7 +92,7 @@ function confirmLeave(go){
   let box=$("#leavebox");if(!box){box=document.createElement("div");box.id="leavebox";document.body.appendChild(box)}
   box.innerHTML=`<div class="ovbox" role="alertdialog" aria-labelledby="lvq"><button type="button" class="xclose" id="lvx" aria-label="Keep playing">×</button><h2 id="lvq">Are you sure you want to end your game session?</h2><p class="dim">The game in progress will be lost.</p><p class="acts"><button class="btn" id="lvy">End the session</button> <button class="btn ghost" id="lvn">Keep playing</button></p></div>`;
   box.hidden=false;$("#lvn").focus();
-  $("#lvy").onclick=()=>{box.hidden=true;leaving=true;go()};$("#lvn").onclick=$("#lvx").onclick=()=>{box.hidden=true};   // v78g: × (X, Esc) keeps playing too
+  $("#lvy").onclick=()=>{box.hidden=true;leaving=true;go()};$("#lvn").onclick=$("#lvx").onclick=()=>{box.hidden=true;armBackTrap()};   // v78g: × (X, Esc) keeps playing too; v78j: and the Back catch is set again
 }
 function guardLinks(){
   document.querySelectorAll(".game .crumbs a").forEach(a=>a.addEventListener("click",e=>{if(!inGame()||e.ctrlKey||e.metaKey||e.shiftKey)return;e.preventDefault();confirmLeave(()=>{location.href=a.href})}));
@@ -98,9 +102,9 @@ let backTrap=false;
 function armBackTrap(){if(backTrap||!inGame())return;try{history.pushState({ecGame:1},"",location.href);backTrap=true}catch(e){}}
 addEventListener("popstate",()=>{if(!backTrap)return;backTrap=false;
   if(!inGame())return;
-  confirmLeave(()=>{history.back()});
-  const keep=$("#lvn");if(keep)keep.addEventListener("click",armBackTrap,{once:true})});
+  confirmLeave(()=>{history.back()})});
 addEventListener("beforeunload",e=>{if(inGame()&&!G.opts.fast&&!leaving){e.preventDefault();e.returnValue=""}});
+{const _sg=startGame;startGame=function(){leaving=false;return _sg.apply(this,arguments)}}   // v78j: each game asks
 {const _rd=render;render=function(){rSafe(_rd,this,arguments);armBackTrap()}}
 
 /* passages from the book, for whoever is waiting */

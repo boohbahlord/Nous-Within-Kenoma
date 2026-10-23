@@ -108,12 +108,13 @@ const KB_DO=[
 /* Ctrl or Shift pressed alone in the spells: the next or the previous school */
 document.addEventListener("keyup",e=>{if(!G||!kbSpellMode()||kbTop()||typing(e.target))return;
   if(kmTap(e,"spSchoolNext"))kbSchool(KB.sc+1);else if(kmTap(e,"spSchoolPrev"))kbSchool(KB.sc-1)});
-document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(e.target))return;
+document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(e.target)&&!(e.target.tagName==="SELECT"&&(e.key==="Escape"||kmIs(e,"close"))))return;   // v78j: Esc leaves a list
   const is=id=>kmIs(e,id),stop=()=>{e.preventDefault();e.stopImmediatePropagation()};
   if(G&&!G.over&&!kmModOnly(e))kbRemind();
-  if(is("keys")){stop();kbKeysWin();return}
+  const aboveMenu=id=>{const m=$("#menu"),w=$("#"+id);if(w)w.style.zIndex=m&&!m.hidden?"126":""};   // v78j: the Menu is 125
+  if(is("keys")){stop();kbKeysWin();aboveMenu("kbkeys");return}
   if(is("music")){stop();if(typeof musicSync==="function"){PREF.music=PREF.music===false;savePrefs();musicSync();flash(PREF.music===false?"Music off.":"Music on.")}return}
-  if(is("rulebook")){stop();rbWin();return}
+  if(is("rulebook")){stop();rbWin();aboveMenu("rbwin");return}
   /* closing: the window on top first (its ×), then the spells or the hand; Esc for the windows that have no Esc of their own */
   if(is("close")){if(kbTop()){stop();kbClose()}else if(KB.mode){stop();kbModeOff()}return}
   if(e.key==="Escape"){const w=kbTop();
@@ -130,7 +131,7 @@ document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(
     if(is("hNext")||is("hPrev")){stop();if(H.length){KB.h=(KB.h+(is("hNext")?1:-1)+H.length)%H.length;kbPaint();H[KB.h].scrollIntoView({block:"nearest",inline:"nearest"})}return}
     if(is("hPick")){stop();if(H[KB.h])H[KB.h].click();kbPaint();return}
     if(is("hInfo")){stop();const ci=H[KB.h]&&H[KB.h].querySelector(".ci");if(ci)ci.click();return}}
-  const a=KB_DO.find(([id])=>is(id));if(a&&a[1]()!==false)stop();
+  const a=KB_DO.find(([id])=>is(id));if(a&&e.repeat){stop();return}if(a&&a[1]()!==false)stop();   // v78j: one press, one action (held, a window flickered open and shut)
 },true);
 /* v78a: O shows every key in a window; once a game, the first key pressed brings a note saying so */
 function kbKeysWin(){let w=$("#kbkeys");if(!w){w=document.createElement("div");w.id="kbkeys";w.className="faov";document.body.appendChild(w)}

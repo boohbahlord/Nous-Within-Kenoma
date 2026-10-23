@@ -168,9 +168,11 @@ function fsQuote(){const o=fsOv("fsquote"),q=$("#qtext"),s=$("#qsrc");
   $("#fsqN").onclick=next;$("#fsqX").onclick=()=>{o.hidden=true;const b=$("#fsQuote");if(b)b.focus()}}
 function fsCloseAll(){fsHelpClose();for(const id of ["fsquote","fsctl"]){const o=$("#"+id);if(o)o.hidden=true}fsResume();const m=$("#fsrowM");if(m)m.hidden=true;const mo=$("#moon");if(mo)mo.classList.remove("fsopen")}
 document.addEventListener("keydown",e=>{if(!fsOn()||e.key!=="Escape")return;
-  const q=$("#fsquote"),hp=$("#fshelp"),pz=$("#fspause"),ct=$("#fsctl");if(ct&&!ct.hidden){ct.hidden=true;e.preventDefault();return}
+  const q=$("#fsquote"),hp=$("#fshelp"),pz=$("#fspause");
+  for(const o of [$("#fsctl"),$("#fsrowmore")])if(o&&!o.hidden){o.hidden=true;e.preventDefault();return}   // v78j: and the row's More options
   if(q&&!q.hidden){q.hidden=true;e.preventDefault();return}if(hp&&!hp.hidden){fsHelpClose();e.preventDefault();return}if(pz&&!pz.hidden){fsResume();e.preventDefault();return}
-  if(document.fullscreenElement)return;if(typeof dialogOpen==="function"&&dialogOpen())return;e.preventDefault();fsPause()});   // without the browser's fullscreen, Esc pauses
+  if(document.fullscreenElement)return;if(typeof dialogOpen==="function"&&dialogOpen())return;if(kbTop())return;   // v78j: what is open closes first
+  e.preventDefault();fsPause()});   // without the browser's fullscreen, Esc pauses
 /* the start screen and a new game */
 {const _s=showStart;showStart=function(){if(fsOn())fsExit();return _s.apply(this,arguments)}}
 {const _sg=startGame;startGame=function(){const out=_sg.apply(this,arguments);if(fsOn())requestAnimationFrame(fsFit);return out}}
@@ -181,6 +183,8 @@ if(window.__EC)Object.assign(window.__EC,{fsEnter:()=>fsEnter(),fsExit:()=>fsExi
 document.addEventListener("keydown",e=>{if(!kmIs(e,"turn")||!G||G.over)return;   // v78d: Space, as bound
   const a=document.activeElement;if(a&&(a.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))return;
   if(a&&a!==document.body&&a.tagName==="BUTTON"&&!a.closest("#board,#hand"))return;   // a focused button keeps its own Space
+  if(e.repeat){e.preventDefault();return}   // v78j: held down, it fires once
+  if(KB.mode||kbTop())return;   // v78j: a spell list, the hand, a drawer or any window has the keys
   if([...document.querySelectorAll("#ov,#menu,#facfg,#fspause,#fshelp,#fsquote,#fsctl,#pop,#histpop,#rbwin,#clstgwin,#leavebox,.faov")].some(x=>!x.hidden&&x.getClientRects().length&&x.innerHTML.trim()))return;
   const n=$("#next");if(!n||n.disabled||!n.getClientRects().length)return;e.preventDefault();n.click()},true);
 /* v74a: the history of rolls opens above its button when there is no room below (the dice row at the bottom of fullscreen) */

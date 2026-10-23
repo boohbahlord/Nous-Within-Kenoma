@@ -108,7 +108,7 @@ const AUD=(()=>{
 /* ---------- what plays when ---------- */
 const sndSees=(r,c)=>{const V=view();return !totalBlind(V)&&!fogTile(V,r,c)};
 /* buttons and cards */
-document.addEventListener("click",e=>{if(!G||!e.target.closest)return;
+document.addEventListener("click",e=>{if(!G||G.over||!e.target.closest)return;   // v78j: before and after a game, site.js clicks
   const card=e.target.closest(".cardbtn,.pk,.myscard.back,#board .tile");
   if(card){if(!card.matches(".tile")||card.querySelector(".stack"))AUD.card();return}
   if(e.target.closest("button,summary,label.opt,label.chk,select"))AUD.ui()},true);

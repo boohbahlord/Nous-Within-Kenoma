@@ -81,7 +81,7 @@ function fkMenu(){let el=null;if(KB.mode==="hand"){el=kbHand()[KB.h]}else{const 
   const t=el.querySelector(".stack")||el;t.dispatchEvent(new MouseEvent("contextmenu",{bubbles:true,cancelable:true,clientX:x,clientY:y,view:window}))}
 /* P: the other players' boxes */
 const fkBoxes=()=>[...document.querySelectorAll(fsOn()?".fsfoe":"#foe>.pbox,#foe>div[style*='--pc']")].filter(e=>e.getClientRects().length);
-function fkPlayers(d){const B=fkBoxes();if(!B.length){flash("No other player's box to read.");return}FK.pm=true;FK.p=FK.pm&&FK.p!=null?((FK.p+d)%B.length+B.length)%B.length:0;FK.pi=-1;fkPaint();
+function fkPlayers(d){const B=fkBoxes();if(!B.length){flash("No other player's box to read.");return}const was=FK.pm;FK.pm=true;FK.p=was&&FK.p!=null?((FK.p+d)%B.length+B.length)%B.length:0;FK.pi=-1;fkPaint();   // v78j
   B[FK.p].scrollIntoView({block:"nearest"});
   wkNote(`${B[FK.p].getAttribute("title")||B[FK.p].textContent.trim().split(/\s{2,}|\n/)[0].slice(0,60)} · C and V read the box, Enter its history, ${kmShow("plNext")} the next player, ${kmShow("close")} stops`)}
 function fkPart(d){const b=fkBoxes()[FK.p];if(!b)return;const parts=[...b.children].filter(e=>e.getClientRects().length&&e.textContent.trim());if(!parts.length)return;

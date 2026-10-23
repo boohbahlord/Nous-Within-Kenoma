@@ -12,7 +12,8 @@
 let SEAT_KOTH_TEAM=true;
 const KOTH_N=25,KOTH_C=12,HILL=[10,14],TEAM_COL=["#d7333b","#4c92e6"];
 const kothOn=()=>!!(G&&G.opts&&G.opts.layout==="koth"&&G.opts.koth);
-const isHill=(r,c)=>r>=HILL[0]&&r<=HILL[1]&&c>=HILL[0]&&c<=HILL[1];
+const hillSpan=()=>G&&G.map&&G.map.hill||HILL;   // v78j: the map carries it
+const isHill=(r,c)=>{const [a,b]=hillSpan();return r>=a&&r<=b&&c>=a&&c<=b};
 
 /* ---------- the field ---------- */
 const KOTH_SPOTS=[{side:"top",r:0,c:0},{side:"top",r:0,c:11},{side:"top",r:0,c:22},{side:"right",r:11,c:23},{side:"bottom",r:23,c:22},{side:"bottom",r:23,c:11},{side:"bottom",r:23,c:0},{side:"left",r:11,c:0}];   // clockwise from the top left
@@ -52,7 +53,7 @@ const kothGroup=pl=>G.opts.koth.team?"t"+G.p[pl].team:"p"+pl;
 const kothGroupName=g=>g[0]==="t"?(g==="t0"?"Side A":"Side B"):G.p[+g.slice(1)].name;
 const kothGroupColor=g=>g[0]==="t"?TEAM_COL[+g.slice(1)]||"#ddd":G.p[+g.slice(1)].color;
 function kothHolders(){const h=new Map();
-  for(let r=HILL[0];r<=HILL[1];r++)for(let c=HILL[0];c<=HILL[1];c++){const st=G.board[r][c];if(!st||isNPC(st.owner)||isHorde(st.owner)||!G.p[st.owner]||G.p[st.owner].out)continue;const g=kothGroup(st.owner);h.set(g,(h.get(g)||0)+1)}
+  for(let [h0,h1]=hillSpan(),r=h0;r<=h1;r++)for(let c=h0;c<=h1;c++){const st=G.board[r][c];if(!st||isNPC(st.owner)||isHorde(st.owner)||!G.p[st.owner]||G.p[st.owner].out)continue;const g=kothGroup(st.owner);h.set(g,(h.get(g)||0)+1)}
   return h}
 function kothRound(){const K=G.opts.koth,S=G.koth||(G.koth={score:{},tug:0,last:null});if(G.moon.round<1)return;
   const h=[...kothHolders().keys()],pts=K.double?2:1;
@@ -63,7 +64,9 @@ function kothRound(){const K=G.opts.koth,S=G.koth||(G.koth={score:{},tug:0,last:
   if(K.contest&&h.length>1){S.last="The Hill is contested: nobody scores.";log(`<b>King of the Hill</b>: ${S.last}`);return}
   for(const g of h)S.score[g]=(S.score[g]||0)+pts;
   S.last=h.map(g=>`${kothGroupName(g)} +${pts} (${S.score[g]})`).join(", ");log(`<b>King of the Hill</b>: ${S.last}.`,"event");
-  const won=h.filter(g=>S.score[g]>=K.target).sort((a,b)=>S.score[b]-S.score[a])[0];if(won)kothWin(won,`held the Hill to ${S.score[won]} points`)}
+  const top=h.filter(g=>S.score[g]>=K.target).sort((a,b)=>S.score[b]-S.score[a]),won=top[0];
+  if(won&&top.length>1&&S.score[top[1]]===S.score[won]){log(`<b>King of the Hill</b>: ${top.filter(g=>S.score[g]===S.score[won]).map(kothGroupName).join(" and ")} are tied at ${S.score[won]}: the Hill plays on.`,"event");return}   // v78j
+  if(won)kothWin(won,`held the Hill to ${S.score[won]} points`)}
 function kothWin(g,why){if(G.over)return;const w=g[0]==="t"?alive().find(i=>!isNPC(i)&&G.p[i].team===+g.slice(1)):+g.slice(1);if(w==null)return;end(w,`${kothGroupName(g)} ${why}`)}
 {const _nr=newRound;newRound=async function(){if(kothOn()&&!G.over)try{kothRound()}catch(e){console.error(e)}if(G.over)return;return _nr.apply(this,arguments)}}
 
@@ -82,7 +85,7 @@ function kothWin(g,why){if(G.over)return;const w=g[0]==="t"?alive().find(i=>!isN
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;let bar=$("#kothbar");
   if(!kothOn()){if(bar)bar.remove();return}
   const K=G.opts.koth,S=G.koth||(G.koth={score:{},tug:0,last:null}),hold=new Map();
-  for(let r=HILL[0];r<=HILL[1];r++)for(let c=HILL[0];c<=HILL[1];c++){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(!t)continue;t.classList.add("hilltile");
+  for(let [h0,h1]=hillSpan(),r=h0;r<=h1;r++)for(let c=h0;c<=h1;c++){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(!t)continue;t.classList.add("hilltile");
     const st=G.board[r][c];if(st&&!isNPC(st.owner)&&G.p[st.owner]){t.style.setProperty("--hc",cbMap(kothGroupColor(kothGroup(st.owner))));t.style.setProperty("--ho",cbMap(G.p[st.owner].color));t.classList.add("held")}}
   for(const [g] of kothHolders())hold.set(g,true);
   if(!bar){bar=document.createElement("div");bar.id="kothbar";const w=$(".camwrap")||$("#board");w.parentNode.insertBefore(bar,w)}

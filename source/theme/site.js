@@ -12,7 +12,7 @@
   function el(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
 
   /* ---------- strings and background bars ---------- */
-  const lookPref=()=>{try{return JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){return {}}};
+  const lookPref=()=>{try{const p=JSON.parse(localStorage.getItem("ec-prefs2")||"{}");return p&&typeof p==="object"&&!Array.isArray(p)?p:{}}catch(e){return {}}};   // v78j
   const lite=()=>document.documentElement.classList.contains("lite");   // v71j: Data saving or Poor connection: no lines, no static
   function look(){const P=lookPref(),b=+P.bright||1;
     document.documentElement.style.filter=Math.abs(b-1)>.01?`brightness(${b})`:"";
@@ -133,11 +133,11 @@
 (function(){
   const D=document.documentElement;if(!D.classList.contains("ecpage"))return;
   let P={};try{P=JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){return}
-  if(P.netAsked)return;
+  if(!P||typeof P!=="object")P={};if(P.netAsked)return;   // v78j
   function apply(n){
     if(window.ecSetNet){window.ecSetNet(n,true);return}
     let Q={};try{Q=JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){}
-    Q.net=n;Q.netAsked=1;try{localStorage.setItem("ec-prefs2",JSON.stringify(Q))}catch(e){}
+    if(!Q||typeof Q!=="object"||Array.isArray(Q))Q={};Q.net=n;Q.netAsked=1;try{localStorage.setItem("ec-prefs2",JSON.stringify(Q))}catch(e){}
     D.classList.toggle("lite",n>0);D.classList.toggle("poor",n>1);
     if(window.nwkLook)window.nwkLook();if(window.nwkStatic&&window.nwkStatic.refresh)window.nwkStatic.refresh();
     if(n>0&&window.ECMusic)window.ECMusic.stop()}

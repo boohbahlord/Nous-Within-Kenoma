@@ -273,7 +273,8 @@ function damage(r,c,n,defending){
     const base=st.cards.find(x=>isBase(x)&&x!==lh)||(lh&&!st.cards.some(x=>x!==lh&&x.unit!=="ram")?lh:null);
     if(base){stealOnDamage(st);base.hp=(base.hp||1)-1;const nm=kind(base)==="ace"?"The Ace":kind(base)==="wall"?"The Wall":kind(base)==="lighthouse"?"The Lighthouse":"The Tree of Neither Life Or Death";
       if(base.hp>0){log(`${nm} loses a heart (${base.hp} left); the cards inside are safe.`);continue}
-      dead.push(...st.cards.splice(0));log(`${nm} falls, and every card inside it dies with it.`);break}
+      const fell=st.cards.splice(0);if(kind(base)==="tree")for(const x of fell)if(x!==base)x.withTree=true;   // v78j
+      dead.push(...fell);log(`${nm} falls, and every card inside it dies with it.`);break}
     // support cards hide behind the fighters; the Battering Ram can't be killed by blows at all
     const fighters=st.cards.filter(x=>!(x.unit&&UNIT[x.unit].sup)&&x!==lh),pool=fighters.length?fighters:st.cards.filter(x=>x.unit!=="ram"&&x!==lh);
     if(!pool.length){log(`The Battering Ram on ${coord(r,c)} can't be harmed by blows: it has to be captured or destroyed.`);break}
@@ -297,6 +298,7 @@ function adjacentJokers(r,c,of){
 const capMana=j=>(j.captured||[]).reduce((a,c)=>a+soulOf(c),0);
 function bury(card,r,c,st){
   const owner=st.owner;
+  if(card.withTree){delete card.withTree;toDark(card);return}   // v78j: what falls with the Tree goes where it goes
   if(card.puppet){toDark(card);log(`A Puppet falls into the Outer Darkness.`);return}   // v48: Puppets always go to the Outer Darkness
   if(econBury(card,r,c,st))return;   // Demon kills are counted; what the Bank's Debt Collectors kill goes to the Ether
   if(card.upgraded){card.maxHp=2;card.upgraded=false}   // an upgraded Ace loses the extra heart when it falls
@@ -365,5 +367,6 @@ function eliminate(pl,why){
   if(!shared){for(const c of P.deck.splice(0))dump(c);for(const c of P.souls.splice(0))dump(c)}
   if(!toOD)shuffle(G.grave);
   log(toOD?`${plName(pl)}'s hand and deck fall into the Outer Darkness.`:`${plName(pl)}'s hand and deck go to the grave, and the grave is shuffled.`);
+  if(G.moonLev&&G.moonLev.owner===pl){const L=G.moonLev;G.moonLev=null;L.card.hp=L.card.maxHp;toDark(L.card);log("With its master gone, the Leviathan falls from the moon into the Outer Darkness.","event")}   // v78j
   if(G.active===pl&&G.waiter){const f=G.waiter;G.waiter=null;stopTimer();f()}   // v78j: out on their own turn: it ends (it waited for a button they no longer have)
 }

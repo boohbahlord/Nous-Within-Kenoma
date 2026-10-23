@@ -32,10 +32,14 @@ const AI=(()=>{
   const jit=pl=>1+(Math.random()*2-1)*L(pl).noise;
   const PUSH={atk:1.5,def:.2,dist:1.1,ally:0,k:"push"},OFF={atk:1.3,def:.7,dist:.35,ally:.1,k:"off"},DEF={atk:.8,def:1.35,dist:.06,ally:.35,k:"def"},HORDE={atk:1.5,def:.35,dist:.7,ally:.05,k:"horde"};   // v70c: k names the stance, so a copy (Field Automation mixes its own) is still recognised
   let cache=new Map();
-  const key=st=>st.cards.map(c=>c.id+(c.hp||"")).join(".")+(st.odds||"");
+  const key=st=>st.cards.map(c=>c.id+(c.hp||"")).join(".")+(st.odds||"")+(st.down?"d":"")+(st.supp?"s":"")+(st.mars?"m":"");
+  /* v78j: what the computer knows of an enemy stack: one it sees only the back of counts as that many middling cards */
+  const known=(pl,r,c,E)=>E&&showsBack(pl,r,c)?{...E,cards:E.cards.map(()=>({id:-1,rank:"7",suit:"S",color:"black",owner:E.owner}))}:E;
   function winP(A,D,n,mode){
     const k=key(A)+"|"+key(D)+"|"+(mode||"");if(cache.has(k))return cache.get(k);
-    const w0=weaponOf(A,mode),fa=hasK(A,"satan")?null:netFx(A.odds,hated(A)?"dis":null,hated(D)?"adv":null),fd=hasK(D,"satan")?null:netFx(D.odds,hated(D)?"dis":null);
+    // the same odds as the fight itself: face down (twice at a disadvantage attacking, at an advantage defending), Suppress, Mars
+    const w0=weaponOf(A,mode),fa=hasK(A,"satan")?null:netFx(A.odds,hated(A)?"dis":null,hated(D)?"adv":null,A.down?"dis":null,A.down?"dis":null,A.supp?"dis":null,A.mars?"adv":null),
+      fd=hasK(D,"satan")?null:netFx(D.odds,hated(D)?"dis":null,D.down?"adv":null);
     let w=0;for(let i=0;i<n;i++){const a=rollStack(A,"atk",D,fa,w0),d=rollStack(D,"def",A,fd);if(a.total>d.total)w++}
     let p=w/n;
     // v48: the landing roll: a Crit Miss on 1 (not Puppets), an Assassin's dodge, a Crit Hit on 20 (19 for three Puppets)
@@ -72,7 +76,7 @@ const AI=(()=>{
      "groups" goes in small groups. Computers take the game's setting (or each its own way); Field Automation takes the player's. */
   function hillDist(r,c){let F=pcache.get("hill");
     if(!F){F=Array.from({length:G.rows},()=>Array(COLS).fill(99));const q=[];
-      for(let a=HILL[0];a<=HILL[1];a++)for(let b=HILL[0];b<=HILL[1];b++)if(a<G.rows&&b<COLS){F[a][b]=0;q.push([a,b])}
+      for(let [h0,h1]=hillSpan(),a=h0;a<=h1;a++)for(let b=h0;b<=h1;b++)if(a<G.rows&&b<COLS){F[a][b]=0;q.push([a,b])}
       for(let i=0;i<q.length;i++){const [a,b]=q[i];for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){const x=a+dr,y=b+dc;if(x<0||y<0||x>=G.rows||y>=COLS||isVoid(x,y)||F[x][y]<=F[a][b]+1)continue;F[x][y]=F[a][b]+1;q.push([x,y])}}
       pcache.set("hill",F)}
     return F[r][c]>=99?30:F[r][c]}
@@ -133,7 +137,7 @@ const AI=(()=>{
     const inReach=(er,ec)=>su?su.some(w=>w.reach==="charge"?(r===er&&Math.abs(c-ec)<=3&&Math.abs(c-ec)>=2)||(c===ec&&Math.abs(r-er)<=3&&Math.abs(r-er)>=2):reaches(w.reach,r,c,er,ec)):adjacent(r,c,er,ec,diag);
     let near=99;
     for(const e of enemyStacks(pl)){
-      const E=e.st,d=walk(r,c,e.r,e.c);near=Math.min(near,d);
+      const E=known(pl,e.r,e.c,e.st),d=walk(r,c,e.r,e.c);near=Math.min(near,d);
       if(hits&&!E.hypo&&!shielded(E.owner)&&inReach(e.r,e.c)){
         const p=winP(SA,E,n);let sc=shot?p*gain(E):p*gain(E)-(1-p)*loss(S);
         const ring=stacksOf(pl).filter(x=>x.st!==S&&adjacent(x.r,x.c,e.r,e.c,false)).length;sc+=ring*(FAX&&FAX.pl===pl&&FAX.ring!=null?FAX.ring:.3);
@@ -198,7 +202,7 @@ const AI=(()=>{
       return (Math.min(3,fog*.13)-stacksOf(pl).filter(x=>hasK(x.st,"lighthouse")).length*2.5-(enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=1)?1:0))*jit(pl)}
     if(u==="wall")return ((isFront(pl,r,c)?3:1.5)+(enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=3)?1:0)-stacksOf(pl).filter(x=>hasK(x.st,"wall")).length*1.5)*jit(pl);
     if(u==="miner"){if(t&&hasK(t,"ace"))return (t.cards.filter(x=>x.unit==="miner").length<3?4.5:-1)*jit(pl);if(t)return -1;   // v69: two Miners to an Ace, no more
-      const cr=(G.crystals||[]).filter(x=>!G.board[x.r][x.c]||G.board[x.r][x.c].owner===pl);if(!cr.length)return -1;
+      const cr=(G.crystals||[]).filter(x=>!G.board[x.r][x.c]||G.board[x.r][x.c].owner===pl||!seesTile(pl,x.r,x.c));if(!cr.length)return -1;   // v78j: what it can't see looks free
       return (3.2-Math.min(...cr.map(x=>dist(x.r,x.c,r,c)))*.25-(enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=1)?2:0))*jit(pl)}
     if(u==="archer"||u==="cannon")return (t?(hasBase(t)?4+(enemyStacks(pl).some(e=>Math.max(Math.abs(e.r-r),Math.abs(e.c-c))<=3)?1:0):2):(isBack(pl,r,c)?2.2:1.4))*jit(pl);
     if(u==="healer")return (t?2+value(t)/6:-.5)*jit(pl);
@@ -249,7 +253,7 @@ const AI=(()=>{
       if(Math.random()<lv.skipMove)return;
       if(FAX&&FAX.pl===pl&&FAX.hold&&FAX.hold(st,o.r,o.c))return;   // v72a: Focus on ambush: an ambusher near the enemy holds its ground
       if(st.cards.every(c=>c.unit==="miner"))return;   // lone Miners have their own errands
-      let grp=st.cards.filter(c=>!isBase(c)&&!c.faLock&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter))&&!(c.unit==="miner"&&crystalAt(o.r,o.c)));   // v71n: a Miner digging a crystal stays at it   // v65: cards locked in place stay   // Miners, Repairmen and shooters stay in their base
+      let grp=st.cards.filter(c=>!isBase(c)&&!(c.faLock&&faOn(pl))&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter))&&!(c.unit==="miner"&&crystalAt(o.r,o.c)));   // v71n: a Miner digging a crystal stays at it   // v65: cards locked in place stay   // Miners, Repairmen and shooters stay in their base
       if(!grp.length||st.stun)return;
       if(FAX&&!FAX.ok(grp))return;   // Field Automation: a stack it doesn't control stays where the player put it
       if(!stackLegal(grp)){ // too many to leave together (a full Ace): send out the strongest group that can stand on its own
@@ -288,7 +292,8 @@ const AI=(()=>{
       try{
       for(const o of attackOptions(r,c)){
         if(FAX&&!FAX.okAtk(st,o))continue;   // Field Automation: only the cards it controls
-        const r2=o.r,c2=o.c,E=G.board[r2][c2];
+        const r2=o.r,c2=o.c,E=known(pl,r2,c2,G.board[r2][c2]);
+        if(E&&(FAX&&FAX.pl===pl||!G.p[E.owner].cpu)&&(!isEnemy(pl,E.owner)||G.dip&&typeof dipAllied==="function"&&dipAllied(pl,E.owner)))continue;   // v78j
         if(o.mode==="capture"||o.mode==="destroy"||o.mode==="ram"){const sc=(o.mode==="capture"?value(E)+2:o.mode==="ram"?3.5:value(E)*.8+.5)*jit(pl);if(!best||sc>best.sc)best={r,c,r2,c2,sc,p:1,mode:o.mode};continue}
         if(o.mode==="suppress"){if(lvl(pl)!=="easy"&&canAttackFrom({cards:E.cards,attacked:false})&&Math.random()<.12){const sc=.45;if(!best||sc>best.sc)best={r,c,r2,c2,sc,p:1,mode:o.mode}}continue}
         const p0=o.mode==="stomp"?(E.pin?0:.62):winP(o.A||st,E,lv.mc,o.mode),p=o.ranged||o.mode==="stomp"?Math.min(1,p0+(1-p0)*.6):p0;   // a ranged miss (or a failed Stomp) costs nothing
@@ -335,10 +340,10 @@ const AI=(()=>{
   async function sacrifices(pl,target,keep){
     const P=G.p[pl];
     while(mana(pl)<target&&P.hand.length>keep){
-      const c=[...P.hand].filter(c=>mana(pl)+soulOf(c)<=soulCap(pl)&&kind(c)!=="ace"&&kind(c)!=="joker"&&canSacCard(c)&&!(c.unit==="scout"&&fogOn()&&scoutsOf(pl).length<2)&&!keepSupport(pl,c)).sort((a,b)=>rate(a)-rate(b))[0];
+      const c=[...P.hand].filter(c=>mana(pl)+soulOf(c)<=soulCap(pl)&&mana(pl)+handSacRange(c)[1]<=surCap(pl)&&kind(c)!=="ace"&&kind(c)!=="joker"&&canSacCard(c)&&!(c.unit==="scout"&&fogOn()&&scoutsOf(pl).length<2)&&!keepSupport(pl,c)).sort((a,b)=>rate(a)-rate(b))[0];
       if(!c)break;
       if(rate(c)>14&&mana(pl)>=2)break;
-      sacrifice(c,"hand");await step();
+      if(sacrifice(c,"hand")===false)break;await step();   // v78j: refused: don't try it again and again
     }
   }
   async function necro(pl){

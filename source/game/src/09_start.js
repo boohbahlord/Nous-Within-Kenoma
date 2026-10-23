@@ -114,7 +114,7 @@ ${lookExtras(i,S,n)}
 const val=name=>{const e=document.querySelector(`input[name="${name}"]:checked`);return e&&e.value};
 const chk=(id,label,sub,on)=>`<label class="chk"><input type="checkbox" id="${id}" ${on?"checked":""}> <span><b>${label}</b>${sub?`<small>${sub}</small>`:""}</span></label>`;
 function showStart(){
-  if(G)G.over=true;
+  if(G)G.over=true;try{AUD.setAmb(null)}catch(e){}   // v78j: the eclipse's or the Blood Moon's sound ends with the game
   applyMoonTheme();
   const q0=new URLSearchParams(location.search).get("mode"),q=q0==="cpu"?"local":q0;
   if(!startMode&&MODES.some(m=>m[0]===q))startMode=q;
@@ -286,8 +286,10 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
         if(k==="ffa")o.querySelector(".gmn").textContent=n===2?"1v1":"Free For All"});
       $("#teamn").hidden=gm!=="teams";document.querySelectorAll("input[name=oteamn]").forEach(i=>{i.checked=(i.value==="fac")===(L==="factions");const no=i.value==="two"&&n<4;i.disabled=no;i.closest(".opt").classList.toggle("off",no)});
       $("#teamarr").hidden=gm!=="teams"||L==="factions";if(gm==="teams")document.querySelectorAll("input[name=oteamarr]").forEach(i=>{i.checked="team-"+i.value===L;const no=i.value==="same"&&n>4;i.disabled=no;i.closest(".opt").classList.toggle("off",no)})}
-    const key=L+(L==="coop"?n:"");if(key!==curLayout){
-      if(L==="factions"){const F=Math.min(4,Math.max(3,Math.ceil(n/2)));seatsS.forEach((S,i)=>S.team=i%F)}else seatsS.forEach(S=>{S.team=(S.team|0)%2});   // v73d: factions deal the seats out; two sides fold back
+    const key=L+(L==="coop"||L==="factions"?n:"");if(key!==curLayout){   // v78j: factions count the players too
+      if(L==="factions"){const F=Math.min(4,Math.max(3,Math.ceil(n/2)));seatsS.forEach((S,i)=>S.team=i%F)}
+      else if(String(curLayout||"").startsWith("factions"))seatsS.forEach((S,i)=>S.team=i%2);   // out of factions: two even sides
+      else seatsS.forEach(S=>{S.team=(S.team|0)%2});   // v73d: factions deal the seats out; two sides fold back
       curLayout=key;sizeUp()}
     if($("#kothopts")){$("#kothopts").hidden=L!=="koth";{const sm=document.querySelector('input[name=okfield][value=small]');if(sm){const no=n>4;sm.disabled=no;sm.closest(".opt").classList.toggle("off",no);if(no&&sm.checked)document.querySelector('input[name=okfield][value=hill]').checked=true}}SEAT_KOTH_TEAM=$("#okteam").checked;$("#oktug").disabled=!SEAT_KOTH_TEAM;kothMapUp(L)}
     $("#laynote").textContent=mode==="survival"?(n===1?"One survivor holds the bottom of the field.":`${n} survivors share the bottom of the field, and the Horde spawns once for each of you. Any seat can be a computer; people take their turns one after another on this device, and the Horde moves first each round.`):"";
@@ -338,7 +340,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
   $("#oturns").addEventListener("change",()=>{$("#oturns").dataset.touched=1;turnUp()});
   $("#ocorners").addEventListener("change",()=>$("#ocorners").dataset.touched=1);
   $("#pcount").addEventListener("change",drawSeats);
-  document.querySelectorAll('input[name=obig],input[name=oxsize]').forEach(i=>i.addEventListener("change",()=>crossUp(count())));   // v73c
+  document.querySelectorAll('input[name=obig],input[name=oxsize]').forEach(i=>i.addEventListener("change",()=>{const n=count(),L=layout();crossUp(n,L==="factions"||L.startsWith("team")&&n>4)}));   // v73c; v78j: with the same rule as drawSeats
   document.querySelectorAll('input[name=obig]').forEach(i=>i.addEventListener("change",()=>$("#sizeset").classList.toggle("survbig",mode==="survival"&&val("obig")==="long")));
   $("#odip").addEventListener("change",()=>{$("#odip").dataset.touched=1});   // v73b: the large map has its own size
   document.querySelectorAll('input[name=olayout]').forEach(i=>i.addEventListener("change",drawSeats));
@@ -399,7 +401,8 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     if($("#onosubs").checked)players.forEach(p=>{p.tribe="plain"});   // v70d: No Emanations: everyone plays by the plain rules
     for(const t of Object.keys(TRIBES))if(t!=="random"&&t!=="plain"&&players.filter(p=>p.tribe===t).length>1){flash(`Only one player can be ${TRIBES[t].name}: no two players share an Emanation.`);return}
     {const picked=players.filter(p=>!TRIBES[p.tribe].color&&p.color!=="random");if(new Set(picked.map(p=>p.color)).size<picked.length){flash("Every player needs a different color.");return}}   // Random finds a free color at the start
-    if(L==="koth"&&$("#okteam").checked){players.forEach((p,i)=>p.team=seatsS[i].team?1:0);if(!players.some(p=>p.team===0)||!players.some(p=>p.team===1)){flash("Each side needs at least one player.");return}}
+    if(L==="koth"&&$("#okteam").checked){players.forEach((p,i)=>p.team=seatsS[i].team?1:0);if(!players.some(p=>p.team===0)||!players.some(p=>p.team===1)){flash("Each side needs at least one player.");return}
+      if(val("okfield")==="cross"&&[0,1].some(t=>players.filter(p=>p.team===t).length>4)){flash("A side holds four players at most on the Cross: two to an arm.");return}}   // v78j
     if(L==="factions"){const fs=new Map();players.forEach((p,i)=>{p.team=seatsS[i].team|0;fs.set(p.team,(fs.get(p.team)||0)+1)});   // v73d
       if(fs.size<3){flash("Faction mode needs players in at least three factions.");return}
       if([...fs.values()].some(v=>v>2)){flash("A faction holds two players at most: they spawn side by side on its own side.");return}}

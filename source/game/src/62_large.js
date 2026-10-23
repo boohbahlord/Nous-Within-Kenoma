@@ -49,7 +49,8 @@ function camWire(w){
     if(moved){w.scrollLeft=drag.l-dx;w.scrollTop=drag.t-dy}});
   addEventListener("pointerup",()=>{if(!drag)return;drag=null;w.classList.remove("dragging");if(moved)setTimeout(()=>{moved=false},0)});
   w.addEventListener("click",e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false}},true)}   // a drag is not a click on a tile
-const typing=t=>!!(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)));
+const typing=t=>!!(t&&(t.isContentEditable||t.tagName==="TEXTAREA"||t.tagName==="SELECT"||
+  t.tagName==="INPUT"&&/^(text|search|number|email|password|url|tel|date|time|datetime-local|month|week)$/.test(t.type)));   // v78j: fields you type in
 /* v77a: a held key moves the field smoothly, two at once on a diagonal (W and A: up and to the left); E zooms in, Q out */
 const CAM_DIR={camUp:[0,-1],camDown:[0,1],camLeft:[-1,0],camRight:[1,0]};   // v78b: WASD (the arrow keys move the field's selector, 98b_fieldkeys.js); v78d: as bound
 const CAMK=new Set();let camRaf=0,camT=0,camFast=false;
@@ -57,7 +58,7 @@ function camTick(t){camRaf=0;if(!CAMK.size||!isLarge()){camT=0;return}const dt=c
   for(const k of CAMK){dx+=CAM_DIR[k][0];dy+=CAM_DIR[k][1]}
   if(dx||dy){const n=Math.hypot(dx,dy),v=.9*camSpeed()*(camFast?2.2:1)*dt;camPan(dx/n*v,dy/n*v)}
   camRaf=requestAnimationFrame(camTick)}
-const camBlocked=()=>!!document.querySelector("#ov:not([hidden]) .ovbox, #menu:not([hidden]), #facfg:not([hidden]), #rbwin:not([hidden])");
+const camBlocked=()=>!!document.querySelector("#ov:not([hidden]) .ovbox, #menu:not([hidden]), #facfg:not([hidden]), #rbwin:not([hidden])")||!!kbTop();   // v78j: any window
 document.addEventListener("keydown",e=>{if(!isLarge()||typing(e.target)||camBlocked())return;
   const inv=PREF.camInvKeys?-1:1,d=Object.keys(CAM_DIR).find(id=>kmIs(e,id));camFast=e.shiftKey;
   if(d){e.preventDefault();if(!CAMK.has(d)){CAMK.add(d);if(!camRaf){camT=0;camRaf=requestAnimationFrame(camTick)}}return}

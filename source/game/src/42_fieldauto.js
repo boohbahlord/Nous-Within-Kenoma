@@ -125,7 +125,7 @@ async function faRun(pl,ph){if(!faOn(pl)||G.over)return;const was=G.busy;G.busy=
 function setFieldAuto(pl,on,cfg){
   if(!G||!G.p[pl]||isNPC(pl)||!faAllowed())return;if(NET.ctx!=null&&NET.ctx!==pl)return;
   const P=G.p[pl],prev=P.fa||{},c=faClean(cfg);P.fa={on:!!on,cfg:c,rushUntil:prev.rushUntil};
-  if(c.rush>0&&(!prev.cfg||prev.cfg.rush!==c.rush||prev.rushUntil==null||G.moon.round>prev.rushUntil))P.fa.rushUntil=G.moon.round+c.rush-1;
+  if(c.rush>0&&(!prev.cfg||prev.cfg.rush!==c.rush||prev.rushUntil==null||on&&!prev.on))P.fa.rushUntil=G.moon.round+c.rush-1;   // v78j
   if(!c.rush)P.fa.rushUntil=null;
   if(!!prev.on!==!!on){log(`${plName(pl)} ${on?"hands the field to the computer (Field Automation on)":"takes the field back (Field Automation off)"}.`,"event");
 }

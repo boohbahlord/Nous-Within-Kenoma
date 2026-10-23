@@ -136,7 +136,7 @@ let bankTab="bank";
   const other=document.createElement("div");other.className="btab p2p";other.dataset.t="p2p";other.innerHTML=p2pHTML(V);
   const n=loanReqsFor(V).length;
   const tabs=document.createElement("div");tabs.className="btabs";tabs.setAttribute("role","tablist");
-  tabs.innerHTML=`<button type="button" class="stab" data-bt="bank">The Bank</button><button type="button" class="stab" data-bt="p2p">Between players${n?` <i class="bang">!</i>`:""}</button><button type="button" class="stab" data-bt="land">Land</button>`;
+  tabs.innerHTML=`<button type="button" role="tab" class="stab" data-bt="bank">The Bank</button><button type="button" role="tab" class="stab" data-bt="p2p">Between players${n?` <i class="bang">!</i>`:""}</button><button type="button" role="tab" class="stab" data-bt="land">Land</button>`;
   const land=document.createElement("div");land.className="btab land";land.dataset.t="land";land.innerHTML=landHTML(V);
   h2.after(tabs);tabs.after(main);main.after(other);other.after(land);
   const show=t=>{bankTab=t;tabs.querySelectorAll("[data-bt]").forEach(b=>{const on=b.dataset.bt===t;b.classList.toggle("on",on);b.setAttribute("aria-selected",on)});main.hidden=t!=="bank";other.hidden=t!=="p2p";land.hidden=t!=="land"};

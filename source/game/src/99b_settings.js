@@ -37,7 +37,7 @@ function setBuild(){const m=$("#menu"),box=m&&m.querySelector(".ovbox");if(!box|
   /* Controls: the large map's fold above the keyboard's, which stays at the very bottom */
   const cam=box.querySelector("#mCam"),keys=box.querySelector(".kbfold");
   P.ctl.appendChild(mk("p","dim","How you move around the table with the mouse, the wheel and the keys."));
-  const km=mk("div","kmpanel");P.ctl.appendChild(km);kmMount(km);
+  const km=mk("div","kmpanel");P.ctl.appendChild(km);rSafe(kmMount,null,[km]);   // v78j: a fault in it can't take the Menu down
   if(cam)P.ctl.appendChild(cam);if(keys)P.ctl.appendChild(keys);
   /* Performance */
   const net=box.querySelector(".perfnet");if(net){const h=net.querySelector(".perfh");if(h)h.remove();sect(P.perf,"Connection",net)}
