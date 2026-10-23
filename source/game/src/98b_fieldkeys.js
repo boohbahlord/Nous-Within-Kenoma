@@ -50,7 +50,7 @@ const FK_SEL={selUp:[-1,0],selDown:[1,0],selLeft:[0,-1],selRight:[0,1]},FK_AIM={
 function fkSum(map,pressed){let di=0,dj=0;for(const id of new Set([...pressed,...kmHeldOf(Object.keys(map))])){di+=map[id][0];dj+=map[id][1]}return [Math.sign(di),Math.sign(dj)]}
 function fkArrow(id){FK.dir=FK.dir||new Set();FK.dir.add(id);if(FK.t)return;FK.t=setTimeout(()=>{const [di,dj]=fkSum(FK_SEL,FK.dir);FK.dir=null;FK.t=0;
   if(!di&&!dj)return;const x=fkMove(di,dj,FK.cur);if(x){FK.tgt=null;fkSet(x.r,x.c)}},45)}
-function fkAim(id){if(!G.sel){flash(`Select a stack first: ${kmShow("act")} on it, or a click.`);return}FK.tdir=FK.tdir||new Set();FK.tdir.add(id);if(FK.tt)return;
+function fkAim(id){if(!G.sel){flash(`Select a stack first — ${kmTipT("act","Select")}, or a click.`);return}FK.tdir=FK.tdir||new Set();FK.tdir.add(id);if(FK.tt)return;
   FK.tt=setTimeout(()=>{const [di,dj]=fkSum(FK_AIM,FK.tdir);FK.tdir=null;FK.tt=0;if(!di&&!dj||!G.sel)return;const x=fkMove(di,dj,FK.tgt||G.sel);if(!x)return;FK.tgt={r:x.r,c:x.c};fkSet(x.r,x.c)},45)}
 const fkIn=(list,p)=>!!p&&list.some(([a,b])=>a===p.r&&b===p.c);
 /* Enter, M and 1 on the selector */
@@ -75,7 +75,7 @@ function fkInfo(){if(G.selHand&&FK.ifo==="hand"){const b=$("#hand .cardbtn.on"),
    field instead, X lets go */
 const mineLit=()=>[...document.querySelectorAll("#minepanel .mslot.tplace")].filter(b=>b.getClientRects().length);
 function kbMineOn(){if(PREF.mineOpen===false){PREF.mineOpen=true;savePrefs();paintMines()}const L=mineLit();if(!L.length)return false;
-  KB.mode="mine";KB.m=0;kbPaint();mineMark();flash(`A mining slot: ${kmShow("hPrev")} or ${kmShow("hNext")} choose, ${kmShow("act")} puts the Miner in, ${kmShow("rowNext")} the field instead, ${kmShow("close")} lets go.`);return true}
+  KB.mode="mine";KB.m=0;kbPaint();mineMark();flash(`A mining slot — ${kmTipT("hPrev","Previous slot")} · ${kmTipT("hNext","Next slot")} · ${kmTipT("act","Put the Miner in")} · ${kmTipT("rowNext","The field instead")} · ${kmTipT("close","Let go")}`);return true}
 function mineMark(){document.querySelectorAll(".kbmine,.kbifo").forEach(e=>e.classList.remove("kbmine","kbifo"));const L=mineLit(),b=L[KB.m];if(b){b.classList.add("kbmine");b.scrollIntoView({block:"nearest",inline:"nearest"})}}
 function fkFollow(){if(G.sel){FK.cur={r:G.sel.r,c:G.sel.c};fkCenter(G.sel.r,G.sel.c)}fkPaint()}
 /* Y: the actions of what you selected, numbered */
@@ -87,7 +87,7 @@ function fkActs(){if(!G.sel&&!G.selHand){flash("Select a stack or a hand card fi
   const L=fkActItems(),num=i=>i<9?String(i+1):i===9?"0":i<19?"⇧"+(i-9):i===19?"⇧0":"";
   w.innerHTML=`<div class="ovbox kbactbox" role="dialog" aria-modal="true" aria-labelledby="kbah"><button type="button" class="xclose" aria-label="Close">×</button><h2 id="kbah">Actions</h2>
 <ol class="kbacts">${L.map((e,i)=>`<li><button type="button" data-ka="${i}"><kbd>${num(i)}</kbd> ${esc(fkLabel(e))}</button></li>`).join("")}<li><button type="button" data-ka="rc"><kbd>${esc(kmShort(kmBinds("menu").filter(Boolean)[0]||""))}</kbd> Its right-click menu</button></li></ol>
-<p class="dim">The number keys use them (Shift+1 for the eleventh). ${esc(kmShow("close"))} closes.</p></div>`;w.hidden=false;
+<p class="dim">Use one: its number key (Shift+1 for the eleventh) · ${esc(kmTipT("close"))}</p></div>`;w.hidden=false;
   w.querySelector(".xclose").onclick=()=>{w.hidden=true};w.onclick=e=>{if(e.target===w)w.hidden=true};
   w.querySelectorAll("[data-ka]").forEach(b=>b.onclick=()=>fkActUse(b.dataset.ka))}
 function fkActUse(k){const w=$("#kbacts");if(k==="rc"){if(w)w.hidden=true;fkMenu();return}const e=fkActItems()[+k];if(!e){flash("Nothing there.");return}e.click();setTimeout(()=>{if(w&&!w.hidden&&(G.sel||G.selHand))fkActs();else if(w)w.hidden=true},60)}
@@ -99,23 +99,24 @@ function fkMenu(){let el=null;if(KB.mode==="hand"){el=kbHand()[KB.h]}else{const 
 const fkBoxes=()=>[...document.querySelectorAll(fsOn()?".fsfoe":"#foe>.pbox,#foe>div[style*='--pc']")].filter(e=>e.getClientRects().length);
 function fkPlayers(d){const B=fkBoxes();if(!B.length){flash("No other player's box to read.");return}const was=FK.pm;FK.pm=true;FK.p=was&&FK.p!=null?((FK.p+d)%B.length+B.length)%B.length:0;FK.pi=-1;fkPaint();   // v78j
   B[FK.p].scrollIntoView({block:"nearest"});
-  wkNote(`${B[FK.p].getAttribute("title")||B[FK.p].textContent.trim().split(/\s{2,}|\n/)[0].slice(0,60)} · C and V read the box, Enter its history, ${kmShow("plNext")} the next player, ${kmShow("close")} stops`)}
+  wkNote(`${B[FK.p].getAttribute("title")||B[FK.p].textContent.trim().split(/\s{2,}|\n/)[0].slice(0,60)} · Read the box: C and V · Its history: Enter · ${kmTipT("plNext","Next player")} · ${kmTipT("close","Stop")}`)}
 function fkPart(d){const b=fkBoxes()[FK.p];if(!b)return;const parts=[...b.children].filter(e=>e.getClientRects().length&&e.textContent.trim());if(!parts.length)return;
   FK.pi=((FK.pi+d)%parts.length+parts.length)%parts.length;fkPaint();const e=parts[FK.pi];
   wkNote((e.getAttribute("title")?e.getAttribute("title")+" · ":"")+e.textContent.trim().replace(/\s+/g," ").slice(0,160))}
 function fkPlayersOff(){FK.pm=false;wkNote("");fkPaint()}
 /* the marks: the selector, the arrow to the target, a player's box; the label of what Tab steps through */
+let fkLabT=0;
 function fkPaint(){document.querySelectorAll(".kbcur,.kbpl,.kbplp").forEach(e=>e.classList.remove("kbcur","kbpl","kbplp"));const old=$("#fkarrow");if(old)old.remove();
   let lab=$("#fkmode");
   if(FK.pm){const b=fkBoxes()[FK.p];if(b){b.classList.add("kbpl");const parts=[...b.children].filter(e=>e.getClientRects().length&&e.textContent.trim());if(parts[FK.pi])parts[FK.pi].classList.add("kbplp")}}
-  if(!FK.on||!G||!FK.cur){if(lab)lab.hidden=true;return}
+  if(!FK.on||!G||!FK.cur){if(lab){lab.hidden=true;lab.dataset.h=""}return}
   const t=fkTile(FK.cur.r,FK.cur.c);if(t)t.classList.add("kbcur");
   document.querySelectorAll(".kbifo").forEach(e=>e.classList.remove("kbifo"));
   if(G.selHand){const h=FK.ifo==="hand"?$("#hand .cardbtn.on"):t;if(h)h.classList.add("kbifo")}   // v78s: the second highlight: what I and Tab are on
   if(!lab){lab=document.createElement("div");lab.id="fkmode";lab.setAttribute("aria-live","polite");document.body.appendChild(lab)}
-  lab.hidden=false;
-  lab.innerHTML=G.selHand?`<kbd>${esc(kmShow("rowNext"))}</kbd> <b>${FK.ifo==="hand"?"the picked card":"the field"}</b> (or ${FK.ifo==="hand"?"the field":"the picked card"}) · <kbd>${esc(kmShow("info"))}</kbd> its info · <kbd>${esc(kmShow("act"))}</kbd> places · <kbd>${esc(kmShow("close"))}</kbd> lets go`
-    :`${esc(kmShow("rowNext"))} steps through: <b>${FK.foe?"the enemy's cards":"your cards"}</b> <kbd>${esc(kmShow("foeSwap"))}</kbd> switches`;
+  const html=G.selHand?`<b>On ${FK.ifo==="hand"?"the picked card":"the field"}</b> · ${kmTip("rowNext",FK.ifo==="hand"?"Switch to the field":"Switch to the picked card")} · ${kmTip("info",FK.ifo==="hand"?"Card info":"Tile info")} · ${kmTip("act","Place")} · ${kmTip("close","Let go")}`
+    :`<b>${FK.foe?"The enemy's cards":"Your cards"}</b> · ${kmTip("rowNext","Next card")} · ${kmTip("foeSwap",FK.foe?"Switch to yours":"Switch to the enemy's")}`;   // v79b: the action, then its key
+  if(lab.dataset.h!==html){lab.dataset.h=html;lab.innerHTML=html;lab.hidden=false;clearTimeout(fkLabT);fkLabT=setTimeout(()=>{lab.hidden=true},6000)}   // v79b: like any notice it goes after a while, and comes back when what it says changes
   if(FK.tgt&&G.sel){const B=$("#board"),a=fkTile(G.sel.r,G.sel.c),b=fkTile(FK.tgt.r,FK.tgt.c);if(!B||!a||!b)return;const br=B.getBoundingClientRect(),ra=a.getBoundingClientRect(),rb=b.getBoundingClientRect();
     const x1=ra.left+ra.width/2-br.left,y1=ra.top+ra.height/2-br.top,x2=rb.left+rb.width/2-br.left,y2=rb.top+rb.height/2-br.top;
     B.insertAdjacentHTML("beforeend",`<svg id="fkarrow" aria-hidden="true" width="${Math.ceil(br.width)}" height="${Math.ceil(br.height)}"><defs><marker id="fkhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0L10,5L0,10z" fill="#f1d27a"/></marker></defs><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#f1d27a" stroke-width="4" stroke-linecap="round" marker-end="url(#fkhead)"/></svg>`)}}

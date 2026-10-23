@@ -19,7 +19,7 @@ function camWrap(){const B=$("#board");if(!B)return null;let w=B.parentNode&&B.p
 function camNote(){const w=camWrap();let n=$("#camnote");
   if(!w||!isLarge()){if(n)n.hidden=true;return}
   if(!n){n=document.createElement("div");n.id="camnote";n.className="camnote";w.after(n)}else if(n.previousElementSibling!==w)w.after(n);
-  n.hidden=false;const ph=isPhone(),keys=`${kmShow4(["camUp","camLeft","camDown","camRight"])} moves it, two at once for a diagonal (Shift: faster) · ${kmShow("zoomIn")} zooms in, ${kmShow("zoomOut")} out`,key=(ph?"p":"c")+(PREF.camWheel===true)+keys;if(n.dataset.k===key)return;n.dataset.k=key;
+  n.hidden=false;const ph=isPhone(),keys=`Move the field: ${kmShow4(["camUp","camLeft","camDown","camRight"])} (two at once: a diagonal; Shift: faster) · ${kmTipT("zoomIn")} · ${kmTipT("zoomOut")}`,key=(ph?"p":"c")+(PREF.camWheel===true)+keys;if(n.dataset.k===key)return;n.dataset.k=key;
   n.innerHTML=`<span class="cz"><button type="button" class="btn ghost sm" data-cz="-1" aria-label="Zoom out">−</button><button type="button" class="btn ghost sm" data-cz="1" aria-label="Zoom in">+</button></span>`+
     (ph?`<span class="dim">Swipe the field to move it.</span>`:`<span class="dim">Drag an empty spot to move the field · ${esc(keys)}</span>
 <label class="cw"><input type="checkbox" id="camWheelBox" ${PREF.camWheel===true?"checked":""}> Zoom with the mouse wheel</label>`);
@@ -71,7 +71,7 @@ addEventListener("blur",()=>CAMK.clear());
 {const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu");if(!m||m.querySelector("#mCam"))return;const anchor=m.querySelector("#mParts")||m.querySelector(".mgrid");if(!anchor)return;
   const on=isLarge(),c=(id,t,v)=>`<label class="farow"><span class="fal"><b>${t}</b></span><input type="checkbox" id="${id}" ${v?"checked":""} ${on?"":"disabled"}></label>`;
   anchor.insertAdjacentHTML("afterend",`<details id="mCam" class="sub${on?"":" faded"}"><summary>Large Map Controls${on?"":" <small>(large maps only)</small>"}</summary>
-<p class="dim">The mouse wheel scrolls the page unless zooming with it is on; drag an empty spot of the field to move it; ${esc(kmShow4(["camUp","camLeft","camDown","camRight"]))} moves it, two at once for a diagonal (Shift: faster); ${esc(kmShow("zoomIn"))} zooms in and ${esc(kmShow("zoomOut"))} out, always around the middle of the screen.</p><div class="facats">
+<p class="dim">The mouse wheel scrolls the page unless zooming with it is on; drag an empty spot of the field to move it; Move the field: ${esc(kmShow4(["camUp","camLeft","camDown","camRight"]))} (two at once: a diagonal; Shift: faster) · ${esc(kmTipT("zoomIn"))} · ${esc(kmTipT("zoomOut"))}, always around the middle of the screen.</p><div class="facats">
 ${c("mCamDrag","Drag an empty spot to move the field",PREF.camDrag!==false)}${c("mCamWheel","Zoom with the mouse wheel",PREF.camWheel===true)}${c("mCamInvW","Reverse the wheel's zoom",!!PREF.camInvWheel)}${c("mCamInvK","Reverse the keys' zoom",!!PREF.camInvKeys)}</div>
 <label class="f mslide">Moving speed <input type="range" id="mCamSpd" min="40" max="300" step="10" value="${Math.round(camSpeed()*100)}" ${on?"":"disabled"}><b id="mCamSpdV">${Math.round(camSpeed()*100)}%</b></label></details>`);
   const set=(k,v)=>{PREF[k]=v;savePrefs()};

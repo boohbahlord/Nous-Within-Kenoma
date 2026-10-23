@@ -202,7 +202,7 @@ function fgPickPaint(){document.querySelectorAll(".fgok,.fgon,.fgfrom").forEach(
     else if(p.op!=="area"&&(p.op==="guard"||fgCanJoin(o.st)))t.classList.add(p.list&&p.list.some(([a,b])=>a===o.r&&b===o.c)?"fgon":"fgok")}
   if(!bar){bar=document.createElement("div");bar.id="fgpick";bar.setAttribute("role","status");document.body.appendChild(bar)}
   const multi=p.op==="squad"||p.op==="add";
-  bar.innerHTML=`<span>${esc(p.text)}${p.list?` · ${p.list.length+1} of ${FG_MAX}`:""} · ${fsTouchOnly()?`tap a stack${multi?"; Done when done":""}`:`${esc(kmShow("act"))} or a click${multi?"; Esc when done":"; Esc stops"}`}</span>${multi?`<button type="button" class="btn sm" id="fgDone">Done</button>`:""}<button type="button" class="btn ghost sm" id="fgStop">${multi?"Cancel":"Stop"}</button>`;
+  bar.innerHTML=`<span>${esc(p.text)}${p.list?` · ${p.list.length+1} of ${FG_MAX}`:""} · ${fsTouchOnly()?`tap a stack${multi?"; Done when done":""}`:`Pick: ${esc(kmShow("act"))} or a click${multi?" · Done: Esc":" · Stop: Esc"}`}</span>${multi?`<button type="button" class="btn sm" id="fgDone">Done</button>`:""}<button type="button" class="btn ghost sm" id="fgStop">${multi?"Cancel":"Stop"}</button>`;
   bar.hidden=false;const d=$("#fgDone");if(d)d.onclick=()=>fgPickEnd(true);$("#fgStop").onclick=()=>fgPickEnd(false)}
 {const _tc=tileClick;tileClick=function(r,c){const p=FG.pick;if(!p||!G)return _tc.apply(this,arguments);const V=view(),st=G.board[r]&&G.board[r][c],mine=st&&st.owner===V,from=p.from;
   if(r===from[0]&&c===from[1]&&p.op!=="area"){flash("That is the stack itself: click another.");return}

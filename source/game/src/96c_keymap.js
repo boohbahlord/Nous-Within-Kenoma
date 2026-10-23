@@ -101,6 +101,47 @@ const KM_GROUPS=[["any","Everywhere"],["table","The table"],["win","Windows"],["
 /* tap: Ctrl or Shift alone may be bound (the actions that step through rows, sections and schools) */
 const KM_ACT={};for(const [id,g,sub,name,def,sh] of KM_ACTS)KM_ACT[id]={id,g,sub,name,def,shift:!!sh,tap:def.some(s=>s==="Ctrl"||s==="Shift")};
 const kmGroupName=g=>(KM_GROUPS.find(x=>x[0]===g)||["",""])[1];
+/* v79b: each action's short name, said to the left of its key wherever a key is shown (the lists, the notes, the
+   letters on the buttons), and the same name heads its line in the settings' Key bindings, so it can be found there */
+const KM_LABEL={close:"Close",keys:"Every key",rulebook:"Open Rule book",music:"Music on/off",
+  turn:"Next phase / End turn",roll:"Roll the draw",spellbar:"Open spell bar",spelllist:"Open spell list",hand:"Pick from hand",sacrifice:"Sacrifice card",
+  bank:"Open Bank",ether:"Open Ether",dip:"Open Diplomacy",faset:"Automation settings",log:"Open log",dice:"Open dice",fullscreen:"Fullscreen on/off",
+  hints:"Key letters on/off",bfsOn:"Browser fullscreen on",bfsOff:"Browser fullscreen off",pageUp:"Scroll page up",pageDown:"Scroll page down",
+  console:"Open command line",consoleSwap:"Chat / command line",
+  camUp:"Camera up",camLeft:"Camera left",camDown:"Camera down",camRight:"Camera right",zoomIn:"Zoom in",zoomOut:"Zoom out",
+  aceBack:"Previous Ace",aceNext:"Next Ace",lookSel:"Look at selection",
+  selUp:"Selector up",selLeft:"Selector left",selDown:"Selector down",selRight:"Selector right",
+  rowNext:"Next own card",rowPrev:"Previous own card",rowDown:"Next row",rowUp:"Previous row",
+  foeSwap:"Own / enemy cards",foeNext:"Next enemy card",foePrev:"Previous enemy card",
+  act:"Select / place / move",move:"Move only",attack:"Default attack",aimUp:"Aim up",aimLeft:"Aim left",aimDown:"Aim down",aimRight:"Aim right",
+  acts:"Actions menu",menu:"Right-click menu",plNext:"Next player's box",plPrev:"Previous player's box",info:"Tile info",
+  winUp:"Item up",winLeft:"Item left",winDown:"Item down",winRight:"Item right",winPrev:"Previous item",winNext:"Next item",
+  winScrollUp:"Scroll up",winScrollDown:"Scroll down",winScrollLeft:"Scroll left",winScrollRight:"Scroll right",
+  winUse:"Use item",tabNext:"Next tab",tabPrev:"Previous tab",secNext:"Next section",secPrev:"Previous section",winInfo:"Item info",
+  rbNext:"Next rule",rbPrev:"Previous rule",
+  spPrev:"Previous school / spell",spNext:"Next school / spell",spFirst:"First school",spLast:"The piles",spSchoolNext:"Next school",spSchoolPrev:"Previous school",spCast:"Cast spell",
+  hPrev:"Previous card",hNext:"Next card",hPick:"Pick card",hInfo:"Card info"};
+const kmLabel=id=>String(id).includes(",")?String(id).split(",").map(kmLabel).join(" / "):KM_LABEL[id]||(KM_ACT[id]?KM_ACT[id].name:id);   // one button, two actions: both names
+/* "Open Bank B": the action, then its key; as HTML (a note on the screen) or as words (a flash) */
+const kmTip=(id,what)=>`<span class="ktip"><span class="kact">${esc(what||kmLabel(id))}</span> <kbd>${esc(kmShow(id))}</kbd></span>`;
+const kmTipT=(id,what)=>`${what||kmLabel(id)}: ${kmShow(id)}`;
+/* v79b: the key lists can show a preset other than yours (Show Default: yours, then Default, then Alternative Controls) */
+let KM_VIEW=null;
+const kmViewMap=()=>KM_VIEW?(kmPreset(KM_VIEW)||KM_LOCKED[0]).map:kmState().map;
+const kmBindsV=id=>{const m=kmViewMap()[id];return Array.isArray(m)?m:KM_ACT[id]?KM_ACT[id].def:[]};
+const kmShowV=(id,all)=>{const B=kmBindsV(id).filter(Boolean);return B.length?(all?B.map(kmPretty).join(" or "):kmPretty(B[0])):"(no key)"};
+const kmShow4V=ids=>{const B=ids.map(id=>kmBindsV(id).filter(Boolean)[0]||"");return B.every(b=>/^[A-Z]$/.test(b))?B.join(""):B.map(kmPretty).join(" ")};
+function kmViewNext(){KM_VIEW=KM_VIEW===null?"default":KM_VIEW==="default"?"alt":null}
+function kmViewBar(){const S=kmState(),P=kmPreset(S.preset)||KM_LOCKED[0],now=KM_VIEW?(kmPreset(KM_VIEW)||KM_LOCKED[0]).name:`yours (${P.name}${S.dirty?", unsaved changes":""})`;
+  const next=KM_VIEW===null?"default":KM_VIEW==="default"?"alt":null,lab=next===null?"Show mine":next==="default"?"Show Default":"Show Alternative Controls";
+  return `<p class="kmview"><span class="dim">Showing: <b>${esc(now)}</b></span> <button type="button" class="btn ghost sm" data-kmview>${lab}</button></p>`}
+/* v79b: the search: an action's name or what it does, or a key ("b", "shift", "ctrl", "space"). One letter looks at keys only */
+const KM_ALIAS={control:"ctrl",ctl:"ctrl",option:"alt",escape:"esc",return:"enter",spacebar:"space",del:"delete",bksp:"backspace",up:"↑",down:"↓",left:"←",right:"→","arrow up":"↑","arrow down":"↓","arrow left":"←","arrow right":"→",tilde:"`",backtick:"`",plus:"+",minus:"-"};
+const KM_KEYWORDS=new Set(["shift","ctrl","alt","meta","space","enter","esc","tab","backspace","delete","insert","home","end","pageup","pagedown","↑","↓","←","→","`","\\","num+","num-"]);
+function kmMatch(q,words,keys){q=String(q||"").trim().toLowerCase();if(!q)return true;const k=String(keys||"").toLowerCase(),toks=k.split(/[\s+]+| or /).filter(Boolean);
+  if(/.\+./.test(q))return k.split(" or ").map(x=>x.trim()).includes(q.replace(/\s+/g,""));   // a combination (shift+b): that one exactly
+  const qa=KM_ALIAS[q]||q;if(toks.includes(qa)||toks.includes(q))return true;if(q.length===1||KM_KEYWORDS.has(qa))return false;   // a letter or a key's name: the keys only
+  return String(words||"").toLowerCase().includes(q)||k.includes(qa)}
 
 /* ---------- keys and their names ---------- */
 const KM_MODS=["Ctrl","Alt","Shift","Meta"];
@@ -249,7 +290,7 @@ function kmPanelHTML(){const S=kmState(),P=kmPreset(S.preset)||KM_LOCKED[0],own=
   const row=id=>{const a=KM_ACT[id],B=kmBinds(id);
     const cell=i=>{const s=B[i]||"",on=kmCap&&kmCap.id===id&&kmCap.i===i;
       return `<span class="kmcell"><button type="button" class="kmb${on?" kmlisten":""}${s?"":" kmnone"}" data-kmb="${id}|${i}" aria-label="${esc(a.name)}: binding ${i+1}${s?", "+esc(kmPretty(s)):", none"}">${on?(kmCap.keys.length?esc(kmCombo(kmCap.keys)||kmCap.keys.join("+")):"Press the keys…"):s?esc(kmPretty(s)):"—"}</button>${s&&!on?`<button type="button" class="kmx" data-kmx="${id}|${i}" aria-label="Clear it">×</button>`:""}</span>`};
-    return `<div class="kmrow${kmNorm(null,id)!==kmNorm(S.map,id)?" kmmoved":""}"><span class="kmwhat">${esc(a.name)}</span>${cell(0)}${cell(1)}</div>`};
+    return `<div class="kmrow${kmNorm(null,id)!==kmNorm(S.map,id)?" kmmoved":""}" data-kq="${esc((kmLabel(id)+" "+a.name).toLowerCase())}" data-kk="${esc(B.filter(Boolean).map(kmPretty).join(" or ").toLowerCase())}"><span class="kmwhat"><b>${esc(kmLabel(id))}</b><small>${esc(a.name)}</small></span>${cell(0)}${cell(1)}</div>`};   // v79b: the short name first
   const group=([g,gname])=>{const acts=KM_ACTS.filter(a=>a[1]===g);let sub=null,out="";
     for(const a of acts){if(a[2]&&a[2]!==sub){sub=a[2];out+=`<h4 class="kmsub">${esc(sub)}</h4>`}out+=row(a[0])}
     return `<details class="sub kmgrp" data-kmg="${g}" ${kmUI.open[g]?"open":""}><summary>${esc(gname)}</summary>${out}</details>`};
@@ -260,11 +301,19 @@ ${inbox.map((it,i)=>`<p class="kminbox"><i class="bang">!</i> ${esc(G.p[it.from]
 <label class="farow kmauto"><span class="fal"><b>Auto-save</b><small>Changes to your own presets are saved at once. Default and Alternative Controls never change: a change to them is kept with Save as.</small></span><input type="checkbox" id="kmAuto" ${S.auto?"checked":""}></label>
 ${form}
 <p class="dim">Click a binding (or Enter on it), then press the keys together, up to four, and let go; Ctrl or Shift alone is a binding too, and Esc stops. A key does one thing in its group; a taken one asks whether to move it.</p>
+<p class="kmfind"><input type="search" class="kmq" placeholder="Search: an action (Open Bank), what it does, or a key (B, shift, ctrl, space)" aria-label="Search the key bindings" value="${esc(kmUI.q||"")}"></p><p class="kmnone dim" hidden>No key matches that.</p>
 ${KM_GROUPS.map(group).join("")}`}
+/* v79b: the search over the bindings: the groups with a match open, the others hide */
+function kmFilter(box){const v=kmUI.q||"";let shown=0;
+  box.querySelectorAll("details.kmgrp").forEach(d=>{let n=0;d.querySelectorAll(".kmrow").forEach(r=>{const ok=kmMatch(v,r.dataset.kq,r.dataset.kk);r.hidden=!ok;if(ok)n++});
+    d.querySelectorAll(".kmsub").forEach(h=>{let x=h.nextElementSibling,any=false;while(x&&!x.classList.contains("kmsub")){if(x.classList.contains("kmrow")&&!x.hidden)any=true;x=x.nextElementSibling}h.hidden=!any});
+    d.hidden=!!v&&!n;if(v&&n)d.open=true;else if(!v)d.open=!!kmUI.open[d.dataset.kmg];shown+=n});
+  const none=box.querySelector(".kmnone");if(none)none.hidden=!v||!!shown}
 function kmPaint(){const box=kmUI.box;if(!box||!box.isConnected)return;const y=box.closest(".ovbox")?box.closest(".ovbox").scrollTop:0;box.innerHTML=kmPanelHTML();kmWire(box);
   const ob=box.closest(".ovbox");if(ob)ob.scrollTop=y;const cap=kmCap&&box.querySelector(".kmb.kmlisten");if(cap)cap.focus()}
 function kmMount(box){kmUI.box=box;kmUI.mode=null;box.innerHTML=kmPanelHTML();kmWire(box)}   // the pane isn't on the page yet
 function kmWire(box){const S=kmState(),P=kmPreset(S.preset)||KM_LOCKED[0],leave=go=>{if(S.dirty)kmAsk("Your changes to these keys aren't saved. Leave them?",go,()=>kmPaint());else go()};
+  const q=box.querySelector(".kmq");if(q){q.addEventListener("input",()=>{kmUI.q=q.value;kmFilter(box)});kmFilter(box)}
   box.querySelectorAll("details.kmgrp").forEach(d=>d.addEventListener("toggle",()=>{kmUI.open[d.dataset.kmg]=d.open}));
   box.querySelectorAll("[data-kmb]").forEach(b=>b.onclick=()=>{const [id,i]=b.dataset.kmb.split("|");if(kmCap&&kmCap.id===id&&kmCap.i===+i)return;kmListen(id,+i)});
   box.querySelectorAll("[data-kmx]").forEach(b=>b.onclick=()=>{const [id,i]=b.dataset.kmx.split("|");kmPut(id,+i,"");kmChanged()});
@@ -293,4 +342,4 @@ function kmBang(){const n=G?kmInbox().length:0;
   if(kmUI.box&&kmUI.box.isConnected&&!kmCap&&kmUI.box.querySelectorAll(".kminbox").length!==n)kmPaint()}
 {const _r=render;render=function(){rSafe(_r,this,arguments);kmBang()}}
 
-if(window.__EC)Object.assign(window.__EC,{KM,kmBinds:id=>kmBinds(id),kmLoad:id=>kmLoad(id),kmSet:(...a)=>kmSet(...a),kmSend:(...a)=>kmSend(...a),kmState:()=>kmState(),kmPresets:()=>kmPresets(),kmShow:(...a)=>kmShow(...a)});
+if(window.__EC)Object.assign(window.__EC,{KM,kmMountW:b=>kmMount(b),kmMatch:(...a)=>kmMatch(...a),kmBinds:id=>kmBinds(id),kmLoad:id=>kmLoad(id),kmSet:(...a)=>kmSet(...a),kmSend:(...a)=>kmSend(...a),kmState:()=>kmState(),kmPresets:()=>kmPresets(),kmShow:(...a)=>kmShow(...a)});

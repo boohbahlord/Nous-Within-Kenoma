@@ -48,9 +48,10 @@ function wkNear(items,cur,dx,dy){const r=cur.getBoundingClientRect(),cx=r.left+r
     if(along<=4)continue;const sc=along+across*2.5;if(sc<bs){bs=sc;best=it}}return best}
 /* adjusting a slider, a list or a number */
 function wkAdjStart(el){WK.adj={el,old:el.value};el.classList.add("kbadj");
-  wkNote(el.tagName==="SELECT"?"Choosing: W or D (or V) the next, S or A (or C) the one before · Enter keeps it · Esc puts it back":
-    el.type==="number"?"Setting a number: W or D (or V) up, S or A (or C) down, Shift for ten · or type it with the number keys · Enter keeps it · Esc puts it back":
-    "Sliding: W or D (or V) up, S or A (or C) down, Shift for ten steps · Enter keeps it · Esc puts it back")}
+  const up=`${kmShow("winUp")}, ${kmShow("winRight")} or ${kmShow("winNext")}`,dn=`${kmShow("winDown")}, ${kmShow("winLeft")} or ${kmShow("winPrev")}`;   // v79b: the action, then its keys
+  wkNote(el.tagName==="SELECT"?`Choosing — Next: ${up} · Previous: ${dn} · Keep it: Enter · Put it back: Esc`:
+    el.type==="number"?`Setting a number — Up: ${up} · Down: ${dn} · Ten at a time: Shift · Type it: the number keys · Keep it: Enter · Put it back: Esc`:
+    `Sliding — Up: ${up} · Down: ${dn} · Ten steps: Shift · Keep it: Enter · Put it back: Esc`)}
 const wkFire=(el,...ev)=>ev.forEach(t=>el.dispatchEvent(new Event(t,{bubbles:true})));
 function wkAdjStep(d,big){const el=WK.adj.el;
   if(el.tagName==="SELECT"){const o=[...el.options].filter(x=>!x.disabled);let i=o.indexOf(el.selectedOptions[0]);i=Math.max(0,Math.min(o.length-1,i+d));if(o[i]&&el.value!==o[i].value){el.value=o[i].value;wkFire(el,"input","change")}return}
@@ -59,7 +60,7 @@ function wkAdjStep(d,big){const el=WK.adj.el;
 function wkAdjEnd(keep){const a=WK.adj;if(!a)return;WK.adj=null;a.el.classList.remove("kbadj");if(!keep&&a.el.value!==a.old){a.el.value=a.old;wkFire(a.el,"input","change")}else if(a.el.tagName!=="SELECT")wkFire(a.el,"change");wkNote("");wkLater()}
 /* typing in a field */
 function wkType(el,first){WK.adj=null;el.classList.remove("kbadj");WK.typ=el;el.focus({preventScroll:true});if(first!=null)el.value=first;else try{el.select()}catch(e){}
-  wkNote("Typing · Enter when done · Esc to stop")}
+  wkNote("Typing — Done: Enter · Stop: Esc")}
 function wkTypeEnd(){const el=WK.typ;WK.typ=null;wkNote("");if(el){el.blur();wkMark(el)}}
 function wkBad(el){const v=el.value.trim();if(el.type!=="number")return "";const n=+v,mn=el.min!==""?+el.min:null,mx=el.max!==""?+el.max:null;
   if(v===""||isNaN(n))return `“${v}” is not a number.`;if(mn!=null&&n<mn||mx!=null&&n>mx)return `${n} doesn't fit: a number from ${mn??"any"} to ${mx??"any"}.`;
@@ -104,7 +105,7 @@ addEventListener("keydown",e=>{if(KB.synth)return;const k=e.key,is=id=>kmIs(e,id
   if(is("winUse")&&cur){stop();
     if(cur.matches("input[type=range],select,input[type=number]")){wkAdjStart(cur);return}
     if(cur.matches("textarea,input:not([type]),input[type=text],input[type=search],input[type=email],input[type=password]")){wkType(cur);return}
-    if(cur.classList.contains("facol")){WK.mv=true;wkNote(`Moving a line: ${kmShow("winUp")} up · ${kmShow("winDown")} down · Space makes it equal to the one above · ${kmShow("winUse")} when done`);return}
+    if(cur.classList.contains("facol")){WK.mv=true;wkNote(`Moving a line — ${kmTipT("winUp","Up")} · ${kmTipT("winDown","Down")} · Equal to the one above: Space · ${kmTipT("winUse","Done")}`);return}
     cur.click();wkLater();return}
   if(is("winInfo")&&cur){stop();const t=cur.getAttribute("data-tip")||cur.title||cur.getAttribute("aria-label")||(cur.closest("[data-tip],[title]")||{}).title||"";flash(t||cur.textContent.trim().slice(0,140)||"No more to say about this.");return}
 },true);

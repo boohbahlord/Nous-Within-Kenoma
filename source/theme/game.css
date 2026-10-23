@@ -2455,7 +2455,7 @@ details.school.kbsch{outline:1px dashed #f1d27a88;outline-offset:2px}
 #seegrave[data-kbn],#seeether[data-kbn],#seedark[data-kbn],#seeauct[data-kbn]{margin-left:18px}
 #hand [data-h].kbon{outline:2px solid var(--amber);outline-offset:3px;box-shadow:0 0 14px #f1d27a99}
 .kbrel{position:relative}
-[data-kb]::after{content:attr(data-kb);position:absolute;top:2px;right:2px;font:700 9px/1 var(--mono,monospace);letter-spacing:0;text-transform:none;color:#120c08;background:#f1d27a;border-radius:3px;padding:2px 3px;pointer-events:none;z-index:6;opacity:.92}
+[data-kb]::after{content:attr(data-kb);white-space:nowrap;position:absolute;top:2px;right:2px;font:700 9px/1 var(--mono,monospace);letter-spacing:0;text-transform:none;color:#120c08;background:#f1d27a;border-radius:3px;padding:2px 3px;pointer-events:none;z-index:6;opacity:.92}
 .xclose[data-kb]::after{top:-4px;right:-4px}
 #board .tile.kbping{outline:3px solid var(--amber);outline-offset:-3px;z-index:4}
 .kblogbox{max-height:80vh;overflow:auto}
@@ -2612,3 +2612,15 @@ html.ecfs #fsleft>[hidden]{display:none!important}
 /* v79a: the field goes very dark while you draw */
 #board>.drawveil{position:absolute;inset:-6px;z-index:60;pointer-events:none;background:#000;opacity:0;transition:opacity .35s}
 html.drawdark #board>.drawveil{opacity:.82}
+/* v79b: a key letter on a button says its action first ("Open Bank B") */
+[data-kb][data-kbl]::after{content:attr(data-kbl) "  " attr(data-kb)}
+/* v79b: "action, then key" wherever keys are shown */
+.ktip{white-space:nowrap}.ktip .kact{color:inherit;opacity:.85}
+.kblist li .kact{display:inline-block;min-width:13.5em;font-weight:600;color:var(--amber-hi)}
+.kblist li .kdesc{color:var(--dim)}
+.kblist li[hidden],.kblist li.kbgrp[hidden]{display:none}
+.kmfind{margin:8px 0}.kmfind input{width:100%;max-width:560px;font:inherit;font-size:13.5px;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:6px 9px}
+.kmfind input:focus{outline:none;border-color:var(--amber-hi)}
+.kmview{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0}
+.kmwhat b{display:block;font-weight:600;color:var(--amber-hi)}.kmwhat small{display:block;color:var(--dim);font-size:11.5px;line-height:1.3}
+.kmrow[hidden],.kmsub[hidden],details.kmgrp[hidden]{display:none}
