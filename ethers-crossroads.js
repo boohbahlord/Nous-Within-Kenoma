@@ -1042,7 +1042,7 @@ function startTimer(ph){
   const dur=ph==="draw"&&T>30?30:T;G.deadline=Date.now()+dur*1000;
   const g=G;timerIv=setInterval(()=>{
     if(G!==g){stopTimer();return}
-    if(G.paused){G.deadline+=250;return}
+    if(G.paused||G.passing||askOpen&&askOpen.pl!==G.active){G.deadline+=250;return}   // v78p: the clock stops while the device is passed or someone else answers
     const left=Math.max(0,Math.ceil((G.deadline-Date.now())/1000));const el=$("#timer");if(el){el.textContent=left+"s";el.classList.toggle("low",left<=10)}
     if(left<=0){stopTimer();timeUp()}
   },250);
@@ -1051,8 +1051,11 @@ function stopTimer(){if(timerIv)clearInterval(timerIv);timerIv=null;if(G)G.deadl
 async function timeUp(){
   log(`Time runs out for ${plName(G.active)}.`,"event");flash("Time's up.");
   if(G.phase==="setup"&&G.setupResolve){const pl=G.active,f=G.setupResolve;G.setupResolve=null;G.busy=true;await AI.setup(pl);G.busy=false;f();return}
-  // v78j: a spell still running finishes first, for its caster; its open question is answered as the computer would
-  const g=G;for(let i=0;i<50&&G.busy;i++){const q=askOpen;if(q){askOpen=null;q.answer(q.spec.ai?q.spec.ai():AI.choose(q.pl,q.spec))}await sleep(100);if(G!==g)return}
+  // v78j: a spell still running finishes first, for its caster. v78p: its open question gets the safe answer (No, Cancel,
+  // Pass); only a question with no way out is answered as the computer would, and someone else's question waits for them
+  const g=G;for(let i=0;i<50&&G.busy;i++){const q=askOpen;
+    if(q&&q.pl!==G.active){i--;await sleep(250);if(G!==g)return;continue}
+    if(q){askOpen=null;q.answer(askSafe(q))}await sleep(100);if(G!==g)return}
   if(G.placing)cancelPlacing();
   if($("#ov .ovbox.bank"))ovHide();   // v78j: Bank business ends with your prep
   if(G.waiter){const f=G.waiter;G.waiter=null;G.mode=null;G.selHand=null;f()}
@@ -1124,9 +1127,9 @@ function canPlace(card,r,c){
   return st.owner===G.active&&stackLegal([...st.cards,card]);
 }
 function place(card,r,c){
-  const P=me(),hi=P.hand.indexOf(card);if(hi>=0)P.hand.splice(hi,1);card.owner=G.active;if(G.placing===card)G.placing=null;
+  const P=me(),hi=P.hand.indexOf(card);if(hi>=0)P.hand.splice(hi,1);card.owner=G.active;const slave=G.placing===card;if(slave)G.placing=null;
   const st=G.board[r][c];
-  const fd=!!G.faceDown&&(!st||st.down)&&!isBase(card)&&kind(card)!=="joker"&&G.placing!==card;   // v78j
+  const fd=!!G.faceDown&&(!st||st.down)&&!isBase(card)&&kind(card)!=="joker"&&!slave;   // v78j: a Slave comes face up (v78p: read before placing clears)
   if(st){if(st.cards.some(x=>x.unit==="assassin")&&card.unit==="assassin"){card.hp=Math.min(card.hp,1);log("A second Assassin joins: one more heart for the pair.")}st.cards.push(card);if(!fd)st.down=false}
   else G.board[r][c]={owner:G.active,cards:[card],moved:G.phase!=="setup",attacked:false,down:fd};
   if(fd){fogLog(G.active,r,c,`${plName(G.active)} places a card face down.`);log(`${plName(G.active)} places a card face down on ${coord(r,c)}.`);G.selHand=null;G.faceDown=false;if(G.placing===card)G.placing=null;return}
@@ -2082,7 +2085,8 @@ function passScreen(msg,pl=G.active){
     G.passing=true;render();const M=$("main");if(M)M.inert=true;   // v78j: nothing behind the cover is read out or reached
     const P=G.p[pl];const seen=P.seen;P.seen=false;
     ovShow(`<div class="ovbox"><h2>${esc(msg)}</h2><p>Pass the device to <b>${esc(P.name)}</b>. The cards stay dark until they confirm.</p>${seen?`<p class="seen">Your hand was seen by Naked Hand.</p>`:""}<p><button class="btn" id="ready">I'm ${esc(P.name)}: show my cards</button></p></div>`,"blackout");
-    $("#ready").onclick=()=>{ovHide();G.passing=false;G.atDevice=P.i;const M=$("main");if(M)M.inert=false;render();res()};
+    const b=$("#ready");b.onclick=()=>{ovHide();G.passing=false;G.atDevice=P.i;const M=$("main");if(M)M.inert=false;render();res()};
+    b.disabled=true;setTimeout(()=>{b.disabled=false;if(b.isConnected)b.focus({preventScroll:true})},600);   // v78p: a quick second press by the last player can't show the next hand
   });
 }
 function end(w,why){
@@ -2687,7 +2691,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     const big=["ffa","team-side","team-across"].includes(L);
     $("#sizeduel").hidden=L!=="duel";
     if(!$("#ocorners").dataset.touched)$("#ocorners").checked=big;
-    $("#ocorners").disabled=L==="coop";
+    optsUp();
     const need=L==="factions"?["cross","sq"]:L.startsWith("team")&&n>4?["cross"]:null;   // v73d: factions and big teams need room for their sides
     if(mode==="survival"){const std=document.querySelector('input[name=obig][value=""]'),ok=survStdOk(n);if(std){std.disabled=!ok;std.closest(".opt").classList.toggle("off",!ok);if(!ok&&std.checked)document.querySelector('input[name=obig][value=long]').checked=true}   // v73b: no small field without five spawn tiles each
       const lg=val("obig")==="long";$("#sizeset").classList.toggle("survbig",lg)}
@@ -2712,6 +2716,11 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
   $("#pcount").addEventListener("change",drawSeats);
   document.querySelectorAll('input[name=obig],input[name=oxsize]').forEach(i=>i.addEventListener("change",()=>{const n=count(),L=layout();crossUp(n,L==="factions"||L.startsWith("team")&&n>4)}));   // v73c; v78j: with the same rule as drawSeats
   document.querySelectorAll('input[name=obig]').forEach(i=>i.addEventListener("change",()=>$("#sizeset").classList.toggle("survbig",mode==="survival"&&val("obig")==="long")));
+  /* v78j: an option that would do nothing in this setup isn't offered (large maps keep their corners, the Cross maps have
+     holes of their own, Survival has no Demons, no Bank and no middle hole) */
+  const optsUp=()=>{const L=layout(),bigMap=val("obig")||"",off=(id,no)=>{const i=$("#"+id);if(!i)return;i.disabled=no;const l=i.closest("label");if(l)l.classList.toggle("off",no)};
+    off("ocorners",L==="coop"||!!bigMap);off("oxhole",mode==="survival"||/^(cross|plus)$/.test(bigMap));off("obarb",mode==="survival");off("obank",mode==="survival")};
+  document.querySelectorAll('input[name=obig]').forEach(i=>i.addEventListener("change",optsUp));
   $("#odip").addEventListener("change",()=>{$("#odip").dataset.touched=1});   // v73b: the large map has its own size
   document.querySelectorAll('input[name=olayout]').forEach(i=>i.addEventListener("change",drawSeats));
   const pickLay=k=>{const i=document.querySelector(`input[name=olayout][value="${k}"]`);if(i)i.checked=true;drawSeats()};   // v73d: Game and Teammates spawn set the layout underneath
@@ -3250,7 +3259,8 @@ function showPop(){
   $("#popok").onclick=()=>{POPQ.shift();if(POPQ.length)showPop();else el.hidden=true};
 }
 function notify(pl,html){
-  if(!G||G.opts.fast)return;if(pl!=null&&G.p[pl]&&isEnemy(pl,view()))return;   // v78j: a note for one player shows only on their side
+  if(!G||G.opts.fast)return;
+  if(pl!=null&&G.p[pl]&&/\byour?\b/i.test(html)&&isEnemy(pl,view()))return;   // v78j: a note worded to one player shows only on their side (v78p: not one that names them)
   let box=$("#notes");if(!box){box=document.createElement("div");box.id="notes";box.setAttribute("aria-live","polite");document.body.appendChild(box)}
   const n=document.createElement("div");n.className="note";n.style.setProperty("--pc",pl!=null&&G.p[pl]?cbMap(G.p[pl].color):"#e6d6bd");n.innerHTML=html;
   n.onclick=()=>n.remove();box.prepend(n);while(box.children.length>4)box.lastChild.remove();
@@ -3853,12 +3863,21 @@ const stackAtTile=t=>{if(!t)return null;const r=+t.dataset.r,c=+t.dataset.c;if(i
 const stackTitle=(s,r,c)=>`${s.cards.length>1?`Stack of ${s.cards.length}`:nameOf(s.cards[0])} on ${coord(r,c)}`;
 /* v78j: the browser pulls a fingertip tap near a corner tab onto the tab; one that lands outside it is the stack's or the card's */
 const ciMiss=(t,e)=>{if(e.pointerType!=="touch")return false;const b=t.getBoundingClientRect();return e.clientX<b.left-2||e.clientX>b.right+2||e.clientY<b.top-2||e.clientY>b.bottom+2};
+/* v78p: a missed tap that moves is a swipe: what it started on scrolls (the hand's row, the large field's frame, the page),
+   as it would anywhere else; in fullscreen the field's own pan takes it */
+function ciSwipe(t,e){if(fsOn()&&t.closest(".camwrap"))return;let x=e.clientX,y=e.clientY,sc=null;
+  for(let p=t.parentElement;p&&p!==document.body;p=p.parentElement){const s=getComputedStyle(p);if(/auto|scroll/.test(s.overflowX+s.overflowY)&&(p.scrollWidth>p.clientWidth||p.scrollHeight>p.clientHeight)){sc=p;break}}
+  const mv=ev=>{if(ev.pointerId!==e.pointerId)return;let dx=ev.clientX-x,dy=ev.clientY-y;x=ev.clientX;y=ev.clientY;
+    if(sc){const z=sc.classList.contains("camwrap")?camZf(sc):1,l=sc.scrollLeft,tp=sc.scrollTop;sc.scrollLeft-=dx/z;sc.scrollTop-=dy/z;dx-=(l-sc.scrollLeft)*z;dy-=(tp-sc.scrollTop)*z}
+    scrollBy(-dx,-dy)};
+  const up=ev=>{if(ev.pointerId!==e.pointerId)return;removeEventListener("pointermove",mv);removeEventListener("pointerup",up);removeEventListener("pointercancel",up)};
+  addEventListener("pointermove",mv);addEventListener("pointerup",up);addEventListener("pointercancel",up)}
 /* the corner tab on every stack: click for info, drag onto another stack to compare */
 function wireCorners(){
   document.querySelectorAll("#board .ci").forEach(t=>{
     t.onclick=e=>{if(t.dataset.miss){delete t.dataset.miss;return}e.stopPropagation();e.preventDefault()};   // a missed tap goes on to the tile
     t.onpointerdown=e=>{
-      if(ciMiss(t,e)){t.dataset.miss="1";return}delete t.dataset.miss;
+      if(ciMiss(t,e)){t.dataset.miss="1";ciSwipe(t,e);return}delete t.dataset.miss;
       e.stopPropagation();e.preventDefault();const src=stackAtTile(t.closest(".tile"));if(!src)return;
       const ghost=document.createElement("div");ghost.className="ciline";document.body.appendChild(ghost);
       const x0=e.clientX,y0=e.clientY;let moved=false;
@@ -3874,7 +3893,8 @@ function wireCorners(){
       document.addEventListener("pointermove",mv);document.addEventListener("pointerup",up);document.addEventListener("pointercancel",quit);
     };
   });
-  document.querySelectorAll(".cf .ci").forEach(t=>{t.onpointerdown=e=>{t.dataset.miss=ciMiss(t,e)?"1":""};
+  document.querySelectorAll(".cf .ci").forEach(t=>{t.onpointerdown=e=>{   // v78p: a miss counts only where the card has its own tap (the hand, a pick)
+    t.dataset.miss=ciMiss(t,e)&&t.parentElement.closest("button,[data-h],.pk")?"1":"";if(ciMiss(t,e))ciSwipe(t,e)};
     t.onclick=e=>{if(t.dataset.miss){t.dataset.miss="";return}e.stopPropagation();e.preventDefault();const c=cardById(+t.dataset.cid);if(!c)return;
     pop(infoHTML1({cards:[c],owner:c.owner},nameOf(c)),e.clientX,e.clientY,"info")}});
 }
@@ -4195,7 +4215,7 @@ function fogLog(by,r,c,alt){
   const seen=G.p.map(P=>!isEnemy(A.owner,P.i)||!isEnemy(D.owner,P.i)||seesTile(P.i,r1,c1)||seesTile(P.i,r2,c2));
   if(seen.every(Boolean))return _ar.apply(this,arguments);
   const L0=G.log[0],out=_ar.apply(this,arguments),end=L0?G.log.indexOf(L0):G.log.length;
-  for(const l of G.log.slice(0,end<0?G.log.length:end))if(!l.fog)l.fog={by:A.owner,seen,alt:""};
+  for(const l of G.log.slice(0,end<0?G.log.length:end))if(!l.fog&&l.cls!=="event"&&l.cls!=="win")l.fog={by:A.owner,seen,alt:""};   // v78p: a side falling, or the game ending, is news for all
   return out}}
 
 /* ---------------- Prompt 8: Archers, Cannons, Healers, Walls, Repairmen, Battering Rams, Miners, crystals, Field Libation ----------------
@@ -6378,7 +6398,9 @@ async function saturnEclipse(){
   log(`Venus's eclipse heals every card on the field${healed?` (${healed})`:""}.`,"event");
   for(const b of [...(G.betrayed||[])]){const pls=[b.by,...b.mates].filter(i=>G.p[i]&&!G.p[i].out);if(pls.length<2)continue;let all=true;
     for(const pl of pls){const yes=await ask(pl,{kind:"yesno",id:"venusmend",title:`Venus eclipsed: ${esc(G.p[pl].name)}`,text:`Venus offers to mend the betrayal of ${plName(b.by)}. Will you stand on one team again with ${pls.filter(i=>i!==pl).map(plName).join(" and ")}?`,yes:"Rejoin",no:"Refuse",ai:()=>aiVote(pl,"Peace")});if(!yes){all=false;break}}
-    if(all){for(const pl of pls)G.p[pl].team=b.team;G.betrayed.splice(G.betrayed.indexOf(b),1);G._vis=null;log(`<b>Venus mends the betrayal</b>: ${pls.map(plName).join(" and ")} are one team again.`,"event");popup("A betrayal mended",`<p>Under the eclipse of Venus, ${pls.map(plName).join(" and ")} stand together again.</p>`)}
+    if(all){for(const pl of pls)G.p[pl].team=b.team;G.betrayed.splice(G.betrayed.indexOf(b),1);G._vis=null;log(`<b>Venus mends the betrayal</b>: ${pls.map(plName).join(" and ")} are one team again.`,"event");popup("A betrayal mended",`<p>Under the eclipse of Venus, ${pls.map(plName).join(" and ")} stand together again.</p>`)
+      if(G.opts.shareDeck&&(G.opts.layout||"").startsWith("team")){const P=G.p[b.by],M=pls.map(i=>G.p[i]).find(Q=>Q!==P&&Q.deck!==P.deck);   // v78p: one deck and one soul pile again
+        if(M){M.deck.push(...P.deck);shuffle(M.deck);M.souls.push(...P.souls);P.deck=M.deck;P.souls=M.souls;log(`${plName(b.by)}'s deck and soul pile join the team's again.`)}}}
     else log(`The betrayal of ${plName(b.by)} stays unmended.`)}
 }}
 /* remember who betrayed whom, so Venus can mend it */
@@ -9746,10 +9768,12 @@ setInterval(()=>{if(!G||G.over||document.hidden)return;const V=view(),P=G.p[G.ac
   if(out&&out.state==="offer"&&!G.p[from].cpu&&was)bankHoldOpen=true;   // the terms are on screen now: don't draw the Bank over them
   return out}}
 let bankHoldOpen=false;
-{const _an=answerLoan;answerLoan=function(L){const out=_an.apply(this,arguments);   // v78j
-  if(L&&L.state==="offer"&&document.querySelector("#ov:not([hidden]) #qy")){bankHoldOpen=true;const w=$("#dipwin");if(w&&!w.hidden)w.hidden=true}
+{const _an=answerLoan;answerLoan=function(L){const was=!!document.querySelector("#ov:not([hidden]) .ovbox.bank"),out=_an.apply(this,arguments);   // v78j
+  // v78p: the terms, or the screen passing the device to the borrower, are up: the Bank's redraw waits (only after a click in the Bank)
+  if(L&&L.state==="offer"&&document.querySelector("#ov:not([hidden]) #qy, #ov:not([hidden]) #ready")){if(was)bankHoldOpen=true;const w=$("#dipwin");if(w&&!w.hidden)w.hidden=true}
   return out}}
-{const _ob=openBank;openBank=function(){if(bankHoldOpen){bankHoldOpen=false;return}return _ob.apply(this,arguments)}}
+{const _ob=openBank;openBank=function(){if(bankHoldOpen){bankHoldOpen=false;return}if(G&&G.passing)return;   // v78p: never over the pass screen
+  return _ob.apply(this,arguments)}}
 
 /* ---------- the ▸ rankings: opening one turns it on, closing it turns it off ---------- */
 {const _fw=faWire;faWire=function(root){_fw(root);
@@ -10000,7 +10024,7 @@ function camWire(w){
   w.addEventListener("pointerdown",e=>{if(!isLarge()||e.pointerType!=="mouse"||e.button!==0||PREF.camDrag===false)return;if(e.target.closest(".stack,button,.ci,input,select,a"))return;   // v74a: dragging can be turned off (Controls); a stack or a button is clicked, not dragged
     drag={x:e.clientX,y:e.clientY,l:w.scrollLeft,t:w.scrollTop};moved=false});
   addEventListener("pointermove",e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>5){moved=true;w.classList.add("dragging")}
-    if(moved){w.scrollLeft=drag.l-dx;w.scrollTop=drag.t-dy}});
+    if(moved){const z=camZf(w);w.scrollLeft=drag.l-dx/z;w.scrollTop=drag.t-dy/z}});   // v78p: in the field's own pixels at any interface size
   addEventListener("pointerup",()=>{if(!drag)return;drag=null;w.classList.remove("dragging");if(moved)setTimeout(()=>{moved=false},0)});
   w.addEventListener("click",e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false}},true)}   // a drag is not a click on a tile
 const typing=t=>!!(t&&(t.isContentEditable||t.tagName==="TEXTAREA"||t.tagName==="SELECT"||
@@ -10477,7 +10501,7 @@ function mineSlotHTML(s,V){const st=mineStats(V,s.k),fit=mineFits(s,V),empty=Mat
   return `<button type="button" class="mslot k-${s.kind}${fit?" tplace":""}" data-ms="${esc(s.k)}" ${fit?"":"aria-disabled=\"true\""} title="${esc(s.name+(s.at?" · "+s.at:""))}${fit?": place the Miner here":""}">
 <span class="msn"><b>${esc(s.name)}</b>${s.at?`<small>${esc(s.at)}</small>`:""}${s.sub?`<small>${esc(s.sub)}</small>`:""}<em>${s.ms.length}/${s.cap||1}</em></span><span class="msc">${cards}</span>${stat}</button>`}
 function paintMines(){if(!G)return;const V=view(),slots=mineSlots(V);let box=$("#minepanel");
-  if(!slots.length){if(box)box.hidden=true;return}
+  if(!slots.length||totalBlind(V)){if(box)box.hidden=true;return}   // v78j: the blind see nothing, their Aces' slots too
   if(!box){box=document.createElement("section");box.id="minepanel";box.className="minepanel";box.setAttribute("aria-label","Mining slots")}
   const fs=typeof fsOn==="function"&&fsOn(),at=PREF.mineAt|0,pos=fs?"hand":MINE_POS[at]||"hand",hand=$("#hand");
   if(pos==="hand"&&hand){if(box.nextElementSibling!==hand)hand.before(box)}
@@ -12679,7 +12703,8 @@ document.addEventListener("wheel",e=>{if(!fsOn()||!e.target.closest||!e.target.c
   if(PREF.fsWheel!==true)return;   // v74a: the mouse wheel does nothing unless chosen in Controls
   const dir=(e.deltaY<0?1:-1)*(PREF.camInvWheel?-1:1);camZoom(dir>0?1.12:1/1.12,e.clientX,e.clientY)},{capture:true,passive:false});
 const FSP=new Map();let fsPan=null,fsPinch=null,fsMoved=false;
-document.addEventListener("pointerdown",e=>{if(!fsOn()||e.pointerType!=="touch"||!e.target.closest)return;const w=e.target.closest(".camwrap");if(!w||e.target.closest(".ci"))return;   // the corner tab drags to compare
+document.addEventListener("pointerdown",e=>{if(!fsOn()||e.pointerType!=="touch"||!e.target.closest)return;const w=e.target.closest(".camwrap"),ci=e.target.closest(".ci");
+  if(!w||ci&&!ciMiss(ci,e))return;   // the corner tab drags to compare (v78p: a touch beside it pans)
   FSP.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(FSP.size===2){const [a,b]=[...FSP.values()];fsPinch={d:Math.hypot(a.x-b.x,a.y-b.y),z:CAM.z};fsMoved=true}
   else if(FSP.size===1){fsPan={x:e.clientX,y:e.clientY,l:w.scrollLeft,t:w.scrollTop,w,z:camZf(w)};fsMoved=false}},true);
@@ -12728,6 +12753,7 @@ function fsPaint(){if(!G||!fsOn())return;fsUI();const h=document.documentElement
   const B=$("#fsrowB");B.innerHTML=open?(mode==="dice"?fsRollHTML():mode==="log"?fsLogHTML():fsRollHTML()+"<br>"+fsLogHTML()):"";
   B.querySelectorAll("[data-fshist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.fshist,b)});
   h.style.setProperty("--fsrowh",row.offsetHeight+"px");const me=$("#me");if(me)h.style.setProperty("--fsmeh",(me.offsetHeight||36)+"px");
+  const ct=$("#controls");if(ct&&ct.offsetHeight)h.style.setProperty("--fsctlb",ct.offsetTop+ct.offsetHeight+"px");   // v78p: a phone's drawers start under the whole turn bar
   if(P&&!P.cpu)h.style.setProperty("--fspc",P.color)}
 {const _r=render;render=function(){rSafe(_r,this,arguments);fsButton();fsPiles();if(G&&fsOn())fsPaint()}}
 /* v74a: the Grave, the Ether, the Outer Darkness and the Auction sit under the hand (as before v72a); in fullscreen, at the bottom of the spells */
@@ -12802,6 +12828,7 @@ document.addEventListener("keydown",e=>{if(!fsOn()||e.key!=="Escape")return;
   for(const o of [$("#fsctl"),$("#fsrowmore")])if(o&&!o.hidden){o.hidden=true;e.preventDefault();return}   // v78j: and the row's More options
   if(q&&!q.hidden){q.hidden=true;e.preventDefault();return}if(hp&&!hp.hidden){fsHelpClose();e.preventDefault();return}if(pz&&!pz.hidden){fsResume();e.preventDefault();return}
   if(document.fullscreenElement)return;if(typeof dialogOpen==="function"&&dialogOpen())return;if(kbTop())return;   // v78j: what is open closes first
+  const ci=$("#cinfo");if(ci&&!ci.hidden)return;   // v78p: the info box too (it closes on its own Esc)
   e.preventDefault();fsPause()});   // without the browser's fullscreen, Esc pauses
 /* the start screen and a new game */
 {const _s=showStart;showStart=function(){if(fsOn())fsExit();return _s.apply(this,arguments)}}
@@ -13321,10 +13348,10 @@ function dipRound(){if(!dipOn()||NET.role==="guest")return;const D=dipD(),r=G.mo
       if(rel==="war"&&tr>-50&&strengthOfTeam(t)<strengthOfTeam(u)*.9&&Math.random()<.2){dipPropose(pl,u,"peace",1+R(3));break}
       if(rel==="peace"&&tr>=30&&T.length>2&&dipCommonFoe(t,u)&&Math.random()<.15){dipPropose(pl,u,"ally");break}}}}
 function dipTwoLeft(){if(!G||!G.dip||!dipOn())return;const T=dipTeams();
-  const calm=T.length>2&&T.every((t,i)=>T.slice(i+1).every(u=>dipRel(t,u).s!=="war"));   // v78j: nobody left at war: the alliances end too
+  const calm=T.length>2&&T.every((t,i)=>T.slice(i+1).every(u=>dipRel(t,u).s==="ally"));   // v78j: all allied, nobody left to fight: the alliances end too (v78p: peace runs out by itself)
   if(T.length>2&&!calm)return;let n=0;
   for(const k in G.dip.rel){const R0=G.dip.rel[k];if(R0.s==="ally"){R0.s="war";n++}}
-  if(n){G._vis=null;log(T.length>2?"<b>No side left is at war</b>: every alliance ends (peace is still allowed).":"<b>Only two sides are left</b>: every alliance ends (peace is still allowed).","event")}}
+  if(n){G._vis=null;log(T.length>2?"<b>Every side left is allied</b>: every alliance ends (peace is still allowed).":"<b>Only two sides are left</b>: every alliance ends (peace is still allowed).","event")}}
 {const _cr=cycleRound;cycleRound=async function(){await _cr.apply(this,arguments);if(G&&!G.over)try{dipRound()}catch(e){console.error(e)}}}
 {const _el=eliminate;eliminate=function(){const out=_el.apply(this,arguments);try{dipTwoLeft()}catch(e){}return out}}
 /* the Banker's disapproval: rolled at the start of each of the betrayer's turns */
@@ -14374,8 +14401,8 @@ function cnClose(){const el=$("#cmdline");CN.open=false;if(el){el.hidden=true;co
 function cnSwap(){cnOpen(CN.mode==="cmd"?"chat":"cmd")}
 /* v78j: the game's own answer to a line (a refusal shows in the flash) is the line's answer too; red when nothing changed */
 {const sig=()=>[G.phase,G.active,G.turnNo,G.setupStep,!!G.passing,G.sel?G.sel.r+","+G.sel.c:"",G.board.map(r=>r.map(s=>s?s.owner+":"+s.cards.length:"").join()).join("/")].join("|");
- const _run=cnRun;cnRun=function(){if(!G)return _run.apply(this,arguments);const was=sig(),head=G.log[0];let said=null;const _f=flash;flash=function(t){said=t;return _f.apply(this,arguments)};
-  try{return _run.apply(this,arguments)}finally{flash=_f;if(said&&G&&!CN.err)cnSay(said,G.log[0]===head&&sig()===was)}}}
+ const _run=cnRun;cnRun=function(){if(!G)return _run.apply(this,arguments);const was=sig(),head=G.log[0];let said=null;const _f=flash;flash=function(t){said=t};   // v78p: said in the answer line, not in a flash over it
+  try{return _run.apply(this,arguments)}finally{flash=_f;if(said&&G&&!CN.open)_f(said);else if(said&&G&&!CN.err)cnSay(said,G.log[0]===head&&sig()===was)}}}
 /* the chat's new lines show while it is open */
 {const _ca=chatAdd;chatAdd=function(){const out=_ca.apply(this,arguments);if(CN.open&&CN.mode==="chat"){NET.unread=0;cnPaint()}return out}}
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(CN.open&&(!G||G.over||G.passing))cnClose()}}   // v78j: and when the device is passed
@@ -14492,13 +14519,20 @@ const KB_DO=[
 /* Ctrl or Shift pressed alone in the spells: the next or the previous school */
 document.addEventListener("keyup",e=>{if(!G||!kbSpellMode()||kbTop()||typing(e.target))return;
   if(kmTap(e,"spSchoolNext"))kbSchool(KB.sc+1);else if(kmTap(e,"spSchoolPrev"))kbSchool(KB.sc-1)});
+/* v78p: a held key acts once: its repeats never reach a button (the pass screen's Ready) and don't close window after window */
+window.addEventListener("keydown",e=>{if(!e.repeat||typing(e.target))return;
+  if(e.key===" "||e.key==="Enter"||e.key==="Escape"||kmIs(e,"turn")||kmIs(e,"close")){e.preventDefault();e.stopImmediatePropagation()}},true);
+/* v78p: the rule book and the key list open over whatever is open (a question, the Bank, the Menu), however they're opened */
+function kbRaise(w){if(!w)return;w.style.zIndex="";let z=+getComputedStyle(w).zIndex||0;
+  for(const el of document.querySelectorAll(KB_WINS))if(el!==w&&kbVis(el))z=Math.max(z,(+getComputedStyle(el).zIndex||0)+1);w.style.zIndex=z||""}
+{const _rb=rbWin;rbWin=function(){const out=_rb.apply(this,arguments);kbRaise($("#rbwin"));return out}}
+{const _kw=kbKeysWin;kbKeysWin=function(){const out=_kw.apply(this,arguments);kbRaise($("#kbkeys"));return out}}
 document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(e.target)&&!(e.target.tagName==="SELECT"&&(e.key==="Escape"||kmIs(e,"close"))))return;   // v78j: Esc leaves a list
   const is=id=>kmIs(e,id),stop=()=>{e.preventDefault();e.stopImmediatePropagation()};
   if(G&&!G.over&&!kmModOnly(e))kbRemind();
-  const aboveMenu=id=>{const m=$("#menu"),w=$("#"+id);if(w)w.style.zIndex=m&&!m.hidden?"126":""};   // v78j: the Menu is 125
-  if(is("keys")){stop();kbKeysWin();aboveMenu("kbkeys");return}
+  if(is("keys")){stop();kbKeysWin();return}
   if(is("music")){stop();if(typeof musicSync==="function"){PREF.music=PREF.music===false;savePrefs();musicSync();flash(PREF.music===false?"Music off.":"Music on.")}return}
-  if(is("rulebook")){stop();rbWin();aboveMenu("rbwin");return}
+  if(is("rulebook")){stop();rbWin();return}
   /* closing: the window on top first (its ×), then the spells or the hand; Esc for the windows that have no Esc of their own */
   if(is("close")){if(kbTop()){stop();kbClose()}else if(KB.mode){stop();kbModeOff()}return}
   if(e.key==="Escape"){const w=kbTop();
@@ -14517,6 +14551,8 @@ document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(
     if(is("hInfo")){stop();const ci=H[KB.h]&&H[KB.h].querySelector(".ci");if(ci)ci.click();return}}
   const a=KB_DO.find(([id])=>is(id));if(a&&e.repeat){stop();return}if(a&&a[1]()!==false)stop();   // v78j: one press, one action (held, a window flickered open and shut)
 },true);
+/* v78p: with the spells or the hand open, Space that nothing took doesn't scroll the page */
+document.addEventListener("keydown",e=>{const a=document.activeElement;if(KB.mode&&e.key===" "&&!e.defaultPrevented&&!typing(e.target)&&!(a&&a.tagName==="BUTTON"))e.preventDefault()});
 /* v78a: O shows every key in a window; once a game, the first key pressed brings a note saying so */
 function kbKeysWin(){let w=$("#kbkeys");if(!w){w=document.createElement("div");w.id="kbkeys";w.className="faov";document.body.appendChild(w)}
   w.innerHTML=`<div class="ovbox wide kbkeysbox" role="dialog" aria-modal="true" aria-labelledby="kbkh"><button type="button" class="xclose" aria-label="Close">×</button><h2 id="kbkh">Keys</h2>${kbListHTML("kwKeyHints")}<p class="dim">The same list is in the pause menu and the Menu (Keyboard controls).</p></div>`;
@@ -14868,6 +14904,8 @@ if(window.__EC)Object.assign(window.__EC,{setShow:k=>{const b=$("#menu .ovbox");
    Last of all, so these wrap every kind of question (the sky's bids and the crystal guards draw their own windows). */
 /* v78j: the question on screen, so the phase timer can answer it when time runs out (as the computer would) */
 let askOpen=null;
+const ASK_SAFE={yesno:false,bid:null,crysguard:null};   // v78p: what time running out answers: No, Pass, no guard
+const askSafe=({pl,spec})=>spec.kind in ASK_SAFE?ASK_SAFE[spec.kind]:spec.cancel?null:spec.ai?spec.ai():AI.choose(pl,spec);
 {const _ah=askHuman;askHuman=function(pl,spec){return new Promise(res=>{let open=true;
   const q=askOpen={pl,spec,answer:v=>{if(!open)return;open=false;ovHide();res(v)}};
   _ah.call(this,pl,spec).then(v=>{if(askOpen===q)askOpen=null;if(open){open=false;res(v)}})})}}
