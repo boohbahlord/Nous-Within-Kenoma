@@ -85,7 +85,7 @@
     if(btn)return;const b=btn=document.createElement("button");b.type="button";b.className="static-toggle";
     const label=()=>{b.textContent="static: "+(on?"on":"off");b.setAttribute("aria-pressed",on)};label();
     b.addEventListener("click",()=>{on=!on;try{localStorage.setItem(KEY,on?"on":"off")}catch(e){}on?start():stop();label()});
-    body.appendChild(b);
+    (document.getElementById("nwkdisp")||body).appendChild(b);   // v78u: into the Display bar when there is one
   }
   document.addEventListener("visibilitychange",()=>{if(!LV||!on||lite())return;if(document.hidden){cancelAnimationFrame(raf);raf=0}else if(!reduce&&!raf)raf=requestAnimationFrame(loop)});
 
@@ -159,21 +159,22 @@
     w.querySelector("[data-n='0']").focus()}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",show);else show();
 })();
-/* v78t: Display (bottom right, on a computer, on every page but the game): "Fill the screen" lets the page's text use the whole
-   width of the window instead of a column in the middle */
+/* v78u: Display (bottom right, on every page but the game, on a computer): a bar like the game's, "Display ▴" beside the static
+   switch; it opens "Fill the screen", which lets the page use the whole width of the window instead of a column in the middle */
 (function(){
   const KEY="nwk-fill",root=document.documentElement;
   let on=false;try{on=localStorage.getItem(KEY)==="on"}catch(e){}
-  const pc=()=>!!(window.matchMedia&&matchMedia("(any-pointer:fine)").matches&&innerWidth>=900);
-  function apply(){root.classList.toggle("fillscreen",on&&pc())}
+  const pc=()=>!window.matchMedia||matchMedia("(any-pointer:fine)").matches;   // a mouse or a trackpad
+  const apply=()=>root.classList.toggle("fillscreen",on&&pc());
   apply();
-  function build(){if(document.querySelector("main.game")||document.getElementById("nwkdisp"))return;   // the game has its own Display bar
+  function build(){if(!pc()||document.querySelector("main.game")||document.getElementById("nwkdisp"))return;   // the game has its own Display bar
     const d=document.createElement("div");d.id="nwkdisp";
-    d.innerHTML='<button type="button" class="nwkdispb" aria-expanded="false">Display ▴</button><div class="nwkdispm" hidden><label><input type="checkbox"'+(on?" checked":"")+'> Fill the screen</label><p>The text uses the whole width of the window, not a column in the middle.</p></div>';
-    document.body.appendChild(d);const b=d.querySelector(".nwkdispb"),m=d.querySelector(".nwkdispm"),c=d.querySelector("input");
-    b.addEventListener("click",()=>{m.hidden=!m.hidden;b.setAttribute("aria-expanded",!m.hidden);b.textContent=m.hidden?"Display ▴":"Display ▾"});
-    c.addEventListener("change",()=>{on=c.checked;try{localStorage.setItem(KEY,on?"on":"off")}catch(e){}apply()});
-    document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!m.hidden){m.hidden=true;b.textContent="Display ▴";b.setAttribute("aria-expanded","false")}});
-    const vis=()=>{d.hidden=!pc();apply()};vis();addEventListener("resize",vis)}
+    d.innerHTML='<span id="nwkmore" hidden><button type="button" class="nwktog" id="nwkfill"></button></span><button type="button" class="nwktog" id="nwkdispb" aria-expanded="false" aria-controls="nwkmore">Display ▴</button>';
+    document.body.appendChild(d);const m=d.querySelector("#nwkmore"),b=d.querySelector("#nwkdispb"),f=d.querySelector("#nwkfill");
+    const st=document.querySelector("button.static-toggle");if(st)d.appendChild(st);   // the static switch joins the bar, as in the game
+    const paint=()=>{f.textContent="Fill the screen: "+(on?"On":"Off");f.setAttribute("aria-pressed",on);b.textContent=m.hidden?"Display ▴":"Display ▾";b.setAttribute("aria-expanded",!m.hidden)};paint();
+    b.addEventListener("click",()=>{m.hidden=!m.hidden;paint()});
+    f.addEventListener("click",()=>{on=!on;try{localStorage.setItem(KEY,on?"on":"off")}catch(e){}apply();paint()});
+    document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!m.hidden){m.hidden=true;paint()}})}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",build);else build();
 })();

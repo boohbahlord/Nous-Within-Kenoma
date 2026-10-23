@@ -12751,7 +12751,7 @@ function fsUI(){let u=$("#fsui");if(u)return u;u=document.createElement("div");u
   $("#fspauseb").onclick=fsPause;
   u.insertAdjacentHTML("afterbegin",`<button type="button" id="fsctlb" aria-haspopup="dialog" title="Controls"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="2.5" y="6.5" width="19" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 10h1M9 10h1M12 10h1M15 10h1M18 10h0.5M7 14h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Controls</span></button>`);
   $("#fsctlb").onclick=fsControls;
-  u.insertAdjacentHTML("afterbegin",`<button type="button" id="fsbfsb" data-tip="The browser's own fullscreen (hides the browser's bars): + turns it on, − turns it off. The keys + and − do the same, except while you type."><b>+</b><b>−</b></button>`);   // v78t
+  u.insertAdjacentHTML("afterbegin",`<button type="button" id="fsbfsb" data-tip="The browser's own fullscreen (hides the browser's bars): + turns it on, − turns it off. The keys + and − do the same, except while you type."><b>−</b><b>+</b></button>`);   // v78t (v78u: + on the right)
   $("#fsbfsb").onclick=()=>bfsSet(!document.fullscreenElement);
   const tab=(id,key,cls)=>{$(id).onclick=()=>{PREF[key]=!PREF[key];savePrefs();document.documentElement.classList.toggle(cls,PREF[key]);fsPaint()}};
   tab("#fstabSp","fsSp","fs-sp");tab("#fstabSel","fsSel","fs-sel");
