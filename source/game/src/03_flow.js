@@ -203,7 +203,7 @@ function startTimer(ph){
   const dur=ph==="draw"&&T>30?30:T;G.deadline=Date.now()+dur*1000;
   const g=G;timerIv=setInterval(()=>{
     if(G!==g){stopTimer();return}
-    if(G.paused){G.deadline+=250;return}
+    if(G.paused||G.passing||askOpen&&askOpen.pl!==G.active){G.deadline+=250;return}   // v78p: the clock stops while the device is passed or someone else answers
     const left=Math.max(0,Math.ceil((G.deadline-Date.now())/1000));const el=$("#timer");if(el){el.textContent=left+"s";el.classList.toggle("low",left<=10)}
     if(left<=0){stopTimer();timeUp()}
   },250);
@@ -212,8 +212,11 @@ function stopTimer(){if(timerIv)clearInterval(timerIv);timerIv=null;if(G)G.deadl
 async function timeUp(){
   log(`Time runs out for ${plName(G.active)}.`,"event");flash("Time's up.");
   if(G.phase==="setup"&&G.setupResolve){const pl=G.active,f=G.setupResolve;G.setupResolve=null;G.busy=true;await AI.setup(pl);G.busy=false;f();return}
-  // v78j: a spell still running finishes first, for its caster; its open question is answered as the computer would
-  const g=G;for(let i=0;i<50&&G.busy;i++){const q=askOpen;if(q){askOpen=null;q.answer(q.spec.ai?q.spec.ai():AI.choose(q.pl,q.spec))}await sleep(100);if(G!==g)return}
+  // v78j: a spell still running finishes first, for its caster. v78p: its open question gets the safe answer (No, Cancel,
+  // Pass); only a question with no way out is answered as the computer would, and someone else's question waits for them
+  const g=G;for(let i=0;i<50&&G.busy;i++){const q=askOpen;
+    if(q&&q.pl!==G.active){i--;await sleep(250);if(G!==g)return;continue}
+    if(q){askOpen=null;q.answer(askSafe(q))}await sleep(100);if(G!==g)return}
   if(G.placing)cancelPlacing();
   if($("#ov .ovbox.bank"))ovHide();   // v78j: Bank business ends with your prep
   if(G.waiter){const f=G.waiter;G.waiter=null;G.mode=null;G.selHand=null;f()}
@@ -285,9 +288,9 @@ function canPlace(card,r,c){
   return st.owner===G.active&&stackLegal([...st.cards,card]);
 }
 function place(card,r,c){
-  const P=me(),hi=P.hand.indexOf(card);if(hi>=0)P.hand.splice(hi,1);card.owner=G.active;if(G.placing===card)G.placing=null;
+  const P=me(),hi=P.hand.indexOf(card);if(hi>=0)P.hand.splice(hi,1);card.owner=G.active;const slave=G.placing===card;if(slave)G.placing=null;
   const st=G.board[r][c];
-  const fd=!!G.faceDown&&(!st||st.down)&&!isBase(card)&&kind(card)!=="joker"&&G.placing!==card;   // v78j
+  const fd=!!G.faceDown&&(!st||st.down)&&!isBase(card)&&kind(card)!=="joker"&&!slave;   // v78j: a Slave comes face up (v78p: read before placing clears)
   if(st){if(st.cards.some(x=>x.unit==="assassin")&&card.unit==="assassin"){card.hp=Math.min(card.hp,1);log("A second Assassin joins: one more heart for the pair.")}st.cards.push(card);if(!fd)st.down=false}
   else G.board[r][c]={owner:G.active,cards:[card],moved:G.phase!=="setup",attacked:false,down:fd};
   if(fd){fogLog(G.active,r,c,`${plName(G.active)} places a card face down.`);log(`${plName(G.active)} places a card face down on ${coord(r,c)}.`);G.selHand=null;G.faceDown=false;if(G.placing===card)G.placing=null;return}

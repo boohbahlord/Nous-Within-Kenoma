@@ -137,10 +137,10 @@ function dipRound(){if(!dipOn()||NET.role==="guest")return;const D=dipD(),r=G.mo
       if(rel==="war"&&tr>-50&&strengthOfTeam(t)<strengthOfTeam(u)*.9&&Math.random()<.2){dipPropose(pl,u,"peace",1+R(3));break}
       if(rel==="peace"&&tr>=30&&T.length>2&&dipCommonFoe(t,u)&&Math.random()<.15){dipPropose(pl,u,"ally");break}}}}
 function dipTwoLeft(){if(!G||!G.dip||!dipOn())return;const T=dipTeams();
-  const calm=T.length>2&&T.every((t,i)=>T.slice(i+1).every(u=>dipRel(t,u).s!=="war"));   // v78j: nobody left at war: the alliances end too
+  const calm=T.length>2&&T.every((t,i)=>T.slice(i+1).every(u=>dipRel(t,u).s==="ally"));   // v78j: all allied, nobody left to fight: the alliances end too (v78p: peace runs out by itself)
   if(T.length>2&&!calm)return;let n=0;
   for(const k in G.dip.rel){const R0=G.dip.rel[k];if(R0.s==="ally"){R0.s="war";n++}}
-  if(n){G._vis=null;log(T.length>2?"<b>No side left is at war</b>: every alliance ends (peace is still allowed).":"<b>Only two sides are left</b>: every alliance ends (peace is still allowed).","event")}}
+  if(n){G._vis=null;log(T.length>2?"<b>Every side left is allied</b>: every alliance ends (peace is still allowed).":"<b>Only two sides are left</b>: every alliance ends (peace is still allowed).","event")}}
 {const _cr=cycleRound;cycleRound=async function(){await _cr.apply(this,arguments);if(G&&!G.over)try{dipRound()}catch(e){console.error(e)}}}
 {const _el=eliminate;eliminate=function(){const out=_el.apply(this,arguments);try{dipTwoLeft()}catch(e){}return out}}
 /* the Banker's disapproval: rolled at the start of each of the betrayer's turns */

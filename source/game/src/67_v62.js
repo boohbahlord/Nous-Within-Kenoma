@@ -56,7 +56,7 @@ function mineSlotHTML(s,V){const st=mineStats(V,s.k),fit=mineFits(s,V),empty=Mat
   return `<button type="button" class="mslot k-${s.kind}${fit?" tplace":""}" data-ms="${esc(s.k)}" ${fit?"":"aria-disabled=\"true\""} title="${esc(s.name+(s.at?" · "+s.at:""))}${fit?": place the Miner here":""}">
 <span class="msn"><b>${esc(s.name)}</b>${s.at?`<small>${esc(s.at)}</small>`:""}${s.sub?`<small>${esc(s.sub)}</small>`:""}<em>${s.ms.length}/${s.cap||1}</em></span><span class="msc">${cards}</span>${stat}</button>`}
 function paintMines(){if(!G)return;const V=view(),slots=mineSlots(V);let box=$("#minepanel");
-  if(!slots.length){if(box)box.hidden=true;return}
+  if(!slots.length||totalBlind(V)){if(box)box.hidden=true;return}   // v78j: the blind see nothing, their Aces' slots too
   if(!box){box=document.createElement("section");box.id="minepanel";box.className="minepanel";box.setAttribute("aria-label","Mining slots")}
   const fs=typeof fsOn==="function"&&fsOn(),at=PREF.mineAt|0,pos=fs?"hand":MINE_POS[at]||"hand",hand=$("#hand");
   if(pos==="hand"&&hand){if(box.nextElementSibling!==hand)hand.before(box)}

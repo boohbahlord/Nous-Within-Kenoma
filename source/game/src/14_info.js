@@ -131,12 +131,21 @@ const stackAtTile=t=>{if(!t)return null;const r=+t.dataset.r,c=+t.dataset.c;if(i
 const stackTitle=(s,r,c)=>`${s.cards.length>1?`Stack of ${s.cards.length}`:nameOf(s.cards[0])} on ${coord(r,c)}`;
 /* v78j: the browser pulls a fingertip tap near a corner tab onto the tab; one that lands outside it is the stack's or the card's */
 const ciMiss=(t,e)=>{if(e.pointerType!=="touch")return false;const b=t.getBoundingClientRect();return e.clientX<b.left-2||e.clientX>b.right+2||e.clientY<b.top-2||e.clientY>b.bottom+2};
+/* v78p: a missed tap that moves is a swipe: what it started on scrolls (the hand's row, the large field's frame, the page),
+   as it would anywhere else; in fullscreen the field's own pan takes it */
+function ciSwipe(t,e){if(fsOn()&&t.closest(".camwrap"))return;let x=e.clientX,y=e.clientY,sc=null;
+  for(let p=t.parentElement;p&&p!==document.body;p=p.parentElement){const s=getComputedStyle(p);if(/auto|scroll/.test(s.overflowX+s.overflowY)&&(p.scrollWidth>p.clientWidth||p.scrollHeight>p.clientHeight)){sc=p;break}}
+  const mv=ev=>{if(ev.pointerId!==e.pointerId)return;let dx=ev.clientX-x,dy=ev.clientY-y;x=ev.clientX;y=ev.clientY;
+    if(sc){const z=sc.classList.contains("camwrap")?camZf(sc):1,l=sc.scrollLeft,tp=sc.scrollTop;sc.scrollLeft-=dx/z;sc.scrollTop-=dy/z;dx-=(l-sc.scrollLeft)*z;dy-=(tp-sc.scrollTop)*z}
+    scrollBy(-dx,-dy)};
+  const up=ev=>{if(ev.pointerId!==e.pointerId)return;removeEventListener("pointermove",mv);removeEventListener("pointerup",up);removeEventListener("pointercancel",up)};
+  addEventListener("pointermove",mv);addEventListener("pointerup",up);addEventListener("pointercancel",up)}
 /* the corner tab on every stack: click for info, drag onto another stack to compare */
 function wireCorners(){
   document.querySelectorAll("#board .ci").forEach(t=>{
     t.onclick=e=>{if(t.dataset.miss){delete t.dataset.miss;return}e.stopPropagation();e.preventDefault()};   // a missed tap goes on to the tile
     t.onpointerdown=e=>{
-      if(ciMiss(t,e)){t.dataset.miss="1";return}delete t.dataset.miss;
+      if(ciMiss(t,e)){t.dataset.miss="1";ciSwipe(t,e);return}delete t.dataset.miss;
       e.stopPropagation();e.preventDefault();const src=stackAtTile(t.closest(".tile"));if(!src)return;
       const ghost=document.createElement("div");ghost.className="ciline";document.body.appendChild(ghost);
       const x0=e.clientX,y0=e.clientY;let moved=false;
@@ -152,7 +161,8 @@ function wireCorners(){
       document.addEventListener("pointermove",mv);document.addEventListener("pointerup",up);document.addEventListener("pointercancel",quit);
     };
   });
-  document.querySelectorAll(".cf .ci").forEach(t=>{t.onpointerdown=e=>{t.dataset.miss=ciMiss(t,e)?"1":""};
+  document.querySelectorAll(".cf .ci").forEach(t=>{t.onpointerdown=e=>{   // v78p: a miss counts only where the card has its own tap (the hand, a pick)
+    t.dataset.miss=ciMiss(t,e)&&t.parentElement.closest("button,[data-h],.pk")?"1":"";if(ciMiss(t,e))ciSwipe(t,e)};
     t.onclick=e=>{if(t.dataset.miss){t.dataset.miss="";return}e.stopPropagation();e.preventDefault();const c=cardById(+t.dataset.cid);if(!c)return;
     pop(infoHTML1({cards:[c],owner:c.owner},nameOf(c)),e.clientX,e.clientY,"info")}});
 }

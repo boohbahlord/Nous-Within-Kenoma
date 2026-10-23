@@ -108,13 +108,20 @@ const KB_DO=[
 /* Ctrl or Shift pressed alone in the spells: the next or the previous school */
 document.addEventListener("keyup",e=>{if(!G||!kbSpellMode()||kbTop()||typing(e.target))return;
   if(kmTap(e,"spSchoolNext"))kbSchool(KB.sc+1);else if(kmTap(e,"spSchoolPrev"))kbSchool(KB.sc-1)});
+/* v78p: a held key acts once: its repeats never reach a button (the pass screen's Ready) and don't close window after window */
+window.addEventListener("keydown",e=>{if(!e.repeat||typing(e.target))return;
+  if(e.key===" "||e.key==="Enter"||e.key==="Escape"||kmIs(e,"turn")||kmIs(e,"close")){e.preventDefault();e.stopImmediatePropagation()}},true);
+/* v78p: the rule book and the key list open over whatever is open (a question, the Bank, the Menu), however they're opened */
+function kbRaise(w){if(!w)return;w.style.zIndex="";let z=+getComputedStyle(w).zIndex||0;
+  for(const el of document.querySelectorAll(KB_WINS))if(el!==w&&kbVis(el))z=Math.max(z,(+getComputedStyle(el).zIndex||0)+1);w.style.zIndex=z||""}
+{const _rb=rbWin;rbWin=function(){const out=_rb.apply(this,arguments);kbRaise($("#rbwin"));return out}}
+{const _kw=kbKeysWin;kbKeysWin=function(){const out=_kw.apply(this,arguments);kbRaise($("#kbkeys"));return out}}
 document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(e.target)&&!(e.target.tagName==="SELECT"&&(e.key==="Escape"||kmIs(e,"close"))))return;   // v78j: Esc leaves a list
   const is=id=>kmIs(e,id),stop=()=>{e.preventDefault();e.stopImmediatePropagation()};
   if(G&&!G.over&&!kmModOnly(e))kbRemind();
-  const aboveMenu=id=>{const m=$("#menu"),w=$("#"+id);if(w)w.style.zIndex=m&&!m.hidden?"126":""};   // v78j: the Menu is 125
-  if(is("keys")){stop();kbKeysWin();aboveMenu("kbkeys");return}
+  if(is("keys")){stop();kbKeysWin();return}
   if(is("music")){stop();if(typeof musicSync==="function"){PREF.music=PREF.music===false;savePrefs();musicSync();flash(PREF.music===false?"Music off.":"Music on.")}return}
-  if(is("rulebook")){stop();rbWin();aboveMenu("rbwin");return}
+  if(is("rulebook")){stop();rbWin();return}
   /* closing: the window on top first (its ×), then the spells or the hand; Esc for the windows that have no Esc of their own */
   if(is("close")){if(kbTop()){stop();kbClose()}else if(KB.mode){stop();kbModeOff()}return}
   if(e.key==="Escape"){const w=kbTop();
@@ -133,6 +140,8 @@ document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(
     if(is("hInfo")){stop();const ci=H[KB.h]&&H[KB.h].querySelector(".ci");if(ci)ci.click();return}}
   const a=KB_DO.find(([id])=>is(id));if(a&&e.repeat){stop();return}if(a&&a[1]()!==false)stop();   // v78j: one press, one action (held, a window flickered open and shut)
 },true);
+/* v78p: with the spells or the hand open, Space that nothing took doesn't scroll the page */
+document.addEventListener("keydown",e=>{const a=document.activeElement;if(KB.mode&&e.key===" "&&!e.defaultPrevented&&!typing(e.target)&&!(a&&a.tagName==="BUTTON"))e.preventDefault()});
 /* v78a: O shows every key in a window; once a game, the first key pressed brings a note saying so */
 function kbKeysWin(){let w=$("#kbkeys");if(!w){w=document.createElement("div");w.id="kbkeys";w.className="faov";document.body.appendChild(w)}
   w.innerHTML=`<div class="ovbox wide kbkeysbox" role="dialog" aria-modal="true" aria-labelledby="kbkh"><button type="button" class="xclose" aria-label="Close">×</button><h2 id="kbkh">Keys</h2>${kbListHTML("kwKeyHints")}<p class="dim">The same list is in the pause menu and the Menu (Keyboard controls).</p></div>`;

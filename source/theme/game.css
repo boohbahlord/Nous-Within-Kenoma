@@ -6,7 +6,7 @@
 .ecount{position:relative;display:inline-block}.ecount>b{position:absolute;right:-4px;top:-6px;font-size:10px;font-weight:400;color:#000;background:#d6d6ea;padding:0 4px;line-height:1.5}
 #phases{display:flex;flex-wrap:wrap;align-items:center;gap:4px 0;min-width:0}
 #phases i{font-style:normal;margin:0 8px;color:var(--rule)}
-.ph-c{display:inline-flex;flex-direction:column;line-height:1.25;color:var(--dim)}
+.ph-c{display:inline-flex;flex-direction:column;line-height:1.25;color:var(--dim);max-width:100%}   /* v78j: large text wraps instead of running off the edge */
 .ph-c b{font-weight:200;font-size:13px;letter-spacing:.14em;text-transform:uppercase}
 .ph-c em{font-style:normal;font-size:11px;letter-spacing:.02em}
 .ph-c.on b{color:var(--amber-hi);border-bottom:1px solid var(--amber)}
@@ -143,7 +143,7 @@ fieldset.pf legend{color:var(--amber-hi);padding:0 6px;font-size:14px}
 .mode span{display:block;color:var(--dim);font-size:13px;margin-top:2px;line-height:1.5}
 .mode:hover,.mode:focus-visible{border-color:var(--amber)}
 .roundbig{font-size:72px;line-height:1;margin:0;color:var(--amber-hi);text-align:center}
-#flash{position:fixed;left:50%;bottom:58px;transform:translateX(-50%);z-index:135;background:#000;color:var(--amber-hi);border:1px solid var(--amber);padding:8px 14px;font-size:13.5px;max-width:90vw}
+#flash{position:fixed;left:50%;bottom:58px;transform:translateX(-50%);z-index:135;pointer-events:none;background:#000;color:var(--amber-hi);border:1px solid var(--amber);padding:8px 14px;font-size:13.5px;max-width:90vw}
 /* Blood Moon: the page turns to the crimson of chapter 23 and starts to glitch */
 html.bloodglitch .game #board{animation:ecglitch 5.2s infinite}
 html.bloodglitch .game h1{animation:ectext 3.4s infinite}
@@ -1103,7 +1103,7 @@ table.tierolls td{padding:3px 12px 3px 0;border-bottom:1px solid #ffffff14}
 #chatbox .chatlog b{color:var(--amber-hi);font-weight:400;margin-right:4px}
 #chatbox .chatin{display:flex;gap:6px;padding:8px 12px;border-top:1px solid var(--rule)}
 #chatbox .chatin input{flex:1;font:inherit;background:var(--deep);color:var(--text);border:1px solid var(--rule);padding:6px 8px;min-width:0}
-#netbanner{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:60;background:#3a0b0e;color:#ffd0c8;border:1px solid #c8202e;padding:8px 16px;font-size:14px}
+#netbanner{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:130;background:#3a0b0e;color:#ffd0c8;border:1px solid #c8202e;padding:8px 16px;font-size:14px}
 /* ================= v38: phone fixes ================= */
 /* the setup window is a flex column: the header, the tabs and the footer keep their height, only the panel scrolls */
 .ovbox.setup .shead,.ovbox.setup .stabs,.ovbox.setup .sfoot{flex:none}
@@ -1853,7 +1853,7 @@ html.cardsym .cf.v61 .hearts,html.cardsym .stack.v61 .bhp{top:calc(24px * var(--
 .farow.faalways{margin:0 0 10px;padding:8px 10px;border:1px solid var(--rule);background:#00000025}
 .farow.faalways small{display:block;color:var(--dim);font-weight:400}
 /* v70d: the round's number, large and faint in the middle of the screen */
-#roundban{position:fixed;inset:0;z-index:70;display:grid;place-content:center;justify-items:center;pointer-events:none;opacity:0;text-align:center}
+#roundban{position:fixed;inset:0;z-index:90;display:grid;place-content:center;justify-items:center;pointer-events:none;opacity:0;text-align:center}
 #roundban .rbr{font-family:"Grenze Gotisch","Old English Text MT",serif;font-size:clamp(22px,3.4vw,40px);color:#efe2c8;opacity:.45;letter-spacing:.06em}
 #roundban .rbn{font-family:"Grenze Gotisch","Old English Text MT",serif;font-size:clamp(96px,17vw,230px);line-height:.95;color:#efe2c8;opacity:.3;text-shadow:0 0 40px #000}
 #roundban .rbs{font-family:"Grenze Gotisch","Old English Text MT",serif;font-size:clamp(18px,2.8vw,32px);color:#efe2c8;opacity:.5;margin-top:6px}
@@ -2196,11 +2196,10 @@ html.fs-sp:not(.fs-sel) #fstabSel{right:min(330px,86vw)}
 #fspauseb:hover,#fspauseb:focus-visible{color:#fff;background:var(--deep);outline:none;box-shadow:0 0 0 2px var(--amber-hi)}
 @media (max-width:600px){#fspauseb span{display:none}#fspauseb{padding:8px}html.ecfs main.game #me{width:calc(100vw - 132px)}html.ecfs main.game #foe{top:118px;width:180px;zoom:.66}
   html.ecfs main.game #handwrap{max-width:calc(100vw - 16px)}#fstabSp{top:150px}#fstabSel{top:262px}
-  html.ecfs main.game .spellpanel,html.ecfs main.game #selwrap{max-height:calc(100dvh - var(--fsmeh,40px) - 250px)}
-  html.ecfs main.game .spellpanel{top:calc(var(--fsmeh,40px) + 76px)}html.ecfs main.game #selwrap{bottom:172px}
-  html.ecfs.fs-sp.fs-sel main.game .spellpanel,html.ecfs.fs-sp.fs-sel main.game #selwrap{max-height:calc(50dvh - var(--fsmeh,40px)/2 - 125px)}
+  html.ecfs main.game .spellpanel,html.ecfs main.game #selwrap{max-height:calc(100dvh - var(--fsctlb,116px) - 180px)}
+  html.ecfs main.game .spellpanel{top:calc(var(--fsctlb,116px) + 6px)}html.ecfs main.game #selwrap{bottom:172px}html.fs-sel #fstabSel{bottom:172px}
+  html.ecfs.fs-sp.fs-sel main.game .spellpanel,html.ecfs.fs-sp.fs-sel main.game #selwrap{max-height:calc(50dvh - var(--fsctlb,116px)/2 - 93px)}
   html.ecfs main.game #foe{top:calc(var(--fsmeh,40px) + 112px)}html.ecfs main.game #me .mv{white-space:nowrap}}
-@media (max-width:380px){html.ecfs main.game .spellpanel{top:calc(var(--fsmeh,40px) + 104px)}}
 .fsov{position:fixed;inset:0;z-index:72;display:grid;place-items:center;padding:16px;background:#000c}
 .fsov[hidden]{display:none}
 #fspause .fspbox{width:min(380px,100%);text-align:center}

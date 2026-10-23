@@ -210,8 +210,8 @@ function cnClose(){const el=$("#cmdline");CN.open=false;if(el){el.hidden=true;co
 function cnSwap(){cnOpen(CN.mode==="cmd"?"chat":"cmd")}
 /* v78j: the game's own answer to a line (a refusal shows in the flash) is the line's answer too; red when nothing changed */
 {const sig=()=>[G.phase,G.active,G.turnNo,G.setupStep,!!G.passing,G.sel?G.sel.r+","+G.sel.c:"",G.board.map(r=>r.map(s=>s?s.owner+":"+s.cards.length:"").join()).join("/")].join("|");
- const _run=cnRun;cnRun=function(){if(!G)return _run.apply(this,arguments);const was=sig(),head=G.log[0];let said=null;const _f=flash;flash=function(t){said=t;return _f.apply(this,arguments)};
-  try{return _run.apply(this,arguments)}finally{flash=_f;if(said&&G&&!CN.err)cnSay(said,G.log[0]===head&&sig()===was)}}}
+ const _run=cnRun;cnRun=function(){if(!G)return _run.apply(this,arguments);const was=sig(),head=G.log[0];let said=null;const _f=flash;flash=function(t){said=t};   // v78p: said in the answer line, not in a flash over it
+  try{return _run.apply(this,arguments)}finally{flash=_f;if(said&&G&&!CN.open)_f(said);else if(said&&G&&!CN.err)cnSay(said,G.log[0]===head&&sig()===was)}}}
 /* the chat's new lines show while it is open */
 {const _ca=chatAdd;chatAdd=function(){const out=_ca.apply(this,arguments);if(CN.open&&CN.mode==="chat"){NET.unread=0;cnPaint()}return out}}
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(CN.open&&(!G||G.over||G.passing))cnClose()}}   // v78j: and when the device is passed

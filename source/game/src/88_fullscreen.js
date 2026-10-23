@@ -49,7 +49,8 @@ document.addEventListener("wheel",e=>{if(!fsOn()||!e.target.closest||!e.target.c
   if(PREF.fsWheel!==true)return;   // v74a: the mouse wheel does nothing unless chosen in Controls
   const dir=(e.deltaY<0?1:-1)*(PREF.camInvWheel?-1:1);camZoom(dir>0?1.12:1/1.12,e.clientX,e.clientY)},{capture:true,passive:false});
 const FSP=new Map();let fsPan=null,fsPinch=null,fsMoved=false;
-document.addEventListener("pointerdown",e=>{if(!fsOn()||e.pointerType!=="touch"||!e.target.closest)return;const w=e.target.closest(".camwrap");if(!w||e.target.closest(".ci"))return;   // the corner tab drags to compare
+document.addEventListener("pointerdown",e=>{if(!fsOn()||e.pointerType!=="touch"||!e.target.closest)return;const w=e.target.closest(".camwrap"),ci=e.target.closest(".ci");
+  if(!w||ci&&!ciMiss(ci,e))return;   // the corner tab drags to compare (v78p: a touch beside it pans)
   FSP.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(FSP.size===2){const [a,b]=[...FSP.values()];fsPinch={d:Math.hypot(a.x-b.x,a.y-b.y),z:CAM.z};fsMoved=true}
   else if(FSP.size===1){fsPan={x:e.clientX,y:e.clientY,l:w.scrollLeft,t:w.scrollTop,w,z:camZf(w)};fsMoved=false}},true);
@@ -98,6 +99,7 @@ function fsPaint(){if(!G||!fsOn())return;fsUI();const h=document.documentElement
   const B=$("#fsrowB");B.innerHTML=open?(mode==="dice"?fsRollHTML():mode==="log"?fsLogHTML():fsRollHTML()+"<br>"+fsLogHTML()):"";
   B.querySelectorAll("[data-fshist]").forEach(b=>b.onclick=e=>{e.stopPropagation();openHist(+b.dataset.fshist,b)});
   h.style.setProperty("--fsrowh",row.offsetHeight+"px");const me=$("#me");if(me)h.style.setProperty("--fsmeh",(me.offsetHeight||36)+"px");
+  const ct=$("#controls");if(ct&&ct.offsetHeight)h.style.setProperty("--fsctlb",ct.offsetTop+ct.offsetHeight+"px");   // v78p: a phone's drawers start under the whole turn bar
   if(P&&!P.cpu)h.style.setProperty("--fspc",P.color)}
 {const _r=render;render=function(){rSafe(_r,this,arguments);fsButton();fsPiles();if(G&&fsOn())fsPaint()}}
 /* v74a: the Grave, the Ether, the Outer Darkness and the Auction sit under the hand (as before v72a); in fullscreen, at the bottom of the spells */
@@ -172,6 +174,7 @@ document.addEventListener("keydown",e=>{if(!fsOn()||e.key!=="Escape")return;
   for(const o of [$("#fsctl"),$("#fsrowmore")])if(o&&!o.hidden){o.hidden=true;e.preventDefault();return}   // v78j: and the row's More options
   if(q&&!q.hidden){q.hidden=true;e.preventDefault();return}if(hp&&!hp.hidden){fsHelpClose();e.preventDefault();return}if(pz&&!pz.hidden){fsResume();e.preventDefault();return}
   if(document.fullscreenElement)return;if(typeof dialogOpen==="function"&&dialogOpen())return;if(kbTop())return;   // v78j: what is open closes first
+  const ci=$("#cinfo");if(ci&&!ci.hidden)return;   // v78p: the info box too (it closes on its own Esc)
   e.preventDefault();fsPause()});   // without the browser's fullscreen, Esc pauses
 /* the start screen and a new game */
 {const _s=showStart;showStart=function(){if(fsOn())fsExit();return _s.apply(this,arguments)}}
