@@ -319,7 +319,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     const big=["ffa","team-side","team-across"].includes(L);
     $("#sizeduel").hidden=L!=="duel";
     if(!$("#ocorners").dataset.touched)$("#ocorners").checked=big;
-    $("#ocorners").disabled=L==="coop";
+    optsUp();
     const need=L==="factions"?["cross","sq"]:L.startsWith("team")&&n>4?["cross"]:null;   // v73d: factions and big teams need room for their sides
     if(mode==="survival"){const std=document.querySelector('input[name=obig][value=""]'),ok=survStdOk(n);if(std){std.disabled=!ok;std.closest(".opt").classList.toggle("off",!ok);if(!ok&&std.checked)document.querySelector('input[name=obig][value=long]').checked=true}   // v73b: no small field without five spawn tiles each
       const lg=val("obig")==="long";$("#sizeset").classList.toggle("survbig",lg)}
@@ -344,6 +344,11 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
   $("#pcount").addEventListener("change",drawSeats);
   document.querySelectorAll('input[name=obig],input[name=oxsize]').forEach(i=>i.addEventListener("change",()=>{const n=count(),L=layout();crossUp(n,L==="factions"||L.startsWith("team")&&n>4)}));   // v73c; v78j: with the same rule as drawSeats
   document.querySelectorAll('input[name=obig]').forEach(i=>i.addEventListener("change",()=>$("#sizeset").classList.toggle("survbig",mode==="survival"&&val("obig")==="long")));
+  /* v78j: an option that would do nothing in this setup isn't offered (large maps keep their corners, the Cross maps have
+     holes of their own, Survival has no Demons, no Bank and no middle hole) */
+  const optsUp=()=>{const L=layout(),bigMap=val("obig")||"",off=(id,no)=>{const i=$("#"+id);if(!i)return;i.disabled=no;const l=i.closest("label");if(l)l.classList.toggle("off",no)};
+    off("ocorners",L==="coop"||!!bigMap);off("oxhole",mode==="survival"||/^(cross|plus)$/.test(bigMap));off("obarb",mode==="survival");off("obank",mode==="survival")};
+  document.querySelectorAll('input[name=obig]').forEach(i=>i.addEventListener("change",optsUp));
   $("#odip").addEventListener("change",()=>{$("#odip").dataset.touched=1});   // v73b: the large map has its own size
   document.querySelectorAll('input[name=olayout]').forEach(i=>i.addEventListener("change",drawSeats));
   const pickLay=k=>{const i=document.querySelector(`input[name=olayout][value="${k}"]`);if(i)i.checked=true;drawSeats()};   // v73d: Game and Teammates spawn set the layout underneath
