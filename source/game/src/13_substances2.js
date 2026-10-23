@@ -150,7 +150,7 @@ async function lightningLeviathan(){
   log(`<b>Lightning Strike</b>: the bolt needs no roll against the Leviathan; it loses a heart (${Math.max(0,c.hp)} left).`,"event");
   if(c.hp<=0){
     if(onMoon){const o=G.moonLev.owner;G.moonLev=null;toDark(c);log("<b>The Leviathan falls from the moon into the Outer Darkness.</b>","event");notify(o,"The Leviathan falls from the moon.")}
-    else{const r=G.sel.r,cc=G.sel.c;st.cards.splice(st.cards.indexOf(c),1);if(!st.cards.length)G.board[r][cc]=null;c.hp=c.maxHp;toDark(c);checkWin()}
+    else{const r=G.sel.r,cc=G.sel.c;st.cards.splice(st.cards.indexOf(c),1);vacate(r,cc,st);c.hp=c.maxHp;toDark(c);checkWin()}
     popup("The Leviathan is struck down","<p>Twelve times did the lightning strike twelve at once, with one hundred and forty-four wounds, plus the lightning that cut his tongue into two permanent halves, even down to his throat.</p>",G.active);
   }
   return true;
@@ -226,7 +226,7 @@ async function godHunger(){
   if(src==="grave")for(let i=0;i<n&&G.grave.length;i++)eaten.push(G.grave.splice(Math.floor(Math.random()*G.grave.length),1)[0]);
   else if(src==="own")for(let i=0;i<n&&P.deck.length;i++)eaten.push(P.deck.pop());
   else if(src==="field"){const s=G.sel;for(let i=0;i<n;i++){const ok=st.cards.filter(c=>!(c.unit&&UNIT[c.unit].hp)&&!isBase(c)).sort((a,b)=>nat(a)-nat(b));if(!ok.length)break;const c=ok[0];st.cards.splice(st.cards.indexOf(c),1);if(c.captured&&c.captured.length){for(const x of c.captured)toGrave(x,"death");c.captured=[]}eaten.push(c)}
-    if(!st.cards.length){G.board[s.r][s.c]=null;G.sel=null}}
+    if(vacate(s.r,s.c,st))G.sel=null}
   else if(src&&src[0]==="p"){
     const t=+src.slice(1),a=R(4),b=R(4);tray(pl,"God Hunger",[{s:4,v:a}],`${a} vs ${b}`);tray(t,"God Hunger defense",[{s:4,v:b}],`${b} vs ${a}`,true);
     if(a<=b){let moved=0;P.souls.sort((x,y)=>soulOf(x)-soulOf(y));while(moved<2&&P.souls.length){const c=P.souls.shift();moved+=soulOf(c);if(!addSoul(t,c))toGrave(c,"spent")}
@@ -284,7 +284,7 @@ SPELLS.push(
  {id:"lev",tribe:"leviathan",name:"Rise to the Moon",cost:0,school:"Sorcery",text:"Free, only at the New Moon, while your Leviathan is on the field. The Leviathan leaves the field for the moon. From the next New Moon on, every enemy pays its toll each New Moon: 2d4 random deck cards, 2 random cards from the hand and 1 mana, all into the Outer Darkness. On the moon your mana can rise by one for every card in the Outer Darkness (twelve at most). It can be attacked only at the New Moon, and defends there with advantage.",
   ok:()=>(G.moon.i===0&&!G.moon.gone||G.moon.gone==="mars")&&!G.moonLev&&stacksOf(G.active).some(x=>hasK(x.st,"leviathan")),run:async()=>{
    const x=stacksOf(G.active).find(x=>hasK(x.st,"leviathan")),c=x.st.cards.find(k=>k.unit==="leviathan");
-   x.st.cards.splice(x.st.cards.indexOf(c),1);if(!x.st.cards.length)G.board[x.r][x.c]=null;if(G.sel&&G.sel.r===x.r&&G.sel.c===x.c)G.sel=null;
+   x.st.cards.splice(x.st.cards.indexOf(c),1);vacate(x.r,x.c,x.st);if(G.sel&&G.sel.r===x.r&&G.sel.c===x.c)G.sel=null;
    G.moonLev={card:c,owner:G.active,since:G.moon.round};
    log(`<b>The Leviathan rises onto the New Moon.</b>`,"event");
    popup("The Leviathan on the moon",`<p>“'Spit revelation’s limbo back into the cup of sand,' the serpent says wordlessly to the soul from the moon above.</p><p>Caustic spit, bitter with mouth burns. A favor of spirits, where pillars are seen like windows of reflections of themselves inside; dying memories.</p><p>The boy says to himself, 'The apocryphon said thirteen of twelve eternities. I must brand the soul with burning births. Falling from infinity without beginnings, into four corners of end unleashed onto a new world.'”</p>`,G.active);

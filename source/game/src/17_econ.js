@@ -24,9 +24,7 @@ const DEBT_FLOOR=-8,BANK_FLOOR=-8,DEEP_DEBT=-1;   // v49: three turns at −1 or
 const floorOf=pl=>G&&G.p[pl]&&G.p[pl].oath==="jupiter"?-12:DEBT_FLOOR;   // v50: the Oath of Jupiter lets you sink to −12
 const bankOpen=()=>!!G.bank&&!G.bank.dead;
 function bankAdd(n){if(G.bank)G.bank.mana+=n}
-function payQuiet(pl,n){const P=G.p[pl];P.souls.sort((a,b)=>soulOf(a)-soulOf(b));let paid=0;
-  while(paid<n&&P.souls.length){const i=P.souls.findIndex(c=>soulOf(c)>=n-paid);const c=i>=0?P.souls.splice(i,1)[0]:P.souls.shift();paid+=soulOf(c);toGrave(c,"spent")}
-  return paid}
+function payQuiet(pl,n){return spendSouls(pl,n)}
 function addDebt(pl,n){const P=G.p[pl];const paid=payQuiet(pl,Math.min(n,mana(pl)));bankAdd(paid);const rest=n-paid;
   if(rest>0){P.debt=(P.debt||0)+rest;if(P.debtAt==null)P.debtAt=tnOf(pl)+3}
   checkDebt(pl)}
@@ -126,6 +124,8 @@ async function econRound(){
   // Saturn taxes the Bank too
   if(G.moon.gone==="saturn"&&G.saturnBy!=null&&!G.p[G.saturnBy].out&&!B.dead){const n=Math.min(1+(G.saturnDebt||0),Math.max(0,B.mana-BANK_FLOOR));B.mana-=n;const got=giveMana(G.saturnBy,n);log(`The Bank pays Saturn's tax: ${n} mana (${plName(G.saturnBy)} gets ${got}).`)}
   // the Bank pays back what it borrowed, with interest
+  for(const o of B.owes.filter(o=>G.p[o.to].out))log(`The Bank's debt to ${plName(o.to)} (${o.owed} mana) ends with them.`);   // v78j
+  B.owes=B.owes.filter(o=>!G.p[o.to].out);
   for(const o of [...B.owes]){if(o.atT==null)o.atT=G.turnNo+R(2);   // v71: its interest comes every 1d2 turns (see beginTurn), as the rule was written
     if(B.mana>=o.owed&&!G.p[o.to].out){B.mana-=o.owed;const got=giveMana(o.to,o.owed);B.owes.splice(B.owes.indexOf(o),1);log(`The Bank pays ${plName(o.to)} back ${o.owed} mana (${got} fit in the soul pile).`,"event")}}
   // a broke Bank asks the richest player for a loan
@@ -145,15 +145,15 @@ async function econRound(){
 }
 
 /* ---------- the collapse ---------- */
-function collapse(){
+function collapse(spare){   // spare: players it passes over (Saturn's shield)
   const B=G.bank;
   log(`<b>The Bank collapses.</b> Everyone starts again from nothing.`,"event");
-  for(const pl of alive().filter(i=>!isHorde(i))){const P=G.p[pl];
+  for(const pl of alive().filter(i=>!isHorde(i)&&!(spare&&spare.has(i)))){const P=G.p[pl];
     for(const c of P.souls.splice(0))toGrave(c,"spent");P.debt=0;P.debtAt=null;P.loans=[];
-    P.maxAdd=(P.maxAdd||0)+(3-soulCap(pl));   // the maximum falls to three
+    P.maxAdd=3-baseCap(P);   // the maximum falls to three (v78j: measured without what holds only for a while)
     let gone=0;for(let i=0;i<5&&P.deck.length;i++){const c=P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0];c.owner=null;G.ether.push(c);gone++}
-    if(!gone){for(let i=0;i<2;i++){const all=stacksOf(pl).flatMap(x=>x.st.cards.filter(c=>!isBase(c)).map(c=>({c,x})));if(!all.length)break;const {c,x}=pick(all);x.st.cards.splice(x.st.cards.indexOf(c),1);if(!x.st.cards.length)G.board[x.r][x.c]=null;c.owner=null;G.ether.push(c)}}
-    const a=stacksOf(pl).find(x=>hasK(x.st,"ace"));if(a){const ace=a.st.cards.find(c=>kind(c)==="ace");a.st.cards.splice(a.st.cards.indexOf(ace),1);if(!a.st.cards.length)G.board[a.r][a.c]=null;ace.owner=null;ace.hp=ace.maxHp=2;G.ether.push(ace)}
+    if(!gone){for(let i=0;i<2;i++){const all=stacksOf(pl).flatMap(x=>x.st.cards.filter(c=>!isBase(c)).map(c=>({c,x})));if(!all.length)break;const {c,x}=pick(all);x.st.cards.splice(x.st.cards.indexOf(c),1);vacate(x.r,x.c,x.st);c.owner=null;G.ether.push(c)}}
+    const a=stacksOf(pl).find(x=>hasK(x.st,"ace"));if(a){const ace=a.st.cards.find(c=>kind(c)==="ace");a.st.cards.splice(a.st.cards.indexOf(ace),1);vacate(a.r,a.c,a.st);ace.owner=null;ace.hp=ace.maxHp=2;G.ether.push(ace)}
   }
   B.mana=0;B.owes=[];G.inflation={until:G.turnNo+sum(rollN(4,2)),add:0};
   popup("The Bank collapses",`<p>The Bank and every player were 3 or more below zero. It all comes down.</p><p>Everyone's mana and debts are wiped to zero, every maximum falls to three, five random cards leave each deck (two from the field if the deck is empty) and each player's Ace on the field goes back into the Ether. For 4d2 turns every price wobbles up by 1d2 − 1 a turn.</p>`);
@@ -358,7 +358,7 @@ function waveCleared(W){
    in default that is two rolls a round. They stay until the debt is paid off (back to zero), and every card they kill pays it. */
 const COLL_MAX=6;
 const debtTargets=()=>alive().filter(i=>!isHorde(i)&&G.p[i].guilty).sort((a,b)=>effMana(a)-effMana(b));
-function debtWatch(pl){const P=G.p[pl];if(!P||isHorde(pl)||isNPC(pl)||!G.bank)return;const n=tnOf(pl);
+function debtWatch(pl){const P=G.p[pl];if(!P||isHorde(pl)||isNPC(pl)||!G.bank||G.bank.dead)return;const n=tnOf(pl);
   if(P.guilty){if(!P.debt&&effMana(pl)>=0&&!loanLate(pl)){P.guilty=false;P.deepAt=null;P.guiltyAt=null;log(`${plName(pl)} has paid off the debt: the Debt Collectors stop coming.`,"event")}return}
   const late=loanLate(pl);
   if(effMana(pl)<=DEEP_DEBT||late){if(P.deepAt==null)P.deepAt=n;if(late||n-P.deepAt>=2){P.guilty=true;P.guiltyAt=n;rpOf(pl).bad=true;

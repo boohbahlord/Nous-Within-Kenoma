@@ -140,7 +140,7 @@ async function nepGraveSac(pl){let n=0;
 let nepSacking=false;
 {const _s=sacrifice;sacrifice=function(card,from){nepSacking=nepEvFor(G.active);try{return _s.apply(this,arguments)}finally{nepSacking=false}}}
 {const _as=addSoul;addSoul=function(pl,c){if(nepSacking&&R(8)===1){nepSacking=false;const o=nepRealPl().filter(i=>i!==pl);if(o.length){const q=pick(o);
-    const ok=_as(q,c);log(`<b>Neptune</b>: the soul ${plName(pl)} sacrifices drifts to ${plName(q)} (a 1 on 1d8).`,"event");notify(null,`Neptune: ${esc(G.p[pl].name)}'s sacrifice drifts to ${esc(G.p[q].name)}.`);return ok}}
+    if(_as(q,c)){log(`<b>Neptune</b>: the soul ${plName(pl)} sacrifices drifts to ${plName(q)} (a 1 on 1d8).`,"event");notify(null,`Neptune: ${esc(G.p[pl].name)}'s sacrifice drifts to ${esc(G.p[q].name)}.`);return true}}}   // v78j: a full pile can't take it
   return _as.apply(this,arguments)}}
 /* the Bank's takings from a purchase go to a random player on a 1 of 1d10 (not in Survival) */
 let nepBuying=null;
@@ -190,14 +190,15 @@ function nepJumble(){const n=3+R(4),all=NEP_CHARS+NEP_DIGITS,ch=s=>s[Math.floor(
   return a.join("")}
 const nepHash=s=>{let h=2166136261;for(const ch of String(s))h=Math.imul(h^ch.charCodeAt(0),16777619);return h>>>0};
 {const _e=eclipse;eclipse=async function(k){if(k!=="neptune")return _e.apply(this,arguments);if(typeof eclipsesOff==="function"&&eclipsesOff())return;
-  const d=sum(rollN(2,3)),r=G.moon.round;G.eclipse={k:"neptune",round:r,until:G.forceNepEc?r+d-1:r};   // v78a: an eclipse lasts one round; the Neptune Eclipse spell's keeps 2d3
+  const d=G.forceNepEc?sum(rollN(2,3)):1,r=G.moon.round;G.eclipse={k:"neptune",round:r,until:r+d-1};   // v78a: an eclipse lasts one round; the Neptune Eclipse spell's keeps 2d3
+  const len=G.forceNepEc?`${d} round${d>1?"s":""} (2d3)`:"this round";
   const names={};for(const P of G.p)names[P.i]=nepJumble();
   G.nepEc={names,seed:R(1e6),flip:R(2)===1,mis:{},foe:{}};
   for(const P of G.p){if(P.out||isNPC(P.i)||isHorde(P.i))continue;shuffle(P.deck);shuffle(P.hand);
     (G.blindHand=G.blindHand||[]).push({by:"nep",t:P.i,left:999});(G.manaDel=G.manaDel||[]).push({by:"nep",t:P.i,left:999,off:delOff()})}
   applyMoonTheme();
-  log(`<b>Neptune's eclipse</b> for ${d} round${d>1?"s":""} (2d3): names, numbers, prices and colors lie, hands go blank, every deck is shuffled, and automation waits. All of Neptune's cycle comes with it.`,"event");
-  popup("Neptune is eclipsed",`<p>A black aura closes around Neptune for <b>${d} round${d>1?"s":""}</b> (2d3), and everything it touches dissolves.</p><ul><li>Every player's numbers lie, and hands go blank and shuffled; every deck is shuffled.</li><li>Names turn to random letters and numbers, and every stack on the field takes a stranger's color: a stack you pick up may not be yours, and acting with one that isn't costs 1d2 cards from your deck (once a round, on a 1 of 1d6, it moves by accident).</li><li>Twice a round, a 1 of 1d20 sends a move or an attack astray.</li><li>Prices, the Ether's counts and the Bank's mana lie.</li><li>Field Automation and Lazy Hand wait for it to end.</li><li>Everything in Neptune's cycle happens too.</li></ul>`);
+  log(`<b>Neptune's eclipse</b> for ${len}: names, numbers, prices and colors lie, hands go blank, every deck is shuffled, and automation waits. All of Neptune's cycle comes with it.`,"event");
+  popup("Neptune is eclipsed",`<p>A black aura closes around Neptune for <b>${len}</b>, and everything it touches dissolves.</p><ul><li>Every player's numbers lie, and hands go blank and shuffled; every deck is shuffled.</li><li>Names turn to random letters and numbers, and every stack on the field takes a stranger's color: a stack you pick up may not be yours, and acting with one that isn't costs 1d2 cards from your deck (once a round, on a 1 of 1d6, it moves by accident).</li><li>Twice a round, a 1 of 1d20 sends a move or an attack astray.</li><li>Prices, the Ether's counts and the Bank's mana lie.</li><li>Field Automation and Lazy Hand wait for it to end.</li><li>Everything in Neptune's cycle happens too.</li></ul>`);
   render()}}
 {const _ee=endEclipse;endEclipse=function(){if(G.eclipse&&G.eclipse.k==="neptune"){G.nepEc=null;for(const k of ["blindHand","manaDel"])if(G[k])G[k]=G[k].filter(x=>x.by!=="nep")}return _ee.apply(this,arguments)}}
 /* acting with a stranger's stack */

@@ -100,7 +100,7 @@ async function suicideSpell(){
 /* a Joker kills itself. Works for players and for the Horde (survival) */
 async function jokerSuicide(r,c,st,pl){
   const j=st.cards.find(x=>kind(x)==="joker");
-  st.cards.splice(st.cards.indexOf(j),1);if(!st.cards.length){G.board[r][c]=null;if(G.sel&&G.sel.r===r&&G.sel.c===c)G.sel=null}
+  st.cards.splice(st.cards.indexOf(j),1);if(vacate(r,c,st)){if(G.sel&&G.sel.r===r&&G.sel.c===c)G.sel=null}
   else if(G.sel)G.sel.pick.delete(j.id);
   const souls=j.captured||[];j.captured=[];
   SND.gun();if(!G.opts.fast)await sleep(550);   // v71: the word comes once the gunshot has rung out
@@ -163,7 +163,7 @@ function teleOk(){
 async function teleport(){
   const st=selStack(),c=st.cards.find(x=>G.sel.pick.has(x.id));
   st.cards.splice(st.cards.indexOf(c),1);(me().returning=me().returning||[]).push(c);
-  if(!st.cards.length){G.board[G.sel.r][G.sel.c]=null;G.sel=null}else G.sel.pick.delete(c.id);
+  if(vacate(G.sel.r,G.sel.c,st))G.sel=null;else G.sel.pick.delete(c.id);
   log(`Teleport: ${esc(nameOf(c))} leaves the field and will be back in the hand at the start of the next turn.`);checkWin();
 }
 async function nakedHand(){

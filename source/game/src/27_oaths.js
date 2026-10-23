@@ -54,7 +54,7 @@ function sacrificeToSun(card,from){
   if(from==="hand")P.hand.splice(P.hand.indexOf(card),1);
   else{const st=G.board[from.r][from.c];st.cards.splice(st.cards.indexOf(card),1);
     if(card.captured&&card.captured.length){for(const s of card.captured)toGrave(s,"death");card.captured=[]}
-    if(!st.cards.length){G.board[from.r][from.c]=null;G.sel=null}else if(G.sel)G.sel.pick.delete(card.id)}
+    if(vacate(from.r,from.c,st))G.sel=null;else if(G.sel)G.sel.pick.delete(card.id)}
   const got=giveFire(pl,soulOf(card));toGrave(card,"burn");
   log(`${plName(pl)} sacrifices ${esc(nameOf(card))} to the Second Sun (+${got} fire mana, ${fireOf(pl)} in all).`);
   if(from!=="hand")checkWin();return true}
@@ -261,13 +261,10 @@ async function saturnEclipse(){
   if(G.p[pl].team!==team)(G.betrayed=G.betrayed||[]).push({by:pl,team,mates})}}}
 
 /* ---------- the strict economy and the collapse ---------- */
-{const _cl=collapse;collapse=function(){
-  const keep=realPlayers().filter(i=>oathNow(i,"saturn")&&effMana(i)>-6||good4(i)).map(i=>{const P=G.p[i];return {i,souls:[...P.souls],debt:P.debt,loans:[...(P.loans||[])],maxAdd:P.maxAdd,deck:[...P.deck],board:stacksOf(i).map(x=>({r:x.r,c:x.c,st:x.st,cards:[...x.st.cards]}))}});
-  _cl();
-  for(const k of keep){const P=G.p[k.i];P.souls=k.souls;P.debt=k.debt;P.loans=k.loans;P.maxAdd=k.maxAdd;P.deck=k.deck;
-    for(const b of k.board){b.st.cards=b.cards;G.board[b.r][b.c]=b.st}
-    G.ether=G.ether.filter(c=>!k.deck.includes(c)&&!k.board.some(b=>b.cards.includes(c)));
-    log(`Saturn shields ${plName(k.i)} from the collapse.`,"event")}
+{const _cl=collapse;collapse=function(spare){
+  const keep=realPlayers().filter(i=>oathNow(i,"saturn")&&effMana(i)>-6||good4(i));
+  _cl(new Set([...(spare||[]),...keep]));   // v78j: the collapse passes them over (putting them back afterwards left their souls in the grave too)
+  for(const i of keep)log(`Saturn shields ${plName(i)} from the collapse.`,"event");
   render()}}
 {const _bc=bankCollectors;bankCollectors=async function(){if(G.satStrict)G.collNext=Math.min(G.collNext||0,G.moon.round);return _bc()}}
 

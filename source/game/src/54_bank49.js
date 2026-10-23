@@ -20,7 +20,7 @@ const owesBank=pl=>debtOf(pl)>0||owedOf(pl)>0||!!G.p[pl].guilty;
 const standingGood=pl=>{const P=G.p[pl];return !P.guilty&&!(P.rp&&P.rp.bad)};
 
 /* ---------- Report day ---------- */
-function bankReport(){if(!G.bank||survival())return;
+function bankReport(){if(!G.bank||G.bank.dead||survival())return;   // v78j: no Banker, no taxes
   for(const pl of alive().filter(i=>!isHorde(i)&&!isNPC(i))){const P=G.p[pl],rp=rpOf(pl);
     if(P.robbed!=null&&P.robbed>=rp.round)rp.bad=true;
     // taxes
@@ -90,7 +90,7 @@ function landHTML_(r,c,under){const l=landAt(r,c);if(!l)return "";const P=G.p[l.
   return out.filter(o=>{const t=G.board[o.r][o.c];return !(t&&t.owner===bk&&t.cards.every(x=>x.unit==="debt"))})}}
 
 /* ---------- between players: forgive a loan, give mana or a card ---------- */
-function forgiveLoan(L){if(!L||!["open","late"].includes(L.state))return;L.state="done";const n=L.owed;L.owed=0;const bk=npcIx("bank");if(bk>=0)for(const x of stacksOf(bk))if(x.st.loan===L.id)G.board[x.r][x.c]=null;
+function forgiveLoan(L){if(!L||!["open","late"].includes(L.state))return;L.state="done";const n=L.owed;L.owed=0;loanCollectorsOff(L);
   log(`<b>${plName(L.to)} forgives ${plName(L.from)}'s loan</b> (${n} mana).`,"event");notify(L.from,`${esc(G.p[L.to].name)} forgives the loan.`)}
 function giftMana(from,to,n){n=Math.min(Math.max(0,Math.round(n)),mana(from));if(n<=0||from===to||!G.p[to]||G.p[to].out)return 0;
   const paid=payQuiet(from,n),got=giveMana(to,paid);log(`${plName(from)} gives ${plName(to)} ${paid} mana${got<paid?` (${got} fit in the soul pile)`:""}.`,"event");return got}

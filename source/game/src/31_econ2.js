@@ -92,16 +92,17 @@ async function loanOffer(L,due){
   const paid=payQuiet(L.to,L.n),got=giveMana(L.from,paid);L.state="open";L.owed=paid;L.due=tnOf(L.from)+due;L.intAt=tnOf(L.from)+3;
   log(`<b>${plName(L.to)} lends ${plName(L.from)} ${paid} mana</b>${got<paid?` (${got} fit in the soul pile)`:""}: due in ${due} of ${plName(L.from)}'s turns, growing by 1d2 every 3 turns; if it isn't paid, the Bank collects.`,"event");
   notify(L.from,`${esc(G.p[L.to].name)} lends ${esc(G.p[L.from].name)} ${paid} mana.`);render()}
-function repayLoan(L,k){k=Math.min(k,L.owed,mana(L.from));if(k<=0)return 0;const paid=payQuiet(L.from,k);giveMana(L.to,paid);L.owed-=paid;
+function repayLoan(L,k){k=Math.min(k,L.owed,mana(L.from));if(k<=0)return 0;const paid=payQuiet(L.from,k);giveMana(L.to,Math.min(paid,L.owed));L.owed=Math.max(0,L.owed-paid);   // v78j: overpaid mana is lost
   log(`${plName(L.from)} pays ${plName(L.to)} back ${paid} mana${L.owed?` (${L.owed} still owed)`:"; the loan is settled"}.`);if(!L.owed)loanSettled(L);return paid}
-function loanSettled(L){L.state="done";L.owed=0;const bk=npcIx("bank");if(bk>=0)for(const x of stacksOf(bk))if(x.st.loan===L.id)G.board[x.r][x.c]=null;
+const loanCollectorsOff=L=>{const bk=npcIx("bank");if(bk>=0)for(const x of stacksOf(bk))if(x.st.loan===L.id)G.board[x.r][x.c]=null};
+function loanSettled(L){L.state="done";L.owed=0;loanCollectorsOff(L);
   log(`The loan from ${plName(L.to)} to ${plName(L.from)} is settled.`)}
 function sendLoanCollectors(L){const bk=npcIx("bank");if(bk<0)return 0;let n=0;const k=R(2);
   for(const t of freeTilesNear(L.from,true).slice(0,k)){G.board[t[0]][t[1]]={owner:bk,cards:[mkUnit("debt",bk)],moved:true,attacked:true,hunt:L.from,loan:L.id};n++}return n}
 /* a loan comes due at the start of the borrower's turn */
 {const _bt=bankTurn;bankTurn=function(pl){_bt(pl);const tn=tnOf(pl);
   for(const L of p2pOf()){
-    if(["ask","offer","open","late"].includes(L.state)&&(G.p[L.from].out||G.p[L.to].out)){L.state="void";continue}
+    if(["ask","offer","open","late"].includes(L.state)&&(G.p[L.from].out||G.p[L.to].out)){L.state="void";loanCollectorsOff(L);continue}   // v78j: and its collectors go
     if(L.from!==pl)continue;
     if(["open","late"].includes(L.state)&&L.owed>0&&L.intAt!=null&&tn>=L.intAt){const add=R(2);L.owed+=add;L.intAt=tn+3;log(`Interest: ${plName(pl)}'s loan from ${plName(L.to)} grows by ${add} (1d2) to ${L.owed}.`)}
     // v71e: never taken by itself: due, a reminder; still open a turn later, the Debt Collectors

@@ -88,12 +88,12 @@ async function eclipse(k){
   if(k==="jupiter"){
     const Y=realPlayers().find(i=>G.p[i].tribe==="yald");
     log(`<b>An eclipse</b>: the Sun passes behind Jupiter.`,"event");
-    const lines=[];G.jupMax={until:G.moon.round+1};
+    const lines=[];G.jupMax={until:G.moon.round};
     for(const pl of realPlayers()){const d=rollN(2,3),v=sum(d)-1;G.jupMax[pl]=v;const P=G.p[pl];P.minerX2=tnOf(pl)+R(4);
       const got=giveMana(pl,Math.max(0,Math.min(surCap(pl),2*soulCap(pl))-mana(pl)));lines.push(`${esc(P.name)}: 2d3 − 1 = ${d.map(x=>x.v).join(" + ")} − 1 = <b>+${v}</b> maximum, ${got} mana`);tray(pl,"Jupiter eclipse",d,`+${v} max`,true)}
     if(G.bank){for(const pl of realPlayers()){const P=G.p[pl];P.debt=0;P.debtAt=null;P.loans=[]}if(G.bank.mana>0)G.bank.mana*=2}
     if(Y!=null){const n=G.dark.filter(c=>c.darkOwner!==Y).length,got=giveMana(Y,n);if(got)log(`Yaldabaoth drinks from the eclipse: ${plName(Y)} gets ${got} mana for the souls of others in the Outer Darkness.`,"event")}
-    popup("Jupiter's eclipse",`<p>The Sun passes behind Jupiter. For this round and the next:</p><p>${lines.join("<br>")}</p><p>Every soul pile fills to twice its maximum. The Bank forgives every debt and loan and doubles what it holds; everything in the Ether is on sale. Miners bring twice as much for 1d4 turns.</p>`);
+    popup("Jupiter's eclipse",`<p>The Sun passes behind Jupiter. For this round:</p><p>${lines.join("<br>")}</p><p>Every soul pile fills to twice its maximum. The Bank forgives every debt and loan and doubles what it holds; everything in the Ether is on sale. Miners bring twice as much for 1d4 turns.</p>`);
   }
   if(k==="venus"){
     log(`<b>An eclipse of Venus</b>: its gifts are doubled this round, and the grave makes an offer.`,"event");
@@ -157,7 +157,7 @@ SPELLS.push(
  {id:"betray",dice:"1d2+2d3",name:"Betrayal",cost:6,school:"Astrology",text:"Oath of Mercury, in a team game. You leave your team for good. For two rounds every card killed falls into the Outer Darkness, and every damage between you and your former teammates pays its dealer the soul's worth + 1d2 − 1.",
   ok:()=>oathOf(G.active)==="mercury"&&teammatesOf(G.active).length>0,run:async()=>{const pl=G.active,mates=teammatesOf(pl);
    const sure=await ask(pl,{kind:"yesno",id:"betray",title:"Betrayal",text:`Betray ${mates.map(i=>esc(G.p[i].name)).join(" and ")}? It can't be undone.`,yes:"Betray",no:"Stay loyal",ai:()=>true});
-   if(!sure){giveMana(pl,spellCost(SP("betray")));log(`${plName(pl)} thinks better of it.`);return}
+   if(!sure){const back=giveMana(pl,spellCost(SP("betray")));if(G.bank)G.bank.mana-=back;log(`${plName(pl)} thinks better of it.`);return}   // v78j: from the Bank
    G.p[pl].team=300+pl;G.betrayal={by:pl,mates,until:G.moon.round+1};G._vis=null;
    log(`<b>Betrayal</b>: ${plName(pl)} turns on ${mates.map(plName).join(" and ")}.`,"event");
    popup("Betrayal",`<p>${plName(pl)} betrays ${mates.map(plName).join(" and ")}. They are enemies now, for good.</p><p>For two rounds every card killed falls into the Outer Darkness, and every damage between them pays its dealer.</p>`,pl);checkWin()}},

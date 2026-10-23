@@ -54,6 +54,9 @@ setInterval(()=>{if(!G||G.over||document.hidden)return;const V=view(),P=G.p[G.ac
   if(out&&out.state==="offer"&&!G.p[from].cpu&&was)bankHoldOpen=true;   // the terms are on screen now: don't draw the Bank over them
   return out}}
 let bankHoldOpen=false;
+{const _an=answerLoan;answerLoan=function(L){const out=_an.apply(this,arguments);   // v78j
+  if(L&&L.state==="offer"&&document.querySelector("#ov:not([hidden]) #qy")){bankHoldOpen=true;const w=$("#dipwin");if(w&&!w.hidden)w.hidden=true}
+  return out}}
 {const _ob=openBank;openBank=function(){if(bankHoldOpen){bankHoldOpen=false;return}return _ob.apply(this,arguments)}}
 
 /* ---------- the ▸ rankings: opening one turns it on, closing it turns it off ---------- */

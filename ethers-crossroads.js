@@ -78,9 +78,10 @@ let COLS=5;const SOUL_CAP=6, HAND_CAP=6;   // COLS is set by the map for each ga
    anything over the maximum fades at the start of the next round */
 const surCap=pl=>G&&G.satStrict&&!oathNow(pl,"saturn")&&!(G.satStrictSafe||[]).includes(pl)?soulCap(pl):Math.min(54,soulCap(pl)*3);   // a strict Saturn (its eclipse) allows no surplus
 const handCap=pl=>G&&G.p[pl]?({jester:7,beginner:8}[G.p[pl].tribe]||HAND_CAP)*(nepGlow(pl)?3:1):HAND_CAP;   // v71d: Neptune's Afterglow triples it
+const baseCap=P=>({jester:7,beginner:8}[P.tribe]||SOUL_CAP);   // the maximum an Emanation starts with
 function soulCap(pl){
   if(!G||!G.p[pl])return SOUL_CAP;const P=G.p[pl];
-  let cap={jester:7,beginner:8}[P.tribe]||SOUL_CAP;
+  let cap=baseCap(P);
   cap=Math.max(1,Math.min(18,cap+(P.maxAdd||0)+skyCapMod(P)));   // bought maximum mana (18 at most), or lost to Gambling and the Bank's collapse
   if(P.delu&&P.delu.turns>0)cap=Math.max(3,9-(P.delu.maxCut||0));                       // a Delusion: nine mana at most, less what Lucifer paid to stifle
   if(G.moonLev&&G.moonLev.owner===pl)cap=Math.min(12,cap+G.dark.length);               // the Leviathan on the moon: +1 for every card in the Outer Darkness
@@ -390,9 +391,10 @@ function log(html,cls=""){const m=/data-pl="(\d+)"/.exec(html);
 const plName=pl=>`<span class="pn" data-pl="${pl}" style="--pc:${G.p[pl].color}">${esc(G.p[pl].name)}</span>`;
 
 /* where cards go when they leave play */
-function toDark(c){if(c.captured&&c.captured.length){for(const s of c.captured)toDark(s);c.captured=[]}c.darkOwner=c.owner;G.dark.push(c)}
+const freePrisoners=c=>{if(c.prisoners&&c.prisoners.length){const ps=c.prisoners;c.prisoners=[];for(const p of ps)toGrave(p,"death")}};   // v78j
+function toDark(c){freePrisoners(c);if(c.captured&&c.captured.length){for(const s of c.captured)toDark(s);c.captured=[]}c.darkOwner=c.owner;G.dark.push(c)}
 function toGrave(c,cause){
-  if(!c)return;
+  if(!c)return;freePrisoners(c);
   if(c.unit&&UNIT[c.unit].ether){if(c.hp!=null)c.hp=c.maxHp;c.hate=false;c.readyAt=0;c.shieldAt=0;c.shieldOff=0;c.healAt=0;c.repAt=0;c.inSlot=null}   // Ether cards lie in the grave like any card
   else if(c.unit&&c.unit!=="slave"){   // Emanation cards never lie in the grave
     if(c.hp!=null)c.hp=c.maxHp;c.hate=false;
@@ -429,11 +431,22 @@ function takeHand(pl,n,why){const P=G.p[pl],out=[];for(let i=0;i<n&&P.hand.lengt
   return out.concat(takeDeck(pl,n-out.length,why,true))}
 const shortNote=(pl,n)=>{const k=Math.max(0,n-G.p[pl].deck.length);return k?` (your deck is ${k} short: ${k} mana instead)`:""};
 const mana=pl=>G.p[pl].souls.reduce((a,c)=>a+soulOf(c),0);
+/* v78j: the souls that pay n (rule 11.P): as little mana overpaid as can be, since it is lost, and of those the smallest
+   souls (1+1 for 2, not a 3). Not enough souls: all of them. */
+function soulPick(souls,n){const S=[...souls].sort((a,b)=>soulOf(a)-soulOf(b)),k=S.length;if(n<=0)return [];
+  if(k>14){const out=[];let paid=0;for(const c of S){if(paid>=n)break;out.push(c);paid+=soulOf(c)}return out}   // a pile that big: smallest first
+  const better=(a,b)=>{for(let i=0;i<Math.min(a.length,b.length);i++)if(a[i]!==b[i])return a[i]<b[i];return a.length<b.length};
+  let best=null,bestSum=Infinity,bestKey=null;
+  for(let m=1;m<1<<k;m++){let s=0;const pick=[];for(let i=0;i<k;i++)if(m>>i&1){s+=soulOf(S[i]);pick.push(S[i])}
+    if(s<n||s>bestSum)continue;const key=pick.map(soulOf).sort((a,b)=>b-a);   // the largest soul spent, then the next…
+    if(s<bestSum||better(key,bestKey)){best=pick;bestSum=s;bestKey=key}}
+  return best||S}
+function spendSouls(pl,n){const P=G.p[pl];P.souls.sort((a,b)=>soulOf(a)-soulOf(b));let paid=0;
+  for(const c of soulPick(P.souls,n)){P.souls.splice(P.souls.indexOf(c),1);paid+=soulOf(c);toGrave(c,"spent")}
+  return paid}
 function pay(pl,n){
-  const P=G.p[pl];if(mana(pl)<n)return false;
-  P.souls.sort((a,b)=>soulOf(a)-soulOf(b));
-  let paid=0;
-  while(paid<n&&P.souls.length){const i=P.souls.findIndex(c=>soulOf(c)>=n-paid);const c=i>=0?P.souls.splice(i,1)[0]:P.souls.shift();paid+=soulOf(c);toGrave(c,"spent")}
+  if(mana(pl)<n)return false;
+  spendSouls(pl,n);
   if(pl===G.active)G.spent=true;
   return true;
 }
@@ -618,7 +631,7 @@ function attack(r1,c1,r2,c2,mode){
   return attackRun(r1,c1,r2,c2,mode,null);
 }
 function attackRun(r1,c1,r2,c2,mode,forced){
-  const A=G.board[r1][c1],D=G.board[r2][c2],atkPl=A.owner,defPl=D.owner;
+  const A=G.board[r1][c1],D=G.board[r2][c2];if(!A||!D)return;const atkPl=A.owner,defPl=D.owner;
   const opt=forced||attackOptions(r1,c1).find(o=>o.r===r2&&o.c===c2&&(mode==null||o.mode===mode))||{mode:null,ranged:false};
   const w=opt.A?opt.w:weaponOf(A,opt.mode);
   if(w&&w.special==="stomp")return stomp(r1,c1,r2,c2);
@@ -635,7 +648,7 @@ function attackRun(r1,c1,r2,c2,mode,forced){
   if(opt.card&&opt.card.unit==="cannon")opt.card.readyAt=(G.p[atkPl].tn||0)+R(2)+2;   // the Cannon reloads
   G.histTile=`${coord(r1,c1)} → ${coord(r2,c2)}`;
   A.odds=null;D.odds=null;A.attacked=true;G.lastAttack=G.turnNo;venusAttack(atkPl,defPl);
-  if(A.down)ra.parts=["a face-down card "+ra.total];
+  if(A.down){ra.parts=["a face-down card "+ra.total];A.down=false}   // v78j: rule 12.G.5: it flips face up once it attacks
   const wasDown=D.down;if(D.down){D.down=false}   // a face-down stack that is attacked turns face up
   if(A.ambush)A.ambush=false;A.ambushing=false;
   if(G.opts.moonBonus!==false&&!bothSoloJokers){   // the moon lends a die: Full Moon to the attacker, New Moon to the defender
@@ -806,13 +819,14 @@ function eliminate(pl,why){
     log(`<b>${plName(pl)} is eliminated</b>: ${why}.`,"event");
   }
   // what is left of them leaves the table
-  const toOD=G.opts.elimDark;const dump=c=>{if(toOD)toDark(c);else{c.owner=pl;G.grave.push(c)}};
+  const toOD=G.opts.elimDark;const dump=c=>{if(toOD||c.puppet)toDark(c);else{c.owner=pl;toGrave(c,"out")}};   // v78j: toGrave sorts out Emanation cards
   for(const {st,r,c} of stacksOf(pl)){for(const x of st.cards){for(const s of x.captured||[])dump(s);x.captured=[];dump(x)}if(st.captive){dump(st.captive);st.captive=null}G.board[r][c]=null}
   const shared=alliesOf(pl).some(a=>G.p[a].deck===P.deck);
   for(const c of P.hand.splice(0))dump(c);
   if(!shared){for(const c of P.deck.splice(0))dump(c);for(const c of P.souls.splice(0))dump(c)}
   if(!toOD)shuffle(G.grave);
   log(toOD?`${plName(pl)}'s hand and deck fall into the Outer Darkness.`:`${plName(pl)}'s hand and deck go to the grave, and the grave is shuffled.`);
+  if(G.active===pl&&G.waiter){const f=G.waiter;G.waiter=null;stopTimer();f()}   // v78j: out on their own turn: it ends (it waited for a button they no longer have)
 }
 
 /* ---------------- choices: a person answers in a box, the computer answers in code ---------------- */
@@ -984,6 +998,7 @@ async function together(players,phases){
 }
 /* one player plays one phase: the computer in code, a person until they press the button (or the timer runs out) */
 async function actPhase(pl,ph){
+  if(G.p[pl].out)return;   // v78j: knocked out earlier in the round
   setActive(pl);G.phase=ph;
   if(G.p[pl].cpu){G.busy=true;render();try{await AI.phase(pl,ph)}catch(e){console.error(e);log("The computer stumbles: "+esc(e.message))}G.busy=false;render();return}
   G.busy=false;render();
@@ -1098,7 +1113,7 @@ function canPlace(card,r,c){
 function place(card,r,c){
   const P=me(),hi=P.hand.indexOf(card);if(hi>=0)P.hand.splice(hi,1);card.owner=G.active;if(G.placing===card)G.placing=null;
   const st=G.board[r][c];
-  const fd=!!G.faceDown&&(!st||st.down);
+  const fd=!!G.faceDown&&(!st||st.down)&&!isBase(card)&&kind(card)!=="joker"&&G.placing!==card;   // v78j
   if(st){if(st.cards.some(x=>x.unit==="assassin")&&card.unit==="assassin"){card.hp=Math.min(card.hp,1);log("A second Assassin joins: one more heart for the pair.")}st.cards.push(card);if(!fd)st.down=false}
   else G.board[r][c]={owner:G.active,cards:[card],moved:G.phase!=="setup",attacked:false,down:fd};
   if(fd){fogLog(G.active,r,c,`${plName(G.active)} places a card face down.`);log(`${plName(G.active)} places a card face down on ${coord(r,c)}.`);G.selHand=null;G.faceDown=false;if(G.placing===card)G.placing=null;return}
@@ -1144,8 +1159,10 @@ function doMove(r,c){
   if(t){if(t.cards.some(x=>x.unit==="assassin")&&grp.some(x=>x.unit==="assassin")){for(const a of grp)if(a.unit==="assassin")a.hp=Math.min(a.hp,1);log("A second Assassin joins: one more heart for the pair.")}
     t.cards.push(...grp);t.moved=true;if(!(t.down&&wasDown))t.down=false}
   else G.board[r][c]={owner:st.owner,cards:grp,moved:true,attacked:false,hypo:st.cards.length?0:st.hypo,down:wasDown&&!st.cards.length?true:wasDown};
+  // v78j: a whole stack takes what hangs over its next fight along (Divine or Hexed Odds, Suppress, Dice Plus, Mars)
+  if(!st.cards.length){const to=G.board[r][c];for(const k of ["odds","supp","dplus","mars"])if(st[k]&&!to[k]){to[k]=st[k];st[k]=null}}
   if(!st.cards.length)st.down=false;
-  if(cap)G.board[r][c].captive=cap;
+  if(cap){if(t&&t.captive)freeCaptive({captive:cap},s.r,s.c);else G.board[r][c].captive=cap}   // a stack holds one captive: the newcomer's goes free
   fogLog(st.owner,r,c,`${plName(st.owner)} moves a stack out of sight.`);log(G.board[r][c].down?`${plName(st.owner)} moves a face-down stack from ${coord(s.r,s.c)} to ${coord(r,c)}.`:`${plName(st.owner)} moves ${grp.map(short).join(" ")} from ${coord(s.r,s.c)} to ${coord(r,c)}${t?", onto another stack":""}.`);
   G.sel={r,c,pick:new Set(G.board[r][c].cards.filter(x=>!isBase(x)).map(x=>x.id))};G.mode=null;
   ambushCheck(r,c);
@@ -1163,7 +1180,7 @@ function sacrifice(card,from){
   if(from==="hand")P.hand.splice(P.hand.indexOf(card),1);
   else{const st=G.board[from.r][from.c];st.cards.splice(st.cards.indexOf(card),1);
     if(card.captured&&card.captured.length){for(const s of card.captured)toGrave(s,"death");card.captured=[]}
-    if(!st.cards.length){G.board[from.r][from.c]=null;G.sel=null}else if(G.sel)G.sel.pick.delete(card.id)}
+    if(vacate(from.r,from.c,st))G.sel=null;else if(G.sel)G.sel.pick.delete(card.id)}
   addSoul(G.active,card);log(`${plName(G.active)} sacrifices ${esc(nameOf(card))} (+${soulOf(card)} mana).`);rainSac(G.active);
   if(from!=="hand")checkWin();
   return true;
@@ -1273,7 +1290,7 @@ async function suicideSpell(){
 /* a Joker kills itself. Works for players and for the Horde (survival) */
 async function jokerSuicide(r,c,st,pl){
   const j=st.cards.find(x=>kind(x)==="joker");
-  st.cards.splice(st.cards.indexOf(j),1);if(!st.cards.length){G.board[r][c]=null;if(G.sel&&G.sel.r===r&&G.sel.c===c)G.sel=null}
+  st.cards.splice(st.cards.indexOf(j),1);if(vacate(r,c,st)){if(G.sel&&G.sel.r===r&&G.sel.c===c)G.sel=null}
   else if(G.sel)G.sel.pick.delete(j.id);
   const souls=j.captured||[];j.captured=[];
   SND.gun();if(!G.opts.fast)await sleep(550);   // v71: the word comes once the gunshot has rung out
@@ -1336,7 +1353,7 @@ function teleOk(){
 async function teleport(){
   const st=selStack(),c=st.cards.find(x=>G.sel.pick.has(x.id));
   st.cards.splice(st.cards.indexOf(c),1);(me().returning=me().returning||[]).push(c);
-  if(!st.cards.length){G.board[G.sel.r][G.sel.c]=null;G.sel=null}else G.sel.pick.delete(c.id);
+  if(vacate(G.sel.r,G.sel.c,st))G.sel=null;else G.sel.pick.delete(c.id);
   log(`Teleport: ${esc(nameOf(c))} leaves the field and will be back in the hand at the start of the next turn.`);checkWin();
 }
 async function nakedHand(){
@@ -2183,7 +2200,7 @@ function render(){
     if(!canAct())return;
     if(!(G.phase==="setup"&&G.setupStep==="more"||G.phase==="prep")){flash(G.phase==="setup"?"Place your Ace and Jack first.":"Cards are placed during setup or the prep phase.");return}
     if(G.placing){flash("Put the Slave down first.");return}
-    const c=P.hand[+b.dataset.h];G.selHand=G.selHand===c?null:c;G.mode=null;render()});
+    const c=P.hand[+b.dataset.h];G.selHand=G.selHand===c?null:c;G.mode=null;G.faceDown=false;render()});   // v78j: the tick is for one card
   $("#hand").querySelectorAll("[data-sh]").forEach(b=>b.onclick=()=>{if(!canAct())return;sacrifice(P.hand[+b.dataset.sh],"hand");render()});
   $("#hand").querySelectorAll("[data-sunh]").forEach(b=>b.onclick=()=>{if(!canAct())return;sacrificeToSun(P.hand[+b.dataset.sunh],"hand");render()});
   $("#mytray").innerHTML=hidden?"":trayHTML(P,V);
@@ -2250,7 +2267,7 @@ function tileClick(r,c){
   if(live&&G.selHand){if(canPlace(G.selHand,r,c)){place(G.selHand,r,c);render()}else flash("That card can't be placed there.");return}
   if(live&&G.sel&&G.mode==="move"&&moveTargets().some(([a,b])=>a===r&&b===c)){doMove(r,c);render();return}
   if(live&&G.sel&&G.mode==="attack"&&attackTargets().some(([a,b])=>a===r&&b===c)){chooseAttack(G.sel.r,G.sel.c,r,c);return}
-  if(G.comparePick&&G.sel){const a=selStack(),b=hiddenFrom(view(),r,c)?null:G.board[r][c];G.comparePick=false;
+  if(G.comparePick&&G.sel){const a=selStack(),b=hiddenFrom(view(),r,c)||showsBack(view(),r,c)?null:G.board[r][c];G.comparePick=false;   // v78j: nor a face-down one
     if(a&&b&&a!==b){const t=document.querySelector(`.tile[data-r="${r}"][data-c="${c}"]`).getBoundingClientRect();pop(`<div class="cih"><b>Compare</b></div>`+compareHTML(a,b,stackTitle(a,G.sel.r,G.sel.c),stackTitle(b,r,c)),t.left,t.bottom,"info wide")}render();return}
   if(G.busy)return;
   const st=hiddenFrom(view(),r,c)?null:G.board[r][c];
@@ -3444,7 +3461,7 @@ async function lightningLeviathan(){
   log(`<b>Lightning Strike</b>: the bolt needs no roll against the Leviathan; it loses a heart (${Math.max(0,c.hp)} left).`,"event");
   if(c.hp<=0){
     if(onMoon){const o=G.moonLev.owner;G.moonLev=null;toDark(c);log("<b>The Leviathan falls from the moon into the Outer Darkness.</b>","event");notify(o,"The Leviathan falls from the moon.")}
-    else{const r=G.sel.r,cc=G.sel.c;st.cards.splice(st.cards.indexOf(c),1);if(!st.cards.length)G.board[r][cc]=null;c.hp=c.maxHp;toDark(c);checkWin()}
+    else{const r=G.sel.r,cc=G.sel.c;st.cards.splice(st.cards.indexOf(c),1);vacate(r,cc,st);c.hp=c.maxHp;toDark(c);checkWin()}
     popup("The Leviathan is struck down","<p>Twelve times did the lightning strike twelve at once, with one hundred and forty-four wounds, plus the lightning that cut his tongue into two permanent halves, even down to his throat.</p>",G.active);
   }
   return true;
@@ -3520,7 +3537,7 @@ async function godHunger(){
   if(src==="grave")for(let i=0;i<n&&G.grave.length;i++)eaten.push(G.grave.splice(Math.floor(Math.random()*G.grave.length),1)[0]);
   else if(src==="own")for(let i=0;i<n&&P.deck.length;i++)eaten.push(P.deck.pop());
   else if(src==="field"){const s=G.sel;for(let i=0;i<n;i++){const ok=st.cards.filter(c=>!(c.unit&&UNIT[c.unit].hp)&&!isBase(c)).sort((a,b)=>nat(a)-nat(b));if(!ok.length)break;const c=ok[0];st.cards.splice(st.cards.indexOf(c),1);if(c.captured&&c.captured.length){for(const x of c.captured)toGrave(x,"death");c.captured=[]}eaten.push(c)}
-    if(!st.cards.length){G.board[s.r][s.c]=null;G.sel=null}}
+    if(vacate(s.r,s.c,st))G.sel=null}
   else if(src&&src[0]==="p"){
     const t=+src.slice(1),a=R(4),b=R(4);tray(pl,"God Hunger",[{s:4,v:a}],`${a} vs ${b}`);tray(t,"God Hunger defense",[{s:4,v:b}],`${b} vs ${a}`,true);
     if(a<=b){let moved=0;P.souls.sort((x,y)=>soulOf(x)-soulOf(y));while(moved<2&&P.souls.length){const c=P.souls.shift();moved+=soulOf(c);if(!addSoul(t,c))toGrave(c,"spent")}
@@ -3578,7 +3595,7 @@ SPELLS.push(
  {id:"lev",tribe:"leviathan",name:"Rise to the Moon",cost:0,school:"Sorcery",text:"Free, only at the New Moon, while your Leviathan is on the field. The Leviathan leaves the field for the moon. From the next New Moon on, every enemy pays its toll each New Moon: 2d4 random deck cards, 2 random cards from the hand and 1 mana, all into the Outer Darkness. On the moon your mana can rise by one for every card in the Outer Darkness (twelve at most). It can be attacked only at the New Moon, and defends there with advantage.",
   ok:()=>(G.moon.i===0&&!G.moon.gone||G.moon.gone==="mars")&&!G.moonLev&&stacksOf(G.active).some(x=>hasK(x.st,"leviathan")),run:async()=>{
    const x=stacksOf(G.active).find(x=>hasK(x.st,"leviathan")),c=x.st.cards.find(k=>k.unit==="leviathan");
-   x.st.cards.splice(x.st.cards.indexOf(c),1);if(!x.st.cards.length)G.board[x.r][x.c]=null;if(G.sel&&G.sel.r===x.r&&G.sel.c===x.c)G.sel=null;
+   x.st.cards.splice(x.st.cards.indexOf(c),1);vacate(x.r,x.c,x.st);if(G.sel&&G.sel.r===x.r&&G.sel.c===x.c)G.sel=null;
    G.moonLev={card:c,owner:G.active,since:G.moon.round};
    log(`<b>The Leviathan rises onto the New Moon.</b>`,"event");
    popup("The Leviathan on the moon",`<p>“'Spit revelation’s limbo back into the cup of sand,' the serpent says wordlessly to the soul from the moon above.</p><p>Caustic spit, bitter with mouth burns. A favor of spirits, where pillars are seen like windows of reflections of themselves inside; dying memories.</p><p>The boy says to himself, 'The apocryphon said thirteen of twelve eternities. I must brand the soul with burning births. Falling from infinity without beginnings, into four corners of end unleashed onto a new world.'”</p>`,G.active);
@@ -3718,8 +3735,9 @@ function stealOnDamage(st){
 const UNIT_KIND={samson:"Wildcard",antony:"Wildcard",satan:"Wildcard",leviathan:"Wildcard",bullgoat:"Wildcard",goatbull:"Wildcard",debt:"Wildcard",slavemaster:"Wildcard",slave:"Wildcard",trafficker:"Wildcard",tree:"Base"};
 function cardClass(c){if(c.barb)return "Demon";if(isBase(c))return "Base";if(c.unit)return UNIT_KIND[c.unit]||UNIT[c.unit].kind||"Wildcard";if(isSpecial(c))return "Special";return "Standard"}
 function rangeOf(st,mode){   // [min,max] of a stack's score
-  const solo=st.cards.length===1&&st.cards[0].unit?st.cards[0]:null;
-  if(solo&&UNIT[solo.unit].weapons){const U=UNIT[solo.unit];
+  const inner=lhInner(st);if(inner.cards.length)st=inner;   // v78j: what fights, as in combat
+  const solo=soloUnit(st);
+  if(solo){const U=UNIT[solo.unit];
     if(U.copy)return null;
     if(mode==="atk"){let lo=0,hi=0;for(const w of U.weapons){if(w.special)continue;const d=w.roll();const a=w.fixed+d.length,b=w.fixed+d.reduce((x,y)=>x+y.s,0);lo=Math.max(lo,a);hi=Math.max(hi,b)}return[lo,hi]}
     if(U.defRoll){const d=U.defRoll();return[(U.defFixed||0)+d.length,(U.defFixed||0)+d.reduce((x,y)=>x+y.s,0)]}
@@ -4008,7 +4026,7 @@ function blindOptions(r,c){
   return out;
 }
 function blindPick(r1,c1,r2,c2,mode){
-  const st=G.board[r1]&&G.board[r1][c1];if(!st||!fogOn()&&!G.ffog)return null;
+  const st=G.board[r1]&&G.board[r1][c1];if(!st||!fogTile(st.owner,r2,c2))return null;   // v78j: any hidden tile, fog of war on or not
   if(attackOptions(r1,c1).some(o=>o.r===r2&&o.c===c2))return null;
   return blindOptions(r1,c1).find(o=>o.r===r2&&o.c===c2&&(mode==null||o.mode===mode))||null;
 }
@@ -4158,6 +4176,9 @@ const CAPT_ORDER=["cannon","healer","repair","ram","miner"];
 const captureCard=t=>[...t.cards].sort((a,b)=>CAPT_ORDER.indexOf(a.unit)-CAPT_ORDER.indexOf(b.unit))[0];
 function canCapture(A,t){const x=captureCard(t);if(x.unit==="ram")return stackLegal([...A.cards,x]);return !A.captive}
 function takeCaptive(A,x){x.capturedFrom=x.owner;x.owner=A.owner;x.inSlot=null;x.readyAt=0;A.captive=x}
+/* v78j: a stack left with no cards leaves its tile, and what it held captive goes free (sacrifices, Teleport, God Hunger
+   and the like emptied stacks without it, and the captive was lost) */
+function vacate(r,c,st){if(st.cards.length)return false;G.board[r][c]=null;freeCaptive(st,r,c);return true}
 function freeCaptive(st,r,c){const x=st.captive;if(!x)return;st.captive=null;const o=x.capturedFrom;
   if(o!=null&&G.p[o]&&!G.p[o].out&&!G.board[r][c]&&!isVoid(r,c)){x.owner=o;x.capturedFrom=null;G.board[r][c]={owner:o,cards:[x],moved:true,attacked:true};log(`The captured ${esc(nameOf(x))} on ${coord(r,c)} breaks free and goes back to ${plName(o)}.`)}
   else{toGrave(x,"death")}}
@@ -4287,7 +4308,7 @@ function pourLibation(r,c,ids){
 PRICE.carch=()=>R(2);PRICE.cheal=()=>2+R(3);
 SPELLS.push(
  {id:"libation",name:"Field Libation",cost:0,school:"Necromancy",text:"Free, but not under the Full Moon. Your stacks show an X: select one, check the cards to pour out and press Pour. Each card rolls 1d2: a 2 gives you its soul's mana, a 1 sends it to the grave for nothing. Not a great move.",
-  ok:()=>G.moon.i!==4&&!G.libation&&stacksOf(G.active).some(x=>x.st.cards.some(c=>canSacOnField(x.st,c))),run:async()=>{G.libation="armed";G.libPick=new Set();log(`${plName(G.active)} prepares a Field Libation.`);if(!me().cpu)flash("Field Libation: select one of your stacks marked with an X, check the cards, then press Pour.")}},
+  ok:()=>!fullDrawbacks()&&!G.libation&&stacksOf(G.active).some(x=>x.st.cards.some(c=>canSacOnField(x.st,c))),run:async()=>{G.libation="armed";G.libPick=new Set();log(`${plName(G.active)} prepares a Field Libation.`);if(!me().cpu)flash("Field Libation: select one of your stacks marked with an X, check the cards, then press Pour.")}},
  {id:"carch",dice:"1d2",name:"Archer Conjure",cost:1,school:"Conjuring",text:"An Archer's soul comes from the Ether into your deck. 1d20 + 1d10 at a stack exactly two tiles away (straight or diagonal); a miss costs nothing; no defense. Suppress instead: the target attacks with disadvantage next time. Stacks alone, with a Queen, or inside an Ace, the Tree or a Wall. 1 mana for the Beginner.",ok:()=>etherHasU("archer"),run:()=>conjureU("archer")},
  {id:"ccan",name:"Cannon Conjure",cost:6,school:"Conjuring",text:"A Cannon's soul comes from the Ether into your deck. 2d20 at anything up to three tiles away, once every 1d2 + 2 turns; a miss costs nothing; two damage to a Wall; no defense. Stands alone or inside a base; moves one step.",ok:()=>etherHasU("cannon"),run:()=>conjureU("cannon")},
  {id:"cheal",dice:"2+1d3",name:"Healer Conjure",cost:3,school:"Conjuring",text:"A Healer's soul comes from the Ether into your deck. Its blue shield turns one blow from its stack, then comes back in 1d4 rounds; or it heals one heart of a card in its stack or beside it. Stacks with anything but a Queen.",ok:()=>etherHasU("healer"),run:()=>conjureU("healer")},
@@ -4440,9 +4461,7 @@ const DEBT_FLOOR=-8,BANK_FLOOR=-8,DEEP_DEBT=-1;   // v49: three turns at −1 or
 const floorOf=pl=>G&&G.p[pl]&&G.p[pl].oath==="jupiter"?-12:DEBT_FLOOR;   // v50: the Oath of Jupiter lets you sink to −12
 const bankOpen=()=>!!G.bank&&!G.bank.dead;
 function bankAdd(n){if(G.bank)G.bank.mana+=n}
-function payQuiet(pl,n){const P=G.p[pl];P.souls.sort((a,b)=>soulOf(a)-soulOf(b));let paid=0;
-  while(paid<n&&P.souls.length){const i=P.souls.findIndex(c=>soulOf(c)>=n-paid);const c=i>=0?P.souls.splice(i,1)[0]:P.souls.shift();paid+=soulOf(c);toGrave(c,"spent")}
-  return paid}
+function payQuiet(pl,n){return spendSouls(pl,n)}
 function addDebt(pl,n){const P=G.p[pl];const paid=payQuiet(pl,Math.min(n,mana(pl)));bankAdd(paid);const rest=n-paid;
   if(rest>0){P.debt=(P.debt||0)+rest;if(P.debtAt==null)P.debtAt=tnOf(pl)+3}
   checkDebt(pl)}
@@ -4542,6 +4561,8 @@ async function econRound(){
   // Saturn taxes the Bank too
   if(G.moon.gone==="saturn"&&G.saturnBy!=null&&!G.p[G.saturnBy].out&&!B.dead){const n=Math.min(1+(G.saturnDebt||0),Math.max(0,B.mana-BANK_FLOOR));B.mana-=n;const got=giveMana(G.saturnBy,n);log(`The Bank pays Saturn's tax: ${n} mana (${plName(G.saturnBy)} gets ${got}).`)}
   // the Bank pays back what it borrowed, with interest
+  for(const o of B.owes.filter(o=>G.p[o.to].out))log(`The Bank's debt to ${plName(o.to)} (${o.owed} mana) ends with them.`);   // v78j
+  B.owes=B.owes.filter(o=>!G.p[o.to].out);
   for(const o of [...B.owes]){if(o.atT==null)o.atT=G.turnNo+R(2);   // v71: its interest comes every 1d2 turns (see beginTurn), as the rule was written
     if(B.mana>=o.owed&&!G.p[o.to].out){B.mana-=o.owed;const got=giveMana(o.to,o.owed);B.owes.splice(B.owes.indexOf(o),1);log(`The Bank pays ${plName(o.to)} back ${o.owed} mana (${got} fit in the soul pile).`,"event")}}
   // a broke Bank asks the richest player for a loan
@@ -4561,15 +4582,15 @@ async function econRound(){
 }
 
 /* ---------- the collapse ---------- */
-function collapse(){
+function collapse(spare){   // spare: players it passes over (Saturn's shield)
   const B=G.bank;
   log(`<b>The Bank collapses.</b> Everyone starts again from nothing.`,"event");
-  for(const pl of alive().filter(i=>!isHorde(i))){const P=G.p[pl];
+  for(const pl of alive().filter(i=>!isHorde(i)&&!(spare&&spare.has(i)))){const P=G.p[pl];
     for(const c of P.souls.splice(0))toGrave(c,"spent");P.debt=0;P.debtAt=null;P.loans=[];
-    P.maxAdd=(P.maxAdd||0)+(3-soulCap(pl));   // the maximum falls to three
+    P.maxAdd=3-baseCap(P);   // the maximum falls to three (v78j: measured without what holds only for a while)
     let gone=0;for(let i=0;i<5&&P.deck.length;i++){const c=P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0];c.owner=null;G.ether.push(c);gone++}
-    if(!gone){for(let i=0;i<2;i++){const all=stacksOf(pl).flatMap(x=>x.st.cards.filter(c=>!isBase(c)).map(c=>({c,x})));if(!all.length)break;const {c,x}=pick(all);x.st.cards.splice(x.st.cards.indexOf(c),1);if(!x.st.cards.length)G.board[x.r][x.c]=null;c.owner=null;G.ether.push(c)}}
-    const a=stacksOf(pl).find(x=>hasK(x.st,"ace"));if(a){const ace=a.st.cards.find(c=>kind(c)==="ace");a.st.cards.splice(a.st.cards.indexOf(ace),1);if(!a.st.cards.length)G.board[a.r][a.c]=null;ace.owner=null;ace.hp=ace.maxHp=2;G.ether.push(ace)}
+    if(!gone){for(let i=0;i<2;i++){const all=stacksOf(pl).flatMap(x=>x.st.cards.filter(c=>!isBase(c)).map(c=>({c,x})));if(!all.length)break;const {c,x}=pick(all);x.st.cards.splice(x.st.cards.indexOf(c),1);vacate(x.r,x.c,x.st);c.owner=null;G.ether.push(c)}}
+    const a=stacksOf(pl).find(x=>hasK(x.st,"ace"));if(a){const ace=a.st.cards.find(c=>kind(c)==="ace");a.st.cards.splice(a.st.cards.indexOf(ace),1);vacate(a.r,a.c,a.st);ace.owner=null;ace.hp=ace.maxHp=2;G.ether.push(ace)}
   }
   B.mana=0;B.owes=[];G.inflation={until:G.turnNo+sum(rollN(4,2)),add:0};
   popup("The Bank collapses",`<p>The Bank and every player were 3 or more below zero. It all comes down.</p><p>Everyone's mana and debts are wiped to zero, every maximum falls to three, five random cards leave each deck (two from the field if the deck is empty) and each player's Ace on the field goes back into the Ether. For 4d2 turns every price wobbles up by 1d2 − 1 a turn.</p>`);
@@ -4774,7 +4795,7 @@ function waveCleared(W){
    in default that is two rolls a round. They stay until the debt is paid off (back to zero), and every card they kill pays it. */
 const COLL_MAX=6;
 const debtTargets=()=>alive().filter(i=>!isHorde(i)&&G.p[i].guilty).sort((a,b)=>effMana(a)-effMana(b));
-function debtWatch(pl){const P=G.p[pl];if(!P||isHorde(pl)||isNPC(pl)||!G.bank)return;const n=tnOf(pl);
+function debtWatch(pl){const P=G.p[pl];if(!P||isHorde(pl)||isNPC(pl)||!G.bank||G.bank.dead)return;const n=tnOf(pl);
   if(P.guilty){if(!P.debt&&effMana(pl)>=0&&!loanLate(pl)){P.guilty=false;P.deepAt=null;P.guiltyAt=null;log(`${plName(pl)} has paid off the debt: the Debt Collectors stop coming.`,"event")}return}
   const late=loanLate(pl);
   if(effMana(pl)<=DEEP_DEBT||late){if(P.deepAt==null)P.deepAt=n;if(late||n-P.deepAt>=2){P.guilty=true;P.guiltyAt=n;rpOf(pl).bad=true;
@@ -5262,12 +5283,12 @@ async function eclipse(k){
   if(k==="jupiter"){
     const Y=realPlayers().find(i=>G.p[i].tribe==="yald");
     log(`<b>An eclipse</b>: the Sun passes behind Jupiter.`,"event");
-    const lines=[];G.jupMax={until:G.moon.round+1};
+    const lines=[];G.jupMax={until:G.moon.round};
     for(const pl of realPlayers()){const d=rollN(2,3),v=sum(d)-1;G.jupMax[pl]=v;const P=G.p[pl];P.minerX2=tnOf(pl)+R(4);
       const got=giveMana(pl,Math.max(0,Math.min(surCap(pl),2*soulCap(pl))-mana(pl)));lines.push(`${esc(P.name)}: 2d3 − 1 = ${d.map(x=>x.v).join(" + ")} − 1 = <b>+${v}</b> maximum, ${got} mana`);tray(pl,"Jupiter eclipse",d,`+${v} max`,true)}
     if(G.bank){for(const pl of realPlayers()){const P=G.p[pl];P.debt=0;P.debtAt=null;P.loans=[]}if(G.bank.mana>0)G.bank.mana*=2}
     if(Y!=null){const n=G.dark.filter(c=>c.darkOwner!==Y).length,got=giveMana(Y,n);if(got)log(`Yaldabaoth drinks from the eclipse: ${plName(Y)} gets ${got} mana for the souls of others in the Outer Darkness.`,"event")}
-    popup("Jupiter's eclipse",`<p>The Sun passes behind Jupiter. For this round and the next:</p><p>${lines.join("<br>")}</p><p>Every soul pile fills to twice its maximum. The Bank forgives every debt and loan and doubles what it holds; everything in the Ether is on sale. Miners bring twice as much for 1d4 turns.</p>`);
+    popup("Jupiter's eclipse",`<p>The Sun passes behind Jupiter. For this round:</p><p>${lines.join("<br>")}</p><p>Every soul pile fills to twice its maximum. The Bank forgives every debt and loan and doubles what it holds; everything in the Ether is on sale. Miners bring twice as much for 1d4 turns.</p>`);
   }
   if(k==="venus"){
     log(`<b>An eclipse of Venus</b>: its gifts are doubled this round, and the grave makes an offer.`,"event");
@@ -5331,7 +5352,7 @@ SPELLS.push(
  {id:"betray",dice:"1d2+2d3",name:"Betrayal",cost:6,school:"Astrology",text:"Oath of Mercury, in a team game. You leave your team for good. For two rounds every card killed falls into the Outer Darkness, and every damage between you and your former teammates pays its dealer the soul's worth + 1d2 − 1.",
   ok:()=>oathOf(G.active)==="mercury"&&teammatesOf(G.active).length>0,run:async()=>{const pl=G.active,mates=teammatesOf(pl);
    const sure=await ask(pl,{kind:"yesno",id:"betray",title:"Betrayal",text:`Betray ${mates.map(i=>esc(G.p[i].name)).join(" and ")}? It can't be undone.`,yes:"Betray",no:"Stay loyal",ai:()=>true});
-   if(!sure){giveMana(pl,spellCost(SP("betray")));log(`${plName(pl)} thinks better of it.`);return}
+   if(!sure){const back=giveMana(pl,spellCost(SP("betray")));if(G.bank)G.bank.mana-=back;log(`${plName(pl)} thinks better of it.`);return}   // v78j: from the Bank
    G.p[pl].team=300+pl;G.betrayal={by:pl,mates,until:G.moon.round+1};G._vis=null;
    log(`<b>Betrayal</b>: ${plName(pl)} turns on ${mates.map(plName).join(" and ")}.`,"event");
    popup("Betrayal",`<p>${plName(pl)} betrays ${mates.map(plName).join(" and ")}. They are enemies now, for good.</p><p>For two rounds every card killed falls into the Outer Darkness, and every damage between them pays its dealer.</p>`,pl);checkWin()}},
@@ -6094,7 +6115,7 @@ function sacrificeToSun(card,from){
   if(from==="hand")P.hand.splice(P.hand.indexOf(card),1);
   else{const st=G.board[from.r][from.c];st.cards.splice(st.cards.indexOf(card),1);
     if(card.captured&&card.captured.length){for(const s of card.captured)toGrave(s,"death");card.captured=[]}
-    if(!st.cards.length){G.board[from.r][from.c]=null;G.sel=null}else if(G.sel)G.sel.pick.delete(card.id)}
+    if(vacate(from.r,from.c,st))G.sel=null;else if(G.sel)G.sel.pick.delete(card.id)}
   const got=giveFire(pl,soulOf(card));toGrave(card,"burn");
   log(`${plName(pl)} sacrifices ${esc(nameOf(card))} to the Second Sun (+${got} fire mana, ${fireOf(pl)} in all).`);
   if(from!=="hand")checkWin();return true}
@@ -6301,13 +6322,10 @@ async function saturnEclipse(){
   if(G.p[pl].team!==team)(G.betrayed=G.betrayed||[]).push({by:pl,team,mates})}}}
 
 /* ---------- the strict economy and the collapse ---------- */
-{const _cl=collapse;collapse=function(){
-  const keep=realPlayers().filter(i=>oathNow(i,"saturn")&&effMana(i)>-6||good4(i)).map(i=>{const P=G.p[i];return {i,souls:[...P.souls],debt:P.debt,loans:[...(P.loans||[])],maxAdd:P.maxAdd,deck:[...P.deck],board:stacksOf(i).map(x=>({r:x.r,c:x.c,st:x.st,cards:[...x.st.cards]}))}});
-  _cl();
-  for(const k of keep){const P=G.p[k.i];P.souls=k.souls;P.debt=k.debt;P.loans=k.loans;P.maxAdd=k.maxAdd;P.deck=k.deck;
-    for(const b of k.board){b.st.cards=b.cards;G.board[b.r][b.c]=b.st}
-    G.ether=G.ether.filter(c=>!k.deck.includes(c)&&!k.board.some(b=>b.cards.includes(c)));
-    log(`Saturn shields ${plName(k.i)} from the collapse.`,"event")}
+{const _cl=collapse;collapse=function(spare){
+  const keep=realPlayers().filter(i=>oathNow(i,"saturn")&&effMana(i)>-6||good4(i));
+  _cl(new Set([...(spare||[]),...keep]));   // v78j: the collapse passes them over (putting them back afterwards left their souls in the grave too)
+  for(const i of keep)log(`Saturn shields ${plName(i)} from the collapse.`,"event");
   render()}}
 {const _bc=bankCollectors;bankCollectors=async function(){if(G.satStrict)G.collNext=Math.min(G.collNext||0,G.moon.round);return _bc()}}
 
@@ -6928,16 +6946,17 @@ async function loanOffer(L,due){
   const paid=payQuiet(L.to,L.n),got=giveMana(L.from,paid);L.state="open";L.owed=paid;L.due=tnOf(L.from)+due;L.intAt=tnOf(L.from)+3;
   log(`<b>${plName(L.to)} lends ${plName(L.from)} ${paid} mana</b>${got<paid?` (${got} fit in the soul pile)`:""}: due in ${due} of ${plName(L.from)}'s turns, growing by 1d2 every 3 turns; if it isn't paid, the Bank collects.`,"event");
   notify(L.from,`${esc(G.p[L.to].name)} lends ${esc(G.p[L.from].name)} ${paid} mana.`);render()}
-function repayLoan(L,k){k=Math.min(k,L.owed,mana(L.from));if(k<=0)return 0;const paid=payQuiet(L.from,k);giveMana(L.to,paid);L.owed-=paid;
+function repayLoan(L,k){k=Math.min(k,L.owed,mana(L.from));if(k<=0)return 0;const paid=payQuiet(L.from,k);giveMana(L.to,Math.min(paid,L.owed));L.owed=Math.max(0,L.owed-paid);   // v78j: overpaid mana is lost
   log(`${plName(L.from)} pays ${plName(L.to)} back ${paid} mana${L.owed?` (${L.owed} still owed)`:"; the loan is settled"}.`);if(!L.owed)loanSettled(L);return paid}
-function loanSettled(L){L.state="done";L.owed=0;const bk=npcIx("bank");if(bk>=0)for(const x of stacksOf(bk))if(x.st.loan===L.id)G.board[x.r][x.c]=null;
+const loanCollectorsOff=L=>{const bk=npcIx("bank");if(bk>=0)for(const x of stacksOf(bk))if(x.st.loan===L.id)G.board[x.r][x.c]=null};
+function loanSettled(L){L.state="done";L.owed=0;loanCollectorsOff(L);
   log(`The loan from ${plName(L.to)} to ${plName(L.from)} is settled.`)}
 function sendLoanCollectors(L){const bk=npcIx("bank");if(bk<0)return 0;let n=0;const k=R(2);
   for(const t of freeTilesNear(L.from,true).slice(0,k)){G.board[t[0]][t[1]]={owner:bk,cards:[mkUnit("debt",bk)],moved:true,attacked:true,hunt:L.from,loan:L.id};n++}return n}
 /* a loan comes due at the start of the borrower's turn */
 {const _bt=bankTurn;bankTurn=function(pl){_bt(pl);const tn=tnOf(pl);
   for(const L of p2pOf()){
-    if(["ask","offer","open","late"].includes(L.state)&&(G.p[L.from].out||G.p[L.to].out)){L.state="void";continue}
+    if(["ask","offer","open","late"].includes(L.state)&&(G.p[L.from].out||G.p[L.to].out)){L.state="void";loanCollectorsOff(L);continue}   // v78j: and its collectors go
     if(L.from!==pl)continue;
     if(["open","late"].includes(L.state)&&L.owed>0&&L.intAt!=null&&tn>=L.intAt){const add=R(2);L.owed+=add;L.intAt=tn+3;log(`Interest: ${plName(pl)}'s loan from ${plName(L.to)} grows by ${add} (1d2) to ${L.owed}.`)}
     // v71e: never taken by itself: due, a reminder; still open a turn later, the Debt Collectors
@@ -9056,7 +9075,7 @@ const owesBank=pl=>debtOf(pl)>0||owedOf(pl)>0||!!G.p[pl].guilty;
 const standingGood=pl=>{const P=G.p[pl];return !P.guilty&&!(P.rp&&P.rp.bad)};
 
 /* ---------- Report day ---------- */
-function bankReport(){if(!G.bank||survival())return;
+function bankReport(){if(!G.bank||G.bank.dead||survival())return;   // v78j: no Banker, no taxes
   for(const pl of alive().filter(i=>!isHorde(i)&&!isNPC(i))){const P=G.p[pl],rp=rpOf(pl);
     if(P.robbed!=null&&P.robbed>=rp.round)rp.bad=true;
     // taxes
@@ -9126,7 +9145,7 @@ function landHTML_(r,c,under){const l=landAt(r,c);if(!l)return "";const P=G.p[l.
   return out.filter(o=>{const t=G.board[o.r][o.c];return !(t&&t.owner===bk&&t.cards.every(x=>x.unit==="debt"))})}}
 
 /* ---------- between players: forgive a loan, give mana or a card ---------- */
-function forgiveLoan(L){if(!L||!["open","late"].includes(L.state))return;L.state="done";const n=L.owed;L.owed=0;const bk=npcIx("bank");if(bk>=0)for(const x of stacksOf(bk))if(x.st.loan===L.id)G.board[x.r][x.c]=null;
+function forgiveLoan(L){if(!L||!["open","late"].includes(L.state))return;L.state="done";const n=L.owed;L.owed=0;loanCollectorsOff(L);
   log(`<b>${plName(L.to)} forgives ${plName(L.from)}'s loan</b> (${n} mana).`,"event");notify(L.from,`${esc(G.p[L.to].name)} forgives the loan.`)}
 function giftMana(from,to,n){n=Math.min(Math.max(0,Math.round(n)),mana(from));if(n<=0||from===to||!G.p[to]||G.p[to].out)return 0;
   const paid=payQuiet(from,n),got=giveMana(to,paid);log(`${plName(from)} gives ${plName(to)} ${paid} mana${got<paid?` (${got} fit in the soul pile)`:""}.`,"event");return got}
@@ -9660,6 +9679,9 @@ setInterval(()=>{if(!G||G.over||document.hidden)return;const V=view(),P=G.p[G.ac
   if(out&&out.state==="offer"&&!G.p[from].cpu&&was)bankHoldOpen=true;   // the terms are on screen now: don't draw the Bank over them
   return out}}
 let bankHoldOpen=false;
+{const _an=answerLoan;answerLoan=function(L){const out=_an.apply(this,arguments);   // v78j
+  if(L&&L.state==="offer"&&document.querySelector("#ov:not([hidden]) #qy")){bankHoldOpen=true;const w=$("#dipwin");if(w&&!w.hidden)w.hidden=true}
+  return out}}
 {const _ob=openBank;openBank=function(){if(bankHoldOpen){bankHoldOpen=false;return}return _ob.apply(this,arguments)}}
 
 /* ---------- the ▸ rankings: opening one turns it on, closing it turns it off ---------- */
@@ -11159,7 +11181,7 @@ async function nepGraveSac(pl){let n=0;
 let nepSacking=false;
 {const _s=sacrifice;sacrifice=function(card,from){nepSacking=nepEvFor(G.active);try{return _s.apply(this,arguments)}finally{nepSacking=false}}}
 {const _as=addSoul;addSoul=function(pl,c){if(nepSacking&&R(8)===1){nepSacking=false;const o=nepRealPl().filter(i=>i!==pl);if(o.length){const q=pick(o);
-    const ok=_as(q,c);log(`<b>Neptune</b>: the soul ${plName(pl)} sacrifices drifts to ${plName(q)} (a 1 on 1d8).`,"event");notify(null,`Neptune: ${esc(G.p[pl].name)}'s sacrifice drifts to ${esc(G.p[q].name)}.`);return ok}}
+    if(_as(q,c)){log(`<b>Neptune</b>: the soul ${plName(pl)} sacrifices drifts to ${plName(q)} (a 1 on 1d8).`,"event");notify(null,`Neptune: ${esc(G.p[pl].name)}'s sacrifice drifts to ${esc(G.p[q].name)}.`);return true}}}   // v78j: a full pile can't take it
   return _as.apply(this,arguments)}}
 /* the Bank's takings from a purchase go to a random player on a 1 of 1d10 (not in Survival) */
 let nepBuying=null;
@@ -11209,14 +11231,15 @@ function nepJumble(){const n=3+R(4),all=NEP_CHARS+NEP_DIGITS,ch=s=>s[Math.floor(
   return a.join("")}
 const nepHash=s=>{let h=2166136261;for(const ch of String(s))h=Math.imul(h^ch.charCodeAt(0),16777619);return h>>>0};
 {const _e=eclipse;eclipse=async function(k){if(k!=="neptune")return _e.apply(this,arguments);if(typeof eclipsesOff==="function"&&eclipsesOff())return;
-  const d=sum(rollN(2,3)),r=G.moon.round;G.eclipse={k:"neptune",round:r,until:G.forceNepEc?r+d-1:r};   // v78a: an eclipse lasts one round; the Neptune Eclipse spell's keeps 2d3
+  const d=G.forceNepEc?sum(rollN(2,3)):1,r=G.moon.round;G.eclipse={k:"neptune",round:r,until:r+d-1};   // v78a: an eclipse lasts one round; the Neptune Eclipse spell's keeps 2d3
+  const len=G.forceNepEc?`${d} round${d>1?"s":""} (2d3)`:"this round";
   const names={};for(const P of G.p)names[P.i]=nepJumble();
   G.nepEc={names,seed:R(1e6),flip:R(2)===1,mis:{},foe:{}};
   for(const P of G.p){if(P.out||isNPC(P.i)||isHorde(P.i))continue;shuffle(P.deck);shuffle(P.hand);
     (G.blindHand=G.blindHand||[]).push({by:"nep",t:P.i,left:999});(G.manaDel=G.manaDel||[]).push({by:"nep",t:P.i,left:999,off:delOff()})}
   applyMoonTheme();
-  log(`<b>Neptune's eclipse</b> for ${d} round${d>1?"s":""} (2d3): names, numbers, prices and colors lie, hands go blank, every deck is shuffled, and automation waits. All of Neptune's cycle comes with it.`,"event");
-  popup("Neptune is eclipsed",`<p>A black aura closes around Neptune for <b>${d} round${d>1?"s":""}</b> (2d3), and everything it touches dissolves.</p><ul><li>Every player's numbers lie, and hands go blank and shuffled; every deck is shuffled.</li><li>Names turn to random letters and numbers, and every stack on the field takes a stranger's color: a stack you pick up may not be yours, and acting with one that isn't costs 1d2 cards from your deck (once a round, on a 1 of 1d6, it moves by accident).</li><li>Twice a round, a 1 of 1d20 sends a move or an attack astray.</li><li>Prices, the Ether's counts and the Bank's mana lie.</li><li>Field Automation and Lazy Hand wait for it to end.</li><li>Everything in Neptune's cycle happens too.</li></ul>`);
+  log(`<b>Neptune's eclipse</b> for ${len}: names, numbers, prices and colors lie, hands go blank, every deck is shuffled, and automation waits. All of Neptune's cycle comes with it.`,"event");
+  popup("Neptune is eclipsed",`<p>A black aura closes around Neptune for <b>${len}</b>, and everything it touches dissolves.</p><ul><li>Every player's numbers lie, and hands go blank and shuffled; every deck is shuffled.</li><li>Names turn to random letters and numbers, and every stack on the field takes a stranger's color: a stack you pick up may not be yours, and acting with one that isn't costs 1d2 cards from your deck (once a round, on a 1 of 1d6, it moves by accident).</li><li>Twice a round, a 1 of 1d20 sends a move or an attack astray.</li><li>Prices, the Ether's counts and the Bank's mana lie.</li><li>Field Automation and Lazy Hand wait for it to end.</li><li>Everything in Neptune's cycle happens too.</li></ul>`);
   render()}}
 {const _ee=endEclipse;endEclipse=function(){if(G.eclipse&&G.eclipse.k==="neptune"){G.nepEc=null;for(const k of ["blindHand","manaDel"])if(G[k])G[k]=G[k].filter(x=>x.by!=="nep")}return _ee.apply(this,arguments)}}
 /* acting with a stranger's stack */
@@ -11379,7 +11402,9 @@ async function nepCall(k){const me_=G.active,r=G.moon.round;
   render()}
 {const _e=eclipse;eclipse=async function(k){if(k==="neptune"&&G.forceNepEc&&typeof eclipsesOff==="function"&&eclipsesOff())return;return _e.apply(this,arguments)}}
 function nepTempRound(){const T=G.nepTemp;if(!T)return;const busy=T.k==="ev"?!!(G.nepEv&&G.moon.round<=G.nepEv.until):!!(G.eclipse&&G.eclipse.k==="neptune");if(busy)return;
-  G.nepTemp=null;if(!T.prev)return;const p=T.prev,held=G.moon.round-p.at;
+  G.nepTemp=null;if(!T.prev)return;
+  if(sky()!=="neptune"){G.nepEv=null;return}   // v78j: another Heavenly Body took the sky meanwhile: it stays
+  const p=T.prev,held=G.moon.round-p.at;
   G.moon.gone=p.gone;G.moon.i=p.i;G.moon.blood=p.blood;for(const f of NEP_SAVE)G[f]=p[f];
   if(G.skySince!=null)G.skySince+=held;if(G.skyArr!=null)G.skyArr+=held;   // its cycle picks up where it paused
   G.nepEv=null;G._vis=null;applyMoonTheme();
@@ -11401,7 +11426,7 @@ SP("stray").text=[SPELL_TEXT.stray.n,SPELL_TEXT.stray.e,SPELL_TEXT.stray.l].join
 let strayIn=false;
 const strayOn=pl=>{const S=G&&G.strayOn;return !strayIn&&S&&S.t===pl&&S.round===G.moon.round&&G.p[S.by]&&!G.p[S.by].out?S:null};
 {const _gm=giveMana;giveMana=function(pl,n){const S=n>0?strayOn(pl):null;if(!S)return _gm.apply(this,arguments);const d=R(20);if(d!==1&&d!==20)return _gm.apply(this,arguments);
-  strayIn=true;try{if(d===1){_gm(S.by,n);log(`<b>Stray Mana</b>: ${n} mana meant for ${plName(pl)} strays to ${plName(S.by)} (a 1 on 1d20).`,"event");return 0}
+  strayIn=true;try{if(d===1){const got=_gm(S.by,n);log(`<b>Stray Mana</b>: ${n} mana meant for ${plName(pl)} strays to ${plName(S.by)} (a 1 on 1d20).`,"event");return got}   // v78j: what strayed was still paid out
     const out=_gm(pl,n);_gm(S.by,n);log(`<b>Stray Mana</b>: ${plName(S.by)} shares the ${n} mana ${plName(pl)} earns (a 20 on 1d20).`,"event");return out}finally{strayIn=false}}}
 {const _sp=spend;spend=function(pl,n){const S=n>0?strayOn(pl):null;if(!S)return _sp.apply(this,arguments);const d=R(20);if(d!==1&&d!==20)return _sp.apply(this,arguments);
   strayIn=true;try{const out=_sp(pl,n);

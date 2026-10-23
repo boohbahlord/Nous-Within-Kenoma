@@ -33,6 +33,9 @@ const CAPT_ORDER=["cannon","healer","repair","ram","miner"];
 const captureCard=t=>[...t.cards].sort((a,b)=>CAPT_ORDER.indexOf(a.unit)-CAPT_ORDER.indexOf(b.unit))[0];
 function canCapture(A,t){const x=captureCard(t);if(x.unit==="ram")return stackLegal([...A.cards,x]);return !A.captive}
 function takeCaptive(A,x){x.capturedFrom=x.owner;x.owner=A.owner;x.inSlot=null;x.readyAt=0;A.captive=x}
+/* v78j: a stack left with no cards leaves its tile, and what it held captive goes free (sacrifices, Teleport, God Hunger
+   and the like emptied stacks without it, and the captive was lost) */
+function vacate(r,c,st){if(st.cards.length)return false;G.board[r][c]=null;freeCaptive(st,r,c);return true}
 function freeCaptive(st,r,c){const x=st.captive;if(!x)return;st.captive=null;const o=x.capturedFrom;
   if(o!=null&&G.p[o]&&!G.p[o].out&&!G.board[r][c]&&!isVoid(r,c)){x.owner=o;x.capturedFrom=null;G.board[r][c]={owner:o,cards:[x],moved:true,attacked:true};log(`The captured ${esc(nameOf(x))} on ${coord(r,c)} breaks free and goes back to ${plName(o)}.`)}
   else{toGrave(x,"death")}}
@@ -162,7 +165,7 @@ function pourLibation(r,c,ids){
 PRICE.carch=()=>R(2);PRICE.cheal=()=>2+R(3);
 SPELLS.push(
  {id:"libation",name:"Field Libation",cost:0,school:"Necromancy",text:"Free, but not under the Full Moon. Your stacks show an X: select one, check the cards to pour out and press Pour. Each card rolls 1d2: a 2 gives you its soul's mana, a 1 sends it to the grave for nothing. Not a great move.",
-  ok:()=>G.moon.i!==4&&!G.libation&&stacksOf(G.active).some(x=>x.st.cards.some(c=>canSacOnField(x.st,c))),run:async()=>{G.libation="armed";G.libPick=new Set();log(`${plName(G.active)} prepares a Field Libation.`);if(!me().cpu)flash("Field Libation: select one of your stacks marked with an X, check the cards, then press Pour.")}},
+  ok:()=>!fullDrawbacks()&&!G.libation&&stacksOf(G.active).some(x=>x.st.cards.some(c=>canSacOnField(x.st,c))),run:async()=>{G.libation="armed";G.libPick=new Set();log(`${plName(G.active)} prepares a Field Libation.`);if(!me().cpu)flash("Field Libation: select one of your stacks marked with an X, check the cards, then press Pour.")}},
  {id:"carch",dice:"1d2",name:"Archer Conjure",cost:1,school:"Conjuring",text:"An Archer's soul comes from the Ether into your deck. 1d20 + 1d10 at a stack exactly two tiles away (straight or diagonal); a miss costs nothing; no defense. Suppress instead: the target attacks with disadvantage next time. Stacks alone, with a Queen, or inside an Ace, the Tree or a Wall. 1 mana for the Beginner.",ok:()=>etherHasU("archer"),run:()=>conjureU("archer")},
  {id:"ccan",name:"Cannon Conjure",cost:6,school:"Conjuring",text:"A Cannon's soul comes from the Ether into your deck. 2d20 at anything up to three tiles away, once every 1d2 + 2 turns; a miss costs nothing; two damage to a Wall; no defense. Stands alone or inside a base; moves one step.",ok:()=>etherHasU("cannon"),run:()=>conjureU("cannon")},
  {id:"cheal",dice:"2+1d3",name:"Healer Conjure",cost:3,school:"Conjuring",text:"A Healer's soul comes from the Ether into your deck. Its blue shield turns one blow from its stack, then comes back in 1d4 rounds; or it heals one heart of a card in its stack or beside it. Stacks with anything but a Queen.",ok:()=>etherHasU("healer"),run:()=>conjureU("healer")},

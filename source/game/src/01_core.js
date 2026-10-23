@@ -11,9 +11,10 @@ let COLS=5;const SOUL_CAP=6, HAND_CAP=6;   // COLS is set by the map for each ga
    anything over the maximum fades at the start of the next round */
 const surCap=pl=>G&&G.satStrict&&!oathNow(pl,"saturn")&&!(G.satStrictSafe||[]).includes(pl)?soulCap(pl):Math.min(54,soulCap(pl)*3);   // a strict Saturn (its eclipse) allows no surplus
 const handCap=pl=>G&&G.p[pl]?({jester:7,beginner:8}[G.p[pl].tribe]||HAND_CAP)*(nepGlow(pl)?3:1):HAND_CAP;   // v71d: Neptune's Afterglow triples it
+const baseCap=P=>({jester:7,beginner:8}[P.tribe]||SOUL_CAP);   // the maximum an Emanation starts with
 function soulCap(pl){
   if(!G||!G.p[pl])return SOUL_CAP;const P=G.p[pl];
-  let cap={jester:7,beginner:8}[P.tribe]||SOUL_CAP;
+  let cap=baseCap(P);
   cap=Math.max(1,Math.min(18,cap+(P.maxAdd||0)+skyCapMod(P)));   // bought maximum mana (18 at most), or lost to Gambling and the Bank's collapse
   if(P.delu&&P.delu.turns>0)cap=Math.max(3,9-(P.delu.maxCut||0));                       // a Delusion: nine mana at most, less what Lucifer paid to stifle
   if(G.moonLev&&G.moonLev.owner===pl)cap=Math.min(12,cap+G.dark.length);               // the Leviathan on the moon: +1 for every card in the Outer Darkness
@@ -323,9 +324,10 @@ function log(html,cls=""){const m=/data-pl="(\d+)"/.exec(html);
 const plName=pl=>`<span class="pn" data-pl="${pl}" style="--pc:${G.p[pl].color}">${esc(G.p[pl].name)}</span>`;
 
 /* where cards go when they leave play */
-function toDark(c){if(c.captured&&c.captured.length){for(const s of c.captured)toDark(s);c.captured=[]}c.darkOwner=c.owner;G.dark.push(c)}
+const freePrisoners=c=>{if(c.prisoners&&c.prisoners.length){const ps=c.prisoners;c.prisoners=[];for(const p of ps)toGrave(p,"death")}};   // v78j
+function toDark(c){freePrisoners(c);if(c.captured&&c.captured.length){for(const s of c.captured)toDark(s);c.captured=[]}c.darkOwner=c.owner;G.dark.push(c)}
 function toGrave(c,cause){
-  if(!c)return;
+  if(!c)return;freePrisoners(c);
   if(c.unit&&UNIT[c.unit].ether){if(c.hp!=null)c.hp=c.maxHp;c.hate=false;c.readyAt=0;c.shieldAt=0;c.shieldOff=0;c.healAt=0;c.repAt=0;c.inSlot=null}   // Ether cards lie in the grave like any card
   else if(c.unit&&c.unit!=="slave"){   // Emanation cards never lie in the grave
     if(c.hp!=null)c.hp=c.maxHp;c.hate=false;
@@ -362,11 +364,22 @@ function takeHand(pl,n,why){const P=G.p[pl],out=[];for(let i=0;i<n&&P.hand.lengt
   return out.concat(takeDeck(pl,n-out.length,why,true))}
 const shortNote=(pl,n)=>{const k=Math.max(0,n-G.p[pl].deck.length);return k?` (your deck is ${k} short: ${k} mana instead)`:""};
 const mana=pl=>G.p[pl].souls.reduce((a,c)=>a+soulOf(c),0);
+/* v78j: the souls that pay n (rule 11.P): as little mana overpaid as can be, since it is lost, and of those the smallest
+   souls (1+1 for 2, not a 3). Not enough souls: all of them. */
+function soulPick(souls,n){const S=[...souls].sort((a,b)=>soulOf(a)-soulOf(b)),k=S.length;if(n<=0)return [];
+  if(k>14){const out=[];let paid=0;for(const c of S){if(paid>=n)break;out.push(c);paid+=soulOf(c)}return out}   // a pile that big: smallest first
+  const better=(a,b)=>{for(let i=0;i<Math.min(a.length,b.length);i++)if(a[i]!==b[i])return a[i]<b[i];return a.length<b.length};
+  let best=null,bestSum=Infinity,bestKey=null;
+  for(let m=1;m<1<<k;m++){let s=0;const pick=[];for(let i=0;i<k;i++)if(m>>i&1){s+=soulOf(S[i]);pick.push(S[i])}
+    if(s<n||s>bestSum)continue;const key=pick.map(soulOf).sort((a,b)=>b-a);   // the largest soul spent, then the next…
+    if(s<bestSum||better(key,bestKey)){best=pick;bestSum=s;bestKey=key}}
+  return best||S}
+function spendSouls(pl,n){const P=G.p[pl];P.souls.sort((a,b)=>soulOf(a)-soulOf(b));let paid=0;
+  for(const c of soulPick(P.souls,n)){P.souls.splice(P.souls.indexOf(c),1);paid+=soulOf(c);toGrave(c,"spent")}
+  return paid}
 function pay(pl,n){
-  const P=G.p[pl];if(mana(pl)<n)return false;
-  P.souls.sort((a,b)=>soulOf(a)-soulOf(b));
-  let paid=0;
-  while(paid<n&&P.souls.length){const i=P.souls.findIndex(c=>soulOf(c)>=n-paid);const c=i>=0?P.souls.splice(i,1)[0]:P.souls.shift();paid+=soulOf(c);toGrave(c,"spent")}
+  if(mana(pl)<n)return false;
+  spendSouls(pl,n);
   if(pl===G.active)G.spent=true;
   return true;
 }

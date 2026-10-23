@@ -55,8 +55,9 @@ function stealOnDamage(st){
 const UNIT_KIND={samson:"Wildcard",antony:"Wildcard",satan:"Wildcard",leviathan:"Wildcard",bullgoat:"Wildcard",goatbull:"Wildcard",debt:"Wildcard",slavemaster:"Wildcard",slave:"Wildcard",trafficker:"Wildcard",tree:"Base"};
 function cardClass(c){if(c.barb)return "Demon";if(isBase(c))return "Base";if(c.unit)return UNIT_KIND[c.unit]||UNIT[c.unit].kind||"Wildcard";if(isSpecial(c))return "Special";return "Standard"}
 function rangeOf(st,mode){   // [min,max] of a stack's score
-  const solo=st.cards.length===1&&st.cards[0].unit?st.cards[0]:null;
-  if(solo&&UNIT[solo.unit].weapons){const U=UNIT[solo.unit];
+  const inner=lhInner(st);if(inner.cards.length)st=inner;   // v78j: what fights, as in combat
+  const solo=soloUnit(st);
+  if(solo){const U=UNIT[solo.unit];
     if(U.copy)return null;
     if(mode==="atk"){let lo=0,hi=0;for(const w of U.weapons){if(w.special)continue;const d=w.roll();const a=w.fixed+d.length,b=w.fixed+d.reduce((x,y)=>x+y.s,0);lo=Math.max(lo,a);hi=Math.max(hi,b)}return[lo,hi]}
     if(U.defRoll){const d=U.defRoll();return[(U.defFixed||0)+d.length,(U.defFixed||0)+d.reduce((x,y)=>x+y.s,0)]}
