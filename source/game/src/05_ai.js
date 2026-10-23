@@ -5,9 +5,9 @@
    Easy adds noise and mistakes; Medium balances; Hard plays every edge it can find. */
 const AI=(()=>{
   const LV={
-    easy:  {mc:14,noise:.45,thr:.5, spell:.45,skipMove:.35,bias:-.15,draw:3},
-    medium:{mc:30,noise:.1, thr:.5, spell:.9, skipMove:.04,bias:0,  draw:2},
-    hard:  {mc:48,noise:0,  thr:.46,spell:1,  skipMove:0,  bias:.12,draw:2},
+    easy:  {mc:14,noise:.45,thr:.48,spell:.45,skipMove:.25,bias:-.05,draw:3},   // v79f: every level bolder, so they actually fight
+    medium:{mc:30,noise:.1, thr:.46,spell:.9, skipMove:.02,bias:.1, draw:2},
+    hard:  {mc:48,noise:0,  thr:.44,spell:1,  skipMove:0,  bias:.2, draw:2},
     horde: {mc:36,noise:0,  thr:.4, spell:0,  skipMove:0,  bias:1,  draw:0}
   };
   let FAX=null;   // v38: Field Automation plays a person's field with their settings (see 42_fieldauto.js)
@@ -30,7 +30,7 @@ const AI=(()=>{
   const L=pl=>FAX&&FAX.pl===pl?LV[FAX.level]||LV.medium:LV[G.p[pl].cpu]||LV.medium;
   const lvl=pl=>FAX&&FAX.pl===pl?FAX.level:G.p[pl].cpu;
   const jit=pl=>1+(Math.random()*2-1)*L(pl).noise;
-  const PUSH={atk:1.5,def:.2,dist:1.1,ally:0,k:"push"},OFF={atk:1.3,def:.7,dist:.35,ally:.1,k:"off"},DEF={atk:.8,def:1.35,dist:.06,ally:.35,k:"def"},HORDE={atk:1.5,def:.35,dist:.7,ally:.05,k:"horde"};   // v70c: k names the stance, so a copy (Field Automation mixes its own) is still recognised
+  const PUSH={atk:1.5,def:.2,dist:1.1,ally:0,k:"push"},OFF={atk:1.3,def:.7,dist:.35,ally:.1,k:"off"},DEF={atk:.9,def:1.2,dist:.14,ally:.35,k:"def"},HORDE={atk:1.5,def:.35,dist:.7,ally:.05,k:"horde"};   // v70c: k names the stance, so a copy (Field Automation mixes its own) is still recognised
   let cache=new Map();
   const key=st=>st.cards.map(c=>c.id+(c.hp||"")).join(".")+(st.odds||"")+(st.down?"d":"")+(st.supp?"s":"")+(st.mars?"m":"");
   /* v78j: what the computer knows of an enemy stack: one it sees only the back of counts as that many middling cards */
@@ -128,6 +128,35 @@ const AI=(()=>{
       if(how==="army"){if(!R||n>R.n)R={r:x.r,c:x.c,n}}   // the army gathers on its biggest stack
       else if(n<grpMax(pl)){const d=walk(r,c,x.r,x.c);if(!R||d<R.d)R={r:x.r,c:x.c,d}}}   // a lone card finds a partner
     return R?-.3*walk(r,c,R.r,R.c):0}
+  /* v79f · Aggression: a stack goes after an enemy near it that it would fight, when it may pick its battles at all.
+     How near: a radius (tiles as the crow flies), a square (steps any way, diagonals too), or automatic: the field decides,
+     farther on the offensive, when nobody has fought for a while or when well ahead, nearer on the defensive or far behind.
+     The computers are always aggressive (automatic); Field Automation by its settings (on and automatic by default). */
+  let CHASE=null;
+  const aggrOf=pl=>FAX&&FAX.pl===pl?FAX.aggr||{on:false}:{on:true,how:"auto"};
+  function autoReach(pl,W){let n=4;const k=W&&W.k;if(k==="off"||k==="push"||k==="horde")n++;else if(k==="def")n--;
+    const per=Math.max(2,roundOrder().length),quiet=G.turnNo-(G.lastAttack||0);if(quiet>per)n++;if(quiet>3*per)n+=2;
+    const my=stacksOf(pl).reduce((a,x)=>a+value(x.st),0),th=enemyStacks(pl).reduce((a,x)=>a+value(x.st),0);if(th&&my>th*1.25)n++;if(th&&my<th*.6)n--;
+    if(isHorde(pl))n+=2;return Math.max(2,Math.min(9,n))}
+  /* what a stack went after last time (by its strongest card): it keeps after it while it stays a little beyond the
+     distance too, so it doesn't step forward one turn and back the next */
+  const CH_MEM=new WeakMap();
+  function chaseFor(pl,S,fr,fc,W){const A=aggrOf(pl);if(!A.on)return null;
+    if(!S.cards.some(isShooter)&&!canAttackFrom({cards:S.cards,attacked:false,hypo:S.hypo}))return null;
+    const n=A.how==="auto"?autoReach(pl,W):Math.max(1,A.n|0),lv=L(pl),thr=lv.thr+(FAX&&FAX.pl===pl?FAX.thrAdj||0:0)-.1;
+    let mem=CH_MEM.get(G);if(!mem){mem=new Map();CH_MEM.set(G,mem)}const head=[...S.cards].sort((a,b)=>rate(b)-rate(a))[0],was=head&&mem.get(head.id);
+    const fresh=was&&G.moon.round-was.r<=2;
+    const near=e=>{const keep=fresh&&e.st.cards.some(x=>was.ids.includes(x.id))?2:0;   // the one it was after: two tiles more
+      return A.how==="radius"?Math.hypot(e.r-fr,e.c-fc)<=n+keep+.01:A.how==="square"?Math.max(Math.abs(e.r-fr),Math.abs(e.c-fc))<=n+keep:walk(fr,fc,e.r,e.c)<=n+keep};
+    let best=null;
+    for(const e of enemyStacks(pl)){if(!near(e))continue;const E=known(pl,e.r,e.c,e.st);if(E.hypo||shielded(E.owner))continue;
+      if(G.dip&&typeof dipAllied==="function"&&dipAllied(pl,E.owner))continue;
+      const p=winP(S,E,lv.mc),v=p*gain(E)-(1-p)*loss(S)*.6;if(p<thr&&v<=.4&&!isHorde(pl))continue;
+      const d=walk(fr,fc,e.r,e.c),sc=v-.15*d+(fresh&&e.st.cards.some(x=>was.ids.includes(x.id))?.6:0);if(!best||sc>best.sc)best={r:e.r,c:e.c,d,v,sc,ids:e.st.cards.map(x=>x.id)}}
+    if(head){if(best)mem.set(head.id,{ids:best.ids,r:G.moon.round});else mem.delete(head.id)}
+    return best?{pl,r:best.r,c:best.c,d0:best.d,k:Math.max(.8,Math.min(2.4,.9+.5*best.v)),c0:W&&W.ctr?ctrDist(fr,fc):0}:null}
+  /* each step nearer the enemy it goes after is worth k; the center (Control the center) holds it back only a little */
+  const chaseAdd=(r,c,W)=>CHASE?CHASE.k*(CHASE.d0-walk(r,c,CHASE.r,CHASE.c))+(W&&W.ctr?.75*W.ctr*(ctrDist(r,c)-CHASE.c0):0):0;
   /* how good it is for stack S (owned by pl) to stand at r,c */
   function tileScore(pl,S,r,c,W,canHit){
     const n=L(pl).mc;let opp=0,risk=0,allies=0;
@@ -151,7 +180,7 @@ const AI=(()=>{
     for(const x of stacksOf(pl))if(x.st!==S&&dist(x.r,x.c,r,c)===1)allies++;
     if(near===99)near=farNear(pl,r,c);
     const M=FAX&&FAX.pl===pl&&FAX.wMul||{};   // v69: the archetype's weights
-    return W.atk*(M.atk||1)*opp-W.def*(M.def||1)*risk+W.ally*(M.ally||1)*allies+rallyScore(pl,S,r,c)-pullOf(pl,S,r,c,W,near)+groupScore(pl,S,r,c);
+    return W.atk*(M.atk||1)*opp-W.def*(M.def||1)*risk*(CHASE?.6:1)+W.ally*(M.ally||1)*allies+rallyScore(pl,S,r,c)-pullOf(pl,S,r,c,W,near)+groupScore(pl,S,r,c);
   }
   /* v71 · Field Automation's attack groups are clusters of stacks across tiles, whatever their height:
      Big keeps one army together (no stack runs off ahead or straggles behind); Small keeps clusters of two or three stacks,
@@ -182,13 +211,13 @@ const AI=(()=>{
   }
   function stance(pl){
     if(isHorde(pl))return HORDE;
-    if(G.turnNo-(G.lastAttack||0)>5*Math.max(2,roundOrder().length))return hillHow(pl)?OFF:PUSH;   // nobody has fought for five rounds: break the stalemate (in King of the Hill the Hill is the way)
+    if(G.turnNo-(G.lastAttack||0)>2*Math.max(2,roundOrder().length))return hillHow(pl)?OFF:PUSH;   // nobody has fought for two rounds (v79f: was five): break the stalemate (in King of the Hill the Hill is the way)
     const es=enemiesOf(pl).filter(e=>!isNPC(e)),my=stacksOf(pl).reduce((a,x)=>a+value(x.st),0),th=enemyStacks(pl).reduce((a,x)=>a+value(x.st),0)/Math.max(1,es.length);
     const eDeck=es.length?Math.min(...es.map(e=>G.p[e].deck.length)):0,deckAdv=(G.p[pl].deck.length-eDeck)/40;
     let o=my/(th+1)+deckAdv+L(pl).bias+(FAX&&FAX.pl===pl&&FAX.bias||0);   // v69: the archetype leans one way
     if(lvl(pl)==="easy")o+=Math.random()*.6-.3;
     if(!G.p[pl].deck.length||!eDeck||G.turnNo>90*Math.max(1,G.p.length/2)||hq()&&G.turnNo>8)return OFF;   // a dry deck ends the waiting game
-    return o>1?OFF:DEF;
+    return o>.8?OFF:DEF;   // v79f: offensive unless clearly behind (was: only when ahead)
   }
   function withSel(r,c,ids,fn){const old=G.sel;G.sel={r,c,pick:new Set(ids)};aiSel++;try{return fn()}finally{G.sel=old;aiSel--}}
   const step=(...ts)=>{render();return sleep(ts.length&&!stepSeen(ts)?25:G.p[G.active].cpu==="horde"?260:420)};   // v71r: a step no person at the table can see doesn't wait (78_anim3.js)
@@ -268,18 +297,21 @@ const AI=(()=>{
         for(const [r,c] of tg){if(G.board[r][c]&&FAX.noStack&&FAX.noStack(grp,G.board[r][c]))continue;const sc=supportScore(pl,S,r,c,W,st)*jit(pl);if(!best||sc>best.s)best={r,c,s:sc}}
         if(best&&best.s>stay+.2){G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step([o.r,o.c],[best.r,best.c])}
         return}
-      let stay=inAce?tileScore(pl,S,o.r,o.c,W,false)+(hq()?-1:W?.k==="def"?.6:0):tileScore(pl,S,o.r,o.c,W,true);
+      CHASE=chaseFor(pl,S,o.r,o.c,W);   // v79f
+      let stay,best=null;try{
+      stay=inAce?tileScore(pl,S,o.r,o.c,W,false)+(hq()?-1:W?.k==="def"?.6:0):tileScore(pl,S,o.r,o.c,W,true);
       const tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets);
-      let best=null;
       for(const [r,c] of tg){
         const t=G.board[r][c];
         if(t&&FAX&&FAX.pl===pl&&FAX.noStack&&FAX.noStack(grp,t))continue;   // v74f: a class that avoids stacking
         let s;
         if(t){const M={cards:[...t.cards,...grp],owner:pl,hypo:0};s=tileScore(pl,M,r,c,W,true)-tileScore(pl,t,r,c,W,true)+.2+(W.stack||0)+(FAX&&FAX.pl===pl&&!hasBase(t)?FAX.stack||0:0)+(hasBase(t)?0:stackAdj(pl,fighters(M)))}
         else s=tileScore(pl,S,r,c,W,true);
+        s+=chaseAdd(r,c,W);
         s*=jit(pl);
         if(!best||s>best.s)best={r,c,s};
       }
+      }finally{CHASE=null}
       if(best&&best.s>stay+.15){
         G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step([o.r,o.c],[best.r,best.c]);
       }
@@ -303,7 +335,7 @@ const AI=(()=>{
         if(g==="big"){const ring=stacksOf(pl).filter(x=>x.st!==st&&fighters(x.st)>0&&dist(x.r,x.c,r2,c2)===1).length;if(!ring&&p<.7&&!onHill)continue;sc*=1+.15*ring}   // v71: the army strikes together
         const late=isHorde(pl)?0:G.turnNo>90?Math.min(.25,.1+(G.turnNo-90)/200):!G.p[pl].deck.length?.1:0;
   
-        const go=p>=(lv.thr-late-(onHill?.08:0)+(FAX?FAX.thrAdj:0))*(lvl(pl)==="easy"?(.7+Math.random()*.6):1)||(lvl(pl)!=="easy"&&sc>.4)||isHorde(pl);   // the Horde never holds back: whatever it can reach, it hits
+        const go=p>=(lv.thr-late-(onHill?.08:0)+(FAX?FAX.thrAdj:0)-(aggrOf(pl).on?.06:0))*(lvl(pl)==="easy"?(.7+Math.random()*.6):1)||(lvl(pl)!=="easy"&&sc>.4)||isHorde(pl);   // the Horde never holds back: whatever it can reach, it hits
         if(cx&&cx.lowPrio)sc*=.8;   // v72e: a low-priority class lets the others strike first
         if(go&&(!best||sc>best.sc))best={r,c,r2,c2,sc,p,mode:o.mode};
       }

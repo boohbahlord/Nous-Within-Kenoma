@@ -16,7 +16,7 @@
      sheen if you like; only you see it unless you show it to the other players. It can't be your own color, nor too like it
      or another class's (those are greyed out, as in the setup). Hidden under Neptune's eclipse.
    - Every Automated Strategy shares the same classes. */
-const CLS_CFG=["noAttack","stance","lives","battles","formation","ambush","ambFocus","bases","hier","order","eq"];
+const CLS_CFG=["noAttack","stance","aggr","aggrHow","aggrN","lives","battles","formation","ambush","ambFocus","bases","hier","order","eq"];   // v79f: Aggression
 const CLS_STK=["strongest","weakest","minority","majority"];
 /* v73f: a class's target priority goes by the types of card (Wildcards, Special, Base, Standard, Support): the type it targets
    most, the ranking of the types below it, and inside each type (its ⚙ window) the kind it hunts first and their ranking */
@@ -154,6 +154,7 @@ ${row(`${id}|on`,k.on,"Class on","Its rules play its cards by themselves (while 
 <p class="clsh">Its cards</p><div class="opts fakinds">${FA_KINDS.map(kd=>{const t=clsTaken(id,kd),dis=!!t&&!multi&&!k.kinds.includes(kd);return `<label class="opt${dis?" off":""}" ${t&&!k.kinds.includes(kd)?`title="In ${esc(t.name)}"`:""}><input type="checkbox" data-cl="${id}|kind:${kd}" ${k.kinds.includes(kd)?"checked":""} ${dis?"disabled":""}><span>${esc(shortInfo(kd))}</span></label>`}).join("")}</div>
 <p class="clsh">A stack mixing its cards with others plays by it when its cards are…</p>${row(`${id}|stack:strongest`,k.stack.strongest,"…the stack's strongest card","")}${row(`${id}|stack:weakest`,k.stack.weakest,"…the stack's weakest card","")}${row(`${id}|stack:minority`,k.stack.minority,"…only a few of its cards","Not the most of them.")}${row(`${id}|stack:majority`,k.stack.majority,"…most of its cards","")}
 <p class="clsh">Stance</p>${radio(`${id}|stance`,c.stance,[["auto","Automatic",""],["offensive","Offensive",""],["defensive","Defensive",""],["center","Center",""],["skirmish","Skirmish",""]])}
+<p class="clsh">Aggression</p>${faAggrHTML(K,c,`${id}|aggr`,`${id}|aggrHow`,`${id}|aggrN`)}
 <p class="clsh">Lives</p>${radio(`${id}|lives`,c.lives,[["preserve","Preserve",""],["balanced","Balanced",""],["throw","Throw them in",""]])}
 <p class="clsh">Picking battles</p>${radio(`${id}|battles`,c.battles,[["careful","Careful",""],["normal","Normal",""],["reckless","Reckless",""]])}
 <p class="clsh">Formation</p>${radio(`${id}|formation`,c.formation,[["auto","Automatic",""],["wide","Wide",""],["deep","Tall",""]])}
@@ -207,6 +208,7 @@ function clsWire(root){const L=clsList(),find=id=>L.find(k=>k.id===id);
       L.splice(L.indexOf(k)+1,0,c2);PREF.faClasses=clsClean(L);clsUI.open=c2.id;clsResend();flash(`Copied as “${c2.name}”.`);return}
     if(a==="mvup"||a==="mvdn"){const j=L.indexOf(k),t=j+(a==="mvup"?-1:1);if(t<0||t>=L.length)return;[L[j],L[t]]=[L[t],L[j]];PREF.faClasses=clsClean(L);clsResend();return}
     if(a==="tgwin"){clsTgWin(id,x);return}
+    if(a==="aggrN+"||a==="aggrN-"){k.cfg.aggrN=Math.max(1,Math.min(12,(k.cfg.aggrN||4)+(a==="aggrN+"?1:-1)));PREF.faClasses=clsClean(L);clsResend();return}   // v79f
     if(a==="delok"){clsUI.del=null;PREF.faClasses=clsClean(L.filter(y=>y.id!==id));clsResend();return}
     const mv=(arr,dir)=>{const i=arr.indexOf(x),j=i+dir;if(i<0||j<0||j>=arr.length)return;[arr[i],arr[j]]=[arr[j],arr[i]]};
     if(a==="hup"||a==="hdown")mv(k.cfg.order,a==="hup"?-1:1);if(a==="tup"||a==="tdown")mv(k.tg.order,a==="tup"?-1:1);
