@@ -2,7 +2,7 @@
 import json, html, os, re, shutil
 
 OUT = 'site'
-SITE_V = '66'   # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+SITE_V = '67'   # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 os.makedirs(OUT, exist_ok=True)
 shutil.copy('theme/site.js', f'{OUT}/site.js')
 shutil.copy('theme/ec-music.js', f'{OUT}/ec-music.js')
@@ -172,7 +172,7 @@ idx = head('Nous Within Kenoma') + f'''<main class="wide" style="max-width:1060p
   </nav>
   <h2 class="label">Game</h2>
   <nav class="cards">
-    <a class="card" href="ethers-crossroads.html">Ether's Crossroads<span>A card game of souls, dice and stacks</span></a>
+    <a class="card" href="ethers-crossroads.html">Ether's Crossroads<span>A strategy card game, loosely based on the book</span></a>
   </nav>
 </div>
 <div>

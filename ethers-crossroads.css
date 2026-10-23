@@ -1855,10 +1855,11 @@ html.cardsym .cf.v61 .hearts,html.cardsym .stack.v61 .bhp{top:calc(24px * var(--
 .farow.faalways{margin:0 0 10px;padding:8px 10px;border:1px solid var(--rule);background:#00000025}
 .farow.faalways small{display:block;color:var(--dim);font-weight:400}
 /* v70d: the round's number, large and faint in the middle of the screen */
-#roundban{position:fixed;inset:0;z-index:90;display:grid;place-content:center;justify-items:center;pointer-events:none;opacity:0;text-align:center}
-#roundban .rbr{font-family:"Grenze Gotisch","Old English Text MT",serif;font-size:clamp(22px,3.4vw,40px);color:#efe2c8;opacity:.85;letter-spacing:.06em}
-#roundban .rbn{font-family:"Grenze Gotisch","Old English Text MT",serif;font-size:clamp(96px,17vw,230px);line-height:.95;color:#efe2c8;opacity:.8;text-shadow:0 0 40px #000,0 0 6px #000}
-#roundban .rbs{font-family:"Grenze Gotisch","Old English Text MT",serif;font-size:clamp(18px,2.8vw,32px);color:#efe2c8;opacity:.95;margin-top:6px;text-shadow:0 0 10px #000}
+#roundban{position:fixed;left:0;right:0;top:50%;transform:translateY(-50%);z-index:90;display:flex;flex-wrap:wrap;justify-content:center;align-items:baseline;column-gap:.35em;padding:8px 16px 10px;pointer-events:none;opacity:0;text-align:center;background:linear-gradient(90deg,transparent,#0000006b 14%,#0000006b 86%,transparent);border-top:1px solid #efe2c826;border-bottom:1px solid #efe2c826}   /* v78u: one long, low band across the middle of the screen; the band and its words fade in and out together */
+#roundban .rbr,#roundban .rbn,#roundban .rbs{font-family:"Grenze Gotisch","Old English Text MT",serif;color:#efe2c8;opacity:.85;text-shadow:0 0 8px #000}
+#roundban .rbr{font-size:clamp(20px,2.6vw,34px);letter-spacing:.06em}
+#roundban .rbn{font-size:clamp(30px,4.2vw,54px);line-height:1}
+#roundban .rbs{flex-basis:100%;font-size:clamp(15px,1.8vw,22px);margin-top:2px}
 #roundban.go{animation:roundban 4.6s ease-in-out forwards}
 @keyframes roundban{0%{opacity:0}28%{opacity:1}68%{opacity:1}100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){#roundban.go{animation:roundbanR 3.6s steps(1,end) forwards}@keyframes roundbanR{0%{opacity:1}100%{opacity:0}}}
@@ -2594,7 +2595,6 @@ details[open]>summary,[data-fold][aria-expanded="true"]{text-shadow:0 0 6px colo
 #clsmenu .fgrad{margin:4px 10px 2px;font-size:12px;color:var(--dim)}
 #clsmenu .fgradb{display:flex;gap:4px;padding:0 6px 4px}#clsmenu .fgradb button{flex:1}#clsmenu .fgradb button[disabled]{opacity:.4;cursor:default}
 html.ecfs #notes{top:calc(var(--fsctlb,104px) + 8px)}   /* v78s: in fullscreen the notes come down from the middle of the top, under the turn bar and the meters */
-#roundban.go{background:radial-gradient(ellipse 46% 34% at 50% 50%,#000000a8,#00000060 60%,transparent 78%)}   /* v78s: a dark band behind it, so it reads over any field (it was too faint to notice) */
 #fsbfsb{position:fixed;top:8px;right:calc(110px + var(--fsctlw,118px));z-index:33;display:flex;align-items:center;gap:2px;padding:6px 8px;cursor:pointer;font:inherit;font-size:15px;line-height:1;
   color:var(--amber-hi);background:color-mix(in oklab,var(--deep) 90%,transparent);border:1px solid var(--amber);border-radius:6px;box-shadow:0 2px 10px #000a}
 #fsbfsb b{font-weight:600;opacity:.45}#fsbfsb:not(.on) b:first-child,#fsbfsb.on b:last-child{opacity:1}

@@ -108,7 +108,7 @@ function clsMenu(target,x,y){const V=view(),list=plClasses(V);let m=$("#clsmenu"
   m.querySelectorAll("[data-clm]").forEach(b=>b.onclick=()=>{m.hidden=true;clsChoose(target,b.dataset.clm||null)});
   const f=m.querySelector("button");if(f)f.focus({preventScroll:true})}
 document.addEventListener("pointerdown",e=>{const m=$("#clsmenu");if(m&&!m.hidden&&!m.contains(e.target))m.hidden=true},true);
-document.addEventListener("keydown",e=>{const m=$("#clsmenu");if(e.key==="Escape"&&m&&!m.hidden)m.hidden=true});
+document.addEventListener("keydown",e=>{const m=$("#clsmenu");if(e.key==="Escape"&&m&&!m.hidden){m.hidden=true;e.preventDefault()}});   // v78u: and that Esc does nothing else (in fullscreen it also paused)
 function clsTargetAt(e){if(!clsReady())return null;const V=view();
   const t=e.target.closest&&e.target.closest("#board .tile");if(t){const st=G.board[+t.dataset.r]&&G.board[+t.dataset.r][+t.dataset.c];if(st&&st.owner===V&&st.cards.some(x=>!isBase(x)))return {st}}
   const h=e.target.closest&&e.target.closest("#hand [data-h]");if(h){const c=G.p[V].hand[+h.dataset.h];if(c&&!isBase(c))return {card:c}}

@@ -174,7 +174,7 @@ function fsQuote(){const o=fsOv("fsquote"),q=$("#qtext"),s=$("#qsrc");
   if(!q||!q.innerHTML.trim())next();paint();o.hidden=false;$("#fsqX").focus();
   $("#fsqN").onclick=next;$("#fsqX").onclick=()=>{o.hidden=true;const b=$("#fsQuote");if(b)b.focus()}}
 function fsCloseAll(){fsHelpClose();for(const id of ["fsquote","fsctl"]){const o=$("#"+id);if(o)o.hidden=true}fsResume();const m=$("#fsrowM");if(m)m.hidden=true;const mo=$("#moon");if(mo)mo.classList.remove("fsopen")}
-document.addEventListener("keydown",e=>{if(!fsOn()||e.key!=="Escape")return;
+document.addEventListener("keydown",e=>{if(!fsOn()||e.key!=="Escape"||e.defaultPrevented)return;   // v78u: an Esc that already closed something
   const q=$("#fsquote"),hp=$("#fshelp"),pz=$("#fspause");
   for(const o of [$("#fsctl"),$("#fsrowmore")])if(o&&!o.hidden){o.hidden=true;e.preventDefault();return}   // v78j: and the row's More options
   if(q&&!q.hidden){q.hidden=true;e.preventDefault();return}if(hp&&!hp.hidden){fsHelpClose();e.preventDefault();return}if(pz&&!pz.hidden){fsResume();e.preventDefault();return}
@@ -194,8 +194,8 @@ document.addEventListener("keydown",e=>{if(!kmIs(e,"turn")||!G||G.over)return;  
   if(e.repeat){e.preventDefault();return}   // v78j: held down, it fires once
   const top=kbTop();if(top&&!top.matches(".drawer,#etherpanel"))return;   // v78j: a window has the keys (v78s: the Ether's and the sky's drawers don't)
   if(KB.mode)return;   // v78t: the spells (the bar or the list) or the hand picked by keys keep Space: it doesn't end the turn there
-  if(fsOn()&&(PREF.fsSp||PREF.fsSel)){e.preventDefault();return}   // v78t: nor with the Spells or the Selected drawer open
-  if([...document.querySelectorAll("#ov,#menu,#facfg,#fspause,#fshelp,#fsquote,#fsctl,#pop,#histpop,#rbwin,#clstgwin,#leavebox,.faov")].some(x=>!x.hidden&&x.getClientRects().length&&x.innerHTML.trim()))return;
+  // v78u: the fullscreen drawers (Spells, Selected) stay open from game to game, so they don't stop Space; a card's or a stack's menu does
+  if([...document.querySelectorAll("#ov,#menu,#facfg,#fspause,#fshelp,#fsquote,#fsctl,#pop,#histpop,#rbwin,#clstgwin,#leavebox,.faov,#clsmenu,#fgpick")].some(x=>!x.hidden&&x.getClientRects().length&&x.innerHTML.trim()))return;
   const n=$("#next");if(!n||n.disabled||!n.getClientRects().length)return;e.preventDefault();n.click()},true);
 /* v74a: the history of rolls opens above its button when there is no room below (the dice row at the bottom of fullscreen) */
 {const _oh=openHist;openHist=function(pl,anchor){_oh.apply(this,arguments);const box=$("#histpop");if(!box||box.hidden||!anchor)return;
