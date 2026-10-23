@@ -2814,7 +2814,12 @@ window.__EC={get G(){return G},startGame,stackLegal,canPlace,nextPhase,render,AI
 /* ---------------- display preferences, page themes, leave warning, quotes ---------------- */
 /* a phone: a touch screen no wider than a small tablet held sideways, or any narrow window */
 const PHONE_Q="(pointer:coarse) and (max-width:1000px), (max-width:600px)";
-const isPhone=()=>typeof matchMedia!=="undefined"&&matchMedia(PHONE_Q).matches;
+/* v78v: a computer (desktop or laptop) by what the device says it is: a touchscreen laptop reports a touch pointer just as a
+   phone does, so the pointer alone can't tell them apart */
+const ecPC=()=>{const n=typeof navigator!=="undefined"?navigator:{},ua=n.userAgent||"";if(n.userAgentData&&n.userAgentData.mobile)return false;
+  if(/Android|iPhone|iPad|iPod|Mobile|Silk|Kindle|Opera Mini|IEMobile/i.test(ua))return false;
+  return !(/Macintosh/.test(ua)&&n.maxTouchPoints>1)};   // an iPad says it is a Mac
+const isPhone=()=>typeof matchMedia!=="undefined"&&(matchMedia("(max-width:600px)").matches||!ecPC()&&matchMedia(PHONE_Q).matches);   // v78v: a computer is a phone only in a very narrow window
 const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){}
   if(!p||typeof p!=="object"||Array.isArray(p))p={};   // v78j: an object, whatever is stored
   for(const k of ["ci","ui","tz","bright","sfxVol","allVol","musicVol","mapOp"])if(k in p){const n=p[k]==null||p[k]===""?NaN:+p[k];if(Number.isFinite(n))p[k]=n;else delete p[k]}   // numbers, not text
@@ -12793,7 +12798,7 @@ document.addEventListener("click",e=>{if(!fsOn())return;const m=e.target.closest
 /* ---------- v74a: Controls: what moves what, and the options for it (a phone gets its own list) ---------- */
 /* v75b: the list follows the device's pointer, not the window's width: any mouse or trackpad shows the keyboard and mouse list
    (a narrow window or a touchscreen computer too); only a device that is touch alone opens on the touch list. Either can be picked. */
-const fsTouchOnly=()=>typeof matchMedia!=="undefined"&&!matchMedia("(any-pointer:fine)").matches&&!matchMedia("(any-hover:hover)").matches;
+const fsTouchOnly=()=>!ecPC()&&typeof matchMedia!=="undefined"&&!matchMedia("(any-pointer:fine)").matches&&!matchMedia("(any-hover:hover)").matches;
 function fsControls(){const o=fsOv("fsctl"),touch=PREF.fsCtlTab?PREF.fsCtlTab==="touch":fsTouchOnly(),ck=(id,on,t,s)=>`<label class="farow"><span class="fal"><b>${t}</b>${s?`<small>${s}</small>`:""}</span><input type="checkbox" id="${id}" ${on?"checked":""}></label>`;
   const L=touch?[["Move the field","swipe it with one finger"],["Zoom","pinch with two fingers"],["Pick a stack or a card","tap it; tap it again to let go"],["A class (Field Automation)","double-tap a stack or a hand card"],
       ["Spells and Selected","the named arrows on the right"],["Dice and the log","the arrow at the bottom left; its ⚙ for more"],["The sky","tap the body at the top left"],["Leave fullscreen","Menu, then Exit fullscreen"]]
