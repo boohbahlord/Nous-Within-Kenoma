@@ -2461,3 +2461,9 @@ kbd{font:600 11px/1 var(--mono,monospace);background:#1e150d;border:1px solid #6
 .kbfoc{outline:2px solid var(--amber)!important;outline-offset:2px;box-shadow:0 0 12px #f1d27a88!important}
 .kbfoc.kbadj{outline-style:dashed!important;outline-width:3px!important}
 #wknote{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:400;max-width:min(760px,calc(100vw - 24px));background:#120c08f2;border:1px solid var(--amber);border-radius:6px;padding:7px 12px;font-size:12.5px;color:#efe2c8;box-shadow:0 6px 24px #000c;pointer-events:none}
+/* v77g: Onyx (black) meters read on the dark page: a light stone fill with a light edge (as its dice) */
+.deckbar.pcdk i.f{background:linear-gradient(#ddd4c7,#a59d92 45%,#6f675f);box-shadow:inset 0 0 0 1px #f2ebe099}
+.pcdk .manabar i.f{box-shadow:inset 0 0 0 1px #f2ebe066}
+.pcdk .mline u,.pcdk.mline u{background:#a59d92;box-shadow:0 0 0 1px #e8e0d466}
+.fsfoe.pcdk .fsfm:not(.mana) .fsfbar i{background:#a59d92}
+.pcdk .deckbar i.f{background:linear-gradient(#ddd4c7,#a59d92 45%,#6f675f);box-shadow:inset 0 0 0 1px #f2ebe099}
