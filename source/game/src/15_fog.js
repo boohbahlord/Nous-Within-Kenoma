@@ -184,3 +184,13 @@ function fogLog(by,r,c,alt){
   G._vis=null;const seen=G.p.map(P=>!isEnemy(by,P.i)||seesTile(P.i,r,c));
   if(seen.every(Boolean))return;log.fog={by,seen,alt};
 }
+/* v78j: a fight a player can't see stays out of their log (and its banner off their screen): the lines an attack writes
+   are marked for whoever sees neither tile and sides with neither fighter (a shot into the fog marks its own lines) */
+{const _ar=attackRun;attackRun=function(r1,c1,r2,c2,mode,forced){
+  const A=G.board[r1]&&G.board[r1][c1],D=G.board[r2]&&G.board[r2][c2];
+  if(!A||!D||forced&&forced.blind)return _ar.apply(this,arguments);
+  const seen=G.p.map(P=>!isEnemy(A.owner,P.i)||!isEnemy(D.owner,P.i)||seesTile(P.i,r1,c1)||seesTile(P.i,r2,c2));
+  if(seen.every(Boolean))return _ar.apply(this,arguments);
+  const L0=G.log[0],out=_ar.apply(this,arguments),end=L0?G.log.indexOf(L0):G.log.length;
+  for(const l of G.log.slice(0,end<0?G.log.length:end))if(!l.fog)l.fog={by:A.owner,seen,alt:""};
+  return out}}

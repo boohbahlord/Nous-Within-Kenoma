@@ -8,7 +8,8 @@ function critBanner(k,n){let b=$("#critfx");if(!b){b=document.createElement("div
   b.className="k-"+k;b.innerHTML=`<b>${t}</b>${k==="dodge"?"":D20_SVG(n)}`;b.hidden=false;b.classList.remove("go");void b.offsetWidth;b.classList.add("go");
   clearTimeout(critBanner.t);critBanner.t=setTimeout(()=>{b.hidden=true},1700)}
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!G.log)return;
-  const e=G.log.find(l=>l.crit);if(!e)return;const id=e.n||e.t;if(!critSeen){critSeen=id;if(Date.now()-e.t>4000)return}
+  const V=view(),e=G.log.find(l=>l.crit&&!(l.fog&&!l.fog.seen[V]&&isEnemy(l.fog.by,V)));if(!e)return;const id=e.n||e.t;   // v78j: only fights you see
+  if(!critSeen){critSeen=id;if(Date.now()-e.t>4000)return}
   if(id!==critSeen&&Date.now()-e.t<6000){critSeen=id;critBanner(e.crit.k,e.crit.n)}else critSeen=id}}
 
 /* ---------- Dice Plus (Enchantment, 1d3 mana): a sword (its next attack) or a shield (its next defense) adds a d12 roll ---------- */

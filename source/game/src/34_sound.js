@@ -106,14 +106,14 @@ const AUD=(()=>{
 })();
 
 /* ---------- what plays when ---------- */
-const sndSees=(r,c)=>{const V=view();return !totalBlind(V)&&!fogTile(V,r,c)};
+const sndSees=(r,c)=>{const V=view();return !totalBlind(V)&&!fogTile(V,r,c)&&deluSees(V,r,c)};
 /* buttons and cards */
 document.addEventListener("click",e=>{if(!G||G.over||!e.target.closest)return;   // v78j: before and after a game, site.js clicks
   const card=e.target.closest(".cardbtn,.pk,.myscard.back,#board .tile");
   if(card){if(!card.matches(".tile")||card.querySelector(".stack"))AUD.card();return}
   if(e.target.closest("button,summary,label.opt,label.chk,select"))AUD.ui()},true);
-{const _pl=place;place=function(card,r,c){const out=_pl.apply(this,arguments);if(card&&(card.owner===view()||sndSees(r,c)))AUD.place();return out}}
-{const _dm=doMove;doMove=function(r,c){const s=G.sel,st=s&&G.board[s.r][s.c],own=st?st.owner:null;const hear=own===view()||s&&sndSees(s.r,s.c)&&sndSees(r,c);const out=_dm.apply(this,arguments);if(hear)AUD.move();return out}}
+{const _pl=place;place=function(card,r,c){const out=_pl.apply(this,arguments);if(card&&(card.owner===view()||sndSees(r,c)&&!hiddenFrom(view(),r,c)))AUD.place();return out}}   // v78j: a hidden card is silent
+{const _dm=doMove;doMove=function(r,c){const s=G.sel,st=s&&G.board[s.r][s.c],own=st?st.owner:null;const hear=own===view()||s&&sndSees(s.r,s.c)&&sndSees(r,c);const out=_dm.apply(this,arguments);if(hear&&(own===view()||!hiddenFrom(view(),r,c)))AUD.move();return out}}
 {const _at=attack;attack=function(r1,c1,r2,c2,mode){const A=G.board[r1]&&G.board[r1][c1];let snd=null;
   if(A&&AUD.ok()&&(A.owner===view()||sndSees(r1,c1)||sndSees(r2,c2))){const o=attackOptions(r1,c1).find(x=>x.r===r2&&x.c===c2&&(mode==null||x.mode===mode))||{};const id=o.mode||mode;
     snd=id==="slug"?"slug":id==="gun"?"gun":id==="bow"?"arrow":id==="cannon"||hasK(A,"cannon")&&o.ranged?"cannon":id==="charge"||id==="charge2"?"charge":id==="ram"?"blunt":o.ranged?"arrow":"clash"}

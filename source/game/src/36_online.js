@@ -173,7 +173,7 @@ function applySnap(m){
   if(g.over&&!(old&&old.over)){const w=g.log.find(l=>l.cls==="win"),txt=w?w.html:"The game is over.";
     ovShow(`<div class="ovbox"><h2>The game is over</h2><p>${txt}</p><p class="acts"><button class="btn" id="netAgain">Back to the room</button></p></div>`);$("#netAgain").onclick=()=>onlineLobby()}}
 {const _v=view;view=function(){if(NET.role==="guest"&&NET.seat!=null&&G)return NET.seat;if(NET.role==="host"&&NET.hostSeat!=null&&G&&G.opts.online)return NET.hostSeat;return _v()}}
-{const _ps=passScreen;passScreen=function(msg){if(G&&G.opts.online){if(NET.role==="host"&&typeof localSeats==="function"&&localSeats().length>1&&localSeats().includes(G.active))return _ps(msg);return Promise.resolve()}return _ps(msg)}}
+{const _ps=passScreen;passScreen=function(msg){if(G&&G.opts.online){if(NET.role==="host"&&typeof localSeats==="function"&&localSeats().length>1&&localSeats().includes(G.active))return _ps.apply(this,arguments);return Promise.resolve()}return _ps.apply(this,arguments)}}
 
 /* ---------- messages ---------- */
 function onNet(from,d){if(!d||!d.t)return;

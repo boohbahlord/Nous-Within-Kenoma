@@ -86,7 +86,7 @@ function substanceRound(){
     const c=mk("2",pick(["S","H","D","C"]));c.puppet=true;c.owner=P.i;
     if(t.st.cards.length>6||!stackLegal([...t.st.cards,c])){log(`The Tree is full: no Puppet grows for ${plName(P.i)}.`);continue}   // v78j: as a stack would hold it
     t.st.cards.push(c);
-    log(`A free Puppet grows in ${plName(P.i)}'s Tree on ${coord(t.r,t.c)}.`);notify(P.i,`A Puppet grows in ${esc(P.name)}'s Tree.`);
+    fogLog(P.i,t.r,t.c,`A free Puppet grows in ${plName(P.i)}'s Tree.`);log(`A free Puppet grows in ${plName(P.i)}'s Tree on ${coord(t.r,t.c)}.`);notify(P.i,`A Puppet grows in ${esc(P.name)}'s Tree.`);
   }
 }
 /* the start of a player's own turn */
@@ -152,7 +152,7 @@ function showPop(){
   $("#popok").onclick=()=>{POPQ.shift();if(POPQ.length)showPop();else el.hidden=true};
 }
 function notify(pl,html){
-  if(!G||G.opts.fast)return;
+  if(!G||G.opts.fast)return;if(pl!=null&&G.p[pl]&&isEnemy(pl,view()))return;   // v78j: a note for one player shows only on their side
   let box=$("#notes");if(!box){box=document.createElement("div");box.id="notes";box.setAttribute("aria-live","polite");document.body.appendChild(box)}
   const n=document.createElement("div");n.className="note";n.style.setProperty("--pc",pl!=null&&G.p[pl]?cbMap(G.p[pl].color):"#e6d6bd");n.innerHTML=html;
   n.onclick=()=>n.remove();box.prepend(n);while(box.children.length>4)box.lastChild.remove();

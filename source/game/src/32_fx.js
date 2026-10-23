@@ -15,7 +15,7 @@ const FX={
   layer(){let l=document.getElementById("fx");if(!l){l=document.createElement("div");l.id="fx";l.setAttribute("aria-hidden","true");document.body.appendChild(l)}return l},
   tile(r,c){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);return t?t.getBoundingClientRect():null},
   rectOf(el){return el?el.getBoundingClientRect():null},
-  sees(r,c){const V=view();return !totalBlind(V)&&!fogTile(V,r,c)},
+  sees(r,c){const V=view();return !totalBlind(V)&&!fogTile(V,r,c)&&deluSees(V,r,c)},   // v78j: and a Delusion's reach
   seesStack(r,c){const V=view();return FX.sees(r,c)&&!(G.board[r]&&G.board[r][c]&&hiddenFrom(V,r,c))},
   make(cls,rect,o={}){if(!rect)return null;const e=document.createElement("div");e.className="fx "+cls;
     const w=o.w!=null?o.w:rect.width,h=o.h!=null?o.h:rect.height;

@@ -56,7 +56,7 @@ function releaseSpots(st,r,c){const x=st.captive,out=[];if(!x)return out;
   return out}
 function release(r,c,rr,cc){const st=G.board[r][c],x=st.captive;st.captive=null;x.owner=st.owner;x.capturedFrom=null;const t=G.board[rr][cc];
   if(t)t.cards.push(x);else G.board[rr][cc]={owner:st.owner,cards:[x],moved:true,attacked:true};
-  log(`${plName(st.owner)} sets the captured ${esc(nameOf(x))} to work on ${coord(rr,cc)}: it is theirs now.`)}
+  fogLog(st.owner,rr,cc,"");log(`${plName(st.owner)} sets the captured ${esc(nameOf(x))} to work on ${coord(rr,cc)}: it is theirs now.`)}
 
 /* ---------- Archers: Suppress ---------- */
 function suppress(r1,c1,r2,c2,opt){
@@ -85,7 +85,7 @@ function healTargets(st,r,c){const out=[];
 const healReady=st=>{const h=healerOf(st);return !!h&&(h.healAt||0)<=tnOf(st.owner)&&shieldUp(st)};
 function healAct(r,c,T){const st=G.board[r][c],h=healerOf(st),d=R(2)+2,n=tnOf(st.owner);T.x.hp++;h.healAt=n+d;h.shieldOff=n+3;
   tray(st.owner,"Heal",[{s:2,v:d-2}],`next heal in ${d}`);
-  log(`${plName(st.owner)}'s Healer on ${coord(r,c)} heals ${esc(nameOf(T.x))} on ${coord(T.r,T.c)} (${T.x.hp}/${T.x.maxHp}). The shield is down for 3 turns, and the next heal waits ${d} turns (1d2 + 2).`)}
+  fogLog(st.owner,T.r,T.c,"");log(`${plName(st.owner)}'s Healer on ${coord(r,c)} heals ${esc(nameOf(T.x))} on ${coord(T.r,T.c)} (${T.x.hp}/${T.x.maxHp}). The shield is down for 3 turns, and the next heal waits ${d} turns (1d2 + 2).`)}
 
 /* ---------- Repairmen ---------- */
 function repairTargets(st,r,c){const out=[];
@@ -102,7 +102,7 @@ function repairAct(r,c,T){const st=G.board[r][c],m=repairOf(st),b=T.b,nm=KNAME[k
     log(`${plName(st.owner)}'s Repairman gives his life to upgrade the Ace on ${coord(T.r,T.c)}: it now has ${b.maxHp} hearts.`,"event");return}
   const d=R(3)+1;if(T.act==="upgrade"){b.maxHp++;b.hp++}else b.hp++;m.repAt=tnOf(st.owner)+d;T.t.repLock=tnOf(T.t.owner)+d;
   tray(st.owner,"Repair",[{s:3,v:d-1}],`busy ${d}`);
-  log(`${plName(st.owner)}'s Repairman ${T.act==="upgrade"?"strengthens":"repairs"} the ${nm} on ${coord(T.r,T.c)} (${b.hp}/${b.maxHp}). For ${d} turns (1d3 + 1) nothing fires from that base and it can't be repaired again.`)}
+  fogLog(st.owner,T.r,T.c,"");log(`${plName(st.owner)}'s Repairman ${T.act==="upgrade"?"strengthens":"repairs"} the ${nm} on ${coord(T.r,T.c)} (${b.hp}/${b.maxHp}). For ${d} turns (1d3 + 1) nothing fires from that base and it can't be repaired again.`)}
 
 /* ---------- Miners and crystals ---------- */
 const crystalAt=(r,c)=>(G.crystals||[]).find(x=>x.r===r&&x.c===c);

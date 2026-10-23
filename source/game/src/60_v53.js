@@ -49,7 +49,7 @@ function dropBountyCards(pl,ids){const P=G.p[pl];if(!P)return [];const out=bount
 {const _cl=critLog;critLog=function(k,n,html){_cl.apply(this,arguments);if(G._atk&&G.log[0]&&G.log[0].crit)Object.assign(G.log[0].crit,{r:G._atk[0],c:G._atk[1]})}}
 const SEAL_SVG=n=>`<svg viewBox="-50 -50 100 100" aria-hidden="true"><polygon class="s1" points="0,-46 40,-23 40,23 0,46 -40,23 -40,-23"/><path class="s2" d="M0,-46L-24,14L24,14Z M-40,-23L-24,14 M40,-23L24,14 M-40,23L-24,14 M40,23L24,14 M0,46L-24,14 M0,46L24,14"/><circle class="s3" r="48"/><text x="0" y="6" text-anchor="middle" dominant-baseline="middle">${n}</text></svg>`;
 critBanner=function(k,n,r,c){if(typeof fxPartOn==="function"&&!fxPartOn("banners"))return;
-  if(r==null&&G&&G.log){const e=G.log.find(l=>l.crit);if(e&&e.crit.k===k&&e.crit.n===n){r=e.crit.r;c=e.crit.c}}
+  if(r==null&&G&&G.log){const V=view(),e=G.log.find(l=>l.crit&&!(l.fog&&!l.fog.seen[V]&&isEnemy(l.fog.by,V)));if(e&&e.crit.k===k&&e.crit.n===n){r=e.crit.r;c=e.crit.c}}
   let b=$("#critfx");if(!b){b=document.createElement("div");b.id="critfx";b.setAttribute("aria-live","polite");document.body.appendChild(b)}
   const t=k==="hit"?"Crit Hit":k==="miss"?"Crit Miss":k==="success"?"Crit Success":"Miss";
   const tile=r!=null?document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`):null,box=(tile||$("#board")||document.body).getBoundingClientRect();

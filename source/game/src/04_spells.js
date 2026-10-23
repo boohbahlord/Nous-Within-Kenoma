@@ -71,12 +71,13 @@ async function cast(sp){
   const cost=spellCost(sp);
   if(!canAfford(G.active,cost)){flash(me().credit?"Not even the Bank will cover that.":"Not enough mana. (The Bank can let you spend on credit.)");return}
   const wasBusy=G.busy;G.busy=true;const caster=G.active;
-  const tile=G.sel&&["suicide","divine","hypo","hexed","tele"].includes(sp.id)?coord(G.sel.r,G.sel.c):null;G.histTarget=null;G.histTile=tile;
+  const on=G.sel&&["suicide","divine","hypo","hexed","tele"].includes(sp.id)?{r:G.sel.r,c:G.sel.c}:null,tile=on?coord(on.r,on.c):null;G.histTarget=null;G.histTile=tile;
   if(cost){if(sp.id!=="ritual")G.spentOther=true;spend(G.active,cost);noteBuy(sp.id)}
   const paidCost=cost;   // spell mana goes to the Bank
   try{await sp.run()}catch(e){G.busy=wasBusy;throw e}finally{G.histTile=null}   // a spell that fails never leaves the turn stuck
   skyBought(sp,paidCost);mercuryBought(sp);
   hist(caster,{kind:"spell",name:sp.name,tile,cost,target:G.histTarget!=null?G.p[G.histTarget].name:null});
+  if(on)fogLog(caster,on.r,on.c,`${plName(caster)} casts <b>${esc(sp.name)}</b>${cost?` (${cost} mana)`:""}.`);   // v78j: the tile only to those who see it
   log(`${plName(caster)} casts <b>${esc(sp.name)}</b>${tile?" on "+tile:""}${G.histTarget!=null?" at "+plName(G.histTarget):""}${cost?` (${cost} mana)`:""}.`,"cast");G.histTarget=null;
   G.busy=wasBusy;render();checkWin();
 }

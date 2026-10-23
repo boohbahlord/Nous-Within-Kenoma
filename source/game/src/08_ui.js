@@ -26,11 +26,6 @@ function askHuman(pl,spec){
     if(spec.cancel)$("#mcancel").onclick=()=>{ovHide();res(null)};
   });
 }
-/* v78j: the question on screen, so the phase timer can answer it when time runs out (as the computer would) */
-let askOpen=null;
-{const _ah=askHuman;askHuman=function(pl,spec){return new Promise(res=>{let open=true;
-  const q=askOpen={pl,spec,answer:v=>{if(!open)return;open=false;ovHide();res(v)}};
-  _ah.call(this,pl,spec).then(v=>{if(askOpen===q)askOpen=null;if(open){open=false;res(v)}})})}}
 /* v45: a long list of cards to pick from (the grave, a hand, the Outer Darkness) reads like the Ether: tabs by kind of card,
    each kind under its heading, and the same card folded into one button with a count */
 const pickKey=c=>[c.unit||"",c.rank,c.suit||"",c.color||"",c.puppet?"p":"",c.hp!=null?c.hp:""].join("|");
@@ -51,12 +46,16 @@ function viewBox(title,cards,box,note,owners){
   ovShow(`<div class="ovbox wide ${BOXNAME[box]||""}"><h2>${title}</h2>${note?`<p class="dim">${note}</p>`:""}${body}<p><button class="btn ghost" id="mcancel">Close</button></p></div>`);
   $("#mcancel").onclick=ovHide;wirePickTabs($("#ov"));
 }
-function passScreen(msg){
+/* an enemy's hand shows face up: under the suns' eclipse, through a Naked Hand cast by you or an ally, or a teammate's
+   when one person plays the table (never while the device is passed) */
+const handOpen=(pl,V)=>{const P=G.p[pl];return !G.passing&&(eclipseOn("sun")||P.shownBy!=null&&(P.shownBy===V||!isEnemy(P.shownBy,V))||P.team===G.p[V].team&&G.p.filter(Q=>!Q.cpu).length===1)};
+function passScreen(msg,pl=G.active){
   return new Promise(res=>{
-    G.passing=true;render();
-    const P=me();const seen=P.seen;P.seen=false;
+    const ci=$("#cinfo");if(ci)ci.hidden=true;closeHist();   // v78j: nothing of the last player's stays over the cover
+    G.passing=true;render();const M=$("main");if(M)M.inert=true;   // v78j: nothing behind the cover is read out or reached
+    const P=G.p[pl];const seen=P.seen;P.seen=false;
     ovShow(`<div class="ovbox"><h2>${esc(msg)}</h2><p>Pass the device to <b>${esc(P.name)}</b>. The cards stay dark until they confirm.</p>${seen?`<p class="seen">Your hand was seen by Naked Hand.</p>`:""}<p><button class="btn" id="ready">I'm ${esc(P.name)}: show my cards</button></p></div>`,"blackout");
-    $("#ready").onclick=()=>{ovHide();G.passing=false;render();res()};
+    $("#ready").onclick=()=>{ovHide();G.passing=false;G.atDevice=P.i;const M=$("main");if(M)M.inert=false;render();res()};
   });
 }
 function end(w,why){
@@ -99,7 +98,7 @@ function pboxHTML(pl,top){
     if(sl.length)h+=`<p class="stats subline">${sl.join("")}</p>`;
     const showHand=top;
     if(showHand){
-      const open=eclipseOn("sun")&&!G.passing||P.shownBy!=null&&!G.passing&&(P.shownBy===V||!isEnemy(P.shownBy,V))||G.p[pl].team===G.p[V].team&&G.p.filter(Q=>!Q.cpu).length===1&&!G.passing;
+      const open=handOpen(pl,V);
       h+=`<div class="handrow"><span class="bk">Hand ${P.hand.length}/${handCap(pl)}</span>${P.hand.map(c=>open?face(c,{cls:"sm"}):back(pl)).join("")}${open?'<span class="seenmark">seen</span>':""}</div>`;
     }else h+=`<p class="stats"><span>Hand <b>${P.hand.length}/${handCap(pl)}</b></span>${P.od?`<span class="odn">overdrawn <b>${P.od}</b></span>`:""}${P.loot?`<span class="loot" title="From the Bank heist: pours into the soul pile at the start of each turn">stash <b>${P.loot}</b></span>`:""}</p>`;
   }
@@ -170,7 +169,7 @@ function render(){
       inner=crystalHTML(r,c,!!st)+inner;
       if(fogTile(V,r,c))cls.push("fog");if(fireAt(r,c))cls.push("fire");
       const zc=!duel&&z>=0?` style="--zc:${G.p[z].color}"`:"";
-      return `<button class="${cls.join(" ")}${role==="bridge"?" bridge":""}"${zc} data-r="${r}" data-c="${c}" aria-label="${coord(r,c)}, ${lineName||(z>=0?esc(G.p[z].name)+"'s ground":"open ground")}${role==="bridge"?" bridge":""}${st?(showsBack(V,r,c)?", a face-down stack":", "+st.cards.map(nameOf).join(", ")):", empty"}">${art}${PREF.coords?`<span class="coord">${coord(r,c)}</span>`:""}${inner}</button>`;
+      return `<button class="${cls.join(" ")}${role==="bridge"?" bridge":""}"${zc} data-r="${r}" data-c="${c}" aria-label="${coord(r,c)}, ${lineName||(z>=0?esc(G.p[z].name)+"'s ground":"open ground")}${role==="bridge"?" bridge":""}${st?(showsBack(V,r,c)?", a face-down stack":", "+st.cards.map(nameOf).join(", ")):totalBlind(V)||fogTile(V,r,c)?", in the fog":", empty"}">${art}${PREF.coords?`<span class="coord">${coord(r,c)}</span>`:""}${inner}</button>`;
     }).join("")+"</div>";
   }).join("");
   {const nb=B.querySelector(":scope>.mapbg");if(nb){if(oldBg&&oldBg._g===G.map.ground)nb.replaceWith(oldBg);else nb._g=G.map.ground}if(oldVeil)B.appendChild(oldVeil)}

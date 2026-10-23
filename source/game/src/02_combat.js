@@ -225,7 +225,7 @@ function attackRun(r1,c1,r2,c2,mode,forced){
   else if(LR.crit){if(!dmgD)dmgD=1;dmgA=0;notes.push("Crit Hit: the blow lands whatever the scores.")}
   notes.push(`(Landing ${LR.la} vs ${LR.ld}.)`);
   const line=`${ra.total}${cmpSign(ra.total,rd.total)}${rd.total}`;
-  tray(atkPl,"Attack",ra.dice,opt.blind?(dmgD?"a hit in the fog":"lost in the fog"):line);tray(defPl,"Defense",rd.dice,line,true);G.histTile=null;
+  tray(atkPl,"Attack",ra.dice,opt.blind?(dmgD?"a hit in the fog":"lost in the fog"):line);if(!opt.blind)tray(defPl,"Defense",rd.dice,line,true);G.histTile=null;   // v78j: a shot into the fog shows no defense
   log(`<b>${plName(atkPl)}</b> attacks from ${coord(r1,c1)} to ${coord(r2,c2)}: <span class="dice">${ra.parts.join(", ")}</span> = <b>${ra.total}</b> vs <span class="dice">${rd.parts.join(", ")}</span> = <b>${rd.total}</b> <span class="tot">(${esc(line)})</span>. ${notes.join(" ")} ${dmgD?`Defender takes ${dmgD} damage.`:""}${dmgA?`Attacker takes ${dmgA} damage.`:""}${!dmgA&&!dmgD?"No damage.":""}`,"combat");
   if(LR.miss)critLog("miss",1,`${plName(atkPl)}: Crit Miss`);else if(LR.dodge)critLog("dodge",LR.ld,`${plName(defPl)}'s Assassin dodges: Miss`);else if(LR.crit)critLog("hit",LR.la,`${plName(atkPl)}: Crit Hit`);
   G.fight={A,D,atkPl,defPl,ranged:!!opt.ranged};
