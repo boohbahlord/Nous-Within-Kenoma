@@ -15,7 +15,7 @@
      One of the two at a time; while one is open the number keys are its own. X closes it.
    - G picks from the hand: C and V move, Enter picks the card (again: lets it go), I its info. X or Esc stops. */
 const KB={mode:null,sc:0,h:0,synth:false,ace:-1};
-const KB_WINS="#pop,#histpop,#rbwin,.fsov,.faov,#cheatq,#clsmenu,#etherpanel,#ov,#menu,#leavebox,.drawer";
+const KB_WINS="#pop,#histpop,#rbwin,.fsov,.faov,#cheatq,#clsmenu,#etherpanel,#ov,#menu,#leavebox,.drawer,#animask";
 const kbVis=el=>!el.hidden&&el.getClientRects().length>0&&el.innerHTML.trim()!=="";
 function kbTop(){let best=null,bz=-1e9;for(const el of document.querySelectorAll(KB_WINS)){if(!kbVis(el))continue;const z=+getComputedStyle(el).zIndex||0;if(z>=bz){bz=z;best=el}}return best}
 function kbEsc(){KB.synth=true;try{document.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",code:"Escape",bubbles:true,cancelable:true}))}finally{KB.synth=false}}
@@ -115,7 +115,7 @@ document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(
   /* closing: the window on top first (its ×), then the spells or the hand; Esc for the windows that have no Esc of their own */
   if(is("close")){if(kbTop()){stop();kbClose()}else if(KB.mode){stop();kbModeOff()}return}
   if(e.key==="Escape"){const w=kbTop();
-    if(w){if(w.matches("#ov,.faov,#menu")){const x=[...w.querySelectorAll(".xclose,[data-x],button[aria-label^='Close']")].find(b=>b.getClientRects().length);if(x){stop();x.click()}}return}   // the rest close on their own Esc
+    if(w){if(w.matches("#ov,.faov,#menu,#animask,#leavebox")){const x=[...w.querySelectorAll(".xclose,[data-x],button[aria-label^='Close']")].find(b=>b.getClientRects().length);if(x){stop();x.click()}}return}   // the rest close on their own Esc
     if(KB.mode){stop();kbModeOff()}return}
   if(kbTop()||!G||G.passing)return;   // a window is open, or no game: the rest waits
   /* the spells and the hand, while open, before the rest */

@@ -86,9 +86,9 @@ let leaving=false;   // set once the player has said yes, so the browser doesn't
 function confirmLeave(go){
   if(!inGame()){go();return}
   let box=$("#leavebox");if(!box){box=document.createElement("div");box.id="leavebox";document.body.appendChild(box)}
-  box.innerHTML=`<div class="ovbox" role="alertdialog" aria-labelledby="lvq"><h2 id="lvq">Are you sure you want to end your game session?</h2><p class="dim">The game in progress will be lost.</p><p class="acts"><button class="btn" id="lvy">End the session</button> <button class="btn ghost" id="lvn">Keep playing</button></p></div>`;
+  box.innerHTML=`<div class="ovbox" role="alertdialog" aria-labelledby="lvq"><button type="button" class="xclose" id="lvx" aria-label="Keep playing">×</button><h2 id="lvq">Are you sure you want to end your game session?</h2><p class="dim">The game in progress will be lost.</p><p class="acts"><button class="btn" id="lvy">End the session</button> <button class="btn ghost" id="lvn">Keep playing</button></p></div>`;
   box.hidden=false;$("#lvn").focus();
-  $("#lvy").onclick=()=>{box.hidden=true;leaving=true;go()};$("#lvn").onclick=()=>{box.hidden=true};
+  $("#lvy").onclick=()=>{box.hidden=true;leaving=true;go()};$("#lvn").onclick=$("#lvx").onclick=()=>{box.hidden=true};   // v78g: × (X, Esc) keeps playing too
 }
 function guardLinks(){
   document.querySelectorAll(".game .crumbs a").forEach(a=>a.addEventListener("click",e=>{if(!inGame()||e.ctrlKey||e.metaKey||e.shiftKey)return;e.preventDefault();confirmLeave(()=>{location.href=a.href})}));

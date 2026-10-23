@@ -258,3 +258,5 @@ html.dys{--mono:Verdana,Tahoma,"Segoe UI",Arial,"DejaVu Sans","Liberation Sans",
 html.dys body{letter-spacing:.03em;word-spacing:.14em;line-height:1.6}
 html.dys *{text-transform:none!important;font-style:normal!important}
 html.dys :is(h1,h2,h3,h4,h5,legend,summary,.label,.stab){letter-spacing:.04em!important}
+/* v78g: room at the end of the Ether's Crossroads pages, so the fixed music and static corners never cover the last line */
+html.ecpage main:not(.game){margin-bottom:max(64px,calc(52px + env(safe-area-inset-bottom,0px)))}

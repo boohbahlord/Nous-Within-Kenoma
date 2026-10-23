@@ -2855,9 +2855,9 @@ let leaving=false;   // set once the player has said yes, so the browser doesn't
 function confirmLeave(go){
   if(!inGame()){go();return}
   let box=$("#leavebox");if(!box){box=document.createElement("div");box.id="leavebox";document.body.appendChild(box)}
-  box.innerHTML=`<div class="ovbox" role="alertdialog" aria-labelledby="lvq"><h2 id="lvq">Are you sure you want to end your game session?</h2><p class="dim">The game in progress will be lost.</p><p class="acts"><button class="btn" id="lvy">End the session</button> <button class="btn ghost" id="lvn">Keep playing</button></p></div>`;
+  box.innerHTML=`<div class="ovbox" role="alertdialog" aria-labelledby="lvq"><button type="button" class="xclose" id="lvx" aria-label="Keep playing">×</button><h2 id="lvq">Are you sure you want to end your game session?</h2><p class="dim">The game in progress will be lost.</p><p class="acts"><button class="btn" id="lvy">End the session</button> <button class="btn ghost" id="lvn">Keep playing</button></p></div>`;
   box.hidden=false;$("#lvn").focus();
-  $("#lvy").onclick=()=>{box.hidden=true;leaving=true;go()};$("#lvn").onclick=()=>{box.hidden=true};
+  $("#lvy").onclick=()=>{box.hidden=true;leaving=true;go()};$("#lvn").onclick=$("#lvx").onclick=()=>{box.hidden=true};   // v78g: × (X, Esc) keeps playing too
 }
 function guardLinks(){
   document.querySelectorAll(".game .crumbs a").forEach(a=>a.addEventListener("click",e=>{if(!inGame()||e.ctrlKey||e.metaKey||e.shiftKey)return;e.preventDefault();confirmLeave(()=>{location.href=a.href})}));
@@ -14227,7 +14227,7 @@ function cnPaint(){const el=cnBar(),chat=CN.mode==="chat",inp=el.querySelector("
   el.querySelector(".cnnote").textContent=`Esc closes · ${chat?"":"Tab completes, ↑ ↓ choose · "}${kmShow("consoleSwap")} opens the ${chat?"command line":"chat"} instead`;
   const log=el.querySelector(".cnchat");log.hidden=!chat;if(chat)log.innerHTML=(NET.chat||[]).slice(-6).map(m=>`<li><b>${esc(m.from)}</b> ${esc(m.text)}</li>`).join("")||'<li class="dim">Nothing yet.</li>'}
 function cnOpen(mode){if(!G)return;if(mode)CN.mode=mode;if(CN.mode==="chat"&&!NET.role){CN.mode="cmd";flash("The chat is for online games: here is the command line.")}
-  const el=cnBar();CN.open=true;el.hidden=false;cnPaint();el.querySelector(".cnout").textContent="";const inp=el.querySelector(".cnin");inp.value="";CN.frozen=false;CN.nav=false;cnFill();setTimeout(()=>inp.focus(),0);
+  const el=cnBar(),ht=$("#helptoast");if(ht)ht.hidden=true;CN.open=true;el.hidden=false;cnPaint();el.querySelector(".cnout").textContent="";const inp=el.querySelector(".cnin");inp.value="";CN.frozen=false;CN.nav=false;cnFill();setTimeout(()=>inp.focus(),0);
   if(CN.mode==="chat"){NET.unread=0;if(typeof chatPaint==="function")chatPaint()}}
 function cnMode(m){CN.mode=m;cnOpen()}
 function cnClose(){const el=$("#cmdline");CN.open=false;if(el){el.hidden=true;const i=el.querySelector(".cnin");if(i)i.blur()}}
@@ -14255,7 +14255,7 @@ if(window.__EC)Object.assign(window.__EC,{CN,cnRun:l=>cnRun(l),cnSuggest:t=>cnSu
      One of the two at a time; while one is open the number keys are its own. X closes it.
    - G picks from the hand: C and V move, Enter picks the card (again: lets it go), I its info. X or Esc stops. */
 const KB={mode:null,sc:0,h:0,synth:false,ace:-1};
-const KB_WINS="#pop,#histpop,#rbwin,.fsov,.faov,#cheatq,#clsmenu,#etherpanel,#ov,#menu,#leavebox,.drawer";
+const KB_WINS="#pop,#histpop,#rbwin,.fsov,.faov,#cheatq,#clsmenu,#etherpanel,#ov,#menu,#leavebox,.drawer,#animask";
 const kbVis=el=>!el.hidden&&el.getClientRects().length>0&&el.innerHTML.trim()!=="";
 function kbTop(){let best=null,bz=-1e9;for(const el of document.querySelectorAll(KB_WINS)){if(!kbVis(el))continue;const z=+getComputedStyle(el).zIndex||0;if(z>=bz){bz=z;best=el}}return best}
 function kbEsc(){KB.synth=true;try{document.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",code:"Escape",bubbles:true,cancelable:true}))}finally{KB.synth=false}}
@@ -14355,7 +14355,7 @@ document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(
   /* closing: the window on top first (its ×), then the spells or the hand; Esc for the windows that have no Esc of their own */
   if(is("close")){if(kbTop()){stop();kbClose()}else if(KB.mode){stop();kbModeOff()}return}
   if(e.key==="Escape"){const w=kbTop();
-    if(w){if(w.matches("#ov,.faov,#menu")){const x=[...w.querySelectorAll(".xclose,[data-x],button[aria-label^='Close']")].find(b=>b.getClientRects().length);if(x){stop();x.click()}}return}   // the rest close on their own Esc
+    if(w){if(w.matches("#ov,.faov,#menu,#animask,#leavebox")){const x=[...w.querySelectorAll(".xclose,[data-x],button[aria-label^='Close']")].find(b=>b.getClientRects().length);if(x){stop();x.click()}}return}   // the rest close on their own Esc
     if(KB.mode){stop();kbModeOff()}return}
   if(kbTop()||!G||G.passing)return;   // a window is open, or no game: the rest waits
   /* the spells and the hand, while open, before the rest */
