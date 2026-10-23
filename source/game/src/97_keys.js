@@ -138,6 +138,9 @@ const KB_LIST=[["Space","the turn button: Ready, the next phase, End turn"],["E 
   ["G","the hand: C and V move, Enter picks (again: lets go), I the card's info"],["Backspace or Delete","sacrifice the hand card you picked"],["R","roll the draw"],
   ["B · Shift+B · Ctrl+B","the Bank · the Ether · Diplomacy"],["Shift+Space","Field Automation's settings"],["L · Shift+L","the log · the dice"],["\\","the Rule book"],
   ["Ctrl+C · Ctrl+V","the camera to your Aces, back and forth"],["Ctrl+1","the camera to what you selected"],["X or Esc","close what is open (Esc with nothing open: the pause menu in fullscreen)"],
+  ["In any window","C and V the item before and after, W A S D the nearest one up, left, down and right; Enter uses it; Tab the window's tabs; Shift and Ctrl (alone) the next and the previous section; I what the item does"],
+  ["A slider, a list or a number","Enter, then W or D up and S or A down (Shift: ten), the number keys type a number; Enter keeps it, Esc puts it back"],
+  ["A text field","Enter to type; Enter again (or Esc) when done"],["A line of a ranking","Enter takes hold: W or D up, S or A down, Space equal to the one above, Enter lets go"],
   ["Shift+Backspace","fullscreen on and off"],["Shift+X+. (period)","the music on and off"],["Shift+/ (?)","show or hide the key letters on the buttons"]];
 const kbListHTML=id=>`<ul class="mklist kblist">${KB_LIST.map(([a,b])=>`<li><kbd>${esc(a)}</kbd> ${esc(b)}</li>`).join("")}</ul><label class="farow"><span class="fal"><b>Key letters on the buttons</b><small>Each button shows its key. Shift+/ (?) switches them too.</small></span><input type="checkbox" id="${id}" ${PREF.keyHints===true?"checked":""}></label>`;
 {const _fp=fsPause;fsPause=function(){_fp.apply(this,arguments);const o=$("#fspause"),box=o&&o.querySelector(".fspbox");if(!box||box.querySelector(".kbfold"))return;
