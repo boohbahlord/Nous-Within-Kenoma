@@ -15246,4 +15246,11 @@ function kbMineFold(){const b=$("#minepanel .msfold");if(b&&b.getClientRects().l
 
 if(window.__EC)Object.assign(window.__EC,{phIcon:(...a)=>phIcon(...a)});
 
+/* ---------- v79c: the hand says how many cards it holds out of its most ("Your hand 5/7"; in fullscreen a small tag on
+   the hand's box); over the most, in red ---------- */
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const V=view(),P=G.p[V];if(!P||isNPC(V)||NET.role==="guest"&&NET.watch)return;
+  const n=P.hand.length,cap=handCap(V),over=n>cap,txt=`${n}/${cap}`,tip=`${n} card${n===1?"":"s"} in your hand; you may hold ${cap}${over?": over the most":""}`;
+  const hh=$("#handh");if(hh){let c=hh.querySelector(".hcnt");if(!c){c=document.createElement("span");c.className="hcnt";hh.appendChild(c)}c.textContent=txt;c.classList.toggle("over",over);c.title=tip}
+  const hw=$("#handwrap");if(hw){let t=hw.querySelector(":scope>.hcnttag");if(!t){t=document.createElement("span");t.className="hcnttag";hw.appendChild(t)}t.textContent="Hand "+txt;t.classList.toggle("over",over);t.title=tip}}}
+
 })();
