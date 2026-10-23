@@ -299,6 +299,7 @@ function place(card,r,c){
   G.selHand=null;
 }
 function moveGroup(){const s=G.sel;if(!s)return[];const st=G.board[s.r][s.c];return st?st.cards.filter(c=>s.pick.has(c.id)):[]}
+let aiSel=0;   // v78q: the computer is weighing moves (it never steps into the fog blind)
 function moveTargets(){
   const s=G.sel,st=G.board[s.r][s.c],grp=moveGroup();
   if(!grp.length||st.moved||st.stun||st.pin||grp.some(isBase)||choked(st.owner))return[];
@@ -327,6 +328,7 @@ function moveTargets(){
   return out;
 }
 function doMove(r,c){
+  if(fogBump(r,c))return;   // v78q: a hidden card in the way stops the move (here too, for a move sent astray)
   const s=G.sel,st=G.board[s.r][s.c],grp=moveGroup();
   st.cards=st.cards.filter(x=>!s.pick.has(x.id));
   if(!st.cards.length)G.board[s.r][s.c]=null;else st.moved=true;

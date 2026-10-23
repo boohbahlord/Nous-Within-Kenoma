@@ -27,10 +27,10 @@ function mapPlan(o){
   else{rows=o.mode==="survival"||theme==="river"?5:clamp(o.rows,4,6,mid?5:4);mid=o.mode==="survival"||rows>4}   // v62: 1v1 can be 6 tall (two midlines); the default is 6 by 6
   /* v56: the large maps: 10 long by 6 wide (1v1, and 2v2 on one end), 10 by 10, a 10 by 10 plus (arms 4 wide), and the plus
      with a round middle. All of them use the large-map camera. */
-  const big=["long","sq","plus","round"].includes(o.big)&&o.mode!=="survival"&&L!=="coop"?o.big:null;
+  const big=["long","sq","plus"].includes(o.big)&&o.mode!=="survival"&&L!=="coop"?o.big:null;
   if(big){if(big==="long"&&!(L==="duel"||L==="team-same"))o={...o,big:"sq"};const b=o.big;cols=b==="long"?6:10;rows=10;mid=true;corners=false;if(theme==="river")theme="keep"}
   const V=Array.from({length:rows},()=>Array(cols).fill(false));
-  if(big&&(o.big==="plus"||o.big==="round"))for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const arm=(r>=3&&r<=6)||(c>=3&&c<=6),disc=o.big==="round"&&Math.hypot(r-4.5,c-4.5)<=3.7;V[r][c]=!(arm||disc)}
+  if(big==="plus")for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)V[r][c]=!((r>=3&&r<=6)||(c>=3&&c<=6))
   if(corners)for(const r of [0,rows-1])for(const c of [0,cols-1])V[r][c]=true;
   if(theme==="river"){const r=2;for(let c=0;c<cols;c++)V[r][c]=!(bridge==="left"?c<2:c>=cols-2)}
   // seats: where each player spawns (zone), where their Aces go (back), which way is forward, how the view turns for them
@@ -42,11 +42,11 @@ function mapPlan(o){
   const lines=cols<=6&&rows<=6?1:2,coopLines=cols<=5&&rows<=5?1:2;   // v70: 6 by 6 and smaller have one spawn line a side (survival keeps its own)
   // v70: with three or more players on a field 7 by 7 or larger, each spawn line is the five tiles in the middle of its edge
   const five=t=>{const ok=t.filter(([r,c])=>!V[r][c]);if(n<3||cols<7||rows<7||ok.length<=5)return ok;const m=Math.floor((ok.length-5)/2);return ok.slice(m,m+5)};
-  if(big&&(o.big==="plus"||o.big==="round"))allc.splice(0,allc.length,3,4,5,6);   // the plus: spawn at the ends of the arms   // v53: a field 5 by 5 or smaller has one spawn line a side, the backline
+  if(big==="plus")allc.splice(0,allc.length,3,4,5,6);   // the plus: spawn at the ends of the arms   // v53: a field 5 by 5 or smaller has one spawn line a side, the backline
   if(L==="duel"){seats.push(mk2("bottom",allc,lines),mk2("top",allc,lines));teams.push(0,1)}
   else if(L==="ffa"||L==="team-side"||L==="team-across"){
     const sides=L==="ffa"?(n===3?["bottom","left","right"]:["bottom","left","top","right"]):L==="team-side"?["bottom","right","left","top"]:["bottom","left","top","right"];
-    const bigEdge=sd=>{const len=sd==="left"||sd==="right"?rows:cols,lo=o.big==="plus"||o.big==="round"?3:2,hi=len-1-lo,back=[],zone=[];
+    const bigEdge=sd=>{const len=sd==="left"||sd==="right"?rows:cols,lo=o.big==="plus"?3:2,hi=len-1-lo,back=[],zone=[];
       for(let d=0;d<2;d++)for(let a=lo;a<=hi;a++){const r=sd==="bottom"?rows-1-d:sd==="top"?d:a,c=sd==="left"?d:sd==="right"?cols-1-d:a;if(V[r][c])continue;zone.push([r,c]);if(!d)back.push([r,c])}
       return {back,zone}};
     sides.slice(0,n).forEach((sd,i)=>{const t=five(big?bigEdge(sd).back:edgeTiles(sd,rows,cols));seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:t,zone:t});teams.push(L==="ffa"?i:i%2)});

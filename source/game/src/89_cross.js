@@ -53,7 +53,7 @@ function crossPlan(o){const two=o.big==="cross2",X=o.cross||{},small=X.size==="s
 {const _mp=mapPlan;mapPlan=function(o){if(o&&(o.big==="cross"||o.big==="cross2")&&o.mode!=="survival"&&o.layout!=="coop"){const M=crossPlan(o);if(o.layout==="koth"){const c=(M.cols-1)/2;HILL[0]=Math.floor(c);HILL[1]=Math.ceil(c);M.hill=[HILL[0],HILL[1]]}return M}   // v73d: the Hill is the very middle
   if(o&&o.layout==="koth"){HILL[0]=10;HILL[1]=14}const M=_mp.apply(this,arguments);if(o&&o.layout==="koth"&&M)M.hill=[HILL[0],HILL[1]];return M}}
 /* off the map is darker on the crosses, so their shape reads at a glance */
-{const _r=render;render=function(){rSafe(_r,this,arguments);const B=$("#board");if(B)B.classList.toggle("bigvoid",!!(G&&G.map&&["plus","round","cross","cross2"].includes(G.map.big)))}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);const B=$("#board");if(B)B.classList.toggle("bigvoid",!!(G&&G.map&&["plus","cross","cross2"].includes(G.map.big)))}}
 /* a large map opens on your own spawn (and on the next player's, when the device changes hands) */
 let camHomeKey=null;
 function camHome(V){const w=document.querySelector(".camwrap.on"),S=G&&G.map.seats[V];if(!w||!S)return;const ts=S.back.length?S.back:S.zone,[r,c]=ts[Math.floor(ts.length/2)]||[0,0];

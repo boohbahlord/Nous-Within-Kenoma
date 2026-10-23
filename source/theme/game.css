@@ -1634,6 +1634,7 @@ html.th-office #foe.minis .pbox.sub{background:color-mix(in srgb,var(--pc) 10%,#
 /* ================= v56 · large maps: the field scrolls in a frame; zoom sizes the tiles ================= */
 .camwrap.on{overflow:auto;max-height:min(78vh,920px);border:1px solid var(--rule);background:#00000040;position:relative;overscroll-behavior:contain;cursor:grab;margin:8px 0 10px}
 .camwrap.on.dragging{cursor:grabbing}
+.camwrap.on{scrollbar-width:none}.camwrap.on::-webkit-scrollbar{display:none}   /* v78q: no scroll bars on the field, in or out of fullscreen: drag, the wheel or the keys move it */
 .camwrap.on #board.large{width:calc(var(--cols) * var(--tw,64px) + (var(--cols) - 1) * 4px);max-width:none!important;margin:10px}
 #board.large .tile{min-height:0!important}
 #board.large .stack{inset:3px 5%}
@@ -2121,7 +2122,7 @@ html.ecfs main.game .gtop,html.ecfs main.game .glayout,html.ecfs main.game .glay
 html.ecfs main.game #seltop,html.ecfs main.game #selbottom,html.ecfs main.game #actbar,html.ecfs main.game #ctlbottom,html.ecfs main.game #ctltop,html.ecfs main.game #selbottom{display:contents}
 /* the field */
 html.ecfs .camwrap.on{position:fixed;inset:0;z-index:0;max-height:none;margin:0;border:0;background:transparent;display:flex;overflow:auto;touch-action:none;overscroll-behavior:none;
-  padding:96px 18px calc(var(--fsrowh,30px) + 118px);box-sizing:border-box;scrollbar-width:thin}
+  padding:96px 18px calc(var(--fsrowh,30px) + 118px);box-sizing:border-box;scrollbar-width:none}
 html.ecfs .camwrap.on #board.large{margin:max(45vh,240px) max(45vw,240px);flex:none;align-self:flex-start}   /* v74a: slack all around, to move the field past its edges */
 @media (max-height:520px){html.ecfs .camwrap.on{padding:70px 12px calc(var(--fsrowh,30px) + 74px)}}
 /* top left: the sky's body, then the other players */
