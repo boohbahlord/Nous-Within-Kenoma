@@ -153,11 +153,12 @@ const banCycle=()=>{const k=G.moon.gone;return k&&cycleNow(k)?`${banBody(k).repl
     if(!G.moon.gone&&(G.moon.i===0||G.moon.i===4))sub.push(G.moon.blood?"A Blood Moon":MOON[G.moon.i]);   // v78s: the New Moon and the Full Moon are told too
     try{const c=banCycle();if(c)sub.push(c)}catch(e){console.error(e)}
     if(G.eclipse&&G.eclipse.round===G.moon.round)sub.push(`The eclipse of ${banBody(G.eclipse.k==="saturn"&&G.eclipse.what?"saturn":G.eclipse.k)}`);
-    roundBanner(banRound(),sub.join(" · "))}
+    G.ban={r:G.moon.round,n:banRound(),sub:sub.join(" · ")};banDue()}   // v79a: shown at the start of your prep (see 99e)
   return out}}
 {const _ec=eclipse;eclipse=async function(k){const had=G&&G.eclipse;const out=await _ec.apply(this,arguments);
   if(G&&!G.over&&G.eclipse&&G.eclipse!==had&&G.eclipse.round===G.moon.round){const t=`The eclipse of ${banBody(G.eclipse.k)}`,el=$("#roundban");
-    if(el&&Date.now()-roundBanAt<2500&&el.classList.contains("go")){let s=el.querySelector(".rbs");if(!s){s=document.createElement("span");s.className="rbs";el.appendChild(s)}if(!s.textContent.includes(t))s.textContent=s.textContent?s.textContent+" · "+t:t}
+    const b=G.ban;if(b&&b.r===G.moon.round&&!banShown(b)){if(!b.sub.includes(t))b.sub=b.sub?b.sub+" · "+t:t}   // v79a: not shown yet: it joins the banner to come
+    else if(el&&Date.now()-roundBanAt<2500&&el.classList.contains("go")){let s=el.querySelector(".rbs");if(!s){s=document.createElement("span");s.className="rbs";el.appendChild(s)}if(!s.textContent.includes(t))s.textContent=s.textContent?s.textContent+" · "+t:t}
     else roundBanner(banRound(),t)}
   return out}}
 if(window.__EC)Object.assign(window.__EC,{hordeCounters:()=>hordeCounters(),roundBanner:(...a)=>roundBanner(...a),hordeSpawnW:()=>hordeSpawn()});

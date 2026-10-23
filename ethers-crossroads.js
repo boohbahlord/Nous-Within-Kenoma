@@ -11013,11 +11013,12 @@ const banCycle=()=>{const k=G.moon.gone;return k&&cycleNow(k)?`${banBody(k).repl
     if(!G.moon.gone&&(G.moon.i===0||G.moon.i===4))sub.push(G.moon.blood?"A Blood Moon":MOON[G.moon.i]);   // v78s: the New Moon and the Full Moon are told too
     try{const c=banCycle();if(c)sub.push(c)}catch(e){console.error(e)}
     if(G.eclipse&&G.eclipse.round===G.moon.round)sub.push(`The eclipse of ${banBody(G.eclipse.k==="saturn"&&G.eclipse.what?"saturn":G.eclipse.k)}`);
-    roundBanner(banRound(),sub.join(" · "))}
+    G.ban={r:G.moon.round,n:banRound(),sub:sub.join(" · ")};banDue()}   // v79a: shown at the start of your prep (see 99e)
   return out}}
 {const _ec=eclipse;eclipse=async function(k){const had=G&&G.eclipse;const out=await _ec.apply(this,arguments);
   if(G&&!G.over&&G.eclipse&&G.eclipse!==had&&G.eclipse.round===G.moon.round){const t=`The eclipse of ${banBody(G.eclipse.k)}`,el=$("#roundban");
-    if(el&&Date.now()-roundBanAt<2500&&el.classList.contains("go")){let s=el.querySelector(".rbs");if(!s){s=document.createElement("span");s.className="rbs";el.appendChild(s)}if(!s.textContent.includes(t))s.textContent=s.textContent?s.textContent+" · "+t:t}
+    const b=G.ban;if(b&&b.r===G.moon.round&&!banShown(b)){if(!b.sub.includes(t))b.sub=b.sub?b.sub+" · "+t:t}   // v79a: not shown yet: it joins the banner to come
+    else if(el&&Date.now()-roundBanAt<2500&&el.classList.contains("go")){let s=el.querySelector(".rbs");if(!s){s=document.createElement("span");s.className="rbs";el.appendChild(s)}if(!s.textContent.includes(t))s.textContent=s.textContent?s.textContent+" · "+t:t}
     else roundBanner(banRound(),t)}
   return out}}
 if(window.__EC)Object.assign(window.__EC,{hordeCounters:()=>hordeCounters(),roundBanner:(...a)=>roundBanner(...a),hordeSpawnW:()=>hordeSpawn()});
@@ -13413,12 +13414,17 @@ function dipTwoLeft(){if(!G||!G.dip||!dipOn())return;const T=dipTeams();
   return Math.max(0,c+(sp.school==="Conjuring"?P.dipPen.e:P.dipPen.s))}}
 
 /* ---------- the flag under the Bank, and the window ---------- */
+/* v79a: the flag sits between the Bank and Lazy Hand (the spells' own redraw puts it back there) */
+let dipBarEl=null;
+function dipPlace(b){const bs=$("#bankslot");if(!bs)return;const lz=bs.querySelector(".lazyrow");
+  if(lz){if(b.nextElementSibling!==lz)lz.before(b)}else if(b.parentNode!==bs||b.nextElementSibling)bs.appendChild(b)}
+{const _rs=renderSpells;renderSpells=function(live){_rs(live);if(dipBarEl&&G&&dipOn()&&!dipBarEl.isConnected)dipPlace(dipBarEl)}}
 const dipIncoming=V=>G&&G.dip?G.dip.pend.filter(p=>p.to===V):[];
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;let b=$("#dipbar");
   if(!dipOn()){if(b)b.remove();return}if(!G.dip&&NET.role!=="guest")dipD();const V=view(),me=teamOf(V);if(me==null||isNPC(V))return;
   const T=dipTeams().filter(t=>t!==me),cnt={war:0,peace:0,ally:0};for(const t of T)cnt[dipRel(me,t).s]=(cnt[dipRel(me,t).s]||0)+1;const loans=typeof loanReqsFor==="function"?loanReqsFor(V).length:0,inc=dipIncoming(V).length+loans+ssAsks(V).length;   // v78a: and asks to spawn in your lines   // loan requests are answered here too
   if(!b){b=document.createElement("button");b.type="button";b.id="dipbar";b.className="dipbar";b.onclick=()=>dipWin()}
-  const slot=$("#bankslot");if(slot&&b.previousElementSibling!==slot)slot.after(b);
+  dipBarEl=b;dipPlace(b);
   b.classList.toggle("notify",!!inc);
   b.innerHTML=`${FLAG_SVG}<span>Diplomacy</span><small>${[cnt.war?`${cnt.war} at war`:"",cnt.peace?`${cnt.peace} at peace`:"",cnt.ally?`${cnt.ally} allied`:""].filter(Boolean).join(" · ")}</small>${inc?`<i class="bang" aria-label="${inc} ${loans?"proposal or loan request":"proposal"}${inc>1?"s":""} for you">!</i>`:""}`;
   if($("#dipwin")&&!$("#dipwin").hidden)dipPaint();
@@ -13734,6 +13740,8 @@ const KM_ACTS=[
   ["fullscreen","table","Shortcuts","Fullscreen on and off",["Shift+Backspace"]],
   ["hints","table","Shortcuts","Show or hide the key letters on the buttons",["Shift+/"]],
   ["bfsOn","table","Shortcuts","The browser's own fullscreen on (the + key)",["Shift+=","NumPlus"]],["bfsOff","table","Shortcuts","The browser's own fullscreen off (the − key)",["-","Num-"]],
+  ["pageUp","table","Shortcuts","Scroll the page up (hold Alt; Shift: faster); in fullscreen, the open drawer",["Alt+C"],1],
+  ["pageDown","table","Shortcuts","Scroll the page down",["Alt+V"],1],
   ["console","table","Shortcuts","The command line (online: or the chat, whichever you used last)",["T"]],
   ["consoleSwap","table","Shortcuts","The other one of the two: the chat, or the command line",["Shift+T"]],
   ["camUp","table","Camera","Move the camera up (Shift: faster; two at once: diagonally)",["W"],1],
@@ -13774,6 +13782,10 @@ const KM_ACTS=[
   ["winRight","win","","The nearest item right (there: up)",["D"],1],
   ["winPrev","win","","The item before",["C"],1],
   ["winNext","win","","The item after",["V"],1],
+  ["winScrollUp","win","","Scroll the window up (hold Alt; Shift: faster)",["Alt+W","Alt+C"],1],
+  ["winScrollDown","win","","Scroll the window down",["Alt+S","Alt+V"],1],
+  ["winScrollLeft","win","","Scroll the window left",["Alt+A"],1],
+  ["winScrollRight","win","","Scroll the window right",["Alt+D"],1],
   ["winUse","win","","Use it; a slider, a list, a number or a text field: change it, and again to keep it",["Enter"]],
   ["tabNext","win","","The window's next tab",["Tab"]],
   ["tabPrev","win","","The window's previous tab",["Shift+Tab"]],
@@ -15071,5 +15083,68 @@ const fogPeekAt=(V,r,c)=>!!(G&&G.fogPeek&&V!=null&&G.p[V]&&!totalBlind(V)&&G.fog
   for(const [r,c] of hid)G.board[r][c]=null;
   try{return _mt.apply(this,arguments)}finally{for(const [r,c,t] of hid)G.board[r][c]=t}}}
 {const _dm=doMove;doMove=function(r,c){if(fogBump(r,c))return;return _dm.apply(this,arguments)}}
+
+/* ---------- v79a: where notices show ----------
+   Outside fullscreen nothing changes. In fullscreen a notice shows in one of two places, and nowhere else, and both look alike:
+   - on the left, on top of your hand and its mining slots: what concerns you and what you are doing right now (the answers
+     to your own moves, the field keys' note, the reminder of the keys);
+   - the top middle, under the turn bar and the meters: what happens on the table (the other players, the sky, the Bank,
+     the events).
+   A menu's "!" is the third kind and stays on its menu. */
+const NOTE_LEFT=["kbremind","flash","fkmode"];   // top to bottom in the left column
+const noteHomes=new Map();   // where each one lives outside fullscreen
+function noticeSpots(){
+  const h=document.documentElement;let L=$("#fsleft");
+  if(!fsOn()){if(L)for(const id of NOTE_LEFT){const e=document.getElementById(id),o=noteHomes.get(id);if(e&&e.parentNode===L){if(o&&o.p.isConnected)o.p.insertBefore(e,o.n&&o.n.parentNode===o.p?o.n:null);else document.body.appendChild(e)}}return}
+  if(!L){L=document.createElement("div");L.id="fsleft";document.body.appendChild(L)}
+  for(const id of NOTE_LEFT){const e=document.getElementById(id);if(!e||e.parentNode===L)continue;noteHomes.set(id,{p:e.parentNode,n:e.nextSibling});L.appendChild(e)}
+  NOTE_LEFT.forEach(id=>{const e=document.getElementById(id);if(e&&e.parentNode===L)L.appendChild(e)});   // in order
+  const hw=$("#handwrap"),r=hw&&hw.getClientRects().length?hw.getBoundingClientRect():null;
+  h.style.setProperty("--fsleftb",Math.round(r&&r.height?innerHeight-r.top+6:($("#fsrow")?$("#fsrow").offsetHeight+16:40))+"px");
+  if(r&&r.width)h.style.setProperty("--fsleftw",Math.round(r.width)+"px");
+  let top=0;for(const s of ["#me","#controls","#fsphase"]){const e=$(s);if(e&&e.getClientRects().length)top=Math.max(top,e.getBoundingClientRect().bottom)}
+  if(top)h.style.setProperty("--fsnotet",Math.round(top+8)+"px")}
+{const _r=render;render=function(){rSafe(_r,this,arguments);noticeSpots();if(fsOn())requestAnimationFrame(noticeSpots);banDue();drawDark()}}
+addEventListener("resize",()=>{if(fsOn())noticeSpots()});
+/* a notice made while fullscreen is on goes straight to its place */
+{const _f=flash;flash=function(){const out=_f.apply(this,arguments);if(fsOn())noticeSpots();return out}}
+{const _k=kbRemind;kbRemind=function(){const out=_k.apply(this,arguments);if(fsOn())noticeSpots();return out}}
+
+/* ---------- v79a: the round banner shows at the start of your prep ----------
+   The round's banner (its number, and the grace, the moon, the cycle, the eclipse) waits for the start of the prep of each
+   person at this device; with nobody playing here (computers only) it shows when the round starts. Online, each device shows
+   it for its own seat. */
+const deviceSeat=i=>!!(G&&G.p[i])&&(netOn()?i===NET.seat:!G.p[i].cpu);
+const BAN_SEEN=new Set();
+const banKey=(b,who)=>`${G.map?G.map.seed:""}:${b.r}:${who}`;
+function banShown(b){for(const k of BAN_SEEN)if(k.startsWith(`${G.map?G.map.seed:""}:${b.r}:`))return true;return false}
+function banDue(){if(!G||G.over||!G.ban||G.passing)return;const b=G.ban;
+  if(!G.p.some((P,i)=>deviceSeat(i))){const k=banKey(b,"all");if(!BAN_SEEN.has(k)){BAN_SEEN.add(k);roundBanner(b.n,b.sub)}return}
+  if(G.phase!=="prep"||!deviceSeat(G.active))return;
+  const k=banKey(b,G.active);if(BAN_SEEN.has(k))return;BAN_SEEN.add(k);roundBanner(b.n,b.sub)}
+
+/* ---------- v79a: the field goes very dark while you draw ---------- */
+function drawDark(){const on=!!(G&&!G.over&&G.phase==="draw"&&!G.drawWait&&deviceSeat(G.active)),B=$("#board");
+  document.documentElement.classList.toggle("drawdark",on);
+  if(B&&!B.querySelector(":scope>.drawveil"))B.insertAdjacentHTML("beforeend",'<div class="drawveil" aria-hidden="true"></div>')}   // a veil over the whole field, tiles, fog and all
+
+/* ---------- v79a: hold Alt to scroll ----------
+   In a window: Alt+W and Alt+S (or Alt+C and Alt+V) scroll it up and down, Alt+A and Alt+D left and right. With no window
+   open: Alt+C and Alt+V scroll the page (in fullscreen, the open drawer). Shift scrolls further. Held down, it keeps going. */
+function kbScrollBox(w){let best=null,ba=0;
+  for(const el of [w,...w.querySelectorAll("*")]){if(el.scrollHeight<=el.clientHeight+2&&el.scrollWidth<=el.clientWidth+2)continue;
+    const cs=getComputedStyle(el);if(!/auto|scroll/.test(cs.overflowY+" "+cs.overflowX)||!el.getClientRects().length)continue;
+    const a=el.clientWidth*el.clientHeight;if(a>ba){ba=a;best=el}}
+  return best}
+document.addEventListener("keydown",e=>{if(!e.altKey||typing(e.target))return;
+  const w=kbTop();let d=null,box=null;
+  if(w){d=kmIs(e,"winScrollUp")?[0,-1]:kmIs(e,"winScrollDown")?[0,1]:kmIs(e,"winScrollLeft")?[-1,0]:kmIs(e,"winScrollRight")?[1,0]:null;if(d)box=kbScrollBox(w)}
+  else{const p=kmIs(e,"pageUp")?-1:kmIs(e,"pageDown")?1:0;
+    if(p){d=[0,p];box=fsOn()?(PREF.fsSp?$(".spellpanel"):PREF.fsSel?$("#selwrap"):null):document.scrollingElement}}
+  if(!d)return;e.preventDefault();e.stopImmediatePropagation();if(!box)return;
+  const pg=box===document.scrollingElement,k=e.shiftKey?.8:.3;
+  box.scrollBy({left:d[0]*(pg?innerWidth:box.clientWidth)*k,top:d[1]*(pg?innerHeight:box.clientHeight)*k,behavior:e.repeat?"auto":"smooth"})},true);
+
+if(window.__EC)Object.assign(window.__EC,{noticeSpots:()=>noticeSpots(),banDue:()=>banDue(),BAN_SEEN});
 
 })();

@@ -153,12 +153,17 @@ function dipTwoLeft(){if(!G||!G.dip||!dipOn())return;const T=dipTeams();
   return Math.max(0,c+(sp.school==="Conjuring"?P.dipPen.e:P.dipPen.s))}}
 
 /* ---------- the flag under the Bank, and the window ---------- */
+/* v79a: the flag sits between the Bank and Lazy Hand (the spells' own redraw puts it back there) */
+let dipBarEl=null;
+function dipPlace(b){const bs=$("#bankslot");if(!bs)return;const lz=bs.querySelector(".lazyrow");
+  if(lz){if(b.nextElementSibling!==lz)lz.before(b)}else if(b.parentNode!==bs||b.nextElementSibling)bs.appendChild(b)}
+{const _rs=renderSpells;renderSpells=function(live){_rs(live);if(dipBarEl&&G&&dipOn()&&!dipBarEl.isConnected)dipPlace(dipBarEl)}}
 const dipIncoming=V=>G&&G.dip?G.dip.pend.filter(p=>p.to===V):[];
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;let b=$("#dipbar");
   if(!dipOn()){if(b)b.remove();return}if(!G.dip&&NET.role!=="guest")dipD();const V=view(),me=teamOf(V);if(me==null||isNPC(V))return;
   const T=dipTeams().filter(t=>t!==me),cnt={war:0,peace:0,ally:0};for(const t of T)cnt[dipRel(me,t).s]=(cnt[dipRel(me,t).s]||0)+1;const loans=typeof loanReqsFor==="function"?loanReqsFor(V).length:0,inc=dipIncoming(V).length+loans+ssAsks(V).length;   // v78a: and asks to spawn in your lines   // loan requests are answered here too
   if(!b){b=document.createElement("button");b.type="button";b.id="dipbar";b.className="dipbar";b.onclick=()=>dipWin()}
-  const slot=$("#bankslot");if(slot&&b.previousElementSibling!==slot)slot.after(b);
+  dipBarEl=b;dipPlace(b);
   b.classList.toggle("notify",!!inc);
   b.innerHTML=`${FLAG_SVG}<span>Diplomacy</span><small>${[cnt.war?`${cnt.war} at war`:"",cnt.peace?`${cnt.peace} at peace`:"",cnt.ally?`${cnt.ally} allied`:""].filter(Boolean).join(" · ")}</small>${inc?`<i class="bang" aria-label="${inc} ${loans?"proposal or loan request":"proposal"}${inc>1?"s":""} for you">!</i>`:""}`;
   if($("#dipwin")&&!$("#dipwin").hidden)dipPaint();
