@@ -42,11 +42,13 @@ function baseCost(sp){
   if(sp.id==="clair"&&fullPrices())return 2;
   if(sp.id==="naked")return newPrices()&&firm?(G.prices?G.prices.naked:2):newPrices()?6:G.moon.blood?1:fullPrices()?0:(G.prices?G.prices.naked:2);
   if(sp.id==="deconj")return 2;   // the full curse pays the rest when it is chosen
-  if(sp.id==="joy")return 0;      // both options pay when chosen
+  if(sp.id==="joy")return sp.joyCost||0;      // both options pay when chosen (joyPrice)
   if(G.prices&&G.prices[sp.id]!=null)return G.prices[sp.id];
   if(sp.id==="hypo"){const st=selOwn()?selStack():null;return 3+(st?st.cards.length-1:0)}
   return sp.cost;
 }
+/* v78j: the price of each of Pleasure and Joy's two choices (A: Pleasure and Joy, B: Joyful Theft), as spellCost makes it */
+const joyPrice=k=>spellCost({...SP("joy"),joyCost:k==="A"?(G.prices.joyA||2):(G.prices.joyB!=null?G.prices.joyB:1)});
 function spellBlock(sp){ // reason the moon or mode forbids a spell, or ""
   if(sp.school==="Necromancy"&&G.p[G.active]&&oathOf(G.active)==="earth")return "The Oath of the Earth forbids necromancy.";
   if(G.bank&&G.bank.dead&&sp.school==="Conjuring")return "The Ether is closed: the Banker is dead.";
@@ -147,12 +149,12 @@ async function threeSwords(){
   log(`Three of Swords (${plName(P.i)}): 1d2 → ${n}. ${plName(F.i)} loses ${fl} from the hand; ${plName(P.i)} loses ${ml} from the hand${dl?` and ${dl} from the deck`:""}.`);
 }
 async function clairvoyance(){
-  const d=rollN(2,6),n=Math.min(sum(d),me().deck.length);const look=me().deck.slice(-n);
-  tray(G.active,"Clairvoyance",d,`look at ${n}`);
-  log(`Clairvoyance: 2d6 → ${d[0].v} + ${d[1].v} = ${sum(d)}; ${n} cards revealed to ${plName(G.active)}.`);render();
-  const i=await ask(G.active,{kind:"cards",id:"clair",title:`Clairvoyance: choose one of ${n} cards`,cards:look,box:"plain"});
-  const P=me(),c=look[i==null?look.length-1:i];P.deck.splice(P.deck.indexOf(c),1);P.hand.push(c);shuffle(P.deck);
-  log(`${plName(G.active)} takes a card into the hand and reshuffles.`);
+  const pl=G.active,P=G.p[pl],d=rollN(2,6),n=Math.min(sum(d),P.deck.length);const look=P.deck.slice(-n);   // v78j: the caster's, whoever is up when it ends
+  tray(pl,"Clairvoyance",d,`look at ${n}`);
+  log(`Clairvoyance: 2d6 → ${d[0].v} + ${d[1].v} = ${sum(d)}; ${n} cards revealed to ${plName(pl)}.`);render();
+  const i=await ask(pl,{kind:"cards",id:"clair",title:`Clairvoyance: choose one of ${n} cards`,cards:look,box:"plain"});
+  const c=look[i==null?look.length-1:i];if(!c||!P.deck.includes(c))return;P.deck.splice(P.deck.indexOf(c),1);P.hand.push(c);shuffle(P.deck);
+  log(`${plName(pl)} takes a card into the hand and reshuffles.`);
 }
 function teleOk(){
   if(!selOwn())return false;const s=G.sel,st=selStack();

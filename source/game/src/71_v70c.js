@@ -50,7 +50,7 @@ const illFoes=()=>enemiesOf(G.active).some(pl=>!isHorde(pl)&&!isNPC(pl)&&!G.p[pl
 const delOff=()=>(R(2)===1?-1:1)*R(3);
 PRICE.mdel=()=>R(2)+1;
 SPELLS.push(
- {id:"blindh",dice:"1d3",name:"Blind Hand",cost:2,school:"Illusion",text:"Choose an enemy: for 1 round their hand shows blank and shuffled (2 rounds on a 3 of 1d3). They can still play it, blind.",
+ {id:"blindh",name:"Blind Hand",cost:2,school:"Illusion",text:"Choose an enemy: for 1 round their hand shows blank and shuffled (2 rounds on a 3 of 1d3). They can still play it, blind.",
   ok:illFoes,run:async()=>{const t=await pickHandFoe("blindh","Blind Hand: whose hand?");if(t==null)return;const d=R(3),n=d===3?2:1;
    G.blindHand=(G.blindHand||[]).filter(x=>x.t!==t);G.blindHand.push({by:G.active,t,left:n});shuffle(G.p[t].hand);
    tray(G.active,"Blind Hand",[{s:3,v:d}],`${n} round${n>1?"s":""}`);log(`<b>Blind Hand</b>: ${plName(G.active)} blinds ${plName(t)}'s hand for ${n} round${n>1?"s":""}.`,"event");

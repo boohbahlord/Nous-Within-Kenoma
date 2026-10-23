@@ -210,6 +210,8 @@ function stopTimer(){if(timerIv)clearInterval(timerIv);timerIv=null;if(G)G.deadl
 async function timeUp(){
   log(`Time runs out for ${plName(G.active)}.`,"event");flash("Time's up.");
   if(G.phase==="setup"&&G.setupResolve){const pl=G.active,f=G.setupResolve;G.setupResolve=null;G.busy=true;await AI.setup(pl);G.busy=false;f();return}
+  // v78j: a spell still running finishes first, for its caster; its open question is answered as the computer would
+  const g=G;for(let i=0;i<50&&G.busy;i++){const q=askOpen;if(q){askOpen=null;q.answer(q.spec.ai?q.spec.ai():AI.choose(q.pl,q.spec))}await sleep(100);if(G!==g)return}
   if(G.placing)cancelPlacing();
   if(G.waiter){const f=G.waiter;G.waiter=null;G.mode=null;G.selHand=null;f()}
 }
@@ -290,7 +292,7 @@ function place(card,r,c){
   if(kind(card)==="ace"&&!st)aceScout(G.active,r,c);
   G.selHand=null;
 }
-function moveGroup(){const s=G.sel;if(!s)return[];const st=G.board[s.r][s.c];return st.cards.filter(c=>s.pick.has(c.id))}
+function moveGroup(){const s=G.sel;if(!s)return[];const st=G.board[s.r][s.c];return st?st.cards.filter(c=>s.pick.has(c.id)):[]}
 function moveTargets(){
   const s=G.sel,st=G.board[s.r][s.c],grp=moveGroup();
   if(!grp.length||st.moved||st.stun||st.pin||grp.some(isBase)||choked(st.owner))return[];

@@ -84,7 +84,7 @@ function soulCap(pl){
   let cap=baseCap(P);
   cap=Math.max(1,Math.min(18,cap+(P.maxAdd||0)+skyCapMod(P)));   // bought maximum mana (18 at most), or lost to Gambling and the Bank's collapse
   if(P.delu&&P.delu.turns>0)cap=Math.max(3,9-(P.delu.maxCut||0));                       // a Delusion: nine mana at most, less what Lucifer paid to stifle
-  if(G.moonLev&&G.moonLev.owner===pl)cap=Math.min(12,cap+G.dark.length);               // the Leviathan on the moon: +1 for every card in the Outer Darkness
+  if(G.moonLev&&G.moonLev.owner===pl)cap=Math.max(cap,Math.min(12,cap+G.dark.length));   // v78j: it never lowers a higher maximum               // the Leviathan on the moon: +1 for every card in the Outer Darkness
   return cap;
 }
 const pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -1045,6 +1045,8 @@ function stopTimer(){if(timerIv)clearInterval(timerIv);timerIv=null;if(G)G.deadl
 async function timeUp(){
   log(`Time runs out for ${plName(G.active)}.`,"event");flash("Time's up.");
   if(G.phase==="setup"&&G.setupResolve){const pl=G.active,f=G.setupResolve;G.setupResolve=null;G.busy=true;await AI.setup(pl);G.busy=false;f();return}
+  // v78j: a spell still running finishes first, for its caster; its open question is answered as the computer would
+  const g=G;for(let i=0;i<50&&G.busy;i++){const q=askOpen;if(q){askOpen=null;q.answer(q.spec.ai?q.spec.ai():AI.choose(q.pl,q.spec))}await sleep(100);if(G!==g)return}
   if(G.placing)cancelPlacing();
   if(G.waiter){const f=G.waiter;G.waiter=null;G.mode=null;G.selHand=null;f()}
 }
@@ -1125,7 +1127,7 @@ function place(card,r,c){
   if(kind(card)==="ace"&&!st)aceScout(G.active,r,c);
   G.selHand=null;
 }
-function moveGroup(){const s=G.sel;if(!s)return[];const st=G.board[s.r][s.c];return st.cards.filter(c=>s.pick.has(c.id))}
+function moveGroup(){const s=G.sel;if(!s)return[];const st=G.board[s.r][s.c];return st?st.cards.filter(c=>s.pick.has(c.id)):[]}
 function moveTargets(){
   const s=G.sel,st=G.board[s.r][s.c],grp=moveGroup();
   if(!grp.length||st.moved||st.stun||st.pin||grp.some(isBase)||choked(st.owner))return[];
@@ -1236,11 +1238,13 @@ function baseCost(sp){
   if(sp.id==="clair"&&fullPrices())return 2;
   if(sp.id==="naked")return newPrices()&&firm?(G.prices?G.prices.naked:2):newPrices()?6:G.moon.blood?1:fullPrices()?0:(G.prices?G.prices.naked:2);
   if(sp.id==="deconj")return 2;   // the full curse pays the rest when it is chosen
-  if(sp.id==="joy")return 0;      // both options pay when chosen
+  if(sp.id==="joy")return sp.joyCost||0;      // both options pay when chosen (joyPrice)
   if(G.prices&&G.prices[sp.id]!=null)return G.prices[sp.id];
   if(sp.id==="hypo"){const st=selOwn()?selStack():null;return 3+(st?st.cards.length-1:0)}
   return sp.cost;
 }
+/* v78j: the price of each of Pleasure and Joy's two choices (A: Pleasure and Joy, B: Joyful Theft), as spellCost makes it */
+const joyPrice=k=>spellCost({...SP("joy"),joyCost:k==="A"?(G.prices.joyA||2):(G.prices.joyB!=null?G.prices.joyB:1)});
 function spellBlock(sp){ // reason the moon or mode forbids a spell, or ""
   if(sp.school==="Necromancy"&&G.p[G.active]&&oathOf(G.active)==="earth")return "The Oath of the Earth forbids necromancy.";
   if(G.bank&&G.bank.dead&&sp.school==="Conjuring")return "The Ether is closed: the Banker is dead.";
@@ -1341,12 +1345,12 @@ async function threeSwords(){
   log(`Three of Swords (${plName(P.i)}): 1d2 → ${n}. ${plName(F.i)} loses ${fl} from the hand; ${plName(P.i)} loses ${ml} from the hand${dl?` and ${dl} from the deck`:""}.`);
 }
 async function clairvoyance(){
-  const d=rollN(2,6),n=Math.min(sum(d),me().deck.length);const look=me().deck.slice(-n);
-  tray(G.active,"Clairvoyance",d,`look at ${n}`);
-  log(`Clairvoyance: 2d6 → ${d[0].v} + ${d[1].v} = ${sum(d)}; ${n} cards revealed to ${plName(G.active)}.`);render();
-  const i=await ask(G.active,{kind:"cards",id:"clair",title:`Clairvoyance: choose one of ${n} cards`,cards:look,box:"plain"});
-  const P=me(),c=look[i==null?look.length-1:i];P.deck.splice(P.deck.indexOf(c),1);P.hand.push(c);shuffle(P.deck);
-  log(`${plName(G.active)} takes a card into the hand and reshuffles.`);
+  const pl=G.active,P=G.p[pl],d=rollN(2,6),n=Math.min(sum(d),P.deck.length);const look=P.deck.slice(-n);   // v78j: the caster's, whoever is up when it ends
+  tray(pl,"Clairvoyance",d,`look at ${n}`);
+  log(`Clairvoyance: 2d6 → ${d[0].v} + ${d[1].v} = ${sum(d)}; ${n} cards revealed to ${plName(pl)}.`);render();
+  const i=await ask(pl,{kind:"cards",id:"clair",title:`Clairvoyance: choose one of ${n} cards`,cards:look,box:"plain"});
+  const c=look[i==null?look.length-1:i];if(!c||!P.deck.includes(c))return;P.deck.splice(P.deck.indexOf(c),1);P.hand.push(c);shuffle(P.deck);
+  log(`${plName(pl)} takes a card into the hand and reshuffles.`);
 }
 function teleOk(){
   if(!selOwn())return false;const s=G.sel,st=selStack();
@@ -2041,6 +2045,11 @@ function askHuman(pl,spec){
     if(spec.cancel)$("#mcancel").onclick=()=>{ovHide();res(null)};
   });
 }
+/* v78j: the question on screen, so the phase timer can answer it when time runs out (as the computer would) */
+let askOpen=null;
+{const _ah=askHuman;askHuman=function(pl,spec){return new Promise(res=>{let open=true;
+  const q=askOpen={pl,spec,answer:v=>{if(!open)return;open=false;ovHide();res(v)}};
+  _ah.call(this,pl,spec).then(v=>{if(askOpen===q)askOpen=null;if(open){open=false;res(v)}})})}}
 /* v45: a long list of cards to pick from (the grave, a hand, the Outer Darkness) reads like the Ether: tabs by kind of card,
    each kind under its heading, and the same card folded into one button with a count */
 const pickKey=c=>[c.unit||"",c.rank,c.suit||"",c.color||"",c.puppet?"p":"",c.hp!=null?c.hp:""].join("|");
@@ -2180,7 +2189,7 @@ function render(){
       inner=crystalHTML(r,c,!!st)+inner;
       if(fogTile(V,r,c))cls.push("fog");if(fireAt(r,c))cls.push("fire");
       const zc=!duel&&z>=0?` style="--zc:${G.p[z].color}"`:"";
-      return `<button class="${cls.join(" ")}${role==="bridge"?" bridge":""}"${zc} data-r="${r}" data-c="${c}" aria-label="${coord(r,c)}, ${lineName||(z>=0?esc(G.p[z].name)+"'s ground":"open ground")}${role==="bridge"?" bridge":""}${st?", "+st.cards.map(nameOf).join(", "):", empty"}">${art}${PREF.coords?`<span class="coord">${coord(r,c)}</span>`:""}${inner}</button>`;
+      return `<button class="${cls.join(" ")}${role==="bridge"?" bridge":""}"${zc} data-r="${r}" data-c="${c}" aria-label="${coord(r,c)}, ${lineName||(z>=0?esc(G.p[z].name)+"'s ground":"open ground")}${role==="bridge"?" bridge":""}${st?(showsBack(V,r,c)?", a face-down stack":", "+st.cards.map(nameOf).join(", ")):", empty"}">${art}${PREF.coords?`<span class="coord">${coord(r,c)}</span>`:""}${inner}</button>`;
     }).join("")+"</div>";
   }).join("");
   {const nb=B.querySelector(":scope>.mapbg");if(nb){if(oldBg&&oldBg._g===G.map.ground)nb.replaceWith(oldBg);else nb._g=G.map.ground}if(oldVeil)B.appendChild(oldVeil)}
@@ -3248,8 +3257,8 @@ SPELLS.push(
    notify(G.active,`Lightning strikes ${esc(G.p[st.owner].name)}'s stack on ${coord(G.sel.r,G.sel.c)}: immobile for ${n} turn${n>1?"s":""}.`)}},
  {id:"hate",tribe:"satan",name:"Hate",cost:3,school:"Curse",text:"Select an enemy stack: its strongest card takes a red tinge. While that card lives, its stack has disadvantage on every attack and defense, and everyone attacking it has advantage.",
   ok:()=>selEnemy()&&!hated(selStack()),run:async()=>{
-   const st=selStack(),c=leadCard(st)||st.cards[0];c.hate=true;
-   log(`<b>Hate</b>: ${plName(G.active)} turns ${esc(nameOf(c))} on ${coord(G.sel.r,G.sel.c)} red with hatred.`,"event");notify(G.active,`Hate falls on ${esc(nameOf(c))}.`)}},
+   const st=selStack(),c=leadCard(st)||st.cards[0];c.hate=true;const nm=st.down?"the strongest card of a face-down stack":esc(nameOf(c));   // v78j: unseen stays unseen
+   log(`<b>Hate</b>: ${plName(G.active)} turns ${nm} on ${coord(G.sel.r,G.sel.c)} red with hatred.`,"event");notify(G.active,`Hate falls on ${nm}.`)}},
  {id:"slaves",tribe:"binah",name:"Slaves",cost:0,school:"Necromancy",text:"Free. Deploy one thrall your Slavemasters captured as a Slave: a rifle of 10 + 1d12 that fires two tiles away in a straight line or one diagonal (from two away a miss costs it nothing), one straight step a turn, no defense, and it stands alone. Place it on an empty tile of your own ground. Ten thralls can wait at most.",
   ok:()=>(me().thralls||[]).length>0&&!G.placing&&zoneTiles(G.active).some(([r,c])=>!G.board[r][c]),run:deploySlave},
  {id:"deckcards",tribe:"jester",name:"Deck of Cards",cost:6,school:"Conjuring",once:true,text:"Once a game, while your Tree of Neither Life Or Death stands: your deck becomes full again, as it was at the start of the game. The cards still in it go to the grave; your hand stays.",
@@ -3280,7 +3289,7 @@ async function aiSubstance(pl,W){
   const P=G.p[pl],lv=P.cpu;if(G.over)return;
   const cast1=async(id,r,c)=>{const sp=SP(id);const old=G.sel;G.sel=r==null?null:{r,c,pick:new Set()};
     const ok=spellReady(sp);if(!ok){G.sel=old;return false}await cast(sp);G.sel=null;render();await sleep(420);return true};
-  const foes=enemiesOf(pl).flatMap(stacksOf),mine=stacksOf(pl);
+  const foes=enemiesOf(pl).flatMap(stacksOf).filter(e=>seesTile(pl,e.r,e.c)),mine=stacksOf(pl);   // v78j: what it can see
   const near=(e,k)=>mine.some(m=>Math.abs(m.r-e.r)+Math.abs(m.c-e.c)<=k);
   await aiSubstance2(pl,W,cast1,foes,mine,near);
   await aiFog(pl,W,cast1);
@@ -3603,13 +3612,15 @@ SPELLS.push(
    if(ch==="full"){if(extra)pay(pl,extra);G.deconjure=true;G.noGraveNext=true;log(`<b>Deconjured</b>: ${plName(pl)} closes the Ether at the next Full Moon and the grave at the next New Moon.`,"event");notify(pl,"Deconjured: no conjuring at the next Full Moon, no grave gift at the next New Moon.")}
    else{G.noConjureRound=G.moon.round+1;log(`<b>Deconjured</b>: ${plName(pl)} closes the Ether to everyone for the next round.`,"event");notify(pl,"Deconjured: no one can conjure next round.")}}},
  {id:"joy",tribe:"lucifer",name:"Pleasure and Joy",cost:0,dice:"1+1d2 or 1d3−1",school:"Curse",text:"Choose one, until your next turn. Pleasure and Joy (1 + 1d2 mana): your cards glow in your color, and those that are killed go back into your deck instead of the grave. Joyful Theft (1d3 − 1 mana): every damage an enemy deals to your units takes 1 mana from that enemy and gives it to you.",
-  ok:()=>!me().joy&&!me().theft&&mana(G.active)>=Math.min(G.prices.joyA||2,G.prices.joyB!=null?G.prices.joyB:1),run:async()=>{
-   const pl=G.active,a=G.prices.joyA||2,b=G.prices.joyB!=null?G.prices.joyB:1,opts=[];   // v78j: a 0 is free
-   if(mana(pl)>=a)opts.push({id:"joy",label:`Pleasure and Joy (${a} mana)`,sub:"Your killed cards go back into your deck."});
-   if(mana(pl)>=b)opts.push({id:"theft",label:`Joyful Theft (${b} mana)`,sub:"Every damage dealt to your units steals 1 mana from whoever dealt it."});
+  ok:()=>!me().joy&&!me().theft&&canAfford(G.active,Math.min(joyPrice("A"),joyPrice("B"))),run:async()=>{
+   const pl=G.active,P=G.p[pl],a=joyPrice("A"),b=joyPrice("B"),opts=[];
+   if(canAfford(pl,a))opts.push({id:"joy",label:`Pleasure and Joy (${a?a+" mana":"free"})`,sub:"Your killed cards go back into your deck."});
+   if(canAfford(pl,b))opts.push({id:"theft",label:`Joyful Theft (${b?b+" mana":"free"})`,sub:"Every damage dealt to your units steals 1 mana from whoever dealt it."});
    const ch=await ask(pl,{kind:"choice",id:"joy",title:"Pleasure and Joy",options:opts,cancel:"Cancel",ai:()=>opts[opts.length-1].id});
-   if(ch==="joy"){if(a)pay(pl,a);me().joy=true;log(`<b>Pleasure and Joy</b>: ${plName(pl)}'s cards glow; their dead return to the deck until the next turn.`,"event")}
-   else if(ch==="theft"){if(b)pay(pl,b);me().theft=true;log(`<b>Joyful Theft</b>: until ${plName(pl)}'s next turn, every damage to their units costs the attacker 1 mana.`,"event")}}},
+   const n=ch==="joy"?a:ch==="theft"?b:null;if(n==null)return;
+   if(n){G.spentOther=true;spend(pl,n)}   // v78j: paid like any spell (to the Bank; no Grave Blessing after)
+   if(ch==="joy"){P.joy=true;log(`<b>Pleasure and Joy</b>: ${plName(pl)}'s cards glow; their dead return to the deck until the next turn.`,"event")}
+   else{P.theft=true;log(`<b>Joyful Theft</b>: until ${plName(pl)}'s next turn, every damage to their units costs the attacker 1 mana.`,"event")}}},
  {id:"lev",tribe:"leviathan",name:"Rise to the Moon",cost:0,school:"Sorcery",text:"Free, only at the New Moon, while your Leviathan is on the field. The Leviathan leaves the field for the moon. From the next New Moon on, every enemy pays its toll each New Moon: 2d4 random deck cards, 2 random cards from the hand and 1 mana, all into the Outer Darkness. On the moon your mana can rise by one for every card in the Outer Darkness (twelve at most). It can be attacked only at the New Moon, and defends there with advantage.",
   ok:()=>(G.moon.i===0&&!G.moon.gone||G.moon.gone==="mars")&&!G.moonLev&&stacksOf(G.active).some(x=>hasK(x.st,"leviathan")),run:async()=>{
    const x=stacksOf(G.active).find(x=>hasK(x.st,"leviathan")),c=x.st.cards.find(k=>k.unit==="leviathan");
@@ -3636,6 +3647,7 @@ SPELLS.push(
  {id:"saturn",tribe:"yald",name:"Regurgitate Saturn",cost:0,school:"Sorcery",text:"Free, once the hunger reaches seven and the moon is out of the sky. Saturn takes the moon's place: at the start of each of their turns every enemy pays 1 (a hand card, the top deck card or 1 mana) into your soul pile, or refuses and a Debt Collector rises on your ground. Each Debt Collector still standing at a new round raises the price by 1. Binah is exempt.",
   ok:()=>(me().hunger||0)>=7&&!!G.moon.gone&&G.moon.gone!=="saturn",run:async()=>{
    const pl=G.active;if(G.moonLev){const L=G.moonLev;G.moonLev=null;L.card.hp=L.card.maxHp;G.p[L.owner].deck.push(L.card);shuffle(G.p[L.owner].deck)}
+   G.p[pl].hunger=Math.max(0,(G.p[pl].hunger||0)-7);   // v78j: the seven eaten are spent
    G.moon.gone="saturn";G.moon.i=-1;G.moon.blood=false;G.saturnBy=pl;G.saturnDebt=0;applyMoonTheme();
    log(`<b>Saturn</b>: ${plName(pl)} regurgitates Saturn where the moon used to be.`,"event");
    popup("Saturn",`<p>${plName(pl)} regurgitates Saturn into the moon's place. Every enemy now pays the Demiurge at the start of each turn, or a Debt Collector rises.</p><p class="dim">A Debt Collector copies the score of the card it fights, without its advantage.</p>`,pl)}},
@@ -3701,7 +3713,7 @@ UNIT_ICON.debt=`<path d="M-8,-10H6L8,-8V10H-8Z M-5,-6H5 M-5,-3H5 M-5,0H2 M-2,4a3
 function priceLabel(s,round){
   const P=round?G.roundPrices||{}:G.prices||{};
   if(s.id==="deconj")return `2 / ${P.deconj??"2+1d2"} mana`;
-  if(s.id==="joy")return `${P.joyA??"1+1d2"} / ${P.joyB??"1d3−1"} mana`;
+  if(s.id==="joy")return round?`${P.joyA??"1+1d2"} / ${P.joyB??"1d3−1"} mana`:`${joyPrice("A")} / ${joyPrice("B")} mana`;   // v78j: as charged
   if(round)return P[s.id]!=null?P[s.id]:s.dice;
   const c=spellCost(s);return c?c+" mana":"free";
 }
@@ -4976,8 +4988,8 @@ function skyCapMod(P){if(!G||!P)return 0;let m=0;const pl=P.i;
   if(planetUp("venus")){const V=G.venus;
     const x=G.eclipse&&G.eclipse.k==="venus"?2:1;   // an eclipse of Venus doubles its gifts
     if(V&&V.mode==="a"&&V.target===pl)m+=2*x;
-    if(V&&V.mode==="b"&&V.by!=null&&isEnemy(V.by,pl))m+=2*x;
-    if(P.oath==="venus"){if(P.venusPeace)m+=2;if(P.venusPen&&tnOf(pl)<=P.venusPen)m-=2}}
+    if(V&&V.mode==="b"&&V.by!=null&&isEnemy(V.by,pl))m+=2*x}
+  if(P.oath==="venus"){if(P.venusPeace)m+=2;if(P.venusPen&&tnOf(pl)<=P.venusPen)m-=2}   // v78j: the Oath holds under any sky
   if(G.jupMax&&G.jupMax[pl]&&G.moon.round<=G.jupMax.until)m+=G.jupMax[pl];   // a Jupiter eclipse (Prompt 10c)
   return m}
 
@@ -5029,12 +5041,12 @@ function planetTurn(pl){
   const P=G.p[pl];if(!P||isHorde(pl))return;
   if(planetUp("venus")){const V=G.venus;
     if(V&&V.target===pl){const n=(V.mode==="a"?2:1)*(eclipseOn("venus")?2:1),got=giveMana(pl,n);if(got)log(`Venus gives ${plName(pl)} ${got} mana.`)}
-    if(P.oath==="venus"){P.venusPeace=!P.venusAttacked;P.venusAttacked=false;if(P.venusPeace){const got=giveMana(pl,2);log(`Venus rewards ${plName(pl)}'s peace: ${got} mana and two more maximum this turn.`)}}
   }
+  if(P.oath==="venus"){P.venusPeace=!P.venusAttacked;P.venusAttacked=false;if(P.venusPeace){const got=giveMana(pl,2);log(`Venus rewards ${plName(pl)}'s peace: ${got} mana and two more maximum this turn.`)}}   // v78j: any sky
   if(planetUp("jupiter")&&(!G.jupSale||G.jupSale.round!==G.moon.round))rollJupSale();
 }
 /* attacking a player under the Oath of Venus costs 1d2 mana and two maximum for 1d3 turns */
-function venusAttack(atk,def){const P=G.p[atk];if(!P||P.oath!=="venus"||!planetUp("venus")||isNPC(def))return;
+function venusAttack(atk,def){const P=G.p[atk];if(!P||P.oath!=="venus"||isNPC(def))return;
   P.venusAttacked=true;P.venusPeace=false;const d=R(2),t=R(3);payQuiet(atk,Math.min(d,mana(atk)));P.venusPen=tnOf(atk)+t;
   log(`Venus frowns on ${plName(atk)}'s attack: −${d} mana and two maximum for ${t} turn${t>1?"s":""}.`)}
 
@@ -5043,7 +5055,7 @@ function rollJupSale(){const cj=SPELLS.filter(s=>s.school==="Conjuring"&&!s.trib
   log(`Jupiter's sale this round: ${G.jupSale.ids.map(id=>SP(id).name).join(" and ")} (maybe one mana off).`)}
 const onJupSale=id=>planetUp("jupiter")&&G.jupSale&&G.jupSale.ids.includes(id);
 function jupiterCost(sp,c){
-  if(!planetUp("jupiter")||sp.school!=="Conjuring"||c<=1)return c;
+  if(sp.school!=="Conjuring"||c<=1)return c;   // v78j: the Oath holds under any sky
   if(oathOf(G.active)==="jupiter")c-=1;   // the Oath of Jupiter: one less, but nothing that costs one already
   return Math.max(1,c)}
 /* after a purchase: Jupiter's sale may or may not pay off; the Heavenly Body's master may get a mana */
@@ -5256,13 +5268,15 @@ function sendHome(pl){
 function startPeace(rounds,why,turns){
   const r=G.moon.round;G.peace=turns?{untilT:G.turnNo+turns}:{until:r+rounds-1};G.war=null;
   for(const pl of realPlayers())sendHome(pl);
+  G.sel=null;G.mode=null;   // v78j: what was selected may have gone home
   // every wound heals; every curse and enchantment ends
-  for(const row of G.board)for(const st of row){if(!st)continue;st.odds=null;st.hypo=0;st.supp=null;for(const c of st.cards){if(c.maxHp)c.hp=c.maxHp;c.hate=false}}
+  for(const row of G.board)for(const st of row){if(!st)continue;st.odds=null;st.hypo=0;st.supp=null;st.dplus=null;for(const c of st.cards){if(c.maxHp)c.hp=c.maxHp;c.hate=false}}
   for(const P of G.p){P.shield=false;P.joy=false;P.theft=false}
   // three cards from the grave to everyone, one at a time around the table
   let given=0;for(let k=0;k<3;k++)for(const pl of realPlayers()){if(!G.grave.length)break;const c=G.grave.splice(Math.floor(Math.random()*G.grave.length),1)[0];c.owner=pl;const P=G.p[pl];if(P.hand.length<handCap(pl))P.hand.push(c);else{P.deck.push(c);shuffle(P.deck)}given++}
-  log(`<b>Peace</b> (${why}) for ${rounds} rounds: everyone goes home, every wound heals, curses and enchantments end${given?`, and the grave hands out ${given} card${given>1?"s":""}`:""}. No one may cross into another player's lines or attack another player.`,"event");
-  popup("Peace",`<p>${why}. For ${rounds} rounds no player can attack another or step into another player's lines.</p><p>Every stack out on the field went home (what had no room went back into the deck), every card with hearts healed, curses and enchantments ended, and everyone drew three cards from the grave, one at a time.</p>`);
+  const long=turns?`${turns} turns`:`${rounds} rounds`;   // v78j: Buy Peace counts turns
+  log(`<b>Peace</b> (${why}) for ${long}: everyone goes home, every wound heals, curses and enchantments end${given?`, and the grave hands out ${given} card${given>1?"s":""}`:""}. No one may cross into another player's lines or attack another player.`,"event");
+  popup("Peace",`<p>${why}. For ${long} no player can attack another or step into another player's lines.</p><p>Every stack out on the field went home (what had no room went back into the deck), every card with hearts healed, curses and enchantments ended, and everyone drew three cards from the grave, one at a time.</p>`);
   G._vis=null;applyMoonTheme();
 }
 function startWar(rounds,why){
@@ -5352,7 +5366,8 @@ function mercuryCost(sp,c){
   if(eclipseOn("jupiter")&&sp.school==="Conjuring")c=Math.max(1,c-1);
   const P=G.p[G.active];if(P&&P.freeCurses&&P.freeCurses.left>0&&sp.school==="Curse"&&!P.freeCurses.used.includes(sp.id))c=0;
   return c}
-function mercuryBought(sp){const P=me();if(P.freeCurses&&P.freeCurses.left>0&&sp.school==="Curse"&&!P.freeCurses.used.includes(sp.id)){P.freeCurses.left--;P.freeCurses.used.push(sp.id);log(`Mars's gift: ${esc(sp.name)} is free (${P.freeCurses.left} left).`)}}
+function mercuryBought(sp){const P=me();if(sp.id==="joy"&&!P.joy&&!P.theft)return;   // v78j: a cancelled Pleasure and Joy uses no gift
+  if(P.freeCurses&&P.freeCurses.left>0&&sp.school==="Curse"&&!P.freeCurses.used.includes(sp.id)){P.freeCurses.left--;P.freeCurses.used.push(sp.id);log(`Mars's gift: ${esc(sp.name)} is free (${P.freeCurses.left} left).`)}}
 
 /* ---------- spells ---------- */
 PRICE.mercury=()=>R(3)+R(3);PRICE.buypeace=()=>R(2)+R(2)+R(2)+R(2);PRICE.betray=()=>R(2)+R(3)+R(3);PRICE.warnow=()=>R(2)+R(3)+R(3);PRICE.bribe=()=>R(2)+R(3)+R(3);
@@ -5377,7 +5392,7 @@ SPELLS.push(
  {id:"warnow",dice:"1d2+2d3",name:"Declare War",cost:6,school:"Astrology",text:"Oath of Mercury, without a vote: Total War for 1d2 rounds.",
   ok:()=>oathOf(G.active)==="mercury"&&!warOn(),run:async()=>{startWar(R(2),`declared by ${esc(me().name)}`)}},
  {id:"bribe",dice:"1d2+2d3",name:"Bribe the Banker",cost:6,school:"Astrology",text:"Oath of Mercury. Pick a player: every spell costs them one more for 3d2 − 1 rounds. The bribe costs 1d2 + 2d3 now and again at the start of every round; it ends when you can't pay.",
-  ok:()=>oathOf(G.active)==="mercury"&&bankOpen(),run:async()=>{const t=await pickFoe("bribe","Bribe the Banker against whom?");if(t==null)return;const rounds=R(2)+R(2)+R(2)-1;
+  ok:()=>oathOf(G.active)==="mercury"&&bankOpen()&&foeAny(),run:async()=>{const t=await pickFoe("bribe","Bribe the Banker against whom?");if(t==null)return;const rounds=R(2)+R(2)+R(2)-1;
    (G.bribes=G.bribes||[]).push({by:G.active,target:t,until:G.moon.round+rounds-1,paid:G.moon.round});G.histTarget=t;
    log(`<b>Bribe</b>: ${plName(G.active)} pays the Banker to squeeze ${plName(t)} for ${rounds} rounds.`,"event")}}
 );
@@ -5650,7 +5665,7 @@ for(const s of SPELLS){const t=SPELL_TEXT[s.id];if(t)s.text=[t.n,t.e,t.l].filter
 function priceWords(s){
   if(s.id==="hypo")return "3, plus 1 for each card past the first";
   const now=G&&G.prices&&G.prices[s.id]!=null?G.prices[s.id]:null;
-  if(s.id==="clair"||s.id==="naked"){if(G&&newPrices())return "6 mana (New Moon)";if(G&&fullPrices())return s.id==="clair"?"2 mana (Full Moon)":"free (Full Moon)"}
+  if(s.id==="clair"||s.id==="naked"){if(G&&newPrices())return "6 mana (New Moon)";if(G&&fullPrices())return s.id==="clair"?"2 mana (Full Moon)":G.moon.blood?"1 mana (Blood Moon)":"free (Full Moon)"}
   if(s.fire)return `${s.dice} mana, rolled each round${now!=null?` · ${now} fire now`:""}`;
   if(s.dice)return `${s.dice}, rolled each round${now!=null?` · ${now?now+" mana":"free"} now`:""}`;
   const c=G?spellCost(s):s.cost;return c?c+" mana":"free";
@@ -6609,7 +6624,7 @@ function leaveJail(pl){const P=G.p[pl];if(!P.jail)return;P.cpu=P.jail.cpu;P.jail
   if(P&&P.jail)return `In Jail: no spells for ${jailLeft(P)} more round${jailLeft(P)===1?"":"s"}.`;
   if(banOn()&&sp.school===G.mban.school)return `Mercury's ban: no ${G.mban.school} spells until the end of round ${G.mban.until}.`;
   if(P&&sp.school==="Conjuring"&&etherBanned(G.active))return `Out of Jail: no Ether until your turn ${P.etherBan+1}.`;
-  if(P&&sp.id==="gamble"&&bankBanned(G.active))return `Out of Jail: no Bank until your turn ${P.bankBan+1}.`;
+  if(P&&["gamble","gamble2","bribe"].includes(sp.id)&&bankBanned(G.active))return `Out of Jail: no Bank until your turn ${P.bankBan+1}.`;
   return _b(sp)}}
 {const _ll=loanLimit;loanLimit=function(pl){const P=G.p[pl];if(P&&(P.noLoans||P.jail||bankBanned(pl)))return 0;return _ll(pl)}}
 {const _ca=canAfford;canAfford=function(pl,n){const P=G.p[pl];if(P&&(P.noLoans||P.jail||bankBanned(pl)))return mana(pl)>=n;return _ca(pl,n)}}
@@ -6631,7 +6646,7 @@ function leaveJail(pl){const P=G.p[pl];if(!P.jail)return;P.cpu=P.jail.cpu;P.jail
 {const _id=inDrawer;inDrawer=function(s,V){if(s.shop||s.id==="robbank")return true;return _id(s,V)}}
 /* Rob the Bank sits under the Bank, in dark red, while it can be done */
 {const _rs=renderSpells;renderSpells=function(live){_rs(live);const bs=$("#bankslot");if(!bs||!G)return;const V=view();
-  if(G.mercCyc===G.moon.round&&planetUp("mercury")&&bankOpen()&&!survival()){const sp=SP("robbank"),ok=live&&G.active===V&&spellReady(sp);
+  if((G.mercCyc===G.moon.round&&planetUp("mercury")||oathNow(V,"mercury"))&&bankOpen()&&!survival()){const sp=SP("robbank"),ok=live&&G.active===V&&spellReady(sp);
     const done=G.p[V].robbed===G.moon.round;
     bs.insertAdjacentHTML("beforeend",`<button class="spell robbank ${ok?"":"off"}" id="robBank" data-sp="robbank"><span class="sn">Rob the Bank<small class="dc">1d20</small>${done?`<small class="left">tried</small>`:""}</span><em>free</em></button>`);
     $("#robBank").onclick=async()=>{if(!canAct())return;await cast(SP("robbank"));render()}}}}
@@ -10833,7 +10848,7 @@ const illFoes=()=>enemiesOf(G.active).some(pl=>!isHorde(pl)&&!isNPC(pl)&&!G.p[pl
 const delOff=()=>(R(2)===1?-1:1)*R(3);
 PRICE.mdel=()=>R(2)+1;
 SPELLS.push(
- {id:"blindh",dice:"1d3",name:"Blind Hand",cost:2,school:"Illusion",text:"Choose an enemy: for 1 round their hand shows blank and shuffled (2 rounds on a 3 of 1d3). They can still play it, blind.",
+ {id:"blindh",name:"Blind Hand",cost:2,school:"Illusion",text:"Choose an enemy: for 1 round their hand shows blank and shuffled (2 rounds on a 3 of 1d3). They can still play it, blind.",
   ok:illFoes,run:async()=>{const t=await pickHandFoe("blindh","Blind Hand: whose hand?");if(t==null)return;const d=R(3),n=d===3?2:1;
    G.blindHand=(G.blindHand||[]).filter(x=>x.t!==t);G.blindHand.push({by:G.active,t,left:n});shuffle(G.p[t].hand);
    tray(G.active,"Blind Hand",[{s:3,v:d}],`${n} round${n>1?"s":""}`);log(`<b>Blind Hand</b>: ${plName(G.active)} blinds ${plName(t)}'s hand for ${n} round${n>1?"s":""}.`,"event");

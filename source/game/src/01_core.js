@@ -17,7 +17,7 @@ function soulCap(pl){
   let cap=baseCap(P);
   cap=Math.max(1,Math.min(18,cap+(P.maxAdd||0)+skyCapMod(P)));   // bought maximum mana (18 at most), or lost to Gambling and the Bank's collapse
   if(P.delu&&P.delu.turns>0)cap=Math.max(3,9-(P.delu.maxCut||0));                       // a Delusion: nine mana at most, less what Lucifer paid to stifle
-  if(G.moonLev&&G.moonLev.owner===pl)cap=Math.min(12,cap+G.dark.length);               // the Leviathan on the moon: +1 for every card in the Outer Darkness
+  if(G.moonLev&&G.moonLev.owner===pl)cap=Math.max(cap,Math.min(12,cap+G.dark.length));   // v78j: it never lowers a higher maximum               // the Leviathan on the moon: +1 for every card in the Outer Darkness
   return cap;
 }
 const pick=a=>a[Math.floor(Math.random()*a.length)];

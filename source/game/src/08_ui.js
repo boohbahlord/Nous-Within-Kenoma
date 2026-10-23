@@ -26,6 +26,11 @@ function askHuman(pl,spec){
     if(spec.cancel)$("#mcancel").onclick=()=>{ovHide();res(null)};
   });
 }
+/* v78j: the question on screen, so the phase timer can answer it when time runs out (as the computer would) */
+let askOpen=null;
+{const _ah=askHuman;askHuman=function(pl,spec){return new Promise(res=>{let open=true;
+  const q=askOpen={pl,spec,answer:v=>{if(!open)return;open=false;ovHide();res(v)}};
+  _ah.call(this,pl,spec).then(v=>{if(askOpen===q)askOpen=null;if(open){open=false;res(v)}})})}}
 /* v45: a long list of cards to pick from (the grave, a hand, the Outer Darkness) reads like the Ether: tabs by kind of card,
    each kind under its heading, and the same card folded into one button with a count */
 const pickKey=c=>[c.unit||"",c.rank,c.suit||"",c.color||"",c.puppet?"p":"",c.hp!=null?c.hp:""].join("|");
@@ -165,7 +170,7 @@ function render(){
       inner=crystalHTML(r,c,!!st)+inner;
       if(fogTile(V,r,c))cls.push("fog");if(fireAt(r,c))cls.push("fire");
       const zc=!duel&&z>=0?` style="--zc:${G.p[z].color}"`:"";
-      return `<button class="${cls.join(" ")}${role==="bridge"?" bridge":""}"${zc} data-r="${r}" data-c="${c}" aria-label="${coord(r,c)}, ${lineName||(z>=0?esc(G.p[z].name)+"'s ground":"open ground")}${role==="bridge"?" bridge":""}${st?", "+st.cards.map(nameOf).join(", "):", empty"}">${art}${PREF.coords?`<span class="coord">${coord(r,c)}</span>`:""}${inner}</button>`;
+      return `<button class="${cls.join(" ")}${role==="bridge"?" bridge":""}"${zc} data-r="${r}" data-c="${c}" aria-label="${coord(r,c)}, ${lineName||(z>=0?esc(G.p[z].name)+"'s ground":"open ground")}${role==="bridge"?" bridge":""}${st?(showsBack(V,r,c)?", a face-down stack":", "+st.cards.map(nameOf).join(", ")):", empty"}">${art}${PREF.coords?`<span class="coord">${coord(r,c)}</span>`:""}${inner}</button>`;
     }).join("")+"</div>";
   }).join("");
   {const nb=B.querySelector(":scope>.mapbg");if(nb){if(oldBg&&oldBg._g===G.map.ground)nb.replaceWith(oldBg);else nb._g=G.map.ground}if(oldVeil)B.appendChild(oldVeil)}
