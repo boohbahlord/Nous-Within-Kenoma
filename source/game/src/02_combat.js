@@ -261,7 +261,7 @@ function dicePlusRoll(){let total=0;const dice=[],q=[R(12)];let guard=0;
 function damage(r,c,n,defending){
   const st=G.board[r][c];if(!st)return 0;
   if(n>0&&shieldUp(st)){breakShield(st,r,c);return 0}   // the Healer's shield turns the whole blow
-  const dead=[],F=G.fight;
+  const dead=[];
   for(let i=0;i<n&&st.cards.length;i++){
     // v78t: Miners and Repairmen are hit last: they hide behind every card that can defend them (and can be taken only once none is left)
     if(!st.cards.length)break;

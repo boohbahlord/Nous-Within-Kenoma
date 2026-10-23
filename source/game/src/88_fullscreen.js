@@ -192,8 +192,9 @@ document.addEventListener("keydown",e=>{if(!kmIs(e,"turn")||!G||G.over)return;  
   const a=document.activeElement;if(a&&(a.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))return;
   if(a&&a!==document.body&&a.tagName==="BUTTON"&&!a.closest("#board,#hand"))return;   // a focused button keeps its own Space
   if(e.repeat){e.preventDefault();return}   // v78j: held down, it fires once
-  const top=kbTop();if(top&&!top.matches(".drawer,#etherpanel"))return;   // v78j: a window has the keys (v78s: a side drawer doesn't)
-  if(KB.mode){if(kbModeKey(e))return;kbModeOff()}   // v78s: with the spells or the hand open by keys, Space ends the phase too (unless it's bound there)
+  const top=kbTop();if(top&&!top.matches(".drawer,#etherpanel"))return;   // v78j: a window has the keys (v78s: the Ether's and the sky's drawers don't)
+  if(KB.mode)return;   // v78t: the spells (the bar or the list) or the hand picked by keys keep Space: it doesn't end the turn there
+  if(fsOn()&&(PREF.fsSp||PREF.fsSel)){e.preventDefault();return}   // v78t: nor with the Spells or the Selected drawer open
   if([...document.querySelectorAll("#ov,#menu,#facfg,#fspause,#fshelp,#fsquote,#fsctl,#pop,#histpop,#rbwin,#clstgwin,#leavebox,.faov")].some(x=>!x.hidden&&x.getClientRects().length&&x.innerHTML.trim()))return;
   const n=$("#next");if(!n||n.disabled||!n.getClientRects().length)return;e.preventDefault();n.click()},true);
 /* v74a: the history of rolls opens above its button when there is no room below (the dice row at the bottom of fullscreen) */
