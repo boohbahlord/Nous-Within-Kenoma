@@ -13,15 +13,13 @@ const RD_KINDS=[["standard","Standard"],["special","Special"],["support","Suppor
 const RD_DEF={on:false,preset:"even",every:1,perTurn:1,kinds:[],minMana:3,counterOD:true,noOD:false,stopDebt:4,credit:false,creditStop:-3};
 const RD_PRESETS=[
   ["miser","Rarely","Rarely: only with plenty to spare and something worth raising, never in debt.",{every:3,perTurn:1,kinds:["special","base"],minMana:6,counterOD:false,noOD:true,stopDebt:1,credit:false,creditStop:0}],
-  ["accountant","Every other round","Modest: one every other round, never into debt.",{every:2,perTurn:1,kinds:[],minMana:4,counterOD:false,noOD:true,stopDebt:2,credit:false,creditStop:0}],
   ["even","Once a round","Balanced: one a round while there is mana to spare (the default).",{every:1,perTurn:1,kinds:[],minMana:3,counterOD:true,noOD:false,stopDebt:4,credit:false,creditStop:-3}],
-  ["relic","Best cards, twice a round","Spends big, but only when the grave holds treasure.",{every:1,perTurn:2,kinds:["special","wildcard","base"],minMana:2,counterOD:true,noOD:false,stopDebt:0,credit:false,creditStop:-3}],
-  ["hunger","Twice a round, on credit","Two a round, on credit when it must.",{every:1,perTurn:2,kinds:[],minMana:1,counterOD:true,noOD:false,stopDebt:0,credit:true,creditStop:-3}],
   ["mad","As much as it can","Everything into the grave, down to the brink.",{every:1,perTurn:3,kinds:[],minMana:0,counterOD:true,noOD:false,stopDebt:0,credit:true,creditStop:-6}]];
 const clampN=(v,a,b,d)=>{v=Math.round(+v);return Number.isFinite(v)?Math.max(a,Math.min(b,v)):d};
 function rdClean(c){c=c&&typeof c==="object"?c:{};const o={...RD_DEF};
   for(const k of ["on","counterOD","noOD","credit"])if(typeof c[k]==="boolean")o[k]=c[k];
-  if(typeof c.preset==="string")o.preset=c.preset;
+  if(typeof c.preset==="string")o.preset=({accountant:"miser",relic:"even",hunger:"mad"})[c.preset]||c.preset;   // v79g: three playstyles left
+  if(typeof c.noOD==="boolean")o.counterOD=!c.noOD;   // v79g: one box: skip after an overdraw, or (off) buy extra to make up for it
   o.every=clampN(c.every??o.every,1,9,1);o.perTurn=clampN(c.perTurn??o.perTurn,1,6,1);o.minMana=clampN(c.minMana??o.minMana,0,30,3);
   o.stopDebt=clampN(c.stopDebt??o.stopDebt,0,30,4);o.creditStop=clampN(c.creditStop??o.creditStop,-6,0,-3);
   o.kinds=Array.isArray(c.kinds)?c.kinds.filter(k=>RD_KINDS.some(x=>x[0]===k)):[];return o}
@@ -87,16 +85,16 @@ function rdPanelHTML(c,pfx){const K=cfgKit("data-rd","data-rdact","rd"+pfx),{row
   let h=`<p class="dim fafull">At the start of your prep phase, before Grave Blessing (switching this on switches Grave Blessing's auto on too). Each Ritual Dice costs 1 mana and adds 3d6 to this turn's Grave Blessing. It is never bought when Grave Blessing can't be cast.</p>`;
   h+=sec("Playstyle",`<div class="opts faopts${off?" off":""}">${RD_PRESETS.map(([k,t,d])=>`<label class="opt"${K.tip(d)}><input type="radio" name="rd${pfx}-preset" data-rdpreset="${k}" ${c.preset===k?"checked":""} ${off?"disabled":""}><span>${t}${K.sm(d)}</span></label>`).join("")}<label class="opt"${K.tip(c.lastCustom?"Your own settings, as you last left them.":"Change any setting below and it becomes Custom.")}><input type="radio" name="rd${pfx}-preset" data-rdpreset="custom" ${c.preset==="custom"?"checked":""} ${off||!c.lastCustom&&c.preset!=="custom"?"disabled":""}><span>Custom${K.sm(c.lastCustom?"As you last left it.":"")}</span></label></div>`,
     "fafull","Sets everything below at once. Change any of it and it becomes Custom.");
-  h+=sec("How often",spin("Every","1: every round",c.every,"every",c.every>1?"turns":"turn",off)+spin("How many each time","Each one is 1 mana and 3d6.",c.perTurn,"perTurn","",off));
+  h+=sec("How often",spin("Every","1: every round",c.every,"every",c.every>1?"rounds":"round",off)+spin("How many each time","Each one is 1 mana and 3d6.",c.perTurn,"perTurn","",off));
   h+=sec("Only when the grave holds",K.chips(RD_KINDS,c.kinds,"data-rdkind",off)+`<p class="dim">None ticked: whatever the grave holds.</p>`);
   h+=sec("Mana",spin("Only with at least","It buys only with this much mana to spare.",c.minMana,"minMana","mana",off)+
     spin("Stop while owing","Mana debt plus loans. 0: owing never stops it.",c.stopDebt?c.stopDebt:"0",`stopDebt`,c.stopDebt?"or more":"(never stops)",off));
-  h+=sec("Overdraw",row("noOD",c.noOD,"Not on a turn with an overdraw","An overdraw cuts Grave Blessing's dice; this waits it out.",off)+row("counterOD",c.counterOD,"Buy extra to make up for overdraw","Enough more Ritual Dice to cover the dice an overdraw takes away.",off||c.noOD));
+  h+=sec("Overdraw",row("noOD",c.noOD,"Skip after an overdraw","An overdraw cuts Grave Blessing's dice: on, it waits it out; off, it buys enough more Ritual Dice to make up for it.",off));
   h+=sec("Credit",row("credit",c.credit,"Buy on credit","When your mana runs short, the Bank's credit pays.",off)+spin("Stop buying on credit at","Your mana won't go below this to buy one.",c.creditStop,"creditStop","mana",off||!c.credit));
   return h}
 function rdSave(c){c=rdClean(c);PREF.rd=c;if(c.on&&G){const V=view();if(G.p[V]&&!G.p[V].autoBless){setAutoBless(V,true)}PREF.autoBless=true}savePrefs();autoSync();paintFA();if(G)render()}
 function rdWire(root){
-  root.querySelectorAll("[data-rd]").forEach(i=>{const k=i.dataset.rd;if(!k)return;i.onchange=()=>{const c=rdMine();c[k]=i.checked;if(k!=="on")c.preset="custom";rdSave(c)}});
+  root.querySelectorAll("[data-rd]").forEach(i=>{const k=i.dataset.rd;if(!k)return;i.onchange=()=>{const c=rdMine();c[k]=i.checked;if(k==="noOD")c.counterOD=!i.checked;if(k!=="on")c.preset="custom";rdSave(c)}});
   root.querySelectorAll("[data-rdkind]").forEach(i=>i.onchange=()=>{const c=rdMine(),k=i.dataset.rdkind;c.kinds=c.kinds.filter(x=>x!==k);if(i.checked)c.kinds.push(k);c.preset="custom";rdSave(c)});
   root.querySelectorAll("[data-rdpreset]").forEach(i=>i.onchange=()=>{const p=RD_PRESETS.find(x=>x[0]===i.dataset.rdpreset);if(!p)return;rdSave({...rdMine(),...p[3],preset:p[0]})});
   root.querySelectorAll("[data-rdact]").forEach(b=>b.onclick=()=>{const c=rdMine(),v=b.dataset.rdact,k=v.slice(0,-1),d=v.endsWith("+")?1:-1;c[k]=(c[k]||0)+d;c.preset="custom";rdSave(c)})}
@@ -109,13 +107,16 @@ function lhPanelHTML(c,pfx){const K=cfgKit("data-lh","data-lhact","lh"+pfx),{row
   h+=sec("Never placed automatically",K.chips(RD_KINDS,c.exclude,"data-lhex")+`<details class="faextra" ${c.xextra.length||c.xminus.length?"open":""}><summary>Yes, and… (single kinds: + never placed for you, − placed for you even if its group is ticked)</summary>${K.pmChips(lhKeyList(),c.xextra,c.xminus,"data-lhxpm")}</details><p class="dim">You place these yourself, even with Lazy Hand on.</p>`,"fafull");
   h+=sec("Sacrifice from the hand",row("sac",c.sac,"Sacrifice cards by itself","At the start of your prep phase, before anything is spent: the kinds you tick here.")+K.chips(RD_KINDS,c.skinds,"data-lhsk",so)+
     `<details class="faextra" ${c.sextra.length||c.sminus.length?"open":""}><summary>Yes, and… (single kinds: + sacrificed, like the 2 Grunt; − never sacrificed)</summary>${K.pmChips(lhKeyList(),c.sextra,c.sminus,"data-lhspm",so)}</details>`+
-    row("negOnly",c.negOnly,"Only while mana is below zero","It sacrifices until you are back at zero; the limits below don't apply.",so)+
-    row("notFull",c.notFull,"Not when mana is full","It stops at your maximum, so nothing goes into the surplus.",so||c.negOnly)+
-    (!c.notFull?row("maxSurplus",c.maxSurplus,"Up to the most surplus","As far as the soul pile allows.",so||c.negOnly)+spin("Up to this far into the surplus","",c.surplus,"surplus","mana",so||c.negOnly||c.maxSurplus):""),"fafull");
+    `<p class="clsh">Stops at</p>`+K.radio("stopAt",lhStop(c),[["zero","Zero","Only while your mana is below zero: it stops when you are back at zero"],["full","Full mana","It stops at your maximum, so nothing goes into the surplus (the default)"],["surplus","Into the surplus","As far into the surplus as you set below"],["most","The most surplus","As far as the soul pile allows"]],so)+
+    (lhStop(c)==="surplus"?spin("How far into the surplus","",c.surplus,"surplus","mana",so):""),"fafull");
   return h}
+/* v79g: where sacrificing stops, one choice (it was three boxes) */
+const lhStop=c=>c.negOnly?"zero":c.notFull?"full":c.maxSurplus?"most":"surplus";
 function lhSave(c){PREF.lh=lhClean(c);savePrefs();autoSync();paintFA();if(G)render()}
 function lhWire(root){
-  root.querySelectorAll("[data-lh]").forEach(i=>{const k=i.dataset.lh;if(!k)return;i.onchange=()=>{if(k==="keep"){PREF.lazyAuto=i.checked;savePrefs();paintFA();if(G)render();return}const c=lhMine();c[k]=i.checked;lhSave(c)}});
+  root.querySelectorAll("[data-lh]").forEach(i=>{const k=i.dataset.lh;if(!k)return;i.onchange=()=>{if(k==="keep"){PREF.lazyAuto=i.checked;savePrefs();paintFA();if(G)render();return}const c=lhMine();
+    if(k==="stopAt"){if(!i.checked)return;const v=i.value;c.negOnly=v==="zero";c.notFull=v==="full";c.maxSurplus=v==="most";lhSave(c);return}
+    c[k]=i.checked;lhSave(c)}});
   for(const [attr,pk,mk] of [["data-lhxpm","xextra","xminus"],["data-lhspm","sextra","sminus"]])
     root.querySelectorAll(`[${attr}]`).forEach(b=>b.onclick=()=>{const c=lhMine(),[p,m]=pmCycle(c[pk],c[mk],b.getAttribute(attr));c[pk]=p;c[mk]=m;lhSave(c)});
   for(const [attr,key] of [["data-lhex","exclude"],["data-lhsk","skinds"]])

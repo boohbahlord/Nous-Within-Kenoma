@@ -1,5 +1,5 @@
 /* ---------- v72e: Class Structures (Field Automation) ----------
-   A class is a named set of kinds of card with its own Field Automation rules: stance, lives, picking battles, formation,
+   A class is a named set of kinds of card with its own Field Automation rules: stance, aggression, risk, formation,
    attacking or not, ambushes, bases, its own ranking of the principles, its own target priority, a low priority, and the
    classes and kinds it keeps near (cluster). A class works only while it is on, and only while Field Automation is on.
    - Which cards: the kinds ticked in it. A kind can be in one class only, unless "Choose classes on the field" is on: then
@@ -16,7 +16,7 @@
      sheen if you like; only you see it unless you show it to the other players. It can't be your own color, nor too like it
      or another class's (those are greyed out, as in the setup). Hidden under Neptune's eclipse.
    - Every Automated Strategy shares the same classes. */
-const CLS_CFG=["noAttack","stance","aggr","aggrHow","aggrN","lives","battles","formation","ambush","ambFocus","bases","hier","order","eq"];   // v79f: Aggression
+const CLS_CFG=["noAttack","stance","aggr","aggrHow","aggrN","risk","formation","ambush","ambFocus","bases","hier","order","eq"];   // v79f: Aggression; v79g: Risk (Lives and Picking battles in one)
 const CLS_STK=["strongest","weakest","minority","majority"];
 /* v73f: a class's target priority goes by the types of card (Wildcards, Special, Base, Standard, Support): the type it targets
    most, the ranking of the types below it, and inside each type (its ⚙ window) the kind it hunts first and their ranking */
@@ -155,8 +155,7 @@ ${row(`${id}|on`,k.on,"Class on","Its rules play its cards by themselves (while 
 <p class="clsh">A stack mixing its cards with others plays by it when its cards are…</p>${row(`${id}|stack:strongest`,k.stack.strongest,"…the stack's strongest card","")}${row(`${id}|stack:weakest`,k.stack.weakest,"…the stack's weakest card","")}${row(`${id}|stack:minority`,k.stack.minority,"…only a few of its cards","Not the most of them.")}${row(`${id}|stack:majority`,k.stack.majority,"…most of its cards","")}
 <p class="clsh">Stance</p>${radio(`${id}|stance`,c.stance,[["auto","Automatic",""],["offensive","Offensive",""],["defensive","Defensive",""],["center","Center",""],["skirmish","Skirmish",""]])}
 <p class="clsh">Aggression</p>${faAggrHTML(K,c,`${id}|aggr`,`${id}|aggrHow`,`${id}|aggrN`)}
-<p class="clsh">Lives</p>${radio(`${id}|lives`,c.lives,[["preserve","Preserve",""],["balanced","Balanced",""],["throw","Throw them in",""]])}
-<p class="clsh">Picking battles</p>${radio(`${id}|battles`,c.battles,[["careful","Careful",""],["normal","Normal",""],["reckless","Reckless",""]])}
+<p class="clsh">Risk</p>${radio(`${id}|risk`,c.risk,[["careful","Careful","Keeps cards alive and fights only with good odds"],["normal","Normal",""],["reckless","Reckless","Trades cards freely and takes long shots"]])}
 <p class="clsh">Formation</p>${radio(`${id}|formation`,c.formation,[["auto","Automatic",""],["wide","Wide",""],["deep","Tall",""]])}
 ${row(`${id}|noAttack`,c.noAttack,"Don't attack","")}${row(`${id}|ambush`,c.ambush,"Set ambushes","")}${c.ambush?row(`${id}|ambFocus`,c.ambFocus,"Focus on ambush",""):""}${row(`${id}|bases`,c.bases,"Target bases","")}
 ${row(`${id}|hier`,c.hier,"Rank the principles","Its own order of the principles.")}${c.hier?clsRank(id,c.order,"h",x=>(FA_PRINC.find(p=>p[0]===x)||[x,x])[1]):""}
