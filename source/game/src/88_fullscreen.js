@@ -117,7 +117,7 @@ document.addEventListener("click",e=>{if(!fsOn())return;const m=e.target.closest
 /* ---------- v74a: Controls: what moves what, and the options for it (a phone gets its own list) ---------- */
 /* v75b: the list follows the device's pointer, not the window's width: any mouse or trackpad shows the keyboard and mouse list
    (a narrow window or a touchscreen computer too); only a device that is touch alone opens on the touch list. Either can be picked. */
-const fsTouchOnly=()=>typeof matchMedia!=="undefined"&&!matchMedia("(any-pointer:fine)").matches&&!matchMedia("(any-hover:hover)").matches;
+const fsTouchOnly=()=>!ecPC()&&typeof matchMedia!=="undefined"&&!matchMedia("(any-pointer:fine)").matches&&!matchMedia("(any-hover:hover)").matches;
 function fsControls(){const o=fsOv("fsctl"),touch=PREF.fsCtlTab?PREF.fsCtlTab==="touch":fsTouchOnly(),ck=(id,on,t,s)=>`<label class="farow"><span class="fal"><b>${t}</b>${s?`<small>${s}</small>`:""}</span><input type="checkbox" id="${id}" ${on?"checked":""}></label>`;
   const L=touch?[["Move the field","swipe it with one finger"],["Zoom","pinch with two fingers"],["Pick a stack or a card","tap it; tap it again to let go"],["A class (Field Automation)","double-tap a stack or a hand card"],
       ["Spells and Selected","the named arrows on the right"],["Dice and the log","the arrow at the bottom left; its ⚙ for more"],["The sky","tap the body at the top left"],["Leave fullscreen","Menu, then Exit fullscreen"]]

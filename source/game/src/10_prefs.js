@@ -1,7 +1,12 @@
 /* ---------------- display preferences, page themes, leave warning, quotes ---------------- */
 /* a phone: a touch screen no wider than a small tablet held sideways, or any narrow window */
 const PHONE_Q="(pointer:coarse) and (max-width:1000px), (max-width:600px)";
-const isPhone=()=>typeof matchMedia!=="undefined"&&matchMedia(PHONE_Q).matches;
+/* v78v: a computer (desktop or laptop) by what the device says it is: a touchscreen laptop reports a touch pointer just as a
+   phone does, so the pointer alone can't tell them apart */
+const ecPC=()=>{const n=typeof navigator!=="undefined"?navigator:{},ua=n.userAgent||"";if(n.userAgentData&&n.userAgentData.mobile)return false;
+  if(/Android|iPhone|iPad|iPod|Mobile|Silk|Kindle|Opera Mini|IEMobile/i.test(ua))return false;
+  return !(/Macintosh/.test(ua)&&n.maxTouchPoints>1)};   // an iPad says it is a Mac
+const isPhone=()=>typeof matchMedia!=="undefined"&&(matchMedia("(max-width:600px)").matches||!ecPC()&&matchMedia(PHONE_Q).matches);   // v78v: a computer is a phone only in a very narrow window
 const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){}
   if(!p||typeof p!=="object"||Array.isArray(p))p={};   // v78j: an object, whatever is stored
   for(const k of ["ci","ui","tz","bright","sfxVol","allVol","musicVol","mapOp"])if(k in p){const n=p[k]==null||p[k]===""?NaN:+p[k];if(Number.isFinite(n))p[k]=n;else delete p[k]}   // numbers, not text

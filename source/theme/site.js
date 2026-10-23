@@ -164,7 +164,10 @@
 (function(){
   const KEY="nwk-fill",root=document.documentElement;
   let on=false;try{on=localStorage.getItem(KEY)==="on"}catch(e){}
-  const pc=()=>!window.matchMedia||matchMedia("(any-pointer:fine)").matches;   // a mouse or a trackpad
+  // v78v: a computer by what the device says it is; a touchscreen laptop reports a touch pointer just as a phone does
+  const pc=()=>{const n=navigator,ua=n.userAgent||"";if(n.userAgentData&&n.userAgentData.mobile)return false;
+    if(/Android|iPhone|iPad|iPod|Mobile|Silk|Kindle|Opera Mini|IEMobile/i.test(ua))return false;
+    return !(/Macintosh/.test(ua)&&n.maxTouchPoints>1)};   // an iPad says it is a Mac
   const apply=()=>root.classList.toggle("fillscreen",on&&pc());
   apply();
   function build(){if(!pc()||document.querySelector("main.game")||document.getElementById("nwkdisp"))return;   // the game has its own Display bar
