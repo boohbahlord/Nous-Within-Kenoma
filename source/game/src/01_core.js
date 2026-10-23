@@ -143,6 +143,7 @@ function stackLegal(cards){
     if(n("miner")>1&&!inAce)return false;   // v72a: as many Miners in an Ace as you like, one anywhere else
     if(rest.some(c=>c.unit==="ram"))return false;
     if(!rest.length)return true;
+    if((n("miner")||n("repair"))&&!rest.some(isBase)&&rest.some(c=>isHero(c)||c.unit&&(UNIT[c.unit].solo==="alone"||c.unit==="cannon"||c.unit==="assassin")))return false;   // v78t: not with a card that stands alone
     cards=rest;
   }
   const cnt=u=>cards.filter(c=>c.unit===u).length;

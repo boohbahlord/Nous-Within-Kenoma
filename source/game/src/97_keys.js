@@ -100,7 +100,7 @@ function kbAce(d){if(getSelection&&String(getSelection()).length)return false;co
   if(!A.length){flash("You have no Ace on the field.");return}KB.ace=((KB.ace+d)%A.length+A.length)%A.length;kbLook(...A[KB.ace])}
 /* the table's shortcuts: [action, what it does]; one that returns false leaves the key to the browser */
 const KB_DO=[
-  ["fullscreen",()=>fsOn()?fsExit():fsEnter()],["hints",()=>kbHints(PREF.keyHints!==true)],
+  ["fullscreen",()=>fsOn()?fsExit():fsEnter()],["bfsOn",()=>bfsSet(true)],["bfsOff",()=>bfsSet(false)],["hints",()=>kbHints(PREF.keyHints!==true)],
   ["dip",()=>{const b=$("#dipbar");if(b)b.click();else flash("Diplomacy is off in this game.")}],
   ["aceBack",()=>kbAce(-1)],["aceNext",()=>kbAce(1)],["lookSel",()=>{if(G.sel)kbLook(G.sel.r,G.sel.c);else flash("Nothing is selected on the field.")}],
   ["faset",()=>{if(typeof faAllowed==="function"&&faAllowed())faWindow();else flash("Field Automation is off in this game.")}],

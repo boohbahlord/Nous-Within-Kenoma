@@ -219,7 +219,7 @@ function attackRun(r1,c1,r2,c2,mode,forced){
     if(opt.mode==="charge"||opt.mode==="charge2"){dmgD*=2;notes.push("A charge hits a Wall twice as hard.")}
     if(w&&w.id==="cannon"){dmgD=Math.max(dmgD,2);notes.push("Cannon fire: two damage to the Wall.")}
   }
-  if(dmgD>0&&w&&w.id==="cannon"){const ace=D.cards.find(x=>kind(x)==="ace");if(ace&&(ace.hp||1)<=1&&!D.cards.some(x=>x.unit==="miner")){dmgD=0;notes.push("A Cannon can't take an Ace's last heart.")}}
+  if(dmgD>0&&w&&w.id==="cannon"){const ace=D.cards.find(x=>kind(x)==="ace");if(ace&&(ace.hp||1)<=1){dmgD=0;notes.push("A Cannon can't take an Ace's last heart.")}}
   if(LR.miss){dmgD=0;dmgA=0;notes.push("Crit Miss: the attack misses.")}
   else if(LR.dodge){dmgD=0;dmgA=0;notes.push("The Assassin dodges: Miss.")}
   else if(LR.crit){if(!dmgD)dmgD=1;dmgA=0;notes.push("Crit Hit: the blow lands whatever the scores.")}
@@ -263,11 +263,7 @@ function damage(r,c,n,defending){
   if(n>0&&shieldUp(st)){breakShield(st,r,c);return 0}   // the Healer's shield turns the whole blow
   const dead=[],F=G.fight;
   for(let i=0;i<n&&st.cards.length;i++){
-    // a Miner is the first to go: an attacker beside it with a free capture slot takes it (and the blow still lands), or it dies
-    const mi=st.cards.findIndex(x=>x.unit==="miner");
-    if(mi>=0&&st.cards.some(x=>x.unit!=="miner")){const m=st.cards[mi],A=F&&F.D===st&&!F.ranged?F.A:null;
-      if(A&&!A.captive&&G.board.flat().includes(A)){st.cards.splice(mi,1);takeCaptive(A,m);log(`${plName(A.owner)} captures a Miner from ${coord(r,c)}, and the blow still lands.`)}
-      else{st.cards.splice(mi,1);dead.push(m);log(`The Miner on ${coord(r,c)} is the first to fall.`);continue}}
+    // v78t: Miners and Repairmen are hit last: they hide behind every card that can defend them (and can be taken only once none is left)
     if(!st.cards.length)break;
     const lh=st.cards.find(x=>x.unit==="lighthouse");   // v70c: the stack inside a Lighthouse takes the blows first; the tower, once nothing else can
     const base=st.cards.find(x=>isBase(x)&&x!==lh)||(lh&&!st.cards.some(x=>x!==lh&&x.unit!=="ram")?lh:null);

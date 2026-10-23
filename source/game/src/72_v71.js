@@ -10,7 +10,7 @@
 /* the bid: Keep it or Let it go, an amount with arrows, Bid or Pass; nobody sees the others' bids */
 {const _ah=askHuman;askHuman=function(pl,spec){if(!spec||spec.kind!=="bid")return _ah.apply(this,arguments);
   return new Promise(res=>{const max=Math.max(0,Math.floor(spec.max||0));let n=Math.min(Math.max(1,spec.n||1),Math.max(1,max)),side=null;
-    const who=G.p.filter(P=>!P.cpu).length>1&&!G.opts.online?`<p class="dim">${esc(G.p[pl].name)} bids. The others don't see it.</p>`:"";
+    const who=G.p.filter(P=>!P.cpu).length>1&&!G.opts.online?`<p class="dim">${esc(G.p[pl].name)} bids. Every bid is open: everyone sees it.</p>`:"";   // v78t
     const paint=()=>{ovShow(`<div class="ovbox bidbox" role="dialog" aria-labelledby="bidh"><h2 id="bidh">${spec.title}</h2>${who}<p>${spec.text}</p>
 <div class="opts bidside">${[["keep",spec.keepLabel||"Keep it"],["go",spec.goLabel||"Let it go"]].map(([k,t])=>`<label class="opt"><input type="radio" name="bidside" value="${k}" ${side===k?"checked":""} ${max<1?"disabled":""}><span>${t}</span></label>`).join("")}</div>
 <p class="skynum bidamt"><button type="button" class="mstep" data-bd="-1" aria-label="less" ${max<1?"disabled":""}>◀</button> <b id="bidn">${max<1?0:n}</b> mana <button type="button" class="mstep" data-bd="1" aria-label="more" ${max<1?"disabled":""}>▶</button> <span class="dim">you have ${max}</span></p>
@@ -54,37 +54,50 @@ function skySwap(k,why){const old=sky(),o=SKYCHG();
   G._vis=null;applyMoonTheme();skyArrive();
   log(`<b>${esc(SHOP_NAME[k])}</b> takes the sky: it replaces ${skyWord(old)} (${why}).`,"event");
   popup(`${SHOP_NAME[k]} takes the sky`,`<p><b>${esc(SHOP_NAME[k])}</b> replaces ${skyWord(old)} (${esc(why)}).</p>${k==="moon"?`<p>The Moon comes back as ${MOON[G.moon.i].replace(/^(\w)/,c=>/[AEIOU]/.test(c)?"an "+c:"a "+c)}.</p>`:""}`)}
-/* the bid: everyone at once, in secret; keeping wins a tie; only the winner pays, to the Bank */
-function aiSkyBid(pl,k){const P=G.p[pl],m=mana(pl);if(m<2)return null;
-  const mine=P.oath&&(P.oath===k||OATH_SKY[k]===P.oath);
+/* v78t: the bid is open, at the end of the round of the cycle event (after the last attack phase): everyone sees the bids as
+   they come and can raise them, round after round of asking, until nobody raises; keeping wins a tie; only the winner pays,
+   to the Bank; the change comes at the start of the next round */
+function aiSkyBid(pl,k,cx){const P=G.p[pl],m=mana(pl);if(m<2)return null;
+  const mine=P.oath&&(P.oath===k||OATH_SKY[k]===P.oath),want=mine?"keep":k==="saturn"&&P.oath!=="saturn"&&!(G.saturnBy===pl)?"go":null;
+  if(cx&&cx.pass>0){if(!want||!cx.cur)return null;const other=cx.top(want==="keep"?"go":"keep"),need=other?other.eff+(want==="go"?1:0):0;   // raise only to win your own side back
+    const cap=mine?m-1:Math.min(m-1,3);return need>cx.cur.eff&&need<=cap?{side:want,n:need}:null}
   if(mine)return {side:"keep",n:Math.min(m-1,1+R(3))};
-  if(k==="saturn"&&P.oath!=="saturn"&&!(G.saturnBy===pl))return Math.random()<.6?{side:"go",n:Math.min(m-1,1+R(2))}:null;
+  if(want==="go")return Math.random()<.6?{side:"go",n:Math.min(m-1,1+R(2))}:null;
   return Math.random()<.2?{side:Math.random()<.5?"keep":"go",n:Math.min(m-1,R(2))}:null}
 async function skyAuction(){const k=sky(),name=SHOP_NAME[k]||skyWord(k);
   log(`<b>${esc(name)}</b> has completed its ${G.skyCyc}${["th","st","nd","rd"][G.skyCyc%10>3||Math.floor(G.skyCyc/10)===1?0:G.skyCyc%10]} cycle and announces that it is leaving. Bids decide whether it stays for one more cycle.`,"event");
   notify(null,`${esc(name)} is leaving the sky: bid mana to keep it for one more cycle, or to see it go.`);
-  const bids=[];
-  for(const pl of realPlayers()){if(G.over)return;
-    const b=await ask(pl,{kind:"bid",id:"skybid",title:`${esc(name)} is leaving`,text:`${esc(name)} has completed its cycle and will leave the sky. Bid mana to keep it for one more cycle, or to see it go; or pass. The highest bid wins (keeping wins a tie), and only the winner pays, to the Bank.${G.p[pl].oath&&(G.p[pl].oath===k||OATH_SKY[k]===G.p[pl].oath)?" Under its Oath, your bid counts half again on a 2 of 1d2.":""}`,
-      max:mana(pl),keepLabel:`Keep ${skyWord(k)}`,goLabel:"Let it go",ai:()=>aiSkyBid(pl,k)});
-    if(!b||!(b.n>0)||!["keep","go"].includes(b.side))continue;const n=Math.min(Math.floor(b.n),mana(pl));if(n<1)continue;
-    const P=G.p[pl],oath=P.oath&&(P.oath===k||OATH_SKY[k]===P.oath);let eff=n,d=null;
-    if(oath){d=R(2);if(d===2)eff=Math.floor(n*1.5);tray(pl,"Oath bid",[{s:2,v:d}],d===2?`×1.5: ${eff}`:`${eff}`)}
-    bids.push({pl,side:b.side,n,eff})}
-  const top=s=>bids.filter(b=>b.side===s).sort((a,b)=>b.eff-a.eff)[0]||null;
+  const B=new Map(),top=s=>[...B.values()].filter(b=>b.side===s).sort((a,b)=>b.eff-a.eff)[0]||null;
+  const standing=()=>{const L=[...B.values()];if(!L.length)return "No bids yet.";const K=top("keep"),Gx=top("go"),lead=K&&(!Gx||K.eff>=Gx.eff)?"keep":Gx?"go":null;
+    return `Bids now: ${L.map(b=>`${esc(G.p[b.pl].name)} ${b.side==="keep"?"keeps":"lets go"} ${b.n}${b.eff!==b.n?` (counts ${b.eff})`:""}`).join(", ")}. Leading: <b>${lead==="keep"?`keep ${skyWord(k)}`:"let it go"}</b>.`};
+  for(let pass=0;pass<5;pass++){let raised=false;
+    for(const pl of realPlayers()){if(G.over)return;const cur=B.get(pl)||null;
+      if(pass>0){const K=top("keep"),Gx=top("go"),lead=K&&(!Gx||K.eff>=Gx.eff)?K:Gx;if(lead&&lead.pl===pl)continue;if(mana(pl)<1)continue}   // the leader waits; the others may answer
+      const other=s=>{const t=top(s==="keep"?"go":"keep");return t?t.eff+(s==="go"?1:0):1};
+      const b=await ask(pl,{kind:"bid",id:"skybid",title:`${esc(name)} is leaving`+(pass?" · raise?":""),text:`${esc(name)} has completed its cycle. Bid mana to keep it for one more cycle, or to see it go; or pass${cur?" (your bid stands)":""}. The highest bid wins (keeping wins a tie), and only the winner pays, to the Bank; the change comes at the start of the next round.${G.p[pl].oath&&(G.p[pl].oath===k||OATH_SKY[k]===G.p[pl].oath)?" Under its Oath, your bid counts half again on a 2 of 1d2.":""}<br><span class="bidnow">${standing()}</span>`,
+        max:mana(pl),n:Math.min(mana(pl),Math.max(1,other(cur?cur.side:"keep"))),keepLabel:`Keep ${skyWord(k)}`,goLabel:"Let it go",ai:()=>aiSkyBid(pl,k,{pass,cur,top})});
+      if(!b||!(b.n>0)||!["keep","go"].includes(b.side))continue;const n=Math.min(Math.floor(b.n),mana(pl));if(n<1)continue;
+      if(cur&&cur.side===b.side&&n<=cur.n)continue;   // the same or less: nothing changes
+      const P=G.p[pl],oath=P.oath&&(P.oath===k||OATH_SKY[k]===P.oath);let eff=n,d=null;
+      if(oath){d=R(2);if(d===2)eff=Math.floor(n*1.5);tray(pl,"Oath bid",[{s:2,v:d}],d===2?`×1.5: ${eff}`:`${eff}`)}
+      B.set(pl,{pl,side:b.side,n,eff});raised=true;
+      log(`${plName(pl)} bids <b>${n}</b> to ${b.side==="keep"?`keep ${skyWord(k)}`:"let it go"}${eff!==n?` (counts ${eff})`:""}.`,"event");notify(null,`${esc(G.p[pl].name)} bids ${n} to ${b.side==="keep"?"keep it":"let it go"}.`)}
+    if(!raised)break}
+  const bids=[...B.values()];
   const K=top("keep"),Gx=top("go"),list=bids.length?bids.map(b=>`${plName(b.pl)}: ${b.side==="keep"?"keep":"let go"} ${b.n}${b.eff!==b.n?` (counts ${b.eff})`:""}`).join(", "):"no bids";
   if(K&&(!Gx||K.eff>=Gx.eff)){payQuiet(K.pl,K.n);bankAdd(K.n);G.skyKeepAt=G.skyCyc+1;
     log(`<b>${esc(name)} stays</b> for one more cycle: ${plName(K.pl)}'s bid of ${K.n} wins (${list}).`,"event");
     popup(`${name} stays`,`<p>${plName(K.pl)} keeps ${skyWord(k)} in the sky for one more cycle with a bid of <b>${K.n}</b> mana (paid to the Bank).</p><p class="dim">Bids: ${list}.</p>`);return}
   if(Gx){payQuiet(Gx.pl,Gx.n);bankAdd(Gx.n)}
   const nk=skyPick();if(!nk){G.skyKeepAt=G.skyCyc+1;log(`No other Heavenly Body can take the sky: ${esc(name)} stays.`,"event");return}
-  log(`<b>${esc(name)} leaves</b> (${K?`${plName(Gx.pl)}'s bid of ${Gx.n} beats keeping`:"nobody bid to keep it"}; ${list}).`,"event");
-  skySwap(nk,K||Gx?"the bids decided":"nobody bid to keep the old one")}
+  log(`<b>${esc(name)} leaves</b> at the start of the next round (${K?`${plName(Gx.pl)}'s bid of ${Gx.n} beats keeping`:"nobody bid to keep it"}; ${list}).`,"event");
+  G.skyNext={k:nk,why:K||Gx?"the bids decided":"nobody bid to keep the old one"}}   // v78t: it changes when the next round begins
 async function skyChangeRound(){const o=SKYCHG(),k=sky();if(G.over||skyFixed(k))return;
   if(G._chgK!==k)skyArrive();   // a new Heavenly Body (the shop, a spell, the start of the game): its count starts over
   if(SH().pend)return;          // something bought rises next round
   const done=cycleDone(k);if(done)G.skyCyc++;
-  if(o.mode==="bid"&&done&&G.skyCyc>=G.skyKeepAt)await skyAuction();
+  if(o.mode==="bid"&&done&&G.skyCyc>=G.skyKeepAt){G.skyBidDue=G.moon.round;const nm=SHOP_NAME[k]||skyWord(k);   // v78t: the bid comes at the end of this round
+    log(`<b>${esc(nm)}</b> completes its cycle: when this round's last attack phase ends, bids decide whether it stays or leaves.`,"event");notify(null,`${esc(nm)} completes its cycle: the bidding comes at the end of this round.`)}
   else if(o.mode==="cycles"&&done&&G.skyCyc>=G.skyEveryN){const nk=skyPick();if(nk)skySwap(nk,`its ${G.skyCyc} cycles are over`)}
   else if(o.mode==="rounds"&&G.moon.round-G.skyArr>=G.skyEveryN){const nk=skyPick();if(nk)skySwap(nk,`its ${G.skyEveryN} rounds are over`)}
   render()}
@@ -112,3 +125,12 @@ function skyChgLine(){if(!G||!G.moon)return "";const o=SKYCHG(),k=sky();if(skyFi
   const B=G.bank;if(B&&B.owes)for(const o of B.owes)if(o.atT!=null&&G.turnNo>=o.atT){o.owed=Math.ceil(o.owed*1.2);o.atT=G.turnNo+R(2)}   // what the Bank owes grows 20% every 1d2 turns
   return out}}
 if(window.__EC)Object.assign(window.__EC,{eclipseW:k=>eclipse(k),venusCycleW:()=>venusCycle(),fullMoonTollW:()=>fullMoonToll(),skyChangeRound:()=>skyChangeRound(),skySwap:(...a)=>skySwap(...a),skyAuction:()=>skyAuction(),skyArrive:()=>skyArrive(),skyChgLine:()=>skyChgLine(),cycleRoundW:()=>cycleRound()});
+
+/* v78t: the end of a round with a sky bid due: the bid, once every player's last attack phase is over (before the next round
+   is counted); a Heavenly Body that loses leaves at the start of the next round, its round line naming the new one */
+{const _nr=newRound;newRound=async function(){
+  if(G&&!G.over&&G.skyBidDue!=null&&G.skyBidDue===G.moon.round){G.skyBidDue=null;await skyAuction();render();if(G.over)return}
+  return _nr.apply(this,arguments)}}
+{const _ms=moonStart;moonStart=async function(){
+  if(G&&G.skyNext){const s=G.skyNext;G.skyNext=null;skySwap(s.k,s.why);const h=G.log.find(l=>l.cls==="turn");if(h)h.html=h.html.replace(/ · [^·—]+ —$/,` · ${moonName()} —`)}
+  return _ms.apply(this,arguments)}}
