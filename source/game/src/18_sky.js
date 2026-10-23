@@ -41,8 +41,10 @@ const visR=(x,ff)=>ff&&ff.own||!hasK(x.st,"scout")?1:2-(ff&&ff.cut?1:0);
    a Scout's sight down to almost nothing (the Firmament's Fog) leaves the Lighthouse no better than a Scout: then it sees
    like any card. It lights the fog only: hidden Assassins and face-down stacks still need a Scout. */
 const lhR=(x,ff)=>!hasK(x.st,"lighthouse")||ff?0:G.opts.layout==="koth"?5.3:3.5;
-const inSight=(x,r,c,ff)=>{const dr=Math.abs(x.r-r),dc=Math.abs(x.c-c),v=visR(x,ff),L=lhR(x,ff);if(L&&Math.hypot(dr,dc)<=L)return true;if(G.opts.layout==="koth"&&!ff&&v>=1)return Math.hypot(dr,dc)<=(hasK(x.st,"scout")?4.3:2.3);   // v57: King of the Hill: sight is a circle
+const inSight=(x,r,c,ff)=>{const dr=Math.abs(x.r-r),dc=Math.abs(x.c-c),v=visR(x,ff),L=lhR(x,ff);if(L&&Math.hypot(dr,dc)<=L)return true;if(dr===2&&dc===2&&!ff&&diagSight(x.st))return true;   // v78r: a Jack, Samson or Antony sees one tile further along each diagonal (they strike and step that way)
+  if(G.opts.layout==="koth"&&!ff&&v>=1)return Math.hypot(dr,dc)<=(hasK(x.st,"scout")?4.3:2.3);   // v57: King of the Hill: sight is a circle
   return Math.max(dr,dc)<=1&&v>=1||hasK(x.st,"scout")&&!(ff&&ff.own)&&dr+dc<=v}
+const diagSight=st=>st.cards.some(c=>kind(c)==="jack"||c.unit&&UNIT[c.unit]&&UNIT[c.unit].diag2);
 
 /* ---------- drawings ---------- */
 function marsSVG(){return `<svg class="moon mars" viewBox="-44 -44 88 88" width="88" height="88" aria-hidden="true"><defs><radialGradient id="marsg" cx="38%" cy="34%"><stop offset="0" stop-color="#f08a5a"/><stop offset=".65" stop-color="#b3431f"/><stop offset="1" stop-color="#5a1a0c"/></radialGradient><radialGradient id="marsglow"><stop offset="55%" stop-color="#ff6a3a" stop-opacity=".35"/><stop offset="100%" stop-color="#ff6a3a" stop-opacity="0"/></radialGradient></defs><circle r="40" fill="url(#marsglow)"/><circle r="24" fill="url(#marsg)" stroke="#3a120a"/><circle cx="-7" cy="5" r="3.4" fill="#8a3216" opacity=".7"/><circle cx="8" cy="-6" r="2.2" fill="#8a3216" opacity=".7"/><circle cx="4" cy="10" r="1.6" fill="#8a3216" opacity=".7"/><path d="M-18,-6C-10,-9 4,-2 18,-5" stroke="#7a2a12" stroke-width="1.6" fill="none" opacity=".6"/>${G.moonLev?levOnMoon():""}</svg>`}

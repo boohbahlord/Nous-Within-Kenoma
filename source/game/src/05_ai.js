@@ -190,7 +190,7 @@ const AI=(()=>{
     if(!G.p[pl].deck.length||!eDeck||G.turnNo>90*Math.max(1,G.p.length/2)||hq()&&G.turnNo>8)return OFF;   // a dry deck ends the waiting game
     return o>1?OFF:DEF;
   }
-  function withSel(r,c,ids,fn){const old=G.sel;G.sel={r,c,pick:new Set(ids)};try{return fn()}finally{G.sel=old}}
+  function withSel(r,c,ids,fn){const old=G.sel;G.sel={r,c,pick:new Set(ids)};aiSel++;try{return fn()}finally{G.sel=old;aiSel--}}
   const step=(...ts)=>{render();return sleep(ts.length&&!stepSeen(ts)?25:G.p[G.active].cpu==="horde"?260:420)};   // v71r: a step no person at the table can see doesn't wait (78_anim3.js)
 
   /* ---------- placement ---------- */

@@ -267,7 +267,7 @@ async function aiMiners(pl){
     const goals=[];for(const x of G.crystals||[]){const t=G.board[x.r][x.c];if(!t||t.owner===pl&&stackLegal([...t.cards,...st.cards]))goals.push([x.r,x.c])}
     if(!goals.length)for(const a of stacksOf(pl))if(hasK(a.st,"ace")&&stackLegal([...a.st.cards,...st.cards]))goals.push([a.r,a.c]);
     if(!goals.length)continue;
-    G.sel={r,c,pick:new Set(st.cards.map(x=>x.id))};const tg=moveTargets();
+    G.sel={r,c,pick:new Set(st.cards.map(x=>x.id))};let tg;aiSel++;try{tg=moveTargets()}finally{aiSel--}   // v78q: only what could be seen
     const d=(a,b)=>Math.min(...goals.map(([gr,gc])=>Math.abs(gr-a)+Math.abs(gc-b)));
     const here=d(r,c);let best=null;
     for(const [rr,cc] of tg){const danger=enemiesOf(pl).flatMap(stacksOf).some(e=>Math.abs(e.r-rr)+Math.abs(e.c-cc)===1);const s=d(rr,cc)+(danger?1.5:0);if(s<here&&(!best||s<best.s))best={rr,cc,s}}

@@ -24,9 +24,18 @@ function wkItems(w){const out=[],seen=new Set();
     if(!el.matches("summary")&&el.closest("summary"))continue;   // the fold's summary stands for what is in it
     if(!el.getClientRects().length||getComputedStyle(el).visibility==="hidden"||seen.has(el))continue;seen.add(el);out.push(el)}
   return out}
-function wkCur(w){if(WK.el&&WK.el.isConnected&&w.contains(WK.el))return WK.el;
-  if(WK.sig){const it=wkItems(w).find(x=>wkSig(x)===WK.sig);if(it){WK.el=it;return it}}return null}
-function wkMark(el){document.querySelectorAll(".kbfoc").forEach(x=>x.classList.remove("kbfoc"));WK.el=el;if(!el)return;WK.sig=wkSig(el);el.classList.add("kbfoc");el.scrollIntoView({block:"nearest",inline:"nearest"})}
+/* v78r: the selection is never lost: each window remembers its own (so coming back out of a window opened from it, or
+   out of a fold, finds it again), and when the item itself is gone or hidden (a redraw, a fold shut, a tab changed) the
+   nearest one still showing takes its place */
+const WK_MEM=new WeakMap();
+const wkShown=el=>el.isConnected&&el.getClientRects().length>0&&getComputedStyle(el).visibility!=="hidden";
+function wkCur(w){if(WK.el&&w.contains(WK.el)&&wkShown(WK.el)&&!WK.el.disabled)return WK.el;
+  const m=WK_MEM.get(w)||(WK.sig&&WK.pos?{sig:WK.sig,pos:WK.pos}:null);if(!m)return null;const items=wkItems(w);if(!items.length)return null;
+  let it=items.find(x=>wkSig(x)===m.sig);
+  if(!it){let bd=1e18;for(const x of items){const r=x.getBoundingClientRect(),d=(r.left+r.width/2-m.pos.x)**2+(r.top+r.height/2-m.pos.y)**2;if(d<bd){bd=d;it=x}}}
+  WK.el=it;WK.sig=wkSig(it);return it}
+function wkMark(el){document.querySelectorAll(".kbfoc").forEach(x=>x.classList.remove("kbfoc"));WK.el=el;if(!el)return;WK.sig=wkSig(el);el.classList.add("kbfoc");el.scrollIntoView({block:"nearest",inline:"nearest"});
+  const r=el.getBoundingClientRect();WK.pos={x:r.left+r.width/2,y:r.top+r.height/2};const w=el.closest(KB_WINS);if(w)WK_MEM.set(w,{sig:WK.sig,pos:WK.pos})}
 function wkRemark(){const w=kbTop();if(!w||!WK.sig)return;const c=wkCur(w);if(c&&!c.classList.contains("kbfoc"))c.classList.add("kbfoc")}
 const wkLater=()=>{for(const ms of [0,60,200])setTimeout(wkRemark,ms)};
 /* the note at the bottom of the screen: what the keys do while adjusting, typing or moving a line */

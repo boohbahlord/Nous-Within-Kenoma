@@ -1138,6 +1138,7 @@ function place(card,r,c){
   G.selHand=null;
 }
 function moveGroup(){const s=G.sel;if(!s)return[];const st=G.board[s.r][s.c];return st?st.cards.filter(c=>s.pick.has(c.id)):[]}
+let aiSel=0;   // v78q: the computer is weighing moves (it never steps into the fog blind)
 function moveTargets(){
   const s=G.sel,st=G.board[s.r][s.c],grp=moveGroup();
   if(!grp.length||st.moved||st.stun||st.pin||grp.some(isBase)||choked(st.owner))return[];
@@ -1166,6 +1167,7 @@ function moveTargets(){
   return out;
 }
 function doMove(r,c){
+  if(fogBump(r,c))return;   // v78q: a hidden card in the way stops the move (here too, for a move sent astray)
   const s=G.sel,st=G.board[s.r][s.c],grp=moveGroup();
   st.cards=st.cards.filter(x=>!s.pick.has(x.id));
   if(!st.cards.length)G.board[s.r][s.c]=null;else st.moved=true;
@@ -1574,7 +1576,7 @@ const AI=(()=>{
     if(!G.p[pl].deck.length||!eDeck||G.turnNo>90*Math.max(1,G.p.length/2)||hq()&&G.turnNo>8)return OFF;   // a dry deck ends the waiting game
     return o>1?OFF:DEF;
   }
-  function withSel(r,c,ids,fn){const old=G.sel;G.sel={r,c,pick:new Set(ids)};try{return fn()}finally{G.sel=old}}
+  function withSel(r,c,ids,fn){const old=G.sel;G.sel={r,c,pick:new Set(ids)};aiSel++;try{return fn()}finally{G.sel=old;aiSel--}}
   const step=(...ts)=>{render();return sleep(ts.length&&!stepSeen(ts)?25:G.p[G.active].cpu==="horde"?260:420)};   // v71r: a step no person at the table can see doesn't wait (78_anim3.js)
 
   /* ---------- placement ---------- */
@@ -2634,7 +2636,7 @@ ${["river","none"].filter(k=>!(mode==="survival"&&k==="river")).map(k=>`<label c
 ${mode==="survival"?'<p class="dim">Survival always uses the midline: the field is 5 tall.</p>':`<div class="f"><span>Height</span><div class="opts">${[[4,"4 tall","No midline"],[5,"5 tall","One midline"],[6,"6 tall (default)","Two midlines"]].map(([h,t,d])=>`<label class="opt"><input type="radio" name="orowsd" value="${h}" ${h===6?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>`}
 </div>${chk("ocorners","Cut off the corners","The four corner tiles are removed from play. On by default for free-for-all and the 2v2 layouts on the edges.",false)}
 <div id="sizeother" class="sizesel" hidden></div>
-${mode==="survival"?`<div class="f" id="bigset"><span>Large maps</span><div class="opts">${[["","Standard","The sizes above: only while every survivor gets at least five spawn tiles (four survivors always need the large map)."],["long","10 long, 6 wide (default)","The Horde holds the top two lines. Each survivor spawns in a box 3 wide and 2 deep at the bottom: two side by side, then a second row of boxes on top of them. One survivor holds the whole back line."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="obig" value="${v}" ${v==="long"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div><p class="dim">Large maps scroll inside a frame: the mouse wheel zooms, dragging an empty spot or WASD moves it, and E zooms in, Q out (always around the middle of the screen). The Menu has Large Map Controls.</p></div>`:`<div class="f" id="bigset"><span>Large maps</span><div class="opts">${[["","Standard (default)","The sizes above."],["long","10 long, 6 wide","1v1, or 2v2 with each team on one short end."],["sq","10 by 10","Any layout."],["cross","Cross","A real cross: four arms around a diamond middle; one player at the end of each arm."],["cross2","Two-armed Cross","The Cross with only its top and bottom arms; up to 4 players, two to an arm."],["plus","Cross Map 2","The 10 by 10 plus: arms 4 wide; everyone spawns at the end of an arm."],["round","Plus with a round middle","The cross with a round open middle; the hole option can open its center."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="obig" value="${v}" ${v?"":"checked"}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
+${mode==="survival"?`<div class="f" id="bigset"><span>Large maps</span><div class="opts">${[["","Standard","The sizes above: only while every survivor gets at least five spawn tiles (four survivors always need the large map)."],["long","10 long, 6 wide (default)","The Horde holds the top two lines. Each survivor spawns in a box 3 wide and 2 deep at the bottom: two side by side, then a second row of boxes on top of them. One survivor holds the whole back line."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="obig" value="${v}" ${v==="long"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div><p class="dim">Large maps scroll inside a frame: the mouse wheel zooms, dragging an empty spot or WASD moves it, and E zooms in, Q out (always around the middle of the screen). The Menu has Large Map Controls.</p></div>`:`<div class="f" id="bigset"><span>Large maps</span><div class="opts">${[["","Standard (default)","The sizes above."],["long","10 long, 6 wide","1v1, or 2v2 with each team on one short end."],["sq","10 by 10","Any layout."],["cross","Cross","A real cross: four arms around a diamond middle; one player at the end of each arm."],["cross2","Two-armed Cross","The Cross with only its top and bottom arms; up to 4 players, two to an arm."],["plus","Cross Map 2","The 10 by 10 plus: arms 4 wide; everyone spawns at the end of an arm."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="obig" value="${v}" ${v?"":"checked"}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
 <div id="crossopts" class="crossopts" hidden><div class="f"><span>Cross size</span><div class="opts"><label class="opt"><input type="radio" name="oxsize" value="std" checked><span>Standard (default)<small>Arms 6 by 6 around a diamond (a square about 14 on a side, turned on its point). With teams of two, teammates can share an arm.</small></span></label><label class="opt"><input type="radio" name="oxsize" value="small"><span>Small<small>Arms 3 by 3 around a diamond 6 on a side. One player to an arm: up to 4 (2 on the two-armed Cross).</small></span></label></div></div>
 ${chk("oxhole","A hole in the very middle","The center of the diamond can't be played on: 2 by 2 (1 tile on the small Cross).",false)}${chk("oxhollow","Hollow tiles around the middle","Four hollows, 2 by 2 each, out on the diagonals of the middle (one tile from the hole and one from the diamond's edge), can't be played on. Standard size only.",false)}</div><p class="dim">Large maps scroll inside a frame: the mouse wheel zooms, dragging an empty spot or WASD moves it, and E zooms in, Q out (always around the middle of the screen). The Menu has Large Map Controls.</p></div>`}
 <p class="dim mapnote" id="rivernote" hidden>The River map is always 7 wide and 5 tall with the midline, and keeps its corners.</p>
@@ -2963,10 +2965,10 @@ function mapPlan(o){
   else{rows=o.mode==="survival"||theme==="river"?5:clamp(o.rows,4,6,mid?5:4);mid=o.mode==="survival"||rows>4}   // v62: 1v1 can be 6 tall (two midlines); the default is 6 by 6
   /* v56: the large maps: 10 long by 6 wide (1v1, and 2v2 on one end), 10 by 10, a 10 by 10 plus (arms 4 wide), and the plus
      with a round middle. All of them use the large-map camera. */
-  const big=["long","sq","plus","round"].includes(o.big)&&o.mode!=="survival"&&L!=="coop"?o.big:null;
+  const big=["long","sq","plus"].includes(o.big)&&o.mode!=="survival"&&L!=="coop"?o.big:null;
   if(big){if(big==="long"&&!(L==="duel"||L==="team-same"))o={...o,big:"sq"};const b=o.big;cols=b==="long"?6:10;rows=10;mid=true;corners=false;if(theme==="river")theme="keep"}
   const V=Array.from({length:rows},()=>Array(cols).fill(false));
-  if(big&&(o.big==="plus"||o.big==="round"))for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const arm=(r>=3&&r<=6)||(c>=3&&c<=6),disc=o.big==="round"&&Math.hypot(r-4.5,c-4.5)<=3.7;V[r][c]=!(arm||disc)}
+  if(big==="plus")for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)V[r][c]=!((r>=3&&r<=6)||(c>=3&&c<=6))
   if(corners)for(const r of [0,rows-1])for(const c of [0,cols-1])V[r][c]=true;
   if(theme==="river"){const r=2;for(let c=0;c<cols;c++)V[r][c]=!(bridge==="left"?c<2:c>=cols-2)}
   // seats: where each player spawns (zone), where their Aces go (back), which way is forward, how the view turns for them
@@ -2978,11 +2980,11 @@ function mapPlan(o){
   const lines=cols<=6&&rows<=6?1:2,coopLines=cols<=5&&rows<=5?1:2;   // v70: 6 by 6 and smaller have one spawn line a side (survival keeps its own)
   // v70: with three or more players on a field 7 by 7 or larger, each spawn line is the five tiles in the middle of its edge
   const five=t=>{const ok=t.filter(([r,c])=>!V[r][c]);if(n<3||cols<7||rows<7||ok.length<=5)return ok;const m=Math.floor((ok.length-5)/2);return ok.slice(m,m+5)};
-  if(big&&(o.big==="plus"||o.big==="round"))allc.splice(0,allc.length,3,4,5,6);   // the plus: spawn at the ends of the arms   // v53: a field 5 by 5 or smaller has one spawn line a side, the backline
+  if(big==="plus")allc.splice(0,allc.length,3,4,5,6);   // the plus: spawn at the ends of the arms   // v53: a field 5 by 5 or smaller has one spawn line a side, the backline
   if(L==="duel"){seats.push(mk2("bottom",allc,lines),mk2("top",allc,lines));teams.push(0,1)}
   else if(L==="ffa"||L==="team-side"||L==="team-across"){
     const sides=L==="ffa"?(n===3?["bottom","left","right"]:["bottom","left","top","right"]):L==="team-side"?["bottom","right","left","top"]:["bottom","left","top","right"];
-    const bigEdge=sd=>{const len=sd==="left"||sd==="right"?rows:cols,lo=o.big==="plus"||o.big==="round"?3:2,hi=len-1-lo,back=[],zone=[];
+    const bigEdge=sd=>{const len=sd==="left"||sd==="right"?rows:cols,lo=o.big==="plus"?3:2,hi=len-1-lo,back=[],zone=[];
       for(let d=0;d<2;d++)for(let a=lo;a<=hi;a++){const r=sd==="bottom"?rows-1-d:sd==="top"?d:a,c=sd==="left"?d:sd==="right"?cols-1-d:a;if(V[r][c])continue;zone.push([r,c]);if(!d)back.push([r,c])}
       return {back,zone}};
     sides.slice(0,n).forEach((sd,i)=>{const t=five(big?bigEdge(sd).back:edgeTiles(sd,rows,cols));seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:t,zone:t});teams.push(L==="ffa"?i:i%2)});
@@ -4487,7 +4489,7 @@ async function aiMiners(pl){
     const goals=[];for(const x of G.crystals||[]){const t=G.board[x.r][x.c];if(!t||t.owner===pl&&stackLegal([...t.cards,...st.cards]))goals.push([x.r,x.c])}
     if(!goals.length)for(const a of stacksOf(pl))if(hasK(a.st,"ace")&&stackLegal([...a.st.cards,...st.cards]))goals.push([a.r,a.c]);
     if(!goals.length)continue;
-    G.sel={r,c,pick:new Set(st.cards.map(x=>x.id))};const tg=moveTargets();
+    G.sel={r,c,pick:new Set(st.cards.map(x=>x.id))};let tg;aiSel++;try{tg=moveTargets()}finally{aiSel--}   // v78q: only what could be seen
     const d=(a,b)=>Math.min(...goals.map(([gr,gc])=>Math.abs(gr-a)+Math.abs(gc-b)));
     const here=d(r,c);let best=null;
     for(const [rr,cc] of tg){const danger=enemiesOf(pl).flatMap(stacksOf).some(e=>Math.abs(e.r-rr)+Math.abs(e.c-cc)===1);const s=d(rr,cc)+(danger?1.5:0);if(s<here&&(!best||s<best.s))best={rr,cc,s}}
@@ -4967,8 +4969,10 @@ const visR=(x,ff)=>ff&&ff.own||!hasK(x.st,"scout")?1:2-(ff&&ff.cut?1:0);
    a Scout's sight down to almost nothing (the Firmament's Fog) leaves the Lighthouse no better than a Scout: then it sees
    like any card. It lights the fog only: hidden Assassins and face-down stacks still need a Scout. */
 const lhR=(x,ff)=>!hasK(x.st,"lighthouse")||ff?0:G.opts.layout==="koth"?5.3:3.5;
-const inSight=(x,r,c,ff)=>{const dr=Math.abs(x.r-r),dc=Math.abs(x.c-c),v=visR(x,ff),L=lhR(x,ff);if(L&&Math.hypot(dr,dc)<=L)return true;if(G.opts.layout==="koth"&&!ff&&v>=1)return Math.hypot(dr,dc)<=(hasK(x.st,"scout")?4.3:2.3);   // v57: King of the Hill: sight is a circle
+const inSight=(x,r,c,ff)=>{const dr=Math.abs(x.r-r),dc=Math.abs(x.c-c),v=visR(x,ff),L=lhR(x,ff);if(L&&Math.hypot(dr,dc)<=L)return true;if(dr===2&&dc===2&&!ff&&diagSight(x.st))return true;   // v78r: a Jack, Samson or Antony sees one tile further along each diagonal (they strike and step that way)
+  if(G.opts.layout==="koth"&&!ff&&v>=1)return Math.hypot(dr,dc)<=(hasK(x.st,"scout")?4.3:2.3);   // v57: King of the Hill: sight is a circle
   return Math.max(dr,dc)<=1&&v>=1||hasK(x.st,"scout")&&!(ff&&ff.own)&&dr+dc<=v}
+const diagSight=st=>st.cards.some(c=>kind(c)==="jack"||c.unit&&UNIT[c.unit]&&UNIT[c.unit].diag2);
 
 /* ---------- drawings ---------- */
 function marsSVG(){return `<svg class="moon mars" viewBox="-44 -44 88 88" width="88" height="88" aria-hidden="true"><defs><radialGradient id="marsg" cx="38%" cy="34%"><stop offset="0" stop-color="#f08a5a"/><stop offset=".65" stop-color="#b3431f"/><stop offset="1" stop-color="#5a1a0c"/></radialGradient><radialGradient id="marsglow"><stop offset="55%" stop-color="#ff6a3a" stop-opacity=".35"/><stop offset="100%" stop-color="#ff6a3a" stop-opacity="0"/></radialGradient></defs><circle r="40" fill="url(#marsglow)"/><circle r="24" fill="url(#marsg)" stroke="#3a120a"/><circle cx="-7" cy="5" r="3.4" fill="#8a3216" opacity=".7"/><circle cx="8" cy="-6" r="2.2" fill="#8a3216" opacity=".7"/><circle cx="4" cy="10" r="1.6" fill="#8a3216" opacity=".7"/><path d="M-18,-6C-10,-9 4,-2 18,-5" stroke="#7a2a12" stroke-width="1.6" fill="none" opacity=".6"/>${G.moonLev?levOnMoon():""}</svg>`}
@@ -12773,15 +12777,16 @@ function fsControls(){const o=fsOv("fsctl"),touch=PREF.fsCtlTab?PREF.fsCtlTab===
       ["Spells and Selected","the named arrows on the right"],["Dice and the log","the arrow at the bottom left; its ⚙ for more"],["The sky","tap the body at the top left"],["Leave fullscreen","Menu, then Exit fullscreen"]]
     :[["Move the field",`${esc(kmShow4(["camUp","camLeft","camDown","camRight"]))}, two at once for a diagonal (Shift: faster)${PREF.camDrag!==false?", or drag an empty spot":""}; it can go past the edges`],["Zoom",`${esc(kmShow("zoomIn"))} in, ${esc(kmShow("zoomOut"))} out${PREF.fsWheel===true?", the mouse wheel":""}, a trackpad's pinch; always around the middle of the screen`],["The turn button",`${esc(kmShow("turn"))}: Ready, the next phase, End turn`],
       ["Pick a stack or a card","click it"],["A class (Field Automation)","right-click a stack or a hand card"],["Compare two stacks","drag a card's corner tab onto another stack"],["Spells and Selected","the named arrows on the right"],
-      ["Dice and the log","the arrow at the bottom left; its ⚙ for more"],["The sky","hover the body at the top left"],["Leave fullscreen",`${esc(kmShow("fullscreen"))}, or Menu then Exit fullscreen${document.fullscreenElement?"; Esc also leaves the browser's fullscreen (the browser's own key)":"; Esc opens the Menu"}`],["Every key","the pause menu's Keyboard controls"]];
+      ["Dice and the log","the arrow at the bottom left; its ⚙ for more"],["The sky","hover the body at the top left"],["Leave fullscreen",`${esc(kmShow("fullscreen"))}, or Menu then Exit fullscreen${document.fullscreenElement?"; Esc also leaves the browser's fullscreen (the browser's own key)":"; Esc opens the Menu"}`],["Every key",`Keyboard controls, below (or ${esc(kmShow("keys"))})`]];
   o.innerHTML=`<div class="ovbox fscbox" role="dialog" aria-modal="true" aria-labelledby="fsch"><button type="button" class="xclose" id="fscX" aria-label="Close">×</button><h2 id="fsch">Controls</h2>
 <div class="fsctabs" role="tablist"><button type="button" class="stab${touch?"":" on"}" role="tab" aria-selected="${!touch}" data-fsct="mouse">Keyboard and mouse</button><button type="button" class="stab${touch?" on":""}" role="tab" aria-selected="${touch}" data-fsct="touch">Touch</button></div>
-<dl class="fsckeys">${L.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl>
+<dl class="fsckeys">${L.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl>${touch?"":`<p class="fsqlink"><button type="button" class="link" id="fscKeys">Keyboard controls</button></p>`}
 <div class="fscopts">${touch?"":ck("fscWheel",PREF.fsWheel!==true,"Disable mouse scroll","On by default: the mouse wheel does nothing over the field. Off: it zooms.")+ck("fscDrag",PREF.camDrag!==false,"Drag to move the field","Dragging an empty spot moves the field (here and on large maps).")}
 ${ck("fscBrowser",PREF.fsBrowser===true,"Use the browser's own fullscreen","Hides the browser's bars too; the browser then shows its own notice about leaving it.")}</div>
 <p class="acts"><button type="button" class="btn" id="fscOk">Done</button></p></div>`;
   o.hidden=false;const close=()=>{o.hidden=true;const b=$("#fsctlb");if(b)b.focus()};$("#fscX").onclick=$("#fscOk").onclick=close;o.onclick=e=>{if(e.target===o)close()};$("#fscOk").focus();
   o.querySelectorAll("[data-fsct]").forEach(b=>b.onclick=()=>{PREF.fsCtlTab=b.dataset.fsct;savePrefs();fsControls()});
+  if($("#fscKeys"))$("#fscKeys").onclick=()=>kbKeysWin();   // v78q: every key, in its own window
   const on=(id,f)=>{const i=$("#"+id);if(i)i.onchange=()=>{f(i.checked);savePrefs()}};
   on("fscWheel",v=>{PREF.fsWheel=!v});on("fscDrag",v=>{PREF.camDrag=v});
   on("fscBrowser",v=>{PREF.fsBrowser=v;const h=document.documentElement;if(v&&h.requestFullscreen&&!document.fullscreenElement){try{const p=h.requestFullscreen({navigationUI:"hide"});FS.api=true;if(p&&p.catch)p.catch(()=>{FS.api=false})}catch(e){}}
@@ -12913,7 +12918,7 @@ function crossPlan(o){const two=o.big==="cross2",X=o.cross||{},small=X.size==="s
 {const _mp=mapPlan;mapPlan=function(o){if(o&&(o.big==="cross"||o.big==="cross2")&&o.mode!=="survival"&&o.layout!=="coop"){const M=crossPlan(o);if(o.layout==="koth"){const c=(M.cols-1)/2;HILL[0]=Math.floor(c);HILL[1]=Math.ceil(c);M.hill=[HILL[0],HILL[1]]}return M}   // v73d: the Hill is the very middle
   if(o&&o.layout==="koth"){HILL[0]=10;HILL[1]=14}const M=_mp.apply(this,arguments);if(o&&o.layout==="koth"&&M)M.hill=[HILL[0],HILL[1]];return M}}
 /* off the map is darker on the crosses, so their shape reads at a glance */
-{const _r=render;render=function(){rSafe(_r,this,arguments);const B=$("#board");if(B)B.classList.toggle("bigvoid",!!(G&&G.map&&["plus","round","cross","cross2"].includes(G.map.big)))}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);const B=$("#board");if(B)B.classList.toggle("bigvoid",!!(G&&G.map&&["plus","cross","cross2"].includes(G.map.big)))}}
 /* a large map opens on your own spawn (and on the next player's, when the device changes hands) */
 let camHomeKey=null;
 function camHome(V){const w=document.querySelector(".camwrap.on"),S=G&&G.map.seats[V];if(!w||!S)return;const ts=S.back.length?S.back:S.zone,[r,c]=ts[Math.floor(ts.length/2)]||[0,0];
@@ -14575,15 +14580,24 @@ function kbListHTML(id){const row=(k,t)=>`<li><kbd>${esc(k)}</kbd> ${esc(t)}</li
     row("A player's box",`after ${K("plNext")}: C and V read it, Enter opens its history`),
     row("The command line",`after ${K("console")}: type a command or a tile (help lists them); Tab completes, Tab again or ↑ ↓ choose, Enter runs, Esc closes (or type x)`));
   return `<ul class="mklist kblist">${out.join("")}</ul><p class="dim">Every one of them can be changed: the settings, Controls, Key bindings.</p><label class="farow"><span class="fal"><b>Key letters on the buttons</b><small>Each button shows its key. ${esc(kmShow("hints"))} switches them too.</small></span><input type="checkbox" id="${id}" ${PREF.keyHints===true?"checked":""}></label>`}
-{const _fp=fsPause;fsPause=function(){_fp.apply(this,arguments);const o=$("#fspause"),box=o&&o.querySelector(".fspbox");if(!box||box.querySelector(".kbfold"))return;
-  const d=document.createElement("details");d.className="sub kbfold";d.innerHTML=`<summary>Keyboard controls</summary>${kbListHTML("fsKeyHints")}`;
-  const q=box.querySelector(".fsqlink");q?box.insertBefore(d,q):box.appendChild(d);$("#fsKeyHints").onchange=e=>kbHints(e.target.checked)}}
+/* v78q: the pause menu's Keyboard controls is a line of text that opens the key list in its own window (on a computer;
+   a touch-only device has no keys to list) */
+{const _fp=fsPause;fsPause=function(){_fp.apply(this,arguments);const o=$("#fspause"),box=o&&o.querySelector(".fspbox");if(!box||box.querySelector("#fsKeysB")||fsTouchOnly())return;
+  box.querySelector(".fspacts").insertAdjacentHTML("afterend",`<p class="fsqlink"><button type="button" class="link" id="fsKeysB">Keyboard controls</button></p>`);
+  $("#fsKeysB").onclick=()=>kbKeysWin()}}
 {const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu"),box=m&&m.querySelector(".ovbox");if(!box||box.querySelector(".kbfold"))return;
   const d=document.createElement("details");d.className="sub kbfold";d.innerHTML=`<summary>Keyboard controls</summary>${kbListHTML("mKeyHints")}`;
   const a=box.querySelector("#mCam")||box.querySelector(".maccess")||box.querySelector(".mgrid");if(a)a.after(d);else box.appendChild(d);
   $("#mKeyHints").onchange=e=>kbHints(e.target.checked)}}
 
 if(window.__EC)Object.assign(window.__EC,{KB,kbClose:()=>kbClose(),kbSchools:()=>kbSchools()});
+/* v78r: playing by keys hides the mouse pointer: after three key presses in a row it goes, and the next real mouse
+   movement brings it back */
+{let presses=0,mx=null,my=null;const root=document.documentElement;
+  addEventListener("keydown",e=>{if(kmModOnly(e)||typing(e.target))return;if(++presses>=3)root.classList.add("kbnomouse")},true);   // on the window, before any handler takes the key
+  document.addEventListener("mousemove",e=>{const moved=mx!==null&&(e.screenX!==mx||e.screenY!==my);mx=e.screenX;my=e.screenY;   // a redraw under a still mouse isn't a move
+    if(!moved)return;presses=0;root.classList.remove("kbnomouse")},true);
+  document.addEventListener("mousedown",()=>{presses=0;root.classList.remove("kbnomouse")},true)}
 
 /* ---------- v77f: windows, menus and drawers by keys ----------
    Whatever window is open on top (the Menu, the pause menu, the Bank, Field Automation's settings, Diplomacy, the Ether,
@@ -14611,9 +14625,18 @@ function wkItems(w){const out=[],seen=new Set();
     if(!el.matches("summary")&&el.closest("summary"))continue;   // the fold's summary stands for what is in it
     if(!el.getClientRects().length||getComputedStyle(el).visibility==="hidden"||seen.has(el))continue;seen.add(el);out.push(el)}
   return out}
-function wkCur(w){if(WK.el&&WK.el.isConnected&&w.contains(WK.el))return WK.el;
-  if(WK.sig){const it=wkItems(w).find(x=>wkSig(x)===WK.sig);if(it){WK.el=it;return it}}return null}
-function wkMark(el){document.querySelectorAll(".kbfoc").forEach(x=>x.classList.remove("kbfoc"));WK.el=el;if(!el)return;WK.sig=wkSig(el);el.classList.add("kbfoc");el.scrollIntoView({block:"nearest",inline:"nearest"})}
+/* v78r: the selection is never lost: each window remembers its own (so coming back out of a window opened from it, or
+   out of a fold, finds it again), and when the item itself is gone or hidden (a redraw, a fold shut, a tab changed) the
+   nearest one still showing takes its place */
+const WK_MEM=new WeakMap();
+const wkShown=el=>el.isConnected&&el.getClientRects().length>0&&getComputedStyle(el).visibility!=="hidden";
+function wkCur(w){if(WK.el&&w.contains(WK.el)&&wkShown(WK.el)&&!WK.el.disabled)return WK.el;
+  const m=WK_MEM.get(w)||(WK.sig&&WK.pos?{sig:WK.sig,pos:WK.pos}:null);if(!m)return null;const items=wkItems(w);if(!items.length)return null;
+  let it=items.find(x=>wkSig(x)===m.sig);
+  if(!it){let bd=1e18;for(const x of items){const r=x.getBoundingClientRect(),d=(r.left+r.width/2-m.pos.x)**2+(r.top+r.height/2-m.pos.y)**2;if(d<bd){bd=d;it=x}}}
+  WK.el=it;WK.sig=wkSig(it);return it}
+function wkMark(el){document.querySelectorAll(".kbfoc").forEach(x=>x.classList.remove("kbfoc"));WK.el=el;if(!el)return;WK.sig=wkSig(el);el.classList.add("kbfoc");el.scrollIntoView({block:"nearest",inline:"nearest"});
+  const r=el.getBoundingClientRect();WK.pos={x:r.left+r.width/2,y:r.top+r.height/2};const w=el.closest(KB_WINS);if(w)WK_MEM.set(w,{sig:WK.sig,pos:WK.pos})}
 function wkRemark(){const w=kbTop();if(!w||!WK.sig)return;const c=wkCur(w);if(c&&!c.classList.contains("kbfoc"))c.classList.add("kbfoc")}
 const wkLater=()=>{for(const ms of [0,60,200])setTimeout(wkRemark,ms)};
 /* the note at the bottom of the screen: what the keys do while adjusting, typing or moving a line */
@@ -14917,5 +14940,34 @@ const askSafe=({pl,spec})=>spec.kind in ASK_SAFE?ASK_SAFE[spec.kind]:spec.cancel
   await passScreen(`A question for ${G.p[pl].name}`,pl);G.viewAs=pl;render();
   try{return await _ah.apply(this,arguments)}
   finally{if(G===g){G.viewAs=null;if(!G.over&&G.p[back]&&!G.p[back].out)await passScreen(`Back to ${G.p[back].name}`,back)}}}}
+
+/* ---------------- v78q: moving into the fog: Card Blocks Path ----------------
+   A tile in the fog looks empty to you, so a stack may try to move there (or through it, on a two-tile step). If a hidden
+   enemy card stands there, the move stops ("Card Blocks Path", or "Cards Block Path" for a stack), the stack keeps its
+   move, and the tile shows to you and your side for a round (through your next turn). The computer weighs only what it
+   could see anyway and never steps in blind. */
+const fogHid=(me,r,c)=>{const t=G.board[r]&&G.board[r][c];return !!(t&&isEnemy(t.owner,me)&&hiddenFrom(me,r,c))};
+function fogBump(r,c){const s=G.sel,st=s&&G.board[s.r]&&G.board[s.r][s.c];if(!st||aiSel||!G.p[st.owner]||G.p[st.owner].cpu)return false;
+  const me=st.owner,dr=Math.abs(r-s.r),dc=Math.abs(c-s.c),at=[];
+  if(dr+dc===2&&(dr===0||dc===0)||dr===2&&dc===2)at.push([(r+s.r)/2,(c+s.c)/2]);at.push([r,c]);
+  const hit=at.find(([a,b])=>fogHid(me,a,b));if(!hit)return false;
+  const [a,b]=hit,t=G.board[a][b],many=t.cards.length>1,name=many?"Cards Block Path":"Card Blocks Path";
+  G.fogPeek=(G.fogPeek||[]).filter(p=>tnOf(p.pl)<=p.until);G.fogPeek.push({pl:me,r:a,c:b,until:tnOf(me)+1});G._vis=null;G.mode=null;
+  log.fog={by:me,seen:G.p.map(P=>!isEnemy(me,P.i)||!isEnemy(t.owner,P.i)),alt:""};
+  const where=a===r&&b===c?"there":`on ${coord(a,b)}, on the way`;
+  log(`<b>${name}</b>: ${plName(me)}'s move to ${coord(r,c)} runs into ${many?"hidden cards":"a hidden card"} ${where}. The stack keeps its move, and ${coord(a,b)} shows to ${plName(me)} for a round.`,"event");
+  if(me===view())flash(`${name}: ${many?"hidden cards stand":"a hidden card stands"} on ${coord(a,b)}. Your stack keeps its move.`);
+  return true}
+const fogPeekAt=(V,r,c)=>!!(G&&G.fogPeek&&V!=null&&G.p[V]&&!totalBlind(V)&&G.fogPeek.some(p=>p.r===r&&p.c===c&&!isEnemy(p.pl,V)&&tnOf(p.pl)<=p.until));
+{const _s=seesTile;seesTile=function(V,r,c){if(fogPeekAt(V,r,c))return true;return _s.apply(this,arguments)}}
+{const _f=fogTile;fogTile=function(V,r,c){if(fogPeekAt(V,r,c))return false;return _f.apply(this,arguments)}}
+/* the move highlights treat a hidden enemy's tile as the empty ground it looks like */
+{const _mt=moveTargets;moveTargets=function(){const s=G.sel,st=s&&G.board[s.r]&&G.board[s.r][s.c];
+  if(!st||aiSel||!G.p[st.owner]||G.p[st.owner].cpu)return _mt.apply(this,arguments);
+  const hid=[];for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){const t=G.board[r][c];if(t&&t!==st&&fogHid(st.owner,r,c))hid.push([r,c,t])}
+  if(!hid.length)return _mt.apply(this,arguments);
+  for(const [r,c] of hid)G.board[r][c]=null;
+  try{return _mt.apply(this,arguments)}finally{for(const [r,c,t] of hid)G.board[r][c]=t}}}
+{const _dm=doMove;doMove=function(r,c){if(fogBump(r,c))return;return _dm.apply(this,arguments)}}
 
 })();
