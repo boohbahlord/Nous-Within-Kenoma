@@ -66,7 +66,7 @@ const p2pOf=()=>G.p2p||(G.p2p=[]);
 const p2pWhere=()=>typeof dipOn==="function"&&dipOn()?"Diplomacy, under the Bank":"the Bank window";   // v75c: with Diplomacy on, loans between players live there
 const lenders=pl=>alive().filter(i=>i!==pl&&!isHorde(i)&&!G.p[i].jail);
 const loanReqsFor=V=>p2pOf().filter(L=>L.to===V&&L.state==="ask");
-function askLoan(from,to,n){
+function askLoan(from,to,n){n=Math.round(+n);if(!(n>=1)||!G.p[to]||to===from)return null;   // v78i: a whole number, whoever sends it
   if(p2pOf().some(L=>L.from===from&&L.to===to&&["ask","offer","open","late"].includes(L.state))){if(!G.p[from].cpu)flash(`You already have a loan or a request with ${G.p[to].name}.`);return null}
   const L={id:(G.p2pN=(G.p2pN||0)+1),from,to,n,owed:n,state:"ask",round:G.moon.round};p2pOf().push(L);
   log(`${plName(from)} asks ${plName(to)} for a loan of ${n} mana.`,"event");

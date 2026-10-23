@@ -43,7 +43,7 @@ function grSave(c){PREF.gr=grClean(c);savePrefs();autoSync();paintFA();if(G)rend
 {const _sc=setAutoCfg;setAutoCfg=function(pl,key,cfg){if(key!=="grCfg")return _sc.apply(this,arguments);
   if(NET.role==="guest"){const rid=++NET.rid;sendHost({t:"cmd",fn:"setAutoCfg",args:netClean([pl,key,cfg]),ui:uiSnap(),rid});return}
   if(G&&G.p[pl])G.p[pl].grCfg=grClean(cfg)}}
-{const _as=autoSync;autoSync=function(){_as.apply(this,arguments);if(!G||G.over)return;const V=view(),P=G.p[V];if(!P||P.cpu||isNPC(V))return;
+{const _as=autoSync;autoSync=function(){_as.apply(this,arguments);if(!G||G.over||NET.role==="guest"&&NET.seat==null)return;const V=view(),P=G.p[V];if(!P||P.cpu||isNPC(V))return;
   const cfg=grMine(),j=JSON.stringify(cfg),k=V+"grCfg";if(autoSent[k]===j&&(NET.role==="guest"||JSON.stringify(P.grCfg)===j))return;autoSent[k]=j;setAutoCfg(V,"grCfg",cfg)}}
 
 /* ---------- Grave automation: the choice ---------- */

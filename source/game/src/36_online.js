@@ -99,14 +99,34 @@ function netAny(name,get,set){NETFN[name]={get,set,any:true};const orig=get();
 
 /* ---------- the host runs what a joined player sends ---------- */
 const seatOfGuest=id=>{if(!G)return null;const i=G.p.findIndex(P=>P.net===id);return i<0?null:i};
+/* v78i: before a joined player's call runs, the host checks it acts for their own seat, with their own cards and stacks, and
+   that a placing, move or attack is one their screen could have offered (the same tests its buttons use). Calls not listed
+   here check the seat themselves (NET.ctx). */
+const netMine=(s,r,c)=>{const st=G.board[r]&&G.board[r][c];return !!st&&st.owner===s};
+const netAt=(list,r,c)=>list.some(([a,b])=>a===r&&b===c);
+const netHas=(s,card,from)=>!!card&&(from==="hand"?G.p[s].hand.includes(card):!!from&&netMine(s,from.r,from.c)&&G.board[from.r][from.c].cards.includes(card));
+const NET_OK={
+  placeOpening:(s,a)=>a[0]===s&&G.phase==="setup"&&G.setupStep==="ace"&&netAt(zoneTiles(s),a[1],a[2])&&!G.board[a[1]][a[2]],
+  place:(s,a)=>(G.p[s].hand.includes(a[0])||G.placing===a[0])&&canPlace(a[0],a[1],a[2]),   // G.placing: a card being put out from elsewhere (a Slave)
+  doMove:(s,a)=>!!G.sel&&netMine(s,G.sel.r,G.sel.c)&&netAt(moveTargets(),a[0],a[1]),
+  attack:(s,a)=>netMine(s,a[0],a[1])&&netAt([...attackOptions(a[0],a[1]),...blindOptions(a[0],a[1])].map(o=>[o.r,o.c]),a[2],a[3]),
+  sacrifice:(s,a)=>netHas(s,a[0],a[1]),sacrificeToSun:(s,a)=>netHas(s,a[0],a[1]),
+  sellCards:(s,a)=>a[0]===s&&a[1].every(c=>G.p[s].hand.includes(c)),
+  answerLoan:(s,a)=>a[0].to===s,repayLoan:(s,a)=>a[0].from===s,forgiveLoan:(s,a)=>!!a[0]&&a[0].to===s,
+  endAim:(s,a)=>a[0]==null};   // a tile is chosen through tileClick, which checks it; endAim itself only cancels
+for(const fn of ["attackMoon","healAct","repairAct","release","pourLibation","ambushToggle"])NET_OK[fn]=(s,a)=>netMine(s,a[0],a[1]);
+for(const fn of ["takeLoan","repay","sellThrall","buyPlot","sellPlot","plantMiner","mysteryBuy","buyBankItem","tradeCard","setCredit","setAutoBless","askLoan","giftMana","giftCard",
+  "payDebtFor","acceptBounty","buyBountyColl","turnInCapt","setCheat","cheatEvent","setFaLock","setAutoCfg","moonPlant","buyLand"])NET_OK[fn]=(s,a)=>a[0]===s;
 async function runCmd(id,m){
-  const seat=seatOfGuest(id),F=NETFN[m.fn];if(seat==null||!F||!G||G.over)return;const P=G.p[seat];if(P.out||P.cpu)return;
+  const seat=seatOfGuest(id),F=Object.prototype.hasOwnProperty.call(NETFN,m.fn)&&NETFN[m.fn];if(seat==null||!F||!G||G.over)return;
+  const P=G.p[seat];if(P.out||P.cpu)return;
   const aiming=G.aim&&G.aim.pl===seat;
   if(F.aim){if(!aiming)return}else if(!F.any&&!(G.active===seat&&!G.busy))return;
-  const args=F.un?F.un(m.args||[]):(m.args||[]);
-  if(args.some(x=>x===undefined||x===null)&&["place","sacrifice","sacrificeToSun","healAct","repairAct","answerLoan","repayLoan","buyPlot","sellPlot","plantMiner","buyBankItem","makeOffer","cast"].includes(m.fn))return;
-  const host=uiSnap();NET.ctx=seat;applyUI(m.ui);let ret;
-  try{ret=await F.get().apply(null,args)}catch(e){console.error(e)}
+  let args;try{args=F.un?F.un(Array.isArray(m.args)?m.args:[]):m.args||[]}catch(e){return}   // v78i: a call that doesn't read is dropped
+  if(!Array.isArray(args))return;
+  if(args.some(x=>x===undefined||x===null)&&["place","sacrifice","sacrificeToSun","healAct","repairAct","answerLoan","repayLoan","buyPlot","sellPlot","plantMiner","buyBankItem","makeOffer","cast","forgiveLoan"].includes(m.fn))return;
+  const host=uiSnap();NET.ctx=seat;let ret;
+  try{applyUI(m.ui);const ok=NET_OK[m.fn];if(!ok||ok(seat,args))ret=await F.get().apply(null,args);else if(!F.any)flash("That can't be done now.")}catch(e){console.error(e)}
   finally{const u=uiSnap();if(NET.ctx===seat)NET.ctx=null;applyUI(host);sendTo(id,{t:"ui",ui:u});render()}
   if(F.ret)sendTo(id,{t:"ret",rid:m.rid,v:ret==null?null:JSON.parse(JSON.stringify(ret,netRep))})}
 /* while a joined player's action runs, it is that player who can act */
@@ -181,6 +201,9 @@ function guestLeft(id){delete NET.guests[id];delete NET.sent[id];lobbyRoster();i
   log(`<b>${plName(seat)} left the game.</b> A computer (Medium) plays the seat from here.`,"event");popup("A player left",`<p>${esc(P.name)} left the room. A computer plays their seat from now on.</p>`);
   for(const [k,p] of Object.entries(NET.pend))if(p.pl===seat){delete NET.pend[k];p.res(p.spec&&p.spec.ai?p.spec.ai():AI.choose(seat,p.spec))}
   if(G.active===seat&&G.waiter){const f=G.waiter;G.waiter=null;f()}
+  // v78i: gone while setting up: the computer finishes their setup (online there is no setup timer to do it)
+  if(G.phase==="setup"&&G.active===seat&&G.setupResolve){const f=G.setupResolve;G.setupResolve=null;stopTimer();G.busy=true;
+    AI.setup(seat).then(()=>{G.busy=false;f();render()})}
   render()}
 function netLeave(){try{if(NET.tr)NET.tr.close()}catch(e){}Object.assign(NET,{role:null,tr:null,guests:{},seat:null,hostSeat:null,sent:{},pend:{},started:false})}
 addEventListener("beforeunload",()=>{try{if(NET.tr)NET.tr.close()}catch(e){}});
