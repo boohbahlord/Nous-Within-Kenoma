@@ -77,7 +77,10 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 </ul>
 
 <h2>Major Rules</h2>
-<p>The goal is to either destroy all card placements in the field or have the other player run out of cards in their deck, hand, and soul pile. Running those cards out is called an <b>economic domination</b> or <b>economic victory</b>, and it is only valid when the other player completes their turn.</p>
+<p>There are two ways to beat a player, and the last side standing wins:</p>
+<ul><li><b>Domination</b>: every card the player has on the field is destroyed (in Headquarters, every base). Zero cards on the field and they are out.</li>
+<li><b>Economic victory</b>: the player sinks below the lowest mana allowed, −8 (−12 under the Oath of Jupiter). Mana can go below zero, through debts, tolls and an empty deck, down to that floor; one more mana below it (−9) and the Bank takes everything, and they are out.</li></ul>
+<p>Running out of cards in the deck, the hand and the soul pile doesn't end a player's game by itself: the deck is not a player's life. An empty deck only means there is nothing left to draw (your own draw roll takes just what is left, never mana).</p>
 <p>Certain rules can be changed as desired, such as the cards present in the Ethereal Realm, or the number of cards in the players' hands.</p>
 
 <h2>Game Setup</h2>
@@ -322,7 +325,7 @@ b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({beha
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
 # v71j: EC_BL asks the page's head to preload the blackletter (unless the device saves data)
-play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel="stylesheet" href="ethers-crossroads.css?v=158">', ec=True) + f'''<main class="wide game">
+play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel="stylesheet" href="ethers-crossroads.css?v=159">', ec=True) + f'''<main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
@@ -360,7 +363,7 @@ play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
 <script>window.EC_QSRC="ethers-crossroads-quotes.js?v=152"</script>
-<script src="ethers-crossroads.js?v=163"></script>
+<script src="ethers-crossroads.js?v=164"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 

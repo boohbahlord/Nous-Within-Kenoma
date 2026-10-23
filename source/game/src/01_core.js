@@ -349,12 +349,12 @@ function toGrave(c,cause){
 }
 
 /* ---------------- deck, hand, mana ---------------- */
-function draw(pl,n,why,opening){
+function draw(pl,n,why,opening,roll){   // v78t: roll: your own draw roll, which takes only what the deck has (never mana)
   const P=G.p[pl];let got=0,burned=0;
   for(let i=0;i<n;i++){const c=P.deck.pop();if(!c)break;
     if(P.hand.length<handCap(pl)){P.hand.push(c);got++}else{toGrave(c,"burn");burned++;if(!opening)P.od++}}
   log(`${plName(pl)} draws ${got} card${got===1?"":"s"}${why?" ("+why+")":""}${burned?`; ${burned} over the hand limit go${burned===1?"es":""} to the grave${opening?"":` (Grave Blessing −${burned}d6 max)`}`:""}${P.deck.length?"":" (deck empty)"}.`);
-  if(!opening&&got+burned<n)deckShort(pl,n-got-burned,why||"a draw");   // v71: a card the deck can't give costs 1 mana
+  if(!opening&&!roll&&got+burned<n)deckShort(pl,n-got-burned,why||"a draw");   // v71: a card the deck can't give costs 1 mana
   return{got,burned};
 }
 /* ---------- v71: an empty deck costs mana. Every card a deck can't give (a draw, a toll, a price) costs 1 mana instead, as deep
