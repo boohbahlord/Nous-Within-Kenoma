@@ -212,6 +212,8 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 <tr><td>Ace Conjure</td><td>3 mana</td></tr>
 </table>
 <p>Each conjure purchases a soul to materialize into your deck from the Ethereal Realm. In Play Game, conjuring happens in <b>the Ether</b>: open it from the top of the Conjuring spells to see every card you can conjure by type, cheapest first, and every soul waiting there.</p>
+<h3>Commons</h3>
+<p>The Bank, Diplomacy and Lazy Hand are the <b>commons</b>: not spells, but open to every player beside the spells. In the spell bar at the bottom of the screen (F on the keys) they have a school of their own, <i>Common</i>, and their numbers open them like spells (1 the Bank, then Diplomacy when it is on, then Lazy Hand).</p>
 
 <h2 id="moon">The Moon</h2>
 <p>Every round sits under one phase of the moon, shown at the top of the table. A round is one turn for each player, every turn with all its phases (draw, prep, attack); when every player has finished their turn, the moon moves to its next phase, in this order, and then it repeats:</p>
@@ -363,7 +365,7 @@ play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
 <script>window.EC_QSRC="ethers-crossroads-quotes.js?v=152"</script>
-<script src="ethers-crossroads.js?v=175"></script>
+<script src="ethers-crossroads.js?v=176"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 

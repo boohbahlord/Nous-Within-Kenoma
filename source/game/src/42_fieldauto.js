@@ -20,7 +20,7 @@ const FA_KINDS=["grunt","infantry","puppet","jack","queen","king","joker","assas
 const FA_DEF={tgroup:true,tgorder:["wildcard","special","base","standard","support"],mode:"full",stance:"auto",rush:0,formation:"auto",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,
   ctl:{soldiers:true,specials:true,support:true,miners:true,ranged:true,wildcards:true},extra:[],hier:false,order:FA_PRINC.map(p=>p[0]),eq:[],under:false,
   noAttack:false,flee:false,tprio:false,torder:null,teq:[],tIgnoreGI:false,tSameGI:false,xminus:[],hill:true,hillHow:"army",grp:"normal",fLink:true,
-  tWeak:false,tStk:{strongest:true,weakest:true,minority:true,majority:true},ambFocus:false,crys:false,crysStance:false,crysLives:false,crysMiner:false,crysAsk:false,crysHow:false,crysShow:true,crysFight:false,hout:[],scope:"full",grpSplit:"stay"};   // v71n: the crystals, and the principles taken out of the ranking
+  tWeak:false,tStk:{strongest:true,weakest:true,minority:true,majority:true},ambFocus:false,crys:false,crysStance:false,crysLives:false,crysMiner:false,crysAsk:false,crysHow:false,crysShow:true,crysFight:false,hout:[],scope:"full",grpSplit:"stay",aggr:true,aggrHow:"auto",aggrN:4};   // v79f: Aggression   // v71n: the crystals, and the principles taken out of the ranking
 /* v47: the kinds of card the field can rank as targets, strongest first by default (suit doesn't matter) */
 const FA_TK=[["wildcards","Wildcards"],["joker","Jokers"],["king","Kings"],["ace","Aces"],["queen","Queens"],["jack","Jacks"],["wall","Walls"],["tree","The Tree"],["assassin","Assassins"],
   ["cannon","Cannons"],["infantry","Infantry"],["archer","Archers"],["grunt","Grunts"],["puppet","Puppets"],["healer","Healers"],["repair","Repairmen"],["ram","Rams"],["miner","Miners"],["claimer","Claimers"],["scout","Scouts"]];
@@ -29,7 +29,8 @@ const FA_OUT=["bases","crystals"];   // v71n: the principles that can be taken o
 const faClean=c=>{c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringify(FA_DEF));
   for(const k of ["mode","stance","formation","lives","battles","hillHow","grp"])if(typeof c[k]==="string")o[k]=c[k];
   o.grpSplit=c.grpSplit==="leave"?"leave":"stay";   // v78e: cards that leave a stack of a group stay in it, or leave it (96d_fagroups.js)
-  o.scope=c.scope==="soft"?"soft":"full";   // v74f: Full field automation (the default) or Soft Automate
+  o.scope=c.scope==="soft"?"soft":"full";
+  if(typeof c.aggr==="boolean")o.aggr=c.aggr;if(["auto","radius","square"].includes(c.aggrHow))o.aggrHow=c.aggrHow;if(Number.isFinite(+c.aggrN)&&c.aggrN!=null)o.aggrN=Math.max(1,Math.min(12,Math.round(+c.aggrN)));   // v79f   // v74f: Full field automation (the default) or Soft Automate
   o.rush=Math.max(0,Math.min(9,Math.round(+c.rush||0)));for(const k of ["ambush","bases","walls","hier","under","noAttack","flee","tprio","tIgnoreGI","tSameGI","tgroup","hill","fLink","ambFocus","crys","crysStance","crysLives","crysMiner","crysAsk","crysHow","crysShow","crysFight"])if(typeof c[k]==="boolean")o[k]=c[k];
   if(Array.isArray(c.tgorder))o.tgorder=[...c.tgorder.filter(k=>o.tgorder.includes(k)),...o.tgorder.filter(k=>!c.tgorder.includes(k))];   // v54: the ranking by kinds of card
   o.torder=Array.isArray(c.torder)?[...c.torder.filter(k=>FA_TKEYS.includes(k)),...FA_TKEYS.filter(k=>!c.torder.includes(k))]:[...FA_TKEYS];
@@ -51,7 +52,7 @@ const faOn=pl=>faAllowed()&&!!(faState(pl)&&faState(pl).on)&&!G.p[pl].cpu&&!isNP
 /* the simple modes narrow everything to a few choices */
 function faEff(c){c=faClean(c);const d=JSON.parse(JSON.stringify(FA_DEF));d.hill=c.hill;d.hillHow=c.hillHow;d.scope=c.scope;   // Capture the Hill is the player's in every mode
   if(c.mode==="full")return Object.assign(d,{mode:"full",under:c.under});
-  if(c.mode==="mostly")return Object.assign(d,{mode:"mostly",stance:c.stance,ambush:c.ambush,ambFocus:c.ambFocus,under:c.under,noAttack:c.noAttack});
+  if(c.mode==="mostly")return Object.assign(d,{mode:"mostly",stance:c.stance,ambush:c.ambush,ambFocus:c.ambFocus,under:c.under,noAttack:c.noAttack,aggr:c.aggr,aggrHow:c.aggrHow,aggrN:c.aggrN});
   if(c.mode==="attacks")return Object.assign(d,{mode:"attacks",ambush:false,under:c.under});
   return c}
 
@@ -107,7 +108,7 @@ function faCtx(pl){
   const rk=faRanks(c),above=k=>c.hier&&rk[k]<rk.noatk,rushes=faRushing(pl)&&above("rush"),basesOnly=c.noAttack&&!rushes&&c.bases&&above("bases"),noAtk=c.noAttack&&!rushes&&!basesOnly;
   const tf=faTargetFactor(c);
   const ring=.3+({wide:.6,deep:-.15}[c.formation]||0)*sc.formation;   // v71: a stack of mine already beside the target counts for this much more
-  return {level:faLevel(),W,thrAdj,form:c.formation,ring,lossMul:1+.5*lv*sc.lives,moves:c.mode!=="attacks",ambushP:c.ambush?.7*sc.ambush:0,ok,flee:c.formation==="deep"&&c.flee,
+  return {level:faLevel(),W,thrAdj,aggr:{on:c.aggr!==false&&!noAtk,how:c.aggrHow||"auto",n:c.aggrN||4},form:c.formation,ring,lossMul:1+.5*lv*sc.lives,moves:c.mode!=="attacks",ambushP:c.ambush?.7*sc.ambush:0,ok,flee:c.formation==="deep"&&c.flee,
     okAtk:(st,o)=>{if(noAtk)return false;const E=G.board[o.r]&&G.board[o.r][o.c];if(basesOnly&&!(E&&hasBase(E)))return false;return o.card?faControls(o.card,c):ok(st.cards.filter(x=>!isBase(x)))},
     gainMul:E=>{let m=tf(E);if(c.bases&&hasBase(E)&&!hasK(E,"wall"))m*=1+sc.bases;
       if(c.walls&&hasK(E,"wall")){const at=AI.enemyStacks(pl).find(e=>e.st===E);if(at&&!faWallBlocks(pl,at.r,at.c))m*=1-.7*sc.bases}return m}}}
@@ -158,6 +159,12 @@ function cfgKit(attr,act,pfx){
     pmChips:(list,plus,minus,act,dis)=>`<div class="pmchips${dis?" off":""}">${list.map(([k,t])=>{const s=plus.includes(k)?"plus":minus.includes(k)?"minus":"";return `<button type="button" class="pmchip ${s}" ${act}="${k}" ${dis?"disabled":""} aria-label="${esc(t)}: ${s==="plus"?"yes":s==="minus"?"no":"as its group"}"><i>${s==="plus"?"+":s==="minus"?"−":"·"}</i>${esc(t)}</button>`}).join("")}</div><p class="dim pmhelp">Click to cycle: + yes, even if its group is off · − no, even if its group is on · · as its group.</p>`,
     chips:(list,on,dataAttr,dis)=>`<div class="opts fakinds${dis?" off":""}">${list.map(([k,t])=>`<label class="opt"><input type="checkbox" ${dataAttr}="${k}" ${on.includes(k)?"checked":""} ${dis?"disabled":""}><span>${esc(t)}</span></label>`).join("")}</div>`,
     sec:(t,body,cls="",hint,note)=>`<section class="fasec ${cls}"><h4${tip(hint)}>${t}</h4>${body}${hint&&ph?`<p class="dim">${hint}</p>`:""}${note?`<p class="fanote2">${note}</p>`:""}</section>`}}
+/* v79f: the Aggression boxes (the field's settings and each class's): on or off, then how near an enemy must be */
+const FA_AGGR_HOW=[["auto","Automatic","The distance changes with the field: farther on the offensive, when nobody has fought for a while or when you are well ahead; nearer on the defensive or when far behind"],
+  ["radius","Radius","Enemies within this many tiles as the crow flies (a circle)"],["square","Square","Enemies within this many steps any way, diagonals included (a square)"]];
+function faAggrHTML(K,c,on,how,n){const a=c.aggr!==false;
+  return K.row(on,a,"Aggressive","Cards go after the enemies near them that they would fight, whenever they may attack at all (not under Don't attack). Off: they wait for enemies to come into reach.")+
+    (a?K.radio(how,c.aggrHow||"auto",FA_AGGR_HOW)+K.spin("How near",c.aggrHow==="auto"?"Automatic sets it":"",c.aggrHow==="auto"?"auto":(c.aggrN||4),n,c.aggrHow==="auto"?"":"tiles",c.aggrHow==="auto"):"")}
 const FA_CAUTION="Careful: ranking is a powerful setting. A bad order can lose you cards, or the game.";
 function faPanelHTML(c,pl,pfx){
   const K=cfgKit("data-fa","data-faact","fa"+pfx),{row,spin,radio,sec}=K;
@@ -169,6 +176,7 @@ function faPanelHTML(c,pl,pfx){
   if(kothOn())h+=sec("Capture the Hill",row("hill",c.hill,"Capture the Hill","It goes for the Hill to score (on by default).")+(c.hill?radio("hillHow",c.hillHow,[["army","Gather an army first","Cards gather into a big army, then march on the Hill together"],["straight","Straight there","Every card heads for the Hill at once"],["groups","In small groups","Groups of two or three set out one after another"]]):""));
   if(some){h+=sec("Stance",radio("stance",c.stance,[["auto","Automatic","Changes with the field"],["offensive","Offensive",""],["defensive","Defensive",""],["center","Control the center",""],
       ["skirmish","Skirmish","Hit and run: it picks off equal or weaker stacks (small ones first) that have no edge over it, then falls back when stronger ones come"]]));
+    h+=sec("Aggression",faAggrHTML(K,c,"aggr","aggrHow","aggrN"),"","Whether cards go after the enemies near them, and how near an enemy must be.");
     h+=sec("Ambush",row("ambush",c.ambush,"Set ambushes","Assassins and face-down stacks with nothing in reach wait in ambush.")+
       (c.ambush?row("ambFocus",c.ambFocus,"Focus on ambush","Stacks that can ambush hold their ground near the enemy and always wait in ambush; from an ambush they strike only with the odds well on their side."):""))}
   if(custom){
@@ -231,6 +239,7 @@ function faWire(root){
     faSave(c2)}});
   root.querySelectorAll("[data-fapm]").forEach(b=>b.onclick=()=>{const c2=faMine(),k=b.dataset.fapm,[p,m]=pmCycle(c2.extra,c2.xminus,k);c2.extra=p;c2.xminus=m;faSave(c2)});
   root.querySelectorAll("[data-faact]").forEach(b=>b.onclick=()=>{const c2=faMine(),v=b.dataset.faact;
+    if(v==="aggrN+"||v==="aggrN-"){c2.aggrN=Math.max(1,Math.min(12,(c2.aggrN||4)+(v==="aggrN+"?1:-1)));faSave(c2);return}   // v79f
     if(v==="rush+"||v==="rush-"){c2.rush=Math.max(1,Math.min(9,(c2.rush||1)+(v==="rush+"?1:-1)));faSave(c2);return}
     if(v.startsWith("out:")||v.startsWith("in:")){const [a,k]=v.split(":");if(!FA_OUT.includes(k))return;
       if(a==="out"){if(!c2.hout.includes(k))c2.hout.push(k);c2.eq=c2.eq.filter(p=>!p.includes(k));if(faHierHTML.pending===k)faHierHTML.pending=null}

@@ -652,7 +652,7 @@ function attackRun(r1,c1,r2,c2,mode,forced){
   if(A.mars){ra.parts.push("Mars");A.mars=false}
   if(opt.card&&opt.card.unit==="cannon")opt.card.readyAt=(G.p[atkPl].tn||0)+R(2)+2;   // the Cannon reloads
   G.histTile=`${coord(r1,c1)} → ${coord(r2,c2)}`;
-  A.odds=null;D.odds=null;A.attacked=true;G.lastAttack=G.turnNo;venusAttack(atkPl,defPl);
+  A.odds=null;D.odds=null;A.attacked=true;G.lastAttack=G.turnNo;G.fights=(G.fights||0)+1;venusAttack(atkPl,defPl);
   if(A.down){ra.parts=["a face-down card "+ra.total];A.down=false}   // v78j: rule 12.G.5: it flips face up once it attacks
   const wasDown=D.down;if(D.down){D.down=false}   // a face-down stack that is attacked turns face up
   if(A.ambush)A.ambush=false;A.ambushing=false;
@@ -1385,9 +1385,9 @@ async function nakedHand(){
    Easy adds noise and mistakes; Medium balances; Hard plays every edge it can find. */
 const AI=(()=>{
   const LV={
-    easy:  {mc:14,noise:.45,thr:.5, spell:.45,skipMove:.35,bias:-.15,draw:3},
-    medium:{mc:30,noise:.1, thr:.5, spell:.9, skipMove:.04,bias:0,  draw:2},
-    hard:  {mc:48,noise:0,  thr:.46,spell:1,  skipMove:0,  bias:.12,draw:2},
+    easy:  {mc:14,noise:.45,thr:.48,spell:.45,skipMove:.25,bias:-.05,draw:3},   // v79f: every level bolder, so they actually fight
+    medium:{mc:30,noise:.1, thr:.46,spell:.9, skipMove:.02,bias:.1, draw:2},
+    hard:  {mc:48,noise:0,  thr:.44,spell:1,  skipMove:0,  bias:.2, draw:2},
     horde: {mc:36,noise:0,  thr:.4, spell:0,  skipMove:0,  bias:1,  draw:0}
   };
   let FAX=null;   // v38: Field Automation plays a person's field with their settings (see 42_fieldauto.js)
@@ -1410,7 +1410,7 @@ const AI=(()=>{
   const L=pl=>FAX&&FAX.pl===pl?LV[FAX.level]||LV.medium:LV[G.p[pl].cpu]||LV.medium;
   const lvl=pl=>FAX&&FAX.pl===pl?FAX.level:G.p[pl].cpu;
   const jit=pl=>1+(Math.random()*2-1)*L(pl).noise;
-  const PUSH={atk:1.5,def:.2,dist:1.1,ally:0,k:"push"},OFF={atk:1.3,def:.7,dist:.35,ally:.1,k:"off"},DEF={atk:.8,def:1.35,dist:.06,ally:.35,k:"def"},HORDE={atk:1.5,def:.35,dist:.7,ally:.05,k:"horde"};   // v70c: k names the stance, so a copy (Field Automation mixes its own) is still recognised
+  const PUSH={atk:1.5,def:.2,dist:1.1,ally:0,k:"push"},OFF={atk:1.3,def:.7,dist:.35,ally:.1,k:"off"},DEF={atk:.9,def:1.2,dist:.14,ally:.35,k:"def"},HORDE={atk:1.5,def:.35,dist:.7,ally:.05,k:"horde"};   // v70c: k names the stance, so a copy (Field Automation mixes its own) is still recognised
   let cache=new Map();
   const key=st=>st.cards.map(c=>c.id+(c.hp||"")).join(".")+(st.odds||"")+(st.down?"d":"")+(st.supp?"s":"")+(st.mars?"m":"");
   /* v78j: what the computer knows of an enemy stack: one it sees only the back of counts as that many middling cards */
@@ -1508,6 +1508,35 @@ const AI=(()=>{
       if(how==="army"){if(!R||n>R.n)R={r:x.r,c:x.c,n}}   // the army gathers on its biggest stack
       else if(n<grpMax(pl)){const d=walk(r,c,x.r,x.c);if(!R||d<R.d)R={r:x.r,c:x.c,d}}}   // a lone card finds a partner
     return R?-.3*walk(r,c,R.r,R.c):0}
+  /* v79f · Aggression: a stack goes after an enemy near it that it would fight, when it may pick its battles at all.
+     How near: a radius (tiles as the crow flies), a square (steps any way, diagonals too), or automatic: the field decides,
+     farther on the offensive, when nobody has fought for a while or when well ahead, nearer on the defensive or far behind.
+     The computers are always aggressive (automatic); Field Automation by its settings (on and automatic by default). */
+  let CHASE=null;
+  const aggrOf=pl=>FAX&&FAX.pl===pl?FAX.aggr||{on:false}:{on:true,how:"auto"};
+  function autoReach(pl,W){let n=4;const k=W&&W.k;if(k==="off"||k==="push"||k==="horde")n++;else if(k==="def")n--;
+    const per=Math.max(2,roundOrder().length),quiet=G.turnNo-(G.lastAttack||0);if(quiet>per)n++;if(quiet>3*per)n+=2;
+    const my=stacksOf(pl).reduce((a,x)=>a+value(x.st),0),th=enemyStacks(pl).reduce((a,x)=>a+value(x.st),0);if(th&&my>th*1.25)n++;if(th&&my<th*.6)n--;
+    if(isHorde(pl))n+=2;return Math.max(2,Math.min(9,n))}
+  /* what a stack went after last time (by its strongest card): it keeps after it while it stays a little beyond the
+     distance too, so it doesn't step forward one turn and back the next */
+  const CH_MEM=new WeakMap();
+  function chaseFor(pl,S,fr,fc,W){const A=aggrOf(pl);if(!A.on)return null;
+    if(!S.cards.some(isShooter)&&!canAttackFrom({cards:S.cards,attacked:false,hypo:S.hypo}))return null;
+    const n=A.how==="auto"?autoReach(pl,W):Math.max(1,A.n|0),lv=L(pl),thr=lv.thr+(FAX&&FAX.pl===pl?FAX.thrAdj||0:0)-.1;
+    let mem=CH_MEM.get(G);if(!mem){mem=new Map();CH_MEM.set(G,mem)}const head=[...S.cards].sort((a,b)=>rate(b)-rate(a))[0],was=head&&mem.get(head.id);
+    const fresh=was&&G.moon.round-was.r<=2;
+    const near=e=>{const keep=fresh&&e.st.cards.some(x=>was.ids.includes(x.id))?2:0;   // the one it was after: two tiles more
+      return A.how==="radius"?Math.hypot(e.r-fr,e.c-fc)<=n+keep+.01:A.how==="square"?Math.max(Math.abs(e.r-fr),Math.abs(e.c-fc))<=n+keep:walk(fr,fc,e.r,e.c)<=n+keep};
+    let best=null;
+    for(const e of enemyStacks(pl)){if(!near(e))continue;const E=known(pl,e.r,e.c,e.st);if(E.hypo||shielded(E.owner))continue;
+      if(G.dip&&typeof dipAllied==="function"&&dipAllied(pl,E.owner))continue;
+      const p=winP(S,E,lv.mc),v=p*gain(E)-(1-p)*loss(S)*.6;if(p<thr&&v<=.4&&!isHorde(pl))continue;
+      const d=walk(fr,fc,e.r,e.c),sc=v-.15*d+(fresh&&e.st.cards.some(x=>was.ids.includes(x.id))?.6:0);if(!best||sc>best.sc)best={r:e.r,c:e.c,d,v,sc,ids:e.st.cards.map(x=>x.id)}}
+    if(head){if(best)mem.set(head.id,{ids:best.ids,r:G.moon.round});else mem.delete(head.id)}
+    return best?{pl,r:best.r,c:best.c,d0:best.d,k:Math.max(.8,Math.min(2.4,.9+.5*best.v)),c0:W&&W.ctr?ctrDist(fr,fc):0}:null}
+  /* each step nearer the enemy it goes after is worth k; the center (Control the center) holds it back only a little */
+  const chaseAdd=(r,c,W)=>CHASE?CHASE.k*(CHASE.d0-walk(r,c,CHASE.r,CHASE.c))+(W&&W.ctr?.75*W.ctr*(ctrDist(r,c)-CHASE.c0):0):0;
   /* how good it is for stack S (owned by pl) to stand at r,c */
   function tileScore(pl,S,r,c,W,canHit){
     const n=L(pl).mc;let opp=0,risk=0,allies=0;
@@ -1531,7 +1560,7 @@ const AI=(()=>{
     for(const x of stacksOf(pl))if(x.st!==S&&dist(x.r,x.c,r,c)===1)allies++;
     if(near===99)near=farNear(pl,r,c);
     const M=FAX&&FAX.pl===pl&&FAX.wMul||{};   // v69: the archetype's weights
-    return W.atk*(M.atk||1)*opp-W.def*(M.def||1)*risk+W.ally*(M.ally||1)*allies+rallyScore(pl,S,r,c)-pullOf(pl,S,r,c,W,near)+groupScore(pl,S,r,c);
+    return W.atk*(M.atk||1)*opp-W.def*(M.def||1)*risk*(CHASE?.6:1)+W.ally*(M.ally||1)*allies+rallyScore(pl,S,r,c)-pullOf(pl,S,r,c,W,near)+groupScore(pl,S,r,c);
   }
   /* v71 · Field Automation's attack groups are clusters of stacks across tiles, whatever their height:
      Big keeps one army together (no stack runs off ahead or straggles behind); Small keeps clusters of two or three stacks,
@@ -1562,13 +1591,13 @@ const AI=(()=>{
   }
   function stance(pl){
     if(isHorde(pl))return HORDE;
-    if(G.turnNo-(G.lastAttack||0)>5*Math.max(2,roundOrder().length))return hillHow(pl)?OFF:PUSH;   // nobody has fought for five rounds: break the stalemate (in King of the Hill the Hill is the way)
+    if(G.turnNo-(G.lastAttack||0)>2*Math.max(2,roundOrder().length))return hillHow(pl)?OFF:PUSH;   // nobody has fought for two rounds (v79f: was five): break the stalemate (in King of the Hill the Hill is the way)
     const es=enemiesOf(pl).filter(e=>!isNPC(e)),my=stacksOf(pl).reduce((a,x)=>a+value(x.st),0),th=enemyStacks(pl).reduce((a,x)=>a+value(x.st),0)/Math.max(1,es.length);
     const eDeck=es.length?Math.min(...es.map(e=>G.p[e].deck.length)):0,deckAdv=(G.p[pl].deck.length-eDeck)/40;
     let o=my/(th+1)+deckAdv+L(pl).bias+(FAX&&FAX.pl===pl&&FAX.bias||0);   // v69: the archetype leans one way
     if(lvl(pl)==="easy")o+=Math.random()*.6-.3;
     if(!G.p[pl].deck.length||!eDeck||G.turnNo>90*Math.max(1,G.p.length/2)||hq()&&G.turnNo>8)return OFF;   // a dry deck ends the waiting game
-    return o>1?OFF:DEF;
+    return o>.8?OFF:DEF;   // v79f: offensive unless clearly behind (was: only when ahead)
   }
   function withSel(r,c,ids,fn){const old=G.sel;G.sel={r,c,pick:new Set(ids)};aiSel++;try{return fn()}finally{G.sel=old;aiSel--}}
   const step=(...ts)=>{render();return sleep(ts.length&&!stepSeen(ts)?25:G.p[G.active].cpu==="horde"?260:420)};   // v71r: a step no person at the table can see doesn't wait (78_anim3.js)
@@ -1648,18 +1677,21 @@ const AI=(()=>{
         for(const [r,c] of tg){if(G.board[r][c]&&FAX.noStack&&FAX.noStack(grp,G.board[r][c]))continue;const sc=supportScore(pl,S,r,c,W,st)*jit(pl);if(!best||sc>best.s)best={r,c,s:sc}}
         if(best&&best.s>stay+.2){G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step([o.r,o.c],[best.r,best.c])}
         return}
-      let stay=inAce?tileScore(pl,S,o.r,o.c,W,false)+(hq()?-1:W?.k==="def"?.6:0):tileScore(pl,S,o.r,o.c,W,true);
+      CHASE=chaseFor(pl,S,o.r,o.c,W);   // v79f
+      let stay,best=null;try{
+      stay=inAce?tileScore(pl,S,o.r,o.c,W,false)+(hq()?-1:W?.k==="def"?.6:0):tileScore(pl,S,o.r,o.c,W,true);
       const tg=withSel(o.r,o.c,grp.map(c=>c.id),moveTargets);
-      let best=null;
       for(const [r,c] of tg){
         const t=G.board[r][c];
         if(t&&FAX&&FAX.pl===pl&&FAX.noStack&&FAX.noStack(grp,t))continue;   // v74f: a class that avoids stacking
         let s;
         if(t){const M={cards:[...t.cards,...grp],owner:pl,hypo:0};s=tileScore(pl,M,r,c,W,true)-tileScore(pl,t,r,c,W,true)+.2+(W.stack||0)+(FAX&&FAX.pl===pl&&!hasBase(t)?FAX.stack||0:0)+(hasBase(t)?0:stackAdj(pl,fighters(M)))}
         else s=tileScore(pl,S,r,c,W,true);
+        s+=chaseAdd(r,c,W);
         s*=jit(pl);
         if(!best||s>best.s)best={r,c,s};
       }
+      }finally{CHASE=null}
       if(best&&best.s>stay+.15){
         G.sel={r:o.r,c:o.c,pick:new Set(grp.map(c=>c.id))};doMove(best.r,best.c);G.sel=null;cache.clear();await step([o.r,o.c],[best.r,best.c]);
       }
@@ -1683,7 +1715,7 @@ const AI=(()=>{
         if(g==="big"){const ring=stacksOf(pl).filter(x=>x.st!==st&&fighters(x.st)>0&&dist(x.r,x.c,r2,c2)===1).length;if(!ring&&p<.7&&!onHill)continue;sc*=1+.15*ring}   // v71: the army strikes together
         const late=isHorde(pl)?0:G.turnNo>90?Math.min(.25,.1+(G.turnNo-90)/200):!G.p[pl].deck.length?.1:0;
   
-        const go=p>=(lv.thr-late-(onHill?.08:0)+(FAX?FAX.thrAdj:0))*(lvl(pl)==="easy"?(.7+Math.random()*.6):1)||(lvl(pl)!=="easy"&&sc>.4)||isHorde(pl);   // the Horde never holds back: whatever it can reach, it hits
+        const go=p>=(lv.thr-late-(onHill?.08:0)+(FAX?FAX.thrAdj:0)-(aggrOf(pl).on?.06:0))*(lvl(pl)==="easy"?(.7+Math.random()*.6):1)||(lvl(pl)!=="easy"&&sc>.4)||isHorde(pl);   // the Horde never holds back: whatever it can reach, it hits
         if(cx&&cx.lowPrio)sc*=.8;   // v72e: a low-priority class lets the others strike first
         if(go&&(!best||sc>best.sc))best={r,c,r2,c2,sc,p,mode:o.mode};
       }
@@ -8299,7 +8331,7 @@ const FA_KINDS=["grunt","infantry","puppet","jack","queen","king","joker","assas
 const FA_DEF={tgroup:true,tgorder:["wildcard","special","base","standard","support"],mode:"full",stance:"auto",rush:0,formation:"auto",lives:"balanced",battles:"normal",ambush:true,bases:false,walls:true,
   ctl:{soldiers:true,specials:true,support:true,miners:true,ranged:true,wildcards:true},extra:[],hier:false,order:FA_PRINC.map(p=>p[0]),eq:[],under:false,
   noAttack:false,flee:false,tprio:false,torder:null,teq:[],tIgnoreGI:false,tSameGI:false,xminus:[],hill:true,hillHow:"army",grp:"normal",fLink:true,
-  tWeak:false,tStk:{strongest:true,weakest:true,minority:true,majority:true},ambFocus:false,crys:false,crysStance:false,crysLives:false,crysMiner:false,crysAsk:false,crysHow:false,crysShow:true,crysFight:false,hout:[],scope:"full",grpSplit:"stay"};   // v71n: the crystals, and the principles taken out of the ranking
+  tWeak:false,tStk:{strongest:true,weakest:true,minority:true,majority:true},ambFocus:false,crys:false,crysStance:false,crysLives:false,crysMiner:false,crysAsk:false,crysHow:false,crysShow:true,crysFight:false,hout:[],scope:"full",grpSplit:"stay",aggr:true,aggrHow:"auto",aggrN:4};   // v79f: Aggression   // v71n: the crystals, and the principles taken out of the ranking
 /* v47: the kinds of card the field can rank as targets, strongest first by default (suit doesn't matter) */
 const FA_TK=[["wildcards","Wildcards"],["joker","Jokers"],["king","Kings"],["ace","Aces"],["queen","Queens"],["jack","Jacks"],["wall","Walls"],["tree","The Tree"],["assassin","Assassins"],
   ["cannon","Cannons"],["infantry","Infantry"],["archer","Archers"],["grunt","Grunts"],["puppet","Puppets"],["healer","Healers"],["repair","Repairmen"],["ram","Rams"],["miner","Miners"],["claimer","Claimers"],["scout","Scouts"]];
@@ -8308,7 +8340,8 @@ const FA_OUT=["bases","crystals"];   // v71n: the principles that can be taken o
 const faClean=c=>{c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringify(FA_DEF));
   for(const k of ["mode","stance","formation","lives","battles","hillHow","grp"])if(typeof c[k]==="string")o[k]=c[k];
   o.grpSplit=c.grpSplit==="leave"?"leave":"stay";   // v78e: cards that leave a stack of a group stay in it, or leave it (96d_fagroups.js)
-  o.scope=c.scope==="soft"?"soft":"full";   // v74f: Full field automation (the default) or Soft Automate
+  o.scope=c.scope==="soft"?"soft":"full";
+  if(typeof c.aggr==="boolean")o.aggr=c.aggr;if(["auto","radius","square"].includes(c.aggrHow))o.aggrHow=c.aggrHow;if(Number.isFinite(+c.aggrN)&&c.aggrN!=null)o.aggrN=Math.max(1,Math.min(12,Math.round(+c.aggrN)));   // v79f   // v74f: Full field automation (the default) or Soft Automate
   o.rush=Math.max(0,Math.min(9,Math.round(+c.rush||0)));for(const k of ["ambush","bases","walls","hier","under","noAttack","flee","tprio","tIgnoreGI","tSameGI","tgroup","hill","fLink","ambFocus","crys","crysStance","crysLives","crysMiner","crysAsk","crysHow","crysShow","crysFight"])if(typeof c[k]==="boolean")o[k]=c[k];
   if(Array.isArray(c.tgorder))o.tgorder=[...c.tgorder.filter(k=>o.tgorder.includes(k)),...o.tgorder.filter(k=>!c.tgorder.includes(k))];   // v54: the ranking by kinds of card
   o.torder=Array.isArray(c.torder)?[...c.torder.filter(k=>FA_TKEYS.includes(k)),...FA_TKEYS.filter(k=>!c.torder.includes(k))]:[...FA_TKEYS];
@@ -8330,7 +8363,7 @@ const faOn=pl=>faAllowed()&&!!(faState(pl)&&faState(pl).on)&&!G.p[pl].cpu&&!isNP
 /* the simple modes narrow everything to a few choices */
 function faEff(c){c=faClean(c);const d=JSON.parse(JSON.stringify(FA_DEF));d.hill=c.hill;d.hillHow=c.hillHow;d.scope=c.scope;   // Capture the Hill is the player's in every mode
   if(c.mode==="full")return Object.assign(d,{mode:"full",under:c.under});
-  if(c.mode==="mostly")return Object.assign(d,{mode:"mostly",stance:c.stance,ambush:c.ambush,ambFocus:c.ambFocus,under:c.under,noAttack:c.noAttack});
+  if(c.mode==="mostly")return Object.assign(d,{mode:"mostly",stance:c.stance,ambush:c.ambush,ambFocus:c.ambFocus,under:c.under,noAttack:c.noAttack,aggr:c.aggr,aggrHow:c.aggrHow,aggrN:c.aggrN});
   if(c.mode==="attacks")return Object.assign(d,{mode:"attacks",ambush:false,under:c.under});
   return c}
 
@@ -8386,7 +8419,7 @@ function faCtx(pl){
   const rk=faRanks(c),above=k=>c.hier&&rk[k]<rk.noatk,rushes=faRushing(pl)&&above("rush"),basesOnly=c.noAttack&&!rushes&&c.bases&&above("bases"),noAtk=c.noAttack&&!rushes&&!basesOnly;
   const tf=faTargetFactor(c);
   const ring=.3+({wide:.6,deep:-.15}[c.formation]||0)*sc.formation;   // v71: a stack of mine already beside the target counts for this much more
-  return {level:faLevel(),W,thrAdj,form:c.formation,ring,lossMul:1+.5*lv*sc.lives,moves:c.mode!=="attacks",ambushP:c.ambush?.7*sc.ambush:0,ok,flee:c.formation==="deep"&&c.flee,
+  return {level:faLevel(),W,thrAdj,aggr:{on:c.aggr!==false&&!noAtk,how:c.aggrHow||"auto",n:c.aggrN||4},form:c.formation,ring,lossMul:1+.5*lv*sc.lives,moves:c.mode!=="attacks",ambushP:c.ambush?.7*sc.ambush:0,ok,flee:c.formation==="deep"&&c.flee,
     okAtk:(st,o)=>{if(noAtk)return false;const E=G.board[o.r]&&G.board[o.r][o.c];if(basesOnly&&!(E&&hasBase(E)))return false;return o.card?faControls(o.card,c):ok(st.cards.filter(x=>!isBase(x)))},
     gainMul:E=>{let m=tf(E);if(c.bases&&hasBase(E)&&!hasK(E,"wall"))m*=1+sc.bases;
       if(c.walls&&hasK(E,"wall")){const at=AI.enemyStacks(pl).find(e=>e.st===E);if(at&&!faWallBlocks(pl,at.r,at.c))m*=1-.7*sc.bases}return m}}}
@@ -8437,6 +8470,12 @@ function cfgKit(attr,act,pfx){
     pmChips:(list,plus,minus,act,dis)=>`<div class="pmchips${dis?" off":""}">${list.map(([k,t])=>{const s=plus.includes(k)?"plus":minus.includes(k)?"minus":"";return `<button type="button" class="pmchip ${s}" ${act}="${k}" ${dis?"disabled":""} aria-label="${esc(t)}: ${s==="plus"?"yes":s==="minus"?"no":"as its group"}"><i>${s==="plus"?"+":s==="minus"?"−":"·"}</i>${esc(t)}</button>`}).join("")}</div><p class="dim pmhelp">Click to cycle: + yes, even if its group is off · − no, even if its group is on · · as its group.</p>`,
     chips:(list,on,dataAttr,dis)=>`<div class="opts fakinds${dis?" off":""}">${list.map(([k,t])=>`<label class="opt"><input type="checkbox" ${dataAttr}="${k}" ${on.includes(k)?"checked":""} ${dis?"disabled":""}><span>${esc(t)}</span></label>`).join("")}</div>`,
     sec:(t,body,cls="",hint,note)=>`<section class="fasec ${cls}"><h4${tip(hint)}>${t}</h4>${body}${hint&&ph?`<p class="dim">${hint}</p>`:""}${note?`<p class="fanote2">${note}</p>`:""}</section>`}}
+/* v79f: the Aggression boxes (the field's settings and each class's): on or off, then how near an enemy must be */
+const FA_AGGR_HOW=[["auto","Automatic","The distance changes with the field: farther on the offensive, when nobody has fought for a while or when you are well ahead; nearer on the defensive or when far behind"],
+  ["radius","Radius","Enemies within this many tiles as the crow flies (a circle)"],["square","Square","Enemies within this many steps any way, diagonals included (a square)"]];
+function faAggrHTML(K,c,on,how,n){const a=c.aggr!==false;
+  return K.row(on,a,"Aggressive","Cards go after the enemies near them that they would fight, whenever they may attack at all (not under Don't attack). Off: they wait for enemies to come into reach.")+
+    (a?K.radio(how,c.aggrHow||"auto",FA_AGGR_HOW)+K.spin("How near",c.aggrHow==="auto"?"Automatic sets it":"",c.aggrHow==="auto"?"auto":(c.aggrN||4),n,c.aggrHow==="auto"?"":"tiles",c.aggrHow==="auto"):"")}
 const FA_CAUTION="Careful: ranking is a powerful setting. A bad order can lose you cards, or the game.";
 function faPanelHTML(c,pl,pfx){
   const K=cfgKit("data-fa","data-faact","fa"+pfx),{row,spin,radio,sec}=K;
@@ -8448,6 +8487,7 @@ function faPanelHTML(c,pl,pfx){
   if(kothOn())h+=sec("Capture the Hill",row("hill",c.hill,"Capture the Hill","It goes for the Hill to score (on by default).")+(c.hill?radio("hillHow",c.hillHow,[["army","Gather an army first","Cards gather into a big army, then march on the Hill together"],["straight","Straight there","Every card heads for the Hill at once"],["groups","In small groups","Groups of two or three set out one after another"]]):""));
   if(some){h+=sec("Stance",radio("stance",c.stance,[["auto","Automatic","Changes with the field"],["offensive","Offensive",""],["defensive","Defensive",""],["center","Control the center",""],
       ["skirmish","Skirmish","Hit and run: it picks off equal or weaker stacks (small ones first) that have no edge over it, then falls back when stronger ones come"]]));
+    h+=sec("Aggression",faAggrHTML(K,c,"aggr","aggrHow","aggrN"),"","Whether cards go after the enemies near them, and how near an enemy must be.");
     h+=sec("Ambush",row("ambush",c.ambush,"Set ambushes","Assassins and face-down stacks with nothing in reach wait in ambush.")+
       (c.ambush?row("ambFocus",c.ambFocus,"Focus on ambush","Stacks that can ambush hold their ground near the enemy and always wait in ambush; from an ambush they strike only with the odds well on their side."):""))}
   if(custom){
@@ -8510,6 +8550,7 @@ function faWire(root){
     faSave(c2)}});
   root.querySelectorAll("[data-fapm]").forEach(b=>b.onclick=()=>{const c2=faMine(),k=b.dataset.fapm,[p,m]=pmCycle(c2.extra,c2.xminus,k);c2.extra=p;c2.xminus=m;faSave(c2)});
   root.querySelectorAll("[data-faact]").forEach(b=>b.onclick=()=>{const c2=faMine(),v=b.dataset.faact;
+    if(v==="aggrN+"||v==="aggrN-"){c2.aggrN=Math.max(1,Math.min(12,(c2.aggrN||4)+(v==="aggrN+"?1:-1)));faSave(c2);return}   // v79f
     if(v==="rush+"||v==="rush-"){c2.rush=Math.max(1,Math.min(9,(c2.rush||1)+(v==="rush+"?1:-1)));faSave(c2);return}
     if(v.startsWith("out:")||v.startsWith("in:")){const [a,k]=v.split(":");if(!FA_OUT.includes(k))return;
       if(a==="out"){if(!c2.hout.includes(k))c2.hout.push(k);c2.eq=c2.eq.filter(p=>!p.includes(k));if(faHierHTML.pending===k)faHierHTML.pending=null}
@@ -8938,7 +8979,7 @@ const RD_KINDS=[["standard","Standard"],["special","Special"],["support","Suppor
 const RD_DEF={on:false,preset:"even",every:1,perTurn:1,kinds:[],minMana:3,counterOD:true,noOD:false,stopDebt:4,credit:false,creditStop:-3};
 const RD_PRESETS=[
   ["miser","Rarely","Rarely: only with plenty to spare and something worth raising, never in debt.",{every:3,perTurn:1,kinds:["special","base"],minMana:6,counterOD:false,noOD:true,stopDebt:1,credit:false,creditStop:0}],
-  ["accountant","Every other turn","Modest: one every other turn, never into debt.",{every:2,perTurn:1,kinds:[],minMana:4,counterOD:false,noOD:true,stopDebt:2,credit:false,creditStop:0}],
+  ["accountant","Every other round","Modest: one every other round, never into debt.",{every:2,perTurn:1,kinds:[],minMana:4,counterOD:false,noOD:true,stopDebt:2,credit:false,creditStop:0}],
   ["even","Once a round","Balanced: one a round while there is mana to spare (the default).",{every:1,perTurn:1,kinds:[],minMana:3,counterOD:true,noOD:false,stopDebt:4,credit:false,creditStop:-3}],
   ["relic","Best cards, twice a round","Spends big, but only when the grave holds treasure.",{every:1,perTurn:2,kinds:["special","wildcard","base"],minMana:2,counterOD:true,noOD:false,stopDebt:0,credit:false,creditStop:-3}],
   ["hunger","Twice a round, on credit","Two a round, on credit when it must.",{every:1,perTurn:2,kinds:[],minMana:1,counterOD:true,noOD:false,stopDebt:0,credit:true,creditStop:-3}],
@@ -12466,7 +12507,7 @@ if(window.__EC)Object.assign(window.__EC,{stList:()=>stList(),stUse:id=>stUse(id
      sheen if you like; only you see it unless you show it to the other players. It can't be your own color, nor too like it
      or another class's (those are greyed out, as in the setup). Hidden under Neptune's eclipse.
    - Every Automated Strategy shares the same classes. */
-const CLS_CFG=["noAttack","stance","lives","battles","formation","ambush","ambFocus","bases","hier","order","eq"];
+const CLS_CFG=["noAttack","stance","aggr","aggrHow","aggrN","lives","battles","formation","ambush","ambFocus","bases","hier","order","eq"];   // v79f: Aggression
 const CLS_STK=["strongest","weakest","minority","majority"];
 /* v73f: a class's target priority goes by the types of card (Wildcards, Special, Base, Standard, Support): the type it targets
    most, the ranking of the types below it, and inside each type (its ⚙ window) the kind it hunts first and their ranking */
@@ -12604,6 +12645,7 @@ ${row(`${id}|on`,k.on,"Class on","Its rules play its cards by themselves (while 
 <p class="clsh">Its cards</p><div class="opts fakinds">${FA_KINDS.map(kd=>{const t=clsTaken(id,kd),dis=!!t&&!multi&&!k.kinds.includes(kd);return `<label class="opt${dis?" off":""}" ${t&&!k.kinds.includes(kd)?`title="In ${esc(t.name)}"`:""}><input type="checkbox" data-cl="${id}|kind:${kd}" ${k.kinds.includes(kd)?"checked":""} ${dis?"disabled":""}><span>${esc(shortInfo(kd))}</span></label>`}).join("")}</div>
 <p class="clsh">A stack mixing its cards with others plays by it when its cards are…</p>${row(`${id}|stack:strongest`,k.stack.strongest,"…the stack's strongest card","")}${row(`${id}|stack:weakest`,k.stack.weakest,"…the stack's weakest card","")}${row(`${id}|stack:minority`,k.stack.minority,"…only a few of its cards","Not the most of them.")}${row(`${id}|stack:majority`,k.stack.majority,"…most of its cards","")}
 <p class="clsh">Stance</p>${radio(`${id}|stance`,c.stance,[["auto","Automatic",""],["offensive","Offensive",""],["defensive","Defensive",""],["center","Center",""],["skirmish","Skirmish",""]])}
+<p class="clsh">Aggression</p>${faAggrHTML(K,c,`${id}|aggr`,`${id}|aggrHow`,`${id}|aggrN`)}
 <p class="clsh">Lives</p>${radio(`${id}|lives`,c.lives,[["preserve","Preserve",""],["balanced","Balanced",""],["throw","Throw them in",""]])}
 <p class="clsh">Picking battles</p>${radio(`${id}|battles`,c.battles,[["careful","Careful",""],["normal","Normal",""],["reckless","Reckless",""]])}
 <p class="clsh">Formation</p>${radio(`${id}|formation`,c.formation,[["auto","Automatic",""],["wide","Wide",""],["deep","Tall",""]])}
@@ -12657,6 +12699,7 @@ function clsWire(root){const L=clsList(),find=id=>L.find(k=>k.id===id);
       L.splice(L.indexOf(k)+1,0,c2);PREF.faClasses=clsClean(L);clsUI.open=c2.id;clsResend();flash(`Copied as “${c2.name}”.`);return}
     if(a==="mvup"||a==="mvdn"){const j=L.indexOf(k),t=j+(a==="mvup"?-1:1);if(t<0||t>=L.length)return;[L[j],L[t]]=[L[t],L[j]];PREF.faClasses=clsClean(L);clsResend();return}
     if(a==="tgwin"){clsTgWin(id,x);return}
+    if(a==="aggrN+"||a==="aggrN-"){k.cfg.aggrN=Math.max(1,Math.min(12,(k.cfg.aggrN||4)+(a==="aggrN+"?1:-1)));PREF.faClasses=clsClean(L);clsResend();return}   // v79f
     if(a==="delok"){clsUI.del=null;PREF.faClasses=clsClean(L.filter(y=>y.id!==id));clsResend();return}
     const mv=(arr,dir)=>{const i=arr.indexOf(x),j=i+dir;if(i<0||j<0||j>=arr.length)return;[arr[i],arr[j]]=[arr[j],arr[i]]};
     if(a==="hup"||a==="hdown")mv(k.cfg.order,a==="hup"?-1:1);if(a==="tup"||a==="tdown")mv(k.tg.order,a==="tup"?-1:1);
@@ -14186,6 +14229,7 @@ function fgShape(pl,gid,g,base,role){const cx=Object.assign({},base,{pl}),foes=A
       return p});
     const ns=base.noStack;cx.noStack=(grp,t)=>{const L=fgFind(pl,g.lead);return !!L&&t===L.st||(ns?ns(grp,t):false)};
     cx.late=true;   // it moves first; they follow
+    cx.aggr={on:!!(base.aggr&&base.aggr.on),how:"square",n:2};   // v79f: a guard chases only what comes right up to it
     cx.gainMul=E=>{const e=pos.get(E);if(!e)return gm(E);const d=fgCheb(e.r,e.c,L0.r,L0.c);return gm(E)*(d<=1?3.2:d<=2?2.4:d<=3?1.5:1)};
     if(foes.some(e=>fgCheb(e.r,e.c,L0.r,L0.c)<=4)){cx.W=faMix(base.W,FA_OFF,.65);cx.thrAdj=(base.thrAdj||0)-.12}   // threatened: bold
     return cx}
@@ -14193,16 +14237,16 @@ function fgShape(pl,gid,g,base,role){const cx=Object.assign({},base,{pl}),foes=A
   if(g.k==="attack"){const A=fgAim(pl,g);if(!A)return cx;const T=A.seen?A.T.st:null;
     const isT=E=>!!T&&(E===T||E.owner===T.owner&&E.cards.length===T.cards.length&&Object.keys(T).every(k=>k==="cards"||E[k]===T[k]));   // a face-down target comes as a copy
     pull((S,r,c,walk)=>{let d=walk?walk(r,c,A.r,A.c):99;if(!(d<99))d=fgCheb(r,c,A.r,A.c);return d<=1?0:1.7*(d-1)});
-    cx.gainMul=E=>isT(E)?gm(E)*5:gm(E)*.6;
+    cx.gainMul=E=>isT(E)?gm(E)*5:gm(E)*.6;cx.aggr={on:true,how:"auto"};
     cx.W=faMix(base.W,FA_OFF,.9);cx.thrAdj=(base.thrAdj||0)-.22;cx.lossMul=(base.lossMul||1)*.6;   // reckless, somewhat
     return cx}
   /* v79e: Defend: goes out to meet what comes within three tiles of the area's edge, strikes it boldly, comes back */
-  if(g.k==="defend"){const [ar,ac]=g.at,R=fgRad(g),reach=R+3,dA=(r,c)=>Math.hypot(r-ar,c-ac),near=foes.filter(e=>dA(e.r,e.c)<=reach+.3);
+  if(g.k==="defend"){const [ar,ac]=g.at,R=fgRad(g),reach=R+3,dA=(r,c)=>Math.hypot(r-ar,c-ac),near=foes.filter(e=>dA(e.r,e.c)<=reach+.3);cx.aggr={on:true,how:"radius",n:3};
     pull((S,r,c)=>{const d=dA(r,c);if(near.length)return d>reach+.3?2.6*(d-reach)+1:0;return d>R+.3?2.2*(d-R)+.8:.1*d});
     cx.gainMul=E=>{const e=pos.get(E);if(!e)return gm(E);const d=dA(e.r,e.c);return gm(E)*(d<=R+.3?3.4:d<=reach+.3?2.8:.5)};
     if(near.length){cx.W=faMix(base.W,FA_OFF,.9);cx.thrAdj=(base.thrAdj||0)-.2;cx.lossMul=(base.lossMul||1)*.7}else cx.W=faMix(base.W,FA_OFF,.35);
     return cx}
-  if(g.k==="area"){const [ar,ac]=g.at,R=fgRad(g),inA=(r,c)=>Math.hypot(r-ar,c-ac)<=R+.3;
+  if(g.k==="area"){const [ar,ac]=g.at,R=fgRad(g),inA=(r,c)=>Math.hypot(r-ar,c-ac)<=R+.3;cx.aggr={on:!!(base.aggr&&base.aggr.on),how:"radius",n:Math.max(1,R)};   // v79f: it holds its ground
     pull((S,r,c)=>{const d=Math.hypot(r-ar,c-ac);return d>R+.3?2.6*(d-R)+1:.12*d});
     // v78s: a guard caught outside its area fights the enemies in its way back (nearer the area than it is, within two tiles of it)
     const away=fgMembers(pl,gid).filter(m=>!inA(m.r,m.c)),inWay=e=>away.some(m=>Math.hypot(e.r-ar,e.c-ac)<Math.hypot(m.r-ar,m.c-ac)&&fgCheb(e.r,e.c,m.r,m.c)<=2);
@@ -14618,8 +14662,11 @@ function kbLook(r,c){const t=document.querySelector(`#board .tile[data-r="${r}"]
   else t.scrollIntoView({block:"center",behavior:"smooth"});t.classList.add("kbping");setTimeout(()=>t.classList.remove("kbping"),1200)}
 /* the spells: their schools, and the piles last */
 const kbSchools=()=>{const box=$("#spells");const out=box?[...box.querySelectorAll("details.school")].map(d=>({el:d,items:[...d.querySelectorAll("button.spell")]})):[];
+  if(KB.mode==="bar"){const com=KB_COMMON.map(([s])=>$(s)).filter(b=>b&&b.isConnected);if(com.length)out.push({el:com[0].parentNode,items:com,common:true})}   // v79f: the Commons, in the bar only
   const piles=["#seegrave","#seeether","#seedark","#seeauct"].map(s=>$(s)).filter(Boolean);if(piles.length)out.push({el:piles[0].parentNode,items:piles,piles:true});
   return out};
+/* v79f: the Commons: the Bank, Diplomacy and Lazy Hand, a school of their own in the spell bar */
+const KB_COMMON=[["#openBank","The Bank"],["#dipbar","Diplomacy"],["#lazyBtn","Lazy Hand"]];
 const kbSpellMode=()=>KB.mode==="bar"||KB.mode==="list";
 function kbOff(){const was=KB.mode;KB.mode=null;if(was==="list"&&KB.fsOpened&&fsOn()&&PREF.fsSp){const t=$("#fstabSp");if(t)t.click()}KB.fsOpened=false;kbPaint()}
 function kbBar(){if(KB.mode&&KB.mode!=="bar")kbOff();KB.mode="bar";kbPaint()}
@@ -14637,9 +14684,10 @@ const kbNum=i=>i<9?String(i+1):i===9?"0":i<19?"⇧"+(i-9):i===19?"⇧0":"";
 function kbBarPaint(){let el=$("#kbbar");if(KB.mode!=="bar"||!G){if(el)el.remove();return}
   const S=kbSchools();if(!S.length){if(el)el.remove();KB.mode=null;return}KB.sc=Math.min(KB.sc,S.length-1);const s=S[KB.sc];
   if(!el){el=document.createElement("div");el.id="kbbar";el.setAttribute("role","dialog");el.setAttribute("aria-label","Spells");document.body.appendChild(el)}
-  const sname=x=>x.piles?"Piles":((x.el.querySelector("summary")||{}).textContent||"").trim();
+  const sname=x=>x.piles?"Piles":x.common?"Common":((x.el.querySelector("summary")||{}).textContent||"").trim();
   const tile=(b,i)=>{let nm="",dt="",cost="";
     if(s.piles){nm=b.textContent.trim()}
+    else if(s.common){const k=KB_COMMON.find(([q])=>b.matches(q));nm=k?k[1]:b.textContent.trim();const sm=b.querySelector("small");dt=sm?sm.textContent.trim():""}
     else{const sn=b.querySelector(".sn");if(sn){const c=sn.cloneNode(true);c.querySelectorAll("small,.bolts,.chips,i").forEach(x=>x.remove());nm=c.textContent.trim();dt=[...sn.querySelectorAll("small")].map(x=>x.textContent.trim()).filter(Boolean).join(" · ")}else nm=b.textContent.trim();
       const em=b.querySelector("em");cost=em?em.textContent.trim():""}
     return `<button type="button" class="kbtile${b.classList.contains("off")?" off":""}" data-kbi="${i}"><span class="kn">${kbNum(i)}</span><span class="kt"><b>${esc(nm)}</b>${dt?`<small>${esc(dt)}</small>`:""}</span>${cost?`<em>${esc(cost)}</em>`:""}</button>`};
@@ -14649,7 +14697,7 @@ function kbBarPaint(){let el=$("#kbbar");if(KB.mode!=="bar"||!G){if(el)el.remove
 <p class="kbhelp">Cast: 1–9 and 0 · The next ten: Shift+1 to Shift+0 · ${esc(kmTipT("spPrev","Previous school"))} · ${esc(kmTipT("spNext","Next school"))} (or ${kk("spSchoolNext")}) · ${esc(kmTipT("spFirst"))} · ${esc(kmTipT("spLast"))} · ${esc(kmTipT("close"))}</p>`;
   el.querySelectorAll("[data-kbi]").forEach(b=>b.onclick=()=>kbCast(+b.dataset.kbi+1));
   el.querySelectorAll("[data-kbs]").forEach(b=>b.onclick=()=>kbSchool(+b.dataset.kbs));el.querySelector(".xclose").onclick=kbOff}
-function kbCast(n){const S=kbSchools(),s=S[KB.sc];if(!s)return;const b=s.items[n-1];if(!b){flash(`${s.piles?"The piles have":"This school has"} no ${n}${n===1?"st":n===2?"nd":n===3?"rd":"th"} entry.`);return}b.click();
+function kbCast(n){const S=kbSchools(),s=S[KB.sc];if(!s)return;const b=s.items[n-1];if(!b){flash(`${s.piles?"The piles have":s.common?"Common has":"This school has"} no ${n}${n===1?"st":n===2?"nd":n===3?"rd":"th"} entry.`);return}b.click();
   if(!kbTop()&&fkToTargets())kbModeOff()}   // v78s: a spell that waits for a tile hands over to the field selector
 
 /* the hand */

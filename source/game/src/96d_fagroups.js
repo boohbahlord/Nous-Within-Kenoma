@@ -132,6 +132,7 @@ function fgShape(pl,gid,g,base,role){const cx=Object.assign({},base,{pl}),foes=A
       return p});
     const ns=base.noStack;cx.noStack=(grp,t)=>{const L=fgFind(pl,g.lead);return !!L&&t===L.st||(ns?ns(grp,t):false)};
     cx.late=true;   // it moves first; they follow
+    cx.aggr={on:!!(base.aggr&&base.aggr.on),how:"square",n:2};   // v79f: a guard chases only what comes right up to it
     cx.gainMul=E=>{const e=pos.get(E);if(!e)return gm(E);const d=fgCheb(e.r,e.c,L0.r,L0.c);return gm(E)*(d<=1?3.2:d<=2?2.4:d<=3?1.5:1)};
     if(foes.some(e=>fgCheb(e.r,e.c,L0.r,L0.c)<=4)){cx.W=faMix(base.W,FA_OFF,.65);cx.thrAdj=(base.thrAdj||0)-.12}   // threatened: bold
     return cx}
@@ -139,16 +140,16 @@ function fgShape(pl,gid,g,base,role){const cx=Object.assign({},base,{pl}),foes=A
   if(g.k==="attack"){const A=fgAim(pl,g);if(!A)return cx;const T=A.seen?A.T.st:null;
     const isT=E=>!!T&&(E===T||E.owner===T.owner&&E.cards.length===T.cards.length&&Object.keys(T).every(k=>k==="cards"||E[k]===T[k]));   // a face-down target comes as a copy
     pull((S,r,c,walk)=>{let d=walk?walk(r,c,A.r,A.c):99;if(!(d<99))d=fgCheb(r,c,A.r,A.c);return d<=1?0:1.7*(d-1)});
-    cx.gainMul=E=>isT(E)?gm(E)*5:gm(E)*.6;
+    cx.gainMul=E=>isT(E)?gm(E)*5:gm(E)*.6;cx.aggr={on:true,how:"auto"};
     cx.W=faMix(base.W,FA_OFF,.9);cx.thrAdj=(base.thrAdj||0)-.22;cx.lossMul=(base.lossMul||1)*.6;   // reckless, somewhat
     return cx}
   /* v79e: Defend: goes out to meet what comes within three tiles of the area's edge, strikes it boldly, comes back */
-  if(g.k==="defend"){const [ar,ac]=g.at,R=fgRad(g),reach=R+3,dA=(r,c)=>Math.hypot(r-ar,c-ac),near=foes.filter(e=>dA(e.r,e.c)<=reach+.3);
+  if(g.k==="defend"){const [ar,ac]=g.at,R=fgRad(g),reach=R+3,dA=(r,c)=>Math.hypot(r-ar,c-ac),near=foes.filter(e=>dA(e.r,e.c)<=reach+.3);cx.aggr={on:true,how:"radius",n:3};
     pull((S,r,c)=>{const d=dA(r,c);if(near.length)return d>reach+.3?2.6*(d-reach)+1:0;return d>R+.3?2.2*(d-R)+.8:.1*d});
     cx.gainMul=E=>{const e=pos.get(E);if(!e)return gm(E);const d=dA(e.r,e.c);return gm(E)*(d<=R+.3?3.4:d<=reach+.3?2.8:.5)};
     if(near.length){cx.W=faMix(base.W,FA_OFF,.9);cx.thrAdj=(base.thrAdj||0)-.2;cx.lossMul=(base.lossMul||1)*.7}else cx.W=faMix(base.W,FA_OFF,.35);
     return cx}
-  if(g.k==="area"){const [ar,ac]=g.at,R=fgRad(g),inA=(r,c)=>Math.hypot(r-ar,c-ac)<=R+.3;
+  if(g.k==="area"){const [ar,ac]=g.at,R=fgRad(g),inA=(r,c)=>Math.hypot(r-ar,c-ac)<=R+.3;cx.aggr={on:!!(base.aggr&&base.aggr.on),how:"radius",n:Math.max(1,R)};   // v79f: it holds its ground
     pull((S,r,c)=>{const d=Math.hypot(r-ar,c-ac);return d>R+.3?2.6*(d-R)+1:.12*d});
     // v78s: a guard caught outside its area fights the enemies in its way back (nearer the area than it is, within two tiles of it)
     const away=fgMembers(pl,gid).filter(m=>!inA(m.r,m.c)),inWay=e=>away.some(m=>Math.hypot(e.r-ar,e.c-ac)<Math.hypot(m.r-ar,m.c-ac)&&fgCheb(e.r,e.c,m.r,m.c)<=2);

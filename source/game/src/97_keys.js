@@ -30,8 +30,11 @@ function kbLook(r,c){const t=document.querySelector(`#board .tile[data-r="${r}"]
   else t.scrollIntoView({block:"center",behavior:"smooth"});t.classList.add("kbping");setTimeout(()=>t.classList.remove("kbping"),1200)}
 /* the spells: their schools, and the piles last */
 const kbSchools=()=>{const box=$("#spells");const out=box?[...box.querySelectorAll("details.school")].map(d=>({el:d,items:[...d.querySelectorAll("button.spell")]})):[];
+  if(KB.mode==="bar"){const com=KB_COMMON.map(([s])=>$(s)).filter(b=>b&&b.isConnected);if(com.length)out.push({el:com[0].parentNode,items:com,common:true})}   // v79f: the Commons, in the bar only
   const piles=["#seegrave","#seeether","#seedark","#seeauct"].map(s=>$(s)).filter(Boolean);if(piles.length)out.push({el:piles[0].parentNode,items:piles,piles:true});
   return out};
+/* v79f: the Commons: the Bank, Diplomacy and Lazy Hand, a school of their own in the spell bar */
+const KB_COMMON=[["#openBank","The Bank"],["#dipbar","Diplomacy"],["#lazyBtn","Lazy Hand"]];
 const kbSpellMode=()=>KB.mode==="bar"||KB.mode==="list";
 function kbOff(){const was=KB.mode;KB.mode=null;if(was==="list"&&KB.fsOpened&&fsOn()&&PREF.fsSp){const t=$("#fstabSp");if(t)t.click()}KB.fsOpened=false;kbPaint()}
 function kbBar(){if(KB.mode&&KB.mode!=="bar")kbOff();KB.mode="bar";kbPaint()}
@@ -49,9 +52,10 @@ const kbNum=i=>i<9?String(i+1):i===9?"0":i<19?"⇧"+(i-9):i===19?"⇧0":"";
 function kbBarPaint(){let el=$("#kbbar");if(KB.mode!=="bar"||!G){if(el)el.remove();return}
   const S=kbSchools();if(!S.length){if(el)el.remove();KB.mode=null;return}KB.sc=Math.min(KB.sc,S.length-1);const s=S[KB.sc];
   if(!el){el=document.createElement("div");el.id="kbbar";el.setAttribute("role","dialog");el.setAttribute("aria-label","Spells");document.body.appendChild(el)}
-  const sname=x=>x.piles?"Piles":((x.el.querySelector("summary")||{}).textContent||"").trim();
+  const sname=x=>x.piles?"Piles":x.common?"Common":((x.el.querySelector("summary")||{}).textContent||"").trim();
   const tile=(b,i)=>{let nm="",dt="",cost="";
     if(s.piles){nm=b.textContent.trim()}
+    else if(s.common){const k=KB_COMMON.find(([q])=>b.matches(q));nm=k?k[1]:b.textContent.trim();const sm=b.querySelector("small");dt=sm?sm.textContent.trim():""}
     else{const sn=b.querySelector(".sn");if(sn){const c=sn.cloneNode(true);c.querySelectorAll("small,.bolts,.chips,i").forEach(x=>x.remove());nm=c.textContent.trim();dt=[...sn.querySelectorAll("small")].map(x=>x.textContent.trim()).filter(Boolean).join(" · ")}else nm=b.textContent.trim();
       const em=b.querySelector("em");cost=em?em.textContent.trim():""}
     return `<button type="button" class="kbtile${b.classList.contains("off")?" off":""}" data-kbi="${i}"><span class="kn">${kbNum(i)}</span><span class="kt"><b>${esc(nm)}</b>${dt?`<small>${esc(dt)}</small>`:""}</span>${cost?`<em>${esc(cost)}</em>`:""}</button>`};
@@ -61,7 +65,7 @@ function kbBarPaint(){let el=$("#kbbar");if(KB.mode!=="bar"||!G){if(el)el.remove
 <p class="kbhelp">Cast: 1–9 and 0 · The next ten: Shift+1 to Shift+0 · ${esc(kmTipT("spPrev","Previous school"))} · ${esc(kmTipT("spNext","Next school"))} (or ${kk("spSchoolNext")}) · ${esc(kmTipT("spFirst"))} · ${esc(kmTipT("spLast"))} · ${esc(kmTipT("close"))}</p>`;
   el.querySelectorAll("[data-kbi]").forEach(b=>b.onclick=()=>kbCast(+b.dataset.kbi+1));
   el.querySelectorAll("[data-kbs]").forEach(b=>b.onclick=()=>kbSchool(+b.dataset.kbs));el.querySelector(".xclose").onclick=kbOff}
-function kbCast(n){const S=kbSchools(),s=S[KB.sc];if(!s)return;const b=s.items[n-1];if(!b){flash(`${s.piles?"The piles have":"This school has"} no ${n}${n===1?"st":n===2?"nd":n===3?"rd":"th"} entry.`);return}b.click();
+function kbCast(n){const S=kbSchools(),s=S[KB.sc];if(!s)return;const b=s.items[n-1];if(!b){flash(`${s.piles?"The piles have":s.common?"Common has":"This school has"} no ${n}${n===1?"st":n===2?"nd":n===3?"rd":"th"} entry.`);return}b.click();
   if(!kbTop()&&fkToTargets())kbModeOff()}   // v78s: a spell that waits for a tile hands over to the field selector
 
 /* the hand */

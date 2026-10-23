@@ -186,7 +186,7 @@ function attackRun(r1,c1,r2,c2,mode,forced){
   if(A.mars){ra.parts.push("Mars");A.mars=false}
   if(opt.card&&opt.card.unit==="cannon")opt.card.readyAt=(G.p[atkPl].tn||0)+R(2)+2;   // the Cannon reloads
   G.histTile=`${coord(r1,c1)} → ${coord(r2,c2)}`;
-  A.odds=null;D.odds=null;A.attacked=true;G.lastAttack=G.turnNo;venusAttack(atkPl,defPl);
+  A.odds=null;D.odds=null;A.attacked=true;G.lastAttack=G.turnNo;G.fights=(G.fights||0)+1;venusAttack(atkPl,defPl);
   if(A.down){ra.parts=["a face-down card "+ra.total];A.down=false}   // v78j: rule 12.G.5: it flips face up once it attacks
   const wasDown=D.down;if(D.down){D.down=false}   // a face-down stack that is attacked turns face up
   if(A.ambush)A.ambush=false;A.ambushing=false;
