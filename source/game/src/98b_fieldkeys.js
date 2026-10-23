@@ -15,7 +15,7 @@
      history. X or Esc stops.
    - I: what stands on the tile under the selector.
    A stack selected by keys is brought to the middle of the camera. A click on the field hides the selector. */
-const FK={on:false,cur:null,tgt:null,foe:false,pm:false,p:0,pi:0,dir:null,tdir:null,t:0,tt:0};
+const FK={on:false,cur:null,tgt:null,foe:false,pm:false,p:0,pi:0,dir:null,tdir:null,t:0,tt:0,ifo:"field"};   // v78s: ifo: with a hand card picked, what I and the second highlight are on (the card or the field)
 const fkTile=(r,c)=>document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);
 function fkGrid(){return [...document.querySelectorAll("#board>.row")].map(row=>[...row.querySelectorAll(":scope>.tile")].map(t=>t.dataset.r!=null?{r:+t.dataset.r,c:+t.dataset.c}:null))}
 function fkAt(grid,r,c){for(let i=0;i<grid.length;i++){const j=grid[i].findIndex(x=>x&&x.r===r&&x.c===c);if(j>=0)return [i,j]}return null}
@@ -61,6 +61,22 @@ function fkAct(how){const p=FK.tgt||FK.cur;if(!p)return;const live=canAct(),s=G.
   if(how==="atk"){flash(s?"No attack on that tile.":"Select a stack of yours first.");return}
   if(how==="move"){flash(s?"It can't go there.":"Select a stack of yours first.");return}
   FK.tgt=null;tileClick(p.r,p.c);fkFollow()}
+/* v78s: something waits for a tile (a card picked from the hand, a spell's target): the selector goes to the nearest
+   highlighted tile, so the arrows (or WASD) move it and Enter uses it */
+function fkToTargets(){FK.ifo="field";const T=[...document.querySelectorAll("#board .tile.tplace,#board .tile.tmove,#board .tile.tatk,#board .tile.taim")];if(!T.length)return false;
+  let best=T[0];if(FK.cur){let bd=1e9;for(const t of T){const d=Math.abs(+t.dataset.r-FK.cur.r)+Math.abs(+t.dataset.c-FK.cur.c);if(d<bd){bd=d;best=t}}}
+  fkSet(+best.dataset.r,+best.dataset.c);return true}
+/* v78s: I: the info box of the picked hand card (when Tab put the second highlight on it) or of the stack under the selector */
+function fkInfo(){if(G.selHand&&FK.ifo==="hand"){const b=$("#hand .cardbtn.on"),r=b?b.getBoundingClientRect():{right:200,top:200};
+    pop(infoHTML1({cards:[G.selHand],owner:G.selHand.owner},nameOf(G.selHand)),r.right+4,r.top,"info");return}
+  const t=FK.cur&&fkTile(FK.cur.r,FK.cur.c);if(!t)return;const src=stackAtTile(t),r=t.getBoundingClientRect();
+  if(src)pop(infoHTML1(src.st,stackTitle(src.st,src.r,src.c)),r.right+4,r.top,"info");else flash(t.getAttribute("aria-label")||"")}
+/* v78s: a Miner picked by keys: the lit mining slots, chosen with C and V (or the arrows), Enter puts it in, Tab goes to the
+   field instead, X lets go */
+const mineLit=()=>[...document.querySelectorAll("#minepanel .mslot.tplace")].filter(b=>b.getClientRects().length);
+function kbMineOn(){if(PREF.mineOpen===false){PREF.mineOpen=true;savePrefs();paintMines()}const L=mineLit();if(!L.length)return false;
+  KB.mode="mine";KB.m=0;kbPaint();mineMark();flash(`A mining slot: ${kmShow("hPrev")} or ${kmShow("hNext")} choose, ${kmShow("act")} puts the Miner in, ${kmShow("rowNext")} the field instead, ${kmShow("close")} lets go.`);return true}
+function mineMark(){document.querySelectorAll(".kbmine,.kbifo").forEach(e=>e.classList.remove("kbmine","kbifo"));const L=mineLit(),b=L[KB.m];if(b){b.classList.add("kbmine");b.scrollIntoView({block:"nearest",inline:"nearest"})}}
 function fkFollow(){if(G.sel){FK.cur={r:G.sel.r,c:G.sel.c};fkCenter(G.sel.r,G.sel.c)}fkPaint()}
 /* Y: the actions of what you selected, numbered */
 function fkActItems(){const box=$("#selbox");if(!box)return [];return [...box.querySelectorAll("button,input[type=checkbox],summary")].filter(e=>e.getClientRects().length&&!e.disabled)}
@@ -94,9 +110,12 @@ function fkPaint(){document.querySelectorAll(".kbcur,.kbpl,.kbplp").forEach(e=>e
   if(FK.pm){const b=fkBoxes()[FK.p];if(b){b.classList.add("kbpl");const parts=[...b.children].filter(e=>e.getClientRects().length&&e.textContent.trim());if(parts[FK.pi])parts[FK.pi].classList.add("kbplp")}}
   if(!FK.on||!G||!FK.cur){if(lab)lab.hidden=true;return}
   const t=fkTile(FK.cur.r,FK.cur.c);if(t)t.classList.add("kbcur");
+  document.querySelectorAll(".kbifo").forEach(e=>e.classList.remove("kbifo"));
+  if(G.selHand){const h=FK.ifo==="hand"?$("#hand .cardbtn.on"):t;if(h)h.classList.add("kbifo")}   // v78s: the second highlight: what I and Tab are on
   if(!lab){lab=document.createElement("div");lab.id="fkmode";lab.setAttribute("aria-live","polite");document.body.appendChild(lab)}
   lab.hidden=false;
-  lab.innerHTML=`${esc(kmShow("rowNext"))} steps through: <b>${FK.foe?"the enemy's cards":"your cards"}</b> <kbd>${esc(kmShow("foeSwap"))}</kbd> switches`;
+  lab.innerHTML=G.selHand?`<kbd>${esc(kmShow("rowNext"))}</kbd> <b>${FK.ifo==="hand"?"the picked card":"the field"}</b> (or ${FK.ifo==="hand"?"the field":"the picked card"}) · <kbd>${esc(kmShow("info"))}</kbd> its info · <kbd>${esc(kmShow("act"))}</kbd> places · <kbd>${esc(kmShow("close"))}</kbd> lets go`
+    :`${esc(kmShow("rowNext"))} steps through: <b>${FK.foe?"the enemy's cards":"your cards"}</b> <kbd>${esc(kmShow("foeSwap"))}</kbd> switches`;
   if(FK.tgt&&G.sel){const B=$("#board"),a=fkTile(G.sel.r,G.sel.c),b=fkTile(FK.tgt.r,FK.tgt.c);if(!B||!a||!b)return;const br=B.getBoundingClientRect(),ra=a.getBoundingClientRect(),rb=b.getBoundingClientRect();
     const x1=ra.left+ra.width/2-br.left,y1=ra.top+ra.height/2-br.top,x2=rb.left+rb.width/2-br.left,y2=rb.top+rb.height/2-br.top;
     B.insertAdjacentHTML("beforeend",`<svg id="fkarrow" aria-hidden="true" width="${Math.ceil(br.width)}" height="${Math.ceil(br.height)}"><defs><marker id="fkhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0L10,5L0,10z" fill="#f1d27a"/></marker></defs><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#f1d27a" stroke-width="4" stroke-linecap="round" marker-end="url(#fkhead)"/></svg>`)}}
@@ -111,21 +130,29 @@ addEventListener("keydown",e=>{if(KB.synth||typing(e.target)||!G||G.passing)retu
     const n=kmName(e.code,e.key);if(plain&&!e.shiftKey&&(n==="C"||n==="V")){stop();fkPart(n==="V"?1:-1);return}
     if(plain&&!e.shiftKey&&n==="Enter"){stop();const b=fkBoxes()[FK.p],h=b&&b.querySelector("[data-hist]");if(h)h.click();return}
     if(is("close")||e.key==="Escape"){stop();fkPlayersOff();return}}
+  if(KB.mode==="mine"){const L=mineLit();if(!L.length||!G.selHand){KB.mode=null;mineMark();return}   // v78s: the mining slots by keys
+    if(is("hPrev")||is("selLeft")||is("selUp")){stop();KB.m=(KB.m-1+L.length)%L.length;mineMark();return}
+    if(is("hNext")||is("selRight")||is("selDown")){stop();KB.m=(KB.m+1)%L.length;mineMark();return}
+    if(is("act")||is("hPick")){stop();const b=L[KB.m];KB.mode=null;mineMark();b.click();kbPaint();return}
+    if(is("rowNext")||is("rowPrev")){stop();KB.mode=null;mineMark();if(!fkToTargets())flash("No tile on the field takes it.");return}
+    if(is("close")||e.key==="Escape"){stop();KB.mode=null;mineMark();G.selHand=null;render();flash("Let go.");return}
+    return}
   if(KB.mode&&(kmIn(e,KB.mode==="hand"?"hand":"spell")||kbSpellMode()&&kbDigit(e)||is("close")||e.key==="Escape"))return;   // the spells and the hand keep their keys
   const sel=Object.keys(FK_SEL).find(is);if(sel){stop();fkArrow(sel);return}
   const aim=Object.keys(FK_AIM).find(is);if(aim){stop();fkAim(aim);return}
   if(is("menu")){stop();fkMenu();return}
+  if((is("rowNext")||is("rowPrev"))&&G.selHand&&FK.cur){stop();FK.ifo=FK.ifo==="hand"?"field":"hand";fkPaint();return}   // v78s: a picked card: Tab goes between it and the field
   if(is("rowNext")||is("rowPrev")){stop();FK.on=true;fkRowStep(is("rowNext")?1:-1);return}
   if(is("foeSwap")){stop();FK.foe=!FK.foe;FK.on=true;if(!FK.cur)fkRowStep(1);else fkPaint();return}
   if(is("foeNext")||is("foePrev")){stop();fkFoeStep(is("foeNext")?1:-1);return}
   if(is("plNext")||is("plPrev")){stop();fkPlayers(is("plNext")?1:-1);return}
   if(is("acts")){stop();fkActs();return}
   if(FK.on&&(is("rowDown")||is("rowUp"))){stop();fkColStep(is("rowDown")?1:-1);return}   // bound to a key (alone, Ctrl and Shift act on letting go)
+  if(is("info")&&(G.selHand&&FK.ifo==="hand"||FK.on&&FK.cur)){stop();fkInfo();return}   // v78s: the picked card's info, or what stands under the selector
   if(!FK.on||!FK.cur)return;   // the rest acts on the selector, once the keys have put it on the field
   if(is("act")){stop();fkAct("any");return}
   if(is("move")){stop();fkAct("move");return}
   if(is("attack")){stop();fkAct("atk");return}
-  if(is("info")){stop();const t=fkTile(FK.cur.r,FK.cur.c);flash(t?t.getAttribute("aria-label")||"":"");return}
 },true);
 /* Ctrl or Shift pressed alone on the field (as bound): the next row down or up (only once the keys are on the field) */
 addEventListener("keyup",e=>{if(typing(e.target)||!G||!FK.on||KB.mode||kbTop())return;if(kmTap(e,"rowDown"))fkColStep(1);else if(kmTap(e,"rowUp"))fkColStep(-1)},true);

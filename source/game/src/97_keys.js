@@ -20,7 +20,8 @@ const kbVis=el=>!el.hidden&&el.getClientRects().length>0&&el.innerHTML.trim()!==
 function kbTop(){let best=null,bz=-1e9;for(const el of document.querySelectorAll(KB_WINS)){if(!kbVis(el))continue;const z=+getComputedStyle(el).zIndex||0;if(z>=bz){bz=z;best=el}}return best}
 function kbEsc(){KB.synth=true;try{document.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",code:"Escape",bubbles:true,cancelable:true}))}finally{KB.synth=false}}
 /* close the window on top: its × when it has one, else what Esc does for it */
-function kbClose(){const w=kbTop();if(!w)return false;const x=[...w.querySelectorAll(".xclose,[data-x],[data-rbclose],button[aria-label^='Close']")].find(b=>b.getClientRects().length);
+function kbClose(){const w=kbTop();if(!w)return false;if(w.id==="clsmenu"){w.hidden=true;return true}   // v78s: the right-click menu too
+  const x=[...w.querySelectorAll(".xclose,[data-x],[data-rbclose],button[aria-label^='Close']")].find(b=>b.getClientRects().length);
   if(x)x.click();else kbEsc();return true}
 const kbShow=el=>{if(!el)return;if(!fsOn())el.scrollIntoView({block:"center",behavior:"smooth"});el.classList.add("spping");setTimeout(()=>el.classList.remove("spping"),1600)};
 /* the camera on a tile: the large map's frame, or the page */
@@ -60,7 +61,10 @@ function kbBarPaint(){let el=$("#kbbar");if(KB.mode!=="bar"||!G){if(el)el.remove
 <p class="kbhelp">1–9 and 0 cast · Shift+1 to Shift+0 the next ten · ${kk("spPrev")} and ${kk("spNext")}, or ${kk("spSchoolNext")}, the school before and after · ${kk("spFirst")} the first, ${kk("spLast")} the piles · ${kk("close")} closes</p>`;
   el.querySelectorAll("[data-kbi]").forEach(b=>b.onclick=()=>kbCast(+b.dataset.kbi+1));
   el.querySelectorAll("[data-kbs]").forEach(b=>b.onclick=()=>kbSchool(+b.dataset.kbs));el.querySelector(".xclose").onclick=kbOff}
-function kbCast(n){const S=kbSchools(),s=S[KB.sc];if(!s)return;const b=s.items[n-1];if(!b){flash(`${s.piles?"The piles have":"This school has"} no ${n}${n===1?"st":n===2?"nd":n===3?"rd":"th"} entry.`);return}b.click()}
+function kbCast(n){const S=kbSchools(),s=S[KB.sc];if(!s)return;const b=s.items[n-1];if(!b){flash(`${s.piles?"The piles have":"This school has"} no ${n}${n===1?"st":n===2?"nd":n===3?"rd":"th"} entry.`);return}b.click();
+  if(!kbTop()&&fkToTargets())kbModeOff()}   // v78s: a spell that waits for a tile hands over to the field selector
+/* v78s: a key that the open spells or hand use (Space then belongs to them, not to the turn button) */
+const kbModeKey=e=>KB.mode==="hand"?["hNext","hPrev","hPick","hInfo"].some(id=>kmIs(e,id)):["spSchoolNext","spSchoolPrev","spFirst","spLast","spNext","spPrev","spCast"].some(id=>kmIs(e,id))||!!kbDigit(e);
 /* the hand */
 const kbHand=()=>[...document.querySelectorAll("#hand [data-h]")];
 function kbHandOn(on){if(on&&kbSpellMode())kbOff();KB.mode=on?"hand":null;if(on){const H=kbHand();KB.h=Math.max(0,Math.min(H.length-1,KB.h));kbShow($("#handwrap"))}kbPaint()}
@@ -103,8 +107,11 @@ const KB_DO=[
   ["spelllist",()=>kbList()],["spellbar",()=>kbBar()],["ether",()=>openEtherShop()],["bank",()=>{const b=$("#bankslot .bankbar");if(b)b.click();else openBank()}],
   ["dice",()=>kbDice()],["log",()=>kbLog()],["hand",()=>kbHandOn(true)],["console",()=>cnOpen()],["consoleSwap",()=>cnSwap()],
   ["roll",()=>{const d=$("#d4");if(d&&!d.disabled)d.click();else flash("There is nothing to roll now: the draw is in your draw phase.")}],
-  ["sacrifice",()=>{const P=G.p[view()],i=P&&G.selHand?P.hand.indexOf(G.selHand):-1;if(i<0)return false;
-    const b=document.querySelector(`#hand [data-sh="${i}"]`);if(b)b.click();else flash("That card can't be sacrificed now.")}]];
+  ["sacrifice",()=>{const P=G.p[view()];if(!P)return false;   // v78s: the picked card, or (picking from the hand by keys) the highlighted one
+    const hk=KB.mode==="hand"&&kbHand()[KB.h],i=G.selHand?P.hand.indexOf(G.selHand):hk?+hk.dataset.h:-1;if(i<0){flash("Pick a hand card first (G, then C or V).");return}
+    const b=document.querySelector(`#hand [data-sh="${i}"]`);if(!b){flash("That card can't be sacrificed now.");return}b.click();
+    if(G.selHand&&!P.hand.includes(G.selHand)){G.selHand=null;G.mode=null;render()}   // the sacrificed card is no longer picked
+    if(KB.mode==="hand"){const H=kbHand();KB.h=Math.max(0,Math.min(H.length-1,KB.h));kbPaint()}}]];
 /* Ctrl or Shift pressed alone in the spells: the next or the previous school */
 document.addEventListener("keyup",e=>{if(!G||!kbSpellMode()||kbTop()||typing(e.target))return;
   if(kmTap(e,"spSchoolNext"))kbSchool(KB.sc+1);else if(kmTap(e,"spSchoolPrev"))kbSchool(KB.sc-1)});
@@ -123,7 +130,9 @@ document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(
   if(is("music")){stop();if(typeof musicSync==="function"){PREF.music=PREF.music===false;savePrefs();musicSync();flash(PREF.music===false?"Music off.":"Music on.")}return}
   if(is("rulebook")){stop();rbWin();return}
   /* closing: the window on top first (its ×), then the spells or the hand; Esc for the windows that have no Esc of their own */
-  if(is("close")){if(kbTop()){stop();kbClose()}else if(KB.mode){stop();kbModeOff()}return}
+  if(is("close")){if(kbTop()){stop();kbClose()}else if(KB.mode){stop();kbModeOff()}
+    else if(G&&!G.over&&(G.selHand||G.sel||G.placing)){stop();if(G.placing)cancelPlacing();G.selHand=null;G.sel=null;G.mode=null;G.faceDown=false;FK.tgt=null;render();flash("Let go.")}   // v78s: the picked card or the selected stack
+    return}
   if(e.key==="Escape"){const w=kbTop();
     if(w){if(w.matches("#ov,.faov,#menu,#animask,#leavebox")){const x=[...w.querySelectorAll(".xclose,[data-x],button[aria-label^='Close']")].find(b=>b.getClientRects().length);if(x){stop();x.click()}}return}   // the rest close on their own Esc
     if(KB.mode){stop();kbModeOff()}return}
@@ -136,7 +145,9 @@ document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(
     if(is("spCast")&&KB.mode==="list"){stop();const s=kbSchools()[KB.sc],b=s&&s.items[KB.li];if(b)b.click();return}}
   if(KB.mode==="hand"){const H=kbHand();
     if(is("hNext")||is("hPrev")){stop();if(H.length){KB.h=(KB.h+(is("hNext")?1:-1)+H.length)%H.length;kbPaint();H[KB.h].scrollIntoView({block:"nearest",inline:"nearest"})}return}
-    if(is("hPick")){stop();if(H[KB.h])H[KB.h].click();kbPaint();return}
+    if(is("hPick")){stop();if(H[KB.h])H[KB.h].click();kbPaint();
+      if(G&&G.selHand&&G.selHand.unit==="miner"&&kbMineOn()){}   // v78s: a Miner goes to the mining slots first
+      else if(G&&G.selHand&&fkToTargets()){kbHandOn(false);flash(`Now a tile: ${kmShow4(["selUp","selLeft","selDown","selRight"])} move, ${kmShow("act")} places the card.`)}return}   // v78s: a picked card hands over to the field
     if(is("hInfo")){stop();const ci=H[KB.h]&&H[KB.h].querySelector(".ci");if(ci)ci.click();return}}
   const a=KB_DO.find(([id])=>is(id));if(a&&e.repeat){stop();return}if(a&&a[1]()!==false)stop();   // v78j: one press, one action (held, a window flickered open and shut)
 },true);
