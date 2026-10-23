@@ -2,7 +2,7 @@
 
 **Who this is for:** any Claude session that changes how the game or the site looks, reads, sounds or behaves.
 **When to read it:** before the first UI change of a session, and again before shipping one.
-**Where it comes from:** Bryce's own requests (verbatim in `source/notes/`: `ui_overhaul_sheet.md`, `prompt12_sheet.md`,
+**Where it comes from:** the author's own requests (verbatim in `source/notes/`: `ui_overhaul_sheet.md`, `prompt12_sheet.md`,
 `next_requests_2026-10-18.md`, `claude_code_requests_2026-10-18.md`, `v44_sheet…`, `v47_sheet…`, `v52_sheet…`).
 Quoted words are his. Everything else is a rule drawn from what he asked for or complained about. The sheets are the
 evidence; this note is the rulebook.
@@ -78,7 +78,7 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
 ### 2.3 English is a priority
 - **Concise, accurate, purposeful.** "All descriptions in the play menu and rules elsewhere should be concise, easy to read, and
   purposeful." To the point, with purpose and clarity.
-- **Correct mechanics and capitalization.** No stray quotation marks, ever. When Bryce gives quoted text, the quotes are his
+- **Correct mechanics and capitalization.** No stray quotation marks, ever. When the author gives quoted text, the quotes are his
   punctuation, not content to display. "Do not fucking include quotations."
 - **Names that make sense as names.** A spell list is a list of things you buy, so no "Buy …" labels ("Increase Max Mana," not
   "Buy Mana"). Short forms players know: 1v1 and 2v2 (never "One on One"), P1–P8.
@@ -100,7 +100,7 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
   | Demons | The former Barbarians |
   | Tall | The formation formerly called "Deep" |
 
-- **Keep his names.** Spell, card and mode names stay as Bryce wrote them. If one seems wrong, flag it; don't rename it quietly.
+- **Keep his names.** Spell, card and mode names stay as the author wrote them. If one seems wrong, flag it; don't rename it quietly.
 - **All on-screen info agrees.** If the Bank window, a tooltip and the rules page describe the same rule, they say the same
   thing. "Make sure the info on screen is consistent with eachother."
 
@@ -114,7 +114,7 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
   stat box.
 - **No "i" buttons scattered everywhere** ("terrible to look at"). Touch info comes from holding a tile, or from an opt-in "info
   buttons" switch meant for touch screens.
-- **Phone exception, stated by Bryce:** in compact automation menus, descriptions may sit inside the boxes on a phone. On a
+- **Phone exception, stated by the author:** in compact automation menus, descriptions may sit inside the boxes on a phone. On a
   computer they go in hover tips.
 - **Compact info boxes.** Planet and spell tips are small and dense. "Think Stellaris UI/UX."
 - **The planet's full info** on click is complete ("not hiding things or being too short") but stays about one short paragraph.
@@ -251,7 +251,7 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
 ### 2.11 Care in the details
 - "Certainly on care or details." Small defects (half an outline, a stray capital, a tip covering its subject) count as real
   bugs, not polish.
-- **Check UI changes by eye** at a phone size and a computer size, at Bryce's settings (Text 180%, UI 80%), and in at least one
+- **Check UI changes by eye** at a phone size and a computer size, at the author's settings (Text 180%, UI 80%), and in at least one
   3+ player game. Look at the actual screen, not just the code.
 - **Bug sweeps include UI/UX and English,** not only console errors. "Go heavy on checking and finding glitches … this includes
   UI/UX. Check for English and sentences."

@@ -99,7 +99,7 @@ def render_items(items):
         if k == 'blank': out.append('<p class="blank"></p>')
         elif k == 'img':
             f = it['f']; lab = ART[f][0]
-            out.append(f'<figure class="inline-art"><a href="art.html#{anchor(f)}" style="border:0"><img src="{f}" alt="{esc(lab)}, artwork by Bryce Staton" loading="lazy"></a><figcaption>{esc(lab)}</figcaption></figure>')
+            out.append(f'<figure class="inline-art"><a href="art.html#{anchor(f)}" style="border:0"><img src="{f}" alt="{esc(lab)}, artwork" loading="lazy"></a><figcaption>{esc(lab)}</figcaption></figure>')
         elif k == 'para': out.append(f'<p class="para">{it["html"].rstrip()}</p>')
         elif k == 'quote': out.append(f'<p class="quote">{it["html"]}</p>')
         elif k == 'flush': out.append(f'<p class="left">{it["html"].rstrip()}</p>')
@@ -157,7 +157,7 @@ idx = head('Nous Within Kenoma') + f'''<main class="wide" style="max-width:1060p
 <div class="front">
 <div>
   <h1 style="font-size:clamp(30px,5vw,44px);line-height:1.1;margin:0 0 10px">Nous Within Kenoma</h1>
-  <p style="color:var(--dim);margin:0 0 34px;font-size:15px">Gnostic-inspired syncretic short stories by Bryce Staton</p>
+  <p style="color:var(--dim);margin:0 0 34px;font-size:15px">Gnostic-inspired syncretic short stories</p>
   <h2 class="label">Sample Chapters</h2>
   <nav class="cards"><a class="card" href="chapters.html">Read Nous Within Kenoma<span>Book in progress: {len(C)} chapters</span></a></nav>
   <h2 class="label">Maps</h2>
@@ -195,13 +195,13 @@ DIG = ['in-denial.jpg', 'forgetting-hell.png']
 def fig(f):
     lab, ch = ART[f]
     sub = f'<span><a href="{fname(ch)}">Chapter {ch} · {esc(TITLE[ch])}</a></span>' if ch else ('<span>Front page</span>' if f == 'art-01.jpg' else '')
-    return (f'<figure id="{anchor(f)}"><a href="{f}"><img src="{f}" alt="{esc(lab)}, artwork by Bryce Staton" loading="lazy"></a>'
+    return (f'<figure id="{anchor(f)}"><a href="{f}"><img src="{f}" alt="{esc(lab)}, artwork" loading="lazy"></a>'
             f'<figcaption>{esc(lab)}{sub}</figcaption></figure>')
 sep = '<span class="sep">·</span> '   # the space lets a long row wrap after a dot instead of running out of its box
 art = head('Additional Art · Nous Within Kenoma') + f'''<main class="wide">
 <nav class="crumbs"><a href="index.html">← Nous Within Kenoma</a></nav>
 <header><span class="num">Nous Within Kenoma</span><h1>Additional Art</h1></header>
-<p class="intro">Drawings and digital pieces by Bryce Staton. Hatched faces, grids, strings, towers and smeared light: they help carry the atmosphere of the stories and the cosmos. Pieces that also appear inside a chapter name that chapter beneath them.</p>
+<p class="intro">Drawings and digital pieces. Hatched faces, grids, strings, towers and smeared light: they help carry the atmosphere of the stories and the cosmos. Pieces that also appear inside a chapter name that chapter beneath them.</p>
 <section class="ix" aria-label="Index of art"><h2>Index of Art</h2><table>
 <tr><th><a href="#drawings">Drawings</a></th><td>{sep.join(f'<a href="#{anchor(f)}">{esc(ART[f][0])}</a>' for f in DRAW)}</td></tr>
 <tr><th><a href="#digital">Digital</a></th><td>{sep.join(f'<a href="#{anchor(f)}">{esc(ART[f][0])}</a>' for f in DIG)}</td></tr>
