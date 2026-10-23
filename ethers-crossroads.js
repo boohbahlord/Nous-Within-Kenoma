@@ -2592,9 +2592,9 @@ ${["river","none"].filter(k=>!(mode==="survival"&&k==="river")).map(k=>`<label c
 ${mode==="survival"?'<p class="dim">Survival always uses the midline: the field is 5 tall.</p>':`<div class="f"><span>Height</span><div class="opts">${[[4,"4 tall","No midline"],[5,"5 tall","One midline"],[6,"6 tall (default)","Two midlines"]].map(([h,t,d])=>`<label class="opt"><input type="radio" name="orowsd" value="${h}" ${h===6?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>`}
 </div>${chk("ocorners","Cut off the corners","The four corner tiles are removed from play. On by default for free-for-all and the 2v2 layouts on the edges.",false)}
 <div id="sizeother" class="sizesel" hidden></div>
-${mode==="survival"?`<div class="f" id="bigset"><span>Large maps</span><div class="opts">${[["","Standard","The sizes above: only while every survivor gets at least five spawn tiles (four survivors always need the large map)."],["long","10 long, 6 wide (default)","The Horde holds the top two lines. Each survivor spawns in a box 3 wide and 2 deep at the bottom: two side by side, then a second row of boxes on top of them. One survivor holds the whole back line."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="obig" value="${v}" ${v==="long"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div><p class="dim">Large maps scroll inside a frame: the mouse wheel zooms, dragging an empty spot or WASD and the arrow keys move it, and E zooms in, Q out (always around the middle of the screen). The Menu has Large Map Controls.</p></div>`:`<div class="f" id="bigset"><span>Large maps</span><div class="opts">${[["","Standard (default)","The sizes above."],["long","10 long, 6 wide","1v1, or 2v2 with each team on one short end."],["sq","10 by 10","Any layout."],["cross","Cross","A real cross: four arms around a diamond middle; one player at the end of each arm."],["cross2","Two-armed Cross","The Cross with only its top and bottom arms; up to 4 players, two to an arm."],["plus","Cross Map 2","The 10 by 10 plus: arms 4 wide; everyone spawns at the end of an arm."],["round","Plus with a round middle","The cross with a round open middle; the hole option can open its center."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="obig" value="${v}" ${v?"":"checked"}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
+${mode==="survival"?`<div class="f" id="bigset"><span>Large maps</span><div class="opts">${[["","Standard","The sizes above: only while every survivor gets at least five spawn tiles (four survivors always need the large map)."],["long","10 long, 6 wide (default)","The Horde holds the top two lines. Each survivor spawns in a box 3 wide and 2 deep at the bottom: two side by side, then a second row of boxes on top of them. One survivor holds the whole back line."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="obig" value="${v}" ${v==="long"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div><p class="dim">Large maps scroll inside a frame: the mouse wheel zooms, dragging an empty spot or WASD moves it, and E zooms in, Q out (always around the middle of the screen). The Menu has Large Map Controls.</p></div>`:`<div class="f" id="bigset"><span>Large maps</span><div class="opts">${[["","Standard (default)","The sizes above."],["long","10 long, 6 wide","1v1, or 2v2 with each team on one short end."],["sq","10 by 10","Any layout."],["cross","Cross","A real cross: four arms around a diamond middle; one player at the end of each arm."],["cross2","Two-armed Cross","The Cross with only its top and bottom arms; up to 4 players, two to an arm."],["plus","Cross Map 2","The 10 by 10 plus: arms 4 wide; everyone spawns at the end of an arm."],["round","Plus with a round middle","The cross with a round open middle; the hole option can open its center."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="obig" value="${v}" ${v?"":"checked"}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
 <div id="crossopts" class="crossopts" hidden><div class="f"><span>Cross size</span><div class="opts"><label class="opt"><input type="radio" name="oxsize" value="std" checked><span>Standard (default)<small>Arms 6 by 6 around a diamond (a square about 14 on a side, turned on its point). With teams of two, teammates can share an arm.</small></span></label><label class="opt"><input type="radio" name="oxsize" value="small"><span>Small<small>Arms 3 by 3 around a diamond 6 on a side. One player to an arm: up to 4 (2 on the two-armed Cross).</small></span></label></div></div>
-${chk("oxhole","A hole in the very middle","The center of the diamond can't be played on: 2 by 2 (1 tile on the small Cross).",false)}${chk("oxhollow","Hollow tiles around the middle","Four hollows, 2 by 2 each, out on the diagonals of the middle (one tile from the hole and one from the diamond's edge), can't be played on. Standard size only.",false)}</div><p class="dim">Large maps scroll inside a frame: the mouse wheel zooms, dragging an empty spot or WASD and the arrow keys move it, and E zooms in, Q out (always around the middle of the screen). The Menu has Large Map Controls.</p></div>`}
+${chk("oxhole","A hole in the very middle","The center of the diamond can't be played on: 2 by 2 (1 tile on the small Cross).",false)}${chk("oxhollow","Hollow tiles around the middle","Four hollows, 2 by 2 each, out on the diagonals of the middle (one tile from the hole and one from the diamond's edge), can't be played on. Standard size only.",false)}</div><p class="dim">Large maps scroll inside a frame: the mouse wheel zooms, dragging an empty spot or WASD moves it, and E zooms in, Q out (always around the middle of the screen). The Menu has Large Map Controls.</p></div>`}
 <p class="dim mapnote" id="rivernote" hidden>The River map is always 7 wide and 5 tall with the midline, and keeps its corners.</p>
 
 </fieldset>
@@ -5489,6 +5489,10 @@ const touchy=()=>matchMedia("(hover: none)").matches;
 let tipEl=null;
 document.addEventListener("pointerover",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]");if(!el||el===tipEl)return;tipEl=el;clearTimeout(tipT);tipT=setTimeout(()=>showTip(el,false),850)});
 document.addEventListener("pointerout",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]");if(!el)return;if(e.relatedTarget&&el.contains(e.relatedTarget))return;tipEl=null;clearTimeout(tipT);const t=$("#tipbox");if(t&&!t.classList.contains("pinned"))t.hidden=true});
+/* v78b: a tip whose anchor is gone (its window closed, the page redrawn) goes with it: no pointer ever left it */
+function tipCheck(){if(tipEl&&!tipEl.isConnected){tipEl=null;clearTimeout(tipT);const t=$("#tipbox");if(t&&!t.classList.contains("pinned"))t.hidden=true}}
+{const _oh=ovHide;ovHide=function(){_oh.apply(this,arguments);tipCheck()}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);tipCheck()}}
 /* on touch, a long press shows the tip with an X instead of acting */
 let lpT=0,lpFired=false;
 document.addEventListener("touchstart",e=>{const el=e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]");if(!el)return;lpFired=false;clearTimeout(lpT);lpT=setTimeout(()=>{lpFired=true;showTip(el,true)},450)},{passive:true});
@@ -9832,7 +9836,7 @@ if(window.__EC)Object.assign(window.__EC,{grMine,grClean,grPick,faWindow:t=>faWi
    - v59: the mouse wheel scrolls the page, as anywhere else; zooming with it is a choice (off by default) in the note
      under the field, which also lists the controls and has − and + buttons. With it on, the wheel zooms around the pointer.
    - Dragging an empty spot of the field moves it; a stack is still clicked as always. On a touch screen the frame scrolls.
-   - WASD or the arrow keys move it (Shift: faster), E zooms in and Q out (Menu: reversed). Not while typing.
+   - WASD moves it (Shift: faster), E zooms in and Q out (Menu: reversed). Not while typing.
    - v77a: zooming always keeps the middle of what you see in place; held keys move the field smoothly, two at once on a diagonal.
    - Menu, Large Map Controls: the wheel, both reversals and the speed. The section is faded outside a large map. */
 const CAM={z:1,ZMIN:.45,ZMAX:2.2,TILE:64};
@@ -9849,7 +9853,7 @@ function camNote(){const w=camWrap();let n=$("#camnote");
   if(!n){n=document.createElement("div");n.id="camnote";n.className="camnote";w.after(n)}else if(n.previousElementSibling!==w)w.after(n);
   n.hidden=false;const ph=isPhone(),key=(ph?"p":"c")+(PREF.camWheel===true);if(n.dataset.k===key)return;n.dataset.k=key;
   n.innerHTML=`<span class="cz"><button type="button" class="btn ghost sm" data-cz="-1" aria-label="Zoom out">−</button><button type="button" class="btn ghost sm" data-cz="1" aria-label="Zoom in">+</button></span>`+
-    (ph?`<span class="dim">Swipe the field to move it.</span>`:`<span class="dim">Drag an empty spot to move the field · WASD or the arrow keys move it, two at once for a diagonal (Shift: faster) · E zooms in, Q out</span>
+    (ph?`<span class="dim">Swipe the field to move it.</span>`:`<span class="dim">Drag an empty spot to move the field · WASD moves it, two at once for a diagonal (Shift: faster) · E zooms in, Q out</span>
 <label class="cw"><input type="checkbox" id="camWheelBox" ${PREF.camWheel===true?"checked":""}> Zoom with the mouse wheel</label>`);
   n.querySelectorAll("[data-cz]").forEach(b=>b.onclick=()=>camZoom(+b.dataset.cz>0?1.2:1/1.2));
   const cb=n.querySelector("#camWheelBox");if(cb)cb.onchange=()=>{PREF.camWheel=cb.checked;savePrefs();const m=$("#mCamWheel");if(m)m.checked=cb.checked}}
@@ -9879,7 +9883,7 @@ function camWire(w){
   w.addEventListener("click",e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false}},true)}   // a drag is not a click on a tile
 const typing=t=>!!(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)));
 /* v77a: a held key moves the field smoothly, two at once on a diagonal (W and A: up and to the left); E zooms in, Q out */
-const CAM_DIR={w:[0,-1],arrowup:[0,-1],s:[0,1],arrowdown:[0,1],a:[-1,0],arrowleft:[-1,0],d:[1,0],arrowright:[1,0]};
+const CAM_DIR={w:[0,-1],s:[0,1],a:[-1,0],d:[1,0]};   // v78b: WASD (the arrow keys move the field's selector, 98b_fieldkeys.js)
 const CAMK=new Set();let camRaf=0,camT=0,camFast=false;
 function camTick(t){camRaf=0;if(!CAMK.size||!isLarge()){camT=0;return}const dt=camT?Math.min(50,t-camT):16;camT=t;let dx=0,dy=0;
   for(const k of CAMK){dx+=CAM_DIR[k][0];dy+=CAM_DIR[k][1]}
@@ -9896,7 +9900,7 @@ addEventListener("blur",()=>CAMK.clear());
 {const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu");if(!m||m.querySelector("#mCam"))return;const anchor=m.querySelector("#mParts")||m.querySelector(".mgrid");if(!anchor)return;
   const on=isLarge(),c=(id,t,v)=>`<label class="farow"><span class="fal"><b>${t}</b></span><input type="checkbox" id="${id}" ${v?"checked":""} ${on?"":"disabled"}></label>`;
   anchor.insertAdjacentHTML("afterend",`<details id="mCam" class="sub${on?"":" faded"}"><summary>Large Map Controls${on?"":" <small>(large maps only)</small>"}</summary>
-<p class="dim">The mouse wheel scrolls the page unless zooming with it is on; drag an empty spot of the field to move it; WASD or the arrow keys move it, two at once for a diagonal (Shift: faster); E zooms in and Q out, always around the middle of the screen.</p><div class="facats">
+<p class="dim">The mouse wheel scrolls the page unless zooming with it is on; drag an empty spot of the field to move it; WASD moves it, two at once for a diagonal (Shift: faster); E zooms in and Q out, always around the middle of the screen.</p><div class="facats">
 ${c("mCamDrag","Drag an empty spot to move the field",PREF.camDrag!==false)}${c("mCamWheel","Zoom with the mouse wheel",PREF.camWheel===true)}${c("mCamInvW","Reverse the wheel's zoom",!!PREF.camInvWheel)}${c("mCamInvK","Reverse the keys' zoom",!!PREF.camInvKeys)}</div>
 <label class="f mslide">Moving speed <input type="range" id="mCamSpd" min="40" max="300" step="10" value="${Math.round(camSpeed()*100)}" ${on?"":"disabled"}><b id="mCamSpdV">${Math.round(camSpeed()*100)}%</b></label></details>`);
   const set=(k,v)=>{PREF[k]=v;savePrefs()};
@@ -10553,7 +10557,7 @@ const addTone=h=>h.replace(/style="--pc:([^";]*)/,(m,col)=>{const t=toneOf(col);
 /* ---------- the opening: a clear line above the field says where the Ace goes (U2) ---------- */
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const b=$("#board");if(!b)return;
   const host=b.closest(".camwrap,.boardwrap")||b;let h=$("#acehint");
-  const want=G.phase==="setup"&&G.setupStep==="ace"&&canAct()&&!G.p[G.active].cpu;
+  const want=!fsOn()&&G.phase==="setup"&&G.setupStep==="ace"&&canAct()&&!G.p[G.active].cpu;   // v78b: not in fullscreen (it sat behind the top meters; the phase label says Setup)
   if(!want){if(h)h.remove();return}
   const txt=hq()&&!G.p[G.active].opening.length?"Place your second base Ace: click any glowing tile in your spawn lines.":"Place your Ace to start: click any glowing tile in your spawn lines. It spawns your base, with a Jack inside.";
   if(!h){h=document.createElement("p");h.id="acehint";h.setAttribute("role","status")}
@@ -12615,7 +12619,7 @@ const fsTouchOnly=()=>typeof matchMedia!=="undefined"&&!matchMedia("(any-pointer
 function fsControls(){const o=fsOv("fsctl"),touch=PREF.fsCtlTab?PREF.fsCtlTab==="touch":fsTouchOnly(),ck=(id,on,t,s)=>`<label class="farow"><span class="fal"><b>${t}</b>${s?`<small>${s}</small>`:""}</span><input type="checkbox" id="${id}" ${on?"checked":""}></label>`;
   const L=touch?[["Move the field","swipe it with one finger"],["Zoom","pinch with two fingers"],["Pick a stack or a card","tap it; tap it again to let go"],["A class (Field Automation)","double-tap a stack or a hand card"],
       ["Spells and Selected","the named arrows on the right"],["Dice and the log","the arrow at the bottom left; its ⚙ for more"],["The sky","tap the body at the top left"],["Leave fullscreen","Menu, then Exit fullscreen"]]
-    :[["Move the field",`WASD or the arrow keys, two at once for a diagonal (Shift: faster)${PREF.camDrag!==false?", or drag an empty spot":""}; it can go past the edges`],["Zoom",`E in, Q out${PREF.fsWheel===true?", the mouse wheel":""}, a trackpad's pinch; always around the middle of the screen`],["The turn button","Space: Ready, the next phase, End turn"],
+    :[["Move the field",`WASD, two at once for a diagonal (Shift: faster)${PREF.camDrag!==false?", or drag an empty spot":""}; it can go past the edges`],["Zoom",`E in, Q out${PREF.fsWheel===true?", the mouse wheel":""}, a trackpad's pinch; always around the middle of the screen`],["The turn button","Space: Ready, the next phase, End turn"],
       ["Pick a stack or a card","click it"],["A class (Field Automation)","right-click a stack or a hand card"],["Compare two stacks","drag a card's corner tab onto another stack"],["Spells and Selected","the named arrows on the right"],
       ["Dice and the log","the arrow at the bottom left; its ⚙ for more"],["The sky","hover the body at the top left"],["Leave fullscreen",`Shift+Backspace, or Menu then Exit fullscreen${document.fullscreenElement?"; Esc also leaves the browser's fullscreen (the browser's own key)":"; Esc opens the Menu"}`],["Every key","the pause menu's Keyboard controls"]];
   o.innerHTML=`<div class="ovbox fscbox" role="dialog" aria-modal="true" aria-labelledby="fsch"><button type="button" class="xclose" id="fscX" aria-label="Close">×</button><h2 id="fsch">Controls</h2>
@@ -12651,7 +12655,7 @@ function fsPause(){if(!G)return;if(!G.opts.online&&!G.paused){G.paused=true;FS.p
 function fsHelp(){const o=fsOv("fshelp");
   o.innerHTML=`<div class="ovbox wide fshbox" role="dialog" aria-modal="true" aria-labelledby="fshh"><button type="button" class="xclose" id="fshX" aria-label="Close">×</button><h2 id="fshh">Help</h2>
 <details class="cinfo fsmk" open><summary>What you must know</summary><p class="mktldr"><b>TLDR</b> ${MK_TLDR}</p><div class="mkbody">${MK_BODY}</div><details class="sub"><summary>Tell me more</summary>${MK_MORE.replace(/<h3>[^<]*<\/h3>/,"")}</details></details>
-<details class="cinfo"><summary>Fullscreen controls</summary><ul class="mklist"><li><b>Zoom:</b> the mouse wheel, a trackpad's pinch, or two fingers.</li><li><b>Move the field:</b> drag an empty spot, swipe with one finger, or WASD and the arrow keys (E zooms in, Q out).</li>
+<details class="cinfo"><summary>Fullscreen controls</summary><ul class="mklist"><li><b>Zoom:</b> the mouse wheel, a trackpad's pinch, or two fingers.</li><li><b>Move the field:</b> drag an empty spot, swipe with one finger, or WASD (E zooms in, Q out).</li>
 <li><b>Spells and Selected:</b> the named arrows on the right open their drawers; they stay open until you close them.</li><li><b>Dice and the log:</b> the arrow under your hand; its ⚙ chooses the last roll, the log's latest line, or both.</li>
 <li><b>The sky:</b> hover or tap the body at the top left for its cycle.</li><li><b>Field Automation:</b> Auto field and its square in the turn bar at the top.</li><li><b>Leave:</b> Menu (top right), Exit fullscreen${document.fullscreenEnabled?", or Esc":""}.</li></ul></details>
 <div id="fshslot"></div></div>`;
@@ -13628,7 +13632,13 @@ function kbRemind(){const g=G&&G.map?G.map.seed:null;if(g==null||KB.reminded===g
 /* v78a: Tab never leaves the game for the browser's own bar: where it means nothing, it does nothing */
 document.addEventListener("keydown",e=>{if(e.key==="Tab")e.preventDefault()});
 /* the list of keys: in the pause menu and the Menu, each in a fold like the others, with the key letters' switch */
-const KB_LIST=[["Space","the turn button: Ready, the next phase, End turn"],["E · Q","zoom in · zoom out, around the middle of the screen"],["WASD or the arrow keys","move the field; two at once go diagonally (Shift: faster)"],
+const KB_LIST=[["Space","the turn button: Ready, the next phase, End turn"],["E · Q","zoom in · zoom out, around the middle of the screen"],["WASD","move the camera over the field; two at once go diagonally (Shift: faster)"],
+  ["Arrow keys","the selector on the field (two at once: diagonally); the camera keeps it in the middle"],["Tab · Shift+Tab","along the row to your next · previous card"],
+  ["Ctrl · Shift (pressed alone)","down · up to the next row with your cards"],["` (left of 1)","Tab, Ctrl and Shift step through the enemy's cards instead (again: yours)"],["N · Shift+N","the enemy's next · previous card"],
+  ["Enter","on the selector: select, place, move or attack, as a click"],["M · 1","move there (or attack) · the default attack"],
+  ["U H J K, or Alt+W A S D","the target of the stack you selected, a tile at a time (two at once: diagonally); then Enter or M"],
+  ["Y","what you can do with what you selected, numbered: the number keys use it"],["Shift+Enter","the right-click menu of what is under the selector"],
+  ["P · Shift+P","the other players' boxes: C and V read one, Enter its history"],["I","what stands on the tile under the selector"],
   ["F","the spell bar at the bottom: 1–9 and 0 cast the first ten of the school, Shift+1 to Shift+0 the next ten; C and V (or Tab) the school before and after, Shift+C the first, Shift+V the last (the piles); X closes"],
   ["Shift+F","the spell list: C and V move from spell to spell, Ctrl and Shift (alone) to the next and the previous school, Enter casts; X closes"],
   ["G","the hand: C and V move, Enter picks (again: lets go), I the card's info"],["Backspace or Delete","sacrifice the hand card you picked"],["R","roll the draw"],
@@ -13744,6 +13754,134 @@ addEventListener("keydown",e=>{if(KB.synth||e.metaKey||e.altKey)return;const k=e
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(WK.sig)try{wkRemark()}catch(e){}}}
 
 if(window.__EC)Object.assign(window.__EC,{WK,wkItems:w=>wkItems(w)});
+
+/* ---------- v78b: the field by keys ----------
+   - The arrow keys move a tile selector freely (two at once: diagonally); the camera keeps it in the middle.
+   - Tab and Shift+Tab: along the row (as you see it) to your next and previous card, back to the row's first after its
+     last. Ctrl pressed alone: down to the next row that holds your cards; Shift pressed alone: up to the previous one.
+     ` (left of 1) switches these between your cards and the enemy's (a label says which). N and Shift+N step through the
+     enemy's cards, row by row, either way.
+   - Enter acts on the tile under the selector as a click does: it selects a stack, places the hand card you picked, and
+     with a stack of yours selected, moves there or attacks it. M moves or attacks only; 1 is the default attack.
+   - U H J K (up, left, down, right), or Alt+W A S D: the target of the stack you selected, one tile at a time away from it,
+     drawn as an arrow; two at once go diagonally. Enter or M then moves there, or attacks.
+   - Y: what you can do with what you selected (the Selected box: which cards move, sacrifice, ambush, siege, compare,
+     Soft Automate, its right-click menu), numbered: the number keys use them.
+   - Shift+Enter: the right-click menu of the stack under the selector (or of the hand card under the keys).
+   - P and Shift+P: the other players' boxes, one after another; C and V go through what a box tells, Enter opens its
+     history. X or Esc stops.
+   - I: what stands on the tile under the selector.
+   A stack selected by keys is brought to the middle of the camera. A click on the field hides the selector. */
+const FK={on:false,cur:null,tgt:null,foe:false,pm:false,p:0,pi:0,dir:null,tdir:null,t:0,tt:0};
+const fkTile=(r,c)=>document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);
+function fkGrid(){return [...document.querySelectorAll("#board>.row")].map(row=>[...row.querySelectorAll(":scope>.tile")].map(t=>t.dataset.r!=null?{r:+t.dataset.r,c:+t.dataset.c}:null))}
+function fkAt(grid,r,c){for(let i=0;i<grid.length;i++){const j=grid[i].findIndex(x=>x&&x.r===r&&x.c===c);if(j>=0)return [i,j]}return null}
+/* the camera on a tile: the large map's frame keeps it in the middle; a small field just keeps it in sight */
+function fkCenter(r,c){const t=fkTile(r,c);if(!t)return;const w=camWrap();
+  if(w&&isLarge()){const [mx,my]=camMid(w),q=t.getBoundingClientRect();w.scrollLeft+=q.left+q.width/2-mx;w.scrollTop+=q.top+q.height/2-my;if(!fsOn())w.scrollIntoView({block:"nearest"})}
+  else t.scrollIntoView({block:"nearest",inline:"nearest"})}
+function fkSet(r,c){FK.on=true;FK.cur={r,c};fkCenter(r,c);fkPaint()}
+const fkMine=st=>st.owner===view(),fkFoe=st=>isEnemy(st.owner,view());
+/* the cards Tab, Ctrl and Shift step through, by row and column as seen */
+function fkCands(foe){const grid=fkGrid(),V=view(),out=[];
+  grid.forEach((row,i)=>row.forEach((x,j)=>{if(!x||hiddenFrom(V,x.r,x.c))return;const st=G.board[x.r][x.c];if(st&&(foe?fkFoe(st):fkMine(st)))out.push({i,j,r:x.r,c:x.c})}));return out}
+function fkHere(){const grid=fkGrid();const p=FK.cur&&fkAt(grid,FK.cur.r,FK.cur.c);return p||[-1,-1]}
+function fkRowStep(d){const C=fkCands(FK.foe);if(!C.length){flash(FK.foe?"No enemy card in sight.":"You have no card on the field.");return}
+  const [i,j]=fkHere(),row=C.filter(x=>x.i===i).sort((a,b)=>a.j-b.j);
+  if(!row.length){const n=C.filter(x=>x.i>=i)[0]||C[0];fkSet(n.r,n.c);return}
+  const k=row.findIndex(x=>x.j===j),n=d>0?(row.find(x=>x.j>j)||row[0]):([...row].reverse().find(x=>x.j<j)||row[row.length-1]);
+  if(k<0&&d<0){fkSet(row[row.length-1].r,row[row.length-1].c);return}fkSet(n.r,n.c)}
+function fkColStep(d){const C=fkCands(FK.foe);if(!C.length)return;const [i,j]=fkHere(),rows=[...new Set(C.map(x=>x.i))].sort((a,b)=>a-b);
+  const ni=d>0?(rows.find(x=>x>i)??rows[0]):([...rows].reverse().find(x=>x<i)??rows[rows.length-1]);
+  const n=C.filter(x=>x.i===ni).sort((a,b)=>Math.abs(a.j-j)-Math.abs(b.j-j))[0];if(n)fkSet(n.r,n.c)}
+function fkFoeStep(d){const C=fkCands(true);if(!C.length){flash("No enemy card in sight.");return}const [i,j]=fkHere(),at=i*1e4+j;
+  const n=d>0?(C.find(x=>x.i*1e4+x.j>at)||C[0]):([...C].reverse().find(x=>x.i*1e4+x.j<at)||C[C.length-1]);fkSet(n.r,n.c)}
+/* the selector moves by the grid as seen: over holes to the next tile there is, never off the field */
+function fkMove(di,dj,from){const grid=fkGrid();if(!grid.length)return null;let p=from&&fkAt(grid,from.r,from.c);
+  if(!p){const s=G.sel||{r:-1,c:-1};p=fkAt(grid,s.r,s.c)||[Math.floor(grid.length/2),Math.floor(grid[0].length/2)]}
+  let [i,j]=p;for(;;){i+=di;j+=dj;if(i<0||j<0||i>=grid.length||j>=grid[i].length)return null;const x=grid[i][j];if(x)return x}}
+const FK_ARROW={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]},FK_TGT={KeyU:[-1,0],KeyJ:[1,0],KeyH:[0,-1],KeyK:[0,1]},FK_ALT={KeyW:[-1,0],KeyS:[1,0],KeyA:[0,-1],KeyD:[0,1]};
+/* keys pressed together (within a moment) make one diagonal step */
+function fkSum(map,extra){let di=0,dj=0;for(const code of new Set([...extra,...[...KB.held].filter(x=>map[x])]))if(map[code]){di+=map[code][0];dj+=map[code][1]}return [Math.sign(di),Math.sign(dj)]}
+function fkArrow(code){FK.dir=FK.dir||new Set();FK.dir.add(code);if(FK.t)return;FK.t=setTimeout(()=>{const [di,dj]=fkSum(FK_ARROW,FK.dir);FK.dir=null;FK.t=0;
+  if(!di&&!dj)return;const x=fkMove(di,dj,FK.cur);if(x){FK.tgt=null;fkSet(x.r,x.c)}},45)}
+function fkAim(code,alt){if(!G.sel){flash("Select a stack first: Enter on it, or a click.");return}const map=alt?FK_ALT:FK_TGT;FK.tdir=FK.tdir||new Set();FK.tdir.add(code);if(FK.tt)return;
+  FK.tt=setTimeout(()=>{const [di,dj]=fkSum(map,FK.tdir);FK.tdir=null;FK.tt=0;if(!di&&!dj||!G.sel)return;const x=fkMove(di,dj,FK.tgt||G.sel);if(!x)return;FK.tgt={r:x.r,c:x.c};fkSet(x.r,x.c)},45)}
+const fkIn=(list,p)=>!!p&&list.some(([a,b])=>a===p.r&&b===p.c);
+/* Enter, M and 1 on the selector */
+function fkAct(how){const p=FK.tgt||FK.cur;if(!p)return;const live=canAct(),s=G.sel;
+  if(live&&s&&(s.r!==p.r||s.c!==p.c)){
+    if(G.phase==="attack"&&fkIn(attackTargets(),p)){G.mode="attack";FK.tgt=null;tileClick(p.r,p.c);return}
+    if(how!=="atk"&&G.phase==="prep"&&fkIn(moveTargets(),p)){G.mode="move";FK.tgt=null;tileClick(p.r,p.c);fkFollow();return}}
+  if(how==="atk"){flash(s?"No attack on that tile.":"Select a stack of yours first.");return}
+  if(how==="move"){flash(s?"It can't go there.":"Select a stack of yours first.");return}
+  FK.tgt=null;tileClick(p.r,p.c);fkFollow()}
+function fkFollow(){if(G.sel){FK.cur={r:G.sel.r,c:G.sel.c};fkCenter(G.sel.r,G.sel.c)}fkPaint()}
+/* Y: the actions of what you selected, numbered */
+function fkActItems(){const box=$("#selbox");if(!box)return [];return [...box.querySelectorAll("button,input[type=checkbox],summary")].filter(e=>e.getClientRects().length&&!e.disabled)}
+const fkLabel=e=>{if(e.matches("input"))return (e.checked?"☑ ":"☐ ")+(e.getAttribute("aria-label")||(e.closest("label,li")||e).textContent).trim().replace(/\s+/g," ").slice(0,70);
+  return (e.textContent.trim()||e.getAttribute("aria-label")||e.title||"").replace(/\s+/g," ").slice(0,70)};
+function fkActs(){if(!G.sel&&!G.selHand){flash("Select a stack or a hand card first.");return}let w=$("#kbacts");
+  if(!w){w=document.createElement("div");w.id="kbacts";w.className="faov";document.body.appendChild(w)}
+  const L=fkActItems(),num=i=>i<9?String(i+1):i===9?"0":i<19?"⇧"+(i-9):i===19?"⇧0":"";
+  w.innerHTML=`<div class="ovbox kbactbox" role="dialog" aria-modal="true" aria-labelledby="kbah"><button type="button" class="xclose" aria-label="Close">×</button><h2 id="kbah">Actions</h2>
+<ol class="kbacts">${L.map((e,i)=>`<li><button type="button" data-ka="${i}"><kbd>${num(i)}</kbd> ${esc(fkLabel(e))}</button></li>`).join("")}<li><button type="button" data-ka="rc"><kbd>⇧Enter</kbd> Its right-click menu</button></li></ol>
+<p class="dim">The number keys use them (Shift+1 for the eleventh). X closes.</p></div>`;w.hidden=false;
+  w.querySelector(".xclose").onclick=()=>{w.hidden=true};w.onclick=e=>{if(e.target===w)w.hidden=true};
+  w.querySelectorAll("[data-ka]").forEach(b=>b.onclick=()=>fkActUse(b.dataset.ka))}
+function fkActUse(k){const w=$("#kbacts");if(k==="rc"){if(w)w.hidden=true;fkMenu();return}const e=fkActItems()[+k];if(!e){flash("Nothing there.");return}e.click();setTimeout(()=>{if(w&&!w.hidden&&(G.sel||G.selHand))fkActs();else if(w)w.hidden=true},60)}
+/* Shift+Enter: the right-click menu */
+function fkMenu(){let el=null;if(KB.mode==="hand"){el=kbHand()[KB.h]}else{const p=FK.cur||G.sel;if(p)el=fkTile(p.r,p.c);if(!el&&G.selHand){const i=G.p[view()].hand.indexOf(G.selHand);el=document.querySelector(`#hand [data-h="${i}"]`)}}
+  if(!el){flash("Nothing under the selector.");return}const q=el.getBoundingClientRect(),x=q.left+q.width/2,y=q.top+q.height/2;
+  const t=el.querySelector(".stack")||el;t.dispatchEvent(new MouseEvent("contextmenu",{bubbles:true,cancelable:true,clientX:x,clientY:y,view:window}))}
+/* P: the other players' boxes */
+const fkBoxes=()=>[...document.querySelectorAll(fsOn()?".fsfoe":"#foe>.pbox,#foe>div[style*='--pc']")].filter(e=>e.getClientRects().length);
+function fkPlayers(d){const B=fkBoxes();if(!B.length){flash("No other player's box to read.");return}FK.pm=true;FK.p=FK.pm&&FK.p!=null?((FK.p+d)%B.length+B.length)%B.length:0;FK.pi=-1;fkPaint();
+  B[FK.p].scrollIntoView({block:"nearest"});wkNote(`${B[FK.p].getAttribute("title")||B[FK.p].textContent.trim().split(/\s{2,}|\n/)[0].slice(0,60)} · C and V read the box, Enter its history, P the next player, X stops`)}
+function fkPart(d){const b=fkBoxes()[FK.p];if(!b)return;const parts=[...b.children].filter(e=>e.getClientRects().length&&e.textContent.trim());if(!parts.length)return;
+  FK.pi=((FK.pi+d)%parts.length+parts.length)%parts.length;fkPaint();const e=parts[FK.pi];wkNote((e.getAttribute("title")?e.getAttribute("title")+" · ":"")+e.textContent.trim().replace(/\s+/g," ").slice(0,160))}
+function fkPlayersOff(){FK.pm=false;wkNote("");fkPaint()}
+/* the marks: the selector, the arrow to the target, a player's box; the label of what Tab steps through */
+function fkPaint(){document.querySelectorAll(".kbcur,.kbpl,.kbplp").forEach(e=>e.classList.remove("kbcur","kbpl","kbplp"));const old=$("#fkarrow");if(old)old.remove();
+  let lab=$("#fkmode");
+  if(FK.pm){const b=fkBoxes()[FK.p];if(b){b.classList.add("kbpl");const parts=[...b.children].filter(e=>e.getClientRects().length&&e.textContent.trim());if(parts[FK.pi])parts[FK.pi].classList.add("kbplp")}}
+  if(!FK.on||!G||!FK.cur){if(lab)lab.hidden=true;return}
+  const t=fkTile(FK.cur.r,FK.cur.c);if(t)t.classList.add("kbcur");
+  if(!lab){lab=document.createElement("div");lab.id="fkmode";lab.setAttribute("aria-live","polite");document.body.appendChild(lab)}
+  lab.hidden=false;lab.innerHTML=`Tab steps through: <b>${FK.foe?"the enemy's cards":"your cards"}</b> <kbd>\`</kbd> switches`;
+  if(FK.tgt&&G.sel){const B=$("#board"),a=fkTile(G.sel.r,G.sel.c),b=fkTile(FK.tgt.r,FK.tgt.c);if(!B||!a||!b)return;const br=B.getBoundingClientRect(),ra=a.getBoundingClientRect(),rb=b.getBoundingClientRect();
+    const x1=ra.left+ra.width/2-br.left,y1=ra.top+ra.height/2-br.top,x2=rb.left+rb.width/2-br.left,y2=rb.top+rb.height/2-br.top;
+    B.insertAdjacentHTML("beforeend",`<svg id="fkarrow" aria-hidden="true" width="${Math.ceil(br.width)}" height="${Math.ceil(br.height)}"><defs><marker id="fkhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0L10,5L0,10z" fill="#f1d27a"/></marker></defs><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#f1d27a" stroke-width="4" stroke-linecap="round" marker-end="url(#fkhead)"/></svg>`)}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(FK.on||FK.pm)try{fkPaint()}catch(e){console.error(e)}}}
+{const _z=camZoom;camZoom=function(){const out=_z.apply(this,arguments);if(FK.on)fkPaint();return out}}
+document.addEventListener("pointerdown",e=>{if(FK.on&&e.target.closest&&e.target.closest("#board")){FK.on=false;FK.tgt=null;fkPaint()}},true);
+/* the keys */
+addEventListener("keydown",e=>{if(KB.synth||e.metaKey||typing(e.target)||!G||G.passing)return;const k=e.key,lk=k.length===1?k.toLowerCase():k,sh=e.shiftKey,ct=e.ctrlKey,al=e.altKey,
+  stop=()=>{e.preventDefault();e.stopImmediatePropagation()},top=kbTop();
+  if(top){if(top.id==="kbacts"&&!ct&&!al){const n=kbDigit(e);if(n){stop();fkActUse(String(n-1+(sh?10:0)))}}return}   // a window: its own keys (98_winkeys.js)
+  if(FK.pm){if(lk==="p"&&!ct&&!al){stop();fkPlayers(sh?-1:1);return}if((lk==="c"||lk==="v")&&!sh&&!ct&&!al){stop();fkPart(lk==="v"?1:-1);return}
+    if(k==="Enter"&&!sh){stop();const b=fkBoxes()[FK.p],h=b&&b.querySelector("[data-hist]");if(h)h.click();return}if(lk==="x"&&!sh&&!ct||k==="Escape"){stop();fkPlayersOff();return}}
+  if(al&&!ct&&FK_ALT[e.code]){stop();fkAim(e.code,true);return}
+  if(al||ct&&k!=="Enter")return;
+  if(k==="Enter"&&sh){stop();fkMenu();return}
+  if(KB.mode&&(k==="Tab"||k==="Enter"||lk==="c"||lk==="v"||kbDigit(e)||lk==="x"||k==="Escape"||lk==="i"))return;   // the spells and the hand keep their keys
+  if(FK_ARROW[k]){stop();fkArrow(k);return}
+  if(FK_TGT[e.code]&&!sh){stop();fkAim(e.code,false);return}
+  if(k==="Tab"){stop();FK.on=true;fkRowStep(sh?-1:1);return}
+  if(e.code==="Backquote"&&!sh){stop();FK.foe=!FK.foe;FK.on=true;if(!FK.cur)fkRowStep(1);else fkPaint();return}
+  if(lk==="n"){stop();fkFoeStep(sh?-1:1);return}
+  if(lk==="p"){stop();fkPlayers(sh?-1:1);return}
+  if(lk==="y"&&!sh){stop();fkActs();return}
+  if(!FK.on||!FK.cur)return;   // the rest acts on the selector, once the keys have put it on the field
+  if(k==="Enter"){stop();fkAct("any");return}
+  if(lk==="m"&&!sh){stop();fkAct("move");return}
+  if(e.code==="Digit1"&&!sh){stop();fkAct("atk");return}
+  if(lk==="i"&&!sh){stop();const t=fkTile(FK.cur.r,FK.cur.c);flash(t?t.getAttribute("aria-label")||"":"");return}
+},true);
+/* Ctrl or Shift alone on the field: the next row down or up (only once the keys are on the field) */
+addEventListener("keyup",e=>{const a=KB.alone;if(!a||e.key!==a||typing(e.target)||!G||!FK.on||KB.mode||kbTop())return;fkColStep(a==="Control"?1:-1)},true);
+
+if(window.__EC)Object.assign(window.__EC,{FK,fkCands:f=>fkCands(f)});
 
 /* ---------- v76b: performance ----------
    The outermost redraw: it notes, before anything on the page changes, what the redraw would otherwise have to measure

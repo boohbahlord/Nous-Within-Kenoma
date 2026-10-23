@@ -2474,3 +2474,14 @@ kbd{font:600 11px/1 var(--mono,monospace);background:#1e150d;border:1px solid #6
 .dipspawn .sslist li{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:6px 0;border-bottom:1px solid #2a1d12}
 .dipspawn .ssst{margin-left:auto;font-size:12.5px}
 .dipspawn .ssask{background:#1d150c;border:1px solid var(--amber);border-radius:5px;padding:6px 9px}
+/* v78b: the field by keys: the selector, a player's box under the keys, the label of what Tab steps through, the actions */
+#board .tile.kbcur{outline:3px dashed var(--amber);outline-offset:-3px;z-index:5;box-shadow:inset 0 0 18px #f1d27a55}
+#fkarrow{position:absolute;left:0;top:0;pointer-events:none;z-index:6;overflow:visible}
+.kbpl{outline:2px solid var(--amber)!important;outline-offset:2px}
+.kbplp{background:#f1d27a22;outline:1px dashed #f1d27a99}
+#fkmode{position:fixed;left:12px;bottom:12px;z-index:62;background:#120c08e8;border:1px solid #6e5323;border-radius:5px;padding:5px 9px;font-size:11.5px;color:#cbb994;pointer-events:none}
+#fkmode b{color:var(--amber)}
+html.ecfs #fkmode{bottom:auto;top:132px}
+.kbactbox ol.kbacts{list-style:none;margin:8px 0;padding:0;display:grid;gap:5px}
+.kbactbox ol.kbacts button{width:100%;text-align:left;display:flex;gap:9px;align-items:center;padding:6px 8px;background:#1b130c;border:1px solid #4a3620;border-radius:5px;color:#efe2c8;cursor:pointer;font:inherit}
+.kbactbox ol.kbacts button:hover,.kbactbox ol.kbacts button.kbfoc{border-color:var(--amber)}

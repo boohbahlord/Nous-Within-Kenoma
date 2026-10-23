@@ -117,6 +117,10 @@ const touchy=()=>matchMedia("(hover: none)").matches;
 let tipEl=null;
 document.addEventListener("pointerover",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]");if(!el||el===tipEl)return;tipEl=el;clearTimeout(tipT);tipT=setTimeout(()=>showTip(el,false),850)});
 document.addEventListener("pointerout",e=>{if(e.pointerType!=="mouse")return;const el=e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]");if(!el)return;if(e.relatedTarget&&el.contains(e.relatedTarget))return;tipEl=null;clearTimeout(tipT);const t=$("#tipbox");if(t&&!t.classList.contains("pinned"))t.hidden=true});
+/* v78b: a tip whose anchor is gone (its window closed, the page redrawn) goes with it: no pointer ever left it */
+function tipCheck(){if(tipEl&&!tipEl.isConnected){tipEl=null;clearTimeout(tipT);const t=$("#tipbox");if(t&&!t.classList.contains("pinned"))t.hidden=true}}
+{const _oh=ovHide;ovHide=function(){_oh.apply(this,arguments);tipCheck()}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);tipCheck()}}
 /* on touch, a long press shows the tip with an X instead of acting */
 let lpT=0,lpFired=false;
 document.addEventListener("touchstart",e=>{const el=e.target.closest&&e.target.closest("[data-tip],[data-sp],[data-sub]");if(!el)return;lpFired=false;clearTimeout(lpT);lpT=setTimeout(()=>{lpFired=true;showTip(el,true)},450)},{passive:true});
