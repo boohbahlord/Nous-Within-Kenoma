@@ -59,10 +59,13 @@ function passScreen(msg,pl=G.active){
   });
 }
 function end(w,why){
-  G.over=true;G.busy=false;stopTimer();
+  G.over=true;G.busy=false;stopTimer();closeEther();closeDrawer();   // v78j: the drawers close with the game
+  if(w==null){log(`<b>A draw</b>: ${why}.`,"win");render();   // v78j: nobody is left standing
+    ovShow(`<div class="ovbox"><h2>A draw</h2><p>${why}.</p><p><button class="btn" id="again">New game</button></p></div>`);$("#again").onclick=showStart;return}
   const team=G.p.filter(P=>P.team===G.p[w].team).map(P=>P.i),names=team.map(plName).join(" and ");
   log(`<b>${names} win${team.length>1?"":"s"}</b>: ${why}.`,"win");render();
-  const hs=G.p.filter(P=>!P.cpu);const title=hs.length===1?(team.includes(hs[0].i)?(team.length>1?"Your side wins":"You win"):"The computer wins"):`${names} win${team.length>1?"":"s"}`;
+  const hs=G.p.filter(P=>!P.cpu||P.jail&&!P.jail.cpu);   // v78j: a person in Jail is still a person
+  const title=hs.length===1?(team.includes(hs[0].i)?(team.length>1?"Your side wins":"You win"):"The computer wins"):`${names} win${team.length>1?"":"s"}`;
   ovShow(`<div class="ovbox"><h2>${title}</h2><p>${why}.</p><p><button class="btn" id="again">New game</button></p></div>`);$("#again").onclick=showStart;
 }
 const PHASES=[["prep","Prep","draw first, then sacrifice, cast, place, move"],["attack","Attack","each stack may attack once"]];   // v70d: drawing is the first part of prep
@@ -79,7 +82,7 @@ function pboxHTML(pl,top){
   const P=G.p[pl],act=pl===G.active&&G.phase!=="setup";
   const tag=P.cpu==="horde"?"the Horde":(P.cpu?`computer · ${P.cpu}${P.arch&&AI.ARCH[P.arch]?" · "+AI.ARCH[P.arch].name:""} · `:"")+(TRIBES[P.tribe]?TRIBES[P.tribe].name:"");
   const V=view(),rel=pl===V?"":isEnemy(pl,V)?"":'<span class="ally">ally</span>';
-  let h=`<div class="ph" style="--pc:${P.color}"><button type="button" class="subst" data-stat="${pl}" title="Status: hover or click">${solidSVG(P.solid,P.color,18)}</button><b>${esc(P.name)}</b><span class="dim">${esc(tag)}</span>${rel}${P.out?'<span class="outmark">out</span>':act?'<span class="turnmark">to play</span>':""}</div>`;
+  let h=`<div class="ph" style="--pc:${P.color}"><button type="button" class="subst" data-stat="${pl}" title="Status: ${fsTouchOnly()?"tap":"hover or click"}">${solidSVG(P.solid,P.color,18)}</button><b>${esc(P.name)}</b><span class="dim">${esc(tag)}</span>${rel}${P.out?'<span class="outmark">out</span>':act?'<span class="turnmark">to play</span>':""}</div>`;
   if(P.out)return h;
   if(P.cpu==="horde"){
     const units=stacksOf(pl).reduce((a,x)=>a+x.st.cards.length,0);

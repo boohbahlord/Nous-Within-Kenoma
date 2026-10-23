@@ -3,7 +3,7 @@ const $=s=>document.querySelector(s);
 const R=n=>1+Math.floor(Math.random()*n);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const SPEED={slow:1.7,normal:1,fast:.4};
-const sleep=ms=>{const g=G;return new Promise(r=>{const go=()=>{if(G!==g)return;if(G.paused){setTimeout(go,200);return}r()};setTimeout(go,G&&G.opts.fast?0:ms*(SPEED[G&&G.opts.cpuSpeed]||1)*(G&&G.speedMul||1))})}; // a new game silently ends the old game's waits; the menu pauses them
+const sleep=ms=>{const g=G;return new Promise(r=>{const go=()=>{if(G!==g||G.over)return;if(G.paused){setTimeout(go,200);return}r()};setTimeout(go,G&&G.opts.fast?0:ms*(SPEED[G&&G.opts.cpuSpeed]||1)*(G&&G.speedMul||1))})}; // a new game silently ends the old game's waits; the menu pauses them
 const SUITS={S:"♠",H:"♥",D:"♦",C:"♣"};
 const SUITNAME={S:"Spades",H:"Hearts",D:"Diamonds",C:"Clubs"};
 let COLS=5;const SOUL_CAP=6, HAND_CAP=6;   // COLS is set by the map for each game; SOUL_CAP is also what a Joker can hold
@@ -159,7 +159,7 @@ function stackLegal(cards){
     const inside=cards.filter(c=>!isBase(c));
     if(inside.length>6)return false;
     if(kind(aces[0])==="tree"&&inside.some(c=>kind(c)==="king"||c.rank==="10"))return false;   // the Jester doesn't like how Kings and tens taste
-    if(kind(aces[0])==="ace"&&G&&G.opts.aceLock&&inside.some(c=>c.color!==aces[0].color))return false;
+    if(kind(aces[0])==="ace"&&G&&G.opts.aceLock&&inside.some(c=>!c.unit&&c.color!==aces[0].color))return false;   // v78j: units have no colour
     const crew=inside.filter(c=>c.unit!=="scout");   // v70c: every base holds one stack, as it could stand on the field; Scouts (and support cards) ride along
     return !crew.length||stackLegal(crew);
   }
@@ -248,7 +248,8 @@ function buildDecks(){
     }
     const take=(list,k2)=>{const i=list.findIndex(c=>kind(c)===k2);return i<0?null:list.splice(i,1)[0]};
     const ace=take(deck,"ace")||take(out,"ace")||mk("A",mySuits[0]);
-    const jack=take(deck,"jack")||take(out,"jack")||mk("J",mySuits[0]);
+    const inCol=(list,col)=>{const i=list.findIndex(c=>kind(c)==="jack"&&c.color===col);return i<0?null:list.splice(i,1)[0]};   // v78j: in its Ace's colour
+    const jack=(o.aceLock&&(inCol(deck,ace.color)||inCol(out,ace.color)))||take(deck,"jack")||take(out,"jack")||mk("J",ace.suit||mySuits[0]);
     if(sp!=="half"&&o.jokerSure!==false&&!deck.some(c=>kind(c)==="joker"))deck.push(take(out,"joker")||mk("JK",null,pick(["red","black"])));
     P.opening=[ace,jack];P.opening2=[];
     if(o.hq&&o.mode!=="survival"){const a2=take(deck,"ace")||take(out,"ace")||mk("A",mySuits[mySuits.length-1]);a2.owner=pl;P.opening2=[a2]}

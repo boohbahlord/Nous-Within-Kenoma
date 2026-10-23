@@ -68,7 +68,7 @@ const rbOptsHTML=()=>`<details class="rbopts"><summary>Options</summary>
 function rbHTML(pl){const win=pl==="win";
   return `<div class="rbbar">${rbBackHTML(pl)}${win?`<button type="button" class="xclose" data-rbclose="1" aria-label="Close the Rule book">×</button>`:""}</div>
 <div class="rbfindrow"><input type="search" class="rbq" value="${esc(rbState(pl).q)}" placeholder="Find a rule: a code (5.C) or any words (Joker)" aria-label="Find a rule by its code or its words">${rbOptsHTML()}</div>
-${win?`<p class="rbkeys">Space: forward · Shift+Space: back · they don't end your turn while this is open; × or Esc closes it</p>`:""}
+${win&&!fsTouchOnly()?`<p class="rbkeys">Space: forward · Shift+Space: back · they don't end your turn while this is open; × or Esc closes it</p>`:""}
 <div class="rbview">${rbViewHTML(pl)}</div>`}
 const rbHost=pl=>pl==="win"?$("#rbwin .rbbox"):pl==="help"?$("#info details.rbhelp .rbbody"):$("#rbfoot .rbbody");
 function rbPaint(pl,keepFocus){const h=rbHost(pl);if(!h||!RB)return;const openOpts=!!(h.querySelector(".rbopts")||{}).open;

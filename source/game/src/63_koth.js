@@ -49,7 +49,7 @@ function kothPlan(o){const N=KOTH_N,C=KOTH_C,spots=kothSpots(o),seats=spots.map(
   return {theme:"hill",cols:N,rows:N,mid:true,corners:false,bridge:"left",void:V,seed:(Math.random()*1e9)|0,layout:"koth",seats,teams,big:"koth",large:true}}
 
 /* ---------- the Hill: who holds it, the points, the win ---------- */
-const kothGroup=pl=>G.opts.koth.team?"t"+G.p[pl].team:"p"+pl;
+const kothGroup=pl=>G.opts.koth.team&&G.p[pl].team<2?"t"+G.p[pl].team:"p"+pl;   // v78j: a betrayer is their own side
 const kothGroupName=g=>g[0]==="t"?(g==="t0"?"Side A":"Side B"):G.p[+g.slice(1)].name;
 const kothGroupColor=g=>g[0]==="t"?TEAM_COL[+g.slice(1)]||"#ddd":G.p[+g.slice(1)].color;
 function kothHolders(){const h=new Map();
@@ -58,7 +58,7 @@ function kothHolders(){const h=new Map();
 function kothRound(){const K=G.opts.koth,S=G.koth||(G.koth={score:{},tug:0,last:null});if(G.moon.round<1)return;
   const h=[...kothHolders().keys()],pts=K.double?2:1;
   if(!h.length){S.last="Nobody holds the Hill.";return}
-  if(K.tug){if(h.length>1){S.last="Both sides hold the Hill: the rope doesn't move.";log(S.last);return}
+  if(K.tug){if(h.length>1||h[0][0]!=="t"){S.last=h.length>1?"The Hill is shared: the rope doesn't move.":`${kothGroupName(h[0])} holds the Hill alone: the rope doesn't move.`;log(S.last);return}
     S.tug=Math.max(-25,Math.min(25,S.tug+(h[0]==="t0"?-pts:pts)));S.last=`${kothGroupName(h[0])} pulls the rope (${S.tug>0?"+":""}${S.tug}).`;log(`<b>King of the Hill</b>: ${S.last}`,"event");
     if(Math.abs(S.tug)>=25)kothWin(S.tug<0?"t0":"t1","pulled the rope all the way");return}
   if(K.contest&&h.length>1){S.last="The Hill is contested: nobody scores.";log(`<b>King of the Hill</b>: ${S.last}`);return}
@@ -89,7 +89,7 @@ function kothWin(g,why){if(G.over)return;const w=g[0]==="t"?alive().find(i=>!isN
     const st=G.board[r][c];if(st&&!isNPC(st.owner)&&G.p[st.owner]){t.style.setProperty("--hc",cbMap(kothGroupColor(kothGroup(st.owner))));t.style.setProperty("--ho",cbMap(G.p[st.owner].color));t.classList.add("held")}}
   for(const [g] of kothHolders())hold.set(g,true);
   if(!bar){bar=document.createElement("div");bar.id="kothbar";const w=$(".camwrap")||$("#board");w.parentNode.insertBefore(bar,w)}
-  const groups=K.team?["t0","t1"]:alive().filter(i=>!isNPC(i)&&!isHorde(i)).map(i=>"p"+i);
+  const groups=K.team?["t0","t1",...alive().filter(i=>!isNPC(i)&&!isHorde(i)&&G.p[i].team>1).map(i=>"p"+i)]:alive().filter(i=>!isNPC(i)&&!isHorde(i)).map(i=>"p"+i);
   bar.innerHTML=K.tug?`<b class="kt">Tug of war</b><span class="tugname" style="--tc:${TEAM_COL[0]}">Side A</span><span class="tug"><i style="left:${50+S.tug*2}%"></i><u></u></span><span class="tugname" style="--tc:${TEAM_COL[1]}">Side B</span><small>${S.tug>0?"+":""}${S.tug} of ±25</small>`
     :`<b class="kt">King of the Hill</b><small>first to ${K.target}${K.double?" · double points":""}${K.contest?" · contested scores nothing":""}</small>${groups.map(g=>`<span class="ks${hold.has(g)?" on":""}" style="--tc:${kothGroupColor(g)}" title="${hold.has(g)?"Holds the Hill":""}"><em>${esc(kothGroupName(g))}</em><i style="width:${Math.min(100,(S.score[g]||0)/K.target*100)}%"></i><b>${S.score[g]||0}</b></span>`).join("")}`}}
 
