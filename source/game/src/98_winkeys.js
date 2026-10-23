@@ -61,35 +61,38 @@ function wkSection(w,d){const H=[...w.querySelectorAll("h3,h4,summary,legend,.ds
   const cur=wkCur(w),y=cur?cur.getBoundingClientRect().top+1:-1e9;let at=-1;H.forEach((h,i)=>{if(h.getBoundingClientRect().top<=y)at=i});
   const j=Math.max(0,Math.min(H.length-1,at+d));if(j===at&&cur)return;const h=H[j];h.scrollIntoView({block:"start",behavior:"smooth"});
   const items=wkItems(w),hy=h.getBoundingClientRect().top-1;const it=h.matches("summary")?h:items.find(x=>x.getBoundingClientRect().top>=hy&&(h.compareDocumentPosition(x)&Node.DOCUMENT_POSITION_FOLLOWING));wkMark(it||null)}
-addEventListener("keyup",e=>{const a=KB.alone;if(!a||e.key!==a||typing(e.target)||WK.adj||WK.mv)return;const w=kbTop();if(w)wkSection(w,a==="Control"?1:-1)},true);
-/* the keys */
-addEventListener("keydown",e=>{if(KB.synth||e.metaKey||e.altKey)return;const k=e.key,lk=k.length===1?k.toLowerCase():k,sh=e.shiftKey,stop=()=>{e.preventDefault();e.stopImmediatePropagation()};
+/* Ctrl or Shift pressed alone (as bound): the next or the previous section */
+addEventListener("keyup",e=>{if(typing(e.target)||WK.adj||WK.mv)return;const w=kbTop();if(!w)return;
+  if(kmTap(e,"secNext"))wkSection(w,1);else if(kmTap(e,"secPrev"))wkSection(w,-1)},true);
+/* the keys (as bound: the Windows group of 96c_keymap.js) */
+addEventListener("keydown",e=>{if(KB.synth)return;const k=e.key,is=id=>kmIs(e,id),stop=()=>{e.preventDefault();e.stopImmediatePropagation()};
   if(WK.typ){if(e.target!==WK.typ){WK.typ=null;wkNote("")}else{
     if(k==="Escape"){stop();wkTypeEnd();return}
     if(k==="Enter"){const bad=wkBad(WK.typ);if(bad){stop();wkNote(bad+" Type another, or Esc to stop.");return}wkFire(WK.typ,"input","change");const el=WK.typ;setTimeout(()=>{if(WK.typ===el)wkTypeEnd()},0)}
     return}}
   if(typing(e.target))return;
   const w=kbTop();if(!w){if(WK.adj)wkAdjEnd(false);WK.mv=null;return}
-  if(e.ctrlKey)return;
-  if(WK.adj){const up=["w","d","v","arrowup","arrowright"].includes(lk.toLowerCase()),dn=["s","a","c","arrowdown","arrowleft"].includes(lk.toLowerCase());
-    if(up||dn){stop();wkAdjStep(up?1:-1,sh);return}
-    if(k==="Enter"){stop();wkAdjEnd(true);return}if(k==="Escape"||lk==="x"){stop();wkAdjEnd(false);return}
-    const dg=kbDigit(e);if(dg&&WK.adj.el.type==="number"){stop();const el=WK.adj.el;WK.adj=null;wkType(el,String(dg%10))}return}
-  if(WK.mv){if(["w","d","v"].includes(lk)){stop();wkMove("up");return}if(["s","a","c"].includes(lk)){stop();wkMove("down");return}
-    if(k===" "){stop();wkMove("eq");return}if(k==="Enter"||k==="Escape"||lk==="x"){stop();WK.mv=null;wkNote("");return}return}
-  if(k==="Tab"){stop();wkTab(w,sh?-1:1);return}
+  const plain=!e.ctrlKey&&!e.altKey&&!e.metaKey,up=is("winUp")||is("winRight")||is("winNext"),dn=is("winDown")||is("winLeft")||is("winPrev");
+  if(WK.adj){const au=up||plain&&(k==="ArrowUp"||k==="ArrowRight"),ad=dn||plain&&(k==="ArrowDown"||k==="ArrowLeft");
+    if(au||ad){stop();wkAdjStep(au?1:-1,e.shiftKey);return}
+    if(is("winUse")){stop();wkAdjEnd(true);return}if(k==="Escape"||is("close")){stop();wkAdjEnd(false);return}
+    const dg=kbDigit(e);if(dg&&plain&&WK.adj.el.type==="number"){stop();const el=WK.adj.el;WK.adj=null;wkType(el,String(dg%10))}return}
+  if(WK.mv){if(up){stop();wkMove("up");return}if(dn){stop();wkMove("down");return}
+    if(k===" "&&plain){stop();wkMove("eq");return}if(is("winUse")||k==="Escape"||is("close")){stop();WK.mv=null;wkNote("");return}return}
+  if(is("tabNext")||is("tabPrev")){stop();wkTab(w,is("tabNext")?1:-1);return}
+  if(is("secNext")||is("secPrev")){stop();wkSection(w,is("secNext")?1:-1);return}   // bound to a key (alone, Ctrl and Shift act on letting go)
   const items=wkItems(w);if(!items.length)return;let cur=wkCur(w);
-  const dir={w:[0,-1],s:[0,1],a:[-1,0],d:[1,0]}[lk];
-  if(dir||lk==="c"||lk==="v"){if(sh&&(lk==="c"||lk==="v"))return;stop();
+  const dir=is("winUp")?[0,-1]:is("winDown")?[0,1]:is("winLeft")?[-1,0]:is("winRight")?[1,0]:null,seq=is("winNext")?1:is("winPrev")?-1:0;
+  if(dir||seq){stop();
     if(!cur){const f=document.activeElement&&items.includes(document.activeElement)?document.activeElement:items[0];wkMark(f);return}
     if(dir){const n=wkNear(items,cur,dir[0],dir[1]);if(n)wkMark(n);return}
-    const i=items.indexOf(cur);wkMark(items[((i<0?0:i+(lk==="v"?1:-1))%items.length+items.length)%items.length]);return}
-  if(k==="Enter"&&cur){stop();
+    const i=items.indexOf(cur);wkMark(items[((i<0?0:i+seq)%items.length+items.length)%items.length]);return}
+  if(is("winUse")&&cur){stop();
     if(cur.matches("input[type=range],select,input[type=number]")){wkAdjStart(cur);return}
     if(cur.matches("textarea,input:not([type]),input[type=text],input[type=search],input[type=email],input[type=password]")){wkType(cur);return}
-    if(cur.classList.contains("facol")){WK.mv=true;wkNote("Moving a line: W or D up · S or A down · Space makes it equal to the one above · Enter when done");return}
+    if(cur.classList.contains("facol")){WK.mv=true;wkNote(`Moving a line: ${kmShow("winUp")} up · ${kmShow("winDown")} down · Space makes it equal to the one above · ${kmShow("winUse")} when done`);return}
     cur.click();wkLater();return}
-  if(lk==="i"&&!sh&&cur){stop();const t=cur.getAttribute("data-tip")||cur.title||cur.getAttribute("aria-label")||(cur.closest("[data-tip],[title]")||{}).title||"";flash(t||cur.textContent.trim().slice(0,140)||"No more to say about this.");return}
+  if(is("winInfo")&&cur){stop();const t=cur.getAttribute("data-tip")||cur.title||cur.getAttribute("aria-label")||(cur.closest("[data-tip],[title]")||{}).title||"";flash(t||cur.textContent.trim().slice(0,140)||"No more to say about this.");return}
 },true);
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(WK.sig)try{wkRemark()}catch(e){}}}
 

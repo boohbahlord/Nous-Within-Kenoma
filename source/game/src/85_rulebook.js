@@ -109,10 +109,10 @@ const rbOpen=code=>rbWin(code);
 const rbWinOpen=()=>{const w=$("#rbwin");return !!w&&!w.hidden};
 const rbAbove=()=>{const p=$("#pop");return !!p&&!p.hidden&&p.getClientRects().length>0&&p.innerHTML.trim()!==""};   // a popup over the rule book takes the keys
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&rbWinOpen()&&!rbAbove()){rbClose();e.stopPropagation();e.preventDefault()}},true);
-window.addEventListener("keydown",e=>{if(!rbWinOpen()||e.code!=="Space"&&e.key!==" ")return;if(e.ctrlKey||e.metaKey||e.altKey)return;
+window.addEventListener("keydown",e=>{if(!rbWinOpen())return;const nx=kmIs(e,"rbNext");if(!nx&&!kmIs(e,"rbPrev"))return;   // v78d: Space and Shift+Space, as bound
   const a=document.activeElement;if(a&&a.matches&&(a.matches("input[type=search],input[type=text],textarea,select")||a.matches("input[type=checkbox],input[type=radio],summary")&&$("#rbwin").contains(a)))return;   // typing a space; ticking an option or opening a fold in the book
   if(rbAbove())return;   // a popup over the book: Space is its own
-  e.preventDefault();e.stopImmediatePropagation();rbStep("win",e.shiftKey?-1:1)},true);
+  e.preventDefault();e.stopImmediatePropagation();rbStep("win",nx?1:-1)},true);
 /* the folds: in Help below Further explanations, and at the bottom of the page; each an option */
 function rbMount(box,pl){if(!box)return;rbWire(box,pl);if(RB){rbPaint(pl);return}box.innerHTML='<p class="dim">Opening the rule book…</p>';
   rbLoad().then(()=>rbPaint(pl)).catch(()=>{box.innerHTML='<p class="dim">The rule book could not be opened (no connection?). <a class="link" href="ethers-crossroads-rules.html" target="_blank" rel="noopener">All Rules</a></p>'})}

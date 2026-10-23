@@ -43,13 +43,14 @@ function fkFoeStep(d){const C=fkCands(true);if(!C.length){flash("No enemy card i
 function fkMove(di,dj,from){const grid=fkGrid();if(!grid.length)return null;let p=from&&fkAt(grid,from.r,from.c);
   if(!p){const s=G.sel||{r:-1,c:-1};p=fkAt(grid,s.r,s.c)||[Math.floor(grid.length/2),Math.floor(grid[0].length/2)]}
   let [i,j]=p;for(;;){i+=di;j+=dj;if(i<0||j<0||i>=grid.length||j>=grid[i].length)return null;const x=grid[i][j];if(x)return x}}
-const FK_ARROW={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]},FK_TGT={KeyU:[-1,0],KeyJ:[1,0],KeyH:[0,-1],KeyK:[0,1]},FK_ALT={KeyW:[-1,0],KeyS:[1,0],KeyA:[0,-1],KeyD:[0,1]};
-/* keys pressed together (within a moment) make one diagonal step */
-function fkSum(map,extra){let di=0,dj=0;for(const code of new Set([...extra,...[...KB.held].filter(x=>map[x])]))if(map[code]){di+=map[code][0];dj+=map[code][1]}return [Math.sign(di),Math.sign(dj)]}
-function fkArrow(code){FK.dir=FK.dir||new Set();FK.dir.add(code);if(FK.t)return;FK.t=setTimeout(()=>{const [di,dj]=fkSum(FK_ARROW,FK.dir);FK.dir=null;FK.t=0;
+/* the directions of the selector's and the target's actions: [row, column] */
+const FK_SEL={selUp:[-1,0],selDown:[1,0],selLeft:[0,-1],selRight:[0,1]},FK_AIM={aimUp:[-1,0],aimDown:[1,0],aimLeft:[0,-1],aimRight:[0,1]};
+/* keys pressed together (within a moment), or one held while another is pressed, make one diagonal step */
+function fkSum(map,pressed){let di=0,dj=0;for(const id of new Set([...pressed,...kmHeldOf(Object.keys(map))])){di+=map[id][0];dj+=map[id][1]}return [Math.sign(di),Math.sign(dj)]}
+function fkArrow(id){FK.dir=FK.dir||new Set();FK.dir.add(id);if(FK.t)return;FK.t=setTimeout(()=>{const [di,dj]=fkSum(FK_SEL,FK.dir);FK.dir=null;FK.t=0;
   if(!di&&!dj)return;const x=fkMove(di,dj,FK.cur);if(x){FK.tgt=null;fkSet(x.r,x.c)}},45)}
-function fkAim(code,alt){if(!G.sel){flash("Select a stack first: Enter on it, or a click.");return}const map=alt?FK_ALT:FK_TGT;FK.tdir=FK.tdir||new Set();FK.tdir.add(code);if(FK.tt)return;
-  FK.tt=setTimeout(()=>{const [di,dj]=fkSum(map,FK.tdir);FK.tdir=null;FK.tt=0;if(!di&&!dj||!G.sel)return;const x=fkMove(di,dj,FK.tgt||G.sel);if(!x)return;FK.tgt={r:x.r,c:x.c};fkSet(x.r,x.c)},45)}
+function fkAim(id){if(!G.sel){flash(`Select a stack first: ${kmShow("act")} on it, or a click.`);return}FK.tdir=FK.tdir||new Set();FK.tdir.add(id);if(FK.tt)return;
+  FK.tt=setTimeout(()=>{const [di,dj]=fkSum(FK_AIM,FK.tdir);FK.tdir=null;FK.tt=0;if(!di&&!dj||!G.sel)return;const x=fkMove(di,dj,FK.tgt||G.sel);if(!x)return;FK.tgt={r:x.r,c:x.c};fkSet(x.r,x.c)},45)}
 const fkIn=(list,p)=>!!p&&list.some(([a,b])=>a===p.r&&b===p.c);
 /* Enter, M and 1 on the selector */
 function fkAct(how){const p=FK.tgt||FK.cur;if(!p)return;const live=canAct(),s=G.sel;
@@ -68,8 +69,8 @@ function fkActs(){if(!G.sel&&!G.selHand){flash("Select a stack or a hand card fi
   if(!w){w=document.createElement("div");w.id="kbacts";w.className="faov";document.body.appendChild(w)}
   const L=fkActItems(),num=i=>i<9?String(i+1):i===9?"0":i<19?"⇧"+(i-9):i===19?"⇧0":"";
   w.innerHTML=`<div class="ovbox kbactbox" role="dialog" aria-modal="true" aria-labelledby="kbah"><button type="button" class="xclose" aria-label="Close">×</button><h2 id="kbah">Actions</h2>
-<ol class="kbacts">${L.map((e,i)=>`<li><button type="button" data-ka="${i}"><kbd>${num(i)}</kbd> ${esc(fkLabel(e))}</button></li>`).join("")}<li><button type="button" data-ka="rc"><kbd>⇧Enter</kbd> Its right-click menu</button></li></ol>
-<p class="dim">The number keys use them (Shift+1 for the eleventh). X closes.</p></div>`;w.hidden=false;
+<ol class="kbacts">${L.map((e,i)=>`<li><button type="button" data-ka="${i}"><kbd>${num(i)}</kbd> ${esc(fkLabel(e))}</button></li>`).join("")}<li><button type="button" data-ka="rc"><kbd>${esc(kmShort(kmBinds("menu").filter(Boolean)[0]||""))}</kbd> Its right-click menu</button></li></ol>
+<p class="dim">The number keys use them (Shift+1 for the eleventh). ${esc(kmShow("close"))} closes.</p></div>`;w.hidden=false;
   w.querySelector(".xclose").onclick=()=>{w.hidden=true};w.onclick=e=>{if(e.target===w)w.hidden=true};
   w.querySelectorAll("[data-ka]").forEach(b=>b.onclick=()=>fkActUse(b.dataset.ka))}
 function fkActUse(k){const w=$("#kbacts");if(k==="rc"){if(w)w.hidden=true;fkMenu();return}const e=fkActItems()[+k];if(!e){flash("Nothing there.");return}e.click();setTimeout(()=>{if(w&&!w.hidden&&(G.sel||G.selHand))fkActs();else if(w)w.hidden=true},60)}
@@ -80,7 +81,7 @@ function fkMenu(){let el=null;if(KB.mode==="hand"){el=kbHand()[KB.h]}else{const 
 /* P: the other players' boxes */
 const fkBoxes=()=>[...document.querySelectorAll(fsOn()?".fsfoe":"#foe>.pbox,#foe>div[style*='--pc']")].filter(e=>e.getClientRects().length);
 function fkPlayers(d){const B=fkBoxes();if(!B.length){flash("No other player's box to read.");return}FK.pm=true;FK.p=FK.pm&&FK.p!=null?((FK.p+d)%B.length+B.length)%B.length:0;FK.pi=-1;fkPaint();
-  B[FK.p].scrollIntoView({block:"nearest"});wkNote(`${B[FK.p].getAttribute("title")||B[FK.p].textContent.trim().split(/\s{2,}|\n/)[0].slice(0,60)} · C and V read the box, Enter its history, P the next player, X stops`)}
+  B[FK.p].scrollIntoView({block:"nearest"});wkNote(`${B[FK.p].getAttribute("title")||B[FK.p].textContent.trim().split(/\s{2,}|\n/)[0].slice(0,60)} · C and V read the box, Enter its history, ${kmShow("plNext")} the next player, ${kmShow("close")} stops`)}
 function fkPart(d){const b=fkBoxes()[FK.p];if(!b)return;const parts=[...b.children].filter(e=>e.getClientRects().length&&e.textContent.trim());if(!parts.length)return;
   FK.pi=((FK.pi+d)%parts.length+parts.length)%parts.length;fkPaint();const e=parts[FK.pi];wkNote((e.getAttribute("title")?e.getAttribute("title")+" · ":"")+e.textContent.trim().replace(/\s+/g," ").slice(0,160))}
 function fkPlayersOff(){FK.pm=false;wkNote("");fkPaint()}
@@ -91,37 +92,38 @@ function fkPaint(){document.querySelectorAll(".kbcur,.kbpl,.kbplp").forEach(e=>e
   if(!FK.on||!G||!FK.cur){if(lab)lab.hidden=true;return}
   const t=fkTile(FK.cur.r,FK.cur.c);if(t)t.classList.add("kbcur");
   if(!lab){lab=document.createElement("div");lab.id="fkmode";lab.setAttribute("aria-live","polite");document.body.appendChild(lab)}
-  lab.hidden=false;lab.innerHTML=`Tab steps through: <b>${FK.foe?"the enemy's cards":"your cards"}</b> <kbd>\`</kbd> switches`;
+  lab.hidden=false;lab.innerHTML=`${esc(kmShow("rowNext"))} steps through: <b>${FK.foe?"the enemy's cards":"your cards"}</b> <kbd>${esc(kmShow("foeSwap"))}</kbd> switches`;
   if(FK.tgt&&G.sel){const B=$("#board"),a=fkTile(G.sel.r,G.sel.c),b=fkTile(FK.tgt.r,FK.tgt.c);if(!B||!a||!b)return;const br=B.getBoundingClientRect(),ra=a.getBoundingClientRect(),rb=b.getBoundingClientRect();
     const x1=ra.left+ra.width/2-br.left,y1=ra.top+ra.height/2-br.top,x2=rb.left+rb.width/2-br.left,y2=rb.top+rb.height/2-br.top;
     B.insertAdjacentHTML("beforeend",`<svg id="fkarrow" aria-hidden="true" width="${Math.ceil(br.width)}" height="${Math.ceil(br.height)}"><defs><marker id="fkhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0L10,5L0,10z" fill="#f1d27a"/></marker></defs><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#f1d27a" stroke-width="4" stroke-linecap="round" marker-end="url(#fkhead)"/></svg>`)}}
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(FK.on||FK.pm)try{fkPaint()}catch(e){console.error(e)}}}
 {const _z=camZoom;camZoom=function(){const out=_z.apply(this,arguments);if(FK.on)fkPaint();return out}}
 document.addEventListener("pointerdown",e=>{if(FK.on&&e.target.closest&&e.target.closest("#board")){FK.on=false;FK.tgt=null;fkPaint()}},true);
-/* the keys */
-addEventListener("keydown",e=>{if(KB.synth||e.metaKey||typing(e.target)||!G||G.passing)return;const k=e.key,lk=k.length===1?k.toLowerCase():k,sh=e.shiftKey,ct=e.ctrlKey,al=e.altKey,
-  stop=()=>{e.preventDefault();e.stopImmediatePropagation()},top=kbTop();
-  if(top){if(top.id==="kbacts"&&!ct&&!al){const n=kbDigit(e);if(n){stop();fkActUse(String(n-1+(sh?10:0)))}}return}   // a window: its own keys (98_winkeys.js)
-  if(FK.pm){if(lk==="p"&&!ct&&!al){stop();fkPlayers(sh?-1:1);return}if((lk==="c"||lk==="v")&&!sh&&!ct&&!al){stop();fkPart(lk==="v"?1:-1);return}
-    if(k==="Enter"&&!sh){stop();const b=fkBoxes()[FK.p],h=b&&b.querySelector("[data-hist]");if(h)h.click();return}if(lk==="x"&&!sh&&!ct||k==="Escape"){stop();fkPlayersOff();return}}
-  if(al&&!ct&&FK_ALT[e.code]){stop();fkAim(e.code,true);return}
-  if(al||ct&&k!=="Enter")return;
-  if(k==="Enter"&&sh){stop();fkMenu();return}
-  if(KB.mode&&(k==="Tab"||k==="Enter"||lk==="c"||lk==="v"||kbDigit(e)||lk==="x"||k==="Escape"||lk==="i"))return;   // the spells and the hand keep their keys
-  if(FK_ARROW[k]){stop();fkArrow(k);return}
-  if(FK_TGT[e.code]&&!sh){stop();fkAim(e.code,false);return}
-  if(k==="Tab"){stop();FK.on=true;fkRowStep(sh?-1:1);return}
-  if(e.code==="Backquote"&&!sh){stop();FK.foe=!FK.foe;FK.on=true;if(!FK.cur)fkRowStep(1);else fkPaint();return}
-  if(lk==="n"){stop();fkFoeStep(sh?-1:1);return}
-  if(lk==="p"){stop();fkPlayers(sh?-1:1);return}
-  if(lk==="y"&&!sh){stop();fkActs();return}
+/* the keys (as bound: the table's field keys in 96c_keymap.js) */
+addEventListener("keydown",e=>{if(KB.synth||typing(e.target)||!G||G.passing)return;const is=id=>kmIs(e,id),stop=()=>{e.preventDefault();e.stopImmediatePropagation()},top=kbTop();
+  const plain=!e.ctrlKey&&!e.altKey&&!e.metaKey;
+  if(top){if(top.id==="kbacts"&&plain){const n=kbDigit(e);if(n){stop();fkActUse(String(n-1+(e.shiftKey?10:0)))}}return}   // a window: its own keys (98_winkeys.js)
+  if(FK.pm){if(is("plNext")||is("plPrev")){stop();fkPlayers(is("plNext")?1:-1);return}
+    const n=kmName(e.code,e.key);if(plain&&!e.shiftKey&&(n==="C"||n==="V")){stop();fkPart(n==="V"?1:-1);return}
+    if(plain&&!e.shiftKey&&n==="Enter"){stop();const b=fkBoxes()[FK.p],h=b&&b.querySelector("[data-hist]");if(h)h.click();return}
+    if(is("close")||e.key==="Escape"){stop();fkPlayersOff();return}}
+  if(KB.mode&&(kmIn(e,KB.mode==="hand"?"hand":"spell")||kbSpellMode()&&kbDigit(e)||is("close")||e.key==="Escape"))return;   // the spells and the hand keep their keys
+  const sel=Object.keys(FK_SEL).find(is);if(sel){stop();fkArrow(sel);return}
+  const aim=Object.keys(FK_AIM).find(is);if(aim){stop();fkAim(aim);return}
+  if(is("menu")){stop();fkMenu();return}
+  if(is("rowNext")||is("rowPrev")){stop();FK.on=true;fkRowStep(is("rowNext")?1:-1);return}
+  if(is("foeSwap")){stop();FK.foe=!FK.foe;FK.on=true;if(!FK.cur)fkRowStep(1);else fkPaint();return}
+  if(is("foeNext")||is("foePrev")){stop();fkFoeStep(is("foeNext")?1:-1);return}
+  if(is("plNext")||is("plPrev")){stop();fkPlayers(is("plNext")?1:-1);return}
+  if(is("acts")){stop();fkActs();return}
+  if(FK.on&&(is("rowDown")||is("rowUp"))){stop();fkColStep(is("rowDown")?1:-1);return}   // bound to a key (alone, Ctrl and Shift act on letting go)
   if(!FK.on||!FK.cur)return;   // the rest acts on the selector, once the keys have put it on the field
-  if(k==="Enter"){stop();fkAct("any");return}
-  if(lk==="m"&&!sh){stop();fkAct("move");return}
-  if(e.code==="Digit1"&&!sh){stop();fkAct("atk");return}
-  if(lk==="i"&&!sh){stop();const t=fkTile(FK.cur.r,FK.cur.c);flash(t?t.getAttribute("aria-label")||"":"");return}
+  if(is("act")){stop();fkAct("any");return}
+  if(is("move")){stop();fkAct("move");return}
+  if(is("attack")){stop();fkAct("atk");return}
+  if(is("info")){stop();const t=fkTile(FK.cur.r,FK.cur.c);flash(t?t.getAttribute("aria-label")||"":"");return}
 },true);
-/* Ctrl or Shift alone on the field: the next row down or up (only once the keys are on the field) */
-addEventListener("keyup",e=>{const a=KB.alone;if(!a||e.key!==a||typing(e.target)||!G||!FK.on||KB.mode||kbTop())return;fkColStep(a==="Control"?1:-1)},true);
+/* Ctrl or Shift pressed alone on the field (as bound): the next row down or up (only once the keys are on the field) */
+addEventListener("keyup",e=>{if(typing(e.target)||!G||!FK.on||KB.mode||kbTop())return;if(kmTap(e,"rowDown"))fkColStep(1);else if(kmTap(e,"rowUp"))fkColStep(-1)},true);
 
 if(window.__EC)Object.assign(window.__EC,{FK,fkCands:f=>fkCands(f)});

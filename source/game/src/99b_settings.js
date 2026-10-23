@@ -37,6 +37,7 @@ function setBuild(){const m=$("#menu"),box=m&&m.querySelector(".ovbox");if(!box|
   /* Controls: the large map's fold above the keyboard's, which stays at the very bottom */
   const cam=box.querySelector("#mCam"),keys=box.querySelector(".kbfold");
   P.ctl.appendChild(mk("p","dim","How you move around the table with the mouse, the wheel and the keys."));
+  const km=mk("div","kmpanel");P.ctl.appendChild(km);kmMount(km);
   if(cam)P.ctl.appendChild(cam);if(keys)P.ctl.appendChild(keys);
   /* Performance */
   const net=box.querySelector(".perfnet");if(net){const h=net.querySelector(".perfh");if(h)h.remove();sect(P.perf,"Connection",net)}
@@ -59,7 +60,7 @@ function setBuild(){const m=$("#menu"),box=m&&m.querySelector(".ovbox");if(!box|
   (intro||box.querySelector(":scope>h2")).after(bar);let at=bar;for(const [k] of SET_TABS){at.after(P[k]);at=P[k]}
   if(acts)box.appendChild(acts);
   bar.querySelectorAll(".stab").forEach(t=>t.onclick=()=>{setShow(box,t.dataset.st);box.scrollTop=0});
-  setShow(box,setTab)}
+  setShow(box,setTab);kmBang()}
 {const _om=openMenu;openMenu=function(){_om.apply(this,arguments);rSafe(setBuild,null,[])}}
 
 if(window.__EC)Object.assign(window.__EC,{setShow:k=>{const b=$("#menu .ovbox");if(b)setShow(b,k)}});
