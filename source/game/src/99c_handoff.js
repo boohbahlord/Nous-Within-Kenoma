@@ -2,6 +2,8 @@
    Last of all, so these wrap every kind of question (the sky's bids and the crystal guards draw their own windows). */
 /* v78j: the question on screen, so the phase timer can answer it when time runs out (as the computer would) */
 let askOpen=null;
+const ASK_SAFE={yesno:false,bid:null,crysguard:null};   // v78p: what time running out answers: No, Pass, no guard
+const askSafe=({pl,spec})=>spec.kind in ASK_SAFE?ASK_SAFE[spec.kind]:spec.cancel?null:spec.ai?spec.ai():AI.choose(pl,spec);
 {const _ah=askHuman;askHuman=function(pl,spec){return new Promise(res=>{let open=true;
   const q=askOpen={pl,spec,answer:v=>{if(!open)return;open=false;ovHide();res(v)}};
   _ah.call(this,pl,spec).then(v=>{if(askOpen===q)askOpen=null;if(open){open=false;res(v)}})})}}

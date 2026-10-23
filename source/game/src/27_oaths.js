@@ -253,7 +253,9 @@ async function saturnEclipse(){
   log(`Venus's eclipse heals every card on the field${healed?` (${healed})`:""}.`,"event");
   for(const b of [...(G.betrayed||[])]){const pls=[b.by,...b.mates].filter(i=>G.p[i]&&!G.p[i].out);if(pls.length<2)continue;let all=true;
     for(const pl of pls){const yes=await ask(pl,{kind:"yesno",id:"venusmend",title:`Venus eclipsed: ${esc(G.p[pl].name)}`,text:`Venus offers to mend the betrayal of ${plName(b.by)}. Will you stand on one team again with ${pls.filter(i=>i!==pl).map(plName).join(" and ")}?`,yes:"Rejoin",no:"Refuse",ai:()=>aiVote(pl,"Peace")});if(!yes){all=false;break}}
-    if(all){for(const pl of pls)G.p[pl].team=b.team;G.betrayed.splice(G.betrayed.indexOf(b),1);G._vis=null;log(`<b>Venus mends the betrayal</b>: ${pls.map(plName).join(" and ")} are one team again.`,"event");popup("A betrayal mended",`<p>Under the eclipse of Venus, ${pls.map(plName).join(" and ")} stand together again.</p>`)}
+    if(all){for(const pl of pls)G.p[pl].team=b.team;G.betrayed.splice(G.betrayed.indexOf(b),1);G._vis=null;log(`<b>Venus mends the betrayal</b>: ${pls.map(plName).join(" and ")} are one team again.`,"event");popup("A betrayal mended",`<p>Under the eclipse of Venus, ${pls.map(plName).join(" and ")} stand together again.</p>`)
+      if(G.opts.shareDeck&&(G.opts.layout||"").startsWith("team")){const P=G.p[b.by],M=pls.map(i=>G.p[i]).find(Q=>Q!==P&&Q.deck!==P.deck);   // v78p: one deck and one soul pile again
+        if(M){M.deck.push(...P.deck);shuffle(M.deck);M.souls.push(...P.souls);P.deck=M.deck;P.souls=M.souls;log(`${plName(b.by)}'s deck and soul pile join the team's again.`)}}}
     else log(`The betrayal of ${plName(b.by)} stays unmended.`)}
 }}
 /* remember who betrayed whom, so Venus can mend it */

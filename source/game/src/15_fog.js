@@ -192,5 +192,5 @@ function fogLog(by,r,c,alt){
   const seen=G.p.map(P=>!isEnemy(A.owner,P.i)||!isEnemy(D.owner,P.i)||seesTile(P.i,r1,c1)||seesTile(P.i,r2,c2));
   if(seen.every(Boolean))return _ar.apply(this,arguments);
   const L0=G.log[0],out=_ar.apply(this,arguments),end=L0?G.log.indexOf(L0):G.log.length;
-  for(const l of G.log.slice(0,end<0?G.log.length:end))if(!l.fog)l.fog={by:A.owner,seen,alt:""};
+  for(const l of G.log.slice(0,end<0?G.log.length:end))if(!l.fog&&l.cls!=="event"&&l.cls!=="win")l.fog={by:A.owner,seen,alt:""};   // v78p: a side falling, or the game ending, is news for all
   return out}}

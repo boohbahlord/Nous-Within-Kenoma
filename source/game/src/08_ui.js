@@ -55,7 +55,8 @@ function passScreen(msg,pl=G.active){
     G.passing=true;render();const M=$("main");if(M)M.inert=true;   // v78j: nothing behind the cover is read out or reached
     const P=G.p[pl];const seen=P.seen;P.seen=false;
     ovShow(`<div class="ovbox"><h2>${esc(msg)}</h2><p>Pass the device to <b>${esc(P.name)}</b>. The cards stay dark until they confirm.</p>${seen?`<p class="seen">Your hand was seen by Naked Hand.</p>`:""}<p><button class="btn" id="ready">I'm ${esc(P.name)}: show my cards</button></p></div>`,"blackout");
-    $("#ready").onclick=()=>{ovHide();G.passing=false;G.atDevice=P.i;const M=$("main");if(M)M.inert=false;render();res()};
+    const b=$("#ready");b.onclick=()=>{ovHide();G.passing=false;G.atDevice=P.i;const M=$("main");if(M)M.inert=false;render();res()};
+    b.disabled=true;setTimeout(()=>{b.disabled=false;if(b.isConnected)b.focus({preventScroll:true})},600);   // v78p: a quick second press by the last player can't show the next hand
   });
 }
 function end(w,why){

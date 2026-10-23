@@ -48,7 +48,7 @@ function camWire(w){
   w.addEventListener("pointerdown",e=>{if(!isLarge()||e.pointerType!=="mouse"||e.button!==0||PREF.camDrag===false)return;if(e.target.closest(".stack,button,.ci,input,select,a"))return;   // v74a: dragging can be turned off (Controls); a stack or a button is clicked, not dragged
     drag={x:e.clientX,y:e.clientY,l:w.scrollLeft,t:w.scrollTop};moved=false});
   addEventListener("pointermove",e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>5){moved=true;w.classList.add("dragging")}
-    if(moved){w.scrollLeft=drag.l-dx;w.scrollTop=drag.t-dy}});
+    if(moved){const z=camZf(w);w.scrollLeft=drag.l-dx/z;w.scrollTop=drag.t-dy/z}});   // v78p: in the field's own pixels at any interface size
   addEventListener("pointerup",()=>{if(!drag)return;drag=null;w.classList.remove("dragging");if(moved)setTimeout(()=>{moved=false},0)});
   w.addEventListener("click",e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false}},true)}   // a drag is not a click on a tile
 const typing=t=>!!(t&&(t.isContentEditable||t.tagName==="TEXTAREA"||t.tagName==="SELECT"||
