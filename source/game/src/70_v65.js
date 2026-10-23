@@ -15,7 +15,7 @@ function groupMenuSliders(){const m=$("#menu"),box=m&&m.querySelector(".ovbox");
           r.dispatchEvent(new Event("input",{bubbles:true}));r.dispatchEvent(new Event("change",{bubbles:true}))};return b};
       r.before(mk(-1,"◀","less"));r.after(mk(1,"▶","more"))}
     l.querySelectorAll(".mstep").forEach(b=>b.disabled=r.disabled);
-    if(!l.closest("details")&&l.parentNode!==g)g.appendChild(l)}}
+    if(!l.closest("details,.setpane")&&l.parentNode!==g)g.appendChild(l)}}
 {const _om=openMenu;openMenu=function(){_om.apply(this,arguments);groupMenuSliders()}}
 
 /* ---------- cards in the players' colors, further apart: each color has its own card tone (U3). Crimson and Ember used to
