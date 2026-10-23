@@ -2610,5 +2610,5 @@ html.ecfs #fsleft>*{position:relative!important;left:auto!important;right:auto!i
 html.ecfs #fsleft>*::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,#ffffff0d 0 1px,transparent 1px 3px);pointer-events:none}
 html.ecfs #fsleft>[hidden]{display:none!important}
 /* v79a: the field goes very dark while you draw */
-#board{transition:filter .35s}
-html.drawdark #board{filter:brightness(.22) saturate(.7)}
+#board>.drawveil{position:absolute;inset:-6px;z-index:60;pointer-events:none;background:#000;opacity:0;transition:opacity .35s}
+html.drawdark #board>.drawveil{opacity:.82}
