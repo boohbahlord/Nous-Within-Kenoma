@@ -107,18 +107,25 @@ try{if(P&&P.dys){D.classList.add("dys");var z=document.createElement("style");z.
   <a class="card" href="ethers-crossroads-rules.html">All Rules<span>Every rule, spell, moon phase and event</span></a>
 </nav>
 <h2>Getting Started</h2>
-<p>Ether's Crossroads is a card game for two players. Each player brings a deck of playing cards with both Jokers, and the table needs a handful of dice: d2, d4, d6, d8, d12 and d20. Cards are soldiers, knights and royalty placed on a field of lines; dice decide every fight; the dead become souls that can be spent as mana on spells, or raised again from the shared grave; and the moon turns one phase every round.</p>
-<ol>
-<li><b>Raise your Ace.</b> Each player takes one Ace and one Jack from their own deck (or from the Ether, when the specials are set to wait there). The Ace goes on any tile of your spawn lines you choose, with the Jack inside it.</li>
-<li><b>Draw.</b> Each player draws 2d4 cards from their own shuffled deck. A hand holds six cards at most.</li>
-<li><b>Roll for the opening.</b> Both players roll. The highest roll sets up first, placing any opening cards on their own two lines, then the other player sets up. The highest roller also takes the first turn.</li>
-<li><b>Take turns.</b> Every turn runs <span class="flow">Prep → Attack</span>. The prep phase starts with drawing: roll a d4 as many times as you like and draw that many cards. Then place, move and sacrifice cards and cast spells. In the attack phase, each of your stacks may attack once. The very first turn of the game has no draw phase.</li>
-<li><b>Fight with dice.</b> A stack fights with the score of its best card: the card's value plus its die. Stacking cards does not add their scores together, but every card in a stack is another hit it can take.</li>
-<li><b>Gather souls.</b> Sacrificed cards become your soul pile, worth up to six mana (a card from your hand is worth its Ether price − 1d2 + 1, rolled as you sacrifice it, but a card that costs 1 is always worth 1; a card on the field is worth its soul), which pays for spells such as Divine Odds, Clairvoyance or a King Conjure. Once a round, the free Grave Blessing lets you roll for the dead.</li>
-<li><b>Watch the moon.</b> The New Moon gives back cards from the grave; the Full Moon takes a stack of two or a card, or 2d2 + 2 mana. Rarely, the Full Moon turns to a Blood Moon.</li>
-<li><b>Win.</b> Destroy every card the other player has on the field, or leave them with no deck, no hand and no soul pile when their turn ends: an economic victory.</li>
-</ol>
-<p>The full rules, including every card's role, the stacking formula, all the spells, the moon and its events, are under All Rules. Play Game runs the game in the browser.</p>
+<p>Ether's Crossroads is a card game for two or more players, played with ordinary playing cards and dice. You can play it here in the browser, or at a table with real cards. At a table, every player needs their own deck with both Jokers, and you need a d2, d4, d6, d8, d12 and d20 between you.</p>
+<p>Your cards are your army, and the dice settle every fight. When a card dies it goes to the grave, which everyone shares. When you sacrifice a card it becomes a soul, and souls are the mana you spend on spells. The moon moves one phase every round, and some phases help you while others cost you.</p>
+<h3>Setting up</h3>
+<p>Take the Ace and a Jack out of your deck. Put the Ace on any tile of your spawn lines and the Jack inside it. Shuffle, then draw 2d4 cards. You can never hold more than six.</p>
+<p>Everyone rolls. Whoever rolls highest sets up first, putting any opening cards on their own two lines, and also takes the first turn.</p>
+<h3>Your turn</h3>
+<p>A turn has two phases, prep and then attack.</p>
+<p>Prep starts with drawing. Roll a d4 and draw that many cards, and do it again as often as you like. Cards that don't fit in your hand go to the grave, and then you can't draw again that turn. After drawing you can place cards, move them, sacrifice them and cast spells. Do your sacrificing before you spend anything, because once you spend mana you can't sacrifice again until your next prep.</p>
+<p>In the attack phase each of your stacks can attack once.</p>
+<p>The player who goes first doesn't draw on the first turn of the game.</p>
+<h3>Fights</h3>
+<p>A stack fights with its best card, the card's value plus a die. Piling cards into a stack doesn't add them together, but each card is one more hit the stack can take before it's gone.</p>
+<h3>Souls and mana</h3>
+<p>Your soul pile holds up to six mana. A card sacrificed from the field is worth its soul. A card from your hand is worth its Ether price, minus 1d2, plus 1, and a card that costs 1 is always worth 1. You spend this on spells. Grave Blessing is free once a round and lets you roll to bring the dead back.</p>
+<h3>The moon</h3>
+<p>The New Moon gives cards back from the grave. The Full Moon takes a stack of two, or a card, or 2d2 + 2 mana. Every so often the Full Moon turns into a Blood Moon.</p>
+<h3>Winning</h3>
+<p>You win when the other side has nothing left on the field, or when they finish a turn with no deck, no hand and no souls.</p>
+<p>Everything else is in All Rules, from what each card does to every spell and moon event. Play Game starts a game right here.</p>
 <h2 id="modes">Game Modes</h2>
 <h3>Standard</h3>
 <p>Local play: against computers, together on this device, or both. Up to four people share one device, and every other seat is a computer: you against one to three computers, friends together against computers, or friends against each other, up to eight seats in King of the Hill. Each player picks an Emanation (or the host turns Emanations off), a color and a symbol, which marks every card they own. With more than one person, the board turns to face whoever is playing, and the screen goes dark between turns until the next player confirms they hold the device. Everyone sees every die.</p>
@@ -128,7 +135,7 @@ try{if(P&&P.dys){D.classList.add("dys");var z=document.createElement("style");z.
 <p>Tower defense for one to four players. You raise your Ace and its Jack, and the Horde comes: after three rounds of grace, a new wave every 1d2 + 2 rounds from a fresh deck, each one a step stronger, with Jacks, Queens and Kings from the sixth wave and Jokers from the eleventh; from then on it brings counter cards (Battering Rams for your Walls) when you lean on something it has no answer to. The Horde has no spells, hand or grave. The moon still turns. You lose when your last card on the field falls, and the round you reach is your score.</p>
 <h3>Emanations</h3>
 <p>An Emanation is what you play as. Each one changes your deck, your spells or your limits. <a href="ethers-crossroads-rules.html#substances">Every Emanation in full</a>.</p>
-<dl class="subtags"><dt>Beginner</dt><dd>The learning Emanation: a bigger hand, an early army, and one free shield.</dd><dt>Angel Machine</dt><dd>Antony's mech: Samson fights, and Antony rises from his corpse.</dd><dt>Satan</dt><dd>One overwhelming card, and a curse that turns a stack against itself.</dd><dt>Binah</dt><dd>The Southern tribe of the Euclids: Slavemasters capture, and Slaves shoot.</dd><dt>Jester Fool</dt><dd>The Tree, the Puppets and the BullGoat: a living base that feeds you mana.</dd><dt>Tiphareth of Kether</dt><dd>The Northern tribe of the Euclids: Traffickers chain souls and sell them.</dd><dt>Lucifer &amp; Ouroboros</dt><dd>Delusions: blind yourself for mana, then blind your enemy and starve them.</dd><dt>The Leviathan</dt><dd>The black serpent: it rises onto the moon and takes a toll every New Moon.</dd><dt>The Firmament</dt><dd>Master of the sky: it hangs Heavenly Bodies in the moon's place.</dd><dt>Yaldabaoth</dt><dd>The Demiurge: it eats the sky and the dead, and brings Saturn.</dd></dl>
+<dl class="subtags"><dt>Angel Machine</dt><dd>Antony's mech: Samson fights, and Antony rises from his corpse.</dd><dt>Satan</dt><dd>One overwhelming card, and a curse that turns a stack against itself.</dd><dt>Binah</dt><dd>The Southern tribe of the Euclids: Slavemasters capture, and Slaves shoot.</dd><dt>Jester Fool</dt><dd>The Tree, the Puppets and the BullGoat: a living base that feeds you mana.</dd><dt>Tiphareth of Kether</dt><dd>The Northern tribe of the Euclids: Traffickers chain souls and sell them.</dd><dt>Lucifer &amp; Ouroboros</dt><dd>Delusions: blind yourself for mana, then blind your enemy and starve them.</dd><dt>The Leviathan</dt><dd>The black serpent: it rises onto the moon and takes a toll every New Moon.</dd><dt>The Firmament</dt><dd>Master of the sky: it hangs Heavenly Bodies in the moon's place.</dd><dt>Yaldabaoth</dt><dd>The Demiurge: it eats the sky and the dead, and brings Saturn.</dd></dl>
 <h3>More players, maps and options</h3>
 <p>With three or four players the field is a 7 by 7 square by default: free-for-all, or two against two with teammates side by side, across, or sharing one end. The battle maps are the Keep, the Sahel, the Forest, the Dungeon and the River, all at night. Before a game you can set the field size, the decks, the specials, the starting mana, the sky, the Bank, Demons, crystals, fog of war and more. <a href="ethers-crossroads-rules.html#modes">Every option</a>.</p>
 
