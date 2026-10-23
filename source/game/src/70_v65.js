@@ -29,7 +29,7 @@ const addTone=h=>h.replace(/style="--pc:([^";]*)/,(m,col)=>{const t=toneOf(col);
 /* ---------- the opening: a clear line above the field says where the Ace goes (U2) ---------- */
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const b=$("#board");if(!b)return;
   const host=b.closest(".camwrap,.boardwrap")||b;let h=$("#acehint");
-  const want=G.phase==="setup"&&G.setupStep==="ace"&&canAct()&&!G.p[G.active].cpu;
+  const want=!fsOn()&&G.phase==="setup"&&G.setupStep==="ace"&&canAct()&&!G.p[G.active].cpu;   // v78b: not in fullscreen (it sat behind the top meters; the phase label says Setup)
   if(!want){if(h)h.remove();return}
   const txt=hq()&&!G.p[G.active].opening.length?"Place your second base Ace: click any glowing tile in your spawn lines.":"Place your Ace to start: click any glowing tile in your spawn lines. It spawns your base, with a Jack inside.";
   if(!h){h=document.createElement("p");h.id="acehint";h.setAttribute("role","status")}

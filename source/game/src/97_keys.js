@@ -143,7 +143,13 @@ function kbRemind(){const g=G&&G.map?G.map.seed:null;if(g==null||KB.reminded===g
 /* v78a: Tab never leaves the game for the browser's own bar: where it means nothing, it does nothing */
 document.addEventListener("keydown",e=>{if(e.key==="Tab")e.preventDefault()});
 /* the list of keys: in the pause menu and the Menu, each in a fold like the others, with the key letters' switch */
-const KB_LIST=[["Space","the turn button: Ready, the next phase, End turn"],["E · Q","zoom in · zoom out, around the middle of the screen"],["WASD or the arrow keys","move the field; two at once go diagonally (Shift: faster)"],
+const KB_LIST=[["Space","the turn button: Ready, the next phase, End turn"],["E · Q","zoom in · zoom out, around the middle of the screen"],["WASD","move the camera over the field; two at once go diagonally (Shift: faster)"],
+  ["Arrow keys","the selector on the field (two at once: diagonally); the camera keeps it in the middle"],["Tab · Shift+Tab","along the row to your next · previous card"],
+  ["Ctrl · Shift (pressed alone)","down · up to the next row with your cards"],["` (left of 1)","Tab, Ctrl and Shift step through the enemy's cards instead (again: yours)"],["N · Shift+N","the enemy's next · previous card"],
+  ["Enter","on the selector: select, place, move or attack, as a click"],["M · 1","move there (or attack) · the default attack"],
+  ["U H J K, or Alt+W A S D","the target of the stack you selected, a tile at a time (two at once: diagonally); then Enter or M"],
+  ["Y","what you can do with what you selected, numbered: the number keys use it"],["Shift+Enter","the right-click menu of what is under the selector"],
+  ["P · Shift+P","the other players' boxes: C and V read one, Enter its history"],["I","what stands on the tile under the selector"],
   ["F","the spell bar at the bottom: 1–9 and 0 cast the first ten of the school, Shift+1 to Shift+0 the next ten; C and V (or Tab) the school before and after, Shift+C the first, Shift+V the last (the piles); X closes"],
   ["Shift+F","the spell list: C and V move from spell to spell, Ctrl and Shift (alone) to the next and the previous school, Enter casts; X closes"],
   ["G","the hand: C and V move, Enter picks (again: lets go), I the card's info"],["Backspace or Delete","sacrifice the hand card you picked"],["R","roll the draw"],
