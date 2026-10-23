@@ -179,7 +179,7 @@ async function actPhase(pl,ph){
 async function nextPhase(){
   if(G.busy||G.over||G.passing)return;
   if(G.phase==="setup"){
-    if(G.setupStep==="ace"){flash("First place your Ace and its Jack on a backline tile.");return}
+    if(G.setupStep==="ace"){flash("First place your Ace and its Jack on a tile of your spawn lines.");return}
     if(G.setupResolve){const f=G.setupResolve;G.setupResolve=null;stopTimer();f()}
     return;
   }
@@ -273,7 +273,7 @@ function placeOpening(pl,r,c){
 function canPlace(card,r,c){
   if(!canSpawn(G.active,r,c)||isVoid(r,c))return false;
   const st=G.board[r][c],k=kind(card);
-  if(k==="ace")return !st&&isBack(G.active,r,c);
+  if(k==="ace")return !st;   // v78a: an Ace goes on any empty tile you may spawn on (both spawn lines, your Bank land, your Flags)
   if(k==="tree"||k==="wall"||(card.unit&&UNIT[card.unit].solo==="alone"))return !st;   // a Wall goes up on any empty tile of your spawn lines   // the Tree, Satan, the BullGoat and Slaves take an empty tile
   if(hq()&&!(st&&st.owner===G.active&&hasK(st,"ace")))return false;   // Headquarters: troops spawn only inside your Aces
   if(k==="joker"){if(!st||st.owner!==G.active)return false;return st.cards.some(x=>x.color===card.color)&&stackLegal([...st.cards,card])}

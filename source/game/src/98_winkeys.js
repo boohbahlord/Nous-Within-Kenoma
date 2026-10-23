@@ -10,8 +10,8 @@
    - A line of a ranking (Field Automation's priorities): Enter takes hold of it; W or D moves it up, S or A down, Space makes
      it equal to the one above, Enter lets go.
    - Tab and Shift+Tab: the window's tabs (the Bank's, the setup's); nothing where there are none.
-   - Shift and Ctrl pressed alone: the next and the previous section of a long window (the Ether's kinds of cards, the
-     Menu's folds, the setup's boxes); nothing where there are none.
+   - Ctrl and Shift pressed alone: the next (further down) and the previous section of a long window (the Ether's kinds of
+     cards, the Menu's folds, the setup's boxes); nothing where there are none. (v78a: Ctrl forward and Shift back, as on the field.)
    - I: what the item under the keys does (its tip), since there is no hovering with keys. X or Esc closes the window.
    The highlight appears only once a key is used, so the mouse never sees it. */
 const WK={el:null,sig:null,win:null,adj:null,typ:null,mv:null};
@@ -61,7 +61,7 @@ function wkSection(w,d){const H=[...w.querySelectorAll("h3,h4,summary,legend,.ds
   const cur=wkCur(w),y=cur?cur.getBoundingClientRect().top+1:-1e9;let at=-1;H.forEach((h,i)=>{if(h.getBoundingClientRect().top<=y)at=i});
   const j=Math.max(0,Math.min(H.length-1,at+d));if(j===at&&cur)return;const h=H[j];h.scrollIntoView({block:"start",behavior:"smooth"});
   const items=wkItems(w),hy=h.getBoundingClientRect().top-1;const it=h.matches("summary")?h:items.find(x=>x.getBoundingClientRect().top>=hy&&(h.compareDocumentPosition(x)&Node.DOCUMENT_POSITION_FOLLOWING));wkMark(it||null)}
-addEventListener("keyup",e=>{const a=KB.alone;if(!a||e.key!==a||typing(e.target)||WK.adj||WK.mv)return;const w=kbTop();if(w)wkSection(w,a==="Shift"?1:-1)},true);
+addEventListener("keyup",e=>{const a=KB.alone;if(!a||e.key!==a||typing(e.target)||WK.adj||WK.mv)return;const w=kbTop();if(w)wkSection(w,a==="Control"?1:-1)},true);
 /* the keys */
 addEventListener("keydown",e=>{if(KB.synth||e.metaKey||e.altKey)return;const k=e.key,lk=k.length===1?k.toLowerCase():k,sh=e.shiftKey,stop=()=>{e.preventDefault();e.stopImmediatePropagation()};
   if(WK.typ){if(e.target!==WK.typ){WK.typ=null;wkNote("")}else{

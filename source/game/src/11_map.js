@@ -51,8 +51,9 @@ function mapPlan(o){
       return {back,zone}};
     sides.slice(0,n).forEach((sd,i)=>{const t=five(big?bigEdge(sd).back:edgeTiles(sd,rows,cols));seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:t,zone:t});teams.push(L==="ffa"?i:i%2)});
   }else if(L==="team-same"){
-    // v70: teammates on the same side share both spawn rows, the full width of the field
-    seats.push(mk2("bottom",allc,2),mk2("top",allc,2),mk2("bottom",allc,2),mk2("top",allc,2));teams.push(0,1,0,1);
+    // v78a: teammates on the same side hold both spawn rows, half the width each (sharing comes only by leave: Diplomacy)
+    const h=Math.floor(cols/2),L1=allc.slice(0,h),R1=allc.slice(h);
+    seats.push(mk2("bottom",L1,2),mk2("top",L1,2),mk2("bottom",R1,2),mk2("top",R1,2));teams.push(0,1,0,1);
   }else if(L==="coop"){
     const h=n-1,w=Math.floor(cols/h);
     for(let i=0;i<h;i++){seats.push(mk2("bottom",allc.slice(i*w,i===h-1?cols:(i+1)*w),coopLines));teams.push(0)}

@@ -2467,3 +2467,10 @@ kbd{font:600 11px/1 var(--mono,monospace);background:#1e150d;border:1px solid #6
 .pcdk .mline u,.pcdk.mline u{background:#a59d92;box-shadow:0 0 0 1px #e8e0d466}
 .fsfoe.pcdk .fsfm:not(.mana) .fsfbar i{background:#a59d92}
 .pcdk .deckbar i.f{background:linear-gradient(#ddd4c7,#a59d92 45%,#6f675f);box-shadow:inset 0 0 0 1px #f2ebe099}
+/* v78a: the once-a-game note about O; the keys' window; Diplomacy's spawn lines */
+#kbremind{position:fixed;left:50%;top:70px;transform:translateX(-50%);z-index:300;background:#120c08f2;border:1px solid var(--amber);border-radius:6px;padding:8px 14px;font-size:13px;color:#efe2c8;box-shadow:0 6px 24px #000c;pointer-events:none}
+.kbkeysbox{max-height:84vh;overflow:auto}
+.dipspawn .sslist{list-style:none;margin:6px 0 0;padding:0}
+.dipspawn .sslist li{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:6px 0;border-bottom:1px solid #2a1d12}
+.dipspawn .ssst{margin-left:auto;font-size:12.5px}
+.dipspawn .ssask{background:#1d150c;border:1px solid var(--amber);border-radius:5px;padding:6px 9px}

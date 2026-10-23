@@ -151,7 +151,7 @@ function dipTwoLeft(){if(!G||!G.dip||!dipOn())return;const T=dipTeams();if(T.len
 const dipIncoming=V=>G&&G.dip?G.dip.pend.filter(p=>p.to===V):[];
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;let b=$("#dipbar");
   if(!dipOn()){if(b)b.remove();return}if(!G.dip&&NET.role!=="guest")dipD();const V=view(),me=teamOf(V);if(me==null||isNPC(V))return;
-  const T=dipTeams().filter(t=>t!==me),cnt={war:0,peace:0,ally:0};for(const t of T)cnt[dipRel(me,t).s]=(cnt[dipRel(me,t).s]||0)+1;const loans=typeof loanReqsFor==="function"?loanReqsFor(V).length:0,inc=dipIncoming(V).length+loans;   // loan requests are answered here too
+  const T=dipTeams().filter(t=>t!==me),cnt={war:0,peace:0,ally:0};for(const t of T)cnt[dipRel(me,t).s]=(cnt[dipRel(me,t).s]||0)+1;const loans=typeof loanReqsFor==="function"?loanReqsFor(V).length:0,inc=dipIncoming(V).length+loans+ssAsks(V).length;   // v78a: and asks to spawn in your lines   // loan requests are answered here too
   if(!b){b=document.createElement("button");b.type="button";b.id="dipbar";b.className="dipbar";b.onclick=()=>dipWin()}
   const slot=$("#bankslot");if(slot&&b.previousElementSibling!==slot)slot.after(b);
   b.classList.toggle("notify",!!inc);

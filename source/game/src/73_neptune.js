@@ -190,7 +190,7 @@ function nepJumble(){const n=3+R(4),all=NEP_CHARS+NEP_DIGITS,ch=s=>s[Math.floor(
   return a.join("")}
 const nepHash=s=>{let h=2166136261;for(const ch of String(s))h=Math.imul(h^ch.charCodeAt(0),16777619);return h>>>0};
 {const _e=eclipse;eclipse=async function(k){if(k!=="neptune")return _e.apply(this,arguments);if(typeof eclipsesOff==="function"&&eclipsesOff())return;
-  const d=sum(rollN(2,3)),r=G.moon.round;G.eclipse={k:"neptune",round:r,until:r+d-1};
+  const d=sum(rollN(2,3)),r=G.moon.round;G.eclipse={k:"neptune",round:r,until:G.forceNepEc?r+d-1:r};   // v78a: an eclipse lasts one round; the Neptune Eclipse spell's keeps 2d3
   const names={};for(const P of G.p)names[P.i]=nepJumble();
   G.nepEc={names,seed:R(1e6),flip:R(2)===1,mis:{},foe:{}};
   for(const P of G.p){if(P.out||isNPC(P.i)||isHorde(P.i))continue;shuffle(P.deck);shuffle(P.hand);

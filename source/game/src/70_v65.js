@@ -31,7 +31,7 @@ const addTone=h=>h.replace(/style="--pc:([^";]*)/,(m,col)=>{const t=toneOf(col);
   const host=b.closest(".camwrap,.boardwrap")||b;let h=$("#acehint");
   const want=G.phase==="setup"&&G.setupStep==="ace"&&canAct()&&!G.p[G.active].cpu;
   if(!want){if(h)h.remove();return}
-  const txt=hq()&&!G.p[G.active].opening.length?"Place your second base Ace: click any glowing tile on your backline.":"Place your Ace to start: click any glowing tile on your backline. It spawns your base, with a Jack inside.";
+  const txt=hq()&&!G.p[G.active].opening.length?"Place your second base Ace: click any glowing tile in your spawn lines.":"Place your Ace to start: click any glowing tile in your spawn lines. It spawns your base, with a Jack inside.";
   if(!h){h=document.createElement("p");h.id="acehint";h.setAttribute("role","status")}
   if(h.textContent!==txt)h.textContent=txt;if(h.nextElementSibling!==host)host.before(h)}}
 

@@ -359,9 +359,8 @@ function view(){ // which player sits at the bottom of the screen
   return G.lastView??hs[0];
 }
 const seat=pl=>G.map.seats[pl];
-/* v53: you spawn in your own lines, or in a teammate's when they hold the same side of the field */
-const canSpawn=(pl,r,c)=>{const z=G.zone[r][c];if(z===pl)return true;if(z<0||!G.p[z]||!G.p[pl]||G.p[z].team!==G.p[pl].team||isNPC(z)||isNPC(pl))return false;
-  const a=G.map.seats[z],b=G.map.seats[pl];return !!a&&!!b&&a.side===b.side};
+/* you spawn in your own lines; v78a: in a teammate's or an ally's only when they allow it (Diplomacy, 96b_spawnshare.js) */
+const canSpawn=(pl,r,c)=>{const z=G.zone[r][c];if(z===pl)return true;if(z<0||!G.p[z]||!G.p[pl]||isNPC(z)||isNPC(pl))return false;return spawnShared(z,pl)};
 const isBack=(pl,r,c)=>G.backz[r][c]===pl||!!(G.map.seats[pl]&&G.map.seats[pl].back.some(([a,b])=>a===r&&b===c));   // teammates who share a back line (2v2, same side) each hold all of it
 const backTiles=pl=>seat(pl).back.filter(([r,c])=>!isVoid(r,c));
 const zoneTiles=pl=>seat(pl).zone.filter(([r,c])=>!isVoid(r,c));
@@ -998,7 +997,7 @@ async function actPhase(pl,ph){
 async function nextPhase(){
   if(G.busy||G.over||G.passing)return;
   if(G.phase==="setup"){
-    if(G.setupStep==="ace"){flash("First place your Ace and its Jack on a backline tile.");return}
+    if(G.setupStep==="ace"){flash("First place your Ace and its Jack on a tile of your spawn lines.");return}
     if(G.setupResolve){const f=G.setupResolve;G.setupResolve=null;stopTimer();f()}
     return;
   }
@@ -1092,7 +1091,7 @@ function placeOpening(pl,r,c){
 function canPlace(card,r,c){
   if(!canSpawn(G.active,r,c)||isVoid(r,c))return false;
   const st=G.board[r][c],k=kind(card);
-  if(k==="ace")return !st&&isBack(G.active,r,c);
+  if(k==="ace")return !st;   // v78a: an Ace goes on any empty tile you may spawn on (both spawn lines, your Bank land, your Flags)
   if(k==="tree"||k==="wall"||(card.unit&&UNIT[card.unit].solo==="alone"))return !st;   // a Wall goes up on any empty tile of your spawn lines   // the Tree, Satan, the BullGoat and Slaves take an empty tile
   if(hq()&&!(st&&st.owner===G.active&&hasK(st,"ace")))return false;   // Headquarters: troops spawn only inside your Aces
   if(k==="joker"){if(!st||st.owner!==G.active)return false;return st.cards.some(x=>x.color===card.color)&&stackLegal([...st.cards,card])}
@@ -2112,7 +2111,7 @@ function render(){
   // round (survival)
   const rd=$("#round");rd.hidden=!survival();if(survival())rd.innerHTML=`<span class="label">Round</span><b class="bl">${roman(Math.max(1,G.round))}</b>`;
   // phases
-  if(G.phase==="setup")$("#phases").innerHTML=`<span class="ph-c on"><b>Setup</b><em>${G.setupStep==="ace"?(hq()&&!G.p[G.active].opening.length?"click a backline tile for your second base Ace":"click a backline tile for your Ace and Jack"):"place any opening cards, then press Done"}</em></span>`;
+  if(G.phase==="setup")$("#phases").innerHTML=`<span class="ph-c on"><b>Setup</b><em>${G.setupStep==="ace"?(hq()&&!G.p[G.active].opening.length?"click a tile of your spawn lines for your second base Ace":"click a tile of your spawn lines for your Ace and Jack"):"place any opening cards, then press Done"}</em></span>`;
   else if(G.phase==="moon")$("#phases").innerHTML=`<span class="ph-c on"><b>Moon</b><em>${m.i<0?"no moon turns":"the "+MOON[m.i]+" takes effect"}</em></span>`;
   else $("#phases").innerHTML=PHASES.map(([id,n,help])=>{const draw=id==="prep"&&G.phase==="draw";return `<span class="ph-c ${G.phase===id||draw?"on":""}"><b>${n}</b><em>${draw?"drawing first: roll d4s, then Done drawing":help}</em></span>`}).join('<i>→</i>');
   const who=me();
@@ -2124,7 +2123,7 @@ function render(){
   if(live&&G.sel&&G.mode==="move")tgt=moveTargets();
   if(live&&G.sel&&G.mode==="attack")tgt=attackTargets();
   const placeT=[];
-  if(live&&G.phase==="setup"&&G.setupStep==="ace"){for(const [r,c] of backTiles(G.active))if(!G.board[r][c])placeT.push([r,c])}
+  if(live&&G.phase==="setup"&&G.setupStep==="ace"){for(const [r,c] of zoneTiles(G.active))if(!G.board[r][c])placeT.push([r,c])}   // v78a: anywhere in your own two spawn lines
   else if(live&&G.selHand)for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(canPlace(G.selHand,r,c))placeT.push([r,c]);
   const isT=(r,c,list)=>list.some(([a,b])=>a===r&&b===c);
   const B=$("#board");B.style.setProperty("--rows",DR);B.style.setProperty("--cols",DC);B.classList.toggle("mapped",G.map.theme!=="none");B.classList.toggle("nolabels",!duel);B.dataset.map=G.map.theme;B.classList.toggle("sunlit",G.moon.gone==="sun");B.classList.toggle("blacksun",G.moon.gone==="blacksun");B.style.setProperty("--tears",G.sunTears||0);
@@ -2215,9 +2214,9 @@ function render(){
 function showEther(){viewBox("The Ether: Souls to Materially Conjure",G.ether,"ether",`${G.ether.length} souls wait in the Ether for a conjuring. Flesh Severance sends exiled souls back here.`)}
 function renderSel(live){
   const box=$("#selbox"),st=selStack();
-  if(G.phase==="setup"&&G.setupStep==="ace"&&live){box.innerHTML=`<p>Your Ace rises with a Jack inside it. Click a highlighted tile on your backline.</p>`;return}
+  if(G.phase==="setup"&&G.setupStep==="ace"&&live){box.innerHTML=`<p>Your Ace rises with a Jack inside it. Click a highlighted tile in your spawn lines.</p>`;return}
   if(G.placing&&live){box.innerHTML=`<p><b>A Slave</b> is ready. Click an empty highlighted tile of your ground to put it down.</p>${unitInfo(G.placing)}`;return}
-  if(G.selHand){box.innerHTML=`${G.selHand.unit?unitInfo(G.selHand):""}<p><b>${esc(nameOf(G.selHand))}</b> selected. Click a highlighted tile in your spawn lines to place it${kind(G.selHand)==="ace"?" (Aces go on an empty backline tile)":kind(G.selHand)==="joker"?" (Jokers spawn onto your stack holding a card of the same color)":""}.</p>${!isBase(G.selHand)&&kind(G.selHand)!=="joker"&&!G.placing?`<label class="fdtog"><input type="checkbox" id="fdChk" ${G.faceDown?"checked":""}> Place it face down <small>Only you see it. Double disadvantage to attack, advantage to defend; it turns face up when attacked. Face-down stacks can ambush.</small></label>`:""}`;
+  if(G.selHand){box.innerHTML=`${G.selHand.unit?unitInfo(G.selHand):""}<p><b>${esc(nameOf(G.selHand))}</b> selected. Click a highlighted tile in your spawn lines to place it${kind(G.selHand)==="ace"?" (an Ace goes on an empty tile)":kind(G.selHand)==="joker"?" (Jokers spawn onto your stack holding a card of the same color)":""}.</p>${!isBase(G.selHand)&&kind(G.selHand)!=="joker"&&!G.placing?`<label class="fdtog"><input type="checkbox" id="fdChk" ${G.faceDown?"checked":""}> Place it face down <small>Only you see it. Double disadvantage to attack, advantage to defend; it turns face up when attacked. Face-down stacks can ambush.</small></label>`:""}`;
     if($("#fdChk"))$("#fdChk").onchange=e=>{G.faceDown=e.target.checked;render()};return}
   if(!st){box.innerHTML='<p class="dim">Select a stack on the board, or a card in your hand.</p>';return}
   if(showsBack(view(),G.sel.r,G.sel.c)){box.innerHTML=`<p><b>${esc(G.p[st.owner].name)}'s face-down stack</b> on ${coord(G.sel.r,G.sel.c)}. Its face is hidden; a Scout within two tiles would show it.</p>`;return}
@@ -2253,7 +2252,7 @@ function tileClick(r,c){
   if(!G||G.over||G.passing)return;
   const live=canAct();
   if(live&&G.phase==="setup"&&G.setupStep==="ace"){
-    if(isBack(G.active,r,c)&&!G.board[r][c]&&!isVoid(r,c)){placeOpening(G.active,r,c);render()}else flash("Your Ace goes on an empty highlighted tile of your back line.");return}
+    if(zoneTiles(G.active).some(([a,b])=>a===r&&b===c)&&!G.board[r][c]){placeOpening(G.active,r,c);render()}else flash("Your Ace goes on an empty highlighted tile of your spawn lines.");return}
   if(live&&G.selHand){if(canPlace(G.selHand,r,c)){place(G.selHand,r,c);render()}else flash("That card can't be placed there.");return}
   if(live&&G.sel&&G.mode==="move"&&moveTargets().some(([a,b])=>a===r&&b===c)){doMove(r,c);render();return}
   if(live&&G.sel&&G.mode==="attack"&&attackTargets().some(([a,b])=>a===r&&b===c)){chooseAttack(G.sel.r,G.sel.c,r,c);return}
@@ -2929,8 +2928,9 @@ function mapPlan(o){
       return {back,zone}};
     sides.slice(0,n).forEach((sd,i)=>{const t=five(big?bigEdge(sd).back:edgeTiles(sd,rows,cols));seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:t,zone:t});teams.push(L==="ffa"?i:i%2)});
   }else if(L==="team-same"){
-    // v70: teammates on the same side share both spawn rows, the full width of the field
-    seats.push(mk2("bottom",allc,2),mk2("top",allc,2),mk2("bottom",allc,2),mk2("top",allc,2));teams.push(0,1,0,1);
+    // v78a: teammates on the same side hold both spawn rows, half the width each (sharing comes only by leave: Diplomacy)
+    const h=Math.floor(cols/2),L1=allc.slice(0,h),R1=allc.slice(h);
+    seats.push(mk2("bottom",L1,2),mk2("top",L1,2),mk2("bottom",R1,2),mk2("top",R1,2));teams.push(0,1,0,1);
   }else if(L==="coop"){
     const h=n-1,w=Math.floor(cols/h);
     for(let i=0;i<h;i++){seats.push(mk2("bottom",allc.slice(i*w,i===h-1?cols:(i+1)*w),coopLines));teams.push(0)}
@@ -5199,7 +5199,7 @@ async function eclipseRound(){
   if(G.peace&&G.peace.untilT==null&&r>G.peace.until){G.peace=null;log("<b>Peace ends.</b> The lines are open again.","event");notify(null,"Peace is over.")}
   if(G.war&&r>G.war.until){G.war=null;log("<b>Total War ends.</b>","event");notify(null,"Total War is over.")}
   if(G.war)G.warCurse=R(2)-1;
-  if(G.eclipse&&(G.opts.eclipseAlways?G.eclipse.k!==sky():r>(G.eclipse.until!=null?G.eclipse.until:G.eclipse.round+(G.eclipse.k==="jupiter"?1:0)))){endEclipse()}   // v71q: Always in eclipse: it passes only when its Heavenly Body leaves   // v71c: Neptune's lasts 2d3 rounds
+  if(G.eclipse&&(G.opts.eclipseAlways?G.eclipse.k!==sky():r>(G.eclipse.until!=null?G.eclipse.until:G.eclipse.round))){endEclipse()}   // v71q: Always in eclipse: it passes only when its Heavenly Body leaves   // v71c: Neptune's lasts 2d3 rounds
   // the Banker's bribes are paid every round
   for(const b of [...(G.bribes||[])]){if(r>b.until||G.p[b.by].out||G.p[b.target].out){G.bribes.splice(G.bribes.indexOf(b),1);log(`The bribe against ${plName(b.target)} runs out.`);continue}
     if(b.paid===r)continue;const c=R(2)+R(3)+R(3);if(mana(b.by)>=c){payQuiet(b.by,c);bankAdd(c);b.paid=r;log(`${plName(b.by)} keeps the Banker bribed (${c} mana): ${plName(b.target)} pays more.`)}
@@ -10555,7 +10555,7 @@ const addTone=h=>h.replace(/style="--pc:([^";]*)/,(m,col)=>{const t=toneOf(col);
   const host=b.closest(".camwrap,.boardwrap")||b;let h=$("#acehint");
   const want=G.phase==="setup"&&G.setupStep==="ace"&&canAct()&&!G.p[G.active].cpu;
   if(!want){if(h)h.remove();return}
-  const txt=hq()&&!G.p[G.active].opening.length?"Place your second base Ace: click any glowing tile on your backline.":"Place your Ace to start: click any glowing tile on your backline. It spawns your base, with a Jack inside.";
+  const txt=hq()&&!G.p[G.active].opening.length?"Place your second base Ace: click any glowing tile in your spawn lines.":"Place your Ace to start: click any glowing tile in your spawn lines. It spawns your base, with a Jack inside.";
   if(!h){h=document.createElement("p");h.id="acehint";h.setAttribute("role","status")}
   if(h.textContent!==txt)h.textContent=txt;if(h.nextElementSibling!==host)host.before(h)}}
 
@@ -11178,7 +11178,7 @@ function nepJumble(){const n=3+R(4),all=NEP_CHARS+NEP_DIGITS,ch=s=>s[Math.floor(
   return a.join("")}
 const nepHash=s=>{let h=2166136261;for(const ch of String(s))h=Math.imul(h^ch.charCodeAt(0),16777619);return h>>>0};
 {const _e=eclipse;eclipse=async function(k){if(k!=="neptune")return _e.apply(this,arguments);if(typeof eclipsesOff==="function"&&eclipsesOff())return;
-  const d=sum(rollN(2,3)),r=G.moon.round;G.eclipse={k:"neptune",round:r,until:r+d-1};
+  const d=sum(rollN(2,3)),r=G.moon.round;G.eclipse={k:"neptune",round:r,until:G.forceNepEc?r+d-1:r};   // v78a: an eclipse lasts one round; the Neptune Eclipse spell's keeps 2d3
   const names={};for(const P of G.p)names[P.i]=nepJumble();
   G.nepEc={names,seed:R(1e6),flip:R(2)===1,mis:{},foe:{}};
   for(const P of G.p){if(P.out||isNPC(P.i)||isHorde(P.i))continue;shuffle(P.deck);shuffle(P.hand);
@@ -13200,7 +13200,7 @@ function dipTwoLeft(){if(!G||!G.dip||!dipOn())return;const T=dipTeams();if(T.len
 const dipIncoming=V=>G&&G.dip?G.dip.pend.filter(p=>p.to===V):[];
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;let b=$("#dipbar");
   if(!dipOn()){if(b)b.remove();return}if(!G.dip&&NET.role!=="guest")dipD();const V=view(),me=teamOf(V);if(me==null||isNPC(V))return;
-  const T=dipTeams().filter(t=>t!==me),cnt={war:0,peace:0,ally:0};for(const t of T)cnt[dipRel(me,t).s]=(cnt[dipRel(me,t).s]||0)+1;const loans=typeof loanReqsFor==="function"?loanReqsFor(V).length:0,inc=dipIncoming(V).length+loans;   // loan requests are answered here too
+  const T=dipTeams().filter(t=>t!==me),cnt={war:0,peace:0,ally:0};for(const t of T)cnt[dipRel(me,t).s]=(cnt[dipRel(me,t).s]||0)+1;const loans=typeof loanReqsFor==="function"?loanReqsFor(V).length:0,inc=dipIncoming(V).length+loans+ssAsks(V).length;   // v78a: and asks to spawn in your lines   // loan requests are answered here too
   if(!b){b=document.createElement("button");b.type="button";b.id="dipbar";b.className="dipbar";b.onclick=()=>dipWin()}
   const slot=$("#bankslot");if(slot&&b.previousElementSibling!==slot)slot.after(b);
   b.classList.toggle("notify",!!inc);
@@ -13418,6 +13418,71 @@ if(typeof ResizeObserver!=="undefined"){let ro=null;const watch=()=>{const B=$("
   {const _r=render;render=function(){rSafe(_r,this,arguments);watch()}}}
 if(window.__EC)Object.assign(window.__EC,{mapOutside:()=>mapOutside()});
 
+/* ---------- v78a: spawn lines are your own; sharing them is by leave (Diplomacy) ----------
+   - Everyone spawns only in their own two spawn lines (and on their Bank land and Flags). A teammate or an ally may let
+     you spawn in theirs: ask them in Diplomacy; a person answers, a computer teammate always agrees, and a computer ally
+     only at Great trust (60 or more). Either may take it back. Never during setup, and only where Diplomacy is played
+     (Free For All and Factions): in Teams and the other modes nobody shares.
+   - The switch "Keep teammates' and allies' cards out of my spawn lines": no one may spawn in them, even with leave, and
+     no teammate's or ally's card may step into them (cards already there may leave). Those it keeps out are told when it
+     is turned on, and again whenever they try. */
+const ssD=()=>G.ss||(G.ss={ok:{},block:{},ask:[],n:0});
+const ssFriend=(a,b)=>a!==b&&!!G.p[a]&&!!G.p[b]&&!isNPC(a)&&!isNPC(b)&&!isHorde(a)&&!isHorde(b)&&(G.p[a].team===G.p[b].team||dipAllied(a,b));
+const ssOn=()=>typeof dipOn==="function"&&dipOn();
+function spawnShared(owner,guest){if(!G||!G.ss||!ssOn()||G.phase==="setup")return false;return !!G.ss.ok[owner+">"+guest]&&!G.ss.block[owner]&&ssFriend(owner,guest)}
+const ssBlocks=(owner,guest)=>!!(G&&G.ss&&G.ss.block[owner])&&ssFriend(owner,guest);
+const ssFriends=pl=>alive().filter(i=>ssFriend(pl,i));
+const ssAsks=pl=>G&&G.ss?G.ss.ask.filter(a=>a.to===pl):[];
+const ssWho=pl=>G.p[pl]&&G.p[pl].team===G.p[view()].team?"teammate":"ally";
+const ssAiYes=(owner,guest)=>G.p[owner].team===G.p[guest].team||dipTrust(teamOf(owner),teamOf(guest))>=60;
+function ssGrant(owner,guest,yes){const D=ssD();if(yes){D.ok[owner+">"+guest]=true;log(`${plName(owner)} lets ${plName(guest)} spawn in their spawn lines.`,"event")}
+  else log(`${plName(owner)} doesn't let ${plName(guest)} spawn in their spawn lines.`,"event");
+  if(!G.p[guest].cpu)notify(guest,yes?`${esc(G.p[owner].name)} lets you spawn in their spawn lines.`:`${esc(G.p[owner].name)} doesn't let you spawn in their spawn lines.`)}
+function ssAsk(guest,owner){if(!G||!ssOn()||NET.ctx!=null&&NET.ctx!==guest||G.phase==="setup"||!ssFriend(owner,guest))return false;const D=ssD();
+  if(D.ok[owner+">"+guest]||D.ask.some(a=>a.from===guest&&a.to===owner))return false;
+  if(D.block[owner]){if(!G.p[guest].cpu)notify(guest,`${esc(G.p[owner].name)} keeps teammates' and allies' cards out of their spawn lines.`);return false}
+  log(`${plName(guest)} asks ${plName(owner)} to spawn in their spawn lines.`,"event");
+  if(G.p[owner].cpu){ssGrant(owner,guest,ssAiYes(owner,guest));render();return true}
+  D.ask.push({id:++D.n,from:guest,to:owner,round:G.moon.round});notify(owner,`${esc(G.p[guest].name)} asks to spawn in your spawn lines: answer in Diplomacy.`);render();return true}
+function ssAnswer(owner,id,yes){if(!G||NET.ctx!=null&&NET.ctx!==owner)return false;const D=ssD(),a=D.ask.find(x=>x.id===id&&x.to===owner);if(!a)return false;
+  D.ask.splice(D.ask.indexOf(a),1);if(ssFriend(owner,a.from))ssGrant(owner,a.from,!!yes);render();return true}
+function ssRevoke(owner,guest){if(!G||NET.ctx!=null&&NET.ctx!==owner)return false;const D=ssD();if(!D.ok[owner+">"+guest])return false;delete D.ok[owner+">"+guest];
+  log(`${plName(owner)} no longer lets ${plName(guest)} spawn in their spawn lines.`,"event");if(!G.p[guest].cpu)notify(guest,`${esc(G.p[owner].name)} no longer lets you spawn in their spawn lines.`);render();return true}
+function ssBlock(owner,on){if(!G||NET.ctx!=null&&NET.ctx!==owner)return false;const D=ssD();D.block[owner]=!!on;
+  log(on?`${plName(owner)} keeps teammates' and allies' cards out of their spawn lines.`:`${plName(owner)} opens their spawn lines to teammates and allies again.`,"event");
+  if(on)for(const f of ssFriends(owner))if(!G.p[f].cpu)notify(f,`${esc(G.p[owner].name)} keeps teammates' and allies' cards out of their spawn lines: you can't spawn in them or step into them.`);
+  render();return true}
+for(const [name,get,set] of [["ssAsk",()=>ssAsk,f=>ssAsk=f],["ssAnswer",()=>ssAnswer,f=>ssAnswer=f],["ssRevoke",()=>ssRevoke,f=>ssRevoke=f],["ssBlock",()=>ssBlock,f=>ssBlock=f]]){
+  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+/* a friend's card doesn't step into lines kept closed */
+let ssCut=[];   // the steps the last list lost to closed lines
+{const _mt=moveTargets;moveTargets=function(){const out=_mt.apply(this,arguments);ssCut=[];if(!G||!G.ss||!G.sel)return out;const st=G.board[G.sel.r]&&G.board[G.sel.r][G.sel.c];if(!st)return out;
+  return out.filter(([r,c])=>{const z=G.zone[r][c],cut=z>=0&&z!==st.owner&&ssBlocks(z,st.owner);if(cut)ssCut.push([r,c]);return !cut})}}
+/* and whoever tries is told why */
+{const _tc=tileClick;tileClick=function(r,c){if(G&&!G.over&&canAct()&&G.phase!=="setup"&&!isVoid(r,c)){const z=G.zone[r][c],V=G.active;
+    if(z>=0&&z!==V&&ssFriend(z,V)&&!G.board[r][c]){
+      if(G.sel&&G.mode==="move"&&ssBlocks(z,V)&&(moveTargets(),ssCut.some(([a,b])=>a===r&&b===c))){flash(`${G.p[z].name} keeps teammates' and allies' cards out of their spawn lines.`);return}
+      if(G.selHand&&!canPlace(G.selHand,r,c)){flash(ssBlocks(z,V)?`${G.p[z].name} keeps teammates' and allies' cards out of their spawn lines.`:ssOn()?`These are ${G.p[z].name}'s spawn lines: you may spawn in them only if they let you (ask in Diplomacy).`:`These are ${G.p[z].name}'s spawn lines: you spawn only in your own.`);return}}}
+  return _tc.apply(this,arguments)}}
+/* the Diplomacy window: a section for the spawn lines */
+function ssHTML(V){const D=ssD(),F=ssFriends(V),asks=ssAsks(V),mine=G.phase!=="setup";
+  const row=f=>{const P=G.p[f],them=!!D.ok[f+">"+V],us=!!D.ok[V+">"+f],asked=D.ask.some(a=>a.from===V&&a.to===f),blk=!!D.block[f];
+    return `<li><b style="color:${P.color}">${esc(P.name)}</b> <small class="dim">(${ssWho(f)}${P.cpu?", computer":""})</small><span class="ssst">
+In their lines: ${blk?`<i class="dim">kept closed</i>`:them?`<b>you may spawn</b>`:asked?`<i class="dim">asked, waiting</i>`:mine?`<button type="button" class="btn ghost sm" data-ss="ask|${f}">Ask to spawn there</button>`:`<i class="dim">not yet</i>`}
+ · In yours: ${us?`<b>they may spawn</b> <button type="button" class="btn ghost sm" data-ss="rev|${f}">Stop it</button>`:`<i class="dim">not allowed</i>`}</span></li>`};
+  return `<section class="dipsec dipspawn"><h3>Spawn lines</h3>
+${asks.map(a=>`<p class="ssask">${plName(a.from)} asks to spawn in your spawn lines. <button type="button" class="btn sm" data-ss="yes|${a.id}">Allow</button> <button type="button" class="btn ghost sm" data-ss="no|${a.id}">Refuse</button></p>`).join("")}
+<label class="farow"><span class="fal"><b>Keep teammates' and allies' cards out of my spawn lines</b><small>No one else may spawn in them, even with leave, and no teammate's or ally's card may step into them. They are told.</small></span><input type="checkbox" id="ssBlk" ${D.block[V]?"checked":""}></label>
+${F.length?`<ul class="sslist">${F.map(row).join("")}</ul>`:`<p class="dim">No teammates or allies yet: an ally can let you spawn in their lines, and you in yours.</p>`}</section>`}
+{const _dp=dipPaint;dipPaint=function(){_dp.apply(this,arguments);const w=$("#dipwin");if(!w||!G)return;const V=view(),body=w.querySelector(".dipbody");if(!body)return;
+  const at=body.querySelector(".dipsec.dipp2p");at?at.insertAdjacentHTML("beforebegin",ssHTML(V)):body.insertAdjacentHTML("beforeend",ssHTML(V));
+  const ul=body.querySelector(".dipnote ul");if(ul)ul.insertAdjacentHTML("beforeend",`<li><b>Spawn lines</b>: you spawn only in your own. A teammate or an ally may let you spawn in theirs: ask here (a computer teammate always agrees, a computer ally only at Great trust). Anyone can keep teammates' and allies' cards out of their spawn lines; those kept out are told.</li>`);
+  body.querySelectorAll("[data-ss]").forEach(b=>b.onclick=()=>{const [a,x]=b.dataset.ss.split("|"),n=+x;
+    if(a==="ask")ssAsk(V,n);else if(a==="rev")ssRevoke(V,n);else ssAnswer(V,n,a==="yes");dipPaint()});
+  const bk=body.querySelector("#ssBlk");if(bk)bk.onchange=()=>{ssBlock(V,bk.checked);dipPaint()}}}
+
+if(window.__EC)Object.assign(window.__EC,{spawnShared:(a,b)=>spawnShared(a,b),ssAsk:(...a)=>ssAsk(...a),ssAnswer:(...a)=>ssAnswer(...a),ssBlock:(...a)=>ssBlock(...a),ssRevoke:(...a)=>ssRevoke(...a),canSpawnW:(p,r,c)=>canSpawn(p,r,c)});
+
 /* ---------- v77b: the keyboard ----------
    Shortcuts that work in fullscreen and out of it (outside it the page scrolls to what they open). Not while typing. While a
    window is open only X and Esc work (they close it: its × if it has one).
@@ -13429,7 +13494,7 @@ if(window.__EC)Object.assign(window.__EC,{mapOutside:()=>mapOutside()});
      spells as numbered tiles. 1 to 9 and 0 cast the first ten, Shift+1 to Shift+0 the next ten; C and V (or Tab and
      Shift+Tab) the school before and after, Shift+C the first, Shift+V the last (the piles: the Grave, the Ether, the
      Outer Darkness, the Auction). Shift+F opens the spell list as it is (in fullscreen, its drawer), worked by the keys:
-     C and V move from spell to spell, Shift and Ctrl (pressed alone) to the next and the previous school (its sections),
+     C and V move from spell to spell, Ctrl and Shift (pressed alone) to the next and the previous school (its sections),
      Enter casts, and the numbers work there too. (Tab is for tabs: the bar's schools are tabs, the list's are sections.)
      One of the two at a time; while one is open the number keys are its own. X closes it.
    - G picks from the hand: C and V move, Enter picks the card (again: lets it go), I its info. X or Esc stops. */
@@ -13508,10 +13573,12 @@ document.addEventListener("keyup",e=>{KB.held.delete(e.code)});addEventListener(
 document.addEventListener("keydown",e=>{KB.alone=(e.key==="Shift"||e.key==="Control")&&!e.repeat?e.key:e.repeat&&KB.alone===e.key?KB.alone:null},true);
 document.addEventListener("pointerdown",()=>{KB.alone=null},true);
 document.addEventListener("keyup",e=>{const a=KB.alone;KB.alone=null;if(!a||e.key!==a||typing(e.target)||!G)return;
-  if(KB.mode==="list"&&!kbTop())kbSchool(KB.sc+(a==="Shift"?1:-1))});
+  if(KB.mode==="list"&&!kbTop())kbSchool(KB.sc+(a==="Control"?1:-1))});
 document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented)return;KB.held.add(e.code);
   if(e.metaKey||e.altKey||typing(e.target))return;
   const k=e.key,lk=k.length===1?k.toLowerCase():k,sh=e.shiftKey,ct=e.ctrlKey,stop=()=>{e.preventDefault();e.stopImmediatePropagation()};
+  if(G&&!G.over&&!/^(Shift|Control|Alt|Meta|CapsLock)$/.test(k))kbRemind();
+  if(lk==="o"&&!sh&&!ct){stop();kbKeysWin();return}
   if(e.code==="Period"&&sh&&KB.held.has("KeyX")&&!ct){stop();if(typeof musicSync==="function"){PREF.music=PREF.music===false;savePrefs();musicSync();flash(PREF.music===false?"Music off.":"Music on.")}return}
   if(lk==="\\"&&!ct&&!sh){stop();rbWin();return}
   /* closing: X, and Esc for the windows that have no Esc of their own */
@@ -13551,17 +13618,26 @@ document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented)return;K
   if(k==="Backspace"||k==="Delete"){const P=G.p[view()],i=P&&G.selHand?P.hand.indexOf(G.selHand):-1;if(i<0)return;stop();
     const b=document.querySelector(`#hand [data-sh="${i}"]`);if(b)b.click();else flash("That card can't be sacrificed now.");return}
 },true);
+/* v78a: O shows every key in a window; once a game, the first key pressed brings a note saying so */
+function kbKeysWin(){let w=$("#kbkeys");if(!w){w=document.createElement("div");w.id="kbkeys";w.className="faov";document.body.appendChild(w)}
+  w.innerHTML=`<div class="ovbox wide kbkeysbox" role="dialog" aria-modal="true" aria-labelledby="kbkh"><button type="button" class="xclose" aria-label="Close">×</button><h2 id="kbkh">Keys</h2>${kbListHTML("kwKeyHints")}<p class="dim">The same list is in the pause menu and the Menu (Keyboard controls).</p></div>`;
+  w.hidden=false;w.querySelector(".xclose").onclick=()=>{w.hidden=true};w.onclick=e=>{if(e.target===w)w.hidden=true};$("#kwKeyHints").onchange=e=>kbHints(e.target.checked)}
+function kbRemind(){const g=G&&G.map?G.map.seed:null;if(g==null||KB.reminded===g)return;KB.reminded=g;
+  let n=$("#kbremind");if(!n){n=document.createElement("div");n.id="kbremind";n.setAttribute("role","status");document.body.appendChild(n)}
+  n.innerHTML=`Press <kbd>O</kbd> any time to see every key.`;n.hidden=false;clearTimeout(kbRemind.t);kbRemind.t=setTimeout(()=>{n.hidden=true},7000)}
+/* v78a: Tab never leaves the game for the browser's own bar: where it means nothing, it does nothing */
+document.addEventListener("keydown",e=>{if(e.key==="Tab")e.preventDefault()});
 /* the list of keys: in the pause menu and the Menu, each in a fold like the others, with the key letters' switch */
 const KB_LIST=[["Space","the turn button: Ready, the next phase, End turn"],["E · Q","zoom in · zoom out, around the middle of the screen"],["WASD or the arrow keys","move the field; two at once go diagonally (Shift: faster)"],
   ["F","the spell bar at the bottom: 1–9 and 0 cast the first ten of the school, Shift+1 to Shift+0 the next ten; C and V (or Tab) the school before and after, Shift+C the first, Shift+V the last (the piles); X closes"],
-  ["Shift+F","the spell list: C and V move from spell to spell, Shift and Ctrl (alone) to the next and the previous school, Enter casts; X closes"],
+  ["Shift+F","the spell list: C and V move from spell to spell, Ctrl and Shift (alone) to the next and the previous school, Enter casts; X closes"],
   ["G","the hand: C and V move, Enter picks (again: lets go), I the card's info"],["Backspace or Delete","sacrifice the hand card you picked"],["R","roll the draw"],
   ["B · Shift+B · Ctrl+B","the Bank · the Ether · Diplomacy"],["Shift+Space","Field Automation's settings"],["L · Shift+L","the log · the dice"],["\\","the Rule book"],
   ["Ctrl+C · Ctrl+V","the camera to your Aces, back and forth"],["Ctrl+1","the camera to what you selected"],["X or Esc","close what is open (Esc with nothing open: the pause menu in fullscreen)"],
-  ["In any window","C and V the item before and after, W A S D the nearest one up, left, down and right; Enter uses it; Tab the window's tabs; Shift and Ctrl (alone) the next and the previous section; I what the item does"],
+  ["In any window","C and V the item before and after, W A S D the nearest one up, left, down and right; Enter uses it; Tab the window's tabs; Ctrl and Shift (alone) the next and the previous section; I what the item does"],
   ["A slider, a list or a number","Enter, then W or D up and S or A down (Shift: ten), the number keys type a number; Enter keeps it, Esc puts it back"],
   ["A text field","Enter to type; Enter again (or Esc) when done"],["A line of a ranking","Enter takes hold: W or D up, S or A down, Space equal to the one above, Enter lets go"],
-  ["Shift+Backspace","fullscreen on and off"],["Shift+X+. (period)","the music on and off"],["Shift+/ (?)","show or hide the key letters on the buttons"]];
+  ["O","every key, in a window"],["Shift+Backspace","fullscreen on and off"],["Shift+X+. (period)","the music on and off"],["Shift+/ (?)","show or hide the key letters on the buttons"]];
 const kbListHTML=id=>`<ul class="mklist kblist">${KB_LIST.map(([a,b])=>`<li><kbd>${esc(a)}</kbd> ${esc(b)}</li>`).join("")}</ul><label class="farow"><span class="fal"><b>Key letters on the buttons</b><small>Each button shows its key. Shift+/ (?) switches them too.</small></span><input type="checkbox" id="${id}" ${PREF.keyHints===true?"checked":""}></label>`;
 {const _fp=fsPause;fsPause=function(){_fp.apply(this,arguments);const o=$("#fspause"),box=o&&o.querySelector(".fspbox");if(!box||box.querySelector(".kbfold"))return;
   const d=document.createElement("details");d.className="sub kbfold";d.innerHTML=`<summary>Keyboard controls</summary>${kbListHTML("fsKeyHints")}`;
@@ -13584,8 +13660,8 @@ if(window.__EC)Object.assign(window.__EC,{KB,kbClose:()=>kbClose(),kbSchools:()=
    - A line of a ranking (Field Automation's priorities): Enter takes hold of it; W or D moves it up, S or A down, Space makes
      it equal to the one above, Enter lets go.
    - Tab and Shift+Tab: the window's tabs (the Bank's, the setup's); nothing where there are none.
-   - Shift and Ctrl pressed alone: the next and the previous section of a long window (the Ether's kinds of cards, the
-     Menu's folds, the setup's boxes); nothing where there are none.
+   - Ctrl and Shift pressed alone: the next (further down) and the previous section of a long window (the Ether's kinds of
+     cards, the Menu's folds, the setup's boxes); nothing where there are none. (v78a: Ctrl forward and Shift back, as on the field.)
    - I: what the item under the keys does (its tip), since there is no hovering with keys. X or Esc closes the window.
    The highlight appears only once a key is used, so the mouse never sees it. */
 const WK={el:null,sig:null,win:null,adj:null,typ:null,mv:null};
@@ -13635,7 +13711,7 @@ function wkSection(w,d){const H=[...w.querySelectorAll("h3,h4,summary,legend,.ds
   const cur=wkCur(w),y=cur?cur.getBoundingClientRect().top+1:-1e9;let at=-1;H.forEach((h,i)=>{if(h.getBoundingClientRect().top<=y)at=i});
   const j=Math.max(0,Math.min(H.length-1,at+d));if(j===at&&cur)return;const h=H[j];h.scrollIntoView({block:"start",behavior:"smooth"});
   const items=wkItems(w),hy=h.getBoundingClientRect().top-1;const it=h.matches("summary")?h:items.find(x=>x.getBoundingClientRect().top>=hy&&(h.compareDocumentPosition(x)&Node.DOCUMENT_POSITION_FOLLOWING));wkMark(it||null)}
-addEventListener("keyup",e=>{const a=KB.alone;if(!a||e.key!==a||typing(e.target)||WK.adj||WK.mv)return;const w=kbTop();if(w)wkSection(w,a==="Shift"?1:-1)},true);
+addEventListener("keyup",e=>{const a=KB.alone;if(!a||e.key!==a||typing(e.target)||WK.adj||WK.mv)return;const w=kbTop();if(w)wkSection(w,a==="Control"?1:-1)},true);
 /* the keys */
 addEventListener("keydown",e=>{if(KB.synth||e.metaKey||e.altKey)return;const k=e.key,lk=k.length===1?k.toLowerCase():k,sh=e.shiftKey,stop=()=>{e.preventDefault();e.stopImmediatePropagation()};
   if(WK.typ){if(e.target!==WK.typ){WK.typ=null;wkNote("")}else{

@@ -9,7 +9,7 @@
      spells as numbered tiles. 1 to 9 and 0 cast the first ten, Shift+1 to Shift+0 the next ten; C and V (or Tab and
      Shift+Tab) the school before and after, Shift+C the first, Shift+V the last (the piles: the Grave, the Ether, the
      Outer Darkness, the Auction). Shift+F opens the spell list as it is (in fullscreen, its drawer), worked by the keys:
-     C and V move from spell to spell, Shift and Ctrl (pressed alone) to the next and the previous school (its sections),
+     C and V move from spell to spell, Ctrl and Shift (pressed alone) to the next and the previous school (its sections),
      Enter casts, and the numbers work there too. (Tab is for tabs: the bar's schools are tabs, the list's are sections.)
      One of the two at a time; while one is open the number keys are its own. X closes it.
    - G picks from the hand: C and V move, Enter picks the card (again: lets it go), I its info. X or Esc stops. */
@@ -88,10 +88,12 @@ document.addEventListener("keyup",e=>{KB.held.delete(e.code)});addEventListener(
 document.addEventListener("keydown",e=>{KB.alone=(e.key==="Shift"||e.key==="Control")&&!e.repeat?e.key:e.repeat&&KB.alone===e.key?KB.alone:null},true);
 document.addEventListener("pointerdown",()=>{KB.alone=null},true);
 document.addEventListener("keyup",e=>{const a=KB.alone;KB.alone=null;if(!a||e.key!==a||typing(e.target)||!G)return;
-  if(KB.mode==="list"&&!kbTop())kbSchool(KB.sc+(a==="Shift"?1:-1))});
+  if(KB.mode==="list"&&!kbTop())kbSchool(KB.sc+(a==="Control"?1:-1))});
 document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented)return;KB.held.add(e.code);
   if(e.metaKey||e.altKey||typing(e.target))return;
   const k=e.key,lk=k.length===1?k.toLowerCase():k,sh=e.shiftKey,ct=e.ctrlKey,stop=()=>{e.preventDefault();e.stopImmediatePropagation()};
+  if(G&&!G.over&&!/^(Shift|Control|Alt|Meta|CapsLock)$/.test(k))kbRemind();
+  if(lk==="o"&&!sh&&!ct){stop();kbKeysWin();return}
   if(e.code==="Period"&&sh&&KB.held.has("KeyX")&&!ct){stop();if(typeof musicSync==="function"){PREF.music=PREF.music===false;savePrefs();musicSync();flash(PREF.music===false?"Music off.":"Music on.")}return}
   if(lk==="\\"&&!ct&&!sh){stop();rbWin();return}
   /* closing: X, and Esc for the windows that have no Esc of their own */
@@ -131,17 +133,26 @@ document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented)return;K
   if(k==="Backspace"||k==="Delete"){const P=G.p[view()],i=P&&G.selHand?P.hand.indexOf(G.selHand):-1;if(i<0)return;stop();
     const b=document.querySelector(`#hand [data-sh="${i}"]`);if(b)b.click();else flash("That card can't be sacrificed now.");return}
 },true);
+/* v78a: O shows every key in a window; once a game, the first key pressed brings a note saying so */
+function kbKeysWin(){let w=$("#kbkeys");if(!w){w=document.createElement("div");w.id="kbkeys";w.className="faov";document.body.appendChild(w)}
+  w.innerHTML=`<div class="ovbox wide kbkeysbox" role="dialog" aria-modal="true" aria-labelledby="kbkh"><button type="button" class="xclose" aria-label="Close">×</button><h2 id="kbkh">Keys</h2>${kbListHTML("kwKeyHints")}<p class="dim">The same list is in the pause menu and the Menu (Keyboard controls).</p></div>`;
+  w.hidden=false;w.querySelector(".xclose").onclick=()=>{w.hidden=true};w.onclick=e=>{if(e.target===w)w.hidden=true};$("#kwKeyHints").onchange=e=>kbHints(e.target.checked)}
+function kbRemind(){const g=G&&G.map?G.map.seed:null;if(g==null||KB.reminded===g)return;KB.reminded=g;
+  let n=$("#kbremind");if(!n){n=document.createElement("div");n.id="kbremind";n.setAttribute("role","status");document.body.appendChild(n)}
+  n.innerHTML=`Press <kbd>O</kbd> any time to see every key.`;n.hidden=false;clearTimeout(kbRemind.t);kbRemind.t=setTimeout(()=>{n.hidden=true},7000)}
+/* v78a: Tab never leaves the game for the browser's own bar: where it means nothing, it does nothing */
+document.addEventListener("keydown",e=>{if(e.key==="Tab")e.preventDefault()});
 /* the list of keys: in the pause menu and the Menu, each in a fold like the others, with the key letters' switch */
 const KB_LIST=[["Space","the turn button: Ready, the next phase, End turn"],["E · Q","zoom in · zoom out, around the middle of the screen"],["WASD or the arrow keys","move the field; two at once go diagonally (Shift: faster)"],
   ["F","the spell bar at the bottom: 1–9 and 0 cast the first ten of the school, Shift+1 to Shift+0 the next ten; C and V (or Tab) the school before and after, Shift+C the first, Shift+V the last (the piles); X closes"],
-  ["Shift+F","the spell list: C and V move from spell to spell, Shift and Ctrl (alone) to the next and the previous school, Enter casts; X closes"],
+  ["Shift+F","the spell list: C and V move from spell to spell, Ctrl and Shift (alone) to the next and the previous school, Enter casts; X closes"],
   ["G","the hand: C and V move, Enter picks (again: lets go), I the card's info"],["Backspace or Delete","sacrifice the hand card you picked"],["R","roll the draw"],
   ["B · Shift+B · Ctrl+B","the Bank · the Ether · Diplomacy"],["Shift+Space","Field Automation's settings"],["L · Shift+L","the log · the dice"],["\\","the Rule book"],
   ["Ctrl+C · Ctrl+V","the camera to your Aces, back and forth"],["Ctrl+1","the camera to what you selected"],["X or Esc","close what is open (Esc with nothing open: the pause menu in fullscreen)"],
-  ["In any window","C and V the item before and after, W A S D the nearest one up, left, down and right; Enter uses it; Tab the window's tabs; Shift and Ctrl (alone) the next and the previous section; I what the item does"],
+  ["In any window","C and V the item before and after, W A S D the nearest one up, left, down and right; Enter uses it; Tab the window's tabs; Ctrl and Shift (alone) the next and the previous section; I what the item does"],
   ["A slider, a list or a number","Enter, then W or D up and S or A down (Shift: ten), the number keys type a number; Enter keeps it, Esc puts it back"],
   ["A text field","Enter to type; Enter again (or Esc) when done"],["A line of a ranking","Enter takes hold: W or D up, S or A down, Space equal to the one above, Enter lets go"],
-  ["Shift+Backspace","fullscreen on and off"],["Shift+X+. (period)","the music on and off"],["Shift+/ (?)","show or hide the key letters on the buttons"]];
+  ["O","every key, in a window"],["Shift+Backspace","fullscreen on and off"],["Shift+X+. (period)","the music on and off"],["Shift+/ (?)","show or hide the key letters on the buttons"]];
 const kbListHTML=id=>`<ul class="mklist kblist">${KB_LIST.map(([a,b])=>`<li><kbd>${esc(a)}</kbd> ${esc(b)}</li>`).join("")}</ul><label class="farow"><span class="fal"><b>Key letters on the buttons</b><small>Each button shows its key. Shift+/ (?) switches them too.</small></span><input type="checkbox" id="${id}" ${PREF.keyHints===true?"checked":""}></label>`;
 {const _fp=fsPause;fsPause=function(){_fp.apply(this,arguments);const o=$("#fspause"),box=o&&o.querySelector(".fspbox");if(!box||box.querySelector(".kbfold"))return;
   const d=document.createElement("details");d.className="sub kbfold";d.innerHTML=`<summary>Keyboard controls</summary>${kbListHTML("fsKeyHints")}`;

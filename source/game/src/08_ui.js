@@ -118,7 +118,7 @@ function render(){
   // round (survival)
   const rd=$("#round");rd.hidden=!survival();if(survival())rd.innerHTML=`<span class="label">Round</span><b class="bl">${roman(Math.max(1,G.round))}</b>`;
   // phases
-  if(G.phase==="setup")$("#phases").innerHTML=`<span class="ph-c on"><b>Setup</b><em>${G.setupStep==="ace"?(hq()&&!G.p[G.active].opening.length?"click a backline tile for your second base Ace":"click a backline tile for your Ace and Jack"):"place any opening cards, then press Done"}</em></span>`;
+  if(G.phase==="setup")$("#phases").innerHTML=`<span class="ph-c on"><b>Setup</b><em>${G.setupStep==="ace"?(hq()&&!G.p[G.active].opening.length?"click a tile of your spawn lines for your second base Ace":"click a tile of your spawn lines for your Ace and Jack"):"place any opening cards, then press Done"}</em></span>`;
   else if(G.phase==="moon")$("#phases").innerHTML=`<span class="ph-c on"><b>Moon</b><em>${m.i<0?"no moon turns":"the "+MOON[m.i]+" takes effect"}</em></span>`;
   else $("#phases").innerHTML=PHASES.map(([id,n,help])=>{const draw=id==="prep"&&G.phase==="draw";return `<span class="ph-c ${G.phase===id||draw?"on":""}"><b>${n}</b><em>${draw?"drawing first: roll d4s, then Done drawing":help}</em></span>`}).join('<i>→</i>');
   const who=me();
@@ -130,7 +130,7 @@ function render(){
   if(live&&G.sel&&G.mode==="move")tgt=moveTargets();
   if(live&&G.sel&&G.mode==="attack")tgt=attackTargets();
   const placeT=[];
-  if(live&&G.phase==="setup"&&G.setupStep==="ace"){for(const [r,c] of backTiles(G.active))if(!G.board[r][c])placeT.push([r,c])}
+  if(live&&G.phase==="setup"&&G.setupStep==="ace"){for(const [r,c] of zoneTiles(G.active))if(!G.board[r][c])placeT.push([r,c])}   // v78a: anywhere in your own two spawn lines
   else if(live&&G.selHand)for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(canPlace(G.selHand,r,c))placeT.push([r,c]);
   const isT=(r,c,list)=>list.some(([a,b])=>a===r&&b===c);
   const B=$("#board");B.style.setProperty("--rows",DR);B.style.setProperty("--cols",DC);B.classList.toggle("mapped",G.map.theme!=="none");B.classList.toggle("nolabels",!duel);B.dataset.map=G.map.theme;B.classList.toggle("sunlit",G.moon.gone==="sun");B.classList.toggle("blacksun",G.moon.gone==="blacksun");B.style.setProperty("--tears",G.sunTears||0);
@@ -221,9 +221,9 @@ function render(){
 function showEther(){viewBox("The Ether: Souls to Materially Conjure",G.ether,"ether",`${G.ether.length} souls wait in the Ether for a conjuring. Flesh Severance sends exiled souls back here.`)}
 function renderSel(live){
   const box=$("#selbox"),st=selStack();
-  if(G.phase==="setup"&&G.setupStep==="ace"&&live){box.innerHTML=`<p>Your Ace rises with a Jack inside it. Click a highlighted tile on your backline.</p>`;return}
+  if(G.phase==="setup"&&G.setupStep==="ace"&&live){box.innerHTML=`<p>Your Ace rises with a Jack inside it. Click a highlighted tile in your spawn lines.</p>`;return}
   if(G.placing&&live){box.innerHTML=`<p><b>A Slave</b> is ready. Click an empty highlighted tile of your ground to put it down.</p>${unitInfo(G.placing)}`;return}
-  if(G.selHand){box.innerHTML=`${G.selHand.unit?unitInfo(G.selHand):""}<p><b>${esc(nameOf(G.selHand))}</b> selected. Click a highlighted tile in your spawn lines to place it${kind(G.selHand)==="ace"?" (Aces go on an empty backline tile)":kind(G.selHand)==="joker"?" (Jokers spawn onto your stack holding a card of the same color)":""}.</p>${!isBase(G.selHand)&&kind(G.selHand)!=="joker"&&!G.placing?`<label class="fdtog"><input type="checkbox" id="fdChk" ${G.faceDown?"checked":""}> Place it face down <small>Only you see it. Double disadvantage to attack, advantage to defend; it turns face up when attacked. Face-down stacks can ambush.</small></label>`:""}`;
+  if(G.selHand){box.innerHTML=`${G.selHand.unit?unitInfo(G.selHand):""}<p><b>${esc(nameOf(G.selHand))}</b> selected. Click a highlighted tile in your spawn lines to place it${kind(G.selHand)==="ace"?" (an Ace goes on an empty tile)":kind(G.selHand)==="joker"?" (Jokers spawn onto your stack holding a card of the same color)":""}.</p>${!isBase(G.selHand)&&kind(G.selHand)!=="joker"&&!G.placing?`<label class="fdtog"><input type="checkbox" id="fdChk" ${G.faceDown?"checked":""}> Place it face down <small>Only you see it. Double disadvantage to attack, advantage to defend; it turns face up when attacked. Face-down stacks can ambush.</small></label>`:""}`;
     if($("#fdChk"))$("#fdChk").onchange=e=>{G.faceDown=e.target.checked;render()};return}
   if(!st){box.innerHTML='<p class="dim">Select a stack on the board, or a card in your hand.</p>';return}
   if(showsBack(view(),G.sel.r,G.sel.c)){box.innerHTML=`<p><b>${esc(G.p[st.owner].name)}'s face-down stack</b> on ${coord(G.sel.r,G.sel.c)}. Its face is hidden; a Scout within two tiles would show it.</p>`;return}
@@ -259,7 +259,7 @@ function tileClick(r,c){
   if(!G||G.over||G.passing)return;
   const live=canAct();
   if(live&&G.phase==="setup"&&G.setupStep==="ace"){
-    if(isBack(G.active,r,c)&&!G.board[r][c]&&!isVoid(r,c)){placeOpening(G.active,r,c);render()}else flash("Your Ace goes on an empty highlighted tile of your back line.");return}
+    if(zoneTiles(G.active).some(([a,b])=>a===r&&b===c)&&!G.board[r][c]){placeOpening(G.active,r,c);render()}else flash("Your Ace goes on an empty highlighted tile of your spawn lines.");return}
   if(live&&G.selHand){if(canPlace(G.selHand,r,c)){place(G.selHand,r,c);render()}else flash("That card can't be placed there.");return}
   if(live&&G.sel&&G.mode==="move"&&moveTargets().some(([a,b])=>a===r&&b===c)){doMove(r,c);render();return}
   if(live&&G.sel&&G.mode==="attack"&&attackTargets().some(([a,b])=>a===r&&b===c)){chooseAttack(G.sel.r,G.sel.c,r,c);return}
