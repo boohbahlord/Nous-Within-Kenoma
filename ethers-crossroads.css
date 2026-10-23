@@ -2627,3 +2627,8 @@ html.drawdark #board>.drawveil{opacity:.82}
 /* v79c: the phase's symbol beside its name (the turn bar and the turn line) */
 .phico{width:1.65em;height:1.65em;vertical-align:-.5em;margin-right:6px;flex:none;filter:drop-shadow(0 1px 1px #000a)}
 #controls .phl{display:inline-flex;align-items:center}#controls .phl .phico{width:22px;height:22px;margin-right:6px;vertical-align:middle}
+/* v79c: the hand's count out of its most */
+#handh .hcnt{margin-left:8px;font-size:.85em;color:var(--dim);letter-spacing:.06em}
+#handh .hcnt.over,#handwrap .hcnttag.over{color:#ff7b6b}
+#handwrap{position:relative}#handwrap .hcnttag{display:none}
+html.ecfs #handwrap .hcnttag{display:block;position:absolute;top:-9px;right:10px;z-index:3;font:600 11px/1 var(--mono);letter-spacing:.08em;color:var(--amber-hi);background:#000a;border:1px solid var(--rule);padding:3px 6px;pointer-events:auto}
