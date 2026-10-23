@@ -58,16 +58,16 @@ SPELLS.push(
    log(`<b>Blood Moon</b>: ${plName(G.active)} calls the blood onto the next Full Moon.`,"event");notify(null,"The next Full Moon will be a Blood Moon.")}},
  {id:"rain",tribe:"firm",dice:"1d2+1",name:"Rain",cost:2,school:"Sorcery",text:"Until your next turn begins, every card anyone sacrifices gives one more mana, and every sacrifice by another player also gives you one mana.",
   ok:()=>!G.rain,run:async()=>{G.rain={by:G.active};log(`<b>Rain</b> falls over the field: sacrifices are worth one more until ${plName(G.active)}'s next turn, and every sacrifice feeds the Firmament.`,"event")}},
- {id:"asteroid",tribe:"firm",dice:"3d2",name:"Asteroid",cost:4,school:"Sorcery",text:"Select a stack: an asteroid falls on it. One damage there, one damage on a 4 of 1d4 on every tile around it (Walls take 1d2 + 1), and fire over the area for two turns. The Firmament is immune.",
+ {id:"asteroid",tribe:"firm",dice:"3d2",name:"Asteroid",cost:4,school:"Sorcery",text:"Select a stack: an asteroid falls on it. One damage there, one damage on a 4 of 1d4 on every tile around it (Walls take 1d2 + 1), and fire over the area for two rounds. The Firmament is immune.",
   ok:()=>!!selStack()&&!isFirm(selStack().owner),run:async()=>{const {r,c}=G.sel;SND.gun();
    log(`<b>Asteroid</b>: ${plName(G.active)} brings a rock down on ${coord(r,c)}.`,"event");skyStrike(r,c,"The asteroid");if(G.sel&&!G.board[G.sel.r][G.sel.c])G.sel=null}},
- {id:"ffog",tribe:"firm",dice:"2d2",name:"Fog",cost:4,school:"Illusion",text:"For 1d2 of your turns your enemies see only what is right beside their cards, and their Scouts one tile less. Not under the Full Moon; at the New Moon it blinds them completely, while your own cards see one tile. Once every three turns.",
+ {id:"ffog",tribe:"firm",dice:"2d2",name:"Fog",cost:4,school:"Illusion",text:"For 1d2 rounds your enemies see only what is right beside their cards, and their Scouts one tile less. Not under the Full Moon; at the New Moon it blinds them completely, while your own cards see one tile. Once every three rounds.",
   ok:()=>G.moon.i!==4&&!G.ffog&&tnOf(G.active)>=(me().fogReady||0),run:async()=>{const pl=G.active,d=R(2);G.ffog={by:pl,until:tnOf(pl)+d};me().fogReady=tnOf(pl)+3;G._vis=null;
-   tray(pl,"Fog",[{s:2,v:d}],`${d} turn${d>1?"s":""}`);log(`<b>Fog</b> rolls in from ${plName(pl)}'s Firmament for ${d} turn${d>1?"s":""}.`,"event");notify(pl,"The Firmament's fog rolls over the field.")}},
- {id:"mars",tribe:"firm",dice:"2d3",name:"Mars",cost:4,school:"Sorcery",text:"Mars takes the moon's place in the sky (“Strife”). Each turn every stack of only Grunts and Infantry gets advantage on its next attack on 1–5 of 1d8. The moon's phases stop and your Miner on the moon is lost; a Leviathan on the moon coils on Mars instead. Not while Saturn hangs there, and never again once Mars is eaten.",
+   tray(pl,"Fog",[{s:2,v:d}],`${d} round${d>1?"s":""}`);log(`<b>Fog</b> rolls in from ${plName(pl)}'s Firmament for ${d} round${d>1?"s":""}.`,"event");notify(pl,"The Firmament's fog rolls over the field.")}},
+ {id:"mars",tribe:"firm",dice:"2d3",name:"Mars",cost:4,school:"Sorcery",text:"Mars takes the moon's place in the sky (“Strife”). Each round every stack of only Grunts and Infantry gets advantage on its next attack on 1–5 of 1d8. The moon's phases stop and your Miner on the moon is lost; a Leviathan on the moon coils on Mars instead. Not while Saturn hangs there, and never again once Mars is eaten.",
   ok:()=>G.moon.gone!=="mars"&&G.moon.gone!=="saturn"&&!G.marsEaten,run:async()=>{G.moon.gone="mars";G.moon.i=-1;G.moon.blood=false;applyMoonTheme();
    log(`<b>Mars</b>: ${plName(G.active)} sets Mars in the sky where the moon was.`,"event");
-   popup("Mars",`<p>${plName(G.active)} hangs Mars in the moon's place. The phases stop.</p><p>At the start of each turn, every stack made only of Grunts and Infantry (Puppets too) gets advantage on its next attack on 1–5 of 1d8.</p>`,G.active)}}
+   popup("Mars",`<p>${plName(G.active)} hangs Mars in the moon's place. The phases stop.</p><p>At the start of each round, every stack made only of Grunts and Infantry (Puppets too) gets advantage on its next attack on 1–5 of 1d8.</p>`,G.active)}}
 );
 
 /* ---------- the computer playing the Firmament ---------- */

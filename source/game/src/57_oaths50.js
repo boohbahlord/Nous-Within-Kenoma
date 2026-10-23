@@ -31,7 +31,7 @@ for(const [k] of OATHS){const sp=SP("oath_"+k);if(!sp)continue;const run=sp.run;
 /* ---------- Report day: Saturn's reward, the bounties ---------- */
 {const _br=bankReport;bankReport=function(){
   if(!G.bank||survival())return _br.apply(this,arguments);
-  const t=G.turnNo;_br.apply(this,arguments);G.reportN=(G.reportN||0)+1;
+  const t=G.moon.round;_br.apply(this,arguments);G.reportN=(G.reportN||0)+1;
   for(const pl of alive().filter(i=>!isHorde(i)&&!isNPC(i))){const P=G.p[pl],R0=(P.reports||[])[0];if(!R0||R0.to!==t)continue;
     if(R0.good&&oathNow(pl,"saturn")){const add=Math.max(1,Math.ceil(Math.max(0,mana(pl))*.1)),got=giveMana(pl,add);P.maxAdd=(P.maxAdd||0)+1;
       log(`<b>The Oath of Saturn</b>: a Report in good standing pays ${plName(pl)} ${got} mana (10%) and one more maximum.`,"event")}}
@@ -145,7 +145,7 @@ function payDebtFor(from,to,n){if(!oathNow(from,"venus")||from===to||!G.p[to]||G
   const paid=payQuiet(from,n);bankAdd(paid);payDown(to,paid);
   let left=paid,t=0;while(left>0){const d=R(2);if(d>left)break;left-=d;t++}
   const P=G.p[from];P.venusDisc=(P.venusDisc||0)+t;
-  let guard="";if(paid>=6){const k=R(3)+R(3);P.venusDef=tnOf(from)+k;guard=` Venus guards them: +2 on defense for ${k} turns.`}
+  let guard="";if(paid>=6){const k=R(3)+R(3);P.venusDef=tnOf(from)+k;guard=` Venus guards them: +2 on defense for ${k} rounds.`}
   log(`<b>The Oath of Venus</b>: ${plName(from)} pays ${paid} of ${plName(to)}'s debt to the Bank. ${t} discount${t===1?"":"s"} of 1 mana on their next buys.${guard}`,"event");
   notify(to,`${esc(P.name)} pays ${paid} of ${esc(G.p[to].name)}'s debt.`);return paid}
 {NETFN.payDebtFor={get:()=>payDebtFor,set:f=>payDebtFor=f,any:true};const orig=payDebtFor;payDebtFor=function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:"payDebtFor",args:netClean(a),ui:uiSnap(),rid})}}
@@ -201,7 +201,7 @@ ${why?`<p class="bwhy">${why}</p>`:""}${L.length?`<ul class="p2pl bntyl">${L.map
   const p2p=box.querySelector(".btab.p2p");
   if(p2p&&live&&oathNow(V,"venus")){const owe=alive().filter(i=>i!==V&&!isHorde(i)&&!isNPC(i)&&debtOf(i)+owedOf(i)>0),m=Math.max(0,mana(V));
     p2p.insertAdjacentHTML("beforeend",`<h3>Pay a debt (the Oath of Venus)</h3>${owe.length?`<p class="p2pask"><label>For <select id="vTo">${owe.map(i=>`<option value="${i}">${esc(G.p[i].name)} (owes ${debtOf(i)+owedOf(i)})</option>`).join("")}</select></label>
- <label><select id="vN">${Array.from({length:Math.max(1,m)},(_,i)=>`<option>${i+1}</option>`).join("")}</select> mana</label> <button class="btn sm" id="vPay" ${m?"":"disabled"}>Pay</button></p><p class="dim">Every 1d2 paid takes 1 mana off one of your next buys. 6 or more at once: +2 on defense for 2d3 turns.</p>`:`<p class="dim">Nobody owes the Bank right now.</p>`}`);
+ <label><select id="vN">${Array.from({length:Math.max(1,m)},(_,i)=>`<option>${i+1}</option>`).join("")}</select> mana</label> <button class="btn sm" id="vPay" ${m?"":"disabled"}>Pay</button></p><p class="dim">Every 1d2 paid takes 1 mana off one of your next buys. 6 or more at once: +2 on defense for 2d3 rounds.</p>`:`<p class="dim">Nobody owes the Bank right now.</p>`}`);
     const b=$("#vPay");if(b)b.onclick=()=>{payDebtFor(V,+$("#vTo").value,+$("#vN").value);bankTab="p2p";render();openBank()}}}}
 
 /* ---------- the tags beside a player ---------- */

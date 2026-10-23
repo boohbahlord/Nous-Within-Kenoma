@@ -14,9 +14,9 @@ const RD_DEF={on:false,preset:"even",every:1,perTurn:1,kinds:[],minMana:3,counte
 const RD_PRESETS=[
   ["miser","Rarely","Rarely: only with plenty to spare and something worth raising, never in debt.",{every:3,perTurn:1,kinds:["special","base"],minMana:6,counterOD:false,noOD:true,stopDebt:1,credit:false,creditStop:0}],
   ["accountant","Every other turn","Modest: one every other turn, never into debt.",{every:2,perTurn:1,kinds:[],minMana:4,counterOD:false,noOD:true,stopDebt:2,credit:false,creditStop:0}],
-  ["even","Once a turn","Balanced: one a turn while there is mana to spare (the default).",{every:1,perTurn:1,kinds:[],minMana:3,counterOD:true,noOD:false,stopDebt:4,credit:false,creditStop:-3}],
-  ["relic","Best cards, twice a turn","Spends big, but only when the grave holds treasure.",{every:1,perTurn:2,kinds:["special","wildcard","base"],minMana:2,counterOD:true,noOD:false,stopDebt:0,credit:false,creditStop:-3}],
-  ["hunger","Twice a turn, on credit","Two a turn, on credit when it must.",{every:1,perTurn:2,kinds:[],minMana:1,counterOD:true,noOD:false,stopDebt:0,credit:true,creditStop:-3}],
+  ["even","Once a round","Balanced: one a round while there is mana to spare (the default).",{every:1,perTurn:1,kinds:[],minMana:3,counterOD:true,noOD:false,stopDebt:4,credit:false,creditStop:-3}],
+  ["relic","Best cards, twice a round","Spends big, but only when the grave holds treasure.",{every:1,perTurn:2,kinds:["special","wildcard","base"],minMana:2,counterOD:true,noOD:false,stopDebt:0,credit:false,creditStop:-3}],
+  ["hunger","Twice a round, on credit","Two a round, on credit when it must.",{every:1,perTurn:2,kinds:[],minMana:1,counterOD:true,noOD:false,stopDebt:0,credit:true,creditStop:-3}],
   ["mad","As much as it can","Everything into the grave, down to the brink.",{every:1,perTurn:3,kinds:[],minMana:0,counterOD:true,noOD:false,stopDebt:0,credit:true,creditStop:-6}]];
 const clampN=(v,a,b,d)=>{v=Math.round(+v);return Number.isFinite(v)?Math.max(a,Math.min(b,v)):d};
 function rdClean(c){c=c&&typeof c==="object"?c:{};const o={...RD_DEF};
@@ -87,7 +87,7 @@ function rdPanelHTML(c,pfx){const K=cfgKit("data-rd","data-rdact","rd"+pfx),{row
   let h=`<p class="dim fafull">At the start of your prep phase, before Grave Blessing (switching this on switches Grave Blessing's auto on too). Each Ritual Dice costs 1 mana and adds 3d6 to this turn's Grave Blessing. It is never bought when Grave Blessing can't be cast.</p>`;
   h+=sec("Playstyle",`<div class="opts faopts${off?" off":""}">${RD_PRESETS.map(([k,t,d])=>`<label class="opt"${K.tip(d)}><input type="radio" name="rd${pfx}-preset" data-rdpreset="${k}" ${c.preset===k?"checked":""} ${off?"disabled":""}><span>${t}${K.sm(d)}</span></label>`).join("")}<label class="opt"${K.tip(c.lastCustom?"Your own settings, as you last left them.":"Change any setting below and it becomes Custom.")}><input type="radio" name="rd${pfx}-preset" data-rdpreset="custom" ${c.preset==="custom"?"checked":""} ${off||!c.lastCustom&&c.preset!=="custom"?"disabled":""}><span>Custom${K.sm(c.lastCustom?"As you last left it.":"")}</span></label></div>`,
     "fafull","Sets everything below at once. Change any of it and it becomes Custom.");
-  h+=sec("How often",spin("Every","1: every turn",c.every,"every",c.every>1?"turns":"turn",off)+spin("How many each time","Each one is 1 mana and 3d6.",c.perTurn,"perTurn","",off));
+  h+=sec("How often",spin("Every","1: every round",c.every,"every",c.every>1?"turns":"turn",off)+spin("How many each time","Each one is 1 mana and 3d6.",c.perTurn,"perTurn","",off));
   h+=sec("Only when the grave holds",K.chips(RD_KINDS,c.kinds,"data-rdkind",off)+`<p class="dim">None ticked: whatever the grave holds.</p>`);
   h+=sec("Mana",spin("Only with at least","It buys only with this much mana to spare.",c.minMana,"minMana","mana",off)+
     spin("Stop while owing","Mana debt plus loans. 0: owing never stops it.",c.stopDebt?c.stopDebt:"0",`stopDebt`,c.stopDebt?"or more":"(never stops)",off));

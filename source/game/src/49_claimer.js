@@ -53,7 +53,7 @@ function strikeFlag(r,c,fr,fc){const st=G.board[r][c],f=flagAt(fr,fc);if(!st||!f
   else log(`${plName(G.active)} strikes ${plName(f.owner)}'s Flag on ${coord(fr,fc)}: ${f.hp}/${f.max} hearts left.`);
   return true}
 function repairFlag(r,c,fr,fc){const st=G.board[r][c],f=flagAt(fr,fc),m=st&&repairOf(st);if(!st||!f||!m||st.owner!==G.active||G.phase!=="prep"||!repairReady(st)||!flagTargets(st,r,c,"repair").includes(f))return false;
-  f.hp++;const d=R(3)+1;m.repAt=tnOf(st.owner)+d;log(`${plName(G.active)}'s Repairman mends the Flag on ${coord(fr,fc)} (${f.hp}/${f.max}); he rests ${d} turns (1d3 + 1).`);return true}
+  f.hp++;const d=R(3)+1;m.repAt=tnOf(st.owner)+d;log(`${plName(G.active)}'s Repairman mends the Flag on ${coord(fr,fc)} (${f.hp}/${f.max}); he rests ${d} rounds (1d3 + 1).`);return true}
 for(const [name,get,set] of [["claimLand",()=>claimLand,f=>claimLand=f],["strikeFlag",()=>strikeFlag,f=>strikeFlag=f],["repairFlag",()=>repairFlag,f=>repairFlag=f]]){
   NETFN[name]={get,set};const orig=get();
   set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}

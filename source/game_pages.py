@@ -16,7 +16,7 @@ MODES_HTML = """<h2 id="modes">Game Modes</h2>
 <h3>Standard</h3>
 <p>Local play: against computers, together on this device, or both. Up to four people share one device, and every other seat is a computer: you against one to three computers, friends together against computers, or friends against each other, up to eight seats in King of the Hill. Each player picks an Emanation (or the host turns Emanations off), a color and a symbol, which marks every card they own. With more than one person, the board turns to face whoever is playing, and the screen goes dark between turns until the next player confirms they hold the device. Everyone sees every die.</p>
 <h3>The computers</h3>
-<p>The computers are written as plain code rather than a language model. Each turn the computer weighs offense against defense from the field and the decks. <b>Easy</b> plays loosely and makes mistakes. <b>Medium</b> is balanced and a real fight. <b>Hard</b> plays the Joker for souls, stacks Aces for the Grave Blessing, keeps its own deck full and eats away at yours.</p>
+<p>The computers are written as plain code rather than a language model. Each round the computer weighs offense against defense from the field and the decks. <b>Easy</b> plays loosely and makes mistakes. <b>Medium</b> is balanced and a real fight. <b>Hard</b> plays the Joker for souls, stacks Aces for the Grave Blessing, keeps its own deck full and eats away at yours.</p>
 <h3>Survival</h3>
 <p>Tower defense for one to four players. You raise your Ace and its Jack, and the Horde comes: after three rounds of grace, a new wave every 1d2 + 2 rounds from a fresh deck, each one a step stronger, with Jacks, Queens and Kings from the sixth wave and Jokers from the eleventh; from then on it brings counter cards (Battering Rams for your Walls) when you lean on something it has no answer to. The Horde has no spells, hand or grave. The moon still turns. You lose when your last card on the field falls, and the round you reach is your score.</p>
 <h3>Emanations</h3>
@@ -41,7 +41,7 @@ land = head(EC + ' · Nous Within Kenoma', extra='<style>' + open('game/text/rul
 <li><b>Roll for the opening.</b> Both players roll. The highest roll sets up first, placing any opening cards on their own two lines, then the other player sets up. The highest roller also takes the first turn.</li>
 <li><b>Take turns.</b> Every turn runs <span class="flow">Prep → Attack</span>. The prep phase starts with drawing: roll a d4 as many times as you like and draw that many cards. Then place, move and sacrifice cards and cast spells. In the attack phase, each of your stacks may attack once. The very first turn of the game has no draw phase.</li>
 <li><b>Fight with dice.</b> A stack fights with the score of its best card: the card's value plus its die. Stacking cards does not add their scores together, but every card in a stack is another hit it can take.</li>
-<li><b>Gather souls.</b> Sacrificed cards become your soul pile, worth up to six mana (a card from your hand is worth its Ether price − 1d2 + 1, rolled as you sacrifice it, but a card that costs 1 is always worth 1; a card on the field is worth its soul), which pays for spells such as Divine Odds, Clairvoyance or a King Conjure. Once a turn, the free Grave Blessing lets you roll for the dead.</li>
+<li><b>Gather souls.</b> Sacrificed cards become your soul pile, worth up to six mana (a card from your hand is worth its Ether price − 1d2 + 1, rolled as you sacrifice it, but a card that costs 1 is always worth 1; a card on the field is worth its soul), which pays for spells such as Divine Odds, Clairvoyance or a King Conjure. Once a round, the free Grave Blessing lets you roll for the dead.</li>
 <li><b>Watch the moon.</b> The New Moon gives back cards from the grave; the Full Moon takes a stack of two or a card, or 2d2 + 2 mana. Rarely, the Full Moon turns to a Blood Moon.</li>
 <li><b>Win.</b> Destroy every card the other player has on the field, or leave them with no deck, no hand and no soul pile when their turn ends: an economic victory.</li>
 </ol>
@@ -177,7 +177,7 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 <h2>Spells</h2>
 <h3>Necromancy</h3>
 <ul>
-<li><b>Grave Blessing</b> (free): roll 1d6; each natural 6 raises one card from the grave. Add +1d6 per Ace on the field, or more with Ritual Dice; 6 dice at most per turn.</li>
+<li><b>Grave Blessing</b> (free): roll 1d6; each natural 6 raises one card from the grave. Add +1d6 per Ace on the field, or more with Ritual Dice; 6 dice at most per round.</li>
 <li><b>Ritual Dice</b> (1 mana): roll an additional 2d6 for your Grave Blessing.</li>
 <li><b>Sacrificial Suicide</b>: by default (the Rules option, on), the souls the Joker captured fall into the Outer Darkness, their worth comes to the player as mana, and the Joker goes back into the player's deck. With the option off, the Joker sacrifices its soul to the grave and all the souls it captured move into the player's soul pile for spending; a Joker can hold six cards and six mana of souls in all, and any surplus goes to the grave.</li>
 <li><b>Soul Capture</b>: the Joker captures the souls of enemies that die or are killed next to it, up to six mana of souls. They are not available to its player until Sacrificial Suicide. If the enemy kills the Joker, its souls are released into the graveyard, unless an enemy Joker is there to capture them.</li>
@@ -185,7 +185,7 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 <li><b>Flesh Severance</b>: because body and soul are two in this game, the Joker can spend mana from the soul pile to disembody the soul of a unit killed next to it, exiling its form to the Ethereal Realm. This is the player's choice, and it costs half the price to summon the units severed that turn, rounded up: severing a 2-mana and a 1-mana unit costs 2.</li>
 </ul>
 <h3>Enchantments</h3>
-<ul><li><b>Hypostasis</b> (3 mana for one card, +1 for every more card in the stack): grants a stack temporary invulnerability for two turns. During it the stack can't move forward toward the enemy's side, only to the side or backward if the stack's movement allows, and it can't attack. Afterward the effect disappears and the stack returns to its normal rules. It can't be cast if you have only one stack or card on the board.</li>
+<ul><li><b>Hypostasis</b> (3 mana for one card, +1 for every more card in the stack): grants a stack temporary invulnerability for two rounds. During it the stack can't move forward toward the enemy's side, only to the side or backward if the stack's movement allows, and it can't attack. Afterward the effect disappears and the stack returns to its normal rules. It can't be cast if you have only one stack or card on the board.</li>
 <li><b>Divine Odds</b> (1d2 + 1 mana): advantage on all modifiers of one of your stacks for one combat. Mark the cards with a coin or chess piece. Advantage means rolling the dice twice and taking the higher total.</li></ul>
 <h3>Curses</h3>
 <ul>
@@ -240,14 +240,14 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 <li><b>Dice Plus</b> (Enchantment, 1d3 mana): on one of your stacks, a sword (its next attack) or a shield (its next defense) adds a d12 on this table: 1: +1 · 2: +1d2 · 3: +1d3 · 4: +1d4 · 5–6: +1d6 · 7–9: +1d8 · 10: +1d10 · 11: +1d12 · 12: two more d12 on the table, and every 12 rolls again. Once on a stack; as many stacks as you like. The stack glows orange (sword) or purple (shield).</li>
 <li><b>Spells on a stack</b>: their names show in faint blackletter at the bottom of the stack, and how long they last (and their odds) at its top right.</li>
 <li>Cards are placed from the hand into your own spawn lines: on an empty tile, or onto your own stack if the stack stays legal. Your spawn lines are your backline and frontline; on a field 5 wide and 5 tall or smaller they are your backline alone. Teammates on the same side may spawn on each other's lines. Aces go only on empty backline tiles; Jokers spawn onto your stack holding a card of the same color.</li>
-<li>Each stack moves once per turn, one tile straight. A group made only of Jacks moves two tiles straight or one diagonal. You can split a stack by choosing which cards move.</li>
+<li>Each stack moves once per round, one tile straight. A group made only of Jacks moves two tiles straight or one diagonal. You can split a stack by choosing which cards move.</li>
 <li>Stacks attack an enemy stack next to them (not diagonal, except Jack-only stacks). Aces and a King standing alone don't attack.</li>
 <li>Paying mana spends your smallest souls first; any mana overpaid is lost, and spent souls go to the grave. Sacrifices happen before any mana is spent, and the Grave Blessing must come before spending too (Ritual Dice excepted).</li>
 <li>A Joker's captured souls hold six mana at most. Double Edged Sword has no listed cost, so it costs 1 mana here.</li>
 <li>The Ether is shared. It holds every special the players do not start with, the unused half of the deck in a one-deck Survival game, and the whole third deck in a three-deck game. A conjure takes a random soul of that kind from it, and Flesh Severance sends exiled souls back into it. A conjure whose kind is not in the Ether cannot be cast. Starting mana takes soldier souls from it; when it has none, new soldier souls are made.</li>
-<li>Overdrawing counts every card burned by a full hand, including draws forced by Forced Hand, but not the opening hand. At the end of each of your turns six of the count are used up and the rest carries on.</li>
+<li>Overdrawing counts every card burned by a full hand, including draws forced by Forced Hand, but not the opening hand. At the end of each round six of the count are used up and the rest carries on.</li>
 <li>Resurrection brings the card into your hand. Three of Swords destroys cards into the grave (or the Outer Darkness under a Blood Moon). Naked Hand lasts until the caster's turn ends.</li>
-<li>Hypostasis lasts through the enemy's next two turns and ends at the start of your second turn after casting. A stack under it can't be targeted by attacks or by the Full Moon's toll.</li>
+<li>Hypostasis lasts two rounds and ends at the start of your second turn after casting. A stack under it can't be targeted by attacks or by the Full Moon's toll.</li>
 <li>The moon moves one phase each round, at the start of the first player's turn. Its New Moon gift and Full Moon toll reach both players at the start of the round, the first player first; the moon's prices, draw ban and Blood Moon last the whole round, and the spell prices apply to whoever casts that turn.</li>
 <li>The Full Moon never takes a card inside an Ace or under Hypostasis. What is given goes to the soul pile up to your maximum; the rest goes to the grave.</li>
 <li>Not yet in the digital table: the Queen's protection from being surrounded, and placing same-suit cards inside a defending King. A King can't be sacrificed from a stack that holds other cards.</li>
@@ -325,7 +325,7 @@ b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({beha
 open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
 
 # v71j: EC_BL asks the page's head to preload the blackletter (unless the device saves data)
-play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel="stylesheet" href="ethers-crossroads.css?v=166">', ec=True) + f'''<main class="wide game">
+play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel="stylesheet" href="ethers-crossroads.css?v=167">', ec=True) + f'''<main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
@@ -363,7 +363,7 @@ play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
 <script>window.EC_QSRC="ethers-crossroads-quotes.js?v=152"</script>
-<script src="ethers-crossroads.js?v=173"></script>
+<script src="ethers-crossroads.js?v=174"></script>
 ''' + TAIL
 open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
 

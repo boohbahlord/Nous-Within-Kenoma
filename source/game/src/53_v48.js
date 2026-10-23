@@ -35,7 +35,7 @@ SPELL_TEXT.dplus={n:"Select one of your stacks that can attack or defend, one wi
   return out}}
 
 /* ---------- the spells on a stack: their names in see-through blackletter at the bottom, how long and the odds at the top right ---------- */
-function stackSpells(st){const L=[],t=n=>`${n} turn${n===1?"":"s"}`;
+function stackSpells(st){const L=[],t=n=>`${n} round${n===1?"":"s"}`;
   if(st.odds==="adv")L.push(["Divine Odds","next fight","advantage"]);
   if(st.odds==="dis")L.push(["Hexed Odds","next fight","disadvantage"]);
   if(st.dplus)L.push(["Dice Plus",st.dplus.m==="atk"?"next attack":"next defense","+d12"]);

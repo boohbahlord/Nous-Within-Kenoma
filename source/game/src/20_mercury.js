@@ -2,8 +2,8 @@
    and the computer looking after itself ---------------- */
 
 PLANETS.mercury={name:"Mercury",word:"Guile",hunger:3};OATH_SKY.mercury="mercury";
-const peaceOn=()=>!!(G.peace&&(G.peace.untilT!=null?G.turnNo<=G.peace.untilT:G.moon.round<=G.peace.until));
-const peaceTill=()=>G.peace.untilT!=null?`for ${Math.max(1,G.peace.untilT-G.turnNo+1)} more turn${G.peace.untilT-G.turnNo+1===1?"":"s"}`:`until round ${G.peace.until}`;   // v71e: bought Peace counts turns
+const peaceOn=()=>!!(G.peace&&G.moon.round<=G.peace.until);
+const peaceTill=()=>{const k=G.peace.until-G.moon.round;return k<=0?"until this round ends":`for ${k} more round${k===1?"":"s"} after this one (to the end of round ${G.peace.until})`};   // v79d: rounds
 const warOn=()=>!!(G.war&&G.moon.round<=G.war.until);
 const betrayOn=()=>!!(G.betrayal&&G.moon.round<=G.betrayal.until);
 const realPlayers=()=>alive().filter(i=>!isHorde(i));
@@ -16,7 +16,7 @@ const warOD=()=>warOn()||betrayOn();
 /* ---------- the start of each round: eclipses, the end of Peace and War, bribes ---------- */
 async function eclipseRound(){
   if(G.over)return;const r=G.moon.round;
-  if(G.peace&&G.peace.untilT==null&&r>G.peace.until){G.peace=null;log("<b>Peace ends.</b> The lines are open again.","event");notify(null,"Peace is over.")}
+  if(G.peace&&r>G.peace.until){G.peace=null;log("<b>Peace ends.</b> The lines are open again.","event");notify(null,"Peace is over.")}
   if(G.war&&r>G.war.until){G.war=null;log("<b>Total War ends.</b>","event");notify(null,"Total War is over.")}
   if(G.war)G.warCurse=R(2)-1;
   if(G.eclipse&&(G.opts.eclipseAlways?G.eclipse.k!==sky():r>(G.eclipse.until!=null?G.eclipse.until:G.eclipse.round))){endEclipse()}   // v71q: Always in eclipse: it passes only when its Heavenly Body leaves   // v71c: Neptune's lasts 2d3 rounds
@@ -41,7 +41,7 @@ function sendHome(pl){
   if(home||toDeck)log(`Peace: ${plName(pl)}'s ${home?`${home} stack${home>1?"s go":" goes"} home`:""}${home&&toDeck?"; ":""}${toDeck?`${toDeck} card${toDeck>1?"s":""} with no room go back into the deck`:""}.`);
 }
 function startPeace(rounds,why,turns){
-  const r=G.moon.round;G.peace=turns?{untilT:G.turnNo+turns}:{until:r+rounds-1};G.war=null;
+  const r=G.moon.round;G.peace=turns?{until:r+turns}:{until:r+rounds-1};G.war=null;   // v79d: bought Peace: this round and N more
   for(const pl of realPlayers())sendHome(pl);
   G.sel=null;G.mode=null;   // v78j: what was selected may have gone home
   // every wound heals; every curse and enchantment ends
@@ -49,7 +49,7 @@ function startPeace(rounds,why,turns){
   for(const P of G.p){P.shield=false;P.joy=false;P.theft=false}
   // three cards from the grave to everyone, one at a time around the table
   let given=0;for(let k=0;k<3;k++)for(const pl of realPlayers()){if(!G.grave.length)break;const c=G.grave.splice(Math.floor(Math.random()*G.grave.length),1)[0];c.owner=pl;const P=G.p[pl];if(P.hand.length<handCap(pl))P.hand.push(c);else{P.deck.push(c);shuffle(P.deck)}given++}
-  const long=turns?`${turns} turns`:`${rounds} rounds`;   // v78j: Buy Peace counts turns
+  const long=turns?`${turns} rounds`:`${rounds} rounds`;   // v78j: Buy Peace counts turns
   log(`<b>Peace</b> (${why}) for ${long}: everyone goes home, every wound heals, curses and enchantments end${given?`, and the grave hands out ${given} card${given>1?"s":""}`:""}. No one may cross into another player's lines or attack another player.`,"event");
   popup("Peace",`<p>${why}. For ${long} no player can attack another or step into another player's lines.</p><p>Every stack out on the field went home (what had no room went back into the deck), every card with hearts healed, curses and enchantments ended, and everyone drew three cards from the grave, one at a time.</p>`);
   G._vis=null;applyMoonTheme();
@@ -95,7 +95,7 @@ async function eclipse(k){
       const got=giveMana(pl,Math.max(0,Math.min(surCap(pl),2*soulCap(pl))-mana(pl)));lines.push(`${esc(P.name)}: 2d3 − 1 = ${d.map(x=>x.v).join(" + ")} − 1 = <b>+${v}</b> maximum, ${got} mana`);tray(pl,"Jupiter eclipse",d,`+${v} max`,true)}
     if(G.bank){for(const pl of realPlayers()){const P=G.p[pl];P.debt=0;P.debtAt=null;P.loans=[]}if(G.bank.mana>0)G.bank.mana*=2}
     if(Y!=null){const n=G.dark.filter(c=>c.darkOwner!==Y).length,got=giveMana(Y,n);if(got)log(`Yaldabaoth drinks from the eclipse: ${plName(Y)} gets ${got} mana for the souls of others in the Outer Darkness.`,"event")}
-    popup("Jupiter's eclipse",`<p>The Sun passes behind Jupiter. For this round:</p><p>${lines.join("<br>")}</p><p>Every soul pile fills to twice its maximum. The Bank forgives every debt and loan and doubles what it holds; everything in the Ether is on sale. Miners bring twice as much for 1d4 turns.</p>`);
+    popup("Jupiter's eclipse",`<p>The Sun passes behind Jupiter. For this round:</p><p>${lines.join("<br>")}</p><p>Every soul pile fills to twice its maximum. The Bank forgives every debt and loan and doubles what it holds; everything in the Ether is on sale. Miners bring twice as much for 1d4 rounds.</p>`);
   }
   if(k==="venus"){
     log(`<b>An eclipse of Venus</b>: its gifts are doubled this round, and the grave makes an offer.`,"event");
@@ -151,7 +151,7 @@ SPELLS.push(
   ok:firmPlace("mercury"),run:async()=>{setPlanet("mercury",G.active);log(`<b>Mercury</b> rises where the moon was, raised by ${plName(G.active)}.`,"event")}},
  {id:"peace",name:"Peace Time",cost:0,school:"Astrology",text:"Free, under Mercury; everyone must agree. Peace for 3 + 1d2 − 1 rounds: every stack goes home (what has no room goes back into the deck, weakest first), every card with hearts heals, curses and enchantments end, everyone gets three cards from the grave one at a time, and no player can attack another or step into another player's lines.",
   ok:()=>planetUp("mercury")&&!peaceOn()&&!warOn()&&!G.voted,run:async()=>{G.voted=true;const v=await vote("Peace","Agree to Peace for 3 or 4 rounds?");if(!v.no.length)startPeace(2+R(2),"agreed by everyone");else log("No peace: not everyone agrees.")}},
- {id:"buypeace",dice:"4d2",name:"Buy Peace",cost:6,school:"Astrology",text:"Under Mercury, without a vote: Peace for two turns, with everything Peace brings.",
+ {id:"buypeace",dice:"4d2",name:"Buy Peace",cost:6,school:"Astrology",text:"Under Mercury, without a vote: Peace for two rounds, with everything Peace brings.",
   ok:()=>planetUp("mercury")&&!peaceOn(),run:async()=>{startPeace(0,`bought by ${esc(me().name)}`,2)}},
  {id:"war",name:"Total War",cost:0,school:"Astrology",text:"Free, under Mercury; everyone must agree. For 3 + 1d2 − 1 rounds every card killed falls into the Outer Darkness and gives its killer a mana, curses cost 1d2 − 1 less, and teammates may strike each other: each damage to a teammate pays its soul's worth + 1d2 − 1.",
   ok:()=>planetUp("mercury")&&!warOn()&&!peaceOn()&&!G.voted,run:async()=>{G.voted=true;const v=await vote("Total War","Agree to Total War for 3 or 4 rounds?");if(!v.no.length)startWar(2+R(2),"agreed by everyone");else log("No war: not everyone agrees.")}},

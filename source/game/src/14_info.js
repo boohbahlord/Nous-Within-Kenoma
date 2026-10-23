@@ -22,8 +22,8 @@ function stomp(r1,c1,r2,c2){
   const {gd,vd,gv,vv}=abilityRolls(g,D);
   tray(A.owner,"Stomp",gd,`${gv} vs ${vv}`);tray(D.owner,"Ability check",vd,`${vv} vs ${gv}`,true);
   let turns=0;if(gv>vv)turns=sum(rollN(2,2));else if(gv===vv)turns=R(2);
-  log(`<b>${plName(A.owner)}</b>'s Goatbull stomps from ${coord(r1,c1)} on ${coord(r2,c2)}: ability check ${gv}${g.lostAdv?"":" (advantage)"} against ${vv}${hasK(D,"samson")?"":" (disadvantage)"}.${turns?` The stack is <b>Behooved</b> for ${turns} of its turns.`:" The stack shakes it off."}`,"combat");
-  if(turns){D.pin={turns,by:g.id,k:1};notify(A.owner,`The Goatbull pins ${esc(G.p[D.owner].name)}'s stack on ${coord(r2,c2)}: Behooved for ${turns} turns.`)}
+  log(`<b>${plName(A.owner)}</b>'s Goatbull stomps from ${coord(r1,c1)} on ${coord(r2,c2)}: ability check ${gv}${g.lostAdv?"":" (advantage)"} against ${vv}${hasK(D,"samson")?"":" (disadvantage)"}.${turns?` The stack is <b>Behooved</b> for ${turns} round${turns>1?"s":""}.`:" The stack shakes it off."}`,"combat");
+  if(turns){D.pin={turns,by:g.id,k:1};notify(A.owner,`The Goatbull pins ${esc(G.p[D.owner].name)}'s stack on ${coord(r2,c2)}: Behooved for ${turns} rounds.`)}
   if(turns&&gv>=16&&vv<gv){G.fight={A,D,atkPl:A.owner,defPl:D.owner};log("The hooves land: 1 damage.");damage(r2,c2,1,true);G.fight=null}
   render();return{win:!!turns,line:`${gv} vs ${vv}`};
 }
@@ -78,9 +78,9 @@ function statsOf(st){
   const fx=[];
   if(st.odds)fx.push(st.odds==="adv"?"Divine Odds: advantage on its next fight":"Hexed Odds: disadvantage on its next fight");
   if(hated(st))fx.push("Hate: disadvantage, and its attackers have advantage");
-  if(st.hypo)fx.push(`Hypostasis: untouchable, ${st.hypo} more turn${st.hypo>1?"s":""}`);
-  if(st.stun)fx.push(`Lightning: immobilized, ${st.stun} more turn${st.stun>1?"s":""}`);
-  if(st.pin)fx.push(`Behooved: pinned by the Goatbull, ${st.pin.turns} more turn${st.pin.turns>1?"s":""}`);
+  if(st.hypo)fx.push(`Hypostasis: untouchable, ${st.hypo} more round${st.hypo>1?"s":""}`);
+  if(st.stun)fx.push(`Lightning: immobilized, ${st.stun} more round${st.stun>1?"s":""}`);
+  if(st.pin)fx.push(`Behooved: pinned by the Goatbull, ${st.pin.turns} more round${st.pin.turns>1?"s":""}`);
   if(st.owner!=null&&G.p[st.owner]){const P=G.p[st.owner];if(P.shield)fx.push("Please Don't Hurt Me: can't be attacked");if(P.joy)fx.push("Pleasure and Joy: its dead go back to the deck");if(P.theft)fx.push("Joyful Theft: damage to it costs the attacker mana");if(deluded(st.owner))fx.push("its player is under a Delusion")}
   if(st.moved)fx.push("has moved this turn");if(st.attacked)fx.push("has attacked this turn");
   const cap=[],pri=[];for(const c of st.cards){for(const s of c.captured||[])cap.push(s);for(const s of c.prisoners||[])pri.push(s)}
@@ -191,13 +191,13 @@ function moonInfoHTML(){
   const m=G.moon,V=view(),P=G.p[V],L=[];
   if(["sun","blacksun","venus","jupiter","mercury","fallen","neptune"].includes(m.gone))return planetInfoHTML(m.gone);
   if(m.gone==="off")L.push("The moon is off for this game: no phases, no gifts, no tolls.");
-  else if(m.gone==="mars"){L.push("Mars hangs where the moon was. At the start of each turn, every stack of only Grunts and Infantry (Puppets too) gets advantage on its next attack on 1–5 of 1d8.");
+  else if(m.gone==="mars"){L.push("Mars hangs where the moon was. At the start of each round, every stack of only Grunts and Infantry (Puppets too) gets advantage on its next attack on 1–5 of 1d8.");
     if(G.moonLev)L.push(`The Leviathan coils on Mars; its toll and its weak spot come every eighth round.`)}
   else if(m.gone==="saturn"){const S=G.saturnBy;L.push(S==null?"Saturn has hung in the sky from the start. Its favors go to the Bank.":`Saturn hangs where the moon was, regurgitated by ${esc(G.p[S].name)}.`);
-    if(S===V)L.push(`Every enemy pays you ${1+(G.saturnDebt||0)} at the start of each of their turns.`);
+    if(S===V)L.push(`Every enemy pays you ${1+(G.saturnDebt||0)} at the start of each round.`);
     else if(P.tribe==="binah")L.push("You are Binah: you owe Saturn nothing.");
     else if(P.tribe==="firm")L.push("You are the Firmament: Saturn's tax doesn't touch you.");
-    else if(S==null||isEnemy(V,S))L.push(`At the start of each of your turns you pay ${1+(G.saturnDebt||0)} (a hand card, the top deck card or 1 mana), or a Debt Collector rises.`);
+    else if(S==null||isEnemy(V,S))L.push(`At the start of each round you pay ${1+(G.saturnDebt||0)} (a hand card, the top deck card or 1 mana), or a Debt Collector rises.`);
     if(G.saturnDebt)L.push(`Debt Collectors still standing have raised the price by ${G.saturnDebt}.`)}
   else if(m.gone==="eaten")L.push("Yaldabaoth ate the moon. Its phases have stopped: no gifts, no tolls, no Blood Moon.");
   else{
@@ -211,7 +211,7 @@ function moonInfoHTML(){
   if(G.deconjure)L.push("Deconjured: no conjuring at the next Full Moon.");
   if(G.noGraveNext)L.push("Deconjured: no grave gift at the next New Moon.");
   if(G.noConjureRound===G.moon.round)L.push("Deconjured: no one can conjure this round.");
-  if(G.moonMiner)L.push(`${esc(G.p[G.moonMiner.owner].name)}'s Miner works the moon: 1d2 − 1 mana every turn, until the moon leaves the sky or the Leviathan climbs onto it.`);
+  if(G.moonMiner)L.push(`${esc(G.p[G.moonMiner.owner].name)}'s Miner works the moon: 1d2 − 1 mana every round, until the moon leaves the sky or the Leviathan climbs onto it.`);
   if(G.bloodCalled)L.push("The Firmament has called a Blood Moon: the next Full Moon turns red.");
   const nm=m.gone==="saturn"?"Saturn":m.gone==="mars"?"Mars":m.gone?"No moon":"The Moon",word=m.gone==="saturn"?SKY_NAME.saturn:m.gone==="mars"?SKY_NAME.mars:m.gone?"":SKY_NAME.moon;
   return `<div class="cin sky"><div class="cih"><b>${nm}</b>${word?` <span class="skyword">“${word}”</span>`:""}</div><p>${L.join("</p><p>")}</p></div>`;
@@ -233,7 +233,7 @@ function statusHTML(pl){
   const fx=[];
   if(P.bolts)fx.push(`${P.bolts}/3 bolts`);if((P.thralls||[]).length)fx.push(`${P.thralls.length} thralls`);if(P.hunger)fx.push(`hunger ${P.hunger}/7`);
   if(P.shield)fx.push("Please Don't Hurt Me");if(P.joy)fx.push("Pleasure and Joy");if(P.theft)fx.push("Joyful Theft");
-  if(deluded(pl))fx.push(`Delusion, ${P.delu.turns} turn${P.delu.turns>1?"s":""} (${3-(P.delu.diceCut||0)}d2 free mana)`);
+  if(deluded(pl))fx.push(`Delusion, ${P.delu.turns} round${P.delu.turns>1?"s":""} (${3-(P.delu.diceCut||0)}d2 free mana)`);
   if(P.od)fx.push(`overdrawn ${P.od}`);if(P.shownBy!=null)fx.push("hand seen by Naked Hand");
   if((P.returning||[]).length)fx.push(`${P.returning.length} card${P.returning.length>1?"s":""} teleporting home`);
   if(JOKER_BONUS[P.tribe])fx.push(`Jokers +${JOKER_BONUS[P.tribe]} on attack`);

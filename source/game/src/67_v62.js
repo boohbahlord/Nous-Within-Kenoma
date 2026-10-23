@@ -9,7 +9,7 @@ const WILD_USE={
   satan:"Fights at 6d12 with no modifiers, alone. Lead with him into your strongest enemy.",
   leviathan:"At a New Moon, Rise to the Moon (free): every enemy pays a toll each New Moon after. What it kills goes to the Outer Darkness.",
   bullgoat:"Charge an enemy two or three tiles away in a straight line (10 + 2d20). When it dies it comes back as the Goatbull.",
-  goatbull:"Stomp a stack to pin it for 2d2 of its turns; charge an enemy exactly two tiles away.",
+  goatbull:"Stomp a stack to pin it for 2d2 rounds; charge an enemy exactly two tiles away.",
   debt:"Fights with the score of the card it faces. Only players in debt to the Bank can strike it.",
   slavemaster:"Enemy soldiers killed in its fights become your thralls (ten at most).",
   slave:"Shoot an enemy two tiles away (10 + 1d12). No defense; keep it behind your lines.",
@@ -20,7 +20,7 @@ for(const [u,t] of Object.entries(WILD_USE))if(INFO[u]&&Array.isArray(INFO[u][2]
    A row of small slots below the field, the hand, the Grave and Ether row and the dice: one for each of your Aces (two Miners),
    each crystal one of your stacks stands on, each plot of the Bank's land you hold, and the Moon (when your Miner is on it,
    or your Leviathan is: then the Moon's mining slot is yours). Pick a Miner in your hand, then a lit slot: the Miner goes
-   straight there, wherever it is on the field. Each slot shows its takings: the last pay period (its rounds), a turn on
+   straight there, wherever it is on the field. Each slot shows its takings: the last pay period (its rounds), a round on
    average, and ever. ▾ folds it; the arrow at the right moves it below Configure Automation, then below Help, then back. */
 mineNote=function(pl,key,n){if(!G)return;const M=G.mine=G.mine||{},k=pl+"|"+key,e=M[k]||(M[k]={t:0,h:[]});n=Math.round(n*100)/100;e.t=Math.round((e.t+n)*100)/100;e.h.push([G.moon.round,n]);if(e.h.length>90)e.h.shift()};
 {const _cr=cycleRound;cycleRound=function(){try{if(G&&typeof payDay==="function"&&payDay()){const a=G.payHist=G.payHist||[];if(a[a.length-1]!==G.moon.round)a.push(G.moon.round)}}catch(e){}return _cr.apply(this,arguments)}}
@@ -52,7 +52,7 @@ function mineAct(s,V){if(!mineFits(s,V))return;const m=G.selHand;
 const MINE_POS=["hand","field","auto","help"];   // v74d: above the hand cards by default (and always in fullscreen)
 function mineSlotHTML(s,V){const st=mineStats(V,s.k),fit=mineFits(s,V),empty=Math.max(0,s.cap-s.ms.length);
   const cards=(s.lev?face(s.lev,{cls:"sm",noci:true}):"")+s.ms.map(m=>face(m,{cls:"sm",noci:true})).join("")+Array.from({length:empty},()=>`<span class="msempty" aria-hidden="true"></span>`).join("");
-  const stat=st?`<span class="msstat"><span>Rounds ${st.P.a}–${st.P.b}${st.P.done?"":"…"}: <b>${st.sum}</b> (<b>${st.avg}</b> a turn)</span><span>Ever: <b>${st.ever}</b> mana</span></span>`:"";
+  const stat=st?`<span class="msstat"><span>Rounds ${st.P.a}–${st.P.b}${st.P.done?"":"…"}: <b>${st.sum}</b> (<b>${st.avg}</b> a round)</span><span>Ever: <b>${st.ever}</b> mana</span></span>`:"";
   return `<button type="button" class="mslot k-${s.kind}${fit?" tplace":""}" data-ms="${esc(s.k)}" ${fit?"":"aria-disabled=\"true\""} title="${esc(s.name+(s.at?" · "+s.at:""))}${fit?": place the Miner here":""}">
 <span class="msn"><b>${esc(s.name)}</b>${s.at?`<small>${esc(s.at)}</small>`:""}${s.sub?`<small>${esc(s.sub)}</small>`:""}<em>${s.ms.length}/${s.cap||1}</em></span><span class="msc">${cards}</span>${stat}</button>`}
 function paintMines(){if(!G)return;const V=view(),slots=mineSlots(V);let box=$("#minepanel");

@@ -13,7 +13,7 @@
    Debt Collectors can only be attacked by a player who owes the Bank something. */
 
 /* ---------- the running account for the next Report ---------- */
-function rpOf(pl){const P=G.p[pl];if(!P.rp)P.rp={from:G.turnNo,round:G.moon.round,loans:0,credit:0,intL:0,intC:0,earned:0,bad:false};return P.rp}
+function rpOf(pl){const P=G.p[pl];if(!P.rp)P.rp={from:G.moon.round,round:G.moon.round,loans:0,credit:0,intL:0,intC:0,earned:0,bad:false};return P.rp}
 {const _as=addSoul;addSoul=function(pl,c){const ok=_as.apply(this,arguments);if(ok&&G&&G.p[pl]&&!isNPC(pl))rpOf(pl).earned+=soulOf(c);return ok}}
 const midTile=(r,c)=>!isVoid(r,c)&&!G.p.some((P,i)=>!isNPC(i)&&canSpawn(i,r,c));
 const owesBank=pl=>debtOf(pl)>0||owedOf(pl)>0||!!G.p[pl].guilty;
@@ -30,7 +30,7 @@ function bankReport(){if(!G.bank||G.bank.dead||survival())return;   // v78j: no 
       else if((kind(b)==="ace"||kind(b)==="tree")&&R(rp.bad||P.guilty?2:3)===1){const t=R(2);due+=t;lines.push(`${KNAME[kind(b)]||"base"} on ${coord(r,c)}: ${t}`)}}
     let paid=0;if(due){paid=mana(pl)>0?payQuiet(pl,Math.min(due,mana(pl))):0;bankAdd(paid);if(paid<due)rp.bad=true}
     const good=!rp.bad&&!P.guilty;
-    const paper={from:rp.from,to:G.turnNo,loans:rp.loans,credit:rp.credit,intL:rp.intL,intC:rp.intC,taxDue:due,taxPaid:paid,taxLines:lines,earned:rp.earned,good,debt:debtOf(pl),owed:owedOf(pl)};
+    const paper={from:rp.from,to:G.moon.round,loans:rp.loans,credit:rp.credit,intL:rp.intL,intC:rp.intC,taxDue:due,taxPaid:paid,taxLines:lines,earned:rp.earned,good,debt:debtOf(pl),owed:owedOf(pl)};
     (P.reports=P.reports||[]).unshift(paper);P.reports=P.reports.slice(0,8);(P.standing=P.standing||[]).unshift(good);P.standing=P.standing.slice(0,8);
     P.rp=null;rpOf(pl);
     log(`<b>The Bank's Report</b> for ${plName(pl)} (turns ${paper.from}–${paper.to}): ${good?"good standing":"bad standing"}${due?`; taxes ${paid} of ${due} paid`:""}.`,"event");
@@ -50,7 +50,7 @@ const landFree=pl=>{const t=[];if(typeof kothOn==="function"&&kothOn())return t;
   for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(midTile(r,c)&&!G.board[r][c]&&!landAt(r,c)&&!(typeof flagAt==="function"&&flagAt(r,c))&&(pl==null||landOwnSide(pl,r,c)))t.push([r,c]);return t};
 {const _bt=beginTurn;beginTurn=function(pl){const out=_bt.apply(this,arguments);
   for(const l of [...(G.lands||[])])if(l.owner===pl&&l.untilT!=null&&tnOf(pl)>=l.untilT){G.lands.splice(G.lands.indexOf(l),1);
-    log(`${plName(pl)}'s land on ${coord(l.r,l.c)} goes back to the Bank after ${LAND_TURNS} turns (a base on it stays a spawn point until it falls).`)}
+    log(`${plName(pl)}'s land on ${coord(l.r,l.c)} goes back to the Bank after ${LAND_TURNS} rounds (a base on it stays a spawn point until it falls).`)}
   return out}}
 /* v71e: a typed tile, like C3, and why it can't be land */
 const landParse=txt=>{const m=/^([A-Z])\s*(\d{1,2})$/.exec(String(txt||"").trim().toUpperCase());return m?[G.rows-(+m[2]),m[1].charCodeAt(0)-65]:null};
@@ -71,7 +71,7 @@ function buyLand(pl,r,c){const P=G.p[pl];if(!bankOpen()||G.phase!=="prep"||G.act
   if((G.lands||[]).some(l=>l.owner===pl)){if(!P.cpu)flash("You already hold land in the middle.");return false}
   if(!landFree(pl).some(([a,b])=>a===r&&b===c))return false;if(!canAfford(pl,2)){if(!P.cpu)flash("Land costs 2 mana.");return false}
   spend(pl,2);(G.lands=G.lands||[]).push({r,c,owner:pl,untilT:tnOf(pl)+LAND_TURNS});
-  log(`${plName(pl)} buys land from the Bank on ${coord(r,c)}: a spawn point for ${LAND_TURNS} of their turns.`,"event");return true}
+  log(`${plName(pl)} buys land from the Bank on ${coord(r,c)}: a spawn point for ${LAND_TURNS} rounds.`,"event");return true}
 {NETFN.buyLand={get:()=>buyLand,set:f=>buyLand=f};const orig=buyLand;buyLand=function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:"buyLand",args:netClean(a),ui:uiSnap(),rid})}}
 {const _cp=canPlace;canPlace=function(card,r,c){if(_cp(card,r,c))return true;if(!G||G.phase==="setup"||isVoid(r,c))return false;
   const l=landAt(r,c);if(!l||l.owner!==G.active||kind(card)==="wall")return false;const st=G.board[r][c];
@@ -104,7 +104,7 @@ NETFN.forgiveLoan.un=a=>[p2pOf().find(x=>x.id===a[0])];
 
 /* ---------- the Bank window: land on the front tab, the Report tab, gifts and forgiveness between players ---------- */
 function reportHTML(V){const P=G.p[V],rp=rpOf(V),R0=(P.reports||[])[0];
-  const paper=(x,cur)=>`<div class="rpaper${cur?" cur":""}"><h4>${cur?"This period so far":"Credit and Loan Report"} <small>turns ${x.from}–${cur?G.turnNo:x.to}</small></h4>
+  const paper=(x,cur)=>`<div class="rpaper${cur?" cur":""}"><h4>${cur?"This period so far":"Credit and Loan Report"} <small>rounds ${x.from}–${cur?G.moon.round:x.to}</small></h4>
 <dl><dt>Taken from loans</dt><dd>${x.loans}</dd><dt>Taken on credit</dt><dd>${x.credit}</dd><dt>Together</dt><dd><b>${x.loans+x.credit}</b></dd>
 <dt>Interest on loans</dt><dd>${x.intL}</dd><dt>Interest on credit</dt><dd>${x.intC}</dd><dt>Interest together</dt><dd><b>${x.intL+x.intC}</b></dd>
 ${cur?"":`<dt>Taxes taken</dt><dd>${x.taxPaid} of ${x.taxDue}${x.taxLines&&x.taxLines.length?`<small>${x.taxLines.map(esc).join("; ")}</small>`:""}</dd>`}
@@ -122,7 +122,7 @@ ${paper({...rp},true)}${R0?paper(R0,false):`<p class="dim">No Report yet.</p>`}$
     tabs.querySelectorAll("[data-bt]").forEach(b=>b.onclick=()=>show(b.dataset.bt));if(bankTab==="report")show("report")}
   // land on the front tab
   const acts=box.querySelector(".bacts");if(acts&&live&&bankOpen()){const mine=(G.lands||[]).find(l=>l.owner===V),free=landFree(V);
-    acts.insertAdjacentHTML("beforeend",`<p class="brow landrow"><span class="bkey" data-tip="A spawn point on the middle ground for 8 of your turns (this one counts), on your side of the midline (none in King of the Hill): any card but a Wall can come down there; a card without a base on it costs 1d2 − 1. A base on it stays a spawn point after that, until it falls." tabindex="0">Land <i class="q">?</i></span>${mine?`<small class="dim">You hold land on ${coord(mine.r,mine.c)}: ${landLeft(mine)} of your turns left, this one counted.</small>`:`<label class="landin ${free.length?"":"off"}"><input id="bLandAt" type="text" maxlength="4" autocomplete="off" spellcheck="false" placeholder="${free.length?coord(free[0][0],free[0][1]):"—"}" aria-label="Which tile, like C3" aria-describedby="bLandErr" ${free.length?"":"disabled"}></label><button class="btn sm" id="bLandBtn" disabled>Buy for 2 mana</button><small class="dim">Type a tile in the middle, on your side of the midline: a spawn point for 8 of your turns.</small><small id="bLandErr" class="landerr" role="status" aria-live="polite">${free.length?"":"No free tile on your side of the midline."}</small>`}</p>`);
+    acts.insertAdjacentHTML("beforeend",`<p class="brow landrow"><span class="bkey" data-tip="A spawn point on the middle ground for 8 rounds (this one counts), on your side of the midline (none in King of the Hill): any card but a Wall can come down there; a card without a base on it costs 1d2 − 1. A base on it stays a spawn point after that, until it falls." tabindex="0">Land <i class="q">?</i></span>${mine?`<small class="dim">You hold land on ${coord(mine.r,mine.c)}: ${landLeft(mine)} rounds left, this one counted.</small>`:`<label class="landin ${free.length?"":"off"}"><input id="bLandAt" type="text" maxlength="4" autocomplete="off" spellcheck="false" placeholder="${free.length?coord(free[0][0],free[0][1]):"—"}" aria-label="Which tile, like C3" aria-describedby="bLandErr" ${free.length?"":"disabled"}></label><button class="btn sm" id="bLandBtn" disabled>Buy for 2 mana</button><small class="dim">Type a tile in the middle, on your side of the midline: a spawn point for 8 rounds.</small><small id="bLandErr" class="landerr" role="status" aria-live="polite">${free.length?"":"No free tile on your side of the midline."}</small>`}</p>`);
     const inp=$("#bLandAt"),btn=$("#bLandBtn"),err=$("#bLandErr");   // v71e: typed, and what's wrong shows under it as you type
     if(inp&&btn&&err){const chk=()=>{const t=inp.value.trim(),why=landWhy(V,t);err.classList.toggle("ok",!why);err.textContent=!t?"":why||`${t.toUpperCase()} is free: yours for 2 mana.`;btn.disabled=!!why;return !why};
       inp.oninput=chk;inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();if(chk())btn.click()}};
@@ -143,13 +143,13 @@ ${paper({...rp},true)}${R0?paper(R0,false):`<p class="dim">No Report yet.</p>`}$
 
 /* ---------- the tags beside a player: every status, each explained on hover or hold ---------- */
 {const _et=econTags;econTags=function(P){const t=_et(P);if(!G.bank||isHorde(P.i)||isNPC(P.i))return t;
-  if(P.guilty)t.unshift(`<span class="debttag" data-tip="In default with the Bank: Debt Collectors come every turn until the debt is paid off.">In default</span>`);
+  if(P.guilty)t.unshift(`<span class="debttag" data-tip="In default with the Bank: Debt Collectors come every round until the debt is paid off.">In default</span>`);
   else if(P.rp&&P.rp.bad)t.unshift(`<span class="debttag" data-tip="Bad standing with the Bank this period (default, an unpaid tax or a robbery). It shows on the next Report.">Bad standing</span>`);
   const l=(G.lands||[]).find(x=>x.owner===P.i);if(l)t.push(`<span class="saletag" data-tip="Land from the Bank on ${coord(l.r,l.c)}: a spawn point for ${landLeft(l)} more of ${esc(P.name)}'s turns, this one counted.">Land ${coord(l.r,l.c)} · ${landLeft(l)}</span>`);
   if(P.shield)t.push(`<span class="saletag" data-tip="Please Don't Hurt Me: none of this player's stacks can be attacked until their next turn.">Untouchable</span>`);
   if(P.noLoans)t.push(`<span class="debttag" data-tip="Tried to rob the Bank: no loans or credit, ever.">No loans</span>`);
   return t}}
-const TAG_TIPS=[[/^Debt −/,"Mana debt: shows as mana below zero. Every soul gained pays it first; it grows by 1d2 every 3 turns."],[/^Loans /,"Owed to the Bank in loans, interest included."],[/^Credit$/,"Spends on credit: spells it can't afford become mana debt."],
+const TAG_TIPS=[[/^Debt −/,"Mana debt: shows as mana below zero. Every soul gained pays it first; it grows by 1d2 every 3 rounds."],[/^Loans /,"Owed to the Bank in loans, interest included."],[/^Credit$/,"Spends on credit: spells it can't afford become mana debt."],
   [/^Ether sale$/,"Killed the most Demons: conjuring costs 1d2 − 1 less (never below 1)."],[/^Max /,"Maximum mana changed by spells and events."],[/^Sun-blind$/,"Blinded by the Second Sun."],[/^Choking on the Sun$/,"The Second Sun chokes this player: no attacks."]];
 {const _et=econTags;econTags=function(P){return _et(P).map(h=>{if(/data-tip=/.test(h))return h;const m=/^<span([^>]*)>([^<]*)</.exec(h);if(!m)return h;const tip=TAG_TIPS.find(([re])=>re.test(m[2]));
   return tip?h.replace("<span",`<span data-tip="${esc(tip[1])}"`):h})}}
