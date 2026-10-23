@@ -9871,9 +9871,9 @@ function camWrap(){const B=$("#board");if(!B)return null;let w=B.parentNode&&B.p
 function camNote(){const w=camWrap();let n=$("#camnote");
   if(!w||!isLarge()){if(n)n.hidden=true;return}
   if(!n){n=document.createElement("div");n.id="camnote";n.className="camnote";w.after(n)}else if(n.previousElementSibling!==w)w.after(n);
-  n.hidden=false;const ph=isPhone(),key=(ph?"p":"c")+(PREF.camWheel===true);if(n.dataset.k===key)return;n.dataset.k=key;
+  n.hidden=false;const ph=isPhone(),keys=`${kmShow4(["camUp","camLeft","camDown","camRight"])} moves it, two at once for a diagonal (Shift: faster) · ${kmShow("zoomIn")} zooms in, ${kmShow("zoomOut")} out`,key=(ph?"p":"c")+(PREF.camWheel===true)+keys;if(n.dataset.k===key)return;n.dataset.k=key;
   n.innerHTML=`<span class="cz"><button type="button" class="btn ghost sm" data-cz="-1" aria-label="Zoom out">−</button><button type="button" class="btn ghost sm" data-cz="1" aria-label="Zoom in">+</button></span>`+
-    (ph?`<span class="dim">Swipe the field to move it.</span>`:`<span class="dim">Drag an empty spot to move the field · WASD moves it, two at once for a diagonal (Shift: faster) · E zooms in, Q out</span>
+    (ph?`<span class="dim">Swipe the field to move it.</span>`:`<span class="dim">Drag an empty spot to move the field · ${esc(keys)}</span>
 <label class="cw"><input type="checkbox" id="camWheelBox" ${PREF.camWheel===true?"checked":""}> Zoom with the mouse wheel</label>`);
   n.querySelectorAll("[data-cz]").forEach(b=>b.onclick=()=>camZoom(+b.dataset.cz>0?1.2:1/1.2));
   const cb=n.querySelector("#camWheelBox");if(cb)cb.onchange=()=>{PREF.camWheel=cb.checked;savePrefs();const m=$("#mCamWheel");if(m)m.checked=cb.checked}}
@@ -9903,24 +9903,24 @@ function camWire(w){
   w.addEventListener("click",e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false}},true)}   // a drag is not a click on a tile
 const typing=t=>!!(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)));
 /* v77a: a held key moves the field smoothly, two at once on a diagonal (W and A: up and to the left); E zooms in, Q out */
-const CAM_DIR={w:[0,-1],s:[0,1],a:[-1,0],d:[1,0]};   // v78b: WASD (the arrow keys move the field's selector, 98b_fieldkeys.js)
+const CAM_DIR={camUp:[0,-1],camDown:[0,1],camLeft:[-1,0],camRight:[1,0]};   // v78b: WASD (the arrow keys move the field's selector, 98b_fieldkeys.js); v78d: as bound
 const CAMK=new Set();let camRaf=0,camT=0,camFast=false;
 function camTick(t){camRaf=0;if(!CAMK.size||!isLarge()){camT=0;return}const dt=camT?Math.min(50,t-camT):16;camT=t;let dx=0,dy=0;
   for(const k of CAMK){dx+=CAM_DIR[k][0];dy+=CAM_DIR[k][1]}
   if(dx||dy){const n=Math.hypot(dx,dy),v=.9*camSpeed()*(camFast?2.2:1)*dt;camPan(dx/n*v,dy/n*v)}
   camRaf=requestAnimationFrame(camTick)}
 const camBlocked=()=>!!document.querySelector("#ov:not([hidden]) .ovbox, #menu:not([hidden]), #facfg:not([hidden]), #rbwin:not([hidden])");
-document.addEventListener("keydown",e=>{if(!isLarge()||e.ctrlKey||e.metaKey||e.altKey||typing(e.target)||camBlocked())return;
-  const k=e.key.toLowerCase(),inv=PREF.camInvKeys?-1:1;camFast=e.shiftKey;
-  if(CAM_DIR[k]){e.preventDefault();if(!CAMK.has(k)){CAMK.add(k);if(!camRaf){camT=0;camRaf=requestAnimationFrame(camTick)}}return}
-  const zin=k==="e",zout=k==="q";if(zin||zout){e.preventDefault();camZoom((zin?1:-1)*inv>0?1.15:1/1.15)}});
-document.addEventListener("keyup",e=>{CAMK.delete(e.key.toLowerCase());camFast=e.shiftKey});
+document.addEventListener("keydown",e=>{if(!isLarge()||typing(e.target)||camBlocked())return;
+  const inv=PREF.camInvKeys?-1:1,d=Object.keys(CAM_DIR).find(id=>kmIs(e,id));camFast=e.shiftKey;
+  if(d){e.preventDefault();if(!CAMK.has(d)){CAMK.add(d);if(!camRaf){camT=0;camRaf=requestAnimationFrame(camTick)}}return}
+  const zin=kmIs(e,"zoomIn"),zout=kmIs(e,"zoomOut");if(zin||zout){e.preventDefault();camZoom((zin?1:-1)*inv>0?1.15:1/1.15)}});
+document.addEventListener("keyup",e=>{for(const d of [...CAMK])if(kmRel(e,d))CAMK.delete(d);camFast=e.shiftKey});
 addEventListener("blur",()=>CAMK.clear());
 /* the Menu: Large Map Controls */
 {const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu");if(!m||m.querySelector("#mCam"))return;const anchor=m.querySelector("#mParts")||m.querySelector(".mgrid");if(!anchor)return;
   const on=isLarge(),c=(id,t,v)=>`<label class="farow"><span class="fal"><b>${t}</b></span><input type="checkbox" id="${id}" ${v?"checked":""} ${on?"":"disabled"}></label>`;
   anchor.insertAdjacentHTML("afterend",`<details id="mCam" class="sub${on?"":" faded"}"><summary>Large Map Controls${on?"":" <small>(large maps only)</small>"}</summary>
-<p class="dim">The mouse wheel scrolls the page unless zooming with it is on; drag an empty spot of the field to move it; WASD moves it, two at once for a diagonal (Shift: faster); E zooms in and Q out, always around the middle of the screen.</p><div class="facats">
+<p class="dim">The mouse wheel scrolls the page unless zooming with it is on; drag an empty spot of the field to move it; ${esc(kmShow4(["camUp","camLeft","camDown","camRight"]))} moves it, two at once for a diagonal (Shift: faster); ${esc(kmShow("zoomIn"))} zooms in and ${esc(kmShow("zoomOut"))} out, always around the middle of the screen.</p><div class="facats">
 ${c("mCamDrag","Drag an empty spot to move the field",PREF.camDrag!==false)}${c("mCamWheel","Zoom with the mouse wheel",PREF.camWheel===true)}${c("mCamInvW","Reverse the wheel's zoom",!!PREF.camInvWheel)}${c("mCamInvK","Reverse the keys' zoom",!!PREF.camInvKeys)}</div>
 <label class="f mslide">Moving speed <input type="range" id="mCamSpd" min="40" max="300" step="10" value="${Math.round(camSpeed()*100)}" ${on?"":"disabled"}><b id="mCamSpdV">${Math.round(camSpeed()*100)}%</b></label></details>`);
   const set=(k,v)=>{PREF[k]=v;savePrefs()};
@@ -12195,10 +12195,10 @@ const rbOpen=code=>rbWin(code);
 const rbWinOpen=()=>{const w=$("#rbwin");return !!w&&!w.hidden};
 const rbAbove=()=>{const p=$("#pop");return !!p&&!p.hidden&&p.getClientRects().length>0&&p.innerHTML.trim()!==""};   // a popup over the rule book takes the keys
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&rbWinOpen()&&!rbAbove()){rbClose();e.stopPropagation();e.preventDefault()}},true);
-window.addEventListener("keydown",e=>{if(!rbWinOpen()||e.code!=="Space"&&e.key!==" ")return;if(e.ctrlKey||e.metaKey||e.altKey)return;
+window.addEventListener("keydown",e=>{if(!rbWinOpen())return;const nx=kmIs(e,"rbNext");if(!nx&&!kmIs(e,"rbPrev"))return;   // v78d: Space and Shift+Space, as bound
   const a=document.activeElement;if(a&&a.matches&&(a.matches("input[type=search],input[type=text],textarea,select")||a.matches("input[type=checkbox],input[type=radio],summary")&&$("#rbwin").contains(a)))return;   // typing a space; ticking an option or opening a fold in the book
   if(rbAbove())return;   // a popup over the book: Space is its own
-  e.preventDefault();e.stopImmediatePropagation();rbStep("win",e.shiftKey?-1:1)},true);
+  e.preventDefault();e.stopImmediatePropagation();rbStep("win",nx?1:-1)},true);
 /* the folds: in Help below Further explanations, and at the bottom of the page; each an option */
 function rbMount(box,pl){if(!box)return;rbWire(box,pl);if(RB){rbPaint(pl);return}box.innerHTML='<p class="dim">Opening the rule book…</p>';
   rbLoad().then(()=>rbPaint(pl)).catch(()=>{box.innerHTML='<p class="dim">The rule book could not be opened (no connection?). <a class="link" href="ethers-crossroads-rules.html" target="_blank" rel="noopener">All Rules</a></p>'})}
@@ -12639,9 +12639,9 @@ const fsTouchOnly=()=>typeof matchMedia!=="undefined"&&!matchMedia("(any-pointer
 function fsControls(){const o=fsOv("fsctl"),touch=PREF.fsCtlTab?PREF.fsCtlTab==="touch":fsTouchOnly(),ck=(id,on,t,s)=>`<label class="farow"><span class="fal"><b>${t}</b>${s?`<small>${s}</small>`:""}</span><input type="checkbox" id="${id}" ${on?"checked":""}></label>`;
   const L=touch?[["Move the field","swipe it with one finger"],["Zoom","pinch with two fingers"],["Pick a stack or a card","tap it; tap it again to let go"],["A class (Field Automation)","double-tap a stack or a hand card"],
       ["Spells and Selected","the named arrows on the right"],["Dice and the log","the arrow at the bottom left; its ⚙ for more"],["The sky","tap the body at the top left"],["Leave fullscreen","Menu, then Exit fullscreen"]]
-    :[["Move the field",`WASD, two at once for a diagonal (Shift: faster)${PREF.camDrag!==false?", or drag an empty spot":""}; it can go past the edges`],["Zoom",`E in, Q out${PREF.fsWheel===true?", the mouse wheel":""}, a trackpad's pinch; always around the middle of the screen`],["The turn button","Space: Ready, the next phase, End turn"],
+    :[["Move the field",`${esc(kmShow4(["camUp","camLeft","camDown","camRight"]))}, two at once for a diagonal (Shift: faster)${PREF.camDrag!==false?", or drag an empty spot":""}; it can go past the edges`],["Zoom",`${esc(kmShow("zoomIn"))} in, ${esc(kmShow("zoomOut"))} out${PREF.fsWheel===true?", the mouse wheel":""}, a trackpad's pinch; always around the middle of the screen`],["The turn button",`${esc(kmShow("turn"))}: Ready, the next phase, End turn`],
       ["Pick a stack or a card","click it"],["A class (Field Automation)","right-click a stack or a hand card"],["Compare two stacks","drag a card's corner tab onto another stack"],["Spells and Selected","the named arrows on the right"],
-      ["Dice and the log","the arrow at the bottom left; its ⚙ for more"],["The sky","hover the body at the top left"],["Leave fullscreen",`Shift+Backspace, or Menu then Exit fullscreen${document.fullscreenElement?"; Esc also leaves the browser's fullscreen (the browser's own key)":"; Esc opens the Menu"}`],["Every key","the pause menu's Keyboard controls"]];
+      ["Dice and the log","the arrow at the bottom left; its ⚙ for more"],["The sky","hover the body at the top left"],["Leave fullscreen",`${esc(kmShow("fullscreen"))}, or Menu then Exit fullscreen${document.fullscreenElement?"; Esc also leaves the browser's fullscreen (the browser's own key)":"; Esc opens the Menu"}`],["Every key","the pause menu's Keyboard controls"]];
   o.innerHTML=`<div class="ovbox fscbox" role="dialog" aria-modal="true" aria-labelledby="fsch"><button type="button" class="xclose" id="fscX" aria-label="Close">×</button><h2 id="fsch">Controls</h2>
 <div class="fsctabs" role="tablist"><button type="button" class="stab${touch?"":" on"}" role="tab" aria-selected="${!touch}" data-fsct="mouse">Keyboard and mouse</button><button type="button" class="stab${touch?" on":""}" role="tab" aria-selected="${touch}" data-fsct="touch">Touch</button></div>
 <dl class="fsckeys">${L.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl>
@@ -12675,7 +12675,7 @@ function fsPause(){if(!G)return;if(!G.opts.online&&!G.paused){G.paused=true;FS.p
 function fsHelp(){const o=fsOv("fshelp");
   o.innerHTML=`<div class="ovbox wide fshbox" role="dialog" aria-modal="true" aria-labelledby="fshh"><button type="button" class="xclose" id="fshX" aria-label="Close">×</button><h2 id="fshh">Help</h2>
 <details class="cinfo fsmk" open><summary>What you must know</summary><p class="mktldr"><b>TLDR</b> ${MK_TLDR}</p><div class="mkbody">${MK_BODY}</div><details class="sub"><summary>Tell me more</summary>${MK_MORE.replace(/<h3>[^<]*<\/h3>/,"")}</details></details>
-<details class="cinfo"><summary>Fullscreen controls</summary><ul class="mklist"><li><b>Zoom:</b> the mouse wheel, a trackpad's pinch, or two fingers.</li><li><b>Move the field:</b> drag an empty spot, swipe with one finger, or WASD (E zooms in, Q out).</li>
+<details class="cinfo"><summary>Fullscreen controls</summary><ul class="mklist"><li><b>Zoom:</b> the mouse wheel, a trackpad's pinch, or two fingers.</li><li><b>Move the field:</b> drag an empty spot, swipe with one finger, or ${esc(kmShow4(["camUp","camLeft","camDown","camRight"]))} (${esc(kmShow("zoomIn"))} zooms in, ${esc(kmShow("zoomOut"))} out).</li>
 <li><b>Spells and Selected:</b> the named arrows on the right open their drawers; they stay open until you close them.</li><li><b>Dice and the log:</b> the arrow under your hand; its ⚙ chooses the last roll, the log's latest line, or both.</li>
 <li><b>The sky:</b> hover or tap the body at the top left for its cycle.</li><li><b>Field Automation:</b> Auto field and its square in the turn bar at the top.</li><li><b>Leave:</b> Menu (top right), Exit fullscreen${document.fullscreenEnabled?", or Esc":""}.</li></ul></details>
 <div id="fshslot"></div></div>`;
@@ -12702,7 +12702,7 @@ document.addEventListener("keydown",e=>{if(!fsOn()||e.key!=="Escape")return;
 if(window.__EC)Object.assign(window.__EC,{fsEnter:()=>fsEnter(),fsExit:()=>fsExit(),fsFit:()=>fsFit(),fsOn:()=>fsOn(),fsPause:()=>fsPause()});
 
 /* v74a: Space is the turn button (Ready, the next phase, End turn) when nothing else is open and you aren't typing */
-document.addEventListener("keydown",e=>{if(e.code!=="Space"&&e.key!==" ")return;if(e.ctrlKey||e.metaKey||e.altKey||e.shiftKey||!G||G.over)return;
+document.addEventListener("keydown",e=>{if(!kmIs(e,"turn")||!G||G.over)return;   // v78d: Space, as bound
   const a=document.activeElement;if(a&&(a.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))return;
   if(a&&a!==document.body&&a.tagName==="BUTTON"&&!a.closest("#board,#hand"))return;   // a focused button keeps its own Space
   if([...document.querySelectorAll("#ov,#menu,#facfg,#fspause,#fshelp,#fsquote,#fsctl,#pop,#histpop,#rbwin,#clstgwin,#leavebox,.faov")].some(x=>!x.hidden&&x.getClientRects().length&&x.innerHTML.trim()))return;
@@ -13507,7 +13507,291 @@ ${F.length?`<ul class="sslist">${F.map(row).join("")}</ul>`:`<p class="dim">No t
 
 if(window.__EC)Object.assign(window.__EC,{spawnShared:(a,b)=>spawnShared(a,b),ssAsk:(...a)=>ssAsk(...a),ssAnswer:(...a)=>ssAnswer(...a),ssBlock:(...a)=>ssBlock(...a),ssRevoke:(...a)=>ssRevoke(...a),canSpawnW:(p,r,c)=>canSpawn(p,r,c)});
 
+/* ---------- v78d: the keys, and rebinding them ----------
+   Every key the game answers to is an action with up to two bindings. A binding is one key, or up to four pressed together
+   (Shift+X+.: Shift and X held, then the period); Ctrl or Shift alone (pressed and let go with nothing else) is one too.
+   The actions sit in five groups, by where they work:
+   - Everywhere; The table (the shortcuts, the camera and the field); Windows (while one is open); the Spells (the bar and
+     the list, while open) and the Hand (while picking from it). The Spells and the Hand take their keys first while they
+     are open, and Windows while a window is open.
+   - In a group a key does one thing, and a key used Everywhere is used nowhere else: binding a key that is taken asks
+     whether to move it. Esc always closes too, and is never bound.
+   Presets (the Controls tab of the settings): Default and Alternative Controls are fixed; a change to either is an unsaved
+   set, kept with Save as. Your own presets, and the ones others sent you, can be changed (saved at once while Auto-save is
+   on, as it is at first), deleted, and sent to another person at the table, who finds them behind a "!" in the Menu. */
+
+/* [id, group, heading in its group, what it does, the default bindings, 1: Shift may be held too (it does more)] */
+const KM_ACTS=[
+  ["close","any","","Close what is open (Esc always does too)",["X"]],
+  ["keys","any","","Every key, in a window",["O"]],
+  ["rulebook","any","","The Rule book",["\\"]],
+  ["music","any","","The music on and off",["Shift+X+."]],
+  ["turn","table","Shortcuts","The turn button: Ready, the next phase, End turn",["Space"]],
+  ["roll","table","Shortcuts","Roll the draw",["R"]],
+  ["spellbar","table","Shortcuts","The spell bar at the bottom",["F"]],
+  ["spelllist","table","Shortcuts","The spell list",["Shift+F"]],
+  ["hand","table","Shortcuts","Pick from the hand",["G"]],
+  ["sacrifice","table","Shortcuts","Sacrifice the hand card you picked",["Backspace","Delete"]],
+  ["bank","table","Shortcuts","The Bank",["B"]],
+  ["ether","table","Shortcuts","The Ether",["Shift+B"]],
+  ["dip","table","Shortcuts","Diplomacy",["Ctrl+B"]],
+  ["faset","table","Shortcuts","Field Automation's settings",["Shift+Space"]],
+  ["log","table","Shortcuts","The log",["L"]],
+  ["dice","table","Shortcuts","The dice",["Shift+L"]],
+  ["fullscreen","table","Shortcuts","Fullscreen on and off",["Shift+Backspace"]],
+  ["hints","table","Shortcuts","Show or hide the key letters on the buttons",["Shift+/"]],
+  ["camUp","table","Camera","Move the camera up (Shift: faster; two at once: diagonally)",["W"],1],
+  ["camLeft","table","Camera","Move the camera left",["A"],1],
+  ["camDown","table","Camera","Move the camera down",["S"],1],
+  ["camRight","table","Camera","Move the camera right",["D"],1],
+  ["zoomIn","table","Camera","Zoom in, around the middle of the screen",["E"]],
+  ["zoomOut","table","Camera","Zoom out",["Q"]],
+  ["aceBack","table","Camera","The camera to your previous Ace",["Ctrl+C"]],
+  ["aceNext","table","Camera","The camera to your next Ace",["Ctrl+V"]],
+  ["lookSel","table","Camera","The camera to what you selected",["Ctrl+1"]],
+  ["selUp","table","The field","The selector up (two at once: diagonally)",["Up"]],
+  ["selLeft","table","The field","The selector left",["Left"]],
+  ["selDown","table","The field","The selector down",["Down"]],
+  ["selRight","table","The field","The selector right",["Right"]],
+  ["rowNext","table","The field","Along the row to your next card",["Tab"]],
+  ["rowPrev","table","The field","Along the row to your previous card",["Shift+Tab"]],
+  ["rowDown","table","The field","Down to the next row with your cards",["Ctrl"]],
+  ["rowUp","table","The field","Up to the previous row with your cards",["Shift"]],
+  ["foeSwap","table","The field","Step through the enemy's cards instead (again: yours)",["`"]],
+  ["foeNext","table","The field","The enemy's next card",["N"]],
+  ["foePrev","table","The field","The enemy's previous card",["Shift+N"]],
+  ["act","table","The field","On the selector: select, place, move or attack, as a click",["Enter"]],
+  ["move","table","The field","Move there (or attack) only",["M"]],
+  ["attack","table","The field","The default attack",["1"]],
+  ["aimUp","table","The field","Aim the selected stack's target up (two at once: diagonally)",["U","Alt+W"]],
+  ["aimLeft","table","The field","Aim it left",["H","Alt+A"]],
+  ["aimDown","table","The field","Aim it down",["J","Alt+S"]],
+  ["aimRight","table","The field","Aim it right",["K","Alt+D"]],
+  ["acts","table","The field","What you can do with what you selected, numbered for the number keys",["Y"]],
+  ["menu","table","The field","The right-click menu under the selector",["Shift+Enter"]],
+  ["plNext","table","The field","The next player's box (C and V read it, Enter its history)",["P"]],
+  ["plPrev","table","The field","The previous player's box",["Shift+P"]],
+  ["info","table","The field","What stands under the selector",["I"]],
+  ["winUp","win","","The nearest item up (in a slider, a list or a number: up)",["W"],1],
+  ["winLeft","win","","The nearest item left (there: down)",["A"],1],
+  ["winDown","win","","The nearest item down (there: down)",["S"],1],
+  ["winRight","win","","The nearest item right (there: up)",["D"],1],
+  ["winPrev","win","","The item before",["C"],1],
+  ["winNext","win","","The item after",["V"],1],
+  ["winUse","win","","Use it; a slider, a list, a number or a text field: change it, and again to keep it",["Enter"]],
+  ["tabNext","win","","The window's next tab",["Tab"]],
+  ["tabPrev","win","","The window's previous tab",["Shift+Tab"]],
+  ["secNext","win","","The next section of a long window",["Ctrl"]],
+  ["secPrev","win","","The previous section",["Shift"]],
+  ["winInfo","win","","What the item does",["I"]],
+  ["rbNext","win","","In the Rule book: the next rule",["Space"]],
+  ["rbPrev","win","","In the Rule book: the rule before",["Shift+Space"]],
+  ["spPrev","spell","","The school before (the bar); the spell before (the list)",["C"]],
+  ["spNext","spell","","The school after (the bar); the spell after (the list)",["V"]],
+  ["spFirst","spell","","The first school",["Shift+C"]],
+  ["spLast","spell","","The last: the piles",["Shift+V"]],
+  ["spSchoolNext","spell","","The next school",["Tab","Ctrl"]],
+  ["spSchoolPrev","spell","","The previous school",["Shift+Tab","Shift"]],
+  ["spCast","spell","","Cast the spell (the list)",["Enter"]],
+  ["hPrev","hand","","The card before",["C"]],
+  ["hNext","hand","","The card after",["V"]],
+  ["hPick","hand","","Pick the card (again: let it go)",["Enter"]],
+  ["hInfo","hand","","The card's info",["I"]]];
+const KM_GROUPS=[["any","Everywhere"],["table","The table"],["win","Windows"],["spell","The spells: the bar and the list"],["hand","The hand"]];
+/* tap: Ctrl or Shift alone may be bound (the actions that step through rows, sections and schools) */
+const KM_ACT={};for(const [id,g,sub,name,def,sh] of KM_ACTS)KM_ACT[id]={id,g,sub,name,def,shift:!!sh,tap:def.some(s=>s==="Ctrl"||s==="Shift")};
+const kmGroupName=g=>(KM_GROUPS.find(x=>x[0]===g)||["",""])[1];
+
+/* ---------- keys and their names ---------- */
+const KM_MODS=["Ctrl","Alt","Shift","Meta"];
+const KM_MODKEY={Control:"Ctrl",Shift:"Shift",Alt:"Alt",Meta:"Meta"};
+const KM_CODE={Space:"Space",Enter:"Enter",NumpadEnter:"Enter",Tab:"Tab",Escape:"Esc",Backspace:"Backspace",Delete:"Delete",Insert:"Insert",Home:"Home",End:"End",
+  PageUp:"PageUp",PageDown:"PageDown",ArrowUp:"Up",ArrowDown:"Down",ArrowLeft:"Left",ArrowRight:"Right",Backquote:"`",Backslash:"\\",IntlBackslash:"\\",
+  Slash:"/",Period:".",Comma:",",Semicolon:";",Quote:"'",BracketLeft:"[",BracketRight:"]",Minus:"-",Equal:"=",
+  NumpadAdd:"NumPlus",NumpadSubtract:"Num-",NumpadMultiply:"Num*",NumpadDivide:"Num/",NumpadDecimal:"Num."};
+/* by where the key sits (the code), so Shift doesn't change its name: Shift+/ stays "/" */
+function kmName(code,key){if(KM_MODKEY[key])return KM_MODKEY[key];
+  if(/^Key[A-Z]$/.test(code))return code.slice(3);if(/^Digit\d$/.test(code))return code.slice(5);if(/^Numpad\d$/.test(code))return "Num"+code.slice(6);
+  if(/^F\d\d?$/.test(code))return code;if(KM_CODE[code])return KM_CODE[code];
+  return key&&key.length===1?key.toUpperCase():key||code||"?"}
+const KM_PRETTY={Up:"↑",Down:"↓",Left:"←",Right:"→",Backspace:"Backspace",Delete:"Delete",NumPlus:"Num+"};
+/* a binding: its modifiers, the keys held, and the key that does it (last) */
+const kmParsed=new Map();
+function kmParse(s){let c=kmParsed.get(s);if(c)return c;const P=String(s||"").split("+").filter(Boolean);
+  c={ctrl:false,alt:false,shift:false,meta:false,held:[],key:null,tap:null};
+  for(const p of P){if(p==="Ctrl")c.ctrl=true;else if(p==="Alt")c.alt=true;else if(p==="Shift")c.shift=true;else if(p==="Meta")c.meta=true;else c.held.push(p)}
+  c.key=c.held.pop()||null;if(!c.key&&P.length===1&&(P[0]==="Ctrl"||P[0]==="Shift"))c.tap=P[0];
+  kmParsed.set(s,c);return c}
+/* how it is shown: "Shift+B", "Ctrl (alone)", "↑" */
+function kmPretty(s){if(!s)return "";const c=kmParse(s);if(c.tap)return c.tap+" (alone)";return String(s).split("+").map(p=>KM_PRETTY[p]||p).join("+")}
+const kmShort=s=>kmPretty(s).replace(/^Shift\+/,"⇧").replace(/ \(alone\)$/,"");
+/* the bindings in use */
+const kmState=()=>{const S=PREF.km&&typeof PREF.km==="object"?PREF.km:(PREF.km={});
+  if(typeof S.preset!=="string")S.preset="default";if(!S.map||typeof S.map!=="object")S.map={};if(!Array.isArray(S.mine))S.mine=[];if(S.auto==null)S.auto=true;return S};
+const kmBinds=id=>{const m=kmState().map[id];return Array.isArray(m)?m:KM_ACT[id]?KM_ACT[id].def:[]};
+/* the first binding as words (or all of them, "X or Esc") */
+const kmShow=(id,all)=>{const B=kmBinds(id).filter(Boolean);return B.length?(all?B.map(kmPretty).join(" or "):kmPretty(B[0])):"(no key)"};
+/* four directions in one: "WASD" when they are four letters, else each */
+const kmShow4=ids=>{const B=ids.map(id=>kmBinds(id).filter(Boolean)[0]||"");return B.every(b=>/^[A-Z]$/.test(b))?B.join(""):B.map(kmPretty).join(" ")};
+
+/* ---------- the keys held, and Ctrl or Shift pressed alone ---------- */
+const KM={held:new Map(),alone:null,top:new WeakMap()};
+addEventListener("keydown",e=>{const n=kmName(e.code,e.key);KM.held.set(e.code,n);KM.alone=(n==="Ctrl"||n==="Shift")&&!e.repeat?n:e.repeat&&KM.alone===n?n:null},true);
+addEventListener("keyup",e=>{KM.held.delete(e.code)},true);
+addEventListener("keyup",()=>{KM.alone=null});   // after every handler has read it
+addEventListener("pointerdown",()=>{KM.alone=null},true);
+addEventListener("blur",()=>{KM.held.clear();KM.alone=null});
+const kmHeld=name=>{for(const n of KM.held.values())if(n===name)return true;return false};
+
+/* ---------- does a key press do an action? ---------- */
+/* how well one binding fits the press: -1 not at all; more keys held count more, and Shift as written beats Shift allowed */
+function kmFit(e,s,act){const c=kmParse(s);if(!c.key||c.key!==kmName(e.code,e.key))return -1;
+  if(c.ctrl!==e.ctrlKey||c.alt!==e.altKey||c.meta!==e.metaKey)return -1;
+  let q=c.held.length*2;if(c.shift===e.shiftKey)q+=1;else if(!(act.shift&&!c.shift))return -1;
+  return c.held.every(kmHeld)?q:-1}
+const kmBest=(e,id)=>{const a=KM_ACT[id];let q=-1;if(a)for(const s of kmBinds(id))if(s)q=Math.max(q,kmFit(e,s,a));return q};
+/* the best fit among the actions of a group and Everywhere, once a press */
+function kmTop(e,g){let T=KM.top.get(e);if(!T){T={};KM.top.set(e,T)}if(T[g]!=null)return T[g];let q=-1;
+  for(const a of KM_ACTS)if(a[1]===g||a[1]==="any")q=Math.max(q,kmBest(e,a[0]));return T[g]=q}
+function kmIs(e,id){const a=KM_ACT[id];if(!a)return false;const q=kmBest(e,id);return q>=0&&q===kmTop(e,a.g)}
+/* any action of a group */
+const kmIn=(e,g)=>KM_ACTS.some(a=>a[1]===g&&kmIs(e,a[0]));
+/* on letting go: Ctrl or Shift pressed alone, bound to the action */
+function kmTap(e,id){const m=KM.alone;if(!m||kmName(e.code,e.key)!==m)return false;return kmBinds(id).some(s=>s&&kmParse(s).tap===m)}
+/* on letting go: the key that does the action (for the held ones: the camera) */
+const kmRel=(e,id)=>{const n=kmName(e.code,e.key);return kmBinds(id).some(s=>s&&kmParse(s).key===n)};
+/* the actions among these whose binding is held down right now, modifiers and all (two arrows at once: a diagonal) */
+const kmHeldOf=ids=>ids.filter(id=>kmBinds(id).some(s=>{const c=s&&kmParse(s);if(!c||!c.key||!kmHeld(c.key)||!c.held.every(kmHeld))return false;
+  return c.ctrl===kmHeld("Ctrl")&&c.alt===kmHeld("Alt")&&c.meta===kmHeld("Meta")&&(c.shift===kmHeld("Shift")||KM_ACT[id].shift&&!c.shift)}));
+const kmModOnly=e=>!!KM_MODKEY[e.key]||e.key==="CapsLock";
+
+/* ---------- presets ---------- */
+const KM_ALT={camUp:["Up"],camLeft:["Left"],camDown:["Down"],camRight:["Right"],zoomIn:["E","PageUp"],zoomOut:["Q","PageDown"],
+  selUp:["W"],selLeft:["A"],selDown:["S"],selRight:["D"],aimUp:["Shift+W","U"],aimLeft:["Shift+A","H"],aimDown:["Shift+S","J"],aimRight:["Shift+D","K"]};
+const KM_LOCKED=[{id:"default",name:"Default",map:{},locked:true},{id:"alt",name:"Alternative Controls",map:KM_ALT,locked:true}];
+const kmPresets=()=>[...KM_LOCKED,...kmState().mine];
+const kmPreset=id=>kmPresets().find(p=>p.id===id)||null;
+const kmCopy=m=>JSON.parse(JSON.stringify(m||{}));
+const kmNorm=(m,id)=>JSON.stringify([...((m||{})[id]||KM_ACT[id].def),"",""].slice(0,2));
+const kmSame=(a,b)=>KM_ACTS.every(([id])=>kmNorm(a,id)===kmNorm(b,id));
+/* what comes from another person is only data: known actions, at most two bindings of at most four known-looking keys */
+function kmClean(m){const out={};if(!m||typeof m!=="object")return out;
+  for(const id in m){if(!KM_ACT[id]||!Array.isArray(m[id]))continue;
+    const B=m[id].slice(0,2).map(s=>typeof s==="string"&&s.length<=40&&s.split("+").length<=4&&/^[\w`\\\/.,;'\[\]=*+-]*$/.test(s)&&!/(^|\+)Esc$/.test(s)&&(KM_ACT[id].tap||!kmParse(s).tap)?s:"");
+    while(B.length<2)B.push("");out[id]=B}
+  return out}
+function kmLoad(id){const P=kmPreset(id)||KM_LOCKED[0],S=kmState();S.preset=P.id;S.map=kmCopy(P.map);S.dirty=false;savePrefs();kmPaint();kbPaint()}
+/* after a change: saved at once into your own preset with Auto-save; otherwise (or in a fixed one) unsaved */
+function kmChanged(){const S=kmState(),P=kmPreset(S.preset);
+  if(P&&!P.locked&&S.auto){P.map=kmCopy(S.map);S.dirty=false}else S.dirty=!kmSame(S.map,P?P.map:{});
+  savePrefs();kmPaint();kbPaint()}
+function kmPut(id,i,s){const S=kmState(),B=[...kmBinds(id)];while(B.length<2)B.push("");B[i]=s||"";
+  if(B[0]===""&&B[1]){B[0]=B[1];B[1]=""}   // the first column is never empty while the second is not
+  if(JSON.stringify(B)===kmNorm(null,id))delete S.map[id];else S.map[id]=B}
+/* two bindings meet when one press would do both */
+function kmMeet(a,b,shA,shB){const x=kmParse(a),y=kmParse(b);if(x.tap||y.tap)return x.tap===y.tap&&!!x.tap;
+  if(x.key!==y.key||x.ctrl!==y.ctrl||x.alt!==y.alt||x.meta!==y.meta||x.held.join("+")!==y.held.join("+"))return false;
+  return x.shift===y.shift||!x.shift&&shA||!y.shift&&shB}
+/* the binding a new one would take from: same group, or Everywhere against any other */
+function kmClash(id,s){const A=KM_ACT[id];for(const B of KM_ACTS){const b=KM_ACT[B[0]];if(b.id===id||!(b.g===A.g||b.g==="any"||A.g==="any"))continue;
+    const L=kmBinds(b.id);for(let j=0;j<L.length;j++)if(L[j]&&kmMeet(s,L[j],A.shift,b.shift))return {id:b.id,i:j}}
+  return null}
+/* a binding chosen: one that is taken asks first */
+function kmSet(id,i,s){if(s){if(kmBinds(id).some((x,j)=>j!==i&&x===s)){kmPaint();return}
+    if(kmParse(s).tap&&!KM_ACT[id].tap){flash("Ctrl or Shift alone steps through rows, sections and schools only: add a key to it.");kmPaint();return}const c=kmClash(id,s);
+    if(c){kmAsk(`<b>${esc(kmPretty(s))}</b> already does “${esc(KM_ACT[c.id].name)}” (${esc(kmGroupName(KM_ACT[c.id].g))}${KM_ACT[c.id].sub?": "+esc(KM_ACT[c.id].sub):""}). Move it here?`,
+      ()=>{kmPut(c.id,c.i,"");kmPut(id,i,s);kmChanged()},()=>kmPaint());return}}
+  kmPut(id,i,s);kmChanged()}
+
+/* ---------- a question with Yes and No ---------- */
+function kmAsk(html,yes,no){let w=$("#kmq");if(!w){w=document.createElement("div");w.id="kmq";w.className="faov";document.body.appendChild(w)}
+  w.innerHTML=`<div class="ovbox kmqbox" role="alertdialog" aria-labelledby="kmqp"><p id="kmqp">${html}</p><p class="acts"><button type="button" class="btn" id="kmqY">Yes</button> <button type="button" class="btn ghost" id="kmqN">No</button></p></div>`;
+  w.hidden=false;const done=f=>{w.hidden=true;if(f)f()};$("#kmqY").onclick=()=>done(yes);$("#kmqN").onclick=()=>done(no);w.onclick=e=>{if(e.target===w)done(no)};
+  setTimeout(()=>{const b=$("#kmqY");if(b)b.focus()},0)}
+
+/* ---------- listening for a new binding ----------
+   Press the keys together (up to four) and let go; Ctrl or Shift alone is a binding too. Esc stops listening. */
+let kmCap=null;
+function kmListen(id,i){kmCap={id,i,keys:[]};kmPaint()}
+function kmCapDone(s){const c=kmCap;kmCap=null;if(c&&s)kmSet(c.id,c.i,s);else kmPaint()}
+function kmCombo(keys){const mods=KM_MODS.filter(m=>keys.includes(m)),rest=keys.filter(k=>!KM_MODS.includes(k));
+  if(!rest.length)return mods.length===1&&(mods[0]==="Ctrl"||mods[0]==="Shift")?mods[0]:null;return [...mods,...rest].join("+")}
+addEventListener("keydown",e=>{if(!kmCap)return;e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;const n=kmName(e.code,e.key);
+  if(n==="Esc"){kmCapDone(null);return}if(n==="CapsLock")return;if(kmCap.keys.length<4&&!kmCap.keys.includes(n))kmCap.keys.push(n);kmPaint()},true);
+addEventListener("keyup",e=>{if(!kmCap)return;e.preventDefault();e.stopImmediatePropagation();if(!kmCap.keys.length)return;const s=kmCombo(kmCap.keys);
+  if(!s){kmCap.keys=[];flash("A binding needs a key besides Ctrl, Alt and Shift (Ctrl or Shift alone is one too).");kmPaint();return}kmCapDone(s)},true);
+addEventListener("pointerdown",e=>{if(kmCap&&!(e.target.closest&&e.target.closest(".kmb.kmlisten")))kmCapDone(null)},true);
+
+/* ---------- sending a preset to another person at the table ---------- */
+function kmSend(from,to,name,map){if(!G||!G.p[from]||!G.p[to]||G.p[to].cpu||isNPC(to)||from===to||NET.ctx!=null&&NET.ctx!==from)return false;
+  const P=G.p[to];P.kmInbox=(P.kmInbox||[]).slice(-4);P.kmInbox.push({from,name:String(name||"Keys").replace(/\s+/g," ").trim().slice(0,40)||"Keys",map:kmClean(map)});
+  log(`${plName(from)} sends ${plName(to)} their key bindings, “${esc(P.kmInbox[P.kmInbox.length-1].name)}”.`);
+  notify(to,`${esc(G.p[from].name)} sent you key bindings: the Menu's Controls tab installs them.`);render();return true}
+function kmTake(pl,i){if(!G||!G.p[pl]||NET.ctx!=null&&NET.ctx!==pl)return false;const L=G.p[pl].kmInbox||[];if(i<0||i>=L.length)return false;L.splice(i,1);render();return true}
+for(const [name,get,set] of [["kmSend",()=>kmSend,f=>kmSend=f],["kmTake",()=>kmTake,f=>kmTake=f]]){
+  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+const kmInbox=()=>G&&G.p[view()]&&G.p[view()].kmInbox||[];
+function kmInstall(i){const it=kmInbox()[i];if(!it)return;const S=kmState(),names=kmPresets().map(p=>p.name);let name=it.name;if(names.includes(name))name=copyName(name,names);
+  S.mine.push({id:"k"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name,map:kmClean(it.map),from:G.p[it.from]?G.p[it.from].name:""});
+  kmTake(view(),i);savePrefs();kmLoad(S.mine[S.mine.length-1].id);flash(`Installed “${name}”: it is in use now.`)}
+
+/* ---------- the panel in the settings' Controls tab ---------- */
+let kmUI={box:null,mode:null,open:{}};
+function kmPanelHTML(){const S=kmState(),P=kmPreset(S.preset)||KM_LOCKED[0],own=!P.locked,V=G?view():null,inbox=kmInbox(),m=kmUI.mode;
+  const people=G&&V!=null?G.p.filter(Q=>Q.i!==V&&!Q.cpu&&!isNPC(Q.i)&&!Q.out):[];
+  const opt=p=>`<option value="${p.id}" ${p.id===P.id?"selected":""}>${esc(p.name)}${p.locked?" (fixed)":p.from?` (from ${esc(p.from)})`:""}${p.id===P.id&&S.dirty?" · unsaved changes":""}</option>`;
+  let form="";
+  if(m==="saveas")form=`<p class="kmform"><input type="text" class="kmname" maxlength="40" aria-label="The new preset's name" value="${esc(`My keys ${S.mine.length+1}`)}"> <button type="button" class="btn sm" data-kmdo="saveasok">Save</button> <button type="button" class="btn ghost sm" data-kmdo="cancel">Cancel</button></p>`;
+  else if(m==="send")form=`<p class="kmform">Send “${esc(P.name)}” to ${people.map(Q=>`<button type="button" class="btn ghost sm" data-kmto="${Q.i}">${esc(Q.name)}</button>`).join(" ")} <button type="button" class="btn ghost sm" data-kmdo="cancel">Cancel</button></p>`;
+  const row=id=>{const a=KM_ACT[id],B=kmBinds(id);
+    const cell=i=>{const s=B[i]||"",on=kmCap&&kmCap.id===id&&kmCap.i===i;
+      return `<span class="kmcell"><button type="button" class="kmb${on?" kmlisten":""}${s?"":" kmnone"}" data-kmb="${id}|${i}" aria-label="${esc(a.name)}: binding ${i+1}${s?", "+esc(kmPretty(s)):", none"}">${on?(kmCap.keys.length?esc(kmCombo(kmCap.keys)||kmCap.keys.join("+")):"Press the keys…"):s?esc(kmPretty(s)):"—"}</button>${s&&!on?`<button type="button" class="kmx" data-kmx="${id}|${i}" aria-label="Clear it">×</button>`:""}</span>`};
+    return `<div class="kmrow${kmNorm(null,id)!==kmNorm(S.map,id)?" kmmoved":""}"><span class="kmwhat">${esc(a.name)}</span>${cell(0)}${cell(1)}</div>`};
+  const group=([g,gname])=>{const acts=KM_ACTS.filter(a=>a[1]===g);let sub=null,out="";
+    for(const a of acts){if(a[2]&&a[2]!==sub){sub=a[2];out+=`<h4 class="kmsub">${esc(sub)}</h4>`}out+=row(a[0])}
+    return `<details class="sub kmgrp" data-kmg="${g}" ${kmUI.open[g]?"open":""}><summary>${esc(gname)}</summary>${out}</details>`};
+  return `<h3 class="sethead">Key bindings</h3>
+${inbox.map((it,i)=>`<p class="kminbox"><i class="bang">!</i> ${esc(G.p[it.from]?G.p[it.from].name:"Someone")} sent you key bindings, “${esc(it.name)}”. <button type="button" class="btn sm" data-kmin="${i}">Install</button> <button type="button" class="btn ghost sm" data-kmno="${i}">No thanks</button></p>`).join("")}
+<div class="kmbar"><label class="f">Preset <select id="kmPreset">${kmPresets().map(opt).join("")}</select></label>
+<span class="kmacts"><button type="button" class="btn ghost sm" data-kmdo="save" ${own&&S.dirty?"":"disabled"}>Save</button><button type="button" class="btn ghost sm" data-kmdo="saveas">Save as…</button><button type="button" class="btn ghost sm" data-kmdo="del" ${own?"":"disabled"}>Delete</button>${people.length?`<button type="button" class="btn ghost sm" data-kmdo="send" ${own?"":"disabled"}>Send…</button>`:""}<button type="button" class="btn ghost sm" data-kmdo="def" ${P.id==="default"&&!S.dirty?"disabled":""}>Switch to default</button></span></div>
+<label class="farow kmauto"><span class="fal"><b>Auto-save</b><small>Changes to your own presets are saved at once. Default and Alternative Controls never change: a change to them is kept with Save as.</small></span><input type="checkbox" id="kmAuto" ${S.auto?"checked":""}></label>
+${form}
+<p class="dim">Click a binding (or Enter on it), then press the keys together, up to four, and let go; Ctrl or Shift alone is a binding too, and Esc stops. A key does one thing in its group; a taken one asks whether to move it.</p>
+${KM_GROUPS.map(group).join("")}`}
+function kmPaint(){const box=kmUI.box;if(!box||!box.isConnected)return;const y=box.closest(".ovbox")?box.closest(".ovbox").scrollTop:0;box.innerHTML=kmPanelHTML();kmWire(box);
+  const ob=box.closest(".ovbox");if(ob)ob.scrollTop=y;const cap=kmCap&&box.querySelector(".kmb.kmlisten");if(cap)cap.focus()}
+function kmMount(box){kmUI.box=box;kmUI.mode=null;box.innerHTML=kmPanelHTML();kmWire(box)}   // the pane isn't on the page yet
+function kmWire(box){const S=kmState(),P=kmPreset(S.preset)||KM_LOCKED[0],leave=go=>{if(S.dirty)kmAsk("Your changes to these keys aren't saved. Leave them?",go,()=>kmPaint());else go()};
+  box.querySelectorAll("details.kmgrp").forEach(d=>d.addEventListener("toggle",()=>{kmUI.open[d.dataset.kmg]=d.open}));
+  box.querySelectorAll("[data-kmb]").forEach(b=>b.onclick=()=>{const [id,i]=b.dataset.kmb.split("|");if(kmCap&&kmCap.id===id&&kmCap.i===+i)return;kmListen(id,+i)});
+  box.querySelectorAll("[data-kmx]").forEach(b=>b.onclick=()=>{const [id,i]=b.dataset.kmx.split("|");kmPut(id,+i,"");kmChanged()});
+  const sel=box.querySelector("#kmPreset");if(sel)sel.onchange=()=>{const id=sel.value;leave(()=>kmLoad(id))};
+  const au=box.querySelector("#kmAuto");if(au)au.onchange=()=>{S.auto=au.checked;if(S.auto&&!P.locked&&S.dirty){P.map=kmCopy(S.map);S.dirty=false}savePrefs();kmPaint()};
+  box.querySelectorAll("[data-kmdo]").forEach(b=>b.onclick=()=>{const d=b.dataset.kmdo;
+    if(d==="save"&&!P.locked){P.map=kmCopy(S.map);S.dirty=false;savePrefs();kmPaint();flash(`Saved “${P.name}”.`)}
+    else if(d==="saveas"){kmUI.mode="saveas";kmPaint();const t=box.querySelector(".kmname");if(t){t.focus();t.select()}}
+    else if(d==="saveasok"){const t=box.querySelector(".kmname"),name=(t&&t.value||"").replace(/\s+/g," ").trim().slice(0,40);if(!name){flash("Give it a name.");return}
+      const names=kmPresets().map(p=>p.name),id="k"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+      S.mine.push({id,name:names.includes(name)?copyName(name,names):name,map:kmCopy(S.map)});S.preset=id;S.dirty=false;kmUI.mode=null;savePrefs();kmPaint();flash(`Saved as “${S.mine[S.mine.length-1].name}”.`)}
+    else if(d==="del"&&!P.locked)kmAsk(`Delete the preset “${esc(P.name)}”?`,()=>{S.mine=S.mine.filter(p=>p.id!==P.id);kmLoad("default")},()=>kmPaint());
+    else if(d==="send"){kmUI.mode="send";kmPaint()}
+    else if(d==="def")leave(()=>kmLoad("default"));
+    else if(d==="cancel"){kmUI.mode=null;kmPaint()}});
+  box.querySelectorAll("[data-kmto]").forEach(b=>b.onclick=()=>{if(!G)return;kmSend(view(),+b.dataset.kmto,P.name,S.map);kmUI.mode=null;kmPaint();flash(`Sent “${P.name}” to ${G.p[+b.dataset.kmto].name}.`)});
+  box.querySelectorAll("[data-kmin]").forEach(b=>b.onclick=()=>kmInstall(+b.dataset.kmin));
+  box.querySelectorAll("[data-kmno]").forEach(b=>b.onclick=()=>{kmTake(view(),+b.dataset.kmno);setTimeout(kmPaint,0)});
+  const t=box.querySelector(".kmname");if(t)t.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();const ok=box.querySelector('[data-kmdo="saveasok"]');if(ok)ok.click()}}}
+/* the "!" for key bindings sent to you: on the Menu, the pause button in fullscreen, and the Controls tab */
+function kmBang(){const n=G?kmInbox().length:0;
+  for(const el of document.querySelectorAll("#menubtn,#fspauseb,#menu .settabs .stab[data-st='ctl']")){let b=el.querySelector(":scope>.kmbang");
+    if(n&&!b){b=document.createElement("i");b.className="bang kmbang";b.textContent="!";el.appendChild(b)}else if(!n&&b)b.remove()}
+  if(kmUI.box&&kmUI.box.isConnected&&!kmCap&&kmUI.box.querySelectorAll(".kminbox").length!==n)kmPaint()}
+{const _r=render;render=function(){rSafe(_r,this,arguments);kmBang()}}
+
+if(window.__EC)Object.assign(window.__EC,{KM,kmBinds:id=>kmBinds(id),kmLoad:id=>kmLoad(id),kmSet:(...a)=>kmSet(...a),kmSend:(...a)=>kmSend(...a),kmState:()=>kmState(),kmPresets:()=>kmPresets(),kmShow:(...a)=>kmShow(...a)});
+
 /* ---------- v77b: the keyboard ----------
+   v78d: every key below is the default binding of an action (96c_keymap.js); the settings' Controls tab rebinds them.
    Shortcuts that work in fullscreen and out of it (outside it the page scrolls to what they open). Not while typing. While a
    window is open only X and Esc work (they close it: its × if it has one).
    - B the Bank · Shift+B the Ether · Ctrl+B Diplomacy · R rolls the draw · Space the turn button · Shift+Space Field
@@ -13522,7 +13806,7 @@ if(window.__EC)Object.assign(window.__EC,{spawnShared:(a,b)=>spawnShared(a,b),ss
      Enter casts, and the numbers work there too. (Tab is for tabs: the bar's schools are tabs, the list's are sections.)
      One of the two at a time; while one is open the number keys are its own. X closes it.
    - G picks from the hand: C and V move, Enter picks the card (again: lets it go), I its info. X or Esc stops. */
-const KB={mode:null,sc:0,h:0,synth:false,held:new Set(),ace:-1};
+const KB={mode:null,sc:0,h:0,synth:false,ace:-1};
 const KB_WINS="#pop,#histpop,#rbwin,.fsov,.faov,#cheatq,#clsmenu,#etherpanel,#ov,#menu,#leavebox,.drawer";
 const kbVis=el=>!el.hidden&&el.getClientRects().length>0&&el.innerHTML.trim()!=="";
 function kbTop(){let best=null,bz=-1e9;for(const el of document.querySelectorAll(KB_WINS)){if(!kbVis(el))continue;const z=+getComputedStyle(el).zIndex||0;if(z>=bz){bz=z;best=el}}return best}
@@ -13561,9 +13845,10 @@ function kbBarPaint(){let el=$("#kbbar");if(KB.mode!=="bar"||!G){if(el)el.remove
     else{const sn=b.querySelector(".sn");if(sn){const c=sn.cloneNode(true);c.querySelectorAll("small,.bolts,.chips,i").forEach(x=>x.remove());nm=c.textContent.trim();dt=[...sn.querySelectorAll("small")].map(x=>x.textContent.trim()).filter(Boolean).join(" · ")}else nm=b.textContent.trim();
       const em=b.querySelector("em");cost=em?em.textContent.trim():""}
     return `<button type="button" class="kbtile${b.classList.contains("off")?" off":""}" data-kbi="${i}"><span class="kn">${kbNum(i)}</span><span class="kt"><b>${esc(nm)}</b>${dt?`<small>${esc(dt)}</small>`:""}</span>${cost?`<em>${esc(cost)}</em>`:""}</button>`};
-  el.innerHTML=`<div class="kbtabs"><span class="kbk">C</span>${S.map((x,i)=>`<button type="button" class="kbtab${i===KB.sc?" on":""}" data-kbs="${i}">${esc(sname(x))}</button>`).join("")}<span class="kbk">V</span><button type="button" class="xclose" aria-label="Close the spells">×</button></div>
+  const kk=id=>esc(kmShow(id));
+  el.innerHTML=`<div class="kbtabs"><span class="kbk">${kk("spPrev")}</span>${S.map((x,i)=>`<button type="button" class="kbtab${i===KB.sc?" on":""}" data-kbs="${i}">${esc(sname(x))}</button>`).join("")}<span class="kbk">${kk("spNext")}</span><button type="button" class="xclose" aria-label="Close the spells">×</button></div>
 <div class="kbtiles">${s.items.length?s.items.map(tile).join(""):`<p class="dim">Nothing here.</p>`}</div>
-<p class="kbhelp">1–9 and 0 cast · Shift+1 to Shift+0 the next ten · C and V, or Tab, the school before and after · Shift+C the first, Shift+V the piles · X closes</p>`;
+<p class="kbhelp">1–9 and 0 cast · Shift+1 to Shift+0 the next ten · ${kk("spPrev")} and ${kk("spNext")}, or ${kk("spSchoolNext")}, the school before and after · ${kk("spFirst")} the first, ${kk("spLast")} the piles · ${kk("close")} closes</p>`;
   el.querySelectorAll("[data-kbi]").forEach(b=>b.onclick=()=>kbCast(+b.dataset.kbi+1));
   el.querySelectorAll("[data-kbs]").forEach(b=>b.onclick=()=>kbSchool(+b.dataset.kbs));el.querySelector(".xclose").onclick=kbOff}
 function kbCast(n){const S=kbSchools(),s=S[KB.sc];if(!s)return;const b=s.items[n-1];if(!b){flash(`${s.piles?"The piles have":"This school has"} no ${n}${n===1?"st":n===2?"nd":n===3?"rd":"th"} entry.`);return}b.click()}
@@ -13571,8 +13856,10 @@ function kbCast(n){const S=kbSchools(),s=S[KB.sc];if(!s)return;const b=s.items[n
 const kbHand=()=>[...document.querySelectorAll("#hand [data-h]")];
 function kbHandOn(on){if(on&&kbSpellMode())kbOff();KB.mode=on?"hand":null;if(on){const H=kbHand();KB.h=Math.max(0,Math.min(H.length-1,KB.h));kbShow($("#handwrap"))}kbPaint()}
 /* the marks: the school and its numbers, the card in the hand, and (when chosen) the key letters on the buttons */
-const KB_HINTS=[["#bankslot .bankbar","B"],["#openEther","⇧B"],["#dipbar","Ctrl+B"],["#next","Space"],[".fabar .facfgb","⇧Space"],["#fstabSp","⇧F"],[".spellpanel>h3","F · ⇧F"],["#handh","G"],["#d4","R"],
-  ["#logwrap>h3","L"],["#fsrowT","⇧L"],["#dicefold>summary","⇧L"],["#fsbtn","⇧⌫"],["#fspauseb","Esc"],[".camnote [data-cz='1']","E"],[".camnote [data-cz='-1']","Q"]];
+const KB_HINTS=[["#bankslot .bankbar","bank"],["#openEther","ether"],["#dipbar","dip"],["#next","turn"],[".fabar .facfgb","faset"],["#fstabSp","spelllist"],[".spellpanel>h3",["spellbar","spelllist"]],["#handh","hand"],["#d4","roll"],
+  ["#logwrap>h3","log"],["#fsrowT","dice"],["#dicefold>summary","dice"],["#fsbtn","fullscreen"],["#fspauseb",null],[".camnote [data-cz='1']","zoomIn"],[".camnote [data-cz='-1']","zoomOut"]];
+/* a button's letters: its action's first binding, short ("⇧B"); the pause button's is Esc */
+const kbHintOf=a=>a==null?"Esc":(Array.isArray(a)?a:[a]).map(id=>{const s=kmBinds(id).filter(Boolean)[0];return s?kmShort(s):""}).filter(Boolean).join(" · ");
 function kbPaint(){
   document.querySelectorAll(".kbsch").forEach(e=>e.classList.remove("kbsch"));document.querySelectorAll("[data-kbn]").forEach(e=>e.removeAttribute("data-kbn"));
   document.querySelectorAll(".kbon,.kbli").forEach(e=>e.classList.remove("kbon","kbli"));
@@ -13581,10 +13868,10 @@ function kbPaint(){
     s.items.forEach((b,i)=>b.setAttribute("data-kbn",kbNum(i)));KB.li=Math.min(KB.li|0,Math.max(0,s.items.length-1));if(s.items[KB.li])s.items[KB.li].classList.add("kbli")}}
   if(KB.mode==="hand"){const H=kbHand();if(!H.length)KB.mode=null;else{KB.h=Math.min(KB.h,H.length-1);H[KB.h].classList.add("kbon")}}
   document.querySelectorAll("[data-kb]").forEach(e=>{e.removeAttribute("data-kb");e.classList.remove("kbrel")});
-  if(PREF.keyHints===true&&G)for(const [sel,k] of KB_HINTS)for(const el of document.querySelectorAll(sel)){if(!el.getClientRects().length)continue;el.setAttribute("data-kb",k);if(getComputedStyle(el).position==="static")el.classList.add("kbrel")}
-  if(PREF.keyHints===true)document.querySelectorAll(".xclose").forEach(el=>{if(el.getClientRects().length)el.setAttribute("data-kb","X")})}
+  if(PREF.keyHints===true&&G)for(const [sel,a] of KB_HINTS){const k=kbHintOf(a);if(k)for(const el of document.querySelectorAll(sel)){if(!el.getClientRects().length)continue;el.setAttribute("data-kb",k);if(getComputedStyle(el).position==="static")el.classList.add("kbrel")}}
+  const x=kbHintOf("close");if(PREF.keyHints===true&&x)document.querySelectorAll(".xclose").forEach(el=>{if(el.getClientRects().length)el.setAttribute("data-kb",x)})}
 {const _r=render;render=function(){rSafe(_r,this,arguments);try{kbPaint()}catch(e){console.error(e)}}}
-function kbHints(on){PREF.keyHints=!!on;savePrefs();kbPaint();for(const id of ["mKeyHints","fsKeyHints"]){const c=$("#"+id);if(c)c.checked=PREF.keyHints}flash(on?"Key letters on: each button shows its key. Shift+/ (?) hides them.":"Key letters off.")}
+function kbHints(on){PREF.keyHints=!!on;savePrefs();kbPaint();for(const id of ["mKeyHints","fsKeyHints"]){const c=$("#"+id);if(c)c.checked=PREF.keyHints}flash(on?`Key letters on: each button shows its key. ${kmShow("hints")} hides them.`:"Key letters off.")}
 /* the log in fullscreen: its own window (the row at the bottom shows one line) */
 function kbLog(){if(!fsOn()){const l=$("#logwrap");kbShow(l);return}
   let w=$("#kblog");if(!w){w=document.createElement("div");w.id="kblog";w.className="faov";document.body.appendChild(w)}
@@ -13592,55 +13879,48 @@ function kbLog(){if(!fsOn()){const l=$("#logwrap");kbShow(l);return}
   w.hidden=false;w.querySelector(".xclose").onclick=()=>{w.hidden=true};w.onclick=e=>{if(e.target===w)w.hidden=true}}
 function kbDice(){if(fsOn()){PREF.fsRow="dice";PREF.fsRowOpen=!PREF.fsRowOpen;savePrefs();fsPaint();return}const d=$("#dicefold");if(d){d.open=true;kbShow(d)}}
 const kbDigit=e=>{const m=/^(?:Digit|Numpad)(\d)$/.exec(e.code);return m?(m[1]==="0"?10:+m[1]):0};
-document.addEventListener("keyup",e=>{KB.held.delete(e.code)});addEventListener("blur",()=>{KB.held.clear();KB.alone=null});
-/* Shift or Ctrl pressed alone (let go without another key or a click in between): the next or the previous section */
-document.addEventListener("keydown",e=>{KB.alone=(e.key==="Shift"||e.key==="Control")&&!e.repeat?e.key:e.repeat&&KB.alone===e.key?KB.alone:null},true);
-document.addEventListener("pointerdown",()=>{KB.alone=null},true);
-document.addEventListener("keyup",e=>{const a=KB.alone;KB.alone=null;if(!a||e.key!==a||typing(e.target)||!G)return;
-  if(KB.mode==="list"&&!kbTop())kbSchool(KB.sc+(a==="Control"?1:-1))});
-document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented)return;KB.held.add(e.code);
-  if(e.metaKey||e.altKey||typing(e.target))return;
-  const k=e.key,lk=k.length===1?k.toLowerCase():k,sh=e.shiftKey,ct=e.ctrlKey,stop=()=>{e.preventDefault();e.stopImmediatePropagation()};
-  if(G&&!G.over&&!/^(Shift|Control|Alt|Meta|CapsLock)$/.test(k))kbRemind();
-  if(lk==="o"&&!sh&&!ct){stop();kbKeysWin();return}
-  if(e.code==="Period"&&sh&&KB.held.has("KeyX")&&!ct){stop();if(typeof musicSync==="function"){PREF.music=PREF.music===false;savePrefs();musicSync();flash(PREF.music===false?"Music off.":"Music on.")}return}
-  if(lk==="\\"&&!ct&&!sh){stop();rbWin();return}
-  /* closing: X, and Esc for the windows that have no Esc of their own */
-  if(lk==="x"&&!ct&&!sh){if(kbTop()){stop();kbClose();return}if(KB.mode){stop();KB.mode==="hand"?kbHandOn(false):kbOff()}return}   // the window on top first, then the spells or the hand
-  if(k==="Escape"){const w=kbTop();
+const kbModeOff=()=>KB.mode==="hand"?kbHandOn(false):kbOff();
+/* the camera to your Aces, one after another (not while text is selected: Ctrl+C copies it) */
+function kbAce(d){if(getSelection&&String(getSelection()).length)return false;const V=view(),A=[];
+  for(let r=0;r<G.rows;r++)for(let c=0;c<G.board[r].length;c++){const s=G.board[r][c];if(s&&s.owner===V&&hasBase(s))A.push([r,c])}
+  if(!A.length){flash("You have no Ace on the field.");return}KB.ace=((KB.ace+d)%A.length+A.length)%A.length;kbLook(...A[KB.ace])}
+/* the table's shortcuts: [action, what it does]; one that returns false leaves the key to the browser */
+const KB_DO=[
+  ["fullscreen",()=>fsOn()?fsExit():fsEnter()],["hints",()=>kbHints(PREF.keyHints!==true)],
+  ["dip",()=>{const b=$("#dipbar");if(b)b.click();else flash("Diplomacy is off in this game.")}],
+  ["aceBack",()=>kbAce(-1)],["aceNext",()=>kbAce(1)],["lookSel",()=>{if(G.sel)kbLook(G.sel.r,G.sel.c);else flash("Nothing is selected on the field.")}],
+  ["faset",()=>{if(typeof faAllowed==="function"&&faAllowed())faWindow();else flash("Field Automation is off in this game.")}],
+  ["spelllist",()=>kbList()],["spellbar",()=>kbBar()],["ether",()=>openEtherShop()],["bank",()=>{const b=$("#bankslot .bankbar");if(b)b.click();else openBank()}],
+  ["dice",()=>kbDice()],["log",()=>kbLog()],["hand",()=>kbHandOn(true)],
+  ["roll",()=>{const d=$("#d4");if(d&&!d.disabled)d.click();else flash("There is nothing to roll now: the draw is in your draw phase.")}],
+  ["sacrifice",()=>{const P=G.p[view()],i=P&&G.selHand?P.hand.indexOf(G.selHand):-1;if(i<0)return false;
+    const b=document.querySelector(`#hand [data-sh="${i}"]`);if(b)b.click();else flash("That card can't be sacrificed now.")}]];
+/* Ctrl or Shift pressed alone in the spells: the next or the previous school */
+document.addEventListener("keyup",e=>{if(!G||!kbSpellMode()||kbTop()||typing(e.target))return;
+  if(kmTap(e,"spSchoolNext"))kbSchool(KB.sc+1);else if(kmTap(e,"spSchoolPrev"))kbSchool(KB.sc-1)});
+document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(e.target))return;
+  const is=id=>kmIs(e,id),stop=()=>{e.preventDefault();e.stopImmediatePropagation()};
+  if(G&&!G.over&&!kmModOnly(e))kbRemind();
+  if(is("keys")){stop();kbKeysWin();return}
+  if(is("music")){stop();if(typeof musicSync==="function"){PREF.music=PREF.music===false;savePrefs();musicSync();flash(PREF.music===false?"Music off.":"Music on.")}return}
+  if(is("rulebook")){stop();rbWin();return}
+  /* closing: the window on top first (its ×), then the spells or the hand; Esc for the windows that have no Esc of their own */
+  if(is("close")){if(kbTop()){stop();kbClose()}else if(KB.mode){stop();kbModeOff()}return}
+  if(e.key==="Escape"){const w=kbTop();
     if(w){if(w.matches("#ov,.faov,#menu")){const x=[...w.querySelectorAll(".xclose,[data-x],button[aria-label^='Close']")].find(b=>b.getClientRects().length);if(x){stop();x.click()}}return}   // the rest close on their own Esc
-    if(KB.mode){stop();KB.mode==="hand"?kbHandOn(false):kbOff()}return}
+    if(KB.mode){stop();kbModeOff()}return}
   if(kbTop()||!G||G.passing)return;   // a window is open, or no game: the rest waits
-  if(k==="Backspace"&&sh&&!ct){stop();fsOn()?fsExit():fsEnter();return}
-  if(lk==="?"||e.code==="Slash"&&sh){stop();kbHints(PREF.keyHints!==true);return}
-  if(ct&&!sh){
-    if(lk==="b"){stop();const b=$("#dipbar");if(b)b.click();else flash("Diplomacy is off in this game.");return}
-    if((lk==="c"||lk==="v")&&!(getSelection&&String(getSelection()).length)){stop();const V=view(),A=[];
-      for(let r=0;r<G.rows;r++)for(let c=0;c<G.board[r].length;c++){const s=G.board[r][c];if(s&&s.owner===V&&hasBase(s))A.push([r,c])}
-      if(!A.length){flash("You have no Ace on the field.");return}KB.ace=((KB.ace+(lk==="v"?1:-1))%A.length+A.length)%A.length;kbLook(...A[KB.ace]);return}
-    if(e.code==="Digit1"){stop();if(G.sel)kbLook(G.sel.r,G.sel.c);else flash("Nothing is selected on the field.");return}
-    return}
-  if(ct)return;
-  /* the spells */
-  if(kbSpellMode()){const n=kbDigit(e);if(n){stop();kbCast(n+(sh?10:0));return}
-    if(k==="Tab"){stop();if(KB.mode==="bar")kbSchool(KB.sc+(sh?-1:1));return}
-    if((lk==="c"||lk==="v")&&sh){stop();const S=kbSchools();kbSchool(lk==="c"?0:S.length-1);return}
-    if(lk==="c"||lk==="v"){stop();if(KB.mode==="bar")kbSchool(KB.sc+(lk==="v"?1:-1));else kbStep(lk==="v"?1:-1);return}
-    if(k==="Enter"&&KB.mode==="list"){stop();const s=kbSchools()[KB.sc],b=s&&s.items[KB.li];if(b)b.click();return}}
-  /* the hand */
+  /* the spells and the hand, while open, before the rest */
+  if(kbSpellMode()){const n=kbDigit(e);if(n&&!e.ctrlKey&&!e.altKey&&!e.metaKey){stop();kbCast(n+(e.shiftKey?10:0));return}
+    if(is("spSchoolNext")||is("spSchoolPrev")){stop();kbSchool(KB.sc+(is("spSchoolNext")?1:-1));return}
+    if(is("spFirst")||is("spLast")){stop();kbSchool(is("spFirst")?0:kbSchools().length-1);return}
+    if(is("spNext")||is("spPrev")){stop();const d=is("spNext")?1:-1;if(KB.mode==="bar")kbSchool(KB.sc+d);else kbStep(d);return}
+    if(is("spCast")&&KB.mode==="list"){stop();const s=kbSchools()[KB.sc],b=s&&s.items[KB.li];if(b)b.click();return}}
   if(KB.mode==="hand"){const H=kbHand();
-    if((lk==="c"||lk==="v")&&!sh){stop();if(H.length){KB.h=(KB.h+(lk==="v"?1:-1)+H.length)%H.length;kbPaint();H[KB.h].scrollIntoView({block:"nearest",inline:"nearest"})}return}
-    if(k==="Enter"){stop();if(H[KB.h])H[KB.h].click();kbPaint();return}
-    if(lk==="i"&&!sh){stop();const ci=H[KB.h]&&H[KB.h].querySelector(".ci");if(ci)ci.click();return}}
-  if(sh&&!ct&&(k===" "||e.code==="Space")){stop();if(typeof faAllowed==="function"&&faAllowed())faWindow();else flash("Field Automation is off in this game.");return}
-  if(sh){if(lk==="f"){stop();kbList();return}if(lk==="b"){stop();openEtherShop();return}if(lk==="l"){stop();kbDice();return}return}
-  if(lk==="b"){stop();const b=$("#bankslot .bankbar");if(b)b.click();else openBank();return}
-  if(lk==="f"){stop();kbBar();return}
-  if(lk==="g"){stop();kbHandOn(true);return}
-  if(lk==="r"){stop();const d=$("#d4");if(d&&!d.disabled)d.click();else flash("There is nothing to roll now: the draw is in your draw phase.");return}
-  if(lk==="l"){stop();kbLog();return}
-  if(k==="Backspace"||k==="Delete"){const P=G.p[view()],i=P&&G.selHand?P.hand.indexOf(G.selHand):-1;if(i<0)return;stop();
-    const b=document.querySelector(`#hand [data-sh="${i}"]`);if(b)b.click();else flash("That card can't be sacrificed now.");return}
+    if(is("hNext")||is("hPrev")){stop();if(H.length){KB.h=(KB.h+(is("hNext")?1:-1)+H.length)%H.length;kbPaint();H[KB.h].scrollIntoView({block:"nearest",inline:"nearest"})}return}
+    if(is("hPick")){stop();if(H[KB.h])H[KB.h].click();kbPaint();return}
+    if(is("hInfo")){stop();const ci=H[KB.h]&&H[KB.h].querySelector(".ci");if(ci)ci.click();return}}
+  const a=KB_DO.find(([id])=>is(id));if(a&&a[1]()!==false)stop();
 },true);
 /* v78a: O shows every key in a window; once a game, the first key pressed brings a note saying so */
 function kbKeysWin(){let w=$("#kbkeys");if(!w){w=document.createElement("div");w.id="kbkeys";w.className="faov";document.body.appendChild(w)}
@@ -13648,27 +13928,19 @@ function kbKeysWin(){let w=$("#kbkeys");if(!w){w=document.createElement("div");w
   w.hidden=false;w.querySelector(".xclose").onclick=()=>{w.hidden=true};w.onclick=e=>{if(e.target===w)w.hidden=true};$("#kwKeyHints").onchange=e=>kbHints(e.target.checked)}
 function kbRemind(){const g=G&&G.map?G.map.seed:null;if(g==null||KB.reminded===g)return;KB.reminded=g;
   let n=$("#kbremind");if(!n){n=document.createElement("div");n.id="kbremind";n.setAttribute("role","status");document.body.appendChild(n)}
-  n.innerHTML=`Press <kbd>O</kbd> any time to see every key.`;n.hidden=false;clearTimeout(kbRemind.t);kbRemind.t=setTimeout(()=>{n.hidden=true},7000)}
+  n.innerHTML=`Press <kbd>${esc(kmShow("keys"))}</kbd> any time to see every key.`;n.hidden=false;clearTimeout(kbRemind.t);kbRemind.t=setTimeout(()=>{n.hidden=true},7000)}
 /* v78a: Tab never leaves the game for the browser's own bar: where it means nothing, it does nothing */
 document.addEventListener("keydown",e=>{if(e.key==="Tab")e.preventDefault()});
-/* the list of keys: in the pause menu and the Menu, each in a fold like the others, with the key letters' switch */
-const KB_LIST=[["Space","the turn button: Ready, the next phase, End turn"],["E · Q","zoom in · zoom out, around the middle of the screen"],["WASD","move the camera over the field; two at once go diagonally (Shift: faster)"],
-  ["Arrow keys","the selector on the field (two at once: diagonally); the camera keeps it in the middle"],["Tab · Shift+Tab","along the row to your next · previous card"],
-  ["Ctrl · Shift (pressed alone)","down · up to the next row with your cards"],["` (left of 1)","Tab, Ctrl and Shift step through the enemy's cards instead (again: yours)"],["N · Shift+N","the enemy's next · previous card"],
-  ["Enter","on the selector: select, place, move or attack, as a click"],["M · 1","move there (or attack) · the default attack"],
-  ["U H J K, or Alt+W A S D","the target of the stack you selected, a tile at a time (two at once: diagonally); then Enter or M"],
-  ["Y","what you can do with what you selected, numbered: the number keys use it"],["Shift+Enter","the right-click menu of what is under the selector"],
-  ["P · Shift+P","the other players' boxes: C and V read one, Enter its history"],["I","what stands on the tile under the selector"],
-  ["F","the spell bar at the bottom: 1–9 and 0 cast the first ten of the school, Shift+1 to Shift+0 the next ten; C and V (or Tab) the school before and after, Shift+C the first, Shift+V the last (the piles); X closes"],
-  ["Shift+F","the spell list: C and V move from spell to spell, Ctrl and Shift (alone) to the next and the previous school, Enter casts; X closes"],
-  ["G","the hand: C and V move, Enter picks (again: lets go), I the card's info"],["Backspace or Delete","sacrifice the hand card you picked"],["R","roll the draw"],
-  ["B · Shift+B · Ctrl+B","the Bank · the Ether · Diplomacy"],["Shift+Space","Field Automation's settings"],["L · Shift+L","the log · the dice"],["\\","the Rule book"],
-  ["Ctrl+C · Ctrl+V","the camera to your Aces, back and forth"],["Ctrl+1","the camera to what you selected"],["X or Esc","close what is open (Esc with nothing open: the pause menu in fullscreen)"],
-  ["In any window","C and V the item before and after, W A S D the nearest one up, left, down and right; Enter uses it; Tab the window's tabs; Ctrl and Shift (alone) the next and the previous section; I what the item does"],
-  ["A slider, a list or a number","Enter, then W or D up and S or A down (Shift: ten), the number keys type a number; Enter keeps it, Esc puts it back"],
-  ["A text field","Enter to type; Enter again (or Esc) when done"],["A line of a ranking","Enter takes hold: W or D up, S or A down, Space equal to the one above, Enter lets go"],
-  ["O","every key, in a window"],["Shift+Backspace","fullscreen on and off"],["Shift+X+. (period)","the music on and off"],["Shift+/ (?)","show or hide the key letters on the buttons"]];
-const kbListHTML=id=>`<ul class="mklist kblist">${KB_LIST.map(([a,b])=>`<li><kbd>${esc(a)}</kbd> ${esc(b)}</li>`).join("")}</ul><label class="farow"><span class="fal"><b>Key letters on the buttons</b><small>Each button shows its key. Shift+/ (?) switches them too.</small></span><input type="checkbox" id="${id}" ${PREF.keyHints===true?"checked":""}></label>`;
+/* the list of keys, as bound now: in the pause menu, the settings' Controls tab and the O window, with the key letters' switch */
+function kbListHTML(id){const row=(k,t)=>`<li><kbd>${esc(k)}</kbd> ${esc(t)}</li>`,K=x=>kmShow(x),out=[];
+  for(const [g,gname] of KM_GROUPS){out.push(`<li class="kbgrp"><b>${esc(gname)}</b></li>`);for(const a of KM_ACTS)if(a[1]===g)out.push(row(kmShow(a[0],true),a[3]))}
+  out.push(`<li class="kbgrp"><b>And always</b></li>`,row("Esc","close what is open (with nothing open in fullscreen: the pause menu)"),
+    row("1–9 and 0","in the spell bar and the list: cast the school's first ten (Shift+1 to Shift+0 the next ten); in the actions window: use them"),
+    row("A slider, a list or a number",`${K("winUse")}, then ${K("winUp")} or ${K("winRight")} up, ${K("winDown")} or ${K("winLeft")} down (Shift: ten), or type a number; ${K("winUse")} keeps it, Esc puts it back`),
+    row("A text field",`${K("winUse")} to type; Enter again (or Esc) when done`),
+    row("A line of a ranking",`${K("winUse")} takes hold: ${K("winUp")} up, ${K("winDown")} down, Space equal to the one above, Enter lets go`),
+    row("A player's box",`after ${K("plNext")}: C and V read it, Enter opens its history`));
+  return `<ul class="mklist kblist">${out.join("")}</ul><p class="dim">Every one of them can be changed: the settings, Controls, Key bindings.</p><label class="farow"><span class="fal"><b>Key letters on the buttons</b><small>Each button shows its key. ${esc(kmShow("hints"))} switches them too.</small></span><input type="checkbox" id="${id}" ${PREF.keyHints===true?"checked":""}></label>`}
 {const _fp=fsPause;fsPause=function(){_fp.apply(this,arguments);const o=$("#fspause"),box=o&&o.querySelector(".fspbox");if(!box||box.querySelector(".kbfold"))return;
   const d=document.createElement("details");d.className="sub kbfold";d.innerHTML=`<summary>Keyboard controls</summary>${kbListHTML("fsKeyHints")}`;
   const q=box.querySelector(".fsqlink");q?box.insertBefore(d,q):box.appendChild(d);$("#fsKeyHints").onchange=e=>kbHints(e.target.checked)}}
@@ -13741,35 +14013,38 @@ function wkSection(w,d){const H=[...w.querySelectorAll("h3,h4,summary,legend,.ds
   const cur=wkCur(w),y=cur?cur.getBoundingClientRect().top+1:-1e9;let at=-1;H.forEach((h,i)=>{if(h.getBoundingClientRect().top<=y)at=i});
   const j=Math.max(0,Math.min(H.length-1,at+d));if(j===at&&cur)return;const h=H[j];h.scrollIntoView({block:"start",behavior:"smooth"});
   const items=wkItems(w),hy=h.getBoundingClientRect().top-1;const it=h.matches("summary")?h:items.find(x=>x.getBoundingClientRect().top>=hy&&(h.compareDocumentPosition(x)&Node.DOCUMENT_POSITION_FOLLOWING));wkMark(it||null)}
-addEventListener("keyup",e=>{const a=KB.alone;if(!a||e.key!==a||typing(e.target)||WK.adj||WK.mv)return;const w=kbTop();if(w)wkSection(w,a==="Control"?1:-1)},true);
-/* the keys */
-addEventListener("keydown",e=>{if(KB.synth||e.metaKey||e.altKey)return;const k=e.key,lk=k.length===1?k.toLowerCase():k,sh=e.shiftKey,stop=()=>{e.preventDefault();e.stopImmediatePropagation()};
+/* Ctrl or Shift pressed alone (as bound): the next or the previous section */
+addEventListener("keyup",e=>{if(typing(e.target)||WK.adj||WK.mv)return;const w=kbTop();if(!w)return;
+  if(kmTap(e,"secNext"))wkSection(w,1);else if(kmTap(e,"secPrev"))wkSection(w,-1)},true);
+/* the keys (as bound: the Windows group of 96c_keymap.js) */
+addEventListener("keydown",e=>{if(KB.synth)return;const k=e.key,is=id=>kmIs(e,id),stop=()=>{e.preventDefault();e.stopImmediatePropagation()};
   if(WK.typ){if(e.target!==WK.typ){WK.typ=null;wkNote("")}else{
     if(k==="Escape"){stop();wkTypeEnd();return}
     if(k==="Enter"){const bad=wkBad(WK.typ);if(bad){stop();wkNote(bad+" Type another, or Esc to stop.");return}wkFire(WK.typ,"input","change");const el=WK.typ;setTimeout(()=>{if(WK.typ===el)wkTypeEnd()},0)}
     return}}
   if(typing(e.target))return;
   const w=kbTop();if(!w){if(WK.adj)wkAdjEnd(false);WK.mv=null;return}
-  if(e.ctrlKey)return;
-  if(WK.adj){const up=["w","d","v","arrowup","arrowright"].includes(lk.toLowerCase()),dn=["s","a","c","arrowdown","arrowleft"].includes(lk.toLowerCase());
-    if(up||dn){stop();wkAdjStep(up?1:-1,sh);return}
-    if(k==="Enter"){stop();wkAdjEnd(true);return}if(k==="Escape"||lk==="x"){stop();wkAdjEnd(false);return}
-    const dg=kbDigit(e);if(dg&&WK.adj.el.type==="number"){stop();const el=WK.adj.el;WK.adj=null;wkType(el,String(dg%10))}return}
-  if(WK.mv){if(["w","d","v"].includes(lk)){stop();wkMove("up");return}if(["s","a","c"].includes(lk)){stop();wkMove("down");return}
-    if(k===" "){stop();wkMove("eq");return}if(k==="Enter"||k==="Escape"||lk==="x"){stop();WK.mv=null;wkNote("");return}return}
-  if(k==="Tab"){stop();wkTab(w,sh?-1:1);return}
+  const plain=!e.ctrlKey&&!e.altKey&&!e.metaKey,up=is("winUp")||is("winRight")||is("winNext"),dn=is("winDown")||is("winLeft")||is("winPrev");
+  if(WK.adj){const au=up||plain&&(k==="ArrowUp"||k==="ArrowRight"),ad=dn||plain&&(k==="ArrowDown"||k==="ArrowLeft");
+    if(au||ad){stop();wkAdjStep(au?1:-1,e.shiftKey);return}
+    if(is("winUse")){stop();wkAdjEnd(true);return}if(k==="Escape"||is("close")){stop();wkAdjEnd(false);return}
+    const dg=kbDigit(e);if(dg&&plain&&WK.adj.el.type==="number"){stop();const el=WK.adj.el;WK.adj=null;wkType(el,String(dg%10))}return}
+  if(WK.mv){if(up){stop();wkMove("up");return}if(dn){stop();wkMove("down");return}
+    if(k===" "&&plain){stop();wkMove("eq");return}if(is("winUse")||k==="Escape"||is("close")){stop();WK.mv=null;wkNote("");return}return}
+  if(is("tabNext")||is("tabPrev")){stop();wkTab(w,is("tabNext")?1:-1);return}
+  if(is("secNext")||is("secPrev")){stop();wkSection(w,is("secNext")?1:-1);return}   // bound to a key (alone, Ctrl and Shift act on letting go)
   const items=wkItems(w);if(!items.length)return;let cur=wkCur(w);
-  const dir={w:[0,-1],s:[0,1],a:[-1,0],d:[1,0]}[lk];
-  if(dir||lk==="c"||lk==="v"){if(sh&&(lk==="c"||lk==="v"))return;stop();
+  const dir=is("winUp")?[0,-1]:is("winDown")?[0,1]:is("winLeft")?[-1,0]:is("winRight")?[1,0]:null,seq=is("winNext")?1:is("winPrev")?-1:0;
+  if(dir||seq){stop();
     if(!cur){const f=document.activeElement&&items.includes(document.activeElement)?document.activeElement:items[0];wkMark(f);return}
     if(dir){const n=wkNear(items,cur,dir[0],dir[1]);if(n)wkMark(n);return}
-    const i=items.indexOf(cur);wkMark(items[((i<0?0:i+(lk==="v"?1:-1))%items.length+items.length)%items.length]);return}
-  if(k==="Enter"&&cur){stop();
+    const i=items.indexOf(cur);wkMark(items[((i<0?0:i+seq)%items.length+items.length)%items.length]);return}
+  if(is("winUse")&&cur){stop();
     if(cur.matches("input[type=range],select,input[type=number]")){wkAdjStart(cur);return}
     if(cur.matches("textarea,input:not([type]),input[type=text],input[type=search],input[type=email],input[type=password]")){wkType(cur);return}
-    if(cur.classList.contains("facol")){WK.mv=true;wkNote("Moving a line: W or D up · S or A down · Space makes it equal to the one above · Enter when done");return}
+    if(cur.classList.contains("facol")){WK.mv=true;wkNote(`Moving a line: ${kmShow("winUp")} up · ${kmShow("winDown")} down · Space makes it equal to the one above · ${kmShow("winUse")} when done`);return}
     cur.click();wkLater();return}
-  if(lk==="i"&&!sh&&cur){stop();const t=cur.getAttribute("data-tip")||cur.title||cur.getAttribute("aria-label")||(cur.closest("[data-tip],[title]")||{}).title||"";flash(t||cur.textContent.trim().slice(0,140)||"No more to say about this.");return}
+  if(is("winInfo")&&cur){stop();const t=cur.getAttribute("data-tip")||cur.title||cur.getAttribute("aria-label")||(cur.closest("[data-tip],[title]")||{}).title||"";flash(t||cur.textContent.trim().slice(0,140)||"No more to say about this.");return}
 },true);
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(WK.sig)try{wkRemark()}catch(e){}}}
 
@@ -13820,13 +14095,14 @@ function fkFoeStep(d){const C=fkCands(true);if(!C.length){flash("No enemy card i
 function fkMove(di,dj,from){const grid=fkGrid();if(!grid.length)return null;let p=from&&fkAt(grid,from.r,from.c);
   if(!p){const s=G.sel||{r:-1,c:-1};p=fkAt(grid,s.r,s.c)||[Math.floor(grid.length/2),Math.floor(grid[0].length/2)]}
   let [i,j]=p;for(;;){i+=di;j+=dj;if(i<0||j<0||i>=grid.length||j>=grid[i].length)return null;const x=grid[i][j];if(x)return x}}
-const FK_ARROW={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]},FK_TGT={KeyU:[-1,0],KeyJ:[1,0],KeyH:[0,-1],KeyK:[0,1]},FK_ALT={KeyW:[-1,0],KeyS:[1,0],KeyA:[0,-1],KeyD:[0,1]};
-/* keys pressed together (within a moment) make one diagonal step */
-function fkSum(map,extra){let di=0,dj=0;for(const code of new Set([...extra,...[...KB.held].filter(x=>map[x])]))if(map[code]){di+=map[code][0];dj+=map[code][1]}return [Math.sign(di),Math.sign(dj)]}
-function fkArrow(code){FK.dir=FK.dir||new Set();FK.dir.add(code);if(FK.t)return;FK.t=setTimeout(()=>{const [di,dj]=fkSum(FK_ARROW,FK.dir);FK.dir=null;FK.t=0;
+/* the directions of the selector's and the target's actions: [row, column] */
+const FK_SEL={selUp:[-1,0],selDown:[1,0],selLeft:[0,-1],selRight:[0,1]},FK_AIM={aimUp:[-1,0],aimDown:[1,0],aimLeft:[0,-1],aimRight:[0,1]};
+/* keys pressed together (within a moment), or one held while another is pressed, make one diagonal step */
+function fkSum(map,pressed){let di=0,dj=0;for(const id of new Set([...pressed,...kmHeldOf(Object.keys(map))])){di+=map[id][0];dj+=map[id][1]}return [Math.sign(di),Math.sign(dj)]}
+function fkArrow(id){FK.dir=FK.dir||new Set();FK.dir.add(id);if(FK.t)return;FK.t=setTimeout(()=>{const [di,dj]=fkSum(FK_SEL,FK.dir);FK.dir=null;FK.t=0;
   if(!di&&!dj)return;const x=fkMove(di,dj,FK.cur);if(x){FK.tgt=null;fkSet(x.r,x.c)}},45)}
-function fkAim(code,alt){if(!G.sel){flash("Select a stack first: Enter on it, or a click.");return}const map=alt?FK_ALT:FK_TGT;FK.tdir=FK.tdir||new Set();FK.tdir.add(code);if(FK.tt)return;
-  FK.tt=setTimeout(()=>{const [di,dj]=fkSum(map,FK.tdir);FK.tdir=null;FK.tt=0;if(!di&&!dj||!G.sel)return;const x=fkMove(di,dj,FK.tgt||G.sel);if(!x)return;FK.tgt={r:x.r,c:x.c};fkSet(x.r,x.c)},45)}
+function fkAim(id){if(!G.sel){flash(`Select a stack first: ${kmShow("act")} on it, or a click.`);return}FK.tdir=FK.tdir||new Set();FK.tdir.add(id);if(FK.tt)return;
+  FK.tt=setTimeout(()=>{const [di,dj]=fkSum(FK_AIM,FK.tdir);FK.tdir=null;FK.tt=0;if(!di&&!dj||!G.sel)return;const x=fkMove(di,dj,FK.tgt||G.sel);if(!x)return;FK.tgt={r:x.r,c:x.c};fkSet(x.r,x.c)},45)}
 const fkIn=(list,p)=>!!p&&list.some(([a,b])=>a===p.r&&b===p.c);
 /* Enter, M and 1 on the selector */
 function fkAct(how){const p=FK.tgt||FK.cur;if(!p)return;const live=canAct(),s=G.sel;
@@ -13845,8 +14121,8 @@ function fkActs(){if(!G.sel&&!G.selHand){flash("Select a stack or a hand card fi
   if(!w){w=document.createElement("div");w.id="kbacts";w.className="faov";document.body.appendChild(w)}
   const L=fkActItems(),num=i=>i<9?String(i+1):i===9?"0":i<19?"⇧"+(i-9):i===19?"⇧0":"";
   w.innerHTML=`<div class="ovbox kbactbox" role="dialog" aria-modal="true" aria-labelledby="kbah"><button type="button" class="xclose" aria-label="Close">×</button><h2 id="kbah">Actions</h2>
-<ol class="kbacts">${L.map((e,i)=>`<li><button type="button" data-ka="${i}"><kbd>${num(i)}</kbd> ${esc(fkLabel(e))}</button></li>`).join("")}<li><button type="button" data-ka="rc"><kbd>⇧Enter</kbd> Its right-click menu</button></li></ol>
-<p class="dim">The number keys use them (Shift+1 for the eleventh). X closes.</p></div>`;w.hidden=false;
+<ol class="kbacts">${L.map((e,i)=>`<li><button type="button" data-ka="${i}"><kbd>${num(i)}</kbd> ${esc(fkLabel(e))}</button></li>`).join("")}<li><button type="button" data-ka="rc"><kbd>${esc(kmShort(kmBinds("menu").filter(Boolean)[0]||""))}</kbd> Its right-click menu</button></li></ol>
+<p class="dim">The number keys use them (Shift+1 for the eleventh). ${esc(kmShow("close"))} closes.</p></div>`;w.hidden=false;
   w.querySelector(".xclose").onclick=()=>{w.hidden=true};w.onclick=e=>{if(e.target===w)w.hidden=true};
   w.querySelectorAll("[data-ka]").forEach(b=>b.onclick=()=>fkActUse(b.dataset.ka))}
 function fkActUse(k){const w=$("#kbacts");if(k==="rc"){if(w)w.hidden=true;fkMenu();return}const e=fkActItems()[+k];if(!e){flash("Nothing there.");return}e.click();setTimeout(()=>{if(w&&!w.hidden&&(G.sel||G.selHand))fkActs();else if(w)w.hidden=true},60)}
@@ -13857,7 +14133,7 @@ function fkMenu(){let el=null;if(KB.mode==="hand"){el=kbHand()[KB.h]}else{const 
 /* P: the other players' boxes */
 const fkBoxes=()=>[...document.querySelectorAll(fsOn()?".fsfoe":"#foe>.pbox,#foe>div[style*='--pc']")].filter(e=>e.getClientRects().length);
 function fkPlayers(d){const B=fkBoxes();if(!B.length){flash("No other player's box to read.");return}FK.pm=true;FK.p=FK.pm&&FK.p!=null?((FK.p+d)%B.length+B.length)%B.length:0;FK.pi=-1;fkPaint();
-  B[FK.p].scrollIntoView({block:"nearest"});wkNote(`${B[FK.p].getAttribute("title")||B[FK.p].textContent.trim().split(/\s{2,}|\n/)[0].slice(0,60)} · C and V read the box, Enter its history, P the next player, X stops`)}
+  B[FK.p].scrollIntoView({block:"nearest"});wkNote(`${B[FK.p].getAttribute("title")||B[FK.p].textContent.trim().split(/\s{2,}|\n/)[0].slice(0,60)} · C and V read the box, Enter its history, ${kmShow("plNext")} the next player, ${kmShow("close")} stops`)}
 function fkPart(d){const b=fkBoxes()[FK.p];if(!b)return;const parts=[...b.children].filter(e=>e.getClientRects().length&&e.textContent.trim());if(!parts.length)return;
   FK.pi=((FK.pi+d)%parts.length+parts.length)%parts.length;fkPaint();const e=parts[FK.pi];wkNote((e.getAttribute("title")?e.getAttribute("title")+" · ":"")+e.textContent.trim().replace(/\s+/g," ").slice(0,160))}
 function fkPlayersOff(){FK.pm=false;wkNote("");fkPaint()}
@@ -13868,38 +14144,39 @@ function fkPaint(){document.querySelectorAll(".kbcur,.kbpl,.kbplp").forEach(e=>e
   if(!FK.on||!G||!FK.cur){if(lab)lab.hidden=true;return}
   const t=fkTile(FK.cur.r,FK.cur.c);if(t)t.classList.add("kbcur");
   if(!lab){lab=document.createElement("div");lab.id="fkmode";lab.setAttribute("aria-live","polite");document.body.appendChild(lab)}
-  lab.hidden=false;lab.innerHTML=`Tab steps through: <b>${FK.foe?"the enemy's cards":"your cards"}</b> <kbd>\`</kbd> switches`;
+  lab.hidden=false;lab.innerHTML=`${esc(kmShow("rowNext"))} steps through: <b>${FK.foe?"the enemy's cards":"your cards"}</b> <kbd>${esc(kmShow("foeSwap"))}</kbd> switches`;
   if(FK.tgt&&G.sel){const B=$("#board"),a=fkTile(G.sel.r,G.sel.c),b=fkTile(FK.tgt.r,FK.tgt.c);if(!B||!a||!b)return;const br=B.getBoundingClientRect(),ra=a.getBoundingClientRect(),rb=b.getBoundingClientRect();
     const x1=ra.left+ra.width/2-br.left,y1=ra.top+ra.height/2-br.top,x2=rb.left+rb.width/2-br.left,y2=rb.top+rb.height/2-br.top;
     B.insertAdjacentHTML("beforeend",`<svg id="fkarrow" aria-hidden="true" width="${Math.ceil(br.width)}" height="${Math.ceil(br.height)}"><defs><marker id="fkhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0L10,5L0,10z" fill="#f1d27a"/></marker></defs><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#f1d27a" stroke-width="4" stroke-linecap="round" marker-end="url(#fkhead)"/></svg>`)}}
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(FK.on||FK.pm)try{fkPaint()}catch(e){console.error(e)}}}
 {const _z=camZoom;camZoom=function(){const out=_z.apply(this,arguments);if(FK.on)fkPaint();return out}}
 document.addEventListener("pointerdown",e=>{if(FK.on&&e.target.closest&&e.target.closest("#board")){FK.on=false;FK.tgt=null;fkPaint()}},true);
-/* the keys */
-addEventListener("keydown",e=>{if(KB.synth||e.metaKey||typing(e.target)||!G||G.passing)return;const k=e.key,lk=k.length===1?k.toLowerCase():k,sh=e.shiftKey,ct=e.ctrlKey,al=e.altKey,
-  stop=()=>{e.preventDefault();e.stopImmediatePropagation()},top=kbTop();
-  if(top){if(top.id==="kbacts"&&!ct&&!al){const n=kbDigit(e);if(n){stop();fkActUse(String(n-1+(sh?10:0)))}}return}   // a window: its own keys (98_winkeys.js)
-  if(FK.pm){if(lk==="p"&&!ct&&!al){stop();fkPlayers(sh?-1:1);return}if((lk==="c"||lk==="v")&&!sh&&!ct&&!al){stop();fkPart(lk==="v"?1:-1);return}
-    if(k==="Enter"&&!sh){stop();const b=fkBoxes()[FK.p],h=b&&b.querySelector("[data-hist]");if(h)h.click();return}if(lk==="x"&&!sh&&!ct||k==="Escape"){stop();fkPlayersOff();return}}
-  if(al&&!ct&&FK_ALT[e.code]){stop();fkAim(e.code,true);return}
-  if(al||ct&&k!=="Enter")return;
-  if(k==="Enter"&&sh){stop();fkMenu();return}
-  if(KB.mode&&(k==="Tab"||k==="Enter"||lk==="c"||lk==="v"||kbDigit(e)||lk==="x"||k==="Escape"||lk==="i"))return;   // the spells and the hand keep their keys
-  if(FK_ARROW[k]){stop();fkArrow(k);return}
-  if(FK_TGT[e.code]&&!sh){stop();fkAim(e.code,false);return}
-  if(k==="Tab"){stop();FK.on=true;fkRowStep(sh?-1:1);return}
-  if(e.code==="Backquote"&&!sh){stop();FK.foe=!FK.foe;FK.on=true;if(!FK.cur)fkRowStep(1);else fkPaint();return}
-  if(lk==="n"){stop();fkFoeStep(sh?-1:1);return}
-  if(lk==="p"){stop();fkPlayers(sh?-1:1);return}
-  if(lk==="y"&&!sh){stop();fkActs();return}
+/* the keys (as bound: the table's field keys in 96c_keymap.js) */
+addEventListener("keydown",e=>{if(KB.synth||typing(e.target)||!G||G.passing)return;const is=id=>kmIs(e,id),stop=()=>{e.preventDefault();e.stopImmediatePropagation()},top=kbTop();
+  const plain=!e.ctrlKey&&!e.altKey&&!e.metaKey;
+  if(top){if(top.id==="kbacts"&&plain){const n=kbDigit(e);if(n){stop();fkActUse(String(n-1+(e.shiftKey?10:0)))}}return}   // a window: its own keys (98_winkeys.js)
+  if(FK.pm){if(is("plNext")||is("plPrev")){stop();fkPlayers(is("plNext")?1:-1);return}
+    const n=kmName(e.code,e.key);if(plain&&!e.shiftKey&&(n==="C"||n==="V")){stop();fkPart(n==="V"?1:-1);return}
+    if(plain&&!e.shiftKey&&n==="Enter"){stop();const b=fkBoxes()[FK.p],h=b&&b.querySelector("[data-hist]");if(h)h.click();return}
+    if(is("close")||e.key==="Escape"){stop();fkPlayersOff();return}}
+  if(KB.mode&&(kmIn(e,KB.mode==="hand"?"hand":"spell")||kbSpellMode()&&kbDigit(e)||is("close")||e.key==="Escape"))return;   // the spells and the hand keep their keys
+  const sel=Object.keys(FK_SEL).find(is);if(sel){stop();fkArrow(sel);return}
+  const aim=Object.keys(FK_AIM).find(is);if(aim){stop();fkAim(aim);return}
+  if(is("menu")){stop();fkMenu();return}
+  if(is("rowNext")||is("rowPrev")){stop();FK.on=true;fkRowStep(is("rowNext")?1:-1);return}
+  if(is("foeSwap")){stop();FK.foe=!FK.foe;FK.on=true;if(!FK.cur)fkRowStep(1);else fkPaint();return}
+  if(is("foeNext")||is("foePrev")){stop();fkFoeStep(is("foeNext")?1:-1);return}
+  if(is("plNext")||is("plPrev")){stop();fkPlayers(is("plNext")?1:-1);return}
+  if(is("acts")){stop();fkActs();return}
+  if(FK.on&&(is("rowDown")||is("rowUp"))){stop();fkColStep(is("rowDown")?1:-1);return}   // bound to a key (alone, Ctrl and Shift act on letting go)
   if(!FK.on||!FK.cur)return;   // the rest acts on the selector, once the keys have put it on the field
-  if(k==="Enter"){stop();fkAct("any");return}
-  if(lk==="m"&&!sh){stop();fkAct("move");return}
-  if(e.code==="Digit1"&&!sh){stop();fkAct("atk");return}
-  if(lk==="i"&&!sh){stop();const t=fkTile(FK.cur.r,FK.cur.c);flash(t?t.getAttribute("aria-label")||"":"");return}
+  if(is("act")){stop();fkAct("any");return}
+  if(is("move")){stop();fkAct("move");return}
+  if(is("attack")){stop();fkAct("atk");return}
+  if(is("info")){stop();const t=fkTile(FK.cur.r,FK.cur.c);flash(t?t.getAttribute("aria-label")||"":"");return}
 },true);
-/* Ctrl or Shift alone on the field: the next row down or up (only once the keys are on the field) */
-addEventListener("keyup",e=>{const a=KB.alone;if(!a||e.key!==a||typing(e.target)||!G||!FK.on||KB.mode||kbTop())return;fkColStep(a==="Control"?1:-1)},true);
+/* Ctrl or Shift pressed alone on the field (as bound): the next row down or up (only once the keys are on the field) */
+addEventListener("keyup",e=>{if(typing(e.target)||!G||!FK.on||KB.mode||kbTop())return;if(kmTap(e,"rowDown"))fkColStep(1);else if(kmTap(e,"rowUp"))fkColStep(-1)},true);
 
 if(window.__EC)Object.assign(window.__EC,{FK,fkCands:f=>fkCands(f)});
 
@@ -13953,6 +14230,7 @@ function setBuild(){const m=$("#menu"),box=m&&m.querySelector(".ovbox");if(!box|
   /* Controls: the large map's fold above the keyboard's, which stays at the very bottom */
   const cam=box.querySelector("#mCam"),keys=box.querySelector(".kbfold");
   P.ctl.appendChild(mk("p","dim","How you move around the table with the mouse, the wheel and the keys."));
+  const km=mk("div","kmpanel");P.ctl.appendChild(km);kmMount(km);
   if(cam)P.ctl.appendChild(cam);if(keys)P.ctl.appendChild(keys);
   /* Performance */
   const net=box.querySelector(".perfnet");if(net){const h=net.querySelector(".perfh");if(h)h.remove();sect(P.perf,"Connection",net)}
@@ -13975,7 +14253,7 @@ function setBuild(){const m=$("#menu"),box=m&&m.querySelector(".ovbox");if(!box|
   (intro||box.querySelector(":scope>h2")).after(bar);let at=bar;for(const [k] of SET_TABS){at.after(P[k]);at=P[k]}
   if(acts)box.appendChild(acts);
   bar.querySelectorAll(".stab").forEach(t=>t.onclick=()=>{setShow(box,t.dataset.st);box.scrollTop=0});
-  setShow(box,setTab)}
+  setShow(box,setTab);kmBang()}
 {const _om=openMenu;openMenu=function(){_om.apply(this,arguments);rSafe(setBuild,null,[])}}
 
 if(window.__EC)Object.assign(window.__EC,{setShow:k=>{const b=$("#menu .ovbox");if(b)setShow(b,k)}});
