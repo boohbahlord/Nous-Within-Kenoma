@@ -175,3 +175,10 @@ function kbListHTML(id){const row=(k,t)=>`<li><kbd>${esc(k)}</kbd> ${esc(t)}</li
   $("#mKeyHints").onchange=e=>kbHints(e.target.checked)}}
 
 if(window.__EC)Object.assign(window.__EC,{KB,kbClose:()=>kbClose(),kbSchools:()=>kbSchools()});
+/* v78r: playing by keys hides the mouse pointer: after three key presses in a row it goes, and the next real mouse
+   movement brings it back */
+{let presses=0,mx=null,my=null;const root=document.documentElement;
+  addEventListener("keydown",e=>{if(kmModOnly(e)||typing(e.target))return;if(++presses>=3)root.classList.add("kbnomouse")},true);   // on the window, before any handler takes the key
+  document.addEventListener("mousemove",e=>{const moved=mx!==null&&(e.screenX!==mx||e.screenY!==my);mx=e.screenX;my=e.screenY;   // a redraw under a still mouse isn't a move
+    if(!moved)return;presses=0;root.classList.remove("kbnomouse")},true);
+  document.addEventListener("mousedown",()=>{presses=0;root.classList.remove("kbnomouse")},true)}
