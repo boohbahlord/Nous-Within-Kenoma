@@ -1,35 +1,38 @@
 /* ---------------- sound (synthesized, quiet) ---------------- */
 const SND=(()=>{
-  let ac=null,master=null,on=true;
+  let ac=null,master=null,on=true;const bus={};
   try{on=localStorage.getItem("ec-sound")!=="off"}catch(e){}
   function ctx(){
     if(!on||G&&G.opts.fast)return null;
-    try{if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();master=ac.createGain();master.gain.value=sfxV();master.connect(ac.destination)}
-      master.gain.value=sfxV();if(ac.state==="suspended")ac.resume();}catch(e){return null}
+    try{if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();master=ac.createGain();master.gain.value=sfxV()*allV();master.connect(ac.destination)}
+      master.gain.value=sfxV()*allV();if(ac.state==="suspended")ac.resume();}catch(e){return null}
     return ac;
   }
+  // each source of sound has its own volume on the way out (v78c)
+  const busOf=k=>{let b=bus[k];if(!b){b=ac.createGain();b.connect(master);bus[k]=b}b.gain.value=srcV(k);return b};
   function noise(a,dur){const b=a.createBuffer(1,Math.max(1,Math.floor(a.sampleRate*dur)),a.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const s=a.createBufferSource();s.buffer=b;return s}
-  function click(a,t,amp,freq){
+  function click(a,t,amp,freq,to){
     const s=noise(a,.03),f=a.createBiquadFilter(),g=a.createGain();
     f.type="bandpass";f.frequency.value=freq;f.Q.value=2.2;
     g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(amp,t+.002);g.gain.exponentialRampToValueAtTime(.0005,t+.028);
-    s.connect(f).connect(g).connect(master);s.start(t);s.stop(t+.035);
+    s.connect(f).connect(g).connect(to);s.start(t);s.stop(t+.035);
   }
   return{
     get on(){return on},
     toggle(){on=!on;try{localStorage.setItem("ec-sound",on?"on":"off")}catch(e){}return on},
-    dice(n){const a=ctx();if(!a)return;let t=a.currentTime+.01;const k=Math.min(9,3+Math.ceil(n*.8));
-      for(let i=0;i<k;i++){click(a,t,.2*(1-i/(k+1))+.04,1800+Math.random()*2600);t+=.035+Math.random()*.07*(1+i/k)}},
+    vol(){if(!ac)return;master.gain.value=sfxV()*allV();for(const k in bus)bus[k].gain.value=srcV(k)},
+    dice(n){const a=ctx();if(!a)return;let t=a.currentTime+.01;const k=Math.min(9,3+Math.ceil(n*.8)),to=busOf("dice");
+      for(let i=0;i<k;i++){click(a,t,.2*(1-i/(k+1))+.04,1800+Math.random()*2600,to);t+=.035+Math.random()*.07*(1+i/k)}},
     zap(){const a=ctx();if(!a)return;const t=a.currentTime+.01;
       const s=noise(a,.5),f=a.createBiquadFilter(),g=a.createGain();f.type="highpass";f.frequency.value=1800;
       g.gain.setValueAtTime(0,t);for(let i=0;i<5;i++){g.gain.linearRampToValueAtTime(.22*(1-i/6),t+i*.07+.004);g.gain.linearRampToValueAtTime(.02,t+i*.07+.05)}g.gain.exponentialRampToValueAtTime(.001,t+.45);
-      s.connect(f).connect(g).connect(master);s.start(t);s.stop(t+.5)},
-    gun(){const a=ctx();if(!a)return;const t=a.currentTime+.01;
+      s.connect(f).connect(g).connect(busOf("spells"));s.start(t);s.stop(t+.5)},
+    gun(){const a=ctx();if(!a)return;const t=a.currentTime+.01,to=busOf("battle");
       const s=noise(a,.45),f=a.createBiquadFilter(),g=a.createGain();f.type="lowpass";f.frequency.setValueAtTime(2600,t);f.frequency.exponentialRampToValueAtTime(300,t+.35);
       g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.32,t+.003);g.gain.exponentialRampToValueAtTime(.001,t+.42);
-      s.connect(f).connect(g).connect(master);s.start(t);s.stop(t+.45);
+      s.connect(f).connect(g).connect(to);s.start(t);s.stop(t+.45);
       const o=a.createOscillator(),og=a.createGain();o.type="sine";o.frequency.setValueAtTime(120,t);o.frequency.exponentialRampToValueAtTime(38,t+.22);
-      og.gain.setValueAtTime(.28,t);og.gain.exponentialRampToValueAtTime(.001,t+.25);o.connect(og).connect(master);o.start(t);o.stop(t+.26)}
+      og.gain.setValueAtTime(.28,t);og.gain.exponentialRampToValueAtTime(.001,t+.25);o.connect(og).connect(to);o.start(t);o.stop(t+.26)}
   };
 })();
 

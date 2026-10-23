@@ -105,11 +105,12 @@
     requiem("Requiem for the Ether (Hungarian minor)","hungarian","Dm Bb A Dm Dm E7b5 A Dm Bb Faug Dm A Bb C#m A Dm",true)
   ];  const BASE=.17;
    // 100% volume, kept low on purpose
-  let HOLD=false;const LV=()=>BASE*vol(prefs())*(HOLD?.18:1);   // v70: the music's level, lower while an event's sound is held
+  let HOLD=false;const LV=()=>BASE*vol(prefs())*allV(prefs())*(HOLD?.18:1);   // v70: the music's level, lower while an event's sound is held
   const prefs=()=>{try{return JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){return {}}};
   const soundOn=()=>{try{return localStorage.getItem("ec-sound")!=="off"}catch(e){return true}};
   const themeOn=P=>true;   // v71: the music plays in every theme
   const vol=P=>Math.max(0,Math.min(1.5,P.musicVol==null?1:+P.musicVol));
+  const allV=P=>Math.max(0,Math.min(1.5,P.allVol==null?1:+P.allVol));   // v78c: the game's All sound slider
   const inGame=()=>/ethers-crossroads-play/.test(location.pathname);
   let TR=0,LPF=null;   // v71c: Neptune's eclipse transposes the music down an octave and a half step, and muffles it
   const hz=m=>440*Math.pow(2,(m+TR-69)/12);
@@ -387,7 +388,7 @@
   let duckT=null;
   function nep(on){const t=on?-13:0;if(t===TR)return;TR=t;if(LPF&&ac)LPF.frequency.setTargetAtTime(on?520:1600,ac.currentTime,.8)}   // v71c: Neptune's eclipse
   function hold(on){on=!!on;if(on===HOLD)return;HOLD=on;if(!ac||!playing)return;out.gain.cancelScheduledValues(ac.currentTime);out.gain.setTargetAtTime(LV(),ac.currentTime,on?1.1:1.4)}
-  function duck(ms){if(!ac||!playing)return;const t=ac.currentTime;out.gain.cancelScheduledValues(t);out.gain.setTargetAtTime(BASE*vol(prefs())*.06,t,.45);
+  function duck(ms){if(!ac||!playing)return;const t=ac.currentTime;out.gain.cancelScheduledValues(t);out.gain.setTargetAtTime(BASE*vol(prefs())*allV(prefs())*.06,t,.45);
     clearTimeout(duckT);duckT=setTimeout(()=>{if(!ac||!playing)return;out.gain.cancelScheduledValues(ac.currentTime);out.gain.setTargetAtTime(LV(),ac.currentTime,.7)},ms||2600)}
   /* one song written out to an audio buffer (for listening to it outside the game): the same scheduler, run ahead of time
      on an offline context, once through. A song may be named; opt.mute "lead" or "rest" writes out one part alone. */

@@ -11,8 +11,13 @@ const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{
   if(!p.v43t){p.v43t=1;if(p.theme==null||p.theme==="")p.theme="darkfantasy"}
   return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:true,full:false,theme:"darkfantasy",lines:true,bright:1},p)})();
 const sfxV=()=>Math.max(0,Math.min(1.5,PREF.sfxVol==null?1:+PREF.sfxVol));   // v43: the sound effects' volume, 0 to 150%
+/* v78c: All sound scales the effects and the music together; each source of sound has its own volume too (0 to 150%) */
+const volOf=v=>Math.max(0,Math.min(1.5,v==null?1:+v));
+const allV=()=>volOf(PREF.allVol);
+const SND_SRC=[["ui","Buttons and cards"],["table","Placing and moving"],["battle","Battle"],["dice","Dice"],["mana","Mana and decks"],["spells","Spells"],["sky","The sky's sounds"],["amb","Ambience"]];
+const srcV=k=>volOf(PREF.srcVol&&PREF.srcVol[k]);
 function savePrefs(){try{localStorage.setItem("ec-prefs2",JSON.stringify(PREF))}catch(e){}}
-const THEMES={darkfantasy:["Ether's Crossroads",["th-darkfantasy"]],"":["Kenoma",["th-rich"]],dull:["Kenoma (dull)",["th-dull","th-rich"]],office:["Office",["th-office","th-rich"]],officedark:["Office Dark",["th-officedark","th-rich"]],earth:["Druid",["th-earth","th-rich"]],jester:["Jester",["th-black","th-jester","th-rich"]],ten:["Ten",["th-indigo","th-blue","th-rich"]],satan:["Disturbed Satan",["th-crimson","th-rich"]]};   // v71: th-rich gives every theme its button, border, label and heading colors
+const THEMES={darkfantasy:["Ether's Crossroads",["th-darkfantasy"]],etherten:["Ether's Ten",["th-darkfantasy","th-eten"]],etherkenoma:["Ether's Kenoma",["th-darkfantasy","th-eken"]],"":["Kenoma",["th-rich"]],dull:["Kenoma (dull)",["th-dull","th-rich"]],office:["Office",["th-office","th-rich"]],officedark:["Office Dark",["th-officedark","th-rich"]],earth:["Druid",["th-earth","th-rich"]],jester:["Jester",["th-black","th-jester","th-rich"]],ten:["Ten",["th-indigo","th-blue","th-rich"]],satan:["Disturbed Satan",["th-crimson","th-rich"]]};   // v71: th-rich gives every theme its button, border, label and heading colors
 function applyMoonTheme(){
   const h=document.documentElement,b=!!(G&&G.moon.blood&&!G.over);
   for(const k in THEMES)for(const c of THEMES[k][1])h.classList.remove(c);

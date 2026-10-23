@@ -173,6 +173,12 @@ html.th-earth{--ground:#0e130d;--well:#151c13;--deep:#0a0e09;--text:#dcd8c0;--di
 html.th-darkfantasy{--ground:#0d0a0e;--well:#1b161cea;--deep:#100c11ee;--text:#dcd9df;--dim:#a49ba6;--amber:#c9a24a;--amber-hi:#efd583;--rule:#5b2830;--string:#000;
   background:linear-gradient(#0a070bb3,#0a070bcc),url(dark-fantasy.png) center/cover fixed;image-rendering:pixelated}
 html.th-darkfantasy body{image-rendering:auto}
+/* v78c: Ether's Ten: the same dungeon in blue, loosely after Ten (white on indigo): grey and blue panels, gold and silver */
+html.th-darkfantasy.th-eten{--ground:#0a0b16;--well:#15172bea;--deep:#0c0d1cee;--text:#dcdeea;--dim:#a3a6c0;--rule:#2e3478;
+  background:linear-gradient(#060814c4,#060814db),linear-gradient(#26357a,#0e1438),url(dark-fantasy.png) center/cover;background-blend-mode:normal,color,normal;background-attachment:fixed}
+/* v78c: Ether's Kenoma: the same dungeon in Kenoma's burnt amber and orange */
+html.th-darkfantasy.th-eken{--ground:#150d07;--well:#23160dea;--deep:#120a05ee;--text:#f1d5a8;--dim:#c6a074;--amber:#e9a157;--amber-hi:#ffc98a;--rule:#5c3418;
+  background:linear-gradient(#120803bd,#120803d4),linear-gradient(#a8541a,#4a1e06),url(dark-fantasy.png) center/cover;background-blend-mode:normal,color,normal;background-attachment:fixed}
 /* Office: white paper, light grey panels, a blue ribbon accent; inspired by an office suite, not a copy of one */
 html.th-office{--ground:#d9dadd;--well:#e6e7ea;--deep:#cfd1d5;--text:#232427;--dim:#575b61;--amber:#2b579a;--amber-hi:#1a3f78;--rule:#b3b6bb;--string:#b3b6bb;color-scheme:light}
 .crumbs .arrows a{margin:0 2px}
@@ -195,6 +201,16 @@ html.th-darkfantasy.ecpage .rules h3{color:#c4c2cc}
 html.th-darkfantasy.ecpage a.card{background:#1a1419e0;border-color:#8a7442;box-shadow:inset 0 0 24px #00000060}
 html.th-darkfantasy.ecpage a.card:hover{border-color:var(--amber-hi)}
 html.th-darkfantasy.ecpage .rules main,html.th-darkfantasy.ecpage main.rules{background:#0d0a0eb8;padding-left:18px;padding-right:18px;box-shadow:0 0 0 1px #5b283055}
+html.th-darkfantasy.th-eten.ecpage main h1{color:#8090ff;text-shadow:0 0 12px #3346d080}
+html.th-darkfantasy.th-eten.ecpage .rules h2{border-bottom-color:#2e3478}
+html.th-darkfantasy.th-eten.ecpage .rules h3{color:#b9d6ea}
+html.th-darkfantasy.th-eten.ecpage a.card{background:#14162ae0}
+html.th-darkfantasy.th-eten.ecpage .rules main,html.th-darkfantasy.th-eten.ecpage main.rules{background:#0a0b16b8;box-shadow:0 0 0 1px #2e347855}
+html.th-darkfantasy.th-eken.ecpage main h1{color:#ff9a4a;text-shadow:0 0 12px #c2581c80}
+html.th-darkfantasy.th-eken.ecpage .rules h2{border-bottom-color:#5c3418}
+html.th-darkfantasy.th-eken.ecpage .rules h3{color:#9cc7b9}
+html.th-darkfantasy.th-eken.ecpage a.card{background:#21150ce0;border-color:#8a5a2c}
+html.th-darkfantasy.th-eken.ecpage .rules main,html.th-darkfantasy.th-eken.ecpage main.rules{background:#150d07b8;box-shadow:0 0 0 1px #5c341855}
 /* v71: every theme carries more than two colors, like the default: buttons, borders, labels, headings (used in game.css too) */
 html.th-rich{--b1:#9a4a1c;--b2:#6e3010;--bh1:#b0571f;--bh2:#823914;--bb:#e9a157;--bt:#fbe7c6;--gb:#7a5530;--pb:#7a5530;--lab:#9cc7b9;--h1:#ffc98a;--h1g:#c2581c66}
 html.th-dull.th-rich{--b1:#6d5d2e;--b2:#4c4120;--bh1:#7d6b35;--bh2:#584b25;--bb:#c8b273;--bt:#f0e6c6;--gb:#6b5d38;--pb:#6b5d38;--lab:#a8b6c8;--h1:#e6d49a;--h1g:#8a7a3a55}
@@ -218,6 +234,8 @@ html.th-office #ecmusic{background:#eef0f3ee}   /* v71: the music plays in every
    device's own fonts (Cascadia Code is never fetched), no background picture, no music corner, no static and no lines */
 html.lite{--mono:Consolas,"Courier New",Menlo,"DejaVu Sans Mono","Liberation Mono",monospace}
 html.lite:not(.litebg).th-darkfantasy{background:radial-gradient(ellipse 120% 70% at 50% -10%,#231920,#0d0a0e 62%) fixed}
+html.lite:not(.litebg).th-darkfantasy.th-eten{background:radial-gradient(ellipse 120% 70% at 50% -10%,#1a1e44,#0a0b16 62%) fixed}
+html.lite:not(.litebg).th-darkfantasy.th-eken{background:radial-gradient(ellipse 120% 70% at 50% -10%,#2e1a0b,#150d07 62%) fixed}
 html.lite #ecmusic,html.lite button.static-toggle,html.lite svg.strings,html.lite canvas.static,html.lite .scan{display:none!important}
 /* the first visit asks once how the pages should load */
 #netask{position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;padding:16px;background:#000b}

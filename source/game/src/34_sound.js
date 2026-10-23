@@ -10,18 +10,23 @@
    event; each eclipse has its own ambience while it lasts. */
 
 const AUD=(()=>{
-  let ac=null,out=null,room=null;
+  let ac=null,out=null,room=null,grp="ui";const bus={};   // grp: the source the sound being made belongs to (v78c)
   const ok=()=>SND.on&&!!G&&!G.opts.fast&&!document.hidden;
   function ctx(){if(!SND.on)return null;try{
     if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();
       const comp=ac.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=3;comp.connect(ac.destination);
-      out=ac.createGain();out.gain.value=.6*sfxV();out.connect(comp);
+      out=ac.createGain();out.gain.value=.6*sfxV()*allV();out.connect(comp);
       // a small shared room: every sound gets the same short tail
       const len=Math.floor(ac.sampleRate*1.3),ir=ac.createBuffer(2,len,ac.sampleRate);
       for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3)}
       room=ac.createConvolver();room.buffer=ir;const rg=ac.createGain();rg.gain.value=.22;room.connect(rg).connect(comp)}
-    out.gain.value=.6*sfxV();if(ac.state==="suspended")ac.resume()}catch(e){return null}return ac}
-  const dest=g=>{g.connect(out);g.connect(room)};
+    out.gain.value=.6*sfxV()*allV();if(ac.state==="suspended")ac.resume()}catch(e){return null}return ac}
+  // each source has its own volume, before the shared room
+  const busOf=k=>{let b=bus[k];if(!b){b=ac.createGain();b.connect(out);b.connect(room);bus[k]=b}b.gain.value=srcV(k);return b};
+  const dest=g=>g.connect(busOf(grp));
+  const SRC_OF={ui:"ui",card:"ui",place:"table",move:"table",fill:"mana",pour:"mana",deck:"mana",raise:"mana",cast:"spells",
+    bell:"sky",horn:"sky",harp:"sky",coins:"sky",drums:"sky",quill:"sky",whisper:"sky",moonchime:"sky"};   // the rest: battle
+  const inGrp=(k,fn)=>{const g0=grp;grp=k;try{fn()}finally{grp=g0}};
   function env(g,t,peak,att,dec){g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+att);g.gain.exponentialRampToValueAtTime(.0001,t+att+dec)}
   function tone(type,f,t,dur,peak,o={}){const a=ac,osc=a.createOscillator(),g=a.createGain();osc.type=type;osc.frequency.setValueAtTime(f,t);
     if(o.f2)osc.frequency.exponentialRampToValueAtTime(o.f2,t+(o.glide||dur));if(o.det)osc.detune.value=o.det;
@@ -31,7 +36,7 @@ const AUD=(()=>{
     const s=a.createBufferSource();s.buffer=b;const f=a.createBiquadFilter();f.type=o.type||"bandpass";f.frequency.setValueAtTime(o.f||1000,t);if(o.f2)f.frequency.exponentialRampToValueAtTime(o.f2,t+dur);f.Q.value=o.q||1;
     const g=a.createGain();s.connect(f).connect(g);env(g,t,peak,o.att||.003,dur);dest(g);s.start(t);s.stop(t+dur+.05);return g}
   const play=fn=>{if(!ok())return;const a=ctx();if(!a)return;try{fn(a.currentTime+.01)}catch(e){console.error(e)}};
-  const last={};const once=(k,ms,fn)=>{const n=Date.now();if(last[k]&&n-last[k]<ms)return;last[k]=n;play(fn)};
+  const last={};const once=(k,ms,fn)=>{const n=Date.now();if(last[k]&&n-last[k]<ms)return;last[k]=n;inGrp(SRC_OF[k]||"battle",()=>play(fn))};
   /* ---------- the table ---------- */
   const S={
     ui:()=>once("ui",40,t=>{tone("sine",1320,t,.03,.045);tone("sine",660,t,.04,.025)}),
@@ -95,8 +100,9 @@ const AUD=(()=>{
     "ecl-mercury":A=>{drone(A,73,"triangle",.01,400);A.timers.push(setInterval(()=>{S.quill();setTimeout(()=>S.whispers(),2500)},10000));S.quill();setTimeout(()=>S.whispers(),2500)},
     "ecl-neptune":A=>{drone(A,46.2,"sine",.017,260);drone(A,69.3,"triangle",.008,380,-7);hiss(A,.012,650,.5)},   // v71c: deep water
     "ecl-saturn":A=>{drone(A,49,"sawtooth",.014,300);drone(A,73.5,"sawtooth",.009,300);A.timers.push(setInterval(()=>S.bell(),9000));S.bell()}};
-  function setAmb(k){if(k===ambKey)return;stopAmb();if(!k||!AMB[k]||!ok()){ambKey=k&&AMB[k]?null:k;return}ambKey=k;const a=ctx();if(!a)return;amb={nodes:[],gains:[],timers:[]};try{AMB[k](amb)}catch(e){console.error(e)}}
-  Object.assign(S,{setAmb,stopAmb,ok});Object.defineProperty(S,"ambKey",{get:()=>ambKey});return S;
+  function setAmb(k){if(k===ambKey)return;stopAmb();if(!k||!AMB[k]||!ok()){ambKey=k&&AMB[k]?null:k;return}ambKey=k;const a=ctx();if(!a)return;amb={nodes:[],gains:[],timers:[]};try{inGrp("amb",()=>AMB[k](amb))}catch(e){console.error(e)}}
+  function vol(){if(!ac)return;out.gain.value=.6*sfxV()*allV();for(const k in bus)bus[k].gain.value=srcV(k)}
+  Object.assign(S,{setAmb,stopAmb,ok,vol});Object.defineProperty(S,"ambKey",{get:()=>ambKey});return S;
 })();
 
 /* ---------- what plays when ---------- */

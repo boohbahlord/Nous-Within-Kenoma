@@ -1263,6 +1263,20 @@ html.th-darkfantasy .btn.ghost{background:#120d12cc;color:var(--amber-hi);border
 html.th-darkfantasy .ovbox,html.th-darkfantasy .pbox,html.th-darkfantasy .cinfo,html.th-darkfantasy .gbar{border-color:#8a7442;box-shadow:0 0 0 1px #00000080,inset 0 0 24px #00000060}
 html.th-darkfantasy .label,html.th-darkfantasy h3{color:#c4c2cc;letter-spacing:.2em}
 html.th-darkfantasy #log li{border-bottom-color:#5b283055}
+/* v78c: Ether's Ten (blue) and Ether's Kenoma (burnt amber): the default's look in other colors */
+html.th-darkfantasy.th-eten .game h1,html.th-darkfantasy.th-eten .ovbox h2{color:#8090ff;text-shadow:0 0 12px #3346d080}
+html.th-darkfantasy.th-eten .stab.on,html.th-darkfantasy.th-eten .btn{background:linear-gradient(#3346b8,#1f2b80);border-color:#c9a24a;color:#eef0ff}
+html.th-darkfantasy.th-eten .btn:hover,html.th-darkfantasy.th-eten .btn:focus-visible{background:linear-gradient(#3d52d2,#26349a)}
+html.th-darkfantasy.th-eten .btn.ghost{background:#0c0d1ccc}
+html.th-darkfantasy.th-eten .label,html.th-darkfantasy.th-eten h3{color:#b9d6ea}
+html.th-darkfantasy.th-eten #log li{border-bottom-color:#2e347855}
+html.th-darkfantasy.th-eken .game h1,html.th-darkfantasy.th-eken .ovbox h2{color:#ff9a4a;text-shadow:0 0 12px #c2581c80}
+html.th-darkfantasy.th-eken .stab.on,html.th-darkfantasy.th-eken .btn{background:linear-gradient(#9a4a1c,#6e3010);border-color:#e9a157;color:#fbe7c6}
+html.th-darkfantasy.th-eken .btn:hover,html.th-darkfantasy.th-eken .btn:focus-visible{background:linear-gradient(#b0571f,#823914)}
+html.th-darkfantasy.th-eken .btn.ghost{background:#140c06cc;border-color:#7a5530}
+html.th-darkfantasy.th-eken .ovbox,html.th-darkfantasy.th-eken .pbox,html.th-darkfantasy.th-eken .cinfo,html.th-darkfantasy.th-eken .gbar{border-color:#8a5a2c}
+html.th-darkfantasy.th-eken .label,html.th-darkfantasy.th-eken h3{color:#9cc7b9}
+html.th-darkfantasy.th-eken #log li{border-bottom-color:#5c341855}
 html.th-earth .btn{color:#0e130d}
 html.th-earth .btn.ghost{color:var(--amber)}html.th-earth .btn.ghost:hover{color:var(--amber-hi)}   /* v71: outline buttons keep light text */
 html.th-earth .game h1{color:#cfe08c;text-shadow:0 0 14px #9bbf5e40}
@@ -1363,6 +1377,8 @@ html.th-office .lazyico path{stroke:var(--text)}html.th-office #bankslot .spell.
 #mkBtn small{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-top:2px}
 html.th-darkfantasy #mkBtn .mkt,html.th-jester #mkBtn .mkt,html.th-crimson #mkBtn .mkt{font-family:"Grenze Gotisch","Old English Text MT",serif;font-weight:500;font-size:24px;color:#e0505b;text-shadow:0 0 10px #8e162270}
 html.th-darkfantasy #mkBtn{border-color:#8e1622}
+html.th-darkfantasy.th-eten #mkBtn .mkt{color:#8f9cff;text-shadow:0 0 10px #3346d070}html.th-darkfantasy.th-eten #mkBtn{border-color:#2e3a9a}
+html.th-darkfantasy.th-eken #mkBtn .mkt{color:#ffa45a;text-shadow:0 0 10px #c2581c70}html.th-darkfantasy.th-eken #mkBtn{border-color:#8a4a1c}
 .ovbox.mkbox{max-width:min(760px,calc(96vw / var(--uiz,1)));font-size:13.5px;line-height:1.5}
 .ovbox.mkbox h2{margin:0 0 8px;font-size:20px}
 .ovbox.mkbox .mknever{margin:0 0 4px;text-align:right;font-size:12px}
@@ -2485,3 +2501,16 @@ html.ecfs #fkmode{bottom:auto;top:132px}
 .kbactbox ol.kbacts{list-style:none;margin:8px 0;padding:0;display:grid;gap:5px}
 .kbactbox ol.kbacts button{width:100%;text-align:left;display:flex;gap:9px;align-items:center;padding:6px 8px;background:#1b130c;border:1px solid #4a3620;border-radius:5px;color:#efe2c8;cursor:pointer;font:inherit}
 .kbactbox ol.kbacts button:hover,.kbactbox ol.kbacts button.kbfoc{border-color:var(--amber)}
+/* v78c: the settings window's tabs */
+#menu .ovbox:has(.settabs){min-height:min(640px,86vh)}
+#menu .settabs{padding:0;margin:12px 0 2px;gap:4px;flex-wrap:wrap}
+#menu .settabs .stab{margin-top:6px}
+#menu .setpane{padding:2px 0 8px}
+#menu .setpane>.sethead{margin:16px 0 2px;font-size:12px;letter-spacing:.18em;text-transform:uppercase}
+#menu .setpane>.sethead:first-child{margin-top:10px}
+#menu .setpane>.mgrid{margin:8px 0}
+#menu .setpane>.mslides{border-top:0;margin:4px 0 8px;padding-top:4px}
+#menu .setpane>details.sub{margin:12px 0}
+#menu .setpane>p.dim{margin:6px 0}
+#menu .setpane[data-pane=aud] .mslides label.f.mslide{grid-template-columns:minmax(8em,12.5em) auto minmax(90px,220px) auto 3.8em}
+@media (max-width:520px){#menu .setpane[data-pane=aud] .mslides label.f.mslide{grid-template-columns:minmax(6.5em,8.5em) auto minmax(60px,1fr) auto 3.4em}}

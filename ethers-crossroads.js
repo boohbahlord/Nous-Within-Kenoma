@@ -452,36 +452,39 @@ const blessCap=pl=>6-Math.min(6,G.p[pl].od);
 
 /* ---------------- sound (synthesized, quiet) ---------------- */
 const SND=(()=>{
-  let ac=null,master=null,on=true;
+  let ac=null,master=null,on=true;const bus={};
   try{on=localStorage.getItem("ec-sound")!=="off"}catch(e){}
   function ctx(){
     if(!on||G&&G.opts.fast)return null;
-    try{if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();master=ac.createGain();master.gain.value=sfxV();master.connect(ac.destination)}
-      master.gain.value=sfxV();if(ac.state==="suspended")ac.resume();}catch(e){return null}
+    try{if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();master=ac.createGain();master.gain.value=sfxV()*allV();master.connect(ac.destination)}
+      master.gain.value=sfxV()*allV();if(ac.state==="suspended")ac.resume();}catch(e){return null}
     return ac;
   }
+  // each source of sound has its own volume on the way out (v78c)
+  const busOf=k=>{let b=bus[k];if(!b){b=ac.createGain();b.connect(master);bus[k]=b}b.gain.value=srcV(k);return b};
   function noise(a,dur){const b=a.createBuffer(1,Math.max(1,Math.floor(a.sampleRate*dur)),a.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const s=a.createBufferSource();s.buffer=b;return s}
-  function click(a,t,amp,freq){
+  function click(a,t,amp,freq,to){
     const s=noise(a,.03),f=a.createBiquadFilter(),g=a.createGain();
     f.type="bandpass";f.frequency.value=freq;f.Q.value=2.2;
     g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(amp,t+.002);g.gain.exponentialRampToValueAtTime(.0005,t+.028);
-    s.connect(f).connect(g).connect(master);s.start(t);s.stop(t+.035);
+    s.connect(f).connect(g).connect(to);s.start(t);s.stop(t+.035);
   }
   return{
     get on(){return on},
     toggle(){on=!on;try{localStorage.setItem("ec-sound",on?"on":"off")}catch(e){}return on},
-    dice(n){const a=ctx();if(!a)return;let t=a.currentTime+.01;const k=Math.min(9,3+Math.ceil(n*.8));
-      for(let i=0;i<k;i++){click(a,t,.2*(1-i/(k+1))+.04,1800+Math.random()*2600);t+=.035+Math.random()*.07*(1+i/k)}},
+    vol(){if(!ac)return;master.gain.value=sfxV()*allV();for(const k in bus)bus[k].gain.value=srcV(k)},
+    dice(n){const a=ctx();if(!a)return;let t=a.currentTime+.01;const k=Math.min(9,3+Math.ceil(n*.8)),to=busOf("dice");
+      for(let i=0;i<k;i++){click(a,t,.2*(1-i/(k+1))+.04,1800+Math.random()*2600,to);t+=.035+Math.random()*.07*(1+i/k)}},
     zap(){const a=ctx();if(!a)return;const t=a.currentTime+.01;
       const s=noise(a,.5),f=a.createBiquadFilter(),g=a.createGain();f.type="highpass";f.frequency.value=1800;
       g.gain.setValueAtTime(0,t);for(let i=0;i<5;i++){g.gain.linearRampToValueAtTime(.22*(1-i/6),t+i*.07+.004);g.gain.linearRampToValueAtTime(.02,t+i*.07+.05)}g.gain.exponentialRampToValueAtTime(.001,t+.45);
-      s.connect(f).connect(g).connect(master);s.start(t);s.stop(t+.5)},
-    gun(){const a=ctx();if(!a)return;const t=a.currentTime+.01;
+      s.connect(f).connect(g).connect(busOf("spells"));s.start(t);s.stop(t+.5)},
+    gun(){const a=ctx();if(!a)return;const t=a.currentTime+.01,to=busOf("battle");
       const s=noise(a,.45),f=a.createBiquadFilter(),g=a.createGain();f.type="lowpass";f.frequency.setValueAtTime(2600,t);f.frequency.exponentialRampToValueAtTime(300,t+.35);
       g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.32,t+.003);g.gain.exponentialRampToValueAtTime(.001,t+.42);
-      s.connect(f).connect(g).connect(master);s.start(t);s.stop(t+.45);
+      s.connect(f).connect(g).connect(to);s.start(t);s.stop(t+.45);
       const o=a.createOscillator(),og=a.createGain();o.type="sine";o.frequency.setValueAtTime(120,t);o.frequency.exponentialRampToValueAtTime(38,t+.22);
-      og.gain.setValueAtTime(.28,t);og.gain.exponentialRampToValueAtTime(.001,t+.25);o.connect(og).connect(master);o.start(t);o.stop(t+.26)}
+      og.gain.setValueAtTime(.28,t);og.gain.exponentialRampToValueAtTime(.001,t+.25);o.connect(og).connect(to);o.start(t);o.stop(t+.26)}
   };
 })();
 
@@ -2558,7 +2561,7 @@ ${chk("oskyrand","A random start","Every few rounds only. Each new Heavenly Body
 <label class="opt"><input type="radio" name="dlines" value="1" ${PREF.lines!==false?"checked":""}><span>On (default)<small>Thin black lines across the page behind everything, and now and then a black bar.</small></span></label>
 <label class="opt"><input type="radio" name="dlines" value="0" ${PREF.lines===false?"checked":""}><span>Off<small>A plain background, on every page of the site.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Brightness</legend><label class="f">Brightness <select id="dbright">${[.7,.8,.9,1,1.1,1.2,1.3].map(v=>`<option value="${v}" ${Math.abs((PREF.bright||1)-v)<.01?"selected":""}>${Math.round(v*100)}%${v===1?" (default)":""}</option>`).join("")}</select></label><p class="dim">For the whole site. Also in the Display bar at the bottom of the game.</p></fieldset>
-<fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({darkfantasy:"The default: an old dungeon in grey and crimson, gold and silver.","":"The burnt amber of the rest of the site.",dull:"The burnt amber, duller and less orange, with a faint yellow tint.",office:"Soft grey pages and panels with a blue accent, like an office suite; easy on the eyes.",officedark:"The Office theme in charcoal, for the night.",earth:"A night druid\u2019s grove: dark soil, moss and lichen gold.",jester:"Black, after chapter 26.",ten:"White on indigo, after chapters 1–4.",satan:"Crimson, after chapter 23."})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, text size, hand position, tile names, page width and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
+<fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({darkfantasy:"The default: an old dungeon in grey and crimson, gold and silver.",etherten:"The default\u2019s dungeon in blue, after Ten: grey and blue, gold and silver.",etherkenoma:"The default\u2019s dungeon in Kenoma\u2019s burnt amber and orange.","":"The burnt amber of the rest of the site.",dull:"The burnt amber, duller and less orange, with a faint yellow tint.",office:"Soft grey pages and panels with a blue accent, like an office suite; easy on the eyes.",officedark:"The Office theme in charcoal, for the night.",earth:"A night druid\u2019s grove: dark soil, moss and lichen gold.",jester:"Black, after chapter 26.",ten:"White on indigo, after chapters 1–4.",satan:"Crimson, after chapter 23."})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, text size, hand position, tile names, page width and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
   const suitSel=`<div id="suitpick" hidden><p class="dim">${mode==="survival"?"You pick; the other two suits wait in the Ether.":"P1 picks; P2 gets the other two suits."}</p>
 <label class="f">Red suit <select id="osuitR"><option value="H">♥ Hearts</option><option value="D">♦ Diamonds</option></select></label>
 <label class="f">Black suit <select id="osuitB"><option value="S">♠ Spades</option><option value="C">♣ Clubs</option></select></label></div>`;
@@ -2777,8 +2780,13 @@ const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{
   if(!p.v43t){p.v43t=1;if(p.theme==null||p.theme==="")p.theme="darkfantasy"}
   return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:true,full:false,theme:"darkfantasy",lines:true,bright:1},p)})();
 const sfxV=()=>Math.max(0,Math.min(1.5,PREF.sfxVol==null?1:+PREF.sfxVol));   // v43: the sound effects' volume, 0 to 150%
+/* v78c: All sound scales the effects and the music together; each source of sound has its own volume too (0 to 150%) */
+const volOf=v=>Math.max(0,Math.min(1.5,v==null?1:+v));
+const allV=()=>volOf(PREF.allVol);
+const SND_SRC=[["ui","Buttons and cards"],["table","Placing and moving"],["battle","Battle"],["dice","Dice"],["mana","Mana and decks"],["spells","Spells"],["sky","The sky's sounds"],["amb","Ambience"]];
+const srcV=k=>volOf(PREF.srcVol&&PREF.srcVol[k]);
 function savePrefs(){try{localStorage.setItem("ec-prefs2",JSON.stringify(PREF))}catch(e){}}
-const THEMES={darkfantasy:["Ether's Crossroads",["th-darkfantasy"]],"":["Kenoma",["th-rich"]],dull:["Kenoma (dull)",["th-dull","th-rich"]],office:["Office",["th-office","th-rich"]],officedark:["Office Dark",["th-officedark","th-rich"]],earth:["Druid",["th-earth","th-rich"]],jester:["Jester",["th-black","th-jester","th-rich"]],ten:["Ten",["th-indigo","th-blue","th-rich"]],satan:["Disturbed Satan",["th-crimson","th-rich"]]};   // v71: th-rich gives every theme its button, border, label and heading colors
+const THEMES={darkfantasy:["Ether's Crossroads",["th-darkfantasy"]],etherten:["Ether's Ten",["th-darkfantasy","th-eten"]],etherkenoma:["Ether's Kenoma",["th-darkfantasy","th-eken"]],"":["Kenoma",["th-rich"]],dull:["Kenoma (dull)",["th-dull","th-rich"]],office:["Office",["th-office","th-rich"]],officedark:["Office Dark",["th-officedark","th-rich"]],earth:["Druid",["th-earth","th-rich"]],jester:["Jester",["th-black","th-jester","th-rich"]],ten:["Ten",["th-indigo","th-blue","th-rich"]],satan:["Disturbed Satan",["th-crimson","th-rich"]]};   // v71: th-rich gives every theme its button, border, label and heading colors
 function applyMoonTheme(){
   const h=document.documentElement,b=!!(G&&G.moon.blood&&!G.over);
   for(const k in THEMES)for(const c of THEMES[k][1])h.classList.remove(c);
@@ -7229,18 +7237,23 @@ if(window.__EC)Object.assign(window.__EC,{signSVG});
    event; each eclipse has its own ambience while it lasts. */
 
 const AUD=(()=>{
-  let ac=null,out=null,room=null;
+  let ac=null,out=null,room=null,grp="ui";const bus={};   // grp: the source the sound being made belongs to (v78c)
   const ok=()=>SND.on&&!!G&&!G.opts.fast&&!document.hidden;
   function ctx(){if(!SND.on)return null;try{
     if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();
       const comp=ac.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=3;comp.connect(ac.destination);
-      out=ac.createGain();out.gain.value=.6*sfxV();out.connect(comp);
+      out=ac.createGain();out.gain.value=.6*sfxV()*allV();out.connect(comp);
       // a small shared room: every sound gets the same short tail
       const len=Math.floor(ac.sampleRate*1.3),ir=ac.createBuffer(2,len,ac.sampleRate);
       for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3)}
       room=ac.createConvolver();room.buffer=ir;const rg=ac.createGain();rg.gain.value=.22;room.connect(rg).connect(comp)}
-    out.gain.value=.6*sfxV();if(ac.state==="suspended")ac.resume()}catch(e){return null}return ac}
-  const dest=g=>{g.connect(out);g.connect(room)};
+    out.gain.value=.6*sfxV()*allV();if(ac.state==="suspended")ac.resume()}catch(e){return null}return ac}
+  // each source has its own volume, before the shared room
+  const busOf=k=>{let b=bus[k];if(!b){b=ac.createGain();b.connect(out);b.connect(room);bus[k]=b}b.gain.value=srcV(k);return b};
+  const dest=g=>g.connect(busOf(grp));
+  const SRC_OF={ui:"ui",card:"ui",place:"table",move:"table",fill:"mana",pour:"mana",deck:"mana",raise:"mana",cast:"spells",
+    bell:"sky",horn:"sky",harp:"sky",coins:"sky",drums:"sky",quill:"sky",whisper:"sky",moonchime:"sky"};   // the rest: battle
+  const inGrp=(k,fn)=>{const g0=grp;grp=k;try{fn()}finally{grp=g0}};
   function env(g,t,peak,att,dec){g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+att);g.gain.exponentialRampToValueAtTime(.0001,t+att+dec)}
   function tone(type,f,t,dur,peak,o={}){const a=ac,osc=a.createOscillator(),g=a.createGain();osc.type=type;osc.frequency.setValueAtTime(f,t);
     if(o.f2)osc.frequency.exponentialRampToValueAtTime(o.f2,t+(o.glide||dur));if(o.det)osc.detune.value=o.det;
@@ -7250,7 +7263,7 @@ const AUD=(()=>{
     const s=a.createBufferSource();s.buffer=b;const f=a.createBiquadFilter();f.type=o.type||"bandpass";f.frequency.setValueAtTime(o.f||1000,t);if(o.f2)f.frequency.exponentialRampToValueAtTime(o.f2,t+dur);f.Q.value=o.q||1;
     const g=a.createGain();s.connect(f).connect(g);env(g,t,peak,o.att||.003,dur);dest(g);s.start(t);s.stop(t+dur+.05);return g}
   const play=fn=>{if(!ok())return;const a=ctx();if(!a)return;try{fn(a.currentTime+.01)}catch(e){console.error(e)}};
-  const last={};const once=(k,ms,fn)=>{const n=Date.now();if(last[k]&&n-last[k]<ms)return;last[k]=n;play(fn)};
+  const last={};const once=(k,ms,fn)=>{const n=Date.now();if(last[k]&&n-last[k]<ms)return;last[k]=n;inGrp(SRC_OF[k]||"battle",()=>play(fn))};
   /* ---------- the table ---------- */
   const S={
     ui:()=>once("ui",40,t=>{tone("sine",1320,t,.03,.045);tone("sine",660,t,.04,.025)}),
@@ -7314,8 +7327,9 @@ const AUD=(()=>{
     "ecl-mercury":A=>{drone(A,73,"triangle",.01,400);A.timers.push(setInterval(()=>{S.quill();setTimeout(()=>S.whispers(),2500)},10000));S.quill();setTimeout(()=>S.whispers(),2500)},
     "ecl-neptune":A=>{drone(A,46.2,"sine",.017,260);drone(A,69.3,"triangle",.008,380,-7);hiss(A,.012,650,.5)},   // v71c: deep water
     "ecl-saturn":A=>{drone(A,49,"sawtooth",.014,300);drone(A,73.5,"sawtooth",.009,300);A.timers.push(setInterval(()=>S.bell(),9000));S.bell()}};
-  function setAmb(k){if(k===ambKey)return;stopAmb();if(!k||!AMB[k]||!ok()){ambKey=k&&AMB[k]?null:k;return}ambKey=k;const a=ctx();if(!a)return;amb={nodes:[],gains:[],timers:[]};try{AMB[k](amb)}catch(e){console.error(e)}}
-  Object.assign(S,{setAmb,stopAmb,ok});Object.defineProperty(S,"ambKey",{get:()=>ambKey});return S;
+  function setAmb(k){if(k===ambKey)return;stopAmb();if(!k||!AMB[k]||!ok()){ambKey=k&&AMB[k]?null:k;return}ambKey=k;const a=ctx();if(!a)return;amb={nodes:[],gains:[],timers:[]};try{inGrp("amb",()=>AMB[k](amb))}catch(e){console.error(e)}}
+  function vol(){if(!ac)return;out.gain.value=.6*sfxV()*allV();for(const k in bus)bus[k].gain.value=srcV(k)}
+  Object.assign(S,{setAmb,stopAmb,ok,vol});Object.defineProperty(S,"ambKey",{get:()=>ambKey});return S;
 })();
 
 /* ---------- what plays when ---------- */
@@ -8557,15 +8571,21 @@ function musicSync(){const b=$("#pMusic"),on=true;   // v71: in every theme
 if(window.__EC)Object.assign(window.__EC,{musicSync});
 
 /* ---------------- v43: the sound switch at the top of the page, and the menu's audio sliders ----------------
-   "Sound: On/Off" sits beside Menu, All Rules and New game. The menu has two sliders, sound effects and music, 0 to 150% in steps
-   of 5%; with the sound off both read 0, a slider moved up turns the sound back on, and one moved to 0 turns that sound off. */
+   "Sound: On/Off" sits beside Menu, All Rules and New game. The sliders run 0 to 150% in steps of 5%. With the sound off,
+   All sound, Sound effects and Music read 0; moving one of them up turns the sound back on, and moving one to 0 turns that
+   sound off (All sound: every sound). v78c: All sound scales everything together; each source has its own slider. */
+const sndVol=()=>{SND.vol();AUD.vol();if(typeof musicSync==="function")musicSync()};
 function paintSndTop(){const b=$("#sndtop");if(b){b.textContent="Sound: "+(SND.on?"On":"Off");b.setAttribute("aria-pressed",SND.on)}
-  const a=$("#mSfx"),m=$("#mMus");
-  if(a){a.value=SND.on?Math.round(sfxV()*100):0;$("#mSfxV").textContent=a.value+"%"}
-  if(m){m.value=SND.on&&PREF.music!==false?Math.round((PREF.musicVol==null?1:+PREF.musicVol)*100):0;$("#mMusV").textContent=m.value+"%"}}
-function wireAudioSliders(){const a=$("#mSfx"),m=$("#mMus");
-  if(a)a.oninput=()=>{const v=+a.value/100;if(!v){if(SND.on)SND.toggle()}else{PREF.sfxVol=v;savePrefs();if(!SND.on)SND.toggle()}paintSndTop();if(typeof musicSync==="function")musicSync()};
-  if(m)m.oninput=()=>{const v=+m.value/100;if(!v)PREF.music=false;else{PREF.music=true;PREF.musicVol=v;if(!SND.on)SND.toggle()}savePrefs();paintSndTop();if(typeof musicSync==="function")musicSync()};
+  const show=(id,v)=>{const s=$("#"+id);if(!s)return;s.value=v;const o=$("#"+id+"V");if(o)o.textContent=v+"%"};
+  show("mAll",SND.on?Math.round(allV()*100):0);
+  show("mSfx",SND.on?Math.round(sfxV()*100):0);
+  show("mMus",SND.on&&PREF.music!==false?Math.round((PREF.musicVol==null?1:+PREF.musicVol)*100):0);
+  for(const [k] of SND_SRC)show("mSrc_"+k,Math.round(srcV(k)*100))}
+function wireAudioSliders(){const all=$("#mAll"),a=$("#mSfx"),m=$("#mMus");
+  if(all)all.oninput=()=>{const v=+all.value/100;if(!v){if(SND.on)SND.toggle()}else{PREF.allVol=v;savePrefs();if(!SND.on)SND.toggle()}paintSndTop();sndVol()};
+  if(a)a.oninput=()=>{const v=+a.value/100;if(!v){if(SND.on)SND.toggle()}else{PREF.sfxVol=v;savePrefs();if(!SND.on)SND.toggle()}paintSndTop();sndVol()};
+  if(m)m.oninput=()=>{const v=+m.value/100;if(!v)PREF.music=false;else{PREF.music=true;PREF.musicVol=v;if(!SND.on)SND.toggle()}savePrefs();paintSndTop();sndVol()};
+  for(const [k] of SND_SRC){const s=$("#mSrc_"+k);if(s)s.oninput=()=>{PREF.srcVol=Object.assign({},PREF.srcVol,{[k]:+s.value/100});savePrefs();paintSndTop();sndVol()}}
   paintSndTop()}
 document.addEventListener("DOMContentLoaded",()=>{const b=$("#sndtop");if(b)b.onclick=()=>{SND.toggle();paintSndTop();if(typeof musicSync==="function")musicSync()};paintSndTop()});
 
@@ -10543,7 +10563,7 @@ function groupMenuSliders(){const m=$("#menu"),box=m&&m.querySelector(".ovbox");
           r.dispatchEvent(new Event("input",{bubbles:true}));r.dispatchEvent(new Event("change",{bubbles:true}))};return b};
       r.before(mk(-1,"◀","less"));r.after(mk(1,"▶","more"))}
     l.querySelectorAll(".mstep").forEach(b=>b.disabled=r.disabled);
-    if(!l.closest("details")&&l.parentNode!==g)g.appendChild(l)}}
+    if(!l.closest("details,.setpane")&&l.parentNode!==g)g.appendChild(l)}}
 {const _om=openMenu;openMenu=function(){_om.apply(this,arguments);groupMenuSliders()}}
 
 /* ---------- cards in the players' colors, further apart: each color has its own card tone (U3). Crimson and Ember used to
@@ -13893,5 +13913,71 @@ let spellsTop=0;document.addEventListener("scroll",e=>{const t=e.target;if(t&&t.
 {const _r=render;render=function(){if(!PERF.inRender){PERF.vk=null;PERF.sp=spellsTop}
   PERF.inRender++;try{return rSafe(_r,this,arguments)}finally{PERF.inRender--;if(!PERF.inRender){PERF.vk=null;PERF.sp=null}}}}
 if(window.__EC)Object.assign(window.__EC,{renderAll:()=>render(),perfFlush:()=>perfFlush()});
+
+/* ---------- v78c: the settings window in four tabs ----------
+   The pause menu (and Settings before a game) keeps every setting it had, sorted into tabs; Tab and Shift+Tab or a click
+   change the tab, and the window opens on the tab used last.
+   - General: the table's looks and layout, sizes, Accessibility Settings, and the game's own switches.
+   - Controls: Large Map Controls, then Keyboard controls at the very bottom.
+   - Performance: Connection, the background picture, the animations and each animation on its own.
+   - Audio: All sound, Music and Sound effects, then one slider for each source of sound.
+   The settings' own code builds them as before; this moves them into place once the window is built, and anything it
+   doesn't know goes to the end of General, so nothing is ever lost. */
+const SET_TABS=[["gen","General"],["ctl","Controls"],["perf","Performance"],["aud","Audio"]];
+let setTab="gen";
+
+function setShow(box,k){setTab=k;
+  box.querySelectorAll(".settabs .stab").forEach(t=>{const on=t.dataset.st===k;t.classList.toggle("on",on);t.setAttribute("aria-selected",on)});
+  box.querySelectorAll(".setpane").forEach(p=>p.hidden=p.dataset.pane!==k)}
+
+function setBuild(){const m=$("#menu"),box=m&&m.querySelector(".ovbox");if(!box||box.querySelector(".settabs"))return;
+  const mk=(tag,cls,html)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(html)e.innerHTML=html;return e};
+  const rowOf=id=>{const e=box.querySelector("#"+id);return e&&(e.closest("label")||e.closest("p"))};
+  const take=(dest,ids)=>{for(const id of ids){const r=rowOf(id);if(r)dest.appendChild(r)}return dest};
+  const sect=(pane,title,...parts)=>{const kids=parts.filter(p=>p&&p.childElementCount);if(!kids.length)return;
+    if(title)pane.appendChild(mk("h3","sethead",esc(title)));kids.forEach(p=>pane.appendChild(p))};
+
+  // the audio rows are new: in place first, so the slider grouping gives them their arrows like every other slider
+  const slide=(id,name,v)=>`<label class="f mslide">${name} <input type="range" id="${id}" min="0" max="150" step="5" value="${v}"><b id="${id}V"></b></label>`;
+  const old=box.querySelector(".mslides")||box.querySelector(".mgrid");
+  old.insertAdjacentHTML("beforeend",slide("mAll","All sound",SND.on?Math.round(allV()*100):0)+SND_SRC.map(([k,n])=>slide("mSrc_"+k,n,Math.round(srcV(k)*100))).join(""));
+  groupMenuSliders();wireAudioSliders();
+
+  const P={};for(const [k] of SET_TABS){P[k]=mk("div","setpane");P[k].dataset.pane=k;P[k].setAttribute("role","tabpanel")}
+
+  /* General */
+  sect(P.gen,"Table and layout",take(mk("div","mgrid"),["mTheme","mHand","mSel","mCtl","mCoord","mFull","mRbHelp","mRbFoot","mSpeed","mCheatPanel"]));
+  sect(P.gen,"Cards and map",take(mk("div","mgrid"),["mPxMap","mLines","mSpellBL","mCardSym","mPat"]),take(mk("div","mslides"),["mMapOp"]));
+  const sizes=[...box.querySelectorAll(".mgrid")].find(g=>g.querySelector("[data-mz]"));sect(P.gen,"Sizes",sizes);
+  const acc=box.querySelector(".maccess");if(acc)P.gen.appendChild(acc);
+  /* Controls: the large map's fold above the keyboard's, which stays at the very bottom */
+  const cam=box.querySelector("#mCam"),keys=box.querySelector(".kbfold");
+  P.ctl.appendChild(mk("p","dim","How you move around the table with the mouse, the wheel and the keys."));
+  if(cam)P.ctl.appendChild(cam);if(keys)P.ctl.appendChild(keys);
+  /* Performance */
+  const net=box.querySelector(".perfnet");if(net){const h=net.querySelector(".perfh");if(h)h.remove();sect(P.perf,"Connection",net)}
+  sect(P.perf,"Animations",take(mk("div","mgrid"),["mAnimC","mAnimM","mFxMin","mFxBy"]),take(mk("div","mslides"),["mFxLvl"]));
+  const parts=box.querySelector("#mParts");if(parts){const s=parts.querySelector(":scope>summary");if(s)s.textContent="Each animation on its own";P.perf.appendChild(parts)}
+  /* Audio */
+  sect(P.aud,"",take(mk("div","mslides"),["mAll","mMus","mSfx"]));
+  P.aud.appendChild(mk("p","dim","All sound turns every sound and the music up or down together; at 0 it turns the sound off, and moving it up turns it back on."));
+  sect(P.aud,"Each sound",take(mk("div","mslides"),SND_SRC.map(([k])=>"mSrc_"+k)));
+  if(P.aud.lastChild)P.aud.appendChild(mk("p","dim","Ambience is the low sound of the moons and the eclipses; the sky's sounds are its bells, horns, harps, drums and quills."));
+  /* whatever is left (a setting this doesn't know yet) stays reachable in General */
+  const rest=mk("div","mgrid");box.querySelectorAll(".mgrid label.f, .mslides label.f").forEach(l=>{if(!l.closest(".setpane"))rest.appendChild(l)});
+  sect(P.gen,"More",rest);
+  const timer=rowOf("mTimer");if(timer)P.gen.appendChild(timer);
+  box.querySelectorAll(".mgrid, .mslides").forEach(g=>{if(!g.closest(".setpane")&&!g.closest("details")&&!g.childElementCount)g.remove()});
+
+  const bar=mk("div","stabs settabs",SET_TABS.map(([k,t])=>`<button type="button" role="tab" class="stab" data-st="${k}">${t}</button>`).join(""));
+  bar.setAttribute("role","tablist");
+  const intro=box.querySelector(":scope>p.dim"),acts=box.querySelector(":scope>p.acts");
+  (intro||box.querySelector(":scope>h2")).after(bar);let at=bar;for(const [k] of SET_TABS){at.after(P[k]);at=P[k]}
+  if(acts)box.appendChild(acts);
+  bar.querySelectorAll(".stab").forEach(t=>t.onclick=()=>{setShow(box,t.dataset.st);box.scrollTop=0});
+  setShow(box,setTab)}
+{const _om=openMenu;openMenu=function(){_om.apply(this,arguments);rSafe(setBuild,null,[])}}
+
+if(window.__EC)Object.assign(window.__EC,{setShow:k=>{const b=$("#menu .ovbox");if(b)setShow(b,k)}});
 
 })();
