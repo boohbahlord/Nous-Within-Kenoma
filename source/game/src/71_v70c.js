@@ -138,13 +138,26 @@ function hordeCounters(){if(!survival()||(G.hordeWave||0)<11)return;const pl=hor
   const got=[];for(const u of want){const c=mkUnit(u,pl);c.counter=true;if(hordePlace(c))got.push(u)}
   if(got.length)log(`<b>The Horde answers</b>: ${got.map(u=>UNIT[u].name).join(" and ")} come${got.length>1?"":"s"} with wave ${roman(G.hordeWave)}${walls?", against your Walls":packed?", against your packed bases":""}.`,"event")}
 
-/* ---------- every round opens with its number, large and faint in the middle of the screen (survival for now); a subtitle
-   tells of the grace when no Horde stands on the field and none comes this round ---------- */
+/* ---------- every round opens with its number, large and faint in the middle of the screen (v77c: in every mode); a subtitle
+   tells of the grace in Survival when no Horde stands on the field and none comes this round, of a Heavenly Body's cycle
+   event, and of an eclipse that begins (it joins the banner while it still shows, or brings it back) ---------- */
+let roundBanAt=0;
 function roundBanner(n,sub){let el=$("#roundban");if(!el){el=document.createElement("div");el.id="roundban";el.setAttribute("aria-hidden","true");document.body.appendChild(el)}
-  el.innerHTML=`<span class="rbr">Round</span><span class="rbn">${roman(n)}</span>${sub?`<span class="rbs">${sub}</span>`:""}`;el.classList.remove("go");void el.offsetWidth;el.classList.add("go")}
+  el.innerHTML=`<span class="rbr">Round</span><span class="rbn">${roman(n)}</span>${sub?`<span class="rbs">${sub}</span>`:""}`;el.classList.remove("go");void el.offsetWidth;el.classList.add("go");roundBanAt=Date.now()}
+const banRound=()=>survival()?G.round:G.moon.round;   // Survival counts its own rounds; the other modes count the sky's
+const banBody=k=>(PLANETS[k]?PLANETS[k].name:k).replace(/^The /,"the ");
+const banCycle=()=>{const k=G.moon.gone;return k&&cycleNow(k)?`${banBody(k).replace(/^the /,"The ")}'s cycle${SKY_FORM[k]?` · the ${SKY_FORM[k]}`:""}`:""};
 {const _nr=newRound;newRound=async function(){const out=await _nr.apply(this,arguments);
-  if(G&&!G.over&&survival()){const H=hordeIx(),none=H<0||!stacksOf(H).length,coming=G.round>=(G.hordeNextR==null?4:G.hordeNextR);
-    roundBanner(G.round,none&&!coming?(G.round<=3?"Grace period · the Horde gathers":"Grace · no Horde this round"):"")}
+  if(G&&!G.over){const sub=[];
+    if(survival()){const H=hordeIx(),none=H<0||!stacksOf(H).length,coming=G.round>=(G.hordeNextR==null?4:G.hordeNextR);if(none&&!coming)sub.push(G.round<=3?"Grace period · the Horde gathers":"Grace · no Horde this round")}
+    try{const c=banCycle();if(c)sub.push(c)}catch(e){console.error(e)}
+    if(G.eclipse&&G.eclipse.round===G.moon.round)sub.push(`The eclipse of ${banBody(G.eclipse.k==="saturn"&&G.eclipse.what?"saturn":G.eclipse.k)}`);
+    roundBanner(banRound(),sub.join(" · "))}
+  return out}}
+{const _ec=eclipse;eclipse=async function(k){const had=G&&G.eclipse;const out=await _ec.apply(this,arguments);
+  if(G&&!G.over&&G.eclipse&&G.eclipse!==had&&G.eclipse.round===G.moon.round){const t=`The eclipse of ${banBody(G.eclipse.k)}`,el=$("#roundban");
+    if(el&&Date.now()-roundBanAt<2500&&el.classList.contains("go")){let s=el.querySelector(".rbs");if(!s){s=document.createElement("span");s.className="rbs";el.appendChild(s)}if(!s.textContent.includes(t))s.textContent=s.textContent?s.textContent+" · "+t:t}
+    else roundBanner(banRound(),t)}
   return out}}
 if(window.__EC)Object.assign(window.__EC,{hordeCounters:()=>hordeCounters(),roundBanner:(...a)=>roundBanner(...a),hordeSpawnW:()=>hordeSpawn()});
 

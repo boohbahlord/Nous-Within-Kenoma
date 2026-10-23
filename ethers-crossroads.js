@@ -9897,9 +9897,10 @@ addEventListener("blur",()=>CAMK.clear());
   const on=isLarge(),c=(id,t,v)=>`<label class="farow"><span class="fal"><b>${t}</b></span><input type="checkbox" id="${id}" ${v?"checked":""} ${on?"":"disabled"}></label>`;
   anchor.insertAdjacentHTML("afterend",`<details id="mCam" class="sub${on?"":" faded"}"><summary>Large Map Controls${on?"":" <small>(large maps only)</small>"}</summary>
 <p class="dim">The mouse wheel scrolls the page unless zooming with it is on; drag an empty spot of the field to move it; WASD or the arrow keys move it, two at once for a diagonal (Shift: faster); E zooms in and Q out, always around the middle of the screen.</p><div class="facats">
-${c("mCamWheel","Zoom with the mouse wheel",PREF.camWheel===true)}${c("mCamInvW","Reverse the wheel's zoom",!!PREF.camInvWheel)}${c("mCamInvK","Reverse the keys' zoom",!!PREF.camInvKeys)}</div>
+${c("mCamDrag","Drag an empty spot to move the field",PREF.camDrag!==false)}${c("mCamWheel","Zoom with the mouse wheel",PREF.camWheel===true)}${c("mCamInvW","Reverse the wheel's zoom",!!PREF.camInvWheel)}${c("mCamInvK","Reverse the keys' zoom",!!PREF.camInvKeys)}</div>
 <label class="f mslide">Moving speed <input type="range" id="mCamSpd" min="40" max="300" step="10" value="${Math.round(camSpeed()*100)}" ${on?"":"disabled"}><b id="mCamSpdV">${Math.round(camSpeed()*100)}%</b></label></details>`);
   const set=(k,v)=>{PREF[k]=v;savePrefs()};
+  $("#mCamDrag").onchange=e=>set("camDrag",e.target.checked);   // v77c: also outside fullscreen (it was only in fullscreen's Controls)
   $("#mCamWheel").onchange=e=>{set("camWheel",e.target.checked);const n=$("#camnote");if(n)n.dataset.k="";camNote()};$("#mCamInvW").onchange=e=>set("camInvWheel",e.target.checked);$("#mCamInvK").onchange=e=>set("camInvKeys",e.target.checked);
   $("#mCamSpd").oninput=e=>{set("camSpeed",+e.target.value/100);$("#mCamSpdV").textContent=e.target.value+"%"}}}
 
@@ -10842,13 +10843,26 @@ function hordeCounters(){if(!survival()||(G.hordeWave||0)<11)return;const pl=hor
   const got=[];for(const u of want){const c=mkUnit(u,pl);c.counter=true;if(hordePlace(c))got.push(u)}
   if(got.length)log(`<b>The Horde answers</b>: ${got.map(u=>UNIT[u].name).join(" and ")} come${got.length>1?"":"s"} with wave ${roman(G.hordeWave)}${walls?", against your Walls":packed?", against your packed bases":""}.`,"event")}
 
-/* ---------- every round opens with its number, large and faint in the middle of the screen (survival for now); a subtitle
-   tells of the grace when no Horde stands on the field and none comes this round ---------- */
+/* ---------- every round opens with its number, large and faint in the middle of the screen (v77c: in every mode); a subtitle
+   tells of the grace in Survival when no Horde stands on the field and none comes this round, of a Heavenly Body's cycle
+   event, and of an eclipse that begins (it joins the banner while it still shows, or brings it back) ---------- */
+let roundBanAt=0;
 function roundBanner(n,sub){let el=$("#roundban");if(!el){el=document.createElement("div");el.id="roundban";el.setAttribute("aria-hidden","true");document.body.appendChild(el)}
-  el.innerHTML=`<span class="rbr">Round</span><span class="rbn">${roman(n)}</span>${sub?`<span class="rbs">${sub}</span>`:""}`;el.classList.remove("go");void el.offsetWidth;el.classList.add("go")}
+  el.innerHTML=`<span class="rbr">Round</span><span class="rbn">${roman(n)}</span>${sub?`<span class="rbs">${sub}</span>`:""}`;el.classList.remove("go");void el.offsetWidth;el.classList.add("go");roundBanAt=Date.now()}
+const banRound=()=>survival()?G.round:G.moon.round;   // Survival counts its own rounds; the other modes count the sky's
+const banBody=k=>(PLANETS[k]?PLANETS[k].name:k).replace(/^The /,"the ");
+const banCycle=()=>{const k=G.moon.gone;return k&&cycleNow(k)?`${banBody(k).replace(/^the /,"The ")}'s cycle${SKY_FORM[k]?` · the ${SKY_FORM[k]}`:""}`:""};
 {const _nr=newRound;newRound=async function(){const out=await _nr.apply(this,arguments);
-  if(G&&!G.over&&survival()){const H=hordeIx(),none=H<0||!stacksOf(H).length,coming=G.round>=(G.hordeNextR==null?4:G.hordeNextR);
-    roundBanner(G.round,none&&!coming?(G.round<=3?"Grace period · the Horde gathers":"Grace · no Horde this round"):"")}
+  if(G&&!G.over){const sub=[];
+    if(survival()){const H=hordeIx(),none=H<0||!stacksOf(H).length,coming=G.round>=(G.hordeNextR==null?4:G.hordeNextR);if(none&&!coming)sub.push(G.round<=3?"Grace period · the Horde gathers":"Grace · no Horde this round")}
+    try{const c=banCycle();if(c)sub.push(c)}catch(e){console.error(e)}
+    if(G.eclipse&&G.eclipse.round===G.moon.round)sub.push(`The eclipse of ${banBody(G.eclipse.k==="saturn"&&G.eclipse.what?"saturn":G.eclipse.k)}`);
+    roundBanner(banRound(),sub.join(" · "))}
+  return out}}
+{const _ec=eclipse;eclipse=async function(k){const had=G&&G.eclipse;const out=await _ec.apply(this,arguments);
+  if(G&&!G.over&&G.eclipse&&G.eclipse!==had&&G.eclipse.round===G.moon.round){const t=`The eclipse of ${banBody(G.eclipse.k)}`,el=$("#roundban");
+    if(el&&Date.now()-roundBanAt<2500&&el.classList.contains("go")){let s=el.querySelector(".rbs");if(!s){s=document.createElement("span");s.className="rbs";el.appendChild(s)}if(!s.textContent.includes(t))s.textContent=s.textContent?s.textContent+" · "+t:t}
+    else roundBanner(banRound(),t)}
   return out}}
 if(window.__EC)Object.assign(window.__EC,{hordeCounters:()=>hordeCounters(),roundBanner:(...a)=>roundBanner(...a),hordeSpawnW:()=>hordeSpawn()});
 
@@ -12600,7 +12614,7 @@ function fsControls(){const o=fsOv("fsctl"),touch=PREF.fsCtlTab?PREF.fsCtlTab===
       ["Spells and Selected","the named arrows on the right"],["Dice and the log","the arrow at the bottom left; its ⚙ for more"],["The sky","tap the body at the top left"],["Leave fullscreen","Menu, then Exit fullscreen"]]
     :[["Move the field",`WASD or the arrow keys, two at once for a diagonal (Shift: faster)${PREF.camDrag!==false?", or drag an empty spot":""}; it can go past the edges`],["Zoom",`E in, Q out${PREF.fsWheel===true?", the mouse wheel":""}, a trackpad's pinch; always around the middle of the screen`],["The turn button","Space: Ready, the next phase, End turn"],
       ["Pick a stack or a card","click it"],["A class (Field Automation)","right-click a stack or a hand card"],["Compare two stacks","drag a card's corner tab onto another stack"],["Spells and Selected","the named arrows on the right"],
-      ["Dice and the log","the arrow at the bottom left; its ⚙ for more"],["The sky","hover the body at the top left"],["Leave fullscreen",`Menu, then Exit fullscreen${document.fullscreenElement?"; Esc also leaves the browser's fullscreen (the browser's own key)":"; Esc opens the Menu"}`]];
+      ["Dice and the log","the arrow at the bottom left; its ⚙ for more"],["The sky","hover the body at the top left"],["Leave fullscreen",`Shift+Backspace, or Menu then Exit fullscreen${document.fullscreenElement?"; Esc also leaves the browser's fullscreen (the browser's own key)":"; Esc opens the Menu"}`],["Every key","the pause menu's Keyboard controls"]];
   o.innerHTML=`<div class="ovbox fscbox" role="dialog" aria-modal="true" aria-labelledby="fsch"><button type="button" class="xclose" id="fscX" aria-label="Close">×</button><h2 id="fsch">Controls</h2>
 <div class="fsctabs" role="tablist"><button type="button" class="stab${touch?"":" on"}" role="tab" aria-selected="${!touch}" data-fsct="mouse">Keyboard and mouse</button><button type="button" class="stab${touch?" on":""}" role="tab" aria-selected="${touch}" data-fsct="touch">Touch</button></div>
 <dl class="fsckeys">${L.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl>
@@ -12853,9 +12867,10 @@ mountMustKnow=function(){const m=$("#mustknow");if(m)m.remove()};
 /* the sky's place in its cycle */
 function skyFrac(){if(!G||!G.moon)return "";const m=G.moon,k=sky(),V=view(),r=m.round;
   if(!m.gone)return `Phase ${m.i+1}/8`;
-  if(["venus","mercury","mars","jupiter","neptune"].includes(k)){const since=G.skySince!=null&&G.skySince<=r?G.skySince:r,e=r-since;return e>0?`Round ${((e-1)%CYCLE)+1}/${CYCLE} of its cycle`:`Its cycle starts next round (0/${CYCLE})`}
-  if(k==="sun"){const P=G.p[V];if(!P||P.sunNext==null||P.tribe==="firm")return "";const tn=tnOf(V),from=P.sunFrom!=null&&P.sunFrom<P.sunNext?P.sunFrom:P.sunNext-2;return `Your judgement: turn ${Math.max(0,tn-from)}/${P.sunNext-from}`}
-  if(k==="saturn"){const P=G.p[V];return P&&P.oath==="saturn"?`Your tolls: ${P.satPaid||0}/9`:""}
+  const since=G.skySince!=null&&G.skySince<=r?G.skySince:r,e=r-since,cyc=e>0?`Round ${((e-1)%CYCLE)+1}/${CYCLE} of its cycle`:`Its cycle starts next round (0/${CYCLE})`;
+  if(["venus","mercury","mars","jupiter","neptune"].includes(k))return cyc;
+  if(k==="sun"){const P=G.p[V];if(!P||P.sunNext==null||P.tribe==="firm")return cyc;const tn=tnOf(V),from=P.sunFrom!=null&&P.sunFrom<P.sunNext?P.sunFrom:P.sunNext-2;return `${cyc} · Your judgement: turn ${Math.max(0,tn-from)}/${P.sunNext-from}`}   // v77c: the Second Sun's cycle too
+  if(k==="saturn"){const P=G.p[V];return P&&P.oath==="saturn"?`${cyc} · Your tolls: ${P.satPaid||0}/9`:cyc}   // v77c: and Saturn's
   return ""}
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const mi=$("#moon .minfo");if(!mi)return;const t=skyFrac();let f=mi.querySelector(".mfrac");
   if(!t){if(f)f.remove();return}if(!f){f=document.createElement("span");f.className="mfrac";const n=mi.querySelector(".mname");if(n)n.after(f);else mi.prepend(f)}f.textContent=t;
@@ -12968,13 +12983,16 @@ const spKey=()=>G&&G.map?`${G.map.seed}:${view()}`:"";
 function spNotes(V){const out=[];if(!G||!G.p[V])return out;
   for(const it of G.auction||[])if(it&&it.card&&it.seller!==V)out.push({k:"a"+it.card.id,src:"auction",what:`${nameOf(it.card)}${it.price?` for ${it.price} mana`:""}${it.bank?" (the Bank sells it)":""}`});
   if(typeof loanReqsFor==="function")for(const L of loanReqsFor(V))out.push({k:"l"+L.id,src:"bank",what:`${G.p[L.from]?G.p[L.from].name:"Someone"} asks you for a loan of ${L.n} mana`});
+  const tn=tnOf(V);   // v77c: the Bank's own news: a loan of yours that comes due (the Bank's, or a player's)
+  for(const L of G.p[V].loans||[])if(tn>=L.due&&L.owed>0)out.push({k:"d"+L.t0+":"+L.due,src:"bankdue",what:`your loan from the Bank is due: ${L.owed} mana (Repay)`});
+  if(typeof p2pOf==="function")for(const L of p2pOf())if(L.from===V&&["open","late"].includes(L.state)&&L.owed>0&&tn>=L.due)out.push({k:"p"+L.id+":"+L.due,src:"bank",what:`your loan from ${G.p[L.to]?G.p[L.to].name:"a player"} is due: ${L.owed} mana (Repay)`});
   return out}
 const spSeenSet=()=>{const k=spKey();let s=SPSEEN.get(k);if(!s){s=new Set();SPSEEN.set(k,s)}return s};
 const spFresh=V=>{const s=spSeenSet();return spNotes(V).filter(n=>!s.has(n.k))};
-const spWhere=src=>src==="bank"?(typeof dipOn==="function"&&dipOn()?"Diplomacy (under the Bank)":"the Bank (at the top of the spells)"):fsOn()?"the Auction (at the bottom of the spells)":"the Auction (under your hand, beside the Grave)";
-function spNoteHTML(list){const by={auction:list.filter(n=>n.src==="auction"),bank:list.filter(n=>n.src==="bank")};
-  if(list.length===1){const n=list[0];return `<b>${n.src==="bank"?"The Bank":"The Auction"}</b>: ${esc(n.what)}. Scroll to ${spWhere(n.src)} to see it.`}
-  const parts=[];if(by.auction.length)parts.push(`${by.auction.length} at the Auction`);if(by.bank.length)parts.push(`${by.bank.length} loan request${by.bank.length>1?"s":""} at the Bank`);
+const spWhere=src=>src==="bankdue"?"the Bank (at the top of the spells)":src==="bank"?(typeof dipOn==="function"&&dipOn()?"Diplomacy (under the Bank)":"the Bank (at the top of the spells)"):fsOn()?"the Auction (at the bottom of the spells)":"the Auction (under your hand, beside the Grave)";
+function spNoteHTML(list){const by={auction:list.filter(n=>n.src==="auction"),bank:list.filter(n=>n.src!=="auction")};
+  if(list.length===1){const n=list[0];return `<b>${n.src==="auction"?"The Auction":"The Bank"}</b>: ${esc(n.what)}. Scroll to ${spWhere(n.src)} to see it.`}
+  const parts=[];if(by.auction.length)parts.push(`${by.auction.length} at the Auction`);if(by.bank.length)parts.push(`${by.bank.length} at the Bank`);
   return `<b>New</b>: ${parts.join(" and ")}. See ${[...new Set(list.map(n=>n.src))].map(spWhere).join(" and ")}.`}
 function spShow(){if(!G)return;const V=view(),list=spFresh(V);const sp=$(".spellpanel");if(!sp||!list.length)return;
   for(const n of list)spSeenSet().add(n.k);
@@ -12983,7 +13001,7 @@ function spShow(){if(!G)return;const V=view(),list=spFresh(V);const sp=$(".spell
   box.innerHTML=`<p>${spNoteHTML(list)}</p><p class="spacts"><button type="button" class="btn ghost sm" id="spGo">Show me</button> <button type="button" class="xclose" id="spX" aria-label="Close the notice">×</button></p>`;
   box.hidden=false;clearTimeout(spShow.t);spShow.t=setTimeout(()=>{box.hidden=true},16000);
   $("#spX").onclick=()=>{box.hidden=true};
-  $("#spGo").onclick=()=>{const t=src==="bank"?($("#dipbar")||$(".bankbar")||$("#bankslot")):$("#seeauct");box.hidden=true;if(!t)return;t.scrollIntoView({block:"center",behavior:"smooth"});t.classList.add("spping");setTimeout(()=>t.classList.remove("spping"),2400)};
+  $("#spGo").onclick=()=>{const t=src==="bankdue"?($(".bankbar")||$("#bankslot")):src==="bank"?($("#dipbar")||$(".bankbar")||$("#bankslot")):$("#seeauct");box.hidden=true;if(!t)return;t.scrollIntoView({block:"center",behavior:"smooth"});t.classList.add("spping");setTimeout(()=>t.classList.remove("spping"),2400)};
   spPaint()}
 function spPaint(){if(!G)return;const V=view(),n=spFresh(V).length,h=$(".spellpanel>h3"),t=$("#fstabSp");
   for(const el of [h,t]){if(!el)continue;el.classList.toggle("spnew",!!n);let b=el.querySelector(".spbang");
@@ -12996,8 +13014,9 @@ if(window.__EC)Object.assign(window.__EC,{handSeers:V=>handSeers(V),spNotes:V=>s
 
 /* ---------- v73b: Survival's maps ----------
    - The large map is Survival's default: 6 wide and 10 long. The Horde holds the top two lines. Each survivor spawns in a box
-     3 wide and 2 deep at the bottom: two boxes side by side, then a second row of boxes on top of them; past four the field
-     widens by a box column (left, then right) and stacks again. One survivor holds the whole back line (six tiles).
+     3 wide and 2 deep at the bottom: two boxes side by side, then a second row of boxes on top of them. Survival takes four
+     survivors at most, so the field never widens (v77c: the user's choice; survBoxes can still lay out more). One survivor
+     holds the whole back line (six tiles).
    - The standard (small) sizes are only offered while every survivor gets the same five or more spawn tiles behind the
      midline: two survivors 6 or 8 wide, three 9 wide; four always need the large map. */
 const SURV_STD_W={1:[5,6,7],2:[6,8],3:[9],4:[]};

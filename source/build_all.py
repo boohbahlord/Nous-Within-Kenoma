@@ -348,4 +348,10 @@ build_map('nwk/kenoma-web.html', 'kenoma-character-web.html', 'Character Web · 
 build_map('nwk/kenoma-cosmos.html', 'kenoma-cosmos-map.html', 'The Cosmos · Nous Within Kenoma')
 for old in ('reader.css',):
     if os.path.exists(f'{OUT}/{old}'): os.remove(f'{OUT}/{old}')
+# v77c: the game's script must parse (a name declared twice, a stray bracket) or nothing is built for the site
+import shutil, subprocess, sys
+if shutil.which('node'):
+    chk = subprocess.run(['node', '-e', "new Function(require('fs').readFileSync(process.argv[1],'utf8'))", f'{OUT}/ethers-crossroads.js'], capture_output=True, text=True)
+    if chk.returncode:
+        sys.stderr.write('ethers-crossroads.js does not parse:\n' + (chk.stderr or chk.stdout)[-1500:] + '\n'); sys.exit(1)
 print('built', len(os.listdir(OUT)), 'files')

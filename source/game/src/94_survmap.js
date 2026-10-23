@@ -1,7 +1,8 @@
 /* ---------- v73b: Survival's maps ----------
    - The large map is Survival's default: 6 wide and 10 long. The Horde holds the top two lines. Each survivor spawns in a box
-     3 wide and 2 deep at the bottom: two boxes side by side, then a second row of boxes on top of them; past four the field
-     widens by a box column (left, then right) and stacks again. One survivor holds the whole back line (six tiles).
+     3 wide and 2 deep at the bottom: two boxes side by side, then a second row of boxes on top of them. Survival takes four
+     survivors at most, so the field never widens (v77c: the user's choice; survBoxes can still lay out more). One survivor
+     holds the whole back line (six tiles).
    - The standard (small) sizes are only offered while every survivor gets the same five or more spawn tiles behind the
      midline: two survivors 6 or 8 wide, three 9 wide; four always need the large map. */
 const SURV_STD_W={1:[5,6,7],2:[6,8],3:[9],4:[]};

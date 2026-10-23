@@ -73,9 +73,10 @@ mountMustKnow=function(){const m=$("#mustknow");if(m)m.remove()};
 /* the sky's place in its cycle */
 function skyFrac(){if(!G||!G.moon)return "";const m=G.moon,k=sky(),V=view(),r=m.round;
   if(!m.gone)return `Phase ${m.i+1}/8`;
-  if(["venus","mercury","mars","jupiter","neptune"].includes(k)){const since=G.skySince!=null&&G.skySince<=r?G.skySince:r,e=r-since;return e>0?`Round ${((e-1)%CYCLE)+1}/${CYCLE} of its cycle`:`Its cycle starts next round (0/${CYCLE})`}
-  if(k==="sun"){const P=G.p[V];if(!P||P.sunNext==null||P.tribe==="firm")return "";const tn=tnOf(V),from=P.sunFrom!=null&&P.sunFrom<P.sunNext?P.sunFrom:P.sunNext-2;return `Your judgement: turn ${Math.max(0,tn-from)}/${P.sunNext-from}`}
-  if(k==="saturn"){const P=G.p[V];return P&&P.oath==="saturn"?`Your tolls: ${P.satPaid||0}/9`:""}
+  const since=G.skySince!=null&&G.skySince<=r?G.skySince:r,e=r-since,cyc=e>0?`Round ${((e-1)%CYCLE)+1}/${CYCLE} of its cycle`:`Its cycle starts next round (0/${CYCLE})`;
+  if(["venus","mercury","mars","jupiter","neptune"].includes(k))return cyc;
+  if(k==="sun"){const P=G.p[V];if(!P||P.sunNext==null||P.tribe==="firm")return cyc;const tn=tnOf(V),from=P.sunFrom!=null&&P.sunFrom<P.sunNext?P.sunFrom:P.sunNext-2;return `${cyc} · Your judgement: turn ${Math.max(0,tn-from)}/${P.sunNext-from}`}   // v77c: the Second Sun's cycle too
+  if(k==="saturn"){const P=G.p[V];return P&&P.oath==="saturn"?`${cyc} · Your tolls: ${P.satPaid||0}/9`:cyc}   // v77c: and Saturn's
   return ""}
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;const mi=$("#moon .minfo");if(!mi)return;const t=skyFrac();let f=mi.querySelector(".mfrac");
   if(!t){if(f)f.remove();return}if(!f){f=document.createElement("span");f.className="mfrac";const n=mi.querySelector(".mname");if(n)n.after(f);else mi.prepend(f)}f.textContent=t;

@@ -69,9 +69,10 @@ addEventListener("blur",()=>CAMK.clear());
   const on=isLarge(),c=(id,t,v)=>`<label class="farow"><span class="fal"><b>${t}</b></span><input type="checkbox" id="${id}" ${v?"checked":""} ${on?"":"disabled"}></label>`;
   anchor.insertAdjacentHTML("afterend",`<details id="mCam" class="sub${on?"":" faded"}"><summary>Large Map Controls${on?"":" <small>(large maps only)</small>"}</summary>
 <p class="dim">The mouse wheel scrolls the page unless zooming with it is on; drag an empty spot of the field to move it; WASD or the arrow keys move it, two at once for a diagonal (Shift: faster); E zooms in and Q out, always around the middle of the screen.</p><div class="facats">
-${c("mCamWheel","Zoom with the mouse wheel",PREF.camWheel===true)}${c("mCamInvW","Reverse the wheel's zoom",!!PREF.camInvWheel)}${c("mCamInvK","Reverse the keys' zoom",!!PREF.camInvKeys)}</div>
+${c("mCamDrag","Drag an empty spot to move the field",PREF.camDrag!==false)}${c("mCamWheel","Zoom with the mouse wheel",PREF.camWheel===true)}${c("mCamInvW","Reverse the wheel's zoom",!!PREF.camInvWheel)}${c("mCamInvK","Reverse the keys' zoom",!!PREF.camInvKeys)}</div>
 <label class="f mslide">Moving speed <input type="range" id="mCamSpd" min="40" max="300" step="10" value="${Math.round(camSpeed()*100)}" ${on?"":"disabled"}><b id="mCamSpdV">${Math.round(camSpeed()*100)}%</b></label></details>`);
   const set=(k,v)=>{PREF[k]=v;savePrefs()};
+  $("#mCamDrag").onchange=e=>set("camDrag",e.target.checked);   // v77c: also outside fullscreen (it was only in fullscreen's Controls)
   $("#mCamWheel").onchange=e=>{set("camWheel",e.target.checked);const n=$("#camnote");if(n)n.dataset.k="";camNote()};$("#mCamInvW").onchange=e=>set("camInvWheel",e.target.checked);$("#mCamInvK").onchange=e=>set("camInvKeys",e.target.checked);
   $("#mCamSpd").oninput=e=>{set("camSpeed",+e.target.value/100);$("#mCamSpdV").textContent=e.target.value+"%"}}}
 
