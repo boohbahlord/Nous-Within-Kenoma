@@ -43,8 +43,8 @@ const KM_ACTS=[
   ["camLeft","table","Camera","Move the camera left",["A"],1],
   ["camDown","table","Camera","Move the camera down",["S"],1],
   ["camRight","table","Camera","Move the camera right",["D"],1],
-  ["zoomIn","table","Camera","Zoom in, around the middle of the screen",["E"]],
-  ["zoomOut","table","Camera","Zoom out",["Q"]],
+  ["zoomIn","table","Camera","Zoom in, around the middle of the screen",["E","Shift+V"]],   // v79k: Shift turns C/V and Q/E around: Shift+C/V zoom,
+  ["zoomOut","table","Camera","Zoom out",["Q","Shift+C"]],                                   // Shift+Q/E go back and forth like C/V
   ["aceBack","table","Camera","The camera to your previous Ace",["Ctrl+C"]],
   ["aceNext","table","Camera","The camera to your next Ace",["Ctrl+V"]],
   ["lookSel","table","Camera","The camera to what you selected",["Ctrl+1"]],
@@ -75,8 +75,8 @@ const KM_ACTS=[
   ["winLeft","win","","The nearest item left (there: down)",["A"],1],
   ["winDown","win","","The nearest item down (there: down)",["S"],1],
   ["winRight","win","","The nearest item right (there: up)",["D"],1],
-  ["winPrev","win","","The item before",["C"],1],
-  ["winNext","win","","The item after",["V"],1],
+  ["winPrev","win","","The item before",["C","Shift+Q"],1],
+  ["winNext","win","","The item after",["V","Shift+E"],1],
   ["winScrollUp","win","","Scroll the window up (hold Alt; Shift: faster)",["Alt+W","Alt+C"],1],
   ["winScrollDown","win","","Scroll the window down",["Alt+S","Alt+V"],1],
   ["winScrollLeft","win","","Scroll the window left",["Alt+A"],1],
@@ -89,15 +89,15 @@ const KM_ACTS=[
   ["winInfo","win","","What the item does",["I"]],
   ["rbNext","win","","In the Rule book: the next rule",["Space"]],
   ["rbPrev","win","","In the Rule book: the rule before",["Shift+Space"]],
-  ["spPrev","spell","","The school before (the bar); the spell before (the list)",["C"]],
-  ["spNext","spell","","The school after (the bar); the spell after (the list)",["V"]],
-  ["spFirst","spell","","The first school",["Shift+C"]],
-  ["spLast","spell","","The last: the piles",["Shift+V"]],
+  ["spPrev","spell","","The school before (the bar); the spell before (the list)",["C","Shift+Q"]],
+  ["spNext","spell","","The school after (the bar); the spell after (the list)",["V","Shift+E"]],
+  ["spFirst","spell","","The first school",["Home"]],
+  ["spLast","spell","","The last: the piles",["End"]],
   ["spSchoolNext","spell","","The next school",["Tab","Ctrl"]],
   ["spSchoolPrev","spell","","The previous school",["Shift+Tab","Shift"]],
   ["spCast","spell","","Cast the spell (the list)",["Enter"]],
-  ["hPrev","hand","","The card before",["C"]],
-  ["hNext","hand","","The card after",["V"]],
+  ["hPrev","hand","","The card before",["C","Shift+Q"]],
+  ["hNext","hand","","The card after",["V","Shift+E"]],
   ["hPick","hand","","Pick the card (again: let it go)",["Enter"]],
   ["hInfo","hand","","The card's info",["I"]]];
 const KM_GROUPS=[["any","Everywhere"],["table","The table"],["win","Windows"],["spell","The spells: the bar and the list"],["hand","The hand"]];
@@ -213,7 +213,7 @@ const kmHeldOf=ids=>ids.filter(id=>kmBinds(id).some(s=>{const c=s&&kmParse(s);if
 const kmModOnly=e=>!!KM_MODKEY[e.key]||e.key==="CapsLock";
 
 /* ---------- presets ---------- */
-const KM_ALT={camUp:["Up"],camLeft:["Left"],camDown:["Down"],camRight:["Right"],zoomIn:["E","PageUp"],zoomOut:["Q","PageDown"],
+const KM_ALT={camUp:["Up"],camLeft:["Left"],camDown:["Down"],camRight:["Right"],zoomIn:["E","PageUp","Shift+V"],zoomOut:["Q","PageDown","Shift+C"],
   selUp:["W"],selLeft:["A"],selDown:["S"],selRight:["D"],aimUp:["Shift+W","U"],aimLeft:["Shift+A","H"],aimDown:["Shift+S","J"],aimRight:["Shift+D","K"]};
 const KM_LOCKED=[{id:"default",name:"Default",map:{},locked:true},{id:"alt",name:"Alternative Controls",map:KM_ALT,locked:true}];
 const kmPresets=()=>[...KM_LOCKED,...kmState().mine];

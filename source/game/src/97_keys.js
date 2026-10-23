@@ -8,7 +8,7 @@
      forth · Ctrl+1 to what you selected on the field · Shift+X+. (period) the music on and off · Shift+/ (?) the key letters.
    - v77d: F opens the spell bar at the bottom of the screen (made for the keys): the schools as tabs and the school's
      spells as numbered tiles. 1 to 9 and 0 cast the first ten, Shift+1 to Shift+0 the next ten; C and V (or Tab and
-     Shift+Tab) the school before and after, Shift+C the first, Shift+V the last (the piles: the Grave, the Ether, the
+     Shift+Tab) the school before and after, Home the first, End the last (the piles: the Grave, the Ether, the
      Outer Darkness, the Auction). Shift+F opens the spell list as it is (in fullscreen, its drawer), worked by the keys:
      C and V move from spell to spell, Ctrl and Shift (pressed alone) to the next and the previous school (its sections),
      Enter casts, and the numbers work there too. (Tab is for tabs: the bar's schools are tabs, the list's are sections.)
