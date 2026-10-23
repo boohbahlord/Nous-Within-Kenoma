@@ -416,12 +416,12 @@ function toGrave(c,cause){
 }
 
 /* ---------------- deck, hand, mana ---------------- */
-function draw(pl,n,why,opening){
+function draw(pl,n,why,opening,roll){   // v78t: roll: your own draw roll, which takes only what the deck has (never mana)
   const P=G.p[pl];let got=0,burned=0;
   for(let i=0;i<n;i++){const c=P.deck.pop();if(!c)break;
     if(P.hand.length<handCap(pl)){P.hand.push(c);got++}else{toGrave(c,"burn");burned++;if(!opening)P.od++}}
   log(`${plName(pl)} draws ${got} card${got===1?"":"s"}${why?" ("+why+")":""}${burned?`; ${burned} over the hand limit go${burned===1?"es":""} to the grave${opening?"":` (Grave Blessing −${burned}d6 max)`}`:""}${P.deck.length?"":" (deck empty)"}.`);
-  if(!opening&&got+burned<n)deckShort(pl,n-got-burned,why||"a draw");   // v71: a card the deck can't give costs 1 mana
+  if(!opening&&!roll&&got+burned<n)deckShort(pl,n-got-burned,why||"a draw");   // v71: a card the deck can't give costs 1 mana
   return{got,burned};
 }
 /* ---------- v71: an empty deck costs mana. Every card a deck can't give (a draw, a toll, a price) costs 1 mana instead, as deep
@@ -804,11 +804,8 @@ function checkWin(){
   if(!survival()&&!alive().some(i=>!isNPC(i)&&!down.includes(i))){for(const pl of down)G.p[pl].out=true;end(null,down.map(why).join("; "));return}
   for(const pl of down){eliminate(pl,why(pl));if(G.over)return}
 }
-function checkEconomic(pl){
-  if(survival()||G.p[pl].out)return;
-  const P=G.p[pl];
-  if(!P.deck.length&&!P.hand.length&&!P.souls.length)eliminate(pl,`${esc(P.name)} has no deck, hand or soul pile left: economic victory`);
-}
+/* v78t: economic victory is sinking below the lowest mana allowed (checkDebt, at every debt); running out of cards no longer ends a game */
+function checkEconomic(pl){if(survival()||G.p[pl].out)return;checkDebt(pl)}
 /* a player is out: their cards leave play, then the game ends if one side is left */
 function eliminate(pl,why){
   const P=G.p[pl];if(P.out||G.over)return;P.out=true;   // v78j: not once the game is over
@@ -1028,8 +1025,9 @@ async function nextPhase(){
 const overdrewNow=pl=>G.p[pl]&&G.p[pl].odTurn===G.turnNo;
 function rollDraw(){
   if(overdrewNow(G.active)){flash("You overdrew this turn: no more draws until your next turn.");return}
+  if(!G.p[G.active].deck.length){flash("Your deck is empty: there is nothing to draw.");return}   // v78t
   const n=R(4);tray(G.active,"Draw",[{s:4,v:n}],`draw ${n}`);
-  log(`${plName(G.active)} rolls d4: ${n}.`);const r=draw(G.active,n);
+  log(`${plName(G.active)} rolls d4: ${n}.`);const r=draw(G.active,n,null,false,true);   // v78t: what the deck has, never mana
   if(r&&r.burned){G.p[G.active].odTurn=G.turnNo;log(`${plName(G.active)} overdrew: no more draws this turn.`)}
 }
 /* phase timer (off by default): 30, 60 or 90 seconds; the draw phase is 30 under the longer timers */
@@ -4542,7 +4540,7 @@ function addDebt(pl,n){const P=G.p[pl];const paid=payQuiet(pl,Math.min(n,mana(pl
   if(rest>0){P.debt=(P.debt||0)+rest;if(P.debtAt==null)P.debtAt=tnOf(pl)+3}
   checkDebt(pl)}
 function checkDebt(pl){if(!G||G.over||!G.p[pl]||G.p[pl].out||isHorde(pl))return;
-  if(effMana(pl)<floorOf(pl))eliminate(pl,`${esc(G.p[pl].name)} sank below −${-floorOf(pl)} mana, and the Bank takes everything`)}
+  if(effMana(pl)<floorOf(pl))eliminate(pl,`${esc(G.p[pl].name)} sank below −${-floorOf(pl)} mana, and the Bank takes everything: economic victory`)}
 const creditOn=pl=>!!G.p[pl].credit&&bankOpen();
 function canAfford(pl,n){return mana(pl)>=n||creditOn(pl)&&effMana(pl)-n>=floorOf(pl)}
 /* spending on a spell: souls first, the rest on credit; whatever is paid goes to the Bank */
@@ -14530,8 +14528,7 @@ function kbBarPaint(){let el=$("#kbbar");if(KB.mode!=="bar"||!G){if(el)el.remove
   el.querySelectorAll("[data-kbs]").forEach(b=>b.onclick=()=>kbSchool(+b.dataset.kbs));el.querySelector(".xclose").onclick=kbOff}
 function kbCast(n){const S=kbSchools(),s=S[KB.sc];if(!s)return;const b=s.items[n-1];if(!b){flash(`${s.piles?"The piles have":"This school has"} no ${n}${n===1?"st":n===2?"nd":n===3?"rd":"th"} entry.`);return}b.click();
   if(!kbTop()&&fkToTargets())kbModeOff()}   // v78s: a spell that waits for a tile hands over to the field selector
-/* v78s: a key that the open spells or hand use (Space then belongs to them, not to the turn button) */
-const kbModeKey=e=>KB.mode==="hand"?["hNext","hPrev","hPick","hInfo"].some(id=>kmIs(e,id)):["spSchoolNext","spSchoolPrev","spFirst","spLast","spNext","spPrev","spCast"].some(id=>kmIs(e,id))||!!kbDigit(e);
+
 /* the hand */
 const kbHand=()=>[...document.querySelectorAll("#hand [data-h]")];
 function kbHandOn(on){if(on&&kbSpellMode())kbOff();KB.mode=on?"hand":null;if(on){const H=kbHand();KB.h=Math.max(0,Math.min(H.length-1,KB.h));kbShow($("#handwrap"))}kbPaint()}
