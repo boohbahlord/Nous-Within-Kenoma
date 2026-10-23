@@ -14,14 +14,14 @@
   src:url(cascadia-code-latin-ext-200-italic.woff2) format("woff2");
   unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
 :root{
-  --ground:#1b120b;   /* page: dark burnt amber */
-  --well:#24180f;     /* raised panels */
-  --deep:#140d08;     /* sunk panels */
-  --text:#f3d6a6;     /* light burnt amber, the reading text */
-  --dim:#c9a274;      /* secondary text */
-  --amber:#e9a157;    /* accent */
-  --amber-hi:#ffc98a; /* hover */
-  --rule:#4d331f;     /* hairlines */
+  --ground:#190e07;   /* page: dark burnt amber (v78x: a little darker and redder, less yellow) */
+  --well:#22130a;     /* raised panels */
+  --deep:#120904;     /* sunk panels */
+  --text:#ebc5a0;     /* light burnt amber, the reading text (11.8:1 on the page) */
+  --dim:#c08e66;      /* secondary text (6.6:1) */
+  --amber:#d97f3c;    /* accent, burnt amber (6.4:1) */
+  --amber-hi:#f0a565; /* hover */
+  --rule:#4b2b17;     /* hairlines */
   --string:#000;      /* background strings and cracks */
   --mono:"Cascadia Code","Cascadia Mono",Consolas,"Courier New",monospace;
   color-scheme:dark;
@@ -32,7 +32,7 @@ body{margin:0;background:transparent;font-family:var(--mono);font-weight:200;fon
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 64px}
 svg.strings{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;pointer-events:none}
 svg.strings g{stroke:var(--string)}svg.strings rect{fill:var(--string)}
-html.th-office button.static-toggle{background:#e6e7ead9;color:var(--dim)}
+html.th-office button.static-toggle{background:#e6e7ea99;color:var(--dim)}
 a{color:var(--amber);text-decoration:none;border-bottom:1px solid var(--rule)}
 a:hover,a:focus-visible{color:var(--amber-hi);border-color:var(--amber-hi);outline:none}
 b,strong{font-weight:400;color:var(--amber-hi)}
@@ -154,8 +154,8 @@ canvas.static{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;pointer
 .roll{position:fixed;left:0;right:0;height:22vh;z-index:-1;pointer-events:none;background:linear-gradient(to bottom,rgba(255,255,255,0),rgba(255,240,220,.035),rgba(255,255,255,0));top:-30vh}
 .flash{position:fixed;inset:0;z-index:40;pointer-events:none;opacity:0;background:#fff7ea}
 .flash.dark{background:#000}
-button.static-toggle{position:fixed;right:max(10px,env(safe-area-inset-right,0px));bottom:max(10px,env(safe-area-inset-bottom,0px));z-index:50;font-family:var(--mono);font-weight:200;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);background:rgba(0,0,0,.55);border:1px solid var(--rule);padding:4px 8px;cursor:pointer}
-button.static-toggle:hover,button.static-toggle:focus-visible{color:var(--amber-hi);border-color:var(--amber);outline:none}
+button.static-toggle{position:fixed;right:max(10px,env(safe-area-inset-right,0px));bottom:max(10px,env(safe-area-inset-bottom,0px));z-index:50;font-family:var(--mono);font-weight:200;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);background:rgba(0,0,0,.35);opacity:.8;border:1px solid var(--rule);padding:4px 8px;cursor:pointer}
+button.static-toggle:hover,button.static-toggle:focus-visible{color:var(--amber-hi);border-color:var(--amber);outline:none;opacity:1}
 /* chapter themes */
 html.th-indigo{--ground:#0b0a1a;--well:#121027;--deep:#08071a;--text:#eeeef4;--dim:#a9a8c2;--amber:#d6d6ea;--amber-hi:#ffffff;--rule:#26244a}
 html.th-indigo.th-blue{--text:#eceff8}
@@ -211,7 +211,7 @@ html.th-darkfantasy.th-eken.ecpage .rules h3{color:#9cc7b9}
 html.th-darkfantasy.th-eken.ecpage a.card{background:#21150ce0;border-color:#8a5a2c}
 html.th-darkfantasy.th-eken.ecpage .rules main,html.th-darkfantasy.th-eken.ecpage main.rules{background:#150d07b8;box-shadow:0 0 0 1px #5c341855}
 /* v71: every theme carries more than two colors, like the default: buttons, borders, labels, headings (used in game.css too) */
-html.th-rich{--b1:#9a4a1c;--b2:#6e3010;--bh1:#b0571f;--bh2:#823914;--bb:#e9a157;--bt:#fbe7c6;--gb:#7a5530;--pb:#7a5530;--lab:#9cc7b9;--h1:#ffc98a;--h1g:#c2581c66}
+html.th-rich{--b1:#8a3c14;--b2:#5e270b;--bh1:#a0461a;--bh2:#71300f;--bb:#d97f3c;--bt:#f7dcc0;--gb:#70472a;--pb:#70472a;--lab:#9cc7b9;--h1:#f0a565;--h1g:#b04e1866}
 html.th-dull.th-rich{--b1:#6d5d2e;--b2:#4c4120;--bh1:#7d6b35;--bh2:#584b25;--bb:#c8b273;--bt:#f0e6c6;--gb:#6b5d38;--pb:#6b5d38;--lab:#a8b6c8;--h1:#e6d49a;--h1g:#8a7a3a55}
 html.th-office.th-rich{--b1:#3467b2;--b2:#244f8e;--bh1:#3a72c4;--bh2:#2a5a9e;--bb:#1a3f78;--bt:#fff;--gb:#2b579a;--pb:#b3b6bb;--lab:#1d6b47;--h1:#b4462a;--h1g:transparent}
 html.th-officedark.th-rich{--b1:#3574cc;--b2:#2860ad;--bh1:#3d80dc;--bh2:#2e6bbd;--bb:#5b9bf0;--bt:#fff;--gb:#3a5f8f;--pb:#454a52;--lab:#6cc795;--h1:#ef8a6b;--h1g:#ef8a6b30}
@@ -260,10 +260,14 @@ html.dys :is(h1,h2,h3,h4,h5,legend,summary,.label,.stab){letter-spacing:.04em!im
 /* v78g: room at the end of the Ether's Crossroads pages, so the fixed music and static corners never cover the last line */
 html.ecpage main:not(.game){margin-bottom:max(64px,calc(52px + env(safe-area-inset-bottom,0px)))}
 /* v78u: Display bar (computers only; never on the game page), like the game's: Display ▴, the static switch, Fill the screen */
-#nwkdisp{position:fixed;right:max(10px,env(safe-area-inset-right,0px));bottom:max(10px,env(safe-area-inset-bottom,0px));z-index:51;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px 10px;max-width:calc(100vw - 20px);font-family:var(--mono);font-size:12.5px;color:var(--text);background:color-mix(in oklab,var(--deep) 88%,transparent);border:1px solid var(--rule);padding:4px 8px}
+#nwkdisp{position:fixed;right:max(10px,env(safe-area-inset-right,0px));bottom:max(10px,env(safe-area-inset-bottom,0px));z-index:51;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px 10px;max-width:calc(100vw - 20px);font-family:var(--mono);font-size:12.5px;color:var(--text);background:color-mix(in oklab,var(--deep) 35%,transparent);border:1px solid var(--rule);padding:4px 8px;opacity:.88;transition:opacity .15s,background-color .15s}
+#nwkdisp:hover,#nwkdisp:focus-within{opacity:1}
+#nwkdisp .nwktog,#nwkdisp .static-toggle{background:color-mix(in oklab,var(--deep) 75%,transparent)!important;text-shadow:0 0 3px #000}   /* each button keeps a dark backing, readable over a light picture */
+html.th-office #nwkdisp .nwktog,html.th-office #nwkdisp .static-toggle{background:#ffffffb0!important;text-shadow:none}
+#nwkdisp:has(#nwkmore:not([hidden])){background:color-mix(in oklab,var(--deep) 70%,transparent)}   /* v78x: see-through; a little less so while open */
 #nwkdisp #nwkmore[hidden]{display:none}
 #nwkdisp .nwktog{font-family:var(--mono);font-size:12.5px;line-height:1;letter-spacing:.04em;color:var(--amber);background:transparent;border:1px solid var(--rule);padding:5px 9px;cursor:pointer}
 #nwkdisp .nwktog:hover,#nwkdisp .nwktog:focus-visible{color:var(--amber-hi);border-color:var(--amber);outline:none}
 #nwkdisp #nwkfill[aria-pressed="true"]{color:var(--amber-hi);border-color:var(--amber-hi);background:color-mix(in oklab,var(--amber) 16%,transparent)}
-#nwkdisp .static-toggle{position:static;font-size:12px;padding:4px 8px;background:transparent}
+#nwkdisp .static-toggle{position:static;font-size:12px;padding:4px 8px;background:transparent;opacity:1}
 html.fillscreen main:not(.game){max-width:none!important;margin-left:0;margin-right:0;padding-left:max(28px,4vw);padding-right:max(28px,4vw)}
