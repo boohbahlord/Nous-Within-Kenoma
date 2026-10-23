@@ -155,6 +155,7 @@ function cardById(id){
   for(const L of [G.grave,G.dark,G.ether,G.limbo,G.unknown])for(const c of L)if(c.id===id)return c;
   const f=findCard(id);if(f)return f.st.cards.find(c=>c.id===id);
   for(const it of G.auction||[])if(it.card.id===id)return it.card;
+  if(G.placing&&G.placing.id===id)return G.placing;   // v78i: a card being put out (a Slave) is in no pile meanwhile
   return G.browse&&G.browse.id===id?G.browse:null;
 }
 /* the card browser: compare the selected stack with any kind of card */

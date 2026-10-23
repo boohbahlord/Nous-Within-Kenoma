@@ -165,7 +165,7 @@ function render(){
       inner=crystalHTML(r,c,!!st)+inner;
       if(fogTile(V,r,c))cls.push("fog");if(fireAt(r,c))cls.push("fire");
       const zc=!duel&&z>=0?` style="--zc:${G.p[z].color}"`:"";
-      return `<button class="${cls.join(" ")}${role==="bridge"?" bridge":""}"${zc} data-r="${r}" data-c="${c}" aria-label="${coord(r,c)}, ${lineName||(z>=0?G.p[z].name+"'s ground":"open ground")}${role==="bridge"?" bridge":""}${st?", "+st.cards.map(nameOf).join(", "):", empty"}">${art}${PREF.coords?`<span class="coord">${coord(r,c)}</span>`:""}${inner}</button>`;
+      return `<button class="${cls.join(" ")}${role==="bridge"?" bridge":""}"${zc} data-r="${r}" data-c="${c}" aria-label="${coord(r,c)}, ${lineName||(z>=0?esc(G.p[z].name)+"'s ground":"open ground")}${role==="bridge"?" bridge":""}${st?", "+st.cards.map(nameOf).join(", "):", empty"}">${art}${PREF.coords?`<span class="coord">${coord(r,c)}</span>`:""}${inner}</button>`;
     }).join("")+"</div>";
   }).join("");
   {const nb=B.querySelector(":scope>.mapbg");if(nb){if(oldBg&&oldBg._g===G.map.ground)nb.replaceWith(oldBg);else nb._g=G.map.ground}if(oldVeil)B.appendChild(oldVeil)}

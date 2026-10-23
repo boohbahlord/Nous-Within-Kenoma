@@ -83,7 +83,7 @@ function dipPropose(pl,toT,kind,n,terms){if(!G||!dipOn()||NET.ctx!=null&&NET.ctx
   log(`${plName(pl)} offers ${dipTN(toT)} ${tx}.`,"event");
   if(hum.length){D.pend.push({id:++D.n,from:pl,ft:a,tt:toT,kind,n,tr:terms||null,to:hum[0],round:G.moon.round});render();return true}
   const yes=aiDipAccept(toT,a,kind,n,terms);
-  if(yes)dipApply(kind,a,toT,n,terms);else{log(`${dipTN(toT)} decline${dipPlayersOf(toT).length>1?"":"s"} ${tx}.`,"event");if(!G.p[pl].cpu)notify(pl,`${dipTeamName(toT)} declines.`);render()}
+  if(yes)dipApply(kind,a,toT,n,terms);else{log(`${dipTN(toT)} decline${dipPlayersOf(toT).length>1?"":"s"} ${tx}.`,"event");if(!G.p[pl].cpu)notify(pl,`${esc(dipTeamName(toT))} declines.`);render()}
   return true}
 function dipAnswer(pl,id,yes,counter){if(!G||NET.ctx!=null&&NET.ctx!==pl)return false;const D=dipD(),p=D.pend.find(x=>x.id===id);if(!p||p.to!==pl)return false;
   D.pend.splice(D.pend.indexOf(p),1);

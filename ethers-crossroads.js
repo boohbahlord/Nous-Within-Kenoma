@@ -2154,7 +2154,7 @@ function render(){
       inner=crystalHTML(r,c,!!st)+inner;
       if(fogTile(V,r,c))cls.push("fog");if(fireAt(r,c))cls.push("fire");
       const zc=!duel&&z>=0?` style="--zc:${G.p[z].color}"`:"";
-      return `<button class="${cls.join(" ")}${role==="bridge"?" bridge":""}"${zc} data-r="${r}" data-c="${c}" aria-label="${coord(r,c)}, ${lineName||(z>=0?G.p[z].name+"'s ground":"open ground")}${role==="bridge"?" bridge":""}${st?", "+st.cards.map(nameOf).join(", "):", empty"}">${art}${PREF.coords?`<span class="coord">${coord(r,c)}</span>`:""}${inner}</button>`;
+      return `<button class="${cls.join(" ")}${role==="bridge"?" bridge":""}"${zc} data-r="${r}" data-c="${c}" aria-label="${coord(r,c)}, ${lineName||(z>=0?esc(G.p[z].name)+"'s ground":"open ground")}${role==="bridge"?" bridge":""}${st?", "+st.cards.map(nameOf).join(", "):", empty"}">${art}${PREF.coords?`<span class="coord">${coord(r,c)}</span>`:""}${inner}</button>`;
     }).join("")+"</div>";
   }).join("");
   {const nb=B.querySelector(":scope>.mapbg");if(nb){if(oldBg&&oldBg._g===G.map.ground)nb.replaceWith(oldBg);else nb._g=G.map.ground}if(oldVeil)B.appendChild(oldVeil)}
@@ -3818,6 +3818,7 @@ function cardById(id){
   for(const L of [G.grave,G.dark,G.ether,G.limbo,G.unknown])for(const c of L)if(c.id===id)return c;
   const f=findCard(id);if(f)return f.st.cards.find(c=>c.id===id);
   for(const it of G.auction||[])if(it.card.id===id)return it.card;
+  if(G.placing&&G.placing.id===id)return G.placing;   // v78i: a card being put out (a Slave) is in no pile meanwhile
   return G.browse&&G.browse.id===id?G.browse:null;
 }
 /* the card browser: compare the selected stack with any kind of card */
@@ -6901,7 +6902,7 @@ const p2pOf=()=>G.p2p||(G.p2p=[]);
 const p2pWhere=()=>typeof dipOn==="function"&&dipOn()?"Diplomacy, under the Bank":"the Bank window";   // v75c: with Diplomacy on, loans between players live there
 const lenders=pl=>alive().filter(i=>i!==pl&&!isHorde(i)&&!G.p[i].jail);
 const loanReqsFor=V=>p2pOf().filter(L=>L.to===V&&L.state==="ask");
-function askLoan(from,to,n){
+function askLoan(from,to,n){n=Math.round(+n);if(!(n>=1)||!G.p[to]||to===from)return null;   // v78i: a whole number, whoever sends it
   if(p2pOf().some(L=>L.from===from&&L.to===to&&["ask","offer","open","late"].includes(L.state))){if(!G.p[from].cpu)flash(`You already have a loan or a request with ${G.p[to].name}.`);return null}
   const L={id:(G.p2pN=(G.p2pN||0)+1),from,to,n,owed:n,state:"ask",round:G.moon.round};p2pOf().push(L);
   log(`${plName(from)} asks ${plName(to)} for a loan of ${n} mana.`,"event");
@@ -7610,14 +7611,34 @@ function netAny(name,get,set){NETFN[name]={get,set,any:true};const orig=get();
 
 /* ---------- the host runs what a joined player sends ---------- */
 const seatOfGuest=id=>{if(!G)return null;const i=G.p.findIndex(P=>P.net===id);return i<0?null:i};
+/* v78i: before a joined player's call runs, the host checks it acts for their own seat, with their own cards and stacks, and
+   that a placing, move or attack is one their screen could have offered (the same tests its buttons use). Calls not listed
+   here check the seat themselves (NET.ctx). */
+const netMine=(s,r,c)=>{const st=G.board[r]&&G.board[r][c];return !!st&&st.owner===s};
+const netAt=(list,r,c)=>list.some(([a,b])=>a===r&&b===c);
+const netHas=(s,card,from)=>!!card&&(from==="hand"?G.p[s].hand.includes(card):!!from&&netMine(s,from.r,from.c)&&G.board[from.r][from.c].cards.includes(card));
+const NET_OK={
+  placeOpening:(s,a)=>a[0]===s&&G.phase==="setup"&&G.setupStep==="ace"&&netAt(zoneTiles(s),a[1],a[2])&&!G.board[a[1]][a[2]],
+  place:(s,a)=>(G.p[s].hand.includes(a[0])||G.placing===a[0])&&canPlace(a[0],a[1],a[2]),   // G.placing: a card being put out from elsewhere (a Slave)
+  doMove:(s,a)=>!!G.sel&&netMine(s,G.sel.r,G.sel.c)&&netAt(moveTargets(),a[0],a[1]),
+  attack:(s,a)=>netMine(s,a[0],a[1])&&netAt([...attackOptions(a[0],a[1]),...blindOptions(a[0],a[1])].map(o=>[o.r,o.c]),a[2],a[3]),
+  sacrifice:(s,a)=>netHas(s,a[0],a[1]),sacrificeToSun:(s,a)=>netHas(s,a[0],a[1]),
+  sellCards:(s,a)=>a[0]===s&&a[1].every(c=>G.p[s].hand.includes(c)),
+  answerLoan:(s,a)=>a[0].to===s,repayLoan:(s,a)=>a[0].from===s,forgiveLoan:(s,a)=>!!a[0]&&a[0].to===s,
+  endAim:(s,a)=>a[0]==null};   // a tile is chosen through tileClick, which checks it; endAim itself only cancels
+for(const fn of ["attackMoon","healAct","repairAct","release","pourLibation","ambushToggle"])NET_OK[fn]=(s,a)=>netMine(s,a[0],a[1]);
+for(const fn of ["takeLoan","repay","sellThrall","buyPlot","sellPlot","plantMiner","mysteryBuy","buyBankItem","tradeCard","setCredit","setAutoBless","askLoan","giftMana","giftCard",
+  "payDebtFor","acceptBounty","buyBountyColl","turnInCapt","setCheat","cheatEvent","setFaLock","setAutoCfg","moonPlant","buyLand"])NET_OK[fn]=(s,a)=>a[0]===s;
 async function runCmd(id,m){
-  const seat=seatOfGuest(id),F=NETFN[m.fn];if(seat==null||!F||!G||G.over)return;const P=G.p[seat];if(P.out||P.cpu)return;
+  const seat=seatOfGuest(id),F=Object.prototype.hasOwnProperty.call(NETFN,m.fn)&&NETFN[m.fn];if(seat==null||!F||!G||G.over)return;
+  const P=G.p[seat];if(P.out||P.cpu)return;
   const aiming=G.aim&&G.aim.pl===seat;
   if(F.aim){if(!aiming)return}else if(!F.any&&!(G.active===seat&&!G.busy))return;
-  const args=F.un?F.un(m.args||[]):(m.args||[]);
-  if(args.some(x=>x===undefined||x===null)&&["place","sacrifice","sacrificeToSun","healAct","repairAct","answerLoan","repayLoan","buyPlot","sellPlot","plantMiner","buyBankItem","makeOffer","cast"].includes(m.fn))return;
-  const host=uiSnap();NET.ctx=seat;applyUI(m.ui);let ret;
-  try{ret=await F.get().apply(null,args)}catch(e){console.error(e)}
+  let args;try{args=F.un?F.un(Array.isArray(m.args)?m.args:[]):m.args||[]}catch(e){return}   // v78i: a call that doesn't read is dropped
+  if(!Array.isArray(args))return;
+  if(args.some(x=>x===undefined||x===null)&&["place","sacrifice","sacrificeToSun","healAct","repairAct","answerLoan","repayLoan","buyPlot","sellPlot","plantMiner","buyBankItem","makeOffer","cast","forgiveLoan"].includes(m.fn))return;
+  const host=uiSnap();NET.ctx=seat;let ret;
+  try{applyUI(m.ui);const ok=NET_OK[m.fn];if(!ok||ok(seat,args))ret=await F.get().apply(null,args);else if(!F.any)flash("That can't be done now.")}catch(e){console.error(e)}
   finally{const u=uiSnap();if(NET.ctx===seat)NET.ctx=null;applyUI(host);sendTo(id,{t:"ui",ui:u});render()}
   if(F.ret)sendTo(id,{t:"ret",rid:m.rid,v:ret==null?null:JSON.parse(JSON.stringify(ret,netRep))})}
 /* while a joined player's action runs, it is that player who can act */
@@ -7692,6 +7713,9 @@ function guestLeft(id){delete NET.guests[id];delete NET.sent[id];lobbyRoster();i
   log(`<b>${plName(seat)} left the game.</b> A computer (Medium) plays the seat from here.`,"event");popup("A player left",`<p>${esc(P.name)} left the room. A computer plays their seat from now on.</p>`);
   for(const [k,p] of Object.entries(NET.pend))if(p.pl===seat){delete NET.pend[k];p.res(p.spec&&p.spec.ai?p.spec.ai():AI.choose(seat,p.spec))}
   if(G.active===seat&&G.waiter){const f=G.waiter;G.waiter=null;f()}
+  // v78i: gone while setting up: the computer finishes their setup (online there is no setup timer to do it)
+  if(G.phase==="setup"&&G.active===seat&&G.setupResolve){const f=G.setupResolve;G.setupResolve=null;stopTimer();G.busy=true;
+    AI.setup(seat).then(()=>{G.busy=false;f();render()})}
   render()}
 function netLeave(){try{if(NET.tr)NET.tr.close()}catch(e){}Object.assign(NET,{role:null,tr:null,guests:{},seat:null,hostSeat:null,sent:{},pend:{},started:false})}
 addEventListener("beforeunload",()=>{try{if(NET.tr)NET.tr.close()}catch(e){}});
@@ -8844,7 +8868,7 @@ function setAutoCfg(pl,key,cfg){if(!G||!G.p[pl]||!["rdCfg","lhCfg"].includes(key
 {NETFN.setAutoCfg={get:()=>setAutoCfg,set:f=>setAutoCfg=f,any:true};const orig=setAutoCfg;
   setAutoCfg=function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:"setAutoCfg",args:netClean(a),ui:uiSnap(),rid})}}
 const autoSent={};
-function autoSync(){if(!G||G.over)return;const V=view(),P=G.p[V];if(!P||P.cpu||isNPC(V))return;
+function autoSync(){if(!G||G.over||NET.role==="guest"&&NET.seat==null)return;const V=view(),P=G.p[V];   // v78i: a joined player waits for their seatif(!P||P.cpu||isNPC(V))return;
   for(const [key,cfg] of [["rdCfg",rdMine()],["lhCfg",lhMine()]]){const j=JSON.stringify(cfg),k=V+key;if(autoSent[k]===j&&JSON.stringify(P[key])===j)continue;if(autoSent[k]===j&&NET.role==="guest")continue;autoSent[k]=j;setAutoCfg(V,key,cfg)}}
 {const _r=render;render=function(){rSafe(_r,this,arguments);autoSync()}}
 
@@ -9795,7 +9819,7 @@ function grSave(c){PREF.gr=grClean(c);savePrefs();autoSync();paintFA();if(G)rend
 {const _sc=setAutoCfg;setAutoCfg=function(pl,key,cfg){if(key!=="grCfg")return _sc.apply(this,arguments);
   if(NET.role==="guest"){const rid=++NET.rid;sendHost({t:"cmd",fn:"setAutoCfg",args:netClean([pl,key,cfg]),ui:uiSnap(),rid});return}
   if(G&&G.p[pl])G.p[pl].grCfg=grClean(cfg)}}
-{const _as=autoSync;autoSync=function(){_as.apply(this,arguments);if(!G||G.over)return;const V=view(),P=G.p[V];if(!P||P.cpu||isNPC(V))return;
+{const _as=autoSync;autoSync=function(){_as.apply(this,arguments);if(!G||G.over||NET.role==="guest"&&NET.seat==null)return;const V=view(),P=G.p[V];if(!P||P.cpu||isNPC(V))return;
   const cfg=grMine(),j=JSON.stringify(cfg),k=V+"grCfg";if(autoSent[k]===j&&(NET.role==="guest"||JSON.stringify(P.grCfg)===j))return;autoSent[k]=j;setAutoCfg(V,"grCfg",cfg)}}
 
 /* ---------- Grave automation: the choice ---------- */
@@ -13138,7 +13162,7 @@ function dipPropose(pl,toT,kind,n,terms){if(!G||!dipOn()||NET.ctx!=null&&NET.ctx
   log(`${plName(pl)} offers ${dipTN(toT)} ${tx}.`,"event");
   if(hum.length){D.pend.push({id:++D.n,from:pl,ft:a,tt:toT,kind,n,tr:terms||null,to:hum[0],round:G.moon.round});render();return true}
   const yes=aiDipAccept(toT,a,kind,n,terms);
-  if(yes)dipApply(kind,a,toT,n,terms);else{log(`${dipTN(toT)} decline${dipPlayersOf(toT).length>1?"":"s"} ${tx}.`,"event");if(!G.p[pl].cpu)notify(pl,`${dipTeamName(toT)} declines.`);render()}
+  if(yes)dipApply(kind,a,toT,n,terms);else{log(`${dipTN(toT)} decline${dipPlayersOf(toT).length>1?"":"s"} ${tx}.`,"event");if(!G.p[pl].cpu)notify(pl,`${esc(dipTeamName(toT))} declines.`);render()}
   return true}
 function dipAnswer(pl,id,yes,counter){if(!G||NET.ctx!=null&&NET.ctx!==pl)return false;const D=dipD(),p=D.pend.find(x=>x.id===id);if(!p||p.to!==pl)return false;
   D.pend.splice(D.pend.indexOf(p),1);

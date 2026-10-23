@@ -51,7 +51,7 @@ function setAutoCfg(pl,key,cfg){if(!G||!G.p[pl]||!["rdCfg","lhCfg"].includes(key
 {NETFN.setAutoCfg={get:()=>setAutoCfg,set:f=>setAutoCfg=f,any:true};const orig=setAutoCfg;
   setAutoCfg=function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:"setAutoCfg",args:netClean(a),ui:uiSnap(),rid})}}
 const autoSent={};
-function autoSync(){if(!G||G.over)return;const V=view(),P=G.p[V];if(!P||P.cpu||isNPC(V))return;
+function autoSync(){if(!G||G.over||NET.role==="guest"&&NET.seat==null)return;const V=view(),P=G.p[V];   // v78i: a joined player waits for their seatif(!P||P.cpu||isNPC(V))return;
   for(const [key,cfg] of [["rdCfg",rdMine()],["lhCfg",lhMine()]]){const j=JSON.stringify(cfg),k=V+key;if(autoSent[k]===j&&JSON.stringify(P[key])===j)continue;if(autoSent[k]===j&&NET.role==="guest")continue;autoSent[k]=j;setAutoCfg(V,key,cfg)}}
 {const _r=render;render=function(){rSafe(_r,this,arguments);autoSync()}}
 
