@@ -27,25 +27,32 @@ MODES_HTML = """<h2 id="modes">Game Modes</h2>
 """
 import json as _json
 _S = _json.load(open('game/text/substances.json'))
-_N = {"beginner":"Beginner","angel":"Angel Machine","satan":"Satan","binah":"Binah","jester":"Jester Fool","tiph":"Tiphareth of Kether","lucifer":"Lucifer &amp; Ouroboros","leviathan":"The Leviathan","firm":"The Firmament","yald":"Yaldabaoth"}
+_N = {"angel":"Angel Machine","satan":"Satan","binah":"Binah","jester":"Jester Fool","tiph":"Tiphareth of Kether","lucifer":"Lucifer &amp; Ouroboros","leviathan":"The Leviathan","firm":"The Firmament","yald":"Yaldabaoth"}
 MODES_HTML = MODES_HTML.replace('@@SUBTAGS@@', ''.join(f'<dt>{n}</dt><dd>{_S[k]["tag"]}</dd>' for k, n in _N.items()))
 land = head(EC + ' · Nous Within Kenoma', extra='<style>' + open('game/text/rules.css').read() + '</style>', ec=True) + f'''<main class="wrap rules">
 <nav class="crumbs"><a href="index.html">← Nous Within Kenoma</a></nav>
 <header><span class="num">A card game</span><h1>{EC}</h1></header>
 {ec_cards}
 <h2>Getting Started</h2>
-<p>{EC} is a card game for two players. Each player brings a deck of playing cards with both Jokers, and the table needs a handful of dice: d2, d4, d6, d8, d12 and d20. Cards are soldiers, knights and royalty placed on a field of lines; dice decide every fight; the dead become souls that can be spent as mana on spells, or raised again from the shared grave; and the moon turns one phase every round.</p>
-<ol>
-<li><b>Raise your Ace.</b> Each player takes one Ace and one Jack from their own deck (or from the Ether, when the specials are set to wait there). The Ace goes on any tile of your spawn lines you choose, with the Jack inside it.</li>
-<li><b>Draw.</b> Each player draws 2d4 cards from their own shuffled deck. A hand holds six cards at most.</li>
-<li><b>Roll for the opening.</b> Both players roll. The highest roll sets up first, placing any opening cards on their own two lines, then the other player sets up. The highest roller also takes the first turn.</li>
-<li><b>Take turns.</b> Every turn runs <span class="flow">Prep → Attack</span>. The prep phase starts with drawing: roll a d4 as many times as you like and draw that many cards. Then place, move and sacrifice cards and cast spells. In the attack phase, each of your stacks may attack once. The very first turn of the game has no draw phase.</li>
-<li><b>Fight with dice.</b> A stack fights with the score of its best card: the card's value plus its die. Stacking cards does not add their scores together, but every card in a stack is another hit it can take.</li>
-<li><b>Gather souls.</b> Sacrificed cards become your soul pile, worth up to six mana (a card from your hand is worth its Ether price − 1d2 + 1, rolled as you sacrifice it, but a card that costs 1 is always worth 1; a card on the field is worth its soul), which pays for spells such as Divine Odds, Clairvoyance or a King Conjure. Once a round, the free Grave Blessing lets you roll for the dead.</li>
-<li><b>Watch the moon.</b> The New Moon gives back cards from the grave; the Full Moon takes a stack of two or a card, or 2d2 + 2 mana. Rarely, the Full Moon turns to a Blood Moon.</li>
-<li><b>Win.</b> Destroy every card the other player has on the field, or leave them with no deck, no hand and no soul pile when their turn ends: an economic victory.</li>
-</ol>
-<p>The full rules, including every card's role, the stacking formula, all the spells, the moon and its events, are under All Rules. Play Game runs the game in the browser.</p>
+<p>{EC} is a card game for two or more players, played with ordinary playing cards and dice. You can play it here in the browser, or at a table with real cards. At a table, every player needs their own deck with both Jokers, and you need a d2, d4, d6, d8, d12 and d20 between you.</p>
+<p>Your cards are your army, and the dice settle every fight. When a card dies it goes to the grave, which everyone shares. When you sacrifice a card it becomes a soul, and souls are the mana you spend on spells. The moon moves one phase every round, and some phases help you while others cost you.</p>
+<h3>Setting up</h3>
+<p>Take the Ace and a Jack out of your deck. Put the Ace on any tile of your spawn lines and the Jack inside it. Shuffle, then draw 2d4 cards. You can never hold more than six.</p>
+<p>Everyone rolls. Whoever rolls highest sets up first, putting any opening cards on their own two lines, and also takes the first turn.</p>
+<h3>Your turn</h3>
+<p>A turn has two phases, prep and then attack.</p>
+<p>Prep starts with drawing. Roll a d4 and draw that many cards, and do it again as often as you like. Cards that don't fit in your hand go to the grave, and then you can't draw again that turn. After drawing you can place cards, move them, sacrifice them and cast spells. Do your sacrificing before you spend anything, because once you spend mana you can't sacrifice again until your next prep.</p>
+<p>In the attack phase each of your stacks can attack once.</p>
+<p>The player who goes first doesn't draw on the first turn of the game.</p>
+<h3>Fights</h3>
+<p>A stack fights with its best card, the card's value plus a die. Piling cards into a stack doesn't add them together, but each card is one more hit the stack can take before it's gone.</p>
+<h3>Souls and mana</h3>
+<p>Your soul pile holds up to six mana. A card sacrificed from the field is worth its soul. A card from your hand is worth its Ether price, minus 1d2, plus 1, and a card that costs 1 is always worth 1. You spend this on spells. Grave Blessing is free once a round and lets you roll to bring the dead back.</p>
+<h3>The moon</h3>
+<p>The New Moon gives cards back from the grave. The Full Moon takes a stack of two, or a card, or 2d2 + 2 mana. Every so often the Full Moon turns into a Blood Moon.</p>
+<h3>Winning</h3>
+<p>You win when the other side has nothing left on the field, or when they finish a turn with no deck, no hand and no souls.</p>
+<p>Everything else is in All Rules, from what each card does to every spell and moon event. Play Game starts a game right here.</p>
 {MODES_HTML}
 </main>
 ''' + TAIL
