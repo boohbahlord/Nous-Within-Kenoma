@@ -18,8 +18,7 @@ function stSend(from,to,name,cfg){if(!G||!G.p[from]||!G.p[to]||G.p[to].cpu||isNP
   const P=G.p[to];P.stInbox=(P.stInbox||[]).slice(-9);P.stInbox.push({from,name:stName(name)||"A strategy",cfg:stCfg(cfg)});
   log(`${plName(from)} sends ${plName(to)} an automated strategy, “${esc(stName(name))}”.`);render();return true}
 function stTake(pl,i){if(!G||!G.p[pl]||NET.ctx!=null&&NET.ctx!==pl)return false;const L=G.p[pl].stInbox||[];if(i<0||i>=L.length)return false;L.splice(i,1);render();return true}
-for(const [name,get,set] of [["stSend",()=>stSend,f=>stSend=f],["stTake",()=>stTake,f=>stTake=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["stSend",()=>stSend,f=>stSend=f],["stTake",()=>stTake,f=>stTake=f]])netAny(name,get,set);
 /* v73f: a copy's name: the name and the first number not taken (Jackal → Jackal1, again → Jackal2; Jackal2 → Jackal21) */
 function copyName(name,names){const has=new Set(names);for(let k=1;;k++){const n=name+k;if(!has.has(n))return n}}
 /* the fold */

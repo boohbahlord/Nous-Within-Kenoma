@@ -38,7 +38,7 @@ const goodCard=c=>!/^\d+$/.test(c.rank||"")&&!(c.unit&&!UNIT[c.unit].ether)&&!c.
   if(!F||bk<0||killer!==bk||card.wave||card.unit&&!UNIT[card.unit].ether)return _eb(card,r,c,st);
   const victim=st.owner,V=G.p[victim],BS=st===F.D?F.A:F.D,v=soulOf(card);let paid="";
   const L=BS&&BS.loan!=null?(G.p2p||[]).find(x=>x.id===BS.loan&&x.state==="late"):null;
-  if(L){const got=giveMana(L.to,Math.min(v,L.owed));L.owed=Math.max(0,L.owed-v);paid=`, and its worth (${v}) goes to ${plName(L.to)} for the loan${L.owed?` (${L.owed} still owed)`:" (paid off)"}`;if(!L.owed)loanSettled(L)}
+  if(L){giveMana(L.to,Math.min(v,L.owed));L.owed=Math.max(0,L.owed-v);paid=`, and its worth (${v}) goes to ${plName(L.to)} for the loan${L.owed?` (${L.owed} still owed)`:" (paid off)"}`;if(!L.owed)loanSettled(L)}
   else if(V&&V.debt>0){const k=Math.min(V.debt,v);V.debt-=k;if(!V.debt)V.debtAt=null;bankAdd(v);paid=`, and its worth pays ${k} of ${plName(victim)}'s debt${V.debt?` (−${V.debt} left)`:" (debt cleared)"}`}
   else{bankAdd(v);paid=`; the Bank books its worth (${v})`}
   card.owner=null;if(card.hp!=null)card.hp=card.maxHp;
@@ -61,7 +61,7 @@ async function buyBankItem(pl,it){const P=G.p[pl];if(!G.auction.includes(it))ret
   $("#ov").querySelectorAll("[data-bbuy]").forEach(b=>b.onclick=async()=>{if(!canAct())return;await buyBankItem(G.active,G.auction[+b.dataset.bbuy]);viewAuction()})}}
 
 /* ---------- loans between players ---------- */
-const P2P_DUE=4,P2P_RATE=.2,P2P_MIN=2,P2P_MAX=12;
+const P2P_DUE=4,P2P_MIN=2,P2P_MAX=12;
 const p2pOf=()=>G.p2p||(G.p2p=[]);
 const p2pWhere=()=>typeof dipOn==="function"&&dipOn()?"Diplomacy, under the Bank":"the Bank window";   // v75c: with Diplomacy on, loans between players live there
 const lenders=pl=>alive().filter(i=>i!==pl&&!isHorde(i)&&!G.p[i].jail);
@@ -92,7 +92,7 @@ async function loanOffer(L,due){
   const paid=payQuiet(L.to,L.n),got=giveMana(L.from,paid);L.state="open";L.owed=paid;L.due=tnOf(L.from)+due;L.intAt=tnOf(L.from)+3;
   log(`<b>${plName(L.to)} lends ${plName(L.from)} ${paid} mana</b>${got<paid?` (${got} fit in the soul pile)`:""}: due in ${due} of ${plName(L.from)}'s turns, growing by 1d2 every 3 turns; if it isn't paid, the Bank collects.`,"event");
   notify(L.from,`${esc(G.p[L.to].name)} lends ${esc(G.p[L.from].name)} ${paid} mana.`);render()}
-function repayLoan(L,k){k=Math.min(k,L.owed,mana(L.from));if(k<=0)return 0;const paid=payQuiet(L.from,k),got=giveMana(L.to,paid);L.owed-=paid;
+function repayLoan(L,k){k=Math.min(k,L.owed,mana(L.from));if(k<=0)return 0;const paid=payQuiet(L.from,k);giveMana(L.to,paid);L.owed-=paid;
   log(`${plName(L.from)} pays ${plName(L.to)} back ${paid} mana${L.owed?` (${L.owed} still owed)`:"; the loan is settled"}.`);if(!L.owed)loanSettled(L);return paid}
 function loanSettled(L){L.state="done";L.owed=0;const bk=npcIx("bank");if(bk>=0)for(const x of stacksOf(bk))if(x.st.loan===L.id)G.board[x.r][x.c]=null;
   log(`The loan from ${plName(L.to)} to ${plName(L.from)} is settled.`)}

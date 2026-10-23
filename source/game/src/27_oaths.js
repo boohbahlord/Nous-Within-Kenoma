@@ -74,7 +74,7 @@ function endAim(v){const A=G.aim;if(!A)return;G.aim=null;A.res(v);render()}
   return _tc(r,c)}}
 const circle2=(r,c)=>{const o=[];for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++){const rr=r+dr,cc=c+dc;if(Math.hypot(dr,dc)<=2.25&&rr>=0&&cc>=0&&rr<G.rows&&cc<COLS&&!isVoid(rr,cc))o.push([rr,cc])}return o};
 async function scorchedEarth(pl){
-  const sp=SP("scorch"),foes=enemiesOf(pl).flatMap(stacksOf);
+  const sp=SP("scorch");
   const t=await aimTile(pl,"Scorched Earth: choose the middle of the fire",(r,c)=>!isVoid(r,c),()=>{
     let best=null;for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){if(isVoid(r,c))continue;const a=circle2(r,c);
       const s=a.reduce((v,[rr,cc])=>{const st=G.board[rr][cc];return v+(st?(isEnemy(st.owner,pl)?AI.value(st):st.owner===pl?-1.4*AI.value(st):0):0)},0);if(!best||s>best.s)best={s,r,c}}
@@ -228,8 +228,8 @@ async function saturnEclipse(){
   log(`<b>An eclipse of Saturn.</b>`,"event");
   const B=G.bank,pls=realPlayers();let html="";
   if(k==="collapse"){html="<p>The rings darken and the markets fall: <b>the Bank collapses</b>.</p><p class='dim'>Those under the Oath of Saturn are spared unless they are 6 or more in mana debt, and so is anyone in good standing for the last four Reports.</p>";if(B&&!B.dead)collapse();else html+="<p class='dim'>(There is no Bank left to fall.)</p>"}
-  if(k==="collectors"){const T=pls.filter(i=>effMana(i)<-3&&!satSafe(i));const bk=npcIx("bank");let n=0;
-    for(const pl of T){if(bk<0)break;const t=freeTilesNear(pl,true)[0];if(!t)continue;G.board[t[0]][t[1]]={owner:bk,cards:[mkUnit("debt",bk)],moved:true,attacked:true,hunt:pl};n++}
+  if(k==="collectors"){const T=pls.filter(i=>effMana(i)<-3&&!satSafe(i));const bk=npcIx("bank");
+    for(const pl of T){if(bk<0)break;const t=freeTilesNear(pl,true)[0];if(!t)continue;G.board[t[0]][t[1]]={owner:bk,cards:[mkUnit("debt",bk)],moved:true,attacked:true,hunt:pl}}
     html=`<p>Saturn's shadow falls on the debtors: <b>Debt Collectors</b> rise after everyone more than 3 mana in debt${T.length?`: ${T.map(plName).join(", ")}`:" (no one is)"}.</p>`}
   if(k==="grunts"){const S=npcIx("saturn");let n=0;if(S>=0){const mid=[(G.rows-1)/2,(COLS-1)/2],zones=new Set(G.p.flatMap((P,i)=>isNPC(i)?[]:seat(i).zone.map(t=>t.join())));
     const tiles=[];for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(!G.board[r][c]&&!isVoid(r,c)&&!zones.has(r+","+c))tiles.push([r,c]);tiles.sort((a,b)=>Math.hypot(a[0]-mid[0],a[1]-mid[1])-Math.hypot(b[0]-mid[0],b[1]-mid[1]));

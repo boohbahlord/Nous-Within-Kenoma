@@ -90,8 +90,7 @@ function buyBountyColl(pl,id){const b=bountyById(id);if(!b||b.state!=="taken"||b
 function turnInCapt(pl,r,c){const st=G.board[r]&&G.board[r][c];if(!st||st.owner!==pl||!st.captive||G.active!==pl)return false;
   const x=st.captive,b=bountiesOf().find(o=>o.state==="taken"&&o.by===pl&&o.target===x.capturedFrom);if(!b)return false;
   st.captive=null;x.owner=null;x.capturedFrom=null;if(x.hp!=null)x.hp=x.maxHp;G.ether.push(x);bountyGain(b,costOf(x)||1,`a captured ${nameOf(x)} turned in to the Ether`);return true}
-for(const [name,get,set] of [["acceptBounty",()=>acceptBounty,f=>acceptBounty=f],["buyBountyColl",()=>buyBountyColl,f=>buyBountyColl=f],["turnInCapt",()=>turnInCapt,f=>turnInCapt=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["acceptBounty",()=>acceptBounty,f=>acceptBounty=f],["buyBountyColl",()=>buyBountyColl,f=>buyBountyColl=f],["turnInCapt",()=>turnInCapt,f=>turnInCapt=f]])netAny(name,get,set);
 /* a bounty's Debt Collectors strike only its target, a teammate too (that is no betrayal) */
 {const _ao=attackOptions;attackOptions=function(r,c){let out=_ao(r,c);const st=G&&G.board[r]&&G.board[r][c];if(!st||st.bounty==null)return out;
   const b=bountyById(st.bounty);if(!b||b.state!=="taken")return [];

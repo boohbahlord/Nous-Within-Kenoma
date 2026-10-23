@@ -105,7 +105,6 @@ const UNIT={
  /* v70c: the Lighthouse: a base that holds one stack, which fights from inside it and takes the blows first */
  lighthouse:{name:"Lighthouse",word:"Lighthouse",hp:3,nat:0,base:true,soul:2,cost:3,noDef:true,noAtk:true,kind:"Base",ether:true,desc:"three hearts; holds one stack, which fights from inside it and takes the blows first; lights a circle seven tiles across"}
 };
-const unitOf=c=>c&&c.unit?UNIT[c.unit]:null;
 function mkUnit(u,owner){const c=mk(u.toUpperCase(),null,"black");c.unit=u;c.owner=owner;if(UNIT[u].hp){c.hp=UNIT[u].hp;c.maxHp=UNIT[u].hp}return c}
 function freshDeck(){const d=[];for(const s of "SHDC")for(const r of ["2","3","4","5","6","7","8","9","10","J","Q","K","A"])d.push(mk(r,s));d.push(mk("JK",null,"red"),mk("JK",null,"black"));return shuffle(d)}
 const num=c=>/^\d+$/.test(c.rank)?+c.rank:0;
@@ -281,9 +280,8 @@ const isEnemy=(a,b)=>a!=null&&b!=null&&a!==b&&G.p[a].team!==G.p[b].team&&!(G.dip
 const enemiesOf=pl=>alive().filter(i=>isEnemy(pl,i));
 const alliesOf=pl=>alive().filter(i=>i!==pl&&!isEnemy(pl,i));
 const teammatesOf=pl=>alive().filter(i=>i!==pl&&!isHorde(i)&&G.p[i].team===G.p[pl].team);   // the real team (Diplomacy allies are not on it)
-const me=()=>G.p[G.active], foe=()=>G.p[enemiesOf(G.active).filter(i=>!isNPC(i))[0]??(G.active===0?1:0)];
+const me=()=>G.p[G.active];
 const human=pl=>!G.p[pl].cpu;
-const humans=()=>G.p.filter(P=>!P.cpu&&!P.out).map(P=>P.i);
 function view(){ // which player sits at the bottom of the screen
   const hs=G.p.filter(P=>!P.cpu).map(P=>P.i);
   if(!hs.length)return G.lastView??0;
@@ -301,12 +299,10 @@ const isFront=(pl,r,c)=>canSpawn(pl,r,c)&&!isBack(pl,r,c);
 /* kept for the two-player field: the rows of player 0 (bottom) and player 1 (top) */
 function backRow(pl){return seat(pl).back[0][0]}
 function frontRow(pl){const S=seat(pl);return S.back[0][0]+S.fwd[0]}   // v53: the row in front of the backline, a spawn line or not
-const ownLines=(pl,r,c)=>c==null?G.zone[r].includes(pl):canSpawn(pl,r,c);
 function stacksOf(pl){const out=[];G.board.forEach((row,r)=>row.forEach((st,c)=>{if(st&&st.owner===pl)out.push({st,r,c})}));return out}
 function at(r,c){return r>=0&&r<G.rows&&c>=0&&c<COLS?G.board[r][c]:undefined}
 const isVoid=(r,c)=>!!(G.void&&G.void[r]&&G.void[r][c]);
 const hq=()=>!!G.opts.hq&&!survival();
-const centerOut=()=>{const m=(COLS-1)/2;return [...Array(COLS).keys()].sort((a,b)=>Math.abs(a-m)-Math.abs(b-m)||a-b)};
 /* per-player turn state: in phases everyone plays at once, each player keeps their own */
 const TURNKEYS=["spent","spentOther","blessed","ritual","sevSum","prices","sel","selHand","mode","noDraw","libation","saleD"];
 function setActive(pl){

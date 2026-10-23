@@ -121,8 +121,8 @@ SP("stray").text=[SPELL_TEXT.stray.n,SPELL_TEXT.stray.e,SPELL_TEXT.stray.l].join
 let strayIn=false;
 const strayOn=pl=>{const S=G&&G.strayOn;return !strayIn&&S&&S.t===pl&&S.round===G.moon.round&&G.p[S.by]&&!G.p[S.by].out?S:null};
 {const _gm=giveMana;giveMana=function(pl,n){const S=n>0?strayOn(pl):null;if(!S)return _gm.apply(this,arguments);const d=R(20);if(d!==1&&d!==20)return _gm.apply(this,arguments);
-  strayIn=true;try{if(d===1){const got=_gm(S.by,n);log(`<b>Stray Mana</b>: ${n} mana meant for ${plName(pl)} strays to ${plName(S.by)} (a 1 on 1d20).`,"event");return 0}
-    const out=_gm(pl,n),g2=_gm(S.by,n);log(`<b>Stray Mana</b>: ${plName(S.by)} shares the ${n} mana ${plName(pl)} earns (a 20 on 1d20).`,"event");return out}finally{strayIn=false}}}
+  strayIn=true;try{if(d===1){_gm(S.by,n);log(`<b>Stray Mana</b>: ${n} mana meant for ${plName(pl)} strays to ${plName(S.by)} (a 1 on 1d20).`,"event");return 0}
+    const out=_gm(pl,n);_gm(S.by,n);log(`<b>Stray Mana</b>: ${plName(S.by)} shares the ${n} mana ${plName(pl)} earns (a 20 on 1d20).`,"event");return out}finally{strayIn=false}}}
 {const _sp=spend;spend=function(pl,n){const S=n>0?strayOn(pl):null;if(!S)return _sp.apply(this,arguments);const d=R(20);if(d!==1&&d!==20)return _sp.apply(this,arguments);
   strayIn=true;try{const out=_sp(pl,n);
     if(d===1){const got=giveMana(S.by,n);if(G.bank)G.bank.mana-=got;log(`<b>Stray Mana</b>: the ${n} mana ${plName(pl)} spends is paid to ${plName(S.by)} (a 1 on 1d20).`,"event")}

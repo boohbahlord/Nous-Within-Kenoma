@@ -59,7 +59,7 @@ function oathsHTML(){
 }
 function planetsHTML(){
   const live=canAct()&&G.phase==="prep"&&G.active===view();
-  const rows=FIRM_PLANETS.map(id=>{const sp=SP(id);if(!sp)return "";const ok=live&&spellReady(sp),c=spellCost(sp),blk=spellBlock(sp);
+  const rows=FIRM_PLANETS.map(id=>{const sp=SP(id);if(!sp)return "";const ok=live&&spellReady(sp),c=spellCost(sp);
     return `<button class="spell eitem ${ok?"":"off"}" data-cast="${id}" data-sp="${id}"><span class="sn">${esc(sp.name)}${sp.dice?`<small class="dc">${sp.dice}</small>`:""}<small class="left">${esc(SKY_FORM[id]||"")}</small></span><em>${c?c+" mana":"free"}</em></button>`}).join("");
   return [live?"Hang a Heavenly Body in the moon's place. Prices are rolled each round.":"You can raise a Heavenly Body in your own prep phase.",rows];
 }

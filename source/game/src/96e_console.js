@@ -107,7 +107,8 @@ function cnRun(line){line=String(line||"").trim();if(!line)return;
       if(!canAct()){cnSay("Not your move now.",true);return}if(!canPlace(card,to.r,to.c)){cnSay(`${short(card)} can't be placed on ${cnName(to.r,to.c)}.`,true);return}
       place(card,to.r,to.c);render();cnSay(`${short(card)} placed on ${cnName(to.r,to.c)}.`);return}
     case "cast":{const q=arg.join(" ").toLowerCase();const S=cnSpells(),s=S.find(x=>x.name.toLowerCase()===q)||S.find(x=>x.name.toLowerCase().startsWith(q));
-      if(!q||!s){cnSay(q?`No spell “${arg.join(" ")}” here.`:"Which spell?",true);return}if(s.off){cnSay(`${s.name} can't be cast now.`,true);return}s.b.click();cnSay(`${s.name}.`);return}
+      if(!q||!s){cnSay(q?`No spell “${arg.join(" ")}” here.`:"Which spell?",true);return}if(s.off){cnSay(`${s.name} can't be cast now.`,true);return}s.b.click();
+      cnSay(`${s.name}.`);return}
     case "end":{const n=$("#next");if(n&&!n.disabled){n.click();cnSay(n.textContent.trim()||"Done.")}else cnSay("The turn button can't be pressed now.",true);return}
     case "roll":{const d=$("#d4");if(d&&!d.disabled){d.click();cnSay("Rolled.")}else cnSay("There is nothing to roll now.",true);return}
     case "bank":cnClose();{const b=$("#bankslot .bankbar");if(b)b.click();else openBank()}return;
@@ -125,14 +126,16 @@ function cnRun(line){line=String(line||"").trim();if(!line)return;
     case "guard":case "area":case "squad":case "lead":case "leave":{const V=view();if(!fgFull(V)){cnSay("Groups need Field Automation playing your whole field (auto on).",true);return}
       const T=arg.map(cnTile);if(!T[0]){cnSay("Which stack? (a tile like B2)",true);return}const p=T.map(x=>x&&[x.r,x.c]);
       const ok=cmd==="guard"?T[1]&&fgDo(V,"guard",p[0],p[1]):cmd==="area"?T[1]&&fgDo(V,"area",p[0],p[1]):cmd==="squad"?fgDo(V,"squad",p.filter(Boolean)):fgDo(V,cmd,p[0]);
-      cnSay(ok?({guard:"It guards it.",area:"It guards the area.",squad:"A squadron.",lead:"It leads its squadron.",leave:"Out of its group."})[cmd]:"That can't be done (one of your stacks? a full group?).",!ok);return}
+      cnSay(ok?({guard:"It guards it.",area:"It guards the area.",squad:"A squadron.",lead:"It leads its squadron.",leave:"Out of its group."})[cmd]:"That can't be done (one of your stacks? a full group?).",!ok);
+      return}
     case "advance":case "retreat":{const f=need(cnTile(arg[0]),"stack");if(f)cnLean(f,cmd==="advance");return}
     case "hold":{const f=need(cnTile(arg[0]),"stack");if(!f)return;const st=G.board[f.r][f.c],V=view();if(!st||st.owner!==V){cnSay("That isn't your stack.",true);return}
       if(!faOn(V)){cnSay("Locking in place is for Field Automation (auto on).",true);return}const ids=st.cards.filter(x=>lockable(x,st)).map(x=>x.id);
       if(!ids.length){const L=st.cards.filter(x=>x.faLock).map(x=>x.id);if(L.length){setFaLock(V,f.r,f.c,L,false);cnSay("Unlocked.")}else cnSay("Nothing there can be locked.",true);return}
       setFaLock(V,f.r,f.c,ids,true);cnSay("Locked in place.");return}
     case "ambush":{const f=need(cnTile(arg[0]),"stack");if(!f)return;const st=G.board[f.r][f.c];if(!st||st.owner!==view()||!canAct()){cnSay("Not now, or not your stack.",true);return}
-      if(!canAmbush(st)&&!st.ambush){cnSay("That stack can't lie in ambush (face-down cards or an Assassin can).",true);return}ambushToggle(f.r,f.c);render();cnSay(G.board[f.r][f.c].ambush?"In ambush.":"Out of ambush.");return}
+      if(!canAmbush(st)&&!st.ambush){cnSay("That stack can't lie in ambush (face-down cards or an Assassin can).",true);return}ambushToggle(f.r,f.c);render();
+      cnSay(G.board[f.r][f.c].ambush?"In ambush.":"Out of ambush.");return}
     case "look":{const f=need(cnTile(arg[0]),"tile");if(f){kbLook(f.r,f.c);cnSay(cnName(f.r,f.c)+".")}return}
     case "info":{const f=need(cnTile(arg[0]),"tile");if(!f)return;const t=document.querySelector(`#board .tile[data-r="${f.r}"][data-c="${f.c}"]`);cnSay(t?t.getAttribute("aria-label")||cnName(f.r,f.c):cnName(f.r,f.c));return}
     case "chat":{const msg=line.replace(/^\S+\s*/,"");if(!msg){cnMode("chat");return}if(NET.role){chatSend(msg);cnSay("Sent.")}else cnSay("The chat is for online games.",true);return}}}
@@ -158,7 +161,8 @@ function cnLean(f,fwd){const st=G.board[f.r][f.c],V=view();if(!st||st.owner!==V)
   const T=cnTargets(f.r,f.c).move.filter(([a,b])=>!G.board[a][b]);if(!T.length){cnSay("It can't move now.",true);return}
   const goal=fwd?AI.enemyStacks(V).map(e=>[e.r,e.c]):stacksOf(V).filter(o=>hasBase(o.st)&&o.st!==st).map(o=>[o.r,o.c]);const g=goal.length?goal:zoneTiles(V);
   const d=(a,b)=>Math.min(...g.map(([x,y])=>Math.max(Math.abs(a-x),Math.abs(b-y))));const now=d(f.r,f.c);
-  const best=T.reduce((x,y)=>d(y[0],y[1])<d(x[0],x[1])?y:x);if(d(best[0],best[1])>=now){cnSay(fwd?"No step brings it nearer.":"It is as far back as it goes.",true);return}
+  const best=T.reduce((x,y)=>d(y[0],y[1])<d(x[0],x[1])?y:x);
+  if(d(best[0],best[1])>=now){cnSay(fwd?"No step brings it nearer.":"It is as far back as it goes.",true);return}
   cnMove(f,cnName(best[0],best[1]))}
 
 /* ---------- the bar ---------- */
@@ -168,7 +172,8 @@ function cnBar(){let el=$("#cmdline");if(el)return el;el=document.createElement(
   document.body.appendChild(el);const inp=el.querySelector(".cnin");
   el.querySelector("form").onsubmit=e=>{e.preventDefault();const s=CN.sugs[CN.sel];let line=inp.value;
     if(CN.nav&&s){line=s.text;if(!s.final){inp.value=s.text;CN.nav=false;CN.frozen=false;cnFill();return}}   // a part chosen: the next part's suggestions; Enter again runs what is typed
-    inp.value="";CN.nav=false;CN.frozen=false;CN.err=false;cnRun(line);if(CN.err&&CN.open)inp.value=line;if(CN.open)cnFill()};   // a line that can't be done stays, to be mended
+    // a line that can't be done stays, to be mended
+    inp.value="";CN.nav=false;CN.frozen=false;CN.err=false;cnRun(line);if(CN.err&&CN.open)inp.value=line;if(CN.open)cnFill()};
   el.querySelector(".cnmode").onclick=()=>{cnMode(CN.mode==="cmd"?"chat":"cmd");inp.focus()};
   inp.addEventListener("input",()=>{CN.frozen=false;CN.nav=false;cnFill()});
   inp.addEventListener("keydown",e=>{
@@ -180,14 +185,18 @@ function cnBar(){let el=$("#cmdline");if(el)return el;el=document.createElement(
 function cnFill(){if(CN.frozen)return;CN.sugs=cnSuggest($("#cmdline .cnin").value);CN.sel=0;cnPaintSugs()}
 function cnPaintSugs(){const el=$("#cmdline");if(!el)return;const ul=el.querySelector(".cnsug"),n=CN.sugs.length,top=Math.max(0,Math.min(CN.sel-3,n-8)),show=CN.sugs.slice(top,top+8);
   ul.innerHTML=show.map((s,i)=>`<li role="option" aria-selected="${top+i===CN.sel}" class="${top+i===CN.sel?"on":""}" data-cn="${top+i}"><b>${esc(s.label)}</b>${s.hint?` <small>${esc(s.hint)}</small>`:""}</li>`).join("")+(n>8?`<li class="cnmore dim">${n} in all</li>`:"");
-  ul.hidden=!n;ul.querySelectorAll("[data-cn]").forEach(li=>li.onmousedown=e=>{e.preventDefault();const s=CN.sugs[+li.dataset.cn],inp=el.querySelector(".cnin");inp.value=s.text;CN.frozen=false;if(s.final){inp.value="";cnRun(s.text)}cnFill();inp.focus()})}
+  ul.hidden=!n;
+  ul.querySelectorAll("[data-cn]").forEach(li=>li.onmousedown=e=>{e.preventDefault();const s=CN.sugs[+li.dataset.cn],inp=el.querySelector(".cnin");inp.value=s.text;CN.frozen=false;if(s.final){inp.value="";cnRun(s.text)}cnFill();inp.focus()})}
 function cnPaint(){const el=cnBar(),chat=CN.mode==="chat",inp=el.querySelector(".cnin");
-  el.classList.toggle("chat",chat);el.querySelector(".cnmode").textContent=chat?"Chat":"›";inp.placeholder=chat?"Say something (a line starting with / is a command)":"A command, or a tile like B2 (help lists them)";
+  el.classList.toggle("chat",chat);el.querySelector(".cnmode").textContent=chat?"Chat":"›";
+  inp.placeholder=chat?"Say something (a line starting with / is a command)":"A command, or a tile like B2 (help lists them)";
   inp.setAttribute("aria-label",chat?"Chat message":"Command");
   el.querySelector(".cnnote").textContent=`Esc closes · ${chat?"":"Tab completes, ↑ ↓ choose · "}${kmShow("consoleSwap")} opens the ${chat?"command line":"chat"} instead`;
-  const log=el.querySelector(".cnchat");log.hidden=!chat;if(chat)log.innerHTML=(NET.chat||[]).slice(-6).map(m=>`<li><b>${esc(m.from)}</b> ${esc(m.text)}</li>`).join("")||'<li class="dim">Nothing yet.</li>'}
+  const log=el.querySelector(".cnchat");log.hidden=!chat;
+  if(chat)log.innerHTML=(NET.chat||[]).slice(-6).map(m=>`<li><b>${esc(m.from)}</b> ${esc(m.text)}</li>`).join("")||'<li class="dim">Nothing yet.</li>'}
 function cnOpen(mode){if(!G)return;if(mode)CN.mode=mode;if(CN.mode==="chat"&&!NET.role){CN.mode="cmd";flash("The chat is for online games: here is the command line.")}
-  const el=cnBar(),ht=$("#helptoast");if(ht)ht.hidden=true;CN.open=true;el.hidden=false;cnPaint();el.querySelector(".cnout").textContent="";const inp=el.querySelector(".cnin");inp.value="";CN.frozen=false;CN.nav=false;cnFill();setTimeout(()=>inp.focus(),0);
+  const el=cnBar(),ht=$("#helptoast");if(ht)ht.hidden=true;CN.open=true;el.hidden=false;cnPaint();el.querySelector(".cnout").textContent="";
+  const inp=el.querySelector(".cnin");inp.value="";CN.frozen=false;CN.nav=false;cnFill();setTimeout(()=>inp.focus(),0);
   if(CN.mode==="chat"){NET.unread=0;if(typeof chatPaint==="function")chatPaint()}}
 function cnMode(m){CN.mode=m;cnOpen()}
 function cnClose(){const el=$("#cmdline");CN.open=false;if(el){el.hidden=true;const i=el.querySelector(".cnin");if(i)i.blur()}}

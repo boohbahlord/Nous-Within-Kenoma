@@ -172,7 +172,6 @@ const UNIT={
  /* v70c: the Lighthouse: a base that holds one stack, which fights from inside it and takes the blows first */
  lighthouse:{name:"Lighthouse",word:"Lighthouse",hp:3,nat:0,base:true,soul:2,cost:3,noDef:true,noAtk:true,kind:"Base",ether:true,desc:"three hearts; holds one stack, which fights from inside it and takes the blows first; lights a circle seven tiles across"}
 };
-const unitOf=c=>c&&c.unit?UNIT[c.unit]:null;
 function mkUnit(u,owner){const c=mk(u.toUpperCase(),null,"black");c.unit=u;c.owner=owner;if(UNIT[u].hp){c.hp=UNIT[u].hp;c.maxHp=UNIT[u].hp}return c}
 function freshDeck(){const d=[];for(const s of "SHDC")for(const r of ["2","3","4","5","6","7","8","9","10","J","Q","K","A"])d.push(mk(r,s));d.push(mk("JK",null,"red"),mk("JK",null,"black"));return shuffle(d)}
 const num=c=>/^\d+$/.test(c.rank)?+c.rank:0;
@@ -348,9 +347,8 @@ const isEnemy=(a,b)=>a!=null&&b!=null&&a!==b&&G.p[a].team!==G.p[b].team&&!(G.dip
 const enemiesOf=pl=>alive().filter(i=>isEnemy(pl,i));
 const alliesOf=pl=>alive().filter(i=>i!==pl&&!isEnemy(pl,i));
 const teammatesOf=pl=>alive().filter(i=>i!==pl&&!isHorde(i)&&G.p[i].team===G.p[pl].team);   // the real team (Diplomacy allies are not on it)
-const me=()=>G.p[G.active], foe=()=>G.p[enemiesOf(G.active).filter(i=>!isNPC(i))[0]??(G.active===0?1:0)];
+const me=()=>G.p[G.active];
 const human=pl=>!G.p[pl].cpu;
-const humans=()=>G.p.filter(P=>!P.cpu&&!P.out).map(P=>P.i);
 function view(){ // which player sits at the bottom of the screen
   const hs=G.p.filter(P=>!P.cpu).map(P=>P.i);
   if(!hs.length)return G.lastView??0;
@@ -368,12 +366,10 @@ const isFront=(pl,r,c)=>canSpawn(pl,r,c)&&!isBack(pl,r,c);
 /* kept for the two-player field: the rows of player 0 (bottom) and player 1 (top) */
 function backRow(pl){return seat(pl).back[0][0]}
 function frontRow(pl){const S=seat(pl);return S.back[0][0]+S.fwd[0]}   // v53: the row in front of the backline, a spawn line or not
-const ownLines=(pl,r,c)=>c==null?G.zone[r].includes(pl):canSpawn(pl,r,c);
 function stacksOf(pl){const out=[];G.board.forEach((row,r)=>row.forEach((st,c)=>{if(st&&st.owner===pl)out.push({st,r,c})}));return out}
 function at(r,c){return r>=0&&r<G.rows&&c>=0&&c<COLS?G.board[r][c]:undefined}
 const isVoid=(r,c)=>!!(G.void&&G.void[r]&&G.void[r][c]);
 const hq=()=>!!G.opts.hq&&!survival();
-const centerOut=()=>{const m=(COLS-1)/2;return [...Array(COLS).keys()].sort((a,b)=>Math.abs(a-m)-Math.abs(b-m)||a-b)};
 /* per-player turn state: in phases everyone plays at once, each player keeps their own */
 const TURNKEYS=["spent","spentOther","blessed","ritual","sevSum","prices","sel","selHand","mode","noDraw","libation","saleD"];
 function setActive(pl){
@@ -830,7 +826,6 @@ const order=()=>roundOrder().filter(pl=>!isHorde(pl));
 
 /* ---------------- the moon ---------------- */
 const MOON=["New Moon","Waxing Crescent","First Quarter","Waxing Gibbous","Full Moon","Waning Gibbous","Last Quarter","Waning Crescent"];
-const isFull=()=>G.moon.i===4;
 const fullPrices=()=>G.moon.i===4;                       // Full Moon prices also hold under a Blood Moon
 const newPrices=()=>G.moon.i===0;
 const fullDrawbacks=()=>G.moon.i===4&&!G.moon.blood;
@@ -880,7 +875,6 @@ function moonTarget(pl){const ok=stacksOf(pl).filter(x=>!x.st.hypo&&!hasK(x.st,"
   const twos=ok.filter(x=>x.st.cards.length===2);if(twos.length){const t=pick(twos);return {kind:"stack",r:t.r,c:t.c,st:t.st,cards:[...t.st.cards]}}
   const all=ok.flatMap(x=>x.st.cards.filter(c=>!isBase(c)).map(c=>({x,c})));if(all.length){const {x,c}=pick(all);return {kind:"card",r:x.r,c:x.c,st:x.st,cards:[c]}}
   const P=G.p[pl];shuffle(P.deck);return {kind:"deck",cards:P.deck.slice(-3),short:Math.max(0,3-P.deck.length)}}   // v71: what the deck can't give costs mana
-function strongest(pl){return moonTarget(pl)}
 async function fullMoonToll(){
   for(const pl of order()){
     if(G.p[pl].tribe==="firm"){log(`${plName(pl)} owes the Full Moon nothing: the Firmament is above its toll.`);continue}
@@ -1453,7 +1447,7 @@ const AI=(()=>{
     if(how==="groups")return n>=2?.8:.25;
     return armyGo(pl)?(n>=2?.9:.7):.08}
   /* the bonus or cost of merging into a stack of n cards */
-  function stackAdj(pl,n){const how=hillHow(pl),g=FAX&&FAX.pl===pl?FAX.grp:null;let s=0;
+  function stackAdj(pl,n){const how=hillHow(pl);let s=0;
     if(how==="groups")s+=n<=grpMax(pl)?.3:-1.4;
     if(how==="army"&&!armyGo(pl))s+=.8;
     if(FAX&&FAX.pl===pl&&FAX.form==="wide")s+=n>3?-.9:n>2?-.35:0;   // v71: Wide spreads its cards over more tiles
@@ -1588,7 +1582,6 @@ const AI=(()=>{
   }
   /* ---------- movement ---------- */
   async function moves(pl,W){
-    const lv=L(pl);
     const order=isHorde(pl)?stacksOf(pl).sort((a,b)=>stackRate(b.st)-stackRate(a.st)):stacksOf(pl).sort((a,b)=>{const na=Math.min(99,...enemyStacks(pl).map(e=>dist(a.r,a.c,e.r,e.c))),nb=Math.min(99,...enemyStacks(pl).map(e=>dist(b.r,b.c,e.r,e.c)));return na-nb});
     if(FAX&&FAX.pl===pl&&FAX.clsOf){const lo=st=>{const k=FAX.clsOf(st);return k?(k.lowPrio?1:0)+(k.late?2:0):0};order.sort((a,b)=>lo(a.st)-lo(b.st))}   // v72e: a low-priority class moves last; v78e: guards and a squadron's followers after everyone
     if(FAX&&FAX.pl===pl&&FAX.first)order.sort((a,b)=>FAX.first(b.st)-FAX.first(a.st));   // v71n: a crystal's guard sets out before anyone can join it
@@ -1649,7 +1642,7 @@ const AI=(()=>{
         const p0=o.mode==="stomp"?(E.pin?0:.62):winP(o.A||st,E,lv.mc,o.mode),p=o.ranged||o.mode==="stomp"?Math.min(1,p0+(1-p0)*.6):p0;   // a ranged miss (or a failed Stomp) costs nothing
         let sc=(p*gain(E)*(o.mode==="stomp"?.6:1)-(1-p)*loss(st))*jit(pl);
         const onHill=hillHow(pl)&&isHill(r2,c2);if(onHill)sc+=1.2*p;   // v64: knocking an enemy off the Hill is worth more
-        const g=FAX&&FAX.pl===pl?FAX.grp:null,n=fighters(st);
+        const g=FAX&&FAX.pl===pl?FAX.grp:null;
         if(g==="big"){const ring=stacksOf(pl).filter(x=>x.st!==st&&fighters(x.st)>0&&dist(x.r,x.c,r2,c2)===1).length;if(!ring&&p<.7&&!onHill)continue;sc*=1+.15*ring}   // v71: the army strikes together
         const late=isHorde(pl)?0:G.turnNo>90?Math.min(.25,.1+(G.turnNo-90)/200):!G.p[pl].deck.length?.1:0;
   
@@ -1975,7 +1968,7 @@ function moonStrip(){
 }
 function face(c,o={}){
   const own=o.owner!==undefined?o.owner:c.owner,P=own!=null&&G.p[own]?G.p[own]:null;
-  const col=P?P.color:"#8a8a8a",k=kind(c),sm=o.cls==="sm";
+  const col=P?P.color:"#8a8a8a",sm=o.cls==="sm";
   if(c.unit){   // an Emanation card: its own symbol and its hearts
     const U=UNIT[c.unit],nm=U.short||U.name;
     return `<span class="cf unit u-${c.unit}${c.hate?" hated":""}${isBase(c)?" basecard":""} ${o.cls||""}" style="--pc:${col}" title="${esc(nameOf(c))}"><span class="cx"><b class="rk un">${esc(sm?nm.slice(0,4):nm)}</b></span><span class="uic">${unitSVG(c.unit,c.unit==="tree"?"#2d6b3a":c.unit==="satan"?"#8e1426":"#15100b",sm?18:30)}</span>${c.maxHp&&!sm?heartsHTML(c):""}${P?`<span class="so">${solidSVG(P.solid,col,sm?12:17)}</span>`:""}${sm?"":`<em class="ty">${esc(U.word)}</em>`}${o.price?`<span class="price">${costOf(c)} mana</span>`:""}${o.noci?"":`<span class="ci" data-cid="${c.id}" role="button" title="Card info"></span>`}</span>`;
@@ -2107,7 +2100,6 @@ function render(){
   const m=G.moon,tags=[];
   if(m.blood)tags.push('<span class="tag blood">Blood Moon</span>');
   const eff=m.gone||G.moonLev?moonNote():m.blood?"New Moon gifts at Full Moon prices · the dead go to the Outer Darkness":m.i===4?"Toll paid, decks shuffled · no drawing, no necromancy":m.i===0?"1d2 cards from the grave · Clairvoyance and Naked Hand cost 6":"";
-  const rn=G.moon.round||1;
   $("#moon").classList.toggle("eclipsed",!!G.eclipse);$("#moon").classList.toggle("peacetime",peaceOn());$("#moon").classList.toggle("wartime",warOn());
   $("#moon").classList.toggle("moontarget",canAct()&&G.phase==="attack"&&!!G.sel&&moonAttackable(selStack()));
   $("#moon").innerHTML=`${moonSVG()}<div class="minfo"><span class="mname">${moonName()}</span>${tags.join("")}${moonStrip()}<span class="meff">${eff||"It turns once every player has had a turn"}</span></div>`;
@@ -2117,7 +2109,6 @@ function render(){
   if(G.phase==="setup")$("#phases").innerHTML=`<span class="ph-c on"><b>Setup</b><em>${G.setupStep==="ace"?(hq()&&!G.p[G.active].opening.length?"click a tile of your spawn lines for your second base Ace":"click a tile of your spawn lines for your Ace and Jack"):"place any opening cards, then press Done"}</em></span>`;
   else if(G.phase==="moon")$("#phases").innerHTML=`<span class="ph-c on"><b>Moon</b><em>${m.i<0?"no moon turns":"the "+MOON[m.i]+" takes effect"}</em></span>`;
   else $("#phases").innerHTML=PHASES.map(([id,n,help])=>{const draw=id==="prep"&&G.phase==="draw";return `<span class="ph-c ${G.phase===id||draw?"on":""}"><b>${n}</b><em>${draw?"drawing first: roll d4s, then Done drawing":help}</em></span>`}).join('<i>→</i>');
-  const who=me();
   $("#who").innerHTML=whoHTML();
   // board: turned so the viewer's side is at the bottom
   const DR=G.rows,DC=COLS;
@@ -2225,7 +2216,7 @@ function renderSel(live){
   if(showsBack(view(),G.sel.r,G.sel.c)){box.innerHTML=`<p><b>${esc(G.p[st.owner].name)}'s face-down stack</b> on ${coord(G.sel.r,G.sel.c)}. Its face is hidden; a Scout within two tiles would show it.</p>`;return}
   const mine=st.owner===G.active&&live,s=G.sel;
   const rows=st.cards.map(c=>{
-    const k=kind(c),cap=capMana(c);
+    const cap=capMana(c);
     const chk=mine&&!isBase(c)&&G.phase==="prep"?`<input type="checkbox" data-pk="${c.id}" ${s.pick.has(c.id)?"checked":""} aria-label="include ${esc(nameOf(c))} in the moving group">`:"";
     const sac=mine&&sacrificeAllowed()&&canSacOnField(st,c)?`<button class="mini-btn" data-sc="${c.id}">sac +${soulOf(c)}</button>${sunSacOk(view())?`<button class="mini-btn sunsac" data-sunc="${c.id}">sun +${soulOf(c)}</button>`:""}`:"";
     const stat=c.unit&&UNIT[c.unit].desc&&!UNIT[c.unit].shooter?UNIT[c.unit].desc:c.unit&&UNIT[c.unit].weapons?UNIT[c.unit].weapons.map(w=>w.name+": "+w.text).join("; "):`${nat(c)}${die(c)?" + d"+die(c):""}`;
@@ -2403,7 +2394,6 @@ const MODES=[
  ["local","Standard","Local play: against computers, together on this device, or both. Up to four people, and computers (Easy, Medium or Hard) in any other seat. 1v1, free-for-all, two against two, or up to 8 in King of the Hill. With more than one person the board turns to whoever is playing, and the screen goes dark while you pass it."],
  ["survival","Survival","1 to 4 players hold the line against a Horde that comes in waves and grows with each one. Count the rounds you last."]];
 let startMode=null;
-const ORD=["One","Two","Three","Four"];   // v71m: seats start on Random color and symbol (no fixed seat colors any more)
 const LAYOUTS={
  duel:["1v1","Two players, one army at each end of the field. Needs exactly 2 players."],
  ffa:["Free-for-all","Everyone for themselves, one player to each edge of the field. Needs 3 or 4 players."],
@@ -2479,7 +2469,6 @@ ${chk("okcontest","Contest","When more than one side holds the Hill, nobody scor
 <div class="f"><span>Spawns</span><div class="opts"><label class="opt"><input type="radio" name="oknear" value="" checked><span>Apart (default)<small>Far enough from enemies, but not as far as possible.</small></span></label><label class="opt"><input type="radio" name="oknear" value="near"><span>Next to enemies<small>Everyone spawns closer to enemies than to teammates.</small></span></label></div></div>
 <div class="f"><span>Computers take the Hill</span><div class="opts">${[["each","Each its own way (default)","Every computer picks one of the three ways for the game."],["army","Gather an army first","They build a big army, then march on the Hill together."],["straight","Straight there","Every card heads for the Hill at once."],["groups","In small groups","Groups of two or three set out one after another."]].map(([v,t,d],i)=>`<label class="opt"><input type="radio" name="okcpu" value="${v}" ${i?"":"checked"}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
 <p class="dim">Other ways to win still count. The Hill is never in the fog; sight is a circle of 2 (Scouts: 4, and they move 3 in any direction); meteors fall more often.</p></div></fieldset><div id="seats"></div>`;
-  const diff="";
   const rules=`<fieldset class="pf"><legend>Turns</legend>
 <label class="f">Turn order <select id="oturns"><option value="classic">Classic</option><option value="prep">Draw and prep together</option><option value="all">Every phase together</option></select></label>
 <p class="dim" id="turnnote"></p>
@@ -2642,7 +2631,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
       if(k==="color"){S.lookSet=true;el.closest(".seat").style.setProperty("--pc",el.value);drawSeats();return}   // v61: the accents follow the color
       if(k==="tribe"||k==="color"||k==="solid")S.lookSet=true;
       if(k==="type"){if(el.value==="human"&&humans()>4){S.type="medium";flash("Four people can play on one device at most.");drawSeats();return}
-        if(!S.lookSet){const cpu=el.value!=="human";S.tribe="random";S.color="random";S.solid="random"}
+        if(!S.lookSet){S.tribe="random";S.color="random";S.solid="random"}
         drawSeats();return}
       if(k==="team"){S.team=+el.value;drawSeats()}
       if(k==="tribe"){S.open=true;drawSeats()}
@@ -2724,7 +2713,6 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
   $("#back").onclick=()=>{startMode=null;history.replaceState(null,"",location.pathname);showStart()};
   $("#go").onclick=()=>{
     const n=count(),L=layout();
-    const used={};
     let players=seatsS.slice(0,n).map((S,i)=>{
       const cpu=S.type==="human"?null:S.type;
       let name=(S.name.trim()||`P${i+1}`).slice(0,20);
@@ -3085,7 +3073,6 @@ function resolveSubstances(opts){
     used.push(p.color);
   }
 }
-const subOf=pl=>G.p[pl]?G.p[pl].tribe:null;
 const usedOnce=id=>!!(me().once&&me().once[id]);
 const treeOf=pl=>stacksOf(pl).find(x=>hasK(x.st,"tree"));
 
@@ -3711,7 +3698,7 @@ function turn3(pl){
   for(const {st,r,c} of stacksOf(pl)){
     if(!st.pin)continue;const g=findCard(st.pin.by);
     if(!g){st.pin=null;log(`${plName(pl)}'s stack on ${coord(r,c)} is free: the Goatbull is gone.`);continue}
-    st.pin.k++;const need=16-5*(st.pin.k-1),{gd,vd,gv,vv}=abilityRolls(g.st.cards[0],st);
+    st.pin.k++;const need=16-5*(st.pin.k-1),{gd,gv,vv}=abilityRolls(g.st.cards[0],st);
     tray(g.st.owner,"Behooved check",gd,`${gv} vs ${vv}`,true);
     if(gv>=need&&vv<gv){log(`Behooved: the Goatbull rolls ${gv} (needs ${need}) against ${vv}; ${plName(pl)}'s stack on ${coord(r,c)} takes 1 damage.`);G.fight={A:g.st,D:st,atkPl:g.st.owner,defPl:pl};damage(r,c,1,true);G.fight=null}
     else log(`Behooved: the Goatbull rolls ${gv} (needs ${need}) against ${vv}; no damage.`);
@@ -3802,7 +3789,6 @@ function pop(html,x,y,cls){
   el.style.left=Math.max(10,Math.min(x,innerWidth-w-10))+scrollX+"px";el.style.top=y+scrollY+8+"px";
   return el;
 }
-const popHide=()=>{const el=$("#cinfo");if(el)el.hidden=true};
 const stackAtTile=t=>{if(!t)return null;const r=+t.dataset.r,c=+t.dataset.c;if(isNaN(r)||hiddenFrom(view(),r,c)||showsBack(view(),r,c))return null;const st=G.board[r][c];return st?{st,r,c}:null};
 const stackTitle=(s,r,c)=>`${s.cards.length>1?`Stack of ${s.cards.length}`:nameOf(s.cards[0])} on ${coord(r,c)}`;
 /* the corner tab on every stack: click for info, drag onto another stack to compare */
@@ -4496,7 +4482,6 @@ function loanWhy(pl){const P=G.p[pl];if((P.loans||[]).length)return "One loan at
   if(P.loanRound===G.moon.round)return "One loan a round.";const w=(P.loanNext||0)-tnOf(pl);if(w>0)return `Your next loan can be taken in ${w} turn${w>1?"s":""}.`;
   if(G.bank.mana<=BANK_FLOOR)return `The Bank is ${-BANK_FLOOR} in the red and can't lend.`;return ""}
 const loanDue=n=>Math.max(2,Math.ceil(n/2));   // 12 mana: 6 turns; never less than 2
-const loanRate=pl=>effMana(pl)<=-soulCap(pl)?.3:.2;
 function takeLoan(pl,n){const P=G.p[pl];n=Math.min(n,loanLimit(pl));if(n<=0)return 0;
   G.bank.mana-=n;const got=giveMana(pl,n),t=tnOf(pl);
   (P.loans=P.loans||[]).push({owed:n,at:t+3,due:t+loanDue(n),t0:t});rpOf(pl).loans+=n;P.loanRound=G.moon.round;P.loanNext=t+LOAN_GAP;
@@ -4532,7 +4517,7 @@ function bankTurn(pl){
   }
   if(P.saleUntil!=null&&n>P.saleUntil){P.saleUntil=null;log(`${plName(pl)}'s Ether sale ends.`)}
   // the meteor's fire
-  if(P.tribe!=="firm")for(const {st,r,c} of stacksOf(pl))if(meteorFireAt(r,c)&&R(20)===20){log(`The meteor's fire on ${coord(r,c)} burns ${plName(pl)}'s stack.`,"event");damage(r,c,1,false)}
+  if(P.tribe!=="firm")for(const {r,c} of stacksOf(pl))if(meteorFireAt(r,c)&&R(20)===20){log(`The meteor's fire on ${coord(r,c)} burns ${plName(pl)}'s stack.`,"event");damage(r,c,1,false)}
   checkDebt(pl);
 }
 
@@ -4624,7 +4609,7 @@ function openBank(){
   const notes=[];if(B.dead)notes.push("The Banker is dead: the Bank and the Ether are closed.");if(B.angry)notes.push("The Banker is angry about the Demons holding the middle: every price +1.");
   if(B.mana<0&&!B.dead)notes.push("The Bank is in the red: everything in the Ether costs 1 less.");const up=Object.keys(B.upsell);if(up.length)notes.push(`Upsold this round: ${up.map(id=>SP(id)?SP(id).name:id).join(", ")}.`);
   if(G.inflation&&G.turnNo<=G.inflation.until)notes.push(`After the collapse, prices wobble up for ${G.inflation.until-G.turnNo+1} more turn${G.inflation.until-G.turnNo+1===1?"":"s"}.`);
-  const cap=soulCap(V),pay=Math.min(mana(V),owed),why=loanWhy(V);
+  const cap=soulCap(V),why=loanWhy(V);
   // v71e: which loan to repay: the Bank's, or one from a player
   const payOpts=[...(owed?[["bank",`The Bank · ${owed} owed`,owed]]:[]),...(typeof p2pOf==="function"?p2pOf():[]).filter(x=>x.from===V&&["open","late"].includes(x.state)&&x.owed>0).map(x=>[`p2p:${x.id}`,`${esc(G.p[x.to].name)} · ${x.owed} owed${x.state==="late"?" · late":""}`,x.owed])];
   const payMax=k=>Math.min(mana(V),(payOpts.find(o=>o[0]===k)||[0,0,0])[2]),pay0=payOpts.length?payMax(payOpts[0][0]):0;
@@ -5265,7 +5250,6 @@ function warDamagePay(atk,def,dmg,D){
 /* ---------- eclipses ---------- */
 async function eclipse(k){
   G.eclipse={k,round:G.moon.round};applyMoonTheme();
-  const nm=PLANETS[k].name;
   if(k==="sun"){
     log(`<b>An eclipse</b>: the Second Sun slides in front of the first. Every hand, every Assassin and every face-down card is shown, and everyone may take one of their own cards back out of the Outer Darkness.`,"event");
     popup("The suns align",`<p>The Second Sun crosses the first. The field darkens and the air shimmers.</p><p>This round every hand, every Assassin and every face-down card is shown, and each player can take one card that was theirs back out of the Outer Darkness. If Yaldabaoth eats the Sun now, he chokes on it: blind this round and the next.</p>`);
@@ -5407,7 +5391,6 @@ function spellRow(s,live){
   if(s.id==="bolt"){const b=G.p[G.active].bolts||0;extra+=`<span class="bolts" aria-label="${b} of 3 bolts">${[0,1,2].map(i=>`<i class="${i<b?"f":""}">${unitSVG("bolt",i<b?"#8fd0ff":"#4a5a66",13)}</i>`).join("")}</span>`}
   if(s.id==="slaves"){const n=(G.p[G.active].thralls||[]).length;extra+=`<span class="chips" aria-label="${n} of 10 thralls">${Array.from({length:10},(_,i)=>`<i class="${i<n?"f":""}">${unitSVG("chip",i<n?"#9fe8b4":"#3d4a40",11)}</i>`).join("")}</span>`}
   if(s.once)extra+=`<small class="dc once">${G.p[G.active].once&&G.p[G.active].once[s.id]?"used":"once"}</small>`;
-  const block=spellBlock(s);
   const btn=`<button class="spell${s.tribe?" subsp":""} ${ok?"":"off"} ${moon} ${s.school==="Necromancy"?"nec":""} ${s.id==="sever"&&P.sevArmed?"armed":""}" data-s="${s.id}" data-sp="${s.id}"><span class="sn">${esc(s.name)}${extra}</span><em>${s.fire?fireCost(s)+" fire":s.id==="hypo"&&!selOwn()?"3+":cost?cost+" mana":"free"}</em></button>`;
   if(s.id!=="bless")return btn;
   const on=!!G.p[view()].autoBless;
@@ -5471,7 +5454,7 @@ function fillEther(){
 function whoHTML(){
   if(G.over)return `<span class="sl-k">Game</span> Over.`;
   if(G.passing)return `<span class="sl-k">Turn</span> Passing the device…`;
-  const P=me(),many=G.p.filter(Q=>!Q.cpu).length>1,rn=G.moon.round||1;
+  const P=me(),many=G.p.filter(Q=>!Q.cpu).length>1;
   const ph=G.phase==="setup"?"Setup":G.phase==="moon"?"The sky turns":({draw:"Prep phase · drawing",prep:"Prep phase",attack:"Attack phase"})[G.phase]||"";
   const shared=!!G.shared&&G.phase!=="setup"&&G.phase!=="moon";
   const whoTxt=G.drawWait?`<b>Waiting for players to draw…</b>`:P.cpu?`<b>${esc(P.name)}</b> is playing…`:G.opts.online?(G.active===view()?`<b>Your turn</b>`:`<b>${esc(P.name)}</b> is playing…`):many?`<b>${esc(P.name)}</b>'s turn`:`<b>Your turn</b>`;
@@ -5912,7 +5895,6 @@ face=function(c,o={}){
 };
 
 /* ---------- the Puppet: its own card, with the score of a 2 ---------- */
-function makePuppet(suit,owner){const c=mk("2",suit);c.puppet=true;if(owner!=null)c.owner=owner;return c}
 /* a unit's type word is its name */
 for(const k in UNIT)TYPEWORD[k]=UNIT[k].short||UNIT[k].name;
 
@@ -5983,7 +5965,7 @@ function oathsHTML(){
 }
 function planetsHTML(){
   const live=canAct()&&G.phase==="prep"&&G.active===view();
-  const rows=FIRM_PLANETS.map(id=>{const sp=SP(id);if(!sp)return "";const ok=live&&spellReady(sp),c=spellCost(sp),blk=spellBlock(sp);
+  const rows=FIRM_PLANETS.map(id=>{const sp=SP(id);if(!sp)return "";const ok=live&&spellReady(sp),c=spellCost(sp);
     return `<button class="spell eitem ${ok?"":"off"}" data-cast="${id}" data-sp="${id}"><span class="sn">${esc(sp.name)}${sp.dice?`<small class="dc">${sp.dice}</small>`:""}<small class="left">${esc(SKY_FORM[id]||"")}</small></span><em>${c?c+" mana":"free"}</em></button>`}).join("");
   return [live?"Hang a Heavenly Body in the moon's place. Prices are rolled each round.":"You can raise a Heavenly Body in your own prep phase.",rows];
 }
@@ -6034,7 +6016,7 @@ function mysCardHTML(g,i,shown){
   if(!shown)return `<button type="button" class="myscard back" data-i="${i}" aria-label="Reveal card ${i+1}"><span class="mysback">${unitSVG("mystery","#e6d38a",40)}</span></button>`;
   return `<div class="myscard shown" style="--rc:${g.tier.col}">${face(g.card,{noci:true})}<b>${g.tier.name}</b><small>${+g.chance.toFixed(2)}% chance per card</small></div>`}
 function openMystery(){
-  const pl=G.active,V=view();let buy=null;const shown=[false,false,false];
+  const pl=G.active;let buy=null;const shown=[false,false,false];
   const draw=()=>{
     const can=canAfford(pl,MYS_MAX);
     const legend=MYS_TIERS.map(T=>`<span style="--rc:${T.col}"><i></i>${T.name} ${T.p}%</span>`).join("");
@@ -6131,7 +6113,7 @@ function endAim(v){const A=G.aim;if(!A)return;G.aim=null;A.res(v);render()}
   return _tc(r,c)}}
 const circle2=(r,c)=>{const o=[];for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++){const rr=r+dr,cc=c+dc;if(Math.hypot(dr,dc)<=2.25&&rr>=0&&cc>=0&&rr<G.rows&&cc<COLS&&!isVoid(rr,cc))o.push([rr,cc])}return o};
 async function scorchedEarth(pl){
-  const sp=SP("scorch"),foes=enemiesOf(pl).flatMap(stacksOf);
+  const sp=SP("scorch");
   const t=await aimTile(pl,"Scorched Earth: choose the middle of the fire",(r,c)=>!isVoid(r,c),()=>{
     let best=null;for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++){if(isVoid(r,c))continue;const a=circle2(r,c);
       const s=a.reduce((v,[rr,cc])=>{const st=G.board[rr][cc];return v+(st?(isEnemy(st.owner,pl)?AI.value(st):st.owner===pl?-1.4*AI.value(st):0):0)},0);if(!best||s>best.s)best={s,r,c}}
@@ -6285,8 +6267,8 @@ async function saturnEclipse(){
   log(`<b>An eclipse of Saturn.</b>`,"event");
   const B=G.bank,pls=realPlayers();let html="";
   if(k==="collapse"){html="<p>The rings darken and the markets fall: <b>the Bank collapses</b>.</p><p class='dim'>Those under the Oath of Saturn are spared unless they are 6 or more in mana debt, and so is anyone in good standing for the last four Reports.</p>";if(B&&!B.dead)collapse();else html+="<p class='dim'>(There is no Bank left to fall.)</p>"}
-  if(k==="collectors"){const T=pls.filter(i=>effMana(i)<-3&&!satSafe(i));const bk=npcIx("bank");let n=0;
-    for(const pl of T){if(bk<0)break;const t=freeTilesNear(pl,true)[0];if(!t)continue;G.board[t[0]][t[1]]={owner:bk,cards:[mkUnit("debt",bk)],moved:true,attacked:true,hunt:pl};n++}
+  if(k==="collectors"){const T=pls.filter(i=>effMana(i)<-3&&!satSafe(i));const bk=npcIx("bank");
+    for(const pl of T){if(bk<0)break;const t=freeTilesNear(pl,true)[0];if(!t)continue;G.board[t[0]][t[1]]={owner:bk,cards:[mkUnit("debt",bk)],moved:true,attacked:true,hunt:pl}}
     html=`<p>Saturn's shadow falls on the debtors: <b>Debt Collectors</b> rise after everyone more than 3 mana in debt${T.length?`: ${T.map(plName).join(", ")}`:" (no one is)"}.</p>`}
   if(k==="grunts"){const S=npcIx("saturn");let n=0;if(S>=0){const mid=[(G.rows-1)/2,(COLS-1)/2],zones=new Set(G.p.flatMap((P,i)=>isNPC(i)?[]:seat(i).zone.map(t=>t.join())));
     const tiles=[];for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(!G.board[r][c]&&!isVoid(r,c)&&!zones.has(r+","+c))tiles.push([r,c]);tiles.sort((a,b)=>Math.hypot(a[0]-mid[0],a[1]-mid[1])-Math.hypot(b[0]-mid[0],b[1]-mid[1]));
@@ -6498,7 +6480,8 @@ const banOn=()=>!!(G&&G.mban&&G.moon.round>=G.mban.from&&G.moon.round<=G.mban.un
 function aiBanVote(pl){if(Math.random()<.3)return "none";
   const mine=new Set(SPELLS.filter(s=>(!s.tribe||s.tribe===G.p[pl].tribe)&&s.school!=="Astrology").map(s=>s.school));
   const opts=SCHOOLS.filter(s=>s!=="Astrology");const theirs=opts.filter(s=>!["Conjuring"].includes(s)||mana(pl)<4);
-  return pick(theirs.length?theirs:opts)||"none"}
+  const notMine=theirs.filter(s=>!mine.has(s));   // v78h: rather a school it doesn't cast itself
+  return pick(notMine.length?notMine:theirs.length?theirs:opts)||"none"}
 async function mercuryCycle(){
   const r=G.moon.round;G.mercCyc=r;
   const opts=[...SCHOOLS.map(s=>({id:s,label:s,sub:`No ${s} spells for anyone`})),{id:"none",label:"Ban nothing"}];
@@ -6890,7 +6873,7 @@ const goodCard=c=>!/^\d+$/.test(c.rank||"")&&!(c.unit&&!UNIT[c.unit].ether)&&!c.
   if(!F||bk<0||killer!==bk||card.wave||card.unit&&!UNIT[card.unit].ether)return _eb(card,r,c,st);
   const victim=st.owner,V=G.p[victim],BS=st===F.D?F.A:F.D,v=soulOf(card);let paid="";
   const L=BS&&BS.loan!=null?(G.p2p||[]).find(x=>x.id===BS.loan&&x.state==="late"):null;
-  if(L){const got=giveMana(L.to,Math.min(v,L.owed));L.owed=Math.max(0,L.owed-v);paid=`, and its worth (${v}) goes to ${plName(L.to)} for the loan${L.owed?` (${L.owed} still owed)`:" (paid off)"}`;if(!L.owed)loanSettled(L)}
+  if(L){giveMana(L.to,Math.min(v,L.owed));L.owed=Math.max(0,L.owed-v);paid=`, and its worth (${v}) goes to ${plName(L.to)} for the loan${L.owed?` (${L.owed} still owed)`:" (paid off)"}`;if(!L.owed)loanSettled(L)}
   else if(V&&V.debt>0){const k=Math.min(V.debt,v);V.debt-=k;if(!V.debt)V.debtAt=null;bankAdd(v);paid=`, and its worth pays ${k} of ${plName(victim)}'s debt${V.debt?` (−${V.debt} left)`:" (debt cleared)"}`}
   else{bankAdd(v);paid=`; the Bank books its worth (${v})`}
   card.owner=null;if(card.hp!=null)card.hp=card.maxHp;
@@ -6913,7 +6896,7 @@ async function buyBankItem(pl,it){const P=G.p[pl];if(!G.auction.includes(it))ret
   $("#ov").querySelectorAll("[data-bbuy]").forEach(b=>b.onclick=async()=>{if(!canAct())return;await buyBankItem(G.active,G.auction[+b.dataset.bbuy]);viewAuction()})}}
 
 /* ---------- loans between players ---------- */
-const P2P_DUE=4,P2P_RATE=.2,P2P_MIN=2,P2P_MAX=12;
+const P2P_DUE=4,P2P_MIN=2,P2P_MAX=12;
 const p2pOf=()=>G.p2p||(G.p2p=[]);
 const p2pWhere=()=>typeof dipOn==="function"&&dipOn()?"Diplomacy, under the Bank":"the Bank window";   // v75c: with Diplomacy on, loans between players live there
 const lenders=pl=>alive().filter(i=>i!==pl&&!isHorde(i)&&!G.p[i].jail);
@@ -6944,7 +6927,7 @@ async function loanOffer(L,due){
   const paid=payQuiet(L.to,L.n),got=giveMana(L.from,paid);L.state="open";L.owed=paid;L.due=tnOf(L.from)+due;L.intAt=tnOf(L.from)+3;
   log(`<b>${plName(L.to)} lends ${plName(L.from)} ${paid} mana</b>${got<paid?` (${got} fit in the soul pile)`:""}: due in ${due} of ${plName(L.from)}'s turns, growing by 1d2 every 3 turns; if it isn't paid, the Bank collects.`,"event");
   notify(L.from,`${esc(G.p[L.to].name)} lends ${esc(G.p[L.from].name)} ${paid} mana.`);render()}
-function repayLoan(L,k){k=Math.min(k,L.owed,mana(L.from));if(k<=0)return 0;const paid=payQuiet(L.from,k),got=giveMana(L.to,paid);L.owed-=paid;
+function repayLoan(L,k){k=Math.min(k,L.owed,mana(L.from));if(k<=0)return 0;const paid=payQuiet(L.from,k);giveMana(L.to,paid);L.owed-=paid;
   log(`${plName(L.from)} pays ${plName(L.to)} back ${paid} mana${L.owed?` (${L.owed} still owed)`:"; the loan is settled"}.`);if(!L.owed)loanSettled(L);return paid}
 function loanSettled(L){L.state="done";L.owed=0;const bk=npcIx("bank");if(bk>=0)for(const x of stacksOf(bk))if(x.st.loan===L.id)G.board[x.r][x.c]=null;
   log(`The loan from ${plName(L.to)} to ${plName(L.from)} is settled.`)}
@@ -7620,6 +7603,10 @@ for(const [name,F] of Object.entries(NETFN)){const orig=F.get();
     const rid=++NET.rid;a=a.filter(x=>!(x instanceof Event));sendHost({t:"cmd",fn:name,args:netClean(F.map?F.map(a):a),ui:uiSnap(),rid});
     if(F.ret)return new Promise(res=>{NET.rets[rid]=res;setTimeout(()=>{if(NET.rets[rid]){delete NET.rets[rid];res(null)}},15000)});
     return F.async?Promise.resolve():undefined})}
+/* v78h: an action any player may take at any time, played by the host: online, a joined player's call is sent there.
+   The later parts of the game register theirs with this (it was the same five lines in each of them). */
+function netAny(name,get,set){NETFN[name]={get,set,any:true};const orig=get();
+  set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
 
 /* ---------- the host runs what a joined player sends ---------- */
 const seatOfGuest=id=>{if(!G)return null;const i=G.p.findIndex(P=>P.net===id);return i<0?null:i};
@@ -7700,7 +7687,7 @@ function onNet(from,d){if(!d||!d.t)return;
     else if(d.t==="cmd"){NET.queue=NET.queue.then(()=>runCmd(from,d)).catch(e=>console.error(e))}
     else if(d.t==="ans"){const p=NET.pend[d.id];if(p){delete NET.pend[d.id];p.res(d.v)}}
     else if(d.t==="bye")guestLeft(from)}}
-function guestLeft(id){const g=NET.guests[id];delete NET.guests[id];delete NET.sent[id];lobbyRoster();if(!G||!G.opts.online||G.over)return;
+function guestLeft(id){delete NET.guests[id];delete NET.sent[id];lobbyRoster();if(!G||!G.opts.online||G.over)return;
   const seat=seatOfGuest(id);if(seat==null)return;const P=G.p[seat];P.cpu="medium";P.net=null;
   log(`<b>${plName(seat)} left the game.</b> A computer (Medium) plays the seat from here.`,"event");popup("A player left",`<p>${esc(P.name)} left the room. A computer plays their seat from now on.</p>`);
   for(const [k,p] of Object.entries(NET.pend))if(p.pl===seat){delete NET.pend[k];p.res(p.spec&&p.spec.ai?p.spec.ai():AI.choose(seat,p.spec))}
@@ -7753,7 +7740,7 @@ function onlineLobby(){
   return h}}
 {const _sg=startGame;startGame=function(opts){
   if(!(NET.role==="lobby-host"&&NET.inSetup&&opts&&!opts.fast))return _sg(opts);
-  const ps=opts.players,local=ps.filter(p=>p.cpu==null&&!p.net).length,nets=ps.filter(p=>p.cpu&&String(p.cpu).startsWith("net:")).map(p=>p.cpu.slice(4));
+  const ps=opts.players,nets=ps.filter(p=>p.cpu&&String(p.cpu).startsWith("net:")).map(p=>p.cpu.slice(4));
   if(new Set(nets).size<nets.length){flash("Each player in the room can only take one seat.");return}
   for(const p of ps)if(p.cpu&&String(p.cpu).startsWith("net:")){p.net=p.cpu.slice(4);p.cpu=null}
   Object.assign(opts,{online:true,timer:0,turns:"classic",mode:"local"});
@@ -8004,7 +7991,7 @@ function oneOpen(root){root.addEventListener("toggle",e=>{const d=e.target;if(!d
   for(const s of d.parentElement.children)if(s!==d&&s.tagName==="DETAILS"&&s.classList.contains("ifold"))s.open=false},true)}
 function infoTree(){
   const box=$("#info");if(!box)return;
-  const [basics,cards,spells,further]=[...box.querySelectorAll(":scope > details.cinfo")];
+  const [,cards,spells,further]=[...box.querySelectorAll(":scope > details.cinfo")];
   // Card info
   if(cards){const tabs=cards.querySelector(".itabs");if(tabs)tabs.remove();const body=$("#ibody");body.innerHTML='<p class="dim">Pick a kind of card, then a card.</p>';
     cards.insertAdjacentHTML("beforeend",`<div class="ctree">${cardTreeHTML()}</div>`);cards.appendChild(body);
@@ -8320,7 +8307,7 @@ function cfgKit(attr,act,pfx){
     sec:(t,body,cls="",hint,note)=>`<section class="fasec ${cls}"><h4${tip(hint)}>${t}</h4>${body}${hint&&ph?`<p class="dim">${hint}</p>`:""}${note?`<p class="fanote2">${note}</p>`:""}</section>`}}
 const FA_CAUTION="Careful: ranking is a powerful setting. A bad order can lose you cards, or the game.";
 function faPanelHTML(c,pl,pfx){
-  const K=cfgKit("data-fa","data-faact","fa"+pfx),{row,spin,radio,sec,tip}=K;
+  const K=cfgKit("data-fa","data-faact","fa"+pfx),{row,spin,radio,sec}=K;
   const s=pl!=null?faState(pl):null,left=s&&s.rushUntil!=null&&c.rush?Math.max(0,s.rushUntil-G.moon.round+1):null;
   const custom=c.mode==="custom",some=c.mode==="mostly"||custom;
   let h=sec("Simple mode",radio("mode",c.mode,[["full","Fully automatic","It decides everything, offense, defense or the center (the default)"],["mostly","Mostly automatic","You choose the stance, ambushes and whether it attacks"],
@@ -9305,8 +9292,7 @@ function buyBountyColl(pl,id){const b=bountyById(id);if(!b||b.state!=="taken"||b
 function turnInCapt(pl,r,c){const st=G.board[r]&&G.board[r][c];if(!st||st.owner!==pl||!st.captive||G.active!==pl)return false;
   const x=st.captive,b=bountiesOf().find(o=>o.state==="taken"&&o.by===pl&&o.target===x.capturedFrom);if(!b)return false;
   st.captive=null;x.owner=null;x.capturedFrom=null;if(x.hp!=null)x.hp=x.maxHp;G.ether.push(x);bountyGain(b,costOf(x)||1,`a captured ${nameOf(x)} turned in to the Ether`);return true}
-for(const [name,get,set] of [["acceptBounty",()=>acceptBounty,f=>acceptBounty=f],["buyBountyColl",()=>buyBountyColl,f=>buyBountyColl=f],["turnInCapt",()=>turnInCapt,f=>turnInCapt=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["acceptBounty",()=>acceptBounty,f=>acceptBounty=f],["buyBountyColl",()=>buyBountyColl,f=>buyBountyColl=f],["turnInCapt",()=>turnInCapt,f=>turnInCapt=f]])netAny(name,get,set);
 /* a bounty's Debt Collectors strike only its target, a teammate too (that is no betrayal) */
 {const _ao=attackOptions;attackOptions=function(r,c){let out=_ao(r,c);const st=G&&G.board[r]&&G.board[r][c];if(!st||st.bounty==null)return out;
   const b=bountyById(st.bounty);if(!b||b.state!=="taken")return [];
@@ -10456,8 +10442,7 @@ async function cheatEvent(pl,k){if(!cheatHas(pl))return false;
   else if(k==="collectors"){if(!sendCollectors(1)){flash("The Bank has no debtor to send Collectors after.");return false}}
   else return false;
   render();return true}
-for(const [name,get,set] of [["setCheat",()=>setCheat,f=>setCheat=f],["cheatEvent",()=>cheatEvent,f=>cheatEvent=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["setCheat",()=>setCheat,f=>setCheat=f],["cheatEvent",()=>cheatEvent,f=>cheatEvent=f]])netAny(name,get,set);
 
 /* ---------- what the cheats do ---------- */
 {const _sc=spellCost;spellCost=function(sp){if(G&&cheatFree(G.active))return 0;return _sc.apply(this,arguments)}}
@@ -10467,7 +10452,7 @@ for(const [name,get,set] of [["setCheat",()=>setCheat,f=>setCheat=f],["cheatEven
   if(C.infBank&&G.bank&&!G.bank.dead)G.bank.mana=Math.max(G.bank.mana,999)}return _cr.apply(this,arguments)}}
 {const _sb=spellBlock;spellBlock=function(sp){if(sp&&cheatOn()){const B=CH().block;if(B.schools.includes(sp.school)||B.spells.includes(sp.id))return "Blocked in cheat mode."}return _sb.apply(this,arguments)}}
 /* the Ether that never empties: whatever is conjured out of it comes back as a new card of the same kind */
-for(const [name,get,set] of [["conjure",()=>conjure,f=>conjure=f],["conjureU",()=>conjureU,f=>conjureU=f]]){const orig=get();
+for(const [,get,set] of [["conjure",()=>conjure,f=>conjure=f],["conjureU",()=>conjureU,f=>conjureU=f]]){const orig=get();
   set(async function(){const before=new Set(G.ether.map(c=>c.id)),out=await orig.apply(this,arguments);
     if(cheatOn()&&CH().etherInf){const now=new Set(G.ether.map(c=>c.id));for(const id of before)if(!now.has(id)){const c=[...G.p.flatMap(P=>[...P.deck,...P.hand])].find(x=>x.id===id);
       if(c)G.ether.push(c.unit?mkUnit(c.unit,null):mk(c.rank,c.suit,c.color))}}
@@ -10601,8 +10586,7 @@ function setFaLock(pl,r,c,ids,on){const st=G.board[r]&&G.board[r][c];if(!st||st.
   for(const x of st.cards)if(ids.includes(x.id)){if(on&&lockable(x,st)){x.faLock=true;n++}else if(!on&&x.faLock){delete x.faLock;n++}}
   if(n)log(on?`${plName(pl)} locks ${n} card${n>1?"s":""} in place on ${coord(r,c)}: Field Automation won't move ${n>1?"them":"it"}.`:`${plName(pl)} unlocks ${n} card${n>1?"s":""} on ${coord(r,c)}: Field Automation may move ${n>1?"them":"it"} again.`);
   render();return n>0}
-for(const [name,get,set] of [["setFaLock",()=>setFaLock,f=>setFaLock=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["setFaLock",()=>setFaLock,f=>setFaLock=f]])netAny(name,get,set);
 /* the free spell, shown only while Field Automation is on */
 SPELLS.push({id:"falock",name:"Lock in Place",cost:0,school:"Enchantment",
   text:"Field Automation only. Select your stack (and check the cards, or leave all): they stay where they are; Field Automation won't move them. Not on bases, pinned or stunned stacks, or cards already locked.",
@@ -10671,7 +10655,7 @@ const heartN=h=>h.replace(/<span class="hearts" aria-label="(\d+) of (\d+) heart
 const WILD_DEAD=new Set(["satan","leviathan","bullgoat","goatbull","debt","slavemaster","slave","trafficker","tree"]);
 let wildQ=[];
 function wildFlush(){const q=wildQ;wildQ=[];if(!q.length||!G)return;
-  const lines=q.map(x=>`<li>${x.html}</li>`).join(""),born=q.some(x=>x.born);
+  const lines=q.map(x=>`<li>${x.html}</li>`).join("");
   popup(q.length>1?"Wildcards are dead":q[0].title,q.length>1?`<ul class="wilddead">${lines}</ul>`:`<p>${q[0].html}</p>`,q[0].owner)}
 {const _bu=bury;bury=function(card,r,c,st){const u=card&&card.unit,owner=st&&st.owner,was=u;
   const out=_bu.apply(this,arguments);
@@ -10720,7 +10704,6 @@ function planetFX(k,r,c){if(!FX.on()||!PLANET_SIGN[k])return;const [col,path]=PL
   const e=FX.make("sign planetsign",rect,{w:s,h:s,col,html:`<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`});if(!e)return;
   e.style.color=col;e.style.filter=`drop-shadow(0 0 6px ${col})`;
   FX.play(e,[{transform:"translateY(8px) scale(.55)",opacity:0},{transform:"translateY(-4px) scale(1)",opacity:.95,offset:.3},{transform:`translateY(${r!=null?-26:-40}px) scale(1.15)`,opacity:0}],r!=null?1300:1700)}
-const skySignK=()=>{const m=G.moon;return m.gone?(m.gone==="off"?null:m.gone):m.blood?"blood":"moon"};
 {const _e=eclipse;eclipse=async function(k){later(()=>planetFX(k==="sun"&&G.moon.gone==="blacksun"?"blacksun":k));return _e.apply(this,arguments)}}
 {const _v=venusCycle;venusCycle=function(){later(()=>planetFX("venus"));return _v.apply(this,arguments)}}
 {const _m=mercuryCycle;mercuryCycle=async function(){later(()=>planetFX("mercury"));return _m.apply(this,arguments)}}
@@ -10998,7 +10981,6 @@ const cyclesOff=()=>!!G&&G.opts.cycleEvents===false,eclipsesOff=()=>!!G&&G.opts.
 
 /* ---------- the sky's lines: when it changes next ---------- */
 function skyChgLine(){if(!G||!G.moon)return "";const o=SKYCHG(),k=sky();if(skyFixed(k)||o.mode==="never"||G._chgK!==k)return "";
-  const cyc=k==="moon"?8:cycLen(k),start=k==="moon"?(G.skyArr||1):(G.skySince||G.moon.round);
   if(o.mode==="rounds"){const left=G.skyArr+G.skyEveryN-G.moon.round;return `A new Heavenly Body takes the sky in ${left} round${left===1?"":"s"}.`}
   const target=o.mode==="bid"?G.skyKeepAt:G.skyEveryN,leftC=Math.max(0,target-(G.skyCyc||0));
   return o.mode==="bid"?`Leaves after ${leftC===0?"this":leftC===1?"its next":`${leftC} more`} cycle${leftC>1?"s":""}, unless bids keep it (${G.skyCyc||0} of ${target} cycles done).`:`Leaves after ${leftC} more cycle${leftC===1?"":"s"} (${G.skyCyc||0} of ${target} done).`}
@@ -11158,7 +11140,7 @@ let nepSacking=false;
 /* the Bank's takings from a purchase go to a random player on a 1 of 1d10 (not in Survival) */
 let nepBuying=null;
 {const _sp=spend;spend=function(pl,n){nepBuying=pl;try{return _sp.apply(this,arguments)}finally{nepBuying=null}}}
-{const _ba=bankAdd;bankAdd=function(n){if(nepBuying!=null&&n>0&&nepEvFor(nepBuying)&&!survival()&&!nepIn&&R(10)===1){nepBuying=null;const ps=nepRealPl();if(ps.length){const q=pick(ps);nepIn=true;let got=0;try{got=giveMana(q,n)}finally{nepIn=false}
+{const _ba=bankAdd;bankAdd=function(n){if(nepBuying!=null&&n>0&&nepEvFor(nepBuying)&&!survival()&&!nepIn&&R(10)===1){nepBuying=null;const ps=nepRealPl();if(ps.length){const q=pick(ps);nepIn=true;try{giveMana(q,n)}finally{nepIn=false}
     log(`<b>Neptune</b>: the ${n} mana the Bank takes for a purchase drifts to ${plName(q)} (a 1 on 1d10).`,"event");notify(null,`Neptune: ${n} of the Bank's mana drifts to ${esc(G.p[q].name)}.`);return}}
   return _ba.apply(this,arguments)}}
 /* drawn cards lost in the sea, found 1d10 turns later by anyone */
@@ -11395,8 +11377,8 @@ SP("stray").text=[SPELL_TEXT.stray.n,SPELL_TEXT.stray.e,SPELL_TEXT.stray.l].join
 let strayIn=false;
 const strayOn=pl=>{const S=G&&G.strayOn;return !strayIn&&S&&S.t===pl&&S.round===G.moon.round&&G.p[S.by]&&!G.p[S.by].out?S:null};
 {const _gm=giveMana;giveMana=function(pl,n){const S=n>0?strayOn(pl):null;if(!S)return _gm.apply(this,arguments);const d=R(20);if(d!==1&&d!==20)return _gm.apply(this,arguments);
-  strayIn=true;try{if(d===1){const got=_gm(S.by,n);log(`<b>Stray Mana</b>: ${n} mana meant for ${plName(pl)} strays to ${plName(S.by)} (a 1 on 1d20).`,"event");return 0}
-    const out=_gm(pl,n),g2=_gm(S.by,n);log(`<b>Stray Mana</b>: ${plName(S.by)} shares the ${n} mana ${plName(pl)} earns (a 20 on 1d20).`,"event");return out}finally{strayIn=false}}}
+  strayIn=true;try{if(d===1){_gm(S.by,n);log(`<b>Stray Mana</b>: ${n} mana meant for ${plName(pl)} strays to ${plName(S.by)} (a 1 on 1d20).`,"event");return 0}
+    const out=_gm(pl,n);_gm(S.by,n);log(`<b>Stray Mana</b>: ${plName(S.by)} shares the ${n} mana ${plName(pl)} earns (a 20 on 1d20).`,"event");return out}finally{strayIn=false}}}
 {const _sp=spend;spend=function(pl,n){const S=n>0?strayOn(pl):null;if(!S)return _sp.apply(this,arguments);const d=R(20);if(d!==1&&d!==20)return _sp.apply(this,arguments);
   strayIn=true;try{const out=_sp(pl,n);
     if(d===1){const got=giveMana(S.by,n);if(G.bank)G.bank.mana-=got;log(`<b>Stray Mana</b>: the ${n} mana ${plName(pl)} spends is paid to ${plName(S.by)} (a 1 on 1d20).`,"event")}
@@ -11827,8 +11809,7 @@ ${spec.how&&ans!=="no"?`<label class="f crysrow"><span>For how long</span><selec
 function crysStop(pl){if(!G||!G.p[pl]||NET.ctx!=null&&NET.ctx!==pl)return false;
   for(const {st} of stacksOf(pl))for(const x of st.cards)delete x.faCrys;
   G.p[pl].crysOff=G.moon.round+5;render();return true}
-for(const [name,get,set] of [["crysStop",()=>crysStop,f=>crysStop=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["crysStop",()=>crysStop,f=>crysStop=f]])netAny(name,get,set);
 {const _rs=renderSel;renderSel=function(live){_rs.apply(this,arguments);if(!G||!G.sel)return;const V=view(),st=selStack(),box=$("#selbox");
   if(!box||!st||st.owner!==V||!faOn(V)||!st.cards.some(x=>x.faCrys))return;
   let row=box.querySelector(".falockrow");if(!row){box.insertAdjacentHTML("beforeend",`<p class="falockrow"><span class="dim">Field Automation:</span></p>`);row=box.querySelector(".falockrow")}
@@ -12249,8 +12230,7 @@ function stSend(from,to,name,cfg){if(!G||!G.p[from]||!G.p[to]||G.p[to].cpu||isNP
   const P=G.p[to];P.stInbox=(P.stInbox||[]).slice(-9);P.stInbox.push({from,name:stName(name)||"A strategy",cfg:stCfg(cfg)});
   log(`${plName(from)} sends ${plName(to)} an automated strategy, “${esc(stName(name))}”.`);render();return true}
 function stTake(pl,i){if(!G||!G.p[pl]||NET.ctx!=null&&NET.ctx!==pl)return false;const L=G.p[pl].stInbox||[];if(i<0||i>=L.length)return false;L.splice(i,1);render();return true}
-for(const [name,get,set] of [["stSend",()=>stSend,f=>stSend=f],["stTake",()=>stTake,f=>stTake=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["stSend",()=>stSend,f=>stSend=f],["stTake",()=>stTake,f=>stTake=f]])netAny(name,get,set);
 /* v73f: a copy's name: the name and the first number not taken (Jackal → Jackal1, again → Jackal2; Jackal2 → Jackal21) */
 function copyName(name,names){const has=new Set(names);for(let k=1;;k++){const n=name+k;if(!has.has(n))return n}}
 /* the fold */
@@ -12390,8 +12370,7 @@ function setCardClass(pl,ids,head,val){if(!G||!G.p[pl]||NET.ctx!=null&&NET.ctx!=
   const mine=id=>{for(const r of G.board)for(const s of r)if(s&&s.owner===pl){const x=s.cards.find(y=>y.id===id);if(x)return x}return P.hand.find(y=>y.id===id)||null};
   for(const id of ids){const x=mine(id);if(x&&!isBase(x))delete x.faClass}
   const h=mine(head);if(h&&!isBase(h)&&(val==="none"||typeof val==="string"&&val))h.faClass=val;render();return true}
-for(const [name,get,set] of [["setCardClass",()=>setCardClass,f=>setCardClass=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["setCardClass",()=>setCardClass,f=>setCardClass=f]])netAny(name,get,set);
 const clsReady=()=>{if(!G||G.over)return false;const V=view();return !!G.p[V]&&faOn(V)&&plClasses(V).length>0};
 /* the head of a stack for a class: its strongest card that isn't of the class's kinds (else its strongest) */
 function clsHead(st,k){const cards=st.cards.filter(x=>!isBase(x)).sort((a,b)=>rate(b)-rate(a));if(!k)return cards[0];return cards.find(x=>!k.kinds.includes(faKind(x)))||cards[0]}
@@ -12950,8 +12929,7 @@ function clsAvoidHTML(k,L,pfx){const K=cfgKit("data-clv","data-clvact","clv"+pfx
 function setSoftAuto(pl,ids,on){if(!G||!G.p[pl]||NET.ctx!=null&&NET.ctx!==pl||!Array.isArray(ids))return false;const P=G.p[pl];
   const mine=id=>{for(const r of G.board)for(const s of r)if(s&&s.owner===pl){const x=s.cards.find(y=>y.id===id);if(x)return x}return P.hand.find(y=>y.id===id)||null};
   for(const id of ids){const x=mine(id);if(x&&!isBase(x)){if(on)x.sa=true;else delete x.sa}}render();return true}
-for(const [name,get,set] of [["setSoftAuto",()=>setSoftAuto,f=>setSoftAuto=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["setSoftAuto",()=>setSoftAuto,f=>setSoftAuto=f]])netAny(name,get,set);
 const softOn=()=>{if(!G||G.over||!faAllowed())return false;const V=view();return !!G.p[V]&&!G.p[V].cpu&&!isNPC(V)&&faMine().scope==="soft"};
 function saTargetAt(e){if(!softOn())return null;const V=view();
   const t=e.target.closest&&e.target.closest("#board .tile");if(t){const st=G.board[+t.dataset.r]&&G.board[+t.dataset.r][+t.dataset.c];if(st&&st.owner===V&&st.cards.some(x=>!isBase(x)))return {st}}
@@ -13184,8 +13162,7 @@ function dipBreakNow(pl,toT,how){const a=teamOf(pl),rel=dipRel(a,toT).s;if(rel!=
       :`<p>${esc(G.p[pl].name)} breaks the alliance with ${esc(dipTeamName(toT))}.</p><ul><li>Trust in ${esc(dipTeamName(a))} falls hard: −70 with them, −40 with everyone else.</li><li>For ${DIP_PEN_ROUNDS} rounds the Banker disapproves: Bank loans grow half as fast again, cards from the Ether cost 1d3 − 2 more (−1 to +1) and other spells 1d4 − 3 more (−2 to +1), rolled each turn: the dice can also make them cheaper (never below 0).</li></ul>`)}
   render();return true}
 function dipBreak(pl,toT){if(!G||!dipOn()||NET.ctx!=null&&NET.ctx!==pl)return false;return dipBreakNow(pl,toT,"choice")}
-for(const [name,get,set] of [["dipPropose",()=>dipPropose,f=>dipPropose=f],["dipAnswer",()=>dipAnswer,f=>dipAnswer=f],["dipBreak",()=>dipBreak,f=>dipBreak=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["dipPropose",()=>dipPropose,f=>dipPropose=f],["dipAnswer",()=>dipAnswer,f=>dipAnswer=f],["dipBreak",()=>dipBreak,f=>dipBreak=f]])netAny(name,get,set);
 
 /* ---------- each round: peace runs out, trust drifts, alliances end when two sides are left, computers propose ---------- */
 function dipRound(){if(!dipOn()||NET.role==="guest")return;const D=dipD(),r=G.moon.round,T=dipTeams();
@@ -13320,8 +13297,7 @@ function dipGift(pl,toT,what,val){if(!G||!dipOn()||NET.ctx!=null&&NET.ctx!==pl)r
   else{const P=G.p[pl],i=P.hand.findIndex(c=>c.id===+val);if(i<0)return false;const c=P.hand.splice(i,1)[0],Q=G.p[to];c.owner=to;
     if(Q.hand.length<handCap(to))Q.hand.push(c);else{Q.deck.push(c);shuffle(Q.deck)}if(dipCpuTeam(toT))dipTrustAdd(toT,a,3);log(`${plName(pl)} gives ${plName(to)} a card from the hand.`,"event")}
   render();return true}
-for(const [name,get,set] of [["dipEnvoy",()=>dipEnvoy,f=>dipEnvoy=f],["dipRecall",()=>dipRecall,f=>dipRecall=f],["dipGift",()=>dipGift,f=>dipGift=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["dipEnvoy",()=>dipEnvoy,f=>dipEnvoy=f],["dipRecall",()=>dipRecall,f=>dipRecall=f],["dipGift",()=>dipGift,f=>dipGift=f]])netAny(name,get,set);
 /* the loans between players: in Diplomacy while it is on (the Bank keeps its own loans and the land) */
 function dipWireP2P(w,V){const re=()=>{dipPaint();render()};
   w.querySelectorAll("[data-lend]").forEach(b=>b.onclick=()=>{const L=p2pOf().find(x=>x.id===+b.dataset.lend);const d=w.querySelector(`[data-ldue="${b.dataset.lend}"]`);if(L)answerLoan(L,true,d?+d.value:P2P_DUE);re()});
@@ -13471,17 +13447,18 @@ function ssAsk(guest,owner){if(!G||!ssOn()||NET.ctx!=null&&NET.ctx!==guest||G.ph
   if(D.block[owner]){if(!G.p[guest].cpu)notify(guest,`${esc(G.p[owner].name)} keeps teammates' and allies' cards out of their spawn lines.`);return false}
   log(`${plName(guest)} asks ${plName(owner)} to spawn in their spawn lines.`,"event");
   if(G.p[owner].cpu){ssGrant(owner,guest,ssAiYes(owner,guest));render();return true}
-  D.ask.push({id:++D.n,from:guest,to:owner,round:G.moon.round});notify(owner,`${esc(G.p[guest].name)} asks to spawn in your spawn lines: answer in Diplomacy.`);render();return true}
+  D.ask.push({id:++D.n,from:guest,to:owner,round:G.moon.round});notify(owner,`${esc(G.p[guest].name)} asks to spawn in your spawn lines: answer in Diplomacy.`);render();
+  return true}
 function ssAnswer(owner,id,yes){if(!G||NET.ctx!=null&&NET.ctx!==owner)return false;const D=ssD(),a=D.ask.find(x=>x.id===id&&x.to===owner);if(!a)return false;
   D.ask.splice(D.ask.indexOf(a),1);if(ssFriend(owner,a.from))ssGrant(owner,a.from,!!yes);render();return true}
 function ssRevoke(owner,guest){if(!G||NET.ctx!=null&&NET.ctx!==owner)return false;const D=ssD();if(!D.ok[owner+">"+guest])return false;delete D.ok[owner+">"+guest];
-  log(`${plName(owner)} no longer lets ${plName(guest)} spawn in their spawn lines.`,"event");if(!G.p[guest].cpu)notify(guest,`${esc(G.p[owner].name)} no longer lets you spawn in their spawn lines.`);render();return true}
+  log(`${plName(owner)} no longer lets ${plName(guest)} spawn in their spawn lines.`,"event");
+  if(!G.p[guest].cpu)notify(guest,`${esc(G.p[owner].name)} no longer lets you spawn in their spawn lines.`);render();return true}
 function ssBlock(owner,on){if(!G||NET.ctx!=null&&NET.ctx!==owner)return false;const D=ssD();D.block[owner]=!!on;
   log(on?`${plName(owner)} keeps teammates' and allies' cards out of their spawn lines.`:`${plName(owner)} opens their spawn lines to teammates and allies again.`,"event");
   if(on)for(const f of ssFriends(owner))if(!G.p[f].cpu)notify(f,`${esc(G.p[owner].name)} keeps teammates' and allies' cards out of their spawn lines: you can't spawn in them or step into them.`);
   render();return true}
-for(const [name,get,set] of [["ssAsk",()=>ssAsk,f=>ssAsk=f],["ssAnswer",()=>ssAnswer,f=>ssAnswer=f],["ssRevoke",()=>ssRevoke,f=>ssRevoke=f],["ssBlock",()=>ssBlock,f=>ssBlock=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["ssAsk",()=>ssAsk,f=>ssAsk=f],["ssAnswer",()=>ssAnswer,f=>ssAnswer=f],["ssRevoke",()=>ssRevoke,f=>ssRevoke=f],["ssBlock",()=>ssBlock,f=>ssBlock=f]])netAny(name,get,set);
 /* a friend's card doesn't step into lines kept closed */
 let ssCut=[];   // the steps the last list lost to closed lines
 {const _mt=moveTargets;moveTargets=function(){const out=_mt.apply(this,arguments);ssCut=[];if(!G||!G.ss||!G.sel)return out;const st=G.board[G.sel.r]&&G.board[G.sel.r][G.sel.c];if(!st)return out;
@@ -13504,7 +13481,8 @@ ${asks.map(a=>`<p class="ssask">${plName(a.from)} asks to spawn in your spawn li
 ${F.length?`<ul class="sslist">${F.map(row).join("")}</ul>`:`<p class="dim">No teammates or allies yet: an ally can let you spawn in their lines, and you in yours.</p>`}</section>`}
 {const _dp=dipPaint;dipPaint=function(){_dp.apply(this,arguments);const w=$("#dipwin");if(!w||!G)return;const V=view(),body=w.querySelector(".dipbody");if(!body)return;
   const at=body.querySelector(".dipsec.dipp2p");at?at.insertAdjacentHTML("beforebegin",ssHTML(V)):body.insertAdjacentHTML("beforeend",ssHTML(V));
-  const ul=body.querySelector(".dipnote ul");if(ul)ul.insertAdjacentHTML("beforeend",`<li><b>Spawn lines</b>: you spawn only in your own. A teammate or an ally may let you spawn in theirs: ask here (a computer teammate always agrees, a computer ally only at Great trust). Anyone can keep teammates' and allies' cards out of their spawn lines; those kept out are told.</li>`);
+  const ul=body.querySelector(".dipnote ul");
+  if(ul)ul.insertAdjacentHTML("beforeend",`<li><b>Spawn lines</b>: you spawn only in your own. A teammate or an ally may let you spawn in theirs: ask here (a computer teammate always agrees, a computer ally only at Great trust). Anyone can keep teammates' and allies' cards out of their spawn lines; those kept out are told.</li>`);
   body.querySelectorAll("[data-ss]").forEach(b=>b.onclick=()=>{const [a,x]=b.dataset.ss.split("|"),n=+x;
     if(a==="ask")ssAsk(V,n);else if(a==="rev")ssRevoke(V,n);else ssAnswer(V,n,a==="yes");dipPaint()});
   const bk=body.querySelector("#ssBlk");if(bk)bk.onchange=()=>{ssBlock(V,bk.checked);dipPaint()}}}
@@ -13734,8 +13712,7 @@ function kmSend(from,to,name,map){if(!G||!G.p[from]||!G.p[to]||G.p[to].cpu||isNP
   log(`${plName(from)} sends ${plName(to)} their key bindings, “${esc(P.kmInbox[P.kmInbox.length-1].name)}”.`);
   notify(to,`${esc(G.p[from].name)} sent you key bindings: the Menu's Controls tab installs them.`);render();return true}
 function kmTake(pl,i){if(!G||!G.p[pl]||NET.ctx!=null&&NET.ctx!==pl)return false;const L=G.p[pl].kmInbox||[];if(i<0||i>=L.length)return false;L.splice(i,1);render();return true}
-for(const [name,get,set] of [["kmSend",()=>kmSend,f=>kmSend=f],["kmTake",()=>kmTake,f=>kmTake=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["kmSend",()=>kmSend,f=>kmSend=f],["kmTake",()=>kmTake,f=>kmTake=f]])netAny(name,get,set);
 const kmInbox=()=>G&&G.p[view()]&&G.p[view()].kmInbox||[];
 function kmInstall(i){const it=kmInbox()[i];if(!it)return;const S=kmState(),names=kmPresets().map(p=>p.name);let name=it.name;if(names.includes(name))name=copyName(name,names);
   S.mine.push({id:"k"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name,map:kmClean(it.map),from:G.p[it.from]?G.p[it.from].name:""});
@@ -13778,7 +13755,8 @@ function kmWire(box){const S=kmState(),P=kmPreset(S.preset)||KM_LOCKED[0],leave=
     else if(d==="saveas"){kmUI.mode="saveas";kmPaint();const t=box.querySelector(".kmname");if(t){t.focus();t.select()}}
     else if(d==="saveasok"){const t=box.querySelector(".kmname"),name=(t&&t.value||"").replace(/\s+/g," ").trim().slice(0,40);if(!name){flash("Give it a name.");return}
       const names=kmPresets().map(p=>p.name),id="k"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
-      S.mine.push({id,name:names.includes(name)?copyName(name,names):name,map:kmCopy(S.map)});S.preset=id;S.dirty=false;kmUI.mode=null;savePrefs();kmPaint();flash(`Saved as “${S.mine[S.mine.length-1].name}”.`)}
+      S.mine.push({id,name:names.includes(name)?copyName(name,names):name,map:kmCopy(S.map)});S.preset=id;S.dirty=false;kmUI.mode=null;savePrefs();kmPaint();
+      flash(`Saved as “${S.mine[S.mine.length-1].name}”.`)}
     else if(d==="del"&&!P.locked)kmAsk(`Delete the preset “${esc(P.name)}”?`,()=>{S.mine=S.mine.filter(p=>p.id!==P.id);kmLoad("default")},()=>kmPaint());
     else if(d==="send"){kmUI.mode="send";kmPaint()}
     else if(d==="def")leave(()=>kmLoad("default"));
@@ -13786,7 +13764,8 @@ function kmWire(box){const S=kmState(),P=kmPreset(S.preset)||KM_LOCKED[0],leave=
   box.querySelectorAll("[data-kmto]").forEach(b=>b.onclick=()=>{if(!G)return;kmSend(view(),+b.dataset.kmto,P.name,S.map);kmUI.mode=null;kmPaint();flash(`Sent “${P.name}” to ${G.p[+b.dataset.kmto].name}.`)});
   box.querySelectorAll("[data-kmin]").forEach(b=>b.onclick=()=>kmInstall(+b.dataset.kmin));
   box.querySelectorAll("[data-kmno]").forEach(b=>b.onclick=()=>{kmTake(view(),+b.dataset.kmno);setTimeout(kmPaint,0)});
-  const t=box.querySelector(".kmname");if(t)t.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();const ok=box.querySelector('[data-kmdo="saveasok"]');if(ok)ok.click()}}}
+  const t=box.querySelector(".kmname");
+  if(t)t.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();const ok=box.querySelector('[data-kmdo="saveasok"]');if(ok)ok.click()}}}
 /* the "!" for key bindings sent to you: on the Menu, the pause button in fullscreen, and the Controls tab */
 function kmBang(){const n=G?kmInbox().length:0;
   for(const el of document.querySelectorAll("#menubtn,#fspauseb,#menu .settabs .stab[data-st='ctl']")){let b=el.querySelector(":scope>.kmbang");
@@ -13857,7 +13836,8 @@ function fgTidy(pl){const D=G.p[pl]&&G.p[pl].fg;if(!D)return;
 function fgDo(pl,op,a,b,c){if(!G||!G.p[pl]||G.over||NET.ctx!=null&&NET.ctx!==pl||!faAllowed())return false;const D=fgData(pl);
   const at=p=>{if(!Array.isArray(p))return null;const st=G.board[p[0]]&&G.board[p[0]][p[1]];return st&&st.owner===pl?{st,r:p[0],c:p[1]}:null};
   const mark=(o,gid)=>{for(const x of o.st.cards)if(isBase(x)||!gid)delete x.fgId;else x.fgId=gid};
-  const out=o=>{const was=fgGid(pl,o.st),g=was&&D.g[was];if(g&&g.k==="squad"&&g.lead){const L=fgFind(pl,g.lead);if(L&&L.st===o.st)g.lead=null}mark(o,null)};   // a squadron's leader that goes leaves it leaderless
+  // a squadron's leader that goes leaves it leaderless
+  const out=o=>{const was=fgGid(pl,o.st),g=was&&D.g[was];if(g&&g.k==="squad"&&g.lead){const L=fgFind(pl,g.lead);if(L&&L.st===o.st)g.lead=null}mark(o,null)};
   const room=gid=>fgMembers(pl,gid).length<FG_MAX,newG=g=>{const id="g"+(++D.n);D.g[id]=g;return id};
   const o=at(a);
   if(op==="guard"){const L=at(b);if(!o||!L||o.st===L.st||!fgCanJoin(o.st))return false;
@@ -13877,11 +13857,11 @@ function fgDo(pl,op,a,b,c){if(!G||!G.p[pl]||G.over||NET.ctx!=null&&NET.ctx!==pl|
   else if(op==="dismiss"){if(!o)return false;for(const id of Object.keys(D.g)){const g=D.g[id],X=g.k==="guard"&&fgFind(pl,g.lead);if(X&&X.st===o.st)fgEnd(pl,id,"")}}
   else if(op==="strat"){if(!o)return false;const gid=fgGid(pl,o.st);let sid=null;
     if(c&&typeof c==="object"){sid="s"+(++D.n);D.s[sid]={name:stName(b)||"Strategy",cfg:stCfg(c)}}
-    if(gid)D.g[gid].sid=sid;else{for(const x of o.st.cards)delete x.fgStrat;const h=o.st.cards.filter(x=>!isBase(x)).sort((x,y)=>rate(y)-rate(x))[0];if(h&&sid)h.fgStrat=sid}}
+    if(gid)D.g[gid].sid=sid;
+    else{for(const x of o.st.cards)delete x.fgStrat;const h=o.st.cards.filter(x=>!isBase(x)).sort((x,y)=>rate(y)-rate(x))[0];if(h&&sid)h.fgStrat=sid}}
   else return false;
   fgTidy(pl);render();return true}
-for(const [name,get,set] of [["fgDo",()=>fgDo,f=>fgDo=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["fgDo",()=>fgDo,f=>fgDo=f]])netAny(name,get,set);
 
 /* ---------- how the field plays them (the automation's per-stack settings, as the classes do) ---------- */
 /* a strategy's settings in place of yours: every card of the stack under it */
@@ -13948,7 +13928,7 @@ function fgItems(o){const V=view(),D=G.p[V].fg||{g:{},s:{}},gid=fgGid(V,o.st),g=
     h+=`<p class="clsmh">Strategy for ${g?"the group":"this stack"}</p>`+b("strat:","Your own settings",!curName)+L.map(s=>b("strat:"+s.id,esc(s.name),curName===s.name)).join("")}
   return h}
 function fgWire(m,o){m.querySelectorAll("[data-fg]").forEach(btn=>btn.onclick=()=>{m.hidden=true;fgUse(btn.dataset.fg,o)})}
-function fgUse(op,o){const V=view(),D=G.p[V].fg||{g:{}},gid=fgGid(V,o.st),here=[o.r,o.c];
+function fgUse(op,o){const V=view(),gid=fgGid(V,o.st),here=[o.r,o.c];
   if(op==="guardsel"){const L=selStack();if(!L)return;if(!fgGuardRoom(V,L)){flash("Nine stacks already guard that one.");return}fgDo(V,"guard",here,[G.sel.r,G.sel.c]);flash("It guards the selected stack.")}
   else if(op==="guard")fgPick({op,from:here,text:"Click the stack it should guard"});
   else if(op==="area")fgPick({op,from:here,text:"Click the middle of the area it should guard (four tiles around it)"});
@@ -13965,7 +13945,8 @@ function fgTargetAt(e){if(!G||G.over)return null;const V=view();if(V==null||!G.p
   const t=e.target.closest&&e.target.closest("#board .tile");if(!t)return null;const r=+t.dataset.r,c=+t.dataset.c,st=G.board[r]&&G.board[r][c];
   return st&&st.owner===V?{st,r,c}:null}
 function fgMenu(o,x,y){let m=$("#clsmenu");if(!m){m=document.createElement("div");m.id="clsmenu";m.setAttribute("role","menu");document.body.appendChild(m)}
-  m.innerHTML=fgItems(o);m.hidden=false;const w=m.offsetWidth||200,h=m.offsetHeight||220;m.style.left=Math.max(6,Math.min(innerWidth-w-6,x))+scrollX+"px";m.style.top=Math.max(6,Math.min(innerHeight-h-6,y))+scrollY+"px";
+  m.innerHTML=fgItems(o);m.hidden=false;const w=m.offsetWidth||200,h=m.offsetHeight||220;m.style.left=Math.max(6,Math.min(innerWidth-w-6,x))+scrollX+"px";
+  m.style.top=Math.max(6,Math.min(innerHeight-h-6,y))+scrollY+"px";
   fgWire(m,o);const f=m.querySelector("button");if(f)f.focus({preventScroll:true})}
 /* the class menu carries the group's part when it opens on a stack */
 {const _cm=clsMenu;clsMenu=function(target){_cm.apply(this,arguments);const o=target&&target.st&&G&&fgFull(view())?fgLoc(target.st):null,m=$("#clsmenu");if(!o||!m)return;
@@ -13974,7 +13955,8 @@ document.addEventListener("contextmenu",e=>{if(FG.pick){e.preventDefault();const
   if(e.defaultPrevented)return;const o=fgTargetAt(e);if(!o)return;e.preventDefault();fgMenu(o,e.clientX,e.clientY)});
 let fgTap=null;
 document.addEventListener("pointerup",e=>{if(e.pointerType!=="touch"||clsTargetAt(e)||FG.pick)return;const o=fgTargetAt(e);if(!o){fgTap=null;return}
-  const key=o.st.cards[0].id,now=performance.now();if(fgTap&&fgTap.key===key&&now-fgTap.t<350){fgTap=null;setTimeout(()=>fgMenu(o,e.clientX,e.clientY),0)}else fgTap={key,t:now}});
+  const key=o.st.cards[0].id,now=performance.now();
+  if(fgTap&&fgTap.key===key&&now-fgTap.t<350){fgTap=null;setTimeout(()=>fgMenu(o,e.clientX,e.clientY),0)}else fgTap={key,t:now}});
 
 /* ---------- picking on the field: the stack to guard, the area, the stacks of a squadron ---------- */
 const FG={pick:null};
@@ -13996,7 +13978,8 @@ function fgPickPaint(){document.querySelectorAll(".fgok,.fgon,.fgfrom").forEach(
   if(!mine){fgPickEnd(true);return}   // open ground or not yours: done
   if(!fgCanJoin(st)){flash("A base alone can't join a squadron: it can be guarded.");return}
   if(p.op==="add"){if(fgMembers(V,p.gid).length>=FG_MAX){flash("A squadron holds nine stacks at most.");return}fgDo(V,"join",[r,c],p.gid);fgPickPaint();return}
-  const i=p.list.findIndex(([a,b])=>a===r&&b===c);if(i>=0)p.list.splice(i,1);else if(p.list.length+1>=FG_MAX)flash("A squadron holds nine stacks at most.");else p.list.push([r,c]);fgPickPaint()}}
+  const i=p.list.findIndex(([a,b])=>a===r&&b===c);if(i>=0)p.list.splice(i,1);else if(p.list.length+1>=FG_MAX)flash("A squadron holds nine stacks at most.");
+  else p.list.push([r,c]);fgPickPaint()}}
 addEventListener("keydown",e=>{if(!FG.pick||typing(e.target))return;if(e.key==="Escape"||kmIs(e,"close")){e.preventDefault();e.stopImmediatePropagation();fgPickEnd(true)}},true);
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(FG.pick){if(!G||G.over||!fgFull(view()))fgPickEnd(false);else fgPickPaint()}}}
 
@@ -14028,7 +14011,8 @@ function fgSVG(){const B=$("#board");if(!B||!G)return;const V=view(),D=V!=null&&
     return `<line class="fgu ${cls}" x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}"/><line class="fgl ${cls}" x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}"${arrow?` marker-end="url(#${arrow})"`:""}/>`};
   for(const it of items){const a=at(it[1],it[2]);if(!a)continue;
     if(it[0]==="ar"){const n=at(it[1],it[2]+1)||at(it[1],it[2]-1),pitch=n?Math.abs(n.x-a.x):a.s*1.08;
-      out+=`<circle class="fgc" cx="${f(a.x)}" cy="${f(a.y)}" r="${f(pitch*(FG_AREA+.5))}"/><circle class="fgcd" cx="${f(a.x)}" cy="${f(a.y)}" r="${f(a.s*.46)}"/>`;continue}
+      out+=`<circle class="fgc" cx="${f(a.x)}" cy="${f(a.y)}" r="${f(pitch*(FG_AREA+.5))}"/><circle class="fgcd" cx="${f(a.x)}" cy="${f(a.y)}" r="${f(a.s*.46)}"/>`;
+      continue}
     const b=at(it[3],it[4]);if(!b)continue;
     out+=it[0]==="gd"?line("gd",a,b,"fgag"):it[0]==="al"?line("al",a,b,null):it[0]==="sl"?line("sq",a,b,"fgab"):line("sq",a,b,null)}
   const mk=(id,col)=>`<marker id="${id}" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4.4" markerHeight="4.4" orient="auto" markerUnits="strokeWidth"><path d="M0,0L10,5L0,10L2.5,5z" fill="${col}"/></marker>`;
@@ -14147,7 +14131,8 @@ function cnRun(line){line=String(line||"").trim();if(!line)return;
       if(!canAct()){cnSay("Not your move now.",true);return}if(!canPlace(card,to.r,to.c)){cnSay(`${short(card)} can't be placed on ${cnName(to.r,to.c)}.`,true);return}
       place(card,to.r,to.c);render();cnSay(`${short(card)} placed on ${cnName(to.r,to.c)}.`);return}
     case "cast":{const q=arg.join(" ").toLowerCase();const S=cnSpells(),s=S.find(x=>x.name.toLowerCase()===q)||S.find(x=>x.name.toLowerCase().startsWith(q));
-      if(!q||!s){cnSay(q?`No spell “${arg.join(" ")}” here.`:"Which spell?",true);return}if(s.off){cnSay(`${s.name} can't be cast now.`,true);return}s.b.click();cnSay(`${s.name}.`);return}
+      if(!q||!s){cnSay(q?`No spell “${arg.join(" ")}” here.`:"Which spell?",true);return}if(s.off){cnSay(`${s.name} can't be cast now.`,true);return}s.b.click();
+      cnSay(`${s.name}.`);return}
     case "end":{const n=$("#next");if(n&&!n.disabled){n.click();cnSay(n.textContent.trim()||"Done.")}else cnSay("The turn button can't be pressed now.",true);return}
     case "roll":{const d=$("#d4");if(d&&!d.disabled){d.click();cnSay("Rolled.")}else cnSay("There is nothing to roll now.",true);return}
     case "bank":cnClose();{const b=$("#bankslot .bankbar");if(b)b.click();else openBank()}return;
@@ -14165,14 +14150,16 @@ function cnRun(line){line=String(line||"").trim();if(!line)return;
     case "guard":case "area":case "squad":case "lead":case "leave":{const V=view();if(!fgFull(V)){cnSay("Groups need Field Automation playing your whole field (auto on).",true);return}
       const T=arg.map(cnTile);if(!T[0]){cnSay("Which stack? (a tile like B2)",true);return}const p=T.map(x=>x&&[x.r,x.c]);
       const ok=cmd==="guard"?T[1]&&fgDo(V,"guard",p[0],p[1]):cmd==="area"?T[1]&&fgDo(V,"area",p[0],p[1]):cmd==="squad"?fgDo(V,"squad",p.filter(Boolean)):fgDo(V,cmd,p[0]);
-      cnSay(ok?({guard:"It guards it.",area:"It guards the area.",squad:"A squadron.",lead:"It leads its squadron.",leave:"Out of its group."})[cmd]:"That can't be done (one of your stacks? a full group?).",!ok);return}
+      cnSay(ok?({guard:"It guards it.",area:"It guards the area.",squad:"A squadron.",lead:"It leads its squadron.",leave:"Out of its group."})[cmd]:"That can't be done (one of your stacks? a full group?).",!ok);
+      return}
     case "advance":case "retreat":{const f=need(cnTile(arg[0]),"stack");if(f)cnLean(f,cmd==="advance");return}
     case "hold":{const f=need(cnTile(arg[0]),"stack");if(!f)return;const st=G.board[f.r][f.c],V=view();if(!st||st.owner!==V){cnSay("That isn't your stack.",true);return}
       if(!faOn(V)){cnSay("Locking in place is for Field Automation (auto on).",true);return}const ids=st.cards.filter(x=>lockable(x,st)).map(x=>x.id);
       if(!ids.length){const L=st.cards.filter(x=>x.faLock).map(x=>x.id);if(L.length){setFaLock(V,f.r,f.c,L,false);cnSay("Unlocked.")}else cnSay("Nothing there can be locked.",true);return}
       setFaLock(V,f.r,f.c,ids,true);cnSay("Locked in place.");return}
     case "ambush":{const f=need(cnTile(arg[0]),"stack");if(!f)return;const st=G.board[f.r][f.c];if(!st||st.owner!==view()||!canAct()){cnSay("Not now, or not your stack.",true);return}
-      if(!canAmbush(st)&&!st.ambush){cnSay("That stack can't lie in ambush (face-down cards or an Assassin can).",true);return}ambushToggle(f.r,f.c);render();cnSay(G.board[f.r][f.c].ambush?"In ambush.":"Out of ambush.");return}
+      if(!canAmbush(st)&&!st.ambush){cnSay("That stack can't lie in ambush (face-down cards or an Assassin can).",true);return}ambushToggle(f.r,f.c);render();
+      cnSay(G.board[f.r][f.c].ambush?"In ambush.":"Out of ambush.");return}
     case "look":{const f=need(cnTile(arg[0]),"tile");if(f){kbLook(f.r,f.c);cnSay(cnName(f.r,f.c)+".")}return}
     case "info":{const f=need(cnTile(arg[0]),"tile");if(!f)return;const t=document.querySelector(`#board .tile[data-r="${f.r}"][data-c="${f.c}"]`);cnSay(t?t.getAttribute("aria-label")||cnName(f.r,f.c):cnName(f.r,f.c));return}
     case "chat":{const msg=line.replace(/^\S+\s*/,"");if(!msg){cnMode("chat");return}if(NET.role){chatSend(msg);cnSay("Sent.")}else cnSay("The chat is for online games.",true);return}}}
@@ -14198,7 +14185,8 @@ function cnLean(f,fwd){const st=G.board[f.r][f.c],V=view();if(!st||st.owner!==V)
   const T=cnTargets(f.r,f.c).move.filter(([a,b])=>!G.board[a][b]);if(!T.length){cnSay("It can't move now.",true);return}
   const goal=fwd?AI.enemyStacks(V).map(e=>[e.r,e.c]):stacksOf(V).filter(o=>hasBase(o.st)&&o.st!==st).map(o=>[o.r,o.c]);const g=goal.length?goal:zoneTiles(V);
   const d=(a,b)=>Math.min(...g.map(([x,y])=>Math.max(Math.abs(a-x),Math.abs(b-y))));const now=d(f.r,f.c);
-  const best=T.reduce((x,y)=>d(y[0],y[1])<d(x[0],x[1])?y:x);if(d(best[0],best[1])>=now){cnSay(fwd?"No step brings it nearer.":"It is as far back as it goes.",true);return}
+  const best=T.reduce((x,y)=>d(y[0],y[1])<d(x[0],x[1])?y:x);
+  if(d(best[0],best[1])>=now){cnSay(fwd?"No step brings it nearer.":"It is as far back as it goes.",true);return}
   cnMove(f,cnName(best[0],best[1]))}
 
 /* ---------- the bar ---------- */
@@ -14208,7 +14196,8 @@ function cnBar(){let el=$("#cmdline");if(el)return el;el=document.createElement(
   document.body.appendChild(el);const inp=el.querySelector(".cnin");
   el.querySelector("form").onsubmit=e=>{e.preventDefault();const s=CN.sugs[CN.sel];let line=inp.value;
     if(CN.nav&&s){line=s.text;if(!s.final){inp.value=s.text;CN.nav=false;CN.frozen=false;cnFill();return}}   // a part chosen: the next part's suggestions; Enter again runs what is typed
-    inp.value="";CN.nav=false;CN.frozen=false;CN.err=false;cnRun(line);if(CN.err&&CN.open)inp.value=line;if(CN.open)cnFill()};   // a line that can't be done stays, to be mended
+    // a line that can't be done stays, to be mended
+    inp.value="";CN.nav=false;CN.frozen=false;CN.err=false;cnRun(line);if(CN.err&&CN.open)inp.value=line;if(CN.open)cnFill()};
   el.querySelector(".cnmode").onclick=()=>{cnMode(CN.mode==="cmd"?"chat":"cmd");inp.focus()};
   inp.addEventListener("input",()=>{CN.frozen=false;CN.nav=false;cnFill()});
   inp.addEventListener("keydown",e=>{
@@ -14220,14 +14209,18 @@ function cnBar(){let el=$("#cmdline");if(el)return el;el=document.createElement(
 function cnFill(){if(CN.frozen)return;CN.sugs=cnSuggest($("#cmdline .cnin").value);CN.sel=0;cnPaintSugs()}
 function cnPaintSugs(){const el=$("#cmdline");if(!el)return;const ul=el.querySelector(".cnsug"),n=CN.sugs.length,top=Math.max(0,Math.min(CN.sel-3,n-8)),show=CN.sugs.slice(top,top+8);
   ul.innerHTML=show.map((s,i)=>`<li role="option" aria-selected="${top+i===CN.sel}" class="${top+i===CN.sel?"on":""}" data-cn="${top+i}"><b>${esc(s.label)}</b>${s.hint?` <small>${esc(s.hint)}</small>`:""}</li>`).join("")+(n>8?`<li class="cnmore dim">${n} in all</li>`:"");
-  ul.hidden=!n;ul.querySelectorAll("[data-cn]").forEach(li=>li.onmousedown=e=>{e.preventDefault();const s=CN.sugs[+li.dataset.cn],inp=el.querySelector(".cnin");inp.value=s.text;CN.frozen=false;if(s.final){inp.value="";cnRun(s.text)}cnFill();inp.focus()})}
+  ul.hidden=!n;
+  ul.querySelectorAll("[data-cn]").forEach(li=>li.onmousedown=e=>{e.preventDefault();const s=CN.sugs[+li.dataset.cn],inp=el.querySelector(".cnin");inp.value=s.text;CN.frozen=false;if(s.final){inp.value="";cnRun(s.text)}cnFill();inp.focus()})}
 function cnPaint(){const el=cnBar(),chat=CN.mode==="chat",inp=el.querySelector(".cnin");
-  el.classList.toggle("chat",chat);el.querySelector(".cnmode").textContent=chat?"Chat":"›";inp.placeholder=chat?"Say something (a line starting with / is a command)":"A command, or a tile like B2 (help lists them)";
+  el.classList.toggle("chat",chat);el.querySelector(".cnmode").textContent=chat?"Chat":"›";
+  inp.placeholder=chat?"Say something (a line starting with / is a command)":"A command, or a tile like B2 (help lists them)";
   inp.setAttribute("aria-label",chat?"Chat message":"Command");
   el.querySelector(".cnnote").textContent=`Esc closes · ${chat?"":"Tab completes, ↑ ↓ choose · "}${kmShow("consoleSwap")} opens the ${chat?"command line":"chat"} instead`;
-  const log=el.querySelector(".cnchat");log.hidden=!chat;if(chat)log.innerHTML=(NET.chat||[]).slice(-6).map(m=>`<li><b>${esc(m.from)}</b> ${esc(m.text)}</li>`).join("")||'<li class="dim">Nothing yet.</li>'}
+  const log=el.querySelector(".cnchat");log.hidden=!chat;
+  if(chat)log.innerHTML=(NET.chat||[]).slice(-6).map(m=>`<li><b>${esc(m.from)}</b> ${esc(m.text)}</li>`).join("")||'<li class="dim">Nothing yet.</li>'}
 function cnOpen(mode){if(!G)return;if(mode)CN.mode=mode;if(CN.mode==="chat"&&!NET.role){CN.mode="cmd";flash("The chat is for online games: here is the command line.")}
-  const el=cnBar(),ht=$("#helptoast");if(ht)ht.hidden=true;CN.open=true;el.hidden=false;cnPaint();el.querySelector(".cnout").textContent="";const inp=el.querySelector(".cnin");inp.value="";CN.frozen=false;CN.nav=false;cnFill();setTimeout(()=>inp.focus(),0);
+  const el=cnBar(),ht=$("#helptoast");if(ht)ht.hidden=true;CN.open=true;el.hidden=false;cnPaint();el.querySelector(".cnout").textContent="";
+  const inp=el.querySelector(".cnin");inp.value="";CN.frozen=false;CN.nav=false;cnFill();setTimeout(()=>inp.focus(),0);
   if(CN.mode==="chat"){NET.unread=0;if(typeof chatPaint==="function")chatPaint()}}
 function cnMode(m){CN.mode=m;cnOpen()}
 function cnClose(){const el=$("#cmdline");CN.open=false;if(el){el.hidden=true;const i=el.querySelector(".cnin");if(i)i.blur()}}
@@ -14269,7 +14262,8 @@ function kbLook(r,c){const t=document.querySelector(`#board .tile[data-r="${r}"]
   else t.scrollIntoView({block:"center",behavior:"smooth"});t.classList.add("kbping");setTimeout(()=>t.classList.remove("kbping"),1200)}
 /* the spells: their schools, and the piles last */
 const kbSchools=()=>{const box=$("#spells");const out=box?[...box.querySelectorAll("details.school")].map(d=>({el:d,items:[...d.querySelectorAll("button.spell")]})):[];
-  const piles=["#seegrave","#seeether","#seedark","#seeauct"].map(s=>$(s)).filter(Boolean);if(piles.length)out.push({el:piles[0].parentNode,items:piles,piles:true});return out};
+  const piles=["#seegrave","#seeether","#seedark","#seeauct"].map(s=>$(s)).filter(Boolean);if(piles.length)out.push({el:piles[0].parentNode,items:piles,piles:true});
+  return out};
 const kbSpellMode=()=>KB.mode==="bar"||KB.mode==="list";
 function kbOff(){const was=KB.mode;KB.mode=null;if(was==="list"&&KB.fsOpened&&fsOn()&&PREF.fsSp){const t=$("#fstabSp");if(t)t.click()}KB.fsOpened=false;kbPaint()}
 function kbBar(){if(KB.mode&&KB.mode!=="bar")kbOff();KB.mode="bar";kbPaint()}
@@ -14313,7 +14307,8 @@ function kbPaint(){
   document.querySelectorAll(".kbon,.kbli").forEach(e=>e.classList.remove("kbon","kbli"));
   kbBarPaint();
   if(KB.mode==="list"){const S=kbSchools();if(!S.length)KB.mode=null;else{KB.sc=Math.min(KB.sc,S.length-1);const s=S[KB.sc];s.el.classList.add("kbsch");
-    s.items.forEach((b,i)=>b.setAttribute("data-kbn",kbNum(i)));KB.li=Math.min(KB.li|0,Math.max(0,s.items.length-1));if(s.items[KB.li])s.items[KB.li].classList.add("kbli")}}
+    s.items.forEach((b,i)=>b.setAttribute("data-kbn",kbNum(i)));KB.li=Math.min(KB.li|0,Math.max(0,s.items.length-1));
+    if(s.items[KB.li])s.items[KB.li].classList.add("kbli")}}
   if(KB.mode==="hand"){const H=kbHand();if(!H.length)KB.mode=null;else{KB.h=Math.min(KB.h,H.length-1);H[KB.h].classList.add("kbon")}}
   document.querySelectorAll("[data-kb]").forEach(e=>{e.removeAttribute("data-kb");e.classList.remove("kbrel")});
   if(PREF.keyHints===true&&G)for(const [sel,a] of KB_HINTS){const k=kbHintOf(a);if(k)for(const el of document.querySelectorAll(sel)){if(!el.getClientRects().length)continue;el.setAttribute("data-kb",k);if(getComputedStyle(el).position==="static")el.classList.add("kbrel")}}
@@ -14373,10 +14368,12 @@ document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(
 /* v78a: O shows every key in a window; once a game, the first key pressed brings a note saying so */
 function kbKeysWin(){let w=$("#kbkeys");if(!w){w=document.createElement("div");w.id="kbkeys";w.className="faov";document.body.appendChild(w)}
   w.innerHTML=`<div class="ovbox wide kbkeysbox" role="dialog" aria-modal="true" aria-labelledby="kbkh"><button type="button" class="xclose" aria-label="Close">×</button><h2 id="kbkh">Keys</h2>${kbListHTML("kwKeyHints")}<p class="dim">The same list is in the pause menu and the Menu (Keyboard controls).</p></div>`;
-  w.hidden=false;w.querySelector(".xclose").onclick=()=>{w.hidden=true};w.onclick=e=>{if(e.target===w)w.hidden=true};$("#kwKeyHints").onchange=e=>kbHints(e.target.checked)}
+  w.hidden=false;w.querySelector(".xclose").onclick=()=>{w.hidden=true};w.onclick=e=>{if(e.target===w)w.hidden=true};
+  $("#kwKeyHints").onchange=e=>kbHints(e.target.checked)}
 function kbRemind(){const g=G&&G.map?G.map.seed:null;if(g==null||KB.reminded===g)return;KB.reminded=g;
   let n=$("#kbremind");if(!n){n=document.createElement("div");n.id="kbremind";n.setAttribute("role","status");document.body.appendChild(n)}
-  n.innerHTML=`Press <kbd>${esc(kmShow("keys"))}</kbd> any time to see every key.`;n.hidden=false;clearTimeout(kbRemind.t);kbRemind.t=setTimeout(()=>{n.hidden=true},7000)}
+  n.innerHTML=`Press <kbd>${esc(kmShow("keys"))}</kbd> any time to see every key.`;n.hidden=false;clearTimeout(kbRemind.t);
+  kbRemind.t=setTimeout(()=>{n.hidden=true},7000)}
 /* v78a: Tab never leaves the game for the browser's own bar: where it means nothing, it does nothing */
 document.addEventListener("keydown",e=>{if(e.key==="Tab")e.preventDefault()});
 /* the list of keys, as bound now: in the pause menu, the settings' Controls tab and the O window, with the key letters' switch */
@@ -14395,7 +14392,8 @@ function kbListHTML(id){const row=(k,t)=>`<li><kbd>${esc(k)}</kbd> ${esc(t)}</li
   const q=box.querySelector(".fsqlink");q?box.insertBefore(d,q):box.appendChild(d);$("#fsKeyHints").onchange=e=>kbHints(e.target.checked)}}
 {const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu"),box=m&&m.querySelector(".ovbox");if(!box||box.querySelector(".kbfold"))return;
   const d=document.createElement("details");d.className="sub kbfold";d.innerHTML=`<summary>Keyboard controls</summary>${kbListHTML("mKeyHints")}`;
-  const a=box.querySelector("#mCam")||box.querySelector(".maccess")||box.querySelector(".mgrid");if(a)a.after(d);else box.appendChild(d);$("#mKeyHints").onchange=e=>kbHints(e.target.checked)}}
+  const a=box.querySelector("#mCam")||box.querySelector(".maccess")||box.querySelector(".mgrid");if(a)a.after(d);else box.appendChild(d);
+  $("#mKeyHints").onchange=e=>kbHints(e.target.checked)}}
 
 if(window.__EC)Object.assign(window.__EC,{KB,kbClose:()=>kbClose(),kbSchools:()=>kbSchools()});
 
@@ -14444,7 +14442,8 @@ function wkAdjStart(el){WK.adj={el,old:el.value};el.classList.add("kbadj");
 const wkFire=(el,...ev)=>ev.forEach(t=>el.dispatchEvent(new Event(t,{bubbles:true})));
 function wkAdjStep(d,big){const el=WK.adj.el;
   if(el.tagName==="SELECT"){const o=[...el.options].filter(x=>!x.disabled);let i=o.indexOf(el.selectedOptions[0]);i=Math.max(0,Math.min(o.length-1,i+d));if(o[i]&&el.value!==o[i].value){el.value=o[i].value;wkFire(el,"input","change")}return}
-  const st=+el.step||1,mn=el.min!==""?+el.min:-Infinity,mx=el.max!==""?+el.max:Infinity;let v=(+el.value||0)+d*st*(big?10:1);v=+Math.max(mn,Math.min(mx,v)).toFixed(6);el.value=v;wkFire(el,"input")}
+  const st=+el.step||1,mn=el.min!==""?+el.min:-Infinity,mx=el.max!==""?+el.max:Infinity;let v=(+el.value||0)+d*st*(big?10:1);v=+Math.max(mn,Math.min(mx,v)).toFixed(6);
+  el.value=v;wkFire(el,"input")}
 function wkAdjEnd(keep){const a=WK.adj;if(!a)return;WK.adj=null;a.el.classList.remove("kbadj");if(!keep&&a.el.value!==a.old){a.el.value=a.old;wkFire(a.el,"input","change")}else if(a.el.tagName!=="SELECT")wkFire(a.el,"change");wkNote("");wkLater()}
 /* typing in a field */
 function wkType(el,first){WK.adj=null;el.classList.remove("kbadj");WK.typ=el;el.focus({preventScroll:true});if(first!=null)el.value=first;else try{el.select()}catch(e){}
@@ -14457,11 +14456,13 @@ function wkBad(el){const v=el.value.trim();if(el.type!=="number")return "";const
 function wkMove(d){const row=WK.mv&&wkCur(kbTop()||document.body);if(!row)return;const b=row.querySelector(`[data-faact*="${d}:"]`);if(b&&!b.disabled)b.click();wkLater()}
 /* tabs and sections */
 function wkTab(w,d){const T=[...w.querySelectorAll(".stab,[role=tab]")].filter(t=>t.getClientRects().length&&!t.disabled);if(T.length<2)return;
-  let i=T.findIndex(t=>t.classList.contains("on")||t.getAttribute("aria-selected")==="true");i=((i<0?0:i+d)%T.length+T.length)%T.length;T[i].click();setTimeout(()=>{const t=[...w.querySelectorAll(".stab,[role=tab]")].filter(x=>x.getClientRects().length)[i];if(t)wkMark(t)},0)}
+  let i=T.findIndex(t=>t.classList.contains("on")||t.getAttribute("aria-selected")==="true");i=((i<0?0:i+d)%T.length+T.length)%T.length;T[i].click();
+  setTimeout(()=>{const t=[...w.querySelectorAll(".stab,[role=tab]")].filter(x=>x.getClientRects().length)[i];if(t)wkMark(t)},0)}
 function wkSection(w,d){const H=[...w.querySelectorAll("h3,h4,summary,legend,.dsec>h4,.dhead")].filter(h=>h.getClientRects().length&&getComputedStyle(h).visibility!=="hidden");if(H.length<2)return;
   const cur=wkCur(w),y=cur?cur.getBoundingClientRect().top+1:-1e9;let at=-1;H.forEach((h,i)=>{if(h.getBoundingClientRect().top<=y)at=i});
   const j=Math.max(0,Math.min(H.length-1,at+d));if(j===at&&cur)return;const h=H[j];h.scrollIntoView({block:"start",behavior:"smooth"});
-  const items=wkItems(w),hy=h.getBoundingClientRect().top-1;const it=h.matches("summary")?h:items.find(x=>x.getBoundingClientRect().top>=hy&&(h.compareDocumentPosition(x)&Node.DOCUMENT_POSITION_FOLLOWING));wkMark(it||null)}
+  const items=wkItems(w),hy=h.getBoundingClientRect().top-1;
+  const it=h.matches("summary")?h:items.find(x=>x.getBoundingClientRect().top>=hy&&(h.compareDocumentPosition(x)&Node.DOCUMENT_POSITION_FOLLOWING));wkMark(it||null)}
 /* Ctrl or Shift pressed alone (as bound): the next or the previous section */
 addEventListener("keyup",e=>{if(typing(e.target)||WK.adj||WK.mv)return;const w=kbTop();if(!w)return;
   if(kmTap(e,"secNext"))wkSection(w,1);else if(kmTap(e,"secPrev"))wkSection(w,-1)},true);
@@ -14528,7 +14529,8 @@ function fkSet(r,c){FK.on=true;FK.cur={r,c};fkCenter(r,c);fkPaint()}
 const fkMine=st=>st.owner===view(),fkFoe=st=>isEnemy(st.owner,view());
 /* the cards Tab, Ctrl and Shift step through, by row and column as seen */
 function fkCands(foe){const grid=fkGrid(),V=view(),out=[];
-  grid.forEach((row,i)=>row.forEach((x,j)=>{if(!x||hiddenFrom(V,x.r,x.c))return;const st=G.board[x.r][x.c];if(st&&(foe?fkFoe(st):fkMine(st)))out.push({i,j,r:x.r,c:x.c})}));return out}
+  grid.forEach((row,i)=>row.forEach((x,j)=>{if(!x||hiddenFrom(V,x.r,x.c))return;const st=G.board[x.r][x.c];if(st&&(foe?fkFoe(st):fkMine(st)))out.push({i,j,r:x.r,c:x.c})}));
+  return out}
 function fkHere(){const grid=fkGrid();const p=FK.cur&&fkAt(grid,FK.cur.r,FK.cur.c);return p||[-1,-1]}
 function fkRowStep(d){const C=fkCands(FK.foe);if(!C.length){flash(FK.foe?"No enemy card in sight.":"You have no card on the field.");return}
   const [i,j]=fkHere(),row=C.filter(x=>x.i===i).sort((a,b)=>a.j-b.j);
@@ -14582,9 +14584,11 @@ function fkMenu(){let el=null;if(KB.mode==="hand"){el=kbHand()[KB.h]}else{const 
 /* P: the other players' boxes */
 const fkBoxes=()=>[...document.querySelectorAll(fsOn()?".fsfoe":"#foe>.pbox,#foe>div[style*='--pc']")].filter(e=>e.getClientRects().length);
 function fkPlayers(d){const B=fkBoxes();if(!B.length){flash("No other player's box to read.");return}FK.pm=true;FK.p=FK.pm&&FK.p!=null?((FK.p+d)%B.length+B.length)%B.length:0;FK.pi=-1;fkPaint();
-  B[FK.p].scrollIntoView({block:"nearest"});wkNote(`${B[FK.p].getAttribute("title")||B[FK.p].textContent.trim().split(/\s{2,}|\n/)[0].slice(0,60)} · C and V read the box, Enter its history, ${kmShow("plNext")} the next player, ${kmShow("close")} stops`)}
+  B[FK.p].scrollIntoView({block:"nearest"});
+  wkNote(`${B[FK.p].getAttribute("title")||B[FK.p].textContent.trim().split(/\s{2,}|\n/)[0].slice(0,60)} · C and V read the box, Enter its history, ${kmShow("plNext")} the next player, ${kmShow("close")} stops`)}
 function fkPart(d){const b=fkBoxes()[FK.p];if(!b)return;const parts=[...b.children].filter(e=>e.getClientRects().length&&e.textContent.trim());if(!parts.length)return;
-  FK.pi=((FK.pi+d)%parts.length+parts.length)%parts.length;fkPaint();const e=parts[FK.pi];wkNote((e.getAttribute("title")?e.getAttribute("title")+" · ":"")+e.textContent.trim().replace(/\s+/g," ").slice(0,160))}
+  FK.pi=((FK.pi+d)%parts.length+parts.length)%parts.length;fkPaint();const e=parts[FK.pi];
+  wkNote((e.getAttribute("title")?e.getAttribute("title")+" · ":"")+e.textContent.trim().replace(/\s+/g," ").slice(0,160))}
 function fkPlayersOff(){FK.pm=false;wkNote("");fkPaint()}
 /* the marks: the selector, the arrow to the target, a player's box; the label of what Tab steps through */
 function fkPaint(){document.querySelectorAll(".kbcur,.kbpl,.kbplp").forEach(e=>e.classList.remove("kbcur","kbpl","kbplp"));const old=$("#fkarrow");if(old)old.remove();
@@ -14593,7 +14597,8 @@ function fkPaint(){document.querySelectorAll(".kbcur,.kbpl,.kbplp").forEach(e=>e
   if(!FK.on||!G||!FK.cur){if(lab)lab.hidden=true;return}
   const t=fkTile(FK.cur.r,FK.cur.c);if(t)t.classList.add("kbcur");
   if(!lab){lab=document.createElement("div");lab.id="fkmode";lab.setAttribute("aria-live","polite");document.body.appendChild(lab)}
-  lab.hidden=false;lab.innerHTML=`${esc(kmShow("rowNext"))} steps through: <b>${FK.foe?"the enemy's cards":"your cards"}</b> <kbd>${esc(kmShow("foeSwap"))}</kbd> switches`;
+  lab.hidden=false;
+  lab.innerHTML=`${esc(kmShow("rowNext"))} steps through: <b>${FK.foe?"the enemy's cards":"your cards"}</b> <kbd>${esc(kmShow("foeSwap"))}</kbd> switches`;
   if(FK.tgt&&G.sel){const B=$("#board"),a=fkTile(G.sel.r,G.sel.c),b=fkTile(FK.tgt.r,FK.tgt.c);if(!B||!a||!b)return;const br=B.getBoundingClientRect(),ra=a.getBoundingClientRect(),rb=b.getBoundingClientRect();
     const x1=ra.left+ra.width/2-br.left,y1=ra.top+ra.height/2-br.top,x2=rb.left+rb.width/2-br.left,y2=rb.top+rb.height/2-br.top;
     B.insertAdjacentHTML("beforeend",`<svg id="fkarrow" aria-hidden="true" width="${Math.ceil(br.width)}" height="${Math.ceil(br.height)}"><defs><marker id="fkhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0L10,5L0,10z" fill="#f1d27a"/></marker></defs><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#f1d27a" stroke-width="4" stroke-linecap="round" marker-end="url(#fkhead)"/></svg>`)}}

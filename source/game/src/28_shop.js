@@ -107,7 +107,8 @@ const banOn=()=>!!(G&&G.mban&&G.moon.round>=G.mban.from&&G.moon.round<=G.mban.un
 function aiBanVote(pl){if(Math.random()<.3)return "none";
   const mine=new Set(SPELLS.filter(s=>(!s.tribe||s.tribe===G.p[pl].tribe)&&s.school!=="Astrology").map(s=>s.school));
   const opts=SCHOOLS.filter(s=>s!=="Astrology");const theirs=opts.filter(s=>!["Conjuring"].includes(s)||mana(pl)<4);
-  return pick(theirs.length?theirs:opts)||"none"}
+  const notMine=theirs.filter(s=>!mine.has(s));   // v78h: rather a school it doesn't cast itself
+  return pick(notMine.length?notMine:theirs.length?theirs:opts)||"none"}
 async function mercuryCycle(){
   const r=G.moon.round;G.mercCyc=r;
   const opts=[...SCHOOLS.map(s=>({id:s,label:s,sub:`No ${s} spells for anyone`})),{id:"none",label:"Ban nothing"}];

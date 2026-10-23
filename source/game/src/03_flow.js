@@ -9,7 +9,6 @@ const order=()=>roundOrder().filter(pl=>!isHorde(pl));
 
 /* ---------------- the moon ---------------- */
 const MOON=["New Moon","Waxing Crescent","First Quarter","Waxing Gibbous","Full Moon","Waning Gibbous","Last Quarter","Waning Crescent"];
-const isFull=()=>G.moon.i===4;
 const fullPrices=()=>G.moon.i===4;                       // Full Moon prices also hold under a Blood Moon
 const newPrices=()=>G.moon.i===0;
 const fullDrawbacks=()=>G.moon.i===4&&!G.moon.blood;
@@ -59,7 +58,6 @@ function moonTarget(pl){const ok=stacksOf(pl).filter(x=>!x.st.hypo&&!hasK(x.st,"
   const twos=ok.filter(x=>x.st.cards.length===2);if(twos.length){const t=pick(twos);return {kind:"stack",r:t.r,c:t.c,st:t.st,cards:[...t.st.cards]}}
   const all=ok.flatMap(x=>x.st.cards.filter(c=>!isBase(c)).map(c=>({x,c})));if(all.length){const {x,c}=pick(all);return {kind:"card",r:x.r,c:x.c,st:x.st,cards:[c]}}
   const P=G.p[pl];shuffle(P.deck);return {kind:"deck",cards:P.deck.slice(-3),short:Math.max(0,3-P.deck.length)}}   // v71: what the deck can't give costs mana
-function strongest(pl){return moonTarget(pl)}
 async function fullMoonToll(){
   for(const pl of order()){
     if(G.p[pl].tribe==="firm"){log(`${plName(pl)} owes the Full Moon nothing: the Firmament is above its toll.`);continue}

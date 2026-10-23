@@ -221,8 +221,7 @@ function kmSend(from,to,name,map){if(!G||!G.p[from]||!G.p[to]||G.p[to].cpu||isNP
   log(`${plName(from)} sends ${plName(to)} their key bindings, “${esc(P.kmInbox[P.kmInbox.length-1].name)}”.`);
   notify(to,`${esc(G.p[from].name)} sent you key bindings: the Menu's Controls tab installs them.`);render();return true}
 function kmTake(pl,i){if(!G||!G.p[pl]||NET.ctx!=null&&NET.ctx!==pl)return false;const L=G.p[pl].kmInbox||[];if(i<0||i>=L.length)return false;L.splice(i,1);render();return true}
-for(const [name,get,set] of [["kmSend",()=>kmSend,f=>kmSend=f],["kmTake",()=>kmTake,f=>kmTake=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["kmSend",()=>kmSend,f=>kmSend=f],["kmTake",()=>kmTake,f=>kmTake=f]])netAny(name,get,set);
 const kmInbox=()=>G&&G.p[view()]&&G.p[view()].kmInbox||[];
 function kmInstall(i){const it=kmInbox()[i];if(!it)return;const S=kmState(),names=kmPresets().map(p=>p.name);let name=it.name;if(names.includes(name))name=copyName(name,names);
   S.mine.push({id:"k"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name,map:kmClean(it.map),from:G.p[it.from]?G.p[it.from].name:""});
@@ -265,7 +264,8 @@ function kmWire(box){const S=kmState(),P=kmPreset(S.preset)||KM_LOCKED[0],leave=
     else if(d==="saveas"){kmUI.mode="saveas";kmPaint();const t=box.querySelector(".kmname");if(t){t.focus();t.select()}}
     else if(d==="saveasok"){const t=box.querySelector(".kmname"),name=(t&&t.value||"").replace(/\s+/g," ").trim().slice(0,40);if(!name){flash("Give it a name.");return}
       const names=kmPresets().map(p=>p.name),id="k"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
-      S.mine.push({id,name:names.includes(name)?copyName(name,names):name,map:kmCopy(S.map)});S.preset=id;S.dirty=false;kmUI.mode=null;savePrefs();kmPaint();flash(`Saved as “${S.mine[S.mine.length-1].name}”.`)}
+      S.mine.push({id,name:names.includes(name)?copyName(name,names):name,map:kmCopy(S.map)});S.preset=id;S.dirty=false;kmUI.mode=null;savePrefs();kmPaint();
+      flash(`Saved as “${S.mine[S.mine.length-1].name}”.`)}
     else if(d==="del"&&!P.locked)kmAsk(`Delete the preset “${esc(P.name)}”?`,()=>{S.mine=S.mine.filter(p=>p.id!==P.id);kmLoad("default")},()=>kmPaint());
     else if(d==="send"){kmUI.mode="send";kmPaint()}
     else if(d==="def")leave(()=>kmLoad("default"));
@@ -273,7 +273,8 @@ function kmWire(box){const S=kmState(),P=kmPreset(S.preset)||KM_LOCKED[0],leave=
   box.querySelectorAll("[data-kmto]").forEach(b=>b.onclick=()=>{if(!G)return;kmSend(view(),+b.dataset.kmto,P.name,S.map);kmUI.mode=null;kmPaint();flash(`Sent “${P.name}” to ${G.p[+b.dataset.kmto].name}.`)});
   box.querySelectorAll("[data-kmin]").forEach(b=>b.onclick=()=>kmInstall(+b.dataset.kmin));
   box.querySelectorAll("[data-kmno]").forEach(b=>b.onclick=()=>{kmTake(view(),+b.dataset.kmno);setTimeout(kmPaint,0)});
-  const t=box.querySelector(".kmname");if(t)t.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();const ok=box.querySelector('[data-kmdo="saveasok"]');if(ok)ok.click()}}}
+  const t=box.querySelector(".kmname");
+  if(t)t.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();const ok=box.querySelector('[data-kmdo="saveasok"]');if(ok)ok.click()}}}
 /* the "!" for key bindings sent to you: on the Menu, the pause button in fullscreen, and the Controls tab */
 function kmBang(){const n=G?kmInbox().length:0;
   for(const el of document.querySelectorAll("#menubtn,#fspauseb,#menu .settabs .stab[data-st='ctl']")){let b=el.querySelector(":scope>.kmbang");

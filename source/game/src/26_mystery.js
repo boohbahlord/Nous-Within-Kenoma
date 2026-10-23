@@ -44,7 +44,7 @@ function mysCardHTML(g,i,shown){
   if(!shown)return `<button type="button" class="myscard back" data-i="${i}" aria-label="Reveal card ${i+1}"><span class="mysback">${unitSVG("mystery","#e6d38a",40)}</span></button>`;
   return `<div class="myscard shown" style="--rc:${g.tier.col}">${face(g.card,{noci:true})}<b>${g.tier.name}</b><small>${+g.chance.toFixed(2)}% chance per card</small></div>`}
 function openMystery(){
-  const pl=G.active,V=view();let buy=null;const shown=[false,false,false];
+  const pl=G.active;let buy=null;const shown=[false,false,false];
   const draw=()=>{
     const can=canAfford(pl,MYS_MAX);
     const legend=MYS_TIERS.map(T=>`<span style="--rc:${T.col}"><i></i>${T.name} ${T.p}%</span>`).join("");

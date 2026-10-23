@@ -23,17 +23,18 @@ function ssAsk(guest,owner){if(!G||!ssOn()||NET.ctx!=null&&NET.ctx!==guest||G.ph
   if(D.block[owner]){if(!G.p[guest].cpu)notify(guest,`${esc(G.p[owner].name)} keeps teammates' and allies' cards out of their spawn lines.`);return false}
   log(`${plName(guest)} asks ${plName(owner)} to spawn in their spawn lines.`,"event");
   if(G.p[owner].cpu){ssGrant(owner,guest,ssAiYes(owner,guest));render();return true}
-  D.ask.push({id:++D.n,from:guest,to:owner,round:G.moon.round});notify(owner,`${esc(G.p[guest].name)} asks to spawn in your spawn lines: answer in Diplomacy.`);render();return true}
+  D.ask.push({id:++D.n,from:guest,to:owner,round:G.moon.round});notify(owner,`${esc(G.p[guest].name)} asks to spawn in your spawn lines: answer in Diplomacy.`);render();
+  return true}
 function ssAnswer(owner,id,yes){if(!G||NET.ctx!=null&&NET.ctx!==owner)return false;const D=ssD(),a=D.ask.find(x=>x.id===id&&x.to===owner);if(!a)return false;
   D.ask.splice(D.ask.indexOf(a),1);if(ssFriend(owner,a.from))ssGrant(owner,a.from,!!yes);render();return true}
 function ssRevoke(owner,guest){if(!G||NET.ctx!=null&&NET.ctx!==owner)return false;const D=ssD();if(!D.ok[owner+">"+guest])return false;delete D.ok[owner+">"+guest];
-  log(`${plName(owner)} no longer lets ${plName(guest)} spawn in their spawn lines.`,"event");if(!G.p[guest].cpu)notify(guest,`${esc(G.p[owner].name)} no longer lets you spawn in their spawn lines.`);render();return true}
+  log(`${plName(owner)} no longer lets ${plName(guest)} spawn in their spawn lines.`,"event");
+  if(!G.p[guest].cpu)notify(guest,`${esc(G.p[owner].name)} no longer lets you spawn in their spawn lines.`);render();return true}
 function ssBlock(owner,on){if(!G||NET.ctx!=null&&NET.ctx!==owner)return false;const D=ssD();D.block[owner]=!!on;
   log(on?`${plName(owner)} keeps teammates' and allies' cards out of their spawn lines.`:`${plName(owner)} opens their spawn lines to teammates and allies again.`,"event");
   if(on)for(const f of ssFriends(owner))if(!G.p[f].cpu)notify(f,`${esc(G.p[owner].name)} keeps teammates' and allies' cards out of their spawn lines: you can't spawn in them or step into them.`);
   render();return true}
-for(const [name,get,set] of [["ssAsk",()=>ssAsk,f=>ssAsk=f],["ssAnswer",()=>ssAnswer,f=>ssAnswer=f],["ssRevoke",()=>ssRevoke,f=>ssRevoke=f],["ssBlock",()=>ssBlock,f=>ssBlock=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["ssAsk",()=>ssAsk,f=>ssAsk=f],["ssAnswer",()=>ssAnswer,f=>ssAnswer=f],["ssRevoke",()=>ssRevoke,f=>ssRevoke=f],["ssBlock",()=>ssBlock,f=>ssBlock=f]])netAny(name,get,set);
 /* a friend's card doesn't step into lines kept closed */
 let ssCut=[];   // the steps the last list lost to closed lines
 {const _mt=moveTargets;moveTargets=function(){const out=_mt.apply(this,arguments);ssCut=[];if(!G||!G.ss||!G.sel)return out;const st=G.board[G.sel.r]&&G.board[G.sel.r][G.sel.c];if(!st)return out;
@@ -56,7 +57,8 @@ ${asks.map(a=>`<p class="ssask">${plName(a.from)} asks to spawn in your spawn li
 ${F.length?`<ul class="sslist">${F.map(row).join("")}</ul>`:`<p class="dim">No teammates or allies yet: an ally can let you spawn in their lines, and you in yours.</p>`}</section>`}
 {const _dp=dipPaint;dipPaint=function(){_dp.apply(this,arguments);const w=$("#dipwin");if(!w||!G)return;const V=view(),body=w.querySelector(".dipbody");if(!body)return;
   const at=body.querySelector(".dipsec.dipp2p");at?at.insertAdjacentHTML("beforebegin",ssHTML(V)):body.insertAdjacentHTML("beforeend",ssHTML(V));
-  const ul=body.querySelector(".dipnote ul");if(ul)ul.insertAdjacentHTML("beforeend",`<li><b>Spawn lines</b>: you spawn only in your own. A teammate or an ally may let you spawn in theirs: ask here (a computer teammate always agrees, a computer ally only at Great trust). Anyone can keep teammates' and allies' cards out of their spawn lines; those kept out are told.</li>`);
+  const ul=body.querySelector(".dipnote ul");
+  if(ul)ul.insertAdjacentHTML("beforeend",`<li><b>Spawn lines</b>: you spawn only in your own. A teammate or an ally may let you spawn in theirs: ask here (a computer teammate always agrees, a computer ally only at Great trust). Anyone can keep teammates' and allies' cards out of their spawn lines; those kept out are told.</li>`);
   body.querySelectorAll("[data-ss]").forEach(b=>b.onclick=()=>{const [a,x]=b.dataset.ss.split("|"),n=+x;
     if(a==="ask")ssAsk(V,n);else if(a==="rev")ssRevoke(V,n);else ssAnswer(V,n,a==="yes");dipPaint()});
   const bk=body.querySelector("#ssBlk");if(bk)bk.onchange=()=>{ssBlock(V,bk.checked);dipPaint()}}}

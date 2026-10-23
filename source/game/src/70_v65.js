@@ -52,8 +52,7 @@ function setFaLock(pl,r,c,ids,on){const st=G.board[r]&&G.board[r][c];if(!st||st.
   for(const x of st.cards)if(ids.includes(x.id)){if(on&&lockable(x,st)){x.faLock=true;n++}else if(!on&&x.faLock){delete x.faLock;n++}}
   if(n)log(on?`${plName(pl)} locks ${n} card${n>1?"s":""} in place on ${coord(r,c)}: Field Automation won't move ${n>1?"them":"it"}.`:`${plName(pl)} unlocks ${n} card${n>1?"s":""} on ${coord(r,c)}: Field Automation may move ${n>1?"them":"it"} again.`);
   render();return n>0}
-for(const [name,get,set] of [["setFaLock",()=>setFaLock,f=>setFaLock=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["setFaLock",()=>setFaLock,f=>setFaLock=f]])netAny(name,get,set);
 /* the free spell, shown only while Field Automation is on */
 SPELLS.push({id:"falock",name:"Lock in Place",cost:0,school:"Enchantment",
   text:"Field Automation only. Select your stack (and check the cards, or leave all): they stay where they are; Field Automation won't move them. Not on bases, pinned or stunned stacks, or cards already locked.",
@@ -122,7 +121,7 @@ const heartN=h=>h.replace(/<span class="hearts" aria-label="(\d+) of (\d+) heart
 const WILD_DEAD=new Set(["satan","leviathan","bullgoat","goatbull","debt","slavemaster","slave","trafficker","tree"]);
 let wildQ=[];
 function wildFlush(){const q=wildQ;wildQ=[];if(!q.length||!G)return;
-  const lines=q.map(x=>`<li>${x.html}</li>`).join(""),born=q.some(x=>x.born);
+  const lines=q.map(x=>`<li>${x.html}</li>`).join("");
   popup(q.length>1?"Wildcards are dead":q[0].title,q.length>1?`<ul class="wilddead">${lines}</ul>`:`<p>${q[0].html}</p>`,q[0].owner)}
 {const _bu=bury;bury=function(card,r,c,st){const u=card&&card.unit,owner=st&&st.owner,was=u;
   const out=_bu.apply(this,arguments);
@@ -171,7 +170,6 @@ function planetFX(k,r,c){if(!FX.on()||!PLANET_SIGN[k])return;const [col,path]=PL
   const e=FX.make("sign planetsign",rect,{w:s,h:s,col,html:`<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`});if(!e)return;
   e.style.color=col;e.style.filter=`drop-shadow(0 0 6px ${col})`;
   FX.play(e,[{transform:"translateY(8px) scale(.55)",opacity:0},{transform:"translateY(-4px) scale(1)",opacity:.95,offset:.3},{transform:`translateY(${r!=null?-26:-40}px) scale(1.15)`,opacity:0}],r!=null?1300:1700)}
-const skySignK=()=>{const m=G.moon;return m.gone?(m.gone==="off"?null:m.gone):m.blood?"blood":"moon"};
 {const _e=eclipse;eclipse=async function(k){later(()=>planetFX(k==="sun"&&G.moon.gone==="blacksun"?"blacksun":k));return _e.apply(this,arguments)}}
 {const _v=venusCycle;venusCycle=function(){later(()=>planetFX("venus"));return _v.apply(this,arguments)}}
 {const _m=mercuryCycle;mercuryCycle=async function(){later(()=>planetFX("mercury"));return _m.apply(this,arguments)}}

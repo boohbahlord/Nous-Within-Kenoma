@@ -37,8 +37,7 @@ async function cheatEvent(pl,k){if(!cheatHas(pl))return false;
   else if(k==="collectors"){if(!sendCollectors(1)){flash("The Bank has no debtor to send Collectors after.");return false}}
   else return false;
   render();return true}
-for(const [name,get,set] of [["setCheat",()=>setCheat,f=>setCheat=f],["cheatEvent",()=>cheatEvent,f=>cheatEvent=f]]){
-  NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
+for(const [name,get,set] of [["setCheat",()=>setCheat,f=>setCheat=f],["cheatEvent",()=>cheatEvent,f=>cheatEvent=f]])netAny(name,get,set);
 
 /* ---------- what the cheats do ---------- */
 {const _sc=spellCost;spellCost=function(sp){if(G&&cheatFree(G.active))return 0;return _sc.apply(this,arguments)}}
@@ -48,7 +47,7 @@ for(const [name,get,set] of [["setCheat",()=>setCheat,f=>setCheat=f],["cheatEven
   if(C.infBank&&G.bank&&!G.bank.dead)G.bank.mana=Math.max(G.bank.mana,999)}return _cr.apply(this,arguments)}}
 {const _sb=spellBlock;spellBlock=function(sp){if(sp&&cheatOn()){const B=CH().block;if(B.schools.includes(sp.school)||B.spells.includes(sp.id))return "Blocked in cheat mode."}return _sb.apply(this,arguments)}}
 /* the Ether that never empties: whatever is conjured out of it comes back as a new card of the same kind */
-for(const [name,get,set] of [["conjure",()=>conjure,f=>conjure=f],["conjureU",()=>conjureU,f=>conjureU=f]]){const orig=get();
+for(const [,get,set] of [["conjure",()=>conjure,f=>conjure=f],["conjureU",()=>conjureU,f=>conjureU=f]]){const orig=get();
   set(async function(){const before=new Set(G.ether.map(c=>c.id)),out=await orig.apply(this,arguments);
     if(cheatOn()&&CH().etherInf){const now=new Set(G.ether.map(c=>c.id));for(const id of before)if(!now.has(id)){const c=[...G.p.flatMap(P=>[...P.deck,...P.hand])].find(x=>x.id===id);
       if(c)G.ether.push(c.unit?mkUnit(c.unit,null):mk(c.rank,c.suit,c.color))}}

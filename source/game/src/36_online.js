@@ -92,6 +92,10 @@ for(const [name,F] of Object.entries(NETFN)){const orig=F.get();
     const rid=++NET.rid;a=a.filter(x=>!(x instanceof Event));sendHost({t:"cmd",fn:name,args:netClean(F.map?F.map(a):a),ui:uiSnap(),rid});
     if(F.ret)return new Promise(res=>{NET.rets[rid]=res;setTimeout(()=>{if(NET.rets[rid]){delete NET.rets[rid];res(null)}},15000)});
     return F.async?Promise.resolve():undefined})}
+/* v78h: an action any player may take at any time, played by the host: online, a joined player's call is sent there.
+   The later parts of the game register theirs with this (it was the same five lines in each of them). */
+function netAny(name,get,set){NETFN[name]={get,set,any:true};const orig=get();
+  set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:name,args:netClean(a),ui:uiSnap(),rid})})}
 
 /* ---------- the host runs what a joined player sends ---------- */
 const seatOfGuest=id=>{if(!G)return null;const i=G.p.findIndex(P=>P.net===id);return i<0?null:i};
@@ -172,7 +176,7 @@ function onNet(from,d){if(!d||!d.t)return;
     else if(d.t==="cmd"){NET.queue=NET.queue.then(()=>runCmd(from,d)).catch(e=>console.error(e))}
     else if(d.t==="ans"){const p=NET.pend[d.id];if(p){delete NET.pend[d.id];p.res(d.v)}}
     else if(d.t==="bye")guestLeft(from)}}
-function guestLeft(id){const g=NET.guests[id];delete NET.guests[id];delete NET.sent[id];lobbyRoster();if(!G||!G.opts.online||G.over)return;
+function guestLeft(id){delete NET.guests[id];delete NET.sent[id];lobbyRoster();if(!G||!G.opts.online||G.over)return;
   const seat=seatOfGuest(id);if(seat==null)return;const P=G.p[seat];P.cpu="medium";P.net=null;
   log(`<b>${plName(seat)} left the game.</b> A computer (Medium) plays the seat from here.`,"event");popup("A player left",`<p>${esc(P.name)} left the room. A computer plays their seat from now on.</p>`);
   for(const [k,p] of Object.entries(NET.pend))if(p.pl===seat){delete NET.pend[k];p.res(p.spec&&p.spec.ai?p.spec.ai():AI.choose(seat,p.spec))}
@@ -225,7 +229,7 @@ function onlineLobby(){
   return h}}
 {const _sg=startGame;startGame=function(opts){
   if(!(NET.role==="lobby-host"&&NET.inSetup&&opts&&!opts.fast))return _sg(opts);
-  const ps=opts.players,local=ps.filter(p=>p.cpu==null&&!p.net).length,nets=ps.filter(p=>p.cpu&&String(p.cpu).startsWith("net:")).map(p=>p.cpu.slice(4));
+  const ps=opts.players,nets=ps.filter(p=>p.cpu&&String(p.cpu).startsWith("net:")).map(p=>p.cpu.slice(4));
   if(new Set(nets).size<nets.length){flash("Each player in the room can only take one seat.");return}
   for(const p of ps)if(p.cpu&&String(p.cpu).startsWith("net:")){p.net=p.cpu.slice(4);p.cpu=null}
   Object.assign(opts,{online:true,timer:0,turns:"classic",mode:"local"});
