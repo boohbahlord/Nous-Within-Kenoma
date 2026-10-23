@@ -106,8 +106,11 @@ const KB_DO=[
   ["spelllist",()=>kbList()],["spellbar",()=>kbBar()],["ether",()=>openEtherShop()],["bank",()=>{const b=$("#bankslot .bankbar");if(b)b.click();else openBank()}],
   ["dice",()=>kbDice()],["log",()=>kbLog()],["hand",()=>kbHandOn(true)],["console",()=>cnOpen()],["consoleSwap",()=>cnSwap()],
   ["roll",()=>{const d=$("#d4");if(d&&!d.disabled)d.click();else flash("There is nothing to roll now: the draw is in your draw phase.")}],
-  ["sacrifice",()=>{const P=G.p[view()],i=P&&G.selHand?P.hand.indexOf(G.selHand):-1;if(i<0)return false;
-    const b=document.querySelector(`#hand [data-sh="${i}"]`);if(b)b.click();else flash("That card can't be sacrificed now.")}]];
+  ["sacrifice",()=>{const P=G.p[view()];if(!P)return false;   // v78s: the picked card, or (picking from the hand by keys) the highlighted one
+    const hk=KB.mode==="hand"&&kbHand()[KB.h],i=G.selHand?P.hand.indexOf(G.selHand):hk?+hk.dataset.h:-1;if(i<0){flash("Pick a hand card first (G, then C or V).");return}
+    const b=document.querySelector(`#hand [data-sh="${i}"]`);if(!b){flash("That card can't be sacrificed now.");return}b.click();
+    if(G.selHand&&!P.hand.includes(G.selHand)){G.selHand=null;G.mode=null;render()}   // the sacrificed card is no longer picked
+    if(KB.mode==="hand"){const H=kbHand();KB.h=Math.max(0,Math.min(H.length-1,KB.h));kbPaint()}}]];
 /* Ctrl or Shift pressed alone in the spells: the next or the previous school */
 document.addEventListener("keyup",e=>{if(!G||!kbSpellMode()||kbTop()||typing(e.target))return;
   if(kmTap(e,"spSchoolNext"))kbSchool(KB.sc+1);else if(kmTap(e,"spSchoolPrev"))kbSchool(KB.sc-1)});
@@ -126,7 +129,9 @@ document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(
   if(is("music")){stop();if(typeof musicSync==="function"){PREF.music=PREF.music===false;savePrefs();musicSync();flash(PREF.music===false?"Music off.":"Music on.")}return}
   if(is("rulebook")){stop();rbWin();return}
   /* closing: the window on top first (its ×), then the spells or the hand; Esc for the windows that have no Esc of their own */
-  if(is("close")){if(kbTop()){stop();kbClose()}else if(KB.mode){stop();kbModeOff()}return}
+  if(is("close")){if(kbTop()){stop();kbClose()}else if(KB.mode){stop();kbModeOff()}
+    else if(G&&!G.over&&(G.selHand||G.sel||G.placing)){stop();if(G.placing)cancelPlacing();G.selHand=null;G.sel=null;G.mode=null;G.faceDown=false;FK.tgt=null;render();flash("Let go.")}   // v78s: the picked card or the selected stack
+    return}
   if(e.key==="Escape"){const w=kbTop();
     if(w){if(w.matches("#ov,.faov,#menu,#animask,#leavebox")){const x=[...w.querySelectorAll(".xclose,[data-x],button[aria-label^='Close']")].find(b=>b.getClientRects().length);if(x){stop();x.click()}}return}   // the rest close on their own Esc
     if(KB.mode){stop();kbModeOff()}return}
@@ -140,7 +145,8 @@ document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(
   if(KB.mode==="hand"){const H=kbHand();
     if(is("hNext")||is("hPrev")){stop();if(H.length){KB.h=(KB.h+(is("hNext")?1:-1)+H.length)%H.length;kbPaint();H[KB.h].scrollIntoView({block:"nearest",inline:"nearest"})}return}
     if(is("hPick")){stop();if(H[KB.h])H[KB.h].click();kbPaint();
-      if(G&&G.selHand&&fkToTargets()){kbHandOn(false);flash(`Now a tile: ${kmShow4(["selUp","selLeft","selDown","selRight"])} move, ${kmShow("act")} places the card.`)}return}   // v78s: a picked card hands over to the field
+      if(G&&G.selHand&&G.selHand.unit==="miner"&&kbMineOn()){}   // v78s: a Miner goes to the mining slots first
+      else if(G&&G.selHand&&fkToTargets()){kbHandOn(false);flash(`Now a tile: ${kmShow4(["selUp","selLeft","selDown","selRight"])} move, ${kmShow("act")} places the card.`)}return}   // v78s: a picked card hands over to the field
     if(is("hInfo")){stop();const ci=H[KB.h]&&H[KB.h].querySelector(".ci");if(ci)ci.click();return}}
   const a=KB_DO.find(([id])=>is(id));if(a&&e.repeat){stop();return}if(a&&a[1]()!==false)stop();   // v78j: one press, one action (held, a window flickered open and shut)
 },true);

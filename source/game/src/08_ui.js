@@ -203,7 +203,7 @@ function render(){
     if(!(G.phase==="setup"&&G.setupStep==="more"||G.phase==="prep")){flash(G.phase==="setup"?"Place your Ace and Jack first.":"Cards are placed during setup or the prep phase.");return}
     if(G.placing){flash("Put the Slave down first.");return}
     const c=P.hand[+b.dataset.h];G.selHand=G.selHand===c?null:c;G.mode=null;G.faceDown=false;render()});   // v78j: the tick is for one card
-  $("#hand").querySelectorAll("[data-sh]").forEach(b=>b.onclick=()=>{if(!canAct())return;sacrifice(P.hand[+b.dataset.sh],"hand");render()});
+  $("#hand").querySelectorAll("[data-sh]").forEach(b=>b.onclick=()=>{if(!canAct())return;const c=P.hand[+b.dataset.sh];sacrifice(c,"hand");if(G.selHand===c&&!P.hand.includes(c))G.selHand=null;render()});   // v78s: a sacrificed card is no longer picked
   $("#hand").querySelectorAll("[data-sunh]").forEach(b=>b.onclick=()=>{if(!canAct())return;sacrificeToSun(P.hand[+b.dataset.sunh],"hand");render()});
   $("#mytray").innerHTML=hidden?"":trayHTML(P,V);
   // controls

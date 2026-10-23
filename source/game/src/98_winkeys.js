@@ -35,6 +35,8 @@ function wkCur(w){if(WK.el&&w.contains(WK.el)&&wkShown(WK.el)&&!WK.el.disabled)r
   if(!it){let bd=1e18;for(const x of items){const r=x.getBoundingClientRect(),d=(r.left+r.width/2-m.pos.x)**2+(r.top+r.height/2-m.pos.y)**2;if(d<bd){bd=d;it=x}}}
   WK.el=it;WK.sig=wkSig(it);return it}
 function wkMark(el){document.querySelectorAll(".kbfoc").forEach(x=>x.classList.remove("kbfoc"));WK.el=el;if(!el)return;WK.sig=wkSig(el);el.classList.add("kbfoc");el.scrollIntoView({block:"nearest",inline:"nearest"});
+  {const w=el.closest(KB_WINS),it=w?wkItems(w):[],i=it.indexOf(el),edge=i===0?-1:i===it.length-1?1:0;   // v78s: at the first or the last item, the window shows its very top or bottom
+    if(edge)for(let p=el.parentElement;p&&p!==document.documentElement;p=p.parentElement){if(p.scrollHeight>p.clientHeight+2&&/auto|scroll/.test(getComputedStyle(p).overflowY))p.scrollTop=edge<0?0:p.scrollHeight;if(p===w)break}}
   const r=el.getBoundingClientRect();WK.pos={x:r.left+r.width/2,y:r.top+r.height/2};const w=el.closest(KB_WINS);if(w)WK_MEM.set(w,{sig:WK.sig,pos:WK.pos})}
 function wkRemark(){const w=kbTop();if(!w||!WK.sig)return;const c=wkCur(w);if(c&&!c.classList.contains("kbfoc"))c.classList.add("kbfoc")}
 const wkLater=()=>{for(const ms of [0,60,200])setTimeout(wkRemark,ms)};

@@ -2586,3 +2586,8 @@ svg.fagroups .fgcd{fill:none;stroke:#52d685;stroke-opacity:.85;stroke-width:2}
    to click to close it again (the Field Automation classes, the Menu's folds, the help, every ▸) */
 details[open]>summary,[data-fold][aria-expanded="true"]{text-shadow:0 0 6px color-mix(in oklab,var(--amber-hi) 70%,transparent);
   box-shadow:inset 3px 0 0 var(--amber-hi),0 0 10px -2px color-mix(in oklab,var(--amber-hi) 60%,transparent);border-radius:3px}
+/* v78s: by keys, the item in a window keeps some of what is around it in view; the second highlight (what I and Tab are on
+   while a hand card is picked) is a dashed ring outside the first */
+.kbfoc{scroll-margin:56px 0}
+.kbifo{outline:2px dashed #8fd3ff!important;outline-offset:5px!important}
+#minepanel .mslot.kbmine{outline:2px solid var(--amber-hi);outline-offset:2px;box-shadow:0 0 12px color-mix(in oklab,var(--amber-hi) 60%,transparent)}   /* v78s: the slot chosen by keys */

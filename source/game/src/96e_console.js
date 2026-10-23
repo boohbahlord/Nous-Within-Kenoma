@@ -22,6 +22,7 @@ const CN_CMDS=[
   ["move","move a stack: move B2 C3, or B2 C3, or B2 up left","from to"],
   ["attack","attack: attack B2 C3; attack B2 C3 2 uses its second way","from atk n"],
   ["place","place a hand card: place 5♠ B1","card spot"],
+  ["autoplace","place your hand cards where Field Automation would, by its settings (while it is on)"],
   ["cast","cast a spell: cast Lightning Strike","spell"],
   ["end","the turn button: Ready, the next phase, End turn"],["roll","roll the draw"],
   ["bank","the Bank"],["ether","the Ether"],["diplomacy","Diplomacy"],["log","the log"],["dice","the dice"],["rules","the Rule book"],["keys","every key"],["menu","the settings"],["fullscreen","fullscreen on and off"],
@@ -32,7 +33,7 @@ const CN_CMDS=[
   ["hold","lock in place (Field Automation leaves it): hold B2","mine"],["ambush","set a stack in ambush (or out of it): ambush B2","mine"],
   ["look","the camera to a tile: look B2","tile"],["info","what stands on a tile: info B2","tile"],["chat","say something to the table (online): chat hello","text"]];
 const CN_ALIAS={x:"close",exit:"close",quit:"close","?":"help",next:"end",ready:"end",sel:"select",go:"move",m:"move",a:"attack",p:"place",c:"cast",spell:"cast",
-  dip:"diplomacy",rulebook:"rules",settings:"menu",fs:"fullscreen",say:"chat",squadron:"squad",lock:"hold",fwd:"advance",forward:"advance",back:"retreat",fallback:"retreat"};
+  dip:"diplomacy",rulebook:"rules",settings:"menu",fs:"fullscreen",say:"chat",squadron:"squad",lock:"hold",ap:"autoplace",fwd:"advance",forward:"advance",back:"retreat",fallback:"retreat"};
 const cnCmd=w=>{const k=String(w||"").toLowerCase();return CN_CMDS.find(c=>c[0]===k)?k:CN_ALIAS[k]||null};
 
 /* ---------- tiles, cards and spells by name ---------- */
@@ -71,7 +72,7 @@ function cnSuggest(text){const t=text.replace(/^\s+/,""),parts=t.split(/\s+/),la
   if(CN.mode==="chat"&&!t.startsWith("/"))return out;
   const mine=cnMine(),tileSug=(list,final,hintOf)=>{for(const o of list){const n=cnName(o.r,o.c);if(n.toLowerCase().startsWith(lc))add(pre+n+(final?"":" "),n,hintOf?hintOf(o):cnTileHint(o.r,o.c),final)}};
   const w0=(words[0]||"").replace(/^\//,""),cmd=cnCmd(w0),from=cnTile(cmd?words[1]:w0);
-  if(!words.length){const lw=lc.replace(/^\//,"");for(const [k,d,takes] of CN_CMDS)if(k.startsWith(lw))add((t.startsWith("/")?"/":"")+k+(takes?" ":""),k,d,!takes);
+  if(!words.length){const lw=lc.replace(/^\//,"");for(const [k,d,takes] of CN_CMDS)if(k.startsWith(lw)&&(k!=="autoplace"||faOn(view())))add((t.startsWith("/")?"/":"")+k+(takes?" ":""),k,d,!takes);
     if(!t.startsWith("/"))tileSug(mine,false);return out}
   const moves=(f,n)=>{const T=cnTargets(f.r,f.c);for(const [a,b] of T.move){const nm=cnName(a,b);if(nm.toLowerCase().startsWith(lc))add(pre+nm,nm,G.board[a][b]?"join "+cnStackHint(G.board[a][b]):"move",true)}
     for(const [a,b] of T.atk){const nm=cnName(a,b);if(nm.toLowerCase().startsWith(lc))add(pre+nm,nm,"attack "+cnTileHint(a,b),true)}
@@ -112,6 +113,13 @@ function cnRun(line){line=String(line||"").trim();if(!line||G&&G.passing)return;
       const card=cnHandCard(arg[0]),to=cnTile(arg[1]);if(!card){cnSay(`No “${arg[0]||""}” in your hand.`,true);return}if(!need(to,"tile"))return;
       if(!canAct()){cnSay("Not your move now.",true);return}if(!canPlace(card,to.r,to.c)){cnSay(`${short(card)} can't be placed on ${cnName(to.r,to.c)}.`,true);return}
       place(card,to.r,to.c);render();cnSay(`${short(card)} placed on ${cnName(to.r,to.c)}.`);return}
+    case "autoplace":{const V=view();   // v78s: the hand's cards where Field Automation would put them, by its settings
+      if(!faOn(V)){cnSay("autoplace works while Field Automation is on (auto on).",true);return}
+      if(!canAct()||G.phase!=="prep"){cnSay("Cards are placed in your prep phase.",true);return}
+      const done=[];for(const card of [...G.p[V].hand]){if(!G.p[V].hand.includes(card))continue;const t=lazySpot(V,card);if(!t||!canPlace(card,t[0],t[1]))continue;
+        G.selHand=card;place(card,t[0],t[1]);G.selHand=null;done.push(`${short(card)} on ${cnName(t[0],t[1])}`)}
+      render();if(!done.length){cnSay("Field Automation finds no card it would place now.");return}
+      log(`Field Automation places ${done.length} card${done.length>1?"s":""} for ${plName(V)}.`);cnSay(`Placed ${done.join(", ")}.`);return}
     case "cast":{const q=arg.join(" ").toLowerCase();const S=cnSpells(),s=S.find(x=>x.name.toLowerCase()===q)||S.find(x=>x.name.toLowerCase().startsWith(q));
       if(!q||!s){cnSay(q?`No spell “${arg.join(" ")}” here.`:"Which spell?",true);return}if(s.off){cnSay(`${s.name} can't be cast now.`,true);return}s.b.click();
       cnSay(`${s.name}.`);return}
