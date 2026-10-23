@@ -55,7 +55,7 @@ if(window.__EC)Object.assign(window.__EC,{fsFoesHTML:()=>fsFoesHTML()});
    - "What you must know" is gone as a button: its text is the first fold of Basics explained, "At a glance", which
      glows softly like Basics explained.
    - The sky's text (and its hover in fullscreen) says where its body is in its cycle: the Moon's phase 3/8, a planet's
-     round 4/6, your next judgement 2/3 turns, Saturn's tolls 5/9. Neptune waits for its own answer. */
+     round 4/6, your next judgement 2/3 rounds, Saturn's tolls 5/9. Neptune waits for its own answer. */
 {const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu"),f=m&&m.querySelector("#mParts");if(!f||f.dataset.perf)return;f.dataset.perf=1;
   const s=f.querySelector(":scope>summary");if(s)s.textContent="Performance Settings";
   const net=m.querySelector("#mNet"),lab=net&&net.closest("label");

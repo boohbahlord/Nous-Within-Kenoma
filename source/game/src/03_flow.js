@@ -116,7 +116,6 @@ function beginTurn(pl){
   Object.assign(G,{spent:false,spentOther:false,blessed:false,ritual:0,sel:null,selHand:null,mode:null,noDraw:false,sevSum:0,libation:false,saleD:null});
   G.p[pl].tn=(G.p[pl].tn||0)+1;   // the player's own turn count, for cooldowns
   G.prices={...(G.roundPrices||{})};
-  if(G.inflation&&G.turnNo<=G.inflation.until)G.inflation.add=R(2)-1;   // v71: back to turns, as the rule was written
   skyPrices(pl);   // after the Bank's collapse every price wobbles up, turn by turn
   for(const {st} of stacksOf(pl)){st.moved=false;st.attacked=false;if(st.hypo){st.hypo--;if(!st.hypo)log(`Hypostasis fades from ${plName(pl)}'s stack.`)}}
   G.p[pl].sevArmed=false;

@@ -3,12 +3,11 @@
      you like from the Ether (they don't count against it). Two hearts, no attack, no defense. It carries any stack (but never
      an Archer) up to 3 tiles in any direction. Of the ranged cards only Archers can shoot at it. Blows hit the Carriage first;
      when it breaks, every card it carried rolls 1d4 and dies on a 1, and the rest stay stacked.
-   - The Ether in King of the Hill: it starts with three decks' worth of every kind, gains one more deck's worth every 10
-     turns, and never holds more than four decks' worth of a kind.
-   - Marathon (100 points): holding the Hill can raise mercenaries for your side: on each of your turns, one chance in four,
+   - The Ether in King of the Hill: it starts with three decks' worth of every kind, gains one more deck's worth every 10 rounds, and never holds more than four decks' worth of a kind.
+   - Marathon (100 points): holding the Hill can raise mercenaries for your side: on each round, one chance in four,
      a band of soldiers under a crown, in your side's color, that stays yours. Everyone is told.
    - The Bank on the map: its building stands by the Hill (nothing can enter it), the Banker beside it (he can't be attacked),
-     guarded by Debt Collectors on Carriages. In this mode the Bank's Collectors ride Carriages too and cover 3 tiles a turn. */
+     guarded by Debt Collectors on Carriages. In this mode the Bank's Collectors ride Carriages too and cover 3 tiles a round. */
 
 /* ---------- the Carriage ---------- */
 UNIT.carriage={name:"Carriage",short:"Carriage",word:"Carriage",hp:2,nat:0,soul:1,cost:1,noDef:true,noAtk:true,kind:"Standard",ether:true,desc:"carries a stack up to 3 tiles in any direction",rt:0};
@@ -59,7 +58,7 @@ function kothFillEther(decks){const per=kothDeckCounts(),have={};for(const c of 
   return added}
 {const _sg=startGame;startGame=function(opts){const out=_sg.apply(this,arguments);if(kothOn()){kothFillEther(3);G.kothDecks=3}return out}}
 {const _st=substanceTurn;substanceTurn=function(pl){_st.apply(this,arguments);if(!kothOn()||G.over)return;
-  if(G.turnNo>0&&G.turnNo%10===0&&G.kothEtherAt!==G.turnNo){G.kothEtherAt=G.turnNo;   // v71: every 10 turns again, as the rule was written
+  if(G.moon.round>0&&G.moon.round%10===0&&G.kothEtherAt!==G.moon.round){G.kothEtherAt=G.moon.round;   // v79d: every 10 rounds
     const n=kothFillEther(Math.min(4,(G.kothDecks||3)+1));G.kothDecks=Math.min(4,(G.kothDecks||3)+1);if(n)log(`<b>The Ether</b> fills up: ${n} souls come in (never more than four decks' worth of a kind).`,"event")}
   if(!G.kothBankDone&&G.phase!=="setup"){G.kothBankDone=true;kothBank();render()}   // the Bank exists once the game is under way
   kothMercs(pl);kothCarriages()}}

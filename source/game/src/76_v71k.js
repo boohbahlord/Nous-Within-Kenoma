@@ -15,8 +15,8 @@ const NEP_GRAVE=new Set(["grave","resur","nepgrave"]);
   return _ask.apply(this,arguments)}}
 
 /* ---------- v71k: Neptune's cloud is one cloud ----------
-   It settles where a slow wave over the field rises, on tiles near the cards, and drifts with the wave a little each turn.
-   (Before, every tile near a card was in it on its own 45% chance, every turn, so it looked like loose blue squares.) */
+   It settles where a slow wave over the field rises, on tiles near the cards, and drifts with the wave a little each round.
+   (Before, every tile near a card was in it on its own 45% chance, every round, so it looked like loose blue squares.) */
 nepCloudTiles=function(){const N=NEP();let w=N.cloud&&N.cw;
   if(w)w.k++;else w=N.cw={a:Math.random()*6.283,b:Math.random()*6.283,c:Math.random()*6.283,dx:(Math.random()-.5)*1.3,dy:(Math.random()-.5)*1.3,k:0};
   const out=[];

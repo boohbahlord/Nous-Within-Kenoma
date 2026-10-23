@@ -7,7 +7,7 @@
      is no shared win: when only two sides are left every alliance breaks by itself (peace is still allowed).
    - Breaking an alliance: everyone's trust in you falls hard, and for 8 rounds the Banker disapproves: your Bank loans
      grow half as fast again, cards from the Ether cost 1d3 − 2 more (−1 to +1) and other spells 1d4 − 3 more (−2 to +1),
-     rolled each turn, so the dice can also make them cheaper (never below 0). Under Mercury's Total War none of that applies and the trust falls less.
+     rolled each round, so the dice can also make them cheaper (never below 0). Under Mercury's Total War none of that applies and the trust falls less.
    - Trust (the computers'): from −100 to +100, shown as +/− in colors from dark red (worst) through red, orange, yellow
      (neutral), light green and green to a rich green (great). It starts low at war, rises with peace and more with an
      alliance, falls with every attack, and decides what a computer accepts.
@@ -108,7 +108,7 @@ function dipBreakNow(pl,toT,how){const a=teamOf(pl),rel=dipRel(a,toT).s;if(rel!=
     else{dipTrustAdd(toT,a,-70);for(const t of others)dipTrustAdd(t,a,-40);dipD().pen[a]={until:G.moon.round+DIP_PEN_ROUNDS-1}}
     log(`<b>${plName(pl)} ${how==="attack"?"strikes their ally and breaks":"breaks"} the alliance</b> with ${dipTN(toT)}${tw?" under Total War: the Banker looks away, and trust falls less":": the Banker disapproves"}.`,"event");
     popup("Betrayal",tw?`<p>${esc(G.p[pl].name)} breaks the alliance with ${esc(dipTeamName(toT))} under Mercury's Total War.</p><p>In the war of all against all it isn't seen as badly: no penalties from the Bank or the Ether, and trust falls less (−30 with them, −10 with everyone else).</p>`
-      :`<p>${esc(G.p[pl].name)} breaks the alliance with ${esc(dipTeamName(toT))}.</p><ul><li>Trust in ${esc(dipTeamName(a))} falls hard: −70 with them, −40 with everyone else.</li><li>For ${DIP_PEN_ROUNDS} rounds the Banker disapproves: Bank loans grow half as fast again, cards from the Ether cost 1d3 − 2 more (−1 to +1) and other spells 1d4 − 3 more (−2 to +1), rolled each turn: the dice can also make them cheaper (never below 0).</li></ul>`)}
+      :`<p>${esc(G.p[pl].name)} breaks the alliance with ${esc(dipTeamName(toT))}.</p><ul><li>Trust in ${esc(dipTeamName(a))} falls hard: −70 with them, −40 with everyone else.</li><li>For ${DIP_PEN_ROUNDS} rounds the Banker disapproves: Bank loans grow half as fast again, cards from the Ether cost 1d3 − 2 more (−1 to +1) and other spells 1d4 − 3 more (−2 to +1), rolled each round: the dice can also make them cheaper (never below 0).</li></ul>`)}
   render();return true}
 function dipBreak(pl,toT){if(!G||!dipOn()||NET.ctx!=null&&NET.ctx!==pl)return false;return dipBreakNow(pl,toT,"choice")}
 for(const [name,get,set] of [["dipPropose",()=>dipPropose,f=>dipPropose=f],["dipAnswer",()=>dipAnswer,f=>dipAnswer=f],["dipBreak",()=>dipBreak,f=>dipBreak=f]])netAny(name,get,set);
@@ -186,7 +186,7 @@ ${dipEnvoyHTML(V,T)}
 <details class="sub dipnote"><summary>How diplomacy works</summary><ul>
 <li>Everyone starts at war.</li><li><b>Peace</b>: neither side may attack the other for 1 to 4 rounds, as agreed. Mercury's Total War lifts it while it lasts. Breaking it makes the computers' trust in you fall all the way.</li>
 <li><b>Alliance</b>: shared vision, friendly spells on each other, and surrounding an enemy works as it does for teammates. No shared win: when only two sides are left, every alliance ends by itself.</li>
-<li><b>Breaking an alliance</b>: trust falls hard (−70 with them, −40 with everyone else), and for 8 rounds Bank loans grow half as fast again, cards from the Ether cost 1d3 − 2 more (−1 to +1) and other spells 1d4 − 3 more (−2 to +1), rolled each turn. Under Total War none of that, and trust falls less.</li>
+<li><b>Breaking an alliance</b>: trust falls hard (−70 with them, −40 with everyone else), and for 8 rounds Bank loans grow half as fast again, cards from the Ether cost 1d3 − 2 more (−1 to +1) and other spells 1d4 − 3 more (−2 to +1), rolled each round. Under Total War none of that, and trust falls less.</li>
 <li><b>Envoys</b>: a Joker from your hand or the field can go as your diplomat, two at most. Each envoy is a point with the side it is with: a computer side trusts you 4 more every round, and counts it for 10 more when you propose. Recalled, it goes back into your deck as it was; souls it had captured go to the grave when it leaves the field.</li>
 <li><b>Allies</b> can give each other mana or a card from the hand, and agree trade deals: mana each round, each way, for 1 to 4 rounds. A deal one side can't pay ends, and trust falls.</li>
 <li><b>Terms of war</b> (between sides at war, both agreeing): first to kill an Ace of the other (or the Tree, when a Jester has one on the field), within 8 rounds; holding the middle longest over 4 rounds (the middle tiles are outlined in red while it runs; each round's end, whoever holds more of them scores); or the most value killed over 4 rounds (each card killed scores its soul's worth). The winner takes 2 + 1d6 mana in tribute, and Peace follows for 2 rounds; a tie brings the peace without tribute.</li>
@@ -320,7 +320,7 @@ function dipTermsRound(){const D=G.dip;if(!D||!D.contests||!D.contests.length)re
   for(const [r,c] of dipMidTiles()){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(t){t.classList.add("midterm");if(!/terms of war/.test(t.title||""))t.title=(t.title?t.title+" · ":"")+"The middle (terms of war)"}}}}
 const COUNCIL=[{id:"tithe",name:"The Ether's Tithe",text:"Every card from the Ether (every conjuring) costs 1 more mana."},
   {id:"wartax",name:"War Tax",text:"Every attack costs the attacker 1 mana, paid to the Bank."},
-  {id:"dividend",name:"The Bank's Dividend",text:"Every player gains 1 mana at the start of each of their turns."},
+  {id:"dividend",name:"The Bank's Dividend",text:"Every player gains 1 mana at the start of each round."},
   {id:"credit",name:"Cheap Credit",text:"Loans from the Bank don't grow."},
   {id:"silence",name:"The Silence",text:"No one may cast Sorcery spells."}];
 const councilOn=id=>!!(G&&G.dip&&G.dip.council&&G.dip.council.id===id&&G.moon.round<=G.dip.council.until&&dipOn());

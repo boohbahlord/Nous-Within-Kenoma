@@ -27,7 +27,7 @@ if(window.__EC)Object.assign(window.__EC,{faCtxW2:pl=>faCtx(pl)});
 
 /* ---------- v72a: the Ether: Infinite (the default in Survival), or off for the whole game ----------
    Infinite: the Ether remembers what it held at the start, and whatever is taken comes back (checked at the start of
-   every turn and after every spell). Off: the Ether is emptied, and the Ether shop, the conjurings that bring a soul from
+   every round and after every spell). Off: the Ether is emptied, and the Ether shop, the conjurings that bring a soul from
    the Ether and mystery buys are closed; mana still comes as usual. */
 const etherKey=c=>c.unit?"u:"+c.unit:`${c.rank}|${c.suit||""}|${c.color||""}`;
 function etherSetup(){if(!G||G._etherSet)return;G._etherSet=true;

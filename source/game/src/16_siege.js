@@ -62,8 +62,8 @@ function release(r,c,rr,cc){const st=G.board[r][c],x=st.captive;st.captive=null;
 function suppress(r1,c1,r2,c2,opt){
   const A=G.board[r1][c1],D=G.board[r2][c2],d=R(2),w=R(2);A.attacked=true;G.lastAttack=G.turnNo;if(A.ambush)A.ambush=false;
   opt.card.readyAt=tnOf(A.owner)+d+1;D.supp={n:w};
-  tray(A.owner,"Suppress",[{s:2,v:d},{s:2,v:w}],`rest ${d} · ${w} turns`);
-  log(`<b>${plName(A.owner)}</b>'s Archer on ${coord(r1,c1)} suppresses ${plName(D.owner)}'s stack on ${coord(r2,c2)}: disadvantage on its next attack, unless it waits out ${w} of its turns (1d2). The Archer rests for ${d} turn${d>1?"s":""} (1d2).`,"combat");
+  tray(A.owner,"Suppress",[{s:2,v:d},{s:2,v:w}],`rest ${d} · ${w} rounds`);
+  log(`<b>${plName(A.owner)}</b>'s Archer on ${coord(r1,c1)} suppresses ${plName(D.owner)}'s stack on ${coord(r2,c2)}: disadvantage on its next attack, unless it waits out ${w} rounds (1d2). The Archer rests for ${d} round${d>1?"s":""} (1d2).`,"combat");
   return{win:false,line:""};
 }
 
@@ -85,7 +85,7 @@ function healTargets(st,r,c){const out=[];
 const healReady=st=>{const h=healerOf(st);return !!h&&(h.healAt||0)<=tnOf(st.owner)&&shieldUp(st)};
 function healAct(r,c,T){const st=G.board[r][c],h=healerOf(st),d=R(2)+2,n=tnOf(st.owner);T.x.hp++;h.healAt=n+d;h.shieldOff=n+3;
   tray(st.owner,"Heal",[{s:2,v:d-2}],`next heal in ${d}`);
-  fogLog(st.owner,T.r,T.c,"");log(`${plName(st.owner)}'s Healer on ${coord(r,c)} heals ${esc(nameOf(T.x))} on ${coord(T.r,T.c)} (${T.x.hp}/${T.x.maxHp}). The shield is down for 3 turns, and the next heal waits ${d} turns (1d2 + 2).`)}
+  fogLog(st.owner,T.r,T.c,"");log(`${plName(st.owner)}'s Healer on ${coord(r,c)} heals ${esc(nameOf(T.x))} on ${coord(T.r,T.c)} (${T.x.hp}/${T.x.maxHp}). The shield is down for 3 rounds, and the next heal waits ${d} rounds (1d2 + 2).`)}
 
 /* ---------- Repairmen ---------- */
 function repairTargets(st,r,c){const out=[];
@@ -102,7 +102,7 @@ function repairAct(r,c,T){const st=G.board[r][c],m=repairOf(st),b=T.b,nm=KNAME[k
     log(`${plName(st.owner)}'s Repairman gives his life to upgrade the Ace on ${coord(T.r,T.c)}: it now has ${b.maxHp} hearts.`,"event");return}
   const d=R(3)+1;if(T.act==="upgrade"){b.maxHp++;b.hp++}else b.hp++;m.repAt=tnOf(st.owner)+d;T.t.repLock=tnOf(T.t.owner)+d;
   tray(st.owner,"Repair",[{s:3,v:d-1}],`busy ${d}`);
-  fogLog(st.owner,T.r,T.c,"");log(`${plName(st.owner)}'s Repairman ${T.act==="upgrade"?"strengthens":"repairs"} the ${nm} on ${coord(T.r,T.c)} (${b.hp}/${b.maxHp}). For ${d} turns (1d3 + 1) nothing fires from that base and it can't be repaired again.`)}
+  fogLog(st.owner,T.r,T.c,"");log(`${plName(st.owner)}'s Repairman ${T.act==="upgrade"?"strengthens":"repairs"} the ${nm} on ${coord(T.r,T.c)} (${b.hp}/${b.maxHp}). For ${d} rounds (1d3 + 1) nothing fires from that base and it can't be repaired again.`)}
 
 /* ---------- Miners and crystals ---------- */
 const crystalAt=(r,c)=>(G.crystals||[]).find(x=>x.r===r&&x.c===c);
@@ -117,9 +117,9 @@ function spawnCrystal(){const free=centerTiles().filter(([r,c])=>!crystalAt(r,c)
   log(`<b>A crystal cluster</b> rises on ${coord(r,c)}: 12 mana for a Miner to dig.`,"event");notify(null,`A crystal rises on ${coord(r,c)}.`);return true}
 function crystalTick(){
   if(G.opts.crystals===false||G.phase==="setup")return;G.crystals=G.crystals||[];
-  if(!G.crystalInit){G.crystalInit=true;if(hq())spawnCrystal();G.crystalNext=G.turnNo+R(6)+4;return}   // Headquarters opens with a crystal in the middle
-  if(G.crystalNext==null)G.crystalNext=G.turnNo+R(6)+4;
-  if(G.turnNo>=G.crystalNext){spawnCrystal();G.crystalNext=G.turnNo+R(6)+4}   // then one every 1d6 + 4 turns (v71: turns again, as the rule was written)
+  if(!G.crystalInit){G.crystalInit=true;if(hq())spawnCrystal();G.crystalNext=G.moon.round+R(6)+4;return}   // Headquarters opens with a crystal in the middle
+  if(G.crystalNext==null)G.crystalNext=G.moon.round+R(6)+4;
+  if(G.moon.round>=G.crystalNext){spawnCrystal();G.crystalNext=G.moon.round+R(6)+4}   // then one every 1d6 + 4 rounds (v79d)
 }
 /* the start of a player's turn: crystals, then Miners */
 function siegeTurn(pl){
@@ -129,7 +129,7 @@ function siegeTurn(pl){
   for(const {st,r,c} of stacksOf(pl)){
     const ms=st.cards.filter(x=>x.unit==="miner");if(!ms.length)continue;
     const cr=crystalAt(r,c),g0=got;
-    if(hasK(st,"ace")){for(const m of ms)if(m.inSlot!=null&&m.inSlot<G.moon.round)got+=R(2)-(G.moon.gone==="jupiter"?0:1);per.push(["ace:"+st.cards.find(x=>kind(x)==="ace").id,got-g0])}   // Jupiter: 1d2 instead of 1d2 − 1   // a miner slot: 1d2 − 1 a turn, from the round after it moves in
+    if(hasK(st,"ace")){for(const m of ms)if(m.inSlot!=null&&m.inSlot<G.moon.round)got+=R(2)-(G.moon.gone==="jupiter"?0:1);per.push(["ace:"+st.cards.find(x=>kind(x)==="ace").id,got-g0])}   // Jupiter: 1d2 instead of 1d2 − 1   // a miner slot: 1d2 − 1 a round, from the round after it moves in
     else if(cr){per.push(["cr:"+r+"."+c,0]);if(R(2)===2){const take=Math.min(cr.left,1+R(3));cr.left-=take;got+=take;per[per.length-1][1]=take;notes.push(`${take} from the crystal on ${coord(r,c)}${cr.left?` (${cr.left} left)`:"; the crystal is spent and gone"}`);if(!cr.left)G.crystals.splice(G.crystals.indexOf(cr),1)}}
     else for(const m of ms)if(R(6)===6)got++;   // out in the open: 1d6 − 5
   }
@@ -158,7 +158,7 @@ function pourLibation(r,c,ids){
   if(!st.cards.length){G.board[r][c]=null;freeCaptive(st,r,c);G.sel=null}else if(G.sel)for(const x of cards)G.sel.pick.delete(x.id);
   tray(G.active,"Field Libation",d,`+${got} mana`);
   log(`<b>Field Libation</b> on ${coord(r,c)}: ${cards.length} card${cards.length>1?"s":""} poured out (1d2 each: ${d.map(x=>x.v).join(", ")}); +${got} mana, ${lost} to the grave for nothing.`);
-  G.libPick=null;G.libation="done";checkWin();   // one Pour a turn: the X marks go, and the spell is spent until your next turn
+  G.libPick=null;G.libation="done";checkWin();   // one Pour a round: the X marks go, and the spell is spent until your next turn
 }
 
 /* ---------- spells ---------- */
@@ -167,12 +167,12 @@ SPELLS.push(
  {id:"libation",name:"Field Libation",cost:0,school:"Necromancy",text:"Free, but not under the Full Moon. Your stacks show an X: select one, check the cards to pour out and press Pour. Each card rolls 1d2: a 2 gives you its soul's mana, a 1 sends it to the grave for nothing. Not a great move.",
   ok:()=>!fullDrawbacks()&&!G.libation&&stacksOf(G.active).some(x=>x.st.cards.some(c=>canSacOnField(x.st,c))),run:async()=>{G.libation="armed";G.libPick=new Set();log(`${plName(G.active)} prepares a Field Libation.`);if(!me().cpu)flash("Field Libation: select one of your stacks marked with an X, check the cards, then press Pour.")}},
  {id:"carch",dice:"1d2",name:"Archer Conjure",cost:1,school:"Conjuring",text:"An Archer's soul comes from the Ether into your deck. 1d20 + 1d10 at a stack exactly two tiles away (straight or diagonal); a miss costs nothing; no defense. Suppress instead: the target attacks with disadvantage next time. Stacks alone, with a Queen, or inside an Ace, the Tree or a Wall. 1 mana for the Beginner.",ok:()=>etherHasU("archer"),run:()=>conjureU("archer")},
- {id:"ccan",name:"Cannon Conjure",cost:6,school:"Conjuring",text:"A Cannon's soul comes from the Ether into your deck. 2d20 at anything up to three tiles away, once every 1d2 + 2 turns; a miss costs nothing; two damage to a Wall; no defense. Stands alone or inside a base; moves one step.",ok:()=>etherHasU("cannon"),run:()=>conjureU("cannon")},
+ {id:"ccan",name:"Cannon Conjure",cost:6,school:"Conjuring",text:"A Cannon's soul comes from the Ether into your deck. 2d20 at anything up to three tiles away, once every 1d2 + 2 rounds; a miss costs nothing; two damage to a Wall; no defense. Stands alone or inside a base; moves one step.",ok:()=>etherHasU("cannon"),run:()=>conjureU("cannon")},
  {id:"cheal",dice:"2+1d3",name:"Healer Conjure",cost:3,school:"Conjuring",text:"A Healer's soul comes from the Ether into your deck. Its blue shield turns one blow from its stack, then comes back in 1d4 rounds; or it heals one heart of a card in its stack or beside it. Stacks with anything but a Queen.",ok:()=>etherHasU("healer"),run:()=>conjureU("healer")},
- {id:"cwall",name:"Wall Conjure",cost:4,school:"Conjuring",text:"A Wall's soul comes from the Ether into your deck. Five hearts and defense 10; it holds one stack like an Ace, but only ranged cards fire from it (one shot a turn). It never moves.",ok:()=>etherHasU("wall"),run:()=>conjureU("wall")},
- {id:"crep",name:"Repairman Conjure",cost:2,school:"Conjuring",text:"A Repairman's soul comes from the Ether into your deck. He repairs a Wall, an Ace or the Tree in his stack or beside it, then rests 1d3 + 1 turns. He can also upgrade an Ace once, giving his life for it.",ok:()=>etherHasU("repair"),run:()=>conjureU("repair")},
+ {id:"cwall",name:"Wall Conjure",cost:4,school:"Conjuring",text:"A Wall's soul comes from the Ether into your deck. Five hearts and defense 10; it holds one stack like an Ace, but only ranged cards fire from it (one shot a round). It never moves.",ok:()=>etherHasU("wall"),run:()=>conjureU("wall")},
+ {id:"crep",name:"Repairman Conjure",cost:2,school:"Conjuring",text:"A Repairman's soul comes from the Ether into your deck. He repairs a Wall, an Ace or the Tree in his stack or beside it, then rests 1d3 + 1 rounds. He can also upgrade an Ace once, giving his life for it.",ok:()=>etherHasU("repair"),run:()=>conjureU("repair")},
  {id:"cram",name:"Battering Ram Conjure",cost:3,school:"Conjuring",text:"A Battering Ram's soul comes from the Ether into your deck. Worked by one or two Grunts, Infantry or Puppets, it does two damage to a Wall beside it, no roll. It does nothing else.",ok:()=>etherHasU("ram"),run:()=>conjureU("ram")},
- {id:"cmine",name:"Miner Conjure",cost:2,school:"Conjuring",text:"A Miner's soul comes from the Ether into your deck. In an Ace (as many as you like) it brings 1d2 − 1 mana every turn, from the next round on; on a crystal it digs for 1 + 1d3; anywhere else it finds 1 mana on a 6.",ok:()=>etherHasU("miner"),run:()=>conjureU("miner")}
+ {id:"cmine",name:"Miner Conjure",cost:2,school:"Conjuring",text:"A Miner's soul comes from the Ether into your deck. In an Ace (as many as you like) it brings 1d2 − 1 mana every round, from the next round on; on a crystal it digs for 1 + 1d3; anywhere else it finds 1 mana on a 6.",ok:()=>etherHasU("miner"),run:()=>conjureU("miner")}
 );
 
 /* ---------- the board ---------- */
@@ -184,7 +184,7 @@ function siegeDecor(inner,st,V,r,c){
   if(st.mars)b.push(`<span class="supp" style="color:#c2401c" title="Mars: advantage on its next attack">♂︎</span>`);
   if(hasBase(st)&&repLocked(st)){cls.push("replock");b.push(`<span class="rlock" title="A Repairman is at work: nothing fires from here for ${st.repLock-tnOf(st.owner)} more turn(s)">${unitSVG("repair","#2a2016",34)}<em>${st.repLock-tnOf(st.owner)}</em></span>`)}
   if(st.captive)b.push(`<span class="capt" title="Captured: ${esc(nameOf(st.captive))}">⛓${unitSVG(st.captive.unit,"#5b3a1a",12)}</span>`);
-  if(st.supp)b.push(`<span class="supp" title="Suppressed: disadvantage on its next attack (${st.supp.n} turn${st.supp.n>1?"s":""})">▼${st.supp.n}</span>`);
+  if(st.supp)b.push(`<span class="supp" title="Suppressed: disadvantage on its next attack (${st.supp.n} round${st.supp.n>1?"s":""})">▼${st.supp.n}</span>`);
   if(mine){const sh=st.cards.find(isShooter);if(sh&&!shotReady(sh,st.owner))b.push(`<span class="cd" title="The ${esc(UNIT[sh.unit].name)} rests ${sh.readyAt-tnOf(st.owner)} more turn(s)">⟳${sh.readyAt-tnOf(st.owner)}</span>`)}
   if(G.libation==="armed"&&st.owner===G.active&&V===G.active&&G.phase==="prep"&&st.cards.some(x=>canSacOnField(st,x))){cls.push("libx");b.push(`<span class="xmark" aria-hidden="true">✕</span>`)}
   if(!cls.length&&!b.length)return inner;

@@ -1,10 +1,10 @@
 /* ---------------- v71d: the Oath of Neptune, Lostness I and II, Neptune Event and Neptune Eclipse, Stray Mana ----------------
-   The Oath of Neptune (any sky): Illusions cost 1d2 − 1 less for you (rolled each turn); +1d2 − 1 mana a turn through
+   The Oath of Neptune (any sky): Illusions cost 1d2 − 1 less for you (rolled each round); +1d2 − 1 mana a round through
    Neptune's own cycle, 1d3 through its eclipse. It unlocks:
    - Lostness I (free): Neptune's cycle on yourself for 2d3 rounds, without its gifts; at its end 2d2 + 1d6 mana, and 1d2
      more for every round past two. Not during Neptune's cycle or eclipse.
    - Lostness II (free): Neptune's eclipse on yourself for 2d3 rounds; at its end +1d6 maximum for good, 2d2 + 1d6 mana for
-     every round past two, and Neptune's Afterglow: three times your maximum mana and hand for eight of your turns. Not
+     every round past two, and Neptune's Afterglow: three times your maximum mana and hand for eight rounds. Not
      during Neptune's eclipse.
    - Either can be laid on an enemy instead (not in the first three rounds): it costs you 1d12 deck cards, 1d8 mana and
      1d3 hand cards (a Jester rolls the cards with advantage against himself), and they get no gifts. Whoever has laid one
@@ -24,7 +24,7 @@ SPELLS.push({id:"oath_neptune",name:"Oath of Neptune",cost:0,school:"Astrology",
   run:async()=>{const P=me();if(P.oath==="saturn"&&!P.satLocked){const yes=await ask(G.active,{kind:"yesno",id:"satbreak",title:"Break the Oath of Saturn?",text:SAT_BREAK_TXT,yes:"Break it",no:"Keep it",ai:()=>false});
       if(!yes){log(`${plName(G.active)} keeps the Oath of Saturn.`);return}}
     toggleOath("neptune")}});
-SPELL_TEXT.oath_neptune={n:"Any sky.",e:"Illusions cost 1d2 − 1 less for you, rolled each turn. +1d2 − 1 mana each turn through Neptune's own cycle, 1d3 through its eclipse. Unlocks Lostness I and II, Neptune Event and Neptune Eclipse, and shortens Stray Mana's wait.",l:"Cast again to break the Oath."};
+SPELL_TEXT.oath_neptune={n:"Any sky.",e:"Illusions cost 1d2 − 1 less for you, rolled each round. +1d2 − 1 mana each round through Neptune's own cycle, 1d3 through its eclipse. Unlocks Lostness I and II, Neptune Event and Neptune Eclipse, and shortens Stray Mana's wait.",l:"Cast again to break the Oath."};
 SP("oath_neptune").text=[SPELL_TEXT.oath_neptune.n,SPELL_TEXT.oath_neptune.e,SPELL_TEXT.oath_neptune.l].join(" ");
 {const _sc=spellCost;spellCost=function(sp){const c=_sc.apply(this,arguments);const P=G&&G.p[G.active];
   if(sp&&sp.school==="Illusion"&&c>0&&P&&oathNow(G.active,"neptune"))return Math.max(0,c-(P.nepCut||0));return c}}
@@ -64,8 +64,8 @@ function lostnessEnd(t,S){if(S.k==="ec"){for(const k of ["blindHand","manaDel"])
     log(`<b>Lostness I</b> ends: ${plName(t)} comes back with ${m} mana (2d2 + 1d6${extra?` + ${extra}d2`:""}${got<m?`; ${got} fit`:""}).`,"event")}
   else{const mx=R(6);P.maxAdd=(P.maxAdd||0)+mx;let m=0;const d=[];for(let i=0;i<extra;i++){const x=[...rollN(2,2),...rollN(1,6)];d.push(...x);m+=sum(x)}
     const got=m?giveMana(t,m):0;P.nepGlow=tnOf(t)+8;if(d.length)tray(t,"Lostness II",d,`${m} mana`);
-    log(`<b>Lostness II</b> ends: ${plName(t)} gains ${mx} maximum for good (1d6)${m?` and ${m} mana (2d2 + 1d6 for each of ${extra} round${extra>1?"s":""} past two${got<m?`; ${got} fit`:""})`:""}, and <b>Neptune's Afterglow</b>: three times their maximum mana and hand for eight of their turns.`,"event");
-    notify(t,"Neptune's Afterglow: three times your maximum mana and hand for eight turns.")}}
+    log(`<b>Lostness II</b> ends: ${plName(t)} gains ${mx} maximum for good (1d6)${m?` and ${m} mana (2d2 + 1d6 for each of ${extra} round${extra>1?"s":""} past two${got<m?`; ${got} fit`:""})`:""}, and <b>Neptune's Afterglow</b>: three times their maximum mana and hand for eight rounds.`,"event");
+    notify(t,"Neptune's Afterglow: three times your maximum mana and hand for eight rounds.")}}
 PRICE.nepev=()=>4+R(2);
 SPELLS.push(
  {id:"lost1",name:"Lostness I",cost:0,school:"Illusion",text:"",ok:()=>nepLostOk("ev"),run:async()=>{await castLostness("ev")}},
@@ -75,7 +75,7 @@ SPELLS.push(
 Object.assign(OATH_ONLY,{lost1:"neptune",lost2:"neptune",nepev:"neptune",nepec:"neptune"});
 Object.assign(SPELL_TEXT,{
  lost1:{n:"The Oath of Neptune. Not during Neptune's cycle or eclipse.",e:"Neptune's cycle on yourself for 2d3 rounds, without its gifts. At its end: 2d2 + 1d6 mana, and 1d2 more for every round past two.",l:"Free. Or lay it on an enemy (not in the first three rounds): it costs you 1d12 deck cards, 1d8 mana and 1d3 hand cards, and nobody gets gifts. Once you lay it on another you can't take it yourself, and the other way round."},
- lost2:{n:"The Oath of Neptune. Not during Neptune's eclipse.",e:"Neptune's eclipse on yourself for 2d3 rounds. At its end: +1d6 maximum for good, 2d2 + 1d6 mana for every round past two, and Neptune's Afterglow: three times your maximum mana and hand for eight of your turns.",l:"Free. Or lay it on an enemy (not in the first three rounds): it costs you 1d12 deck cards, 1d8 mana and 1d3 hand cards, and nobody gets gifts. Once you lay it on another you can't take it yourself, and the other way round."},
+ lost2:{n:"The Oath of Neptune. Not during Neptune's eclipse.",e:"Neptune's eclipse on yourself for 2d3 rounds. At its end: +1d6 maximum for good, 2d2 + 1d6 mana for every round past two, and Neptune's Afterglow: three times your maximum mana and hand for eight rounds.",l:"Free. Or lay it on an enemy (not in the first three rounds): it costs you 1d12 deck cards, 1d8 mana and 1d3 hand cards, and nobody gets gifts. Once you lay it on another you can't take it yourself, and the other way round."},
  nepev:{n:"The Oath of Neptune.",e:"Neptune takes the sky for its cycle (2d3 rounds); whatever hung there pauses and comes back when it ends.",l:"4 + 1d2 mana. Not with cycle events off."},
  nepec:{n:"The Oath of Neptune.",e:"Neptune takes the sky for its eclipse (2d3 rounds); whatever hung there pauses and comes back when it ends.",l:"10 mana. Not with eclipses off."}});
 for(const id of ["lost1","lost2","nepev","nepec"]){const t=SPELL_TEXT[id];SP(id).text=[t.n,t.e,t.l].join(" ")}

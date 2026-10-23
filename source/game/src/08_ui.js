@@ -94,7 +94,7 @@ function pboxHTML(pl,top){
     if(P.tribe==="angel")sl.push(`<span class="bolts" title="Bolts for Lightning Strike">Bolts ${[0,1,2].map(i=>`<i class="${i<(P.bolts||0)?"f":""}">${unitSVG("bolt",i<(P.bolts||0)?"#8fd0ff":"#4a5a66",13)}</i>`).join("")}</span>`);
     if(P.tribe==="binah")sl.push(`<span>Thralls <b>${(P.thralls||[]).length}/10</b></span>`);
     if(P.shield)sl.push(`<span class="pinktag">Please Don't Hurt Me</span>`);
-    if(deluded(pl))sl.push(`<span class="delutag">Deluded ${P.delu.turns} turn${P.delu.turns>1?"s":""} · ${3-(P.delu.diceCut||0)}d2 free a turn${P.delu.blindfold?" · Blindfold":""}${P.delu.extended?" · extended":""}</span>`);
+    if(deluded(pl))sl.push(`<span class="delutag">Deluded ${P.delu.turns} round${P.delu.turns>1?"s":""} · ${3-(P.delu.diceCut||0)}d2 free a round${P.delu.blindfold?" · Blindfold":""}${P.delu.extended?" · extended":""}</span>`);
     if(P.joy)sl.push(`<span class="joytag">Pleasure and Joy</span>`);
     sl.push(...econTags(P));
     if(P.tribe==="yald")sl.push(`<span>Hunger <b>${P.hunger||0}/7</b></span>`);
@@ -104,7 +104,7 @@ function pboxHTML(pl,top){
     if(showHand){
       const open=handOpen(pl,V);
       h+=`<div class="handrow"><span class="bk">Hand ${P.hand.length}/${handCap(pl)}</span>${P.hand.map(c=>open?face(c,{cls:"sm"}):back(pl)).join("")}${open?'<span class="seenmark">seen</span>':""}</div>`;
-    }else h+=`<p class="stats"><span>Hand <b>${P.hand.length}/${handCap(pl)}</b></span>${P.od?`<span class="odn">overdrawn <b>${P.od}</b></span>`:""}${P.loot?`<span class="loot" title="From the Bank heist: pours into the soul pile at the start of each turn">stash <b>${P.loot}</b></span>`:""}</p>`;
+    }else h+=`<p class="stats"><span>Hand <b>${P.hand.length}/${handCap(pl)}</b></span>${P.od?`<span class="odn">overdrawn <b>${P.od}</b></span>`:""}${P.loot?`<span class="loot" title="From the Bank heist: pours into the soul pile at the start of each round">stash <b>${P.loot}</b></span>`:""}</p>`;
   }
   if(top)h+=`<div class="traywrap">${trayHTML(P,pl)}</div>`;
   return h;
@@ -166,7 +166,7 @@ function render(){
         const cap=st.cards.reduce((a,x)=>a+capMana(x),0);
         const odd=lead.unit||lead.puppet,ic=odd?inkSVG(lead.puppet?"puppet":lead.unit,inkOf(lead),28):"";
         const leadHTML=odd?`<span class="lead ulead"><span class="smark">${markHTML(lead)}</span>${ic}</span>`:`<span class="lead"><b class="rk${lead.rank==="JK"?" jk":""}">${lead.rank==="JK"?"Joker":lead.rank}</b><i>${lead.rank==="JK"?"✶":SUITS[lead.suit]}</i></span>`;
-        inner=`<div class="stack ${hasBase(st)?"base ":""}${mine?"mine":isEnemy(st.owner,V)?"theirs":"ally"} ${lead.color}${hated(st)?" hated":""}${shielded(st.owner)?" pink":""}${G.p[st.owner].joy?" joy":""}${lead.unit?" u-"+lead.unit:""}" style="--pc:${P.color}"><span class="so">${solidSVG(P.solid,P.color,16)}</span><span class="ci" aria-label="Card info"></span>${st.cards.length>1?`<span class="cnt">×${st.cards.length}</span>`:""}${leadHTML}${st.cards.length>1?`<span class="mini">${st.cards.map(short).join(" ")}</span>`:""}${lead.maxHp?`<span class="bhp">${heartsHTML(lead)}</span>`:""}<em class="ty">${esc(typeWord(lead))}</em>${st.stun?`<span class="stun" title="Immobilized by lightning for ${st.stun} more turn${st.stun>1?"s":""}">${unitSVG("bolt","#6fb8ff",14)}${st.stun}</span>`:""}${st.odds?`<span class="odds ${st.odds}">${st.odds==="adv"?"▲":"▼"}</span>`:""}${st.hypo?`<span class="hypo" title="Hypostasis: untouchable">◈${st.hypo}</span>`:""}${cap?`<span class="souls" title="captured souls">✦${cap}</span>`:""}${st.owner===G.active&&(st.moved||st.attacked)&&G.phase!=="setup"?`<span class="used">${st.attacked?"atk":"mv"}</span>`:""}</div>`;
+        inner=`<div class="stack ${hasBase(st)?"base ":""}${mine?"mine":isEnemy(st.owner,V)?"theirs":"ally"} ${lead.color}${hated(st)?" hated":""}${shielded(st.owner)?" pink":""}${G.p[st.owner].joy?" joy":""}${lead.unit?" u-"+lead.unit:""}" style="--pc:${P.color}"><span class="so">${solidSVG(P.solid,P.color,16)}</span><span class="ci" aria-label="Card info"></span>${st.cards.length>1?`<span class="cnt">×${st.cards.length}</span>`:""}${leadHTML}${st.cards.length>1?`<span class="mini">${st.cards.map(short).join(" ")}</span>`:""}${lead.maxHp?`<span class="bhp">${heartsHTML(lead)}</span>`:""}<em class="ty">${esc(typeWord(lead))}</em>${st.stun?`<span class="stun" title="Immobilized by lightning for ${st.stun} more round${st.stun>1?"s":""}">${unitSVG("bolt","#6fb8ff",14)}${st.stun}</span>`:""}${st.odds?`<span class="odds ${st.odds}">${st.odds==="adv"?"▲":"▼"}</span>`:""}${st.hypo?`<span class="hypo" title="Hypostasis: untouchable">◈${st.hypo}</span>`:""}${cap?`<span class="souls" title="captured souls">✦${cap}</span>`:""}${st.owner===G.active&&(st.moved||st.attacked)&&G.phase!=="setup"?`<span class="used">${st.attacked?"atk":"mv"}</span>`:""}</div>`;
       }
       if(st&&showsBack(V,r,c)){const P=G.p[st.owner];inner=`<div class="stack theirs facedown" style="--pc:${P.color}"><span class="so">${solidSVG(P.solid,P.color,16)}</span><span class="fdback">${solidSVG(P.solid,P.color,30)}</span><em class="ty">face down</em></div>`}
       else if(st){if(st.down)inner=inner.replace('class="stack ','class="stack down ');if(st.ambush&&!isEnemy(st.owner,V))inner=inner.replace('class="stack ','class="stack ambush ');inner=siegeDecor(inner,st,V,r,c)}

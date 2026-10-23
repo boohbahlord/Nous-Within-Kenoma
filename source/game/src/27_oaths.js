@@ -16,7 +16,7 @@ const oathNow=(pl,k)=>oathOf(pl)===k;
 const OATH_TXT={
   sun:{n:"Any sky. Not for the Firmament.",e:"The Sun's blessing: you gain fire mana (3 at most, 6 for a round) by sacrificing cards to the Sun, and from every judgement it takes from you. Fire mana pays for Scorched Earth and Blindness.",l:"Cast again to break the Oath. The Sun still judges you."},
   moon:{n:"Any sky. With no Moon up, its Full Moon still comes every 8 rounds.",e:"Every New Moon, 2d2 − 1 more cards from the grave. Every Full Moon, +2 mana and +2 maximum. Grave Blessing rolls one more die. Jokers conjure for one less, and twice between Full Moons you can conjure a Moon Joker from nowhere. A Joker that shoots itself at the New Moon goes back into your deck, and under a Blood Moon your dead don't fall into the Outer Darkness.",l:"A Joker of yours must shoot itself before each Full Moon. If none does, you get no grave cards at the next New Moon and lose one maximum mana."},
-  saturn:{n:"Any sky. Not for the Firmament or Binah.",e:"Each Bank report in good standing: +10% of your mana (at least 1) and +1 maximum for good. While Saturn is up, pay its toll and Saturn sends Puppets to fight for you: one stack of 1d4 after the first toll, two after the third and the sixth, three after the ninth. The computer moves them.",l:"Breaking it costs all your mana, 5 random deck cards, 2 random hand cards and 2 maximum. Miss one toll and you betray Saturn: no Puppets for the next three tolls, Saturn's own Puppets come for you three turns after every missed toll, and you can no longer break the Oath."}
+  saturn:{n:"Any sky. Not for the Firmament or Binah.",e:"Each Bank report in good standing: +10% of your mana (at least 1) and +1 maximum for good. While Saturn is up, pay its toll and Saturn sends Puppets to fight for you: one stack of 1d4 after the first toll, two after the third and the sixth, three after the ninth. The computer moves them.",l:"Breaking it costs all your mana, 5 random deck cards, 2 random hand cards and 2 maximum. Miss one toll and you betray Saturn: no Puppets for the next three tolls, Saturn's own Puppets come for you three rounds after every missed toll, and you can no longer break the Oath."}
 };
 SPELLS.push(
  {id:"oath_sun",name:"Oath of the Second Sun",cost:0,school:"Astrology",text:"",ok:()=>oathFree("sun")&&me().tribe!=="firm",run:async()=>{toggleOath("sun")}},
@@ -33,7 +33,7 @@ SPELLS.push(
 PRICE.scorch=()=>R(2)+2;PRICE.sunblind=()=>2+R(2);
 Object.assign(SPELL_TEXT,{
  oath_sun:OATH_TXT.sun,oath_moon:OATH_TXT.moon,oath_saturn:OATH_TXT.saturn,
- scorch:{n:"The Oath of the Second Sun. Choose any tile.",e:"The ground burns in a circle two tiles around it, the middle included, for 1d3 turns. Each turn a stack standing in the fire takes one damage on a 4 of 1d4, your own included.",l:"Paid with fire mana. It never takes the last heart of an Ace or the Tree."},
+ scorch:{n:"The Oath of the Second Sun. Choose any tile.",e:"The ground burns in a circle two tiles around it, the middle included, for 1d3 rounds. Each round a stack standing in the fire takes one damage on a 4 of 1d4, your own included.",l:"Paid with fire mana. It never takes the last heart of an Ace or the Tree."},
  sunblind:{n:"The Oath of the Second Sun. Choose an enemy player.",e:"From the start of the next round to its end they are blind: they see nothing on the field, not even their own cards.",l:"Paid with fire mana. They are told what happened."},
  moonjoker:{n:"The Oath of the Moon.",e:"A new Joker, made from nothing (not from the Ether), comes into your deck.",l:"Twice between Full Moons."}});
 for(const id of ["oath_sun","oath_moon","oath_saturn","scorch","sunblind","moonjoker"]){const s=SP(id),t=SPELL_TEXT[id];s.text=[t.n,t.e,t.l].filter(Boolean).join(" ")}
@@ -81,11 +81,11 @@ async function scorchedEarth(pl){
     return best&&best.s>0?[best.r,best.c]:null});
   if(!t){giveFire(pl,0);log(`${plName(pl)} lets the fire go out before it starts.`);return}
   const n=payFire(pl,sp),turns=R(3),[r,c]=t,area=circle2(r,c);
-  G.fires=G.fires||[];for(const [rr,cc] of area)G.fires.push({r:rr,c:cc,untilT:G.turnNo+turns,scorch:true,by:pl,turns});   // v71: 1d3 turns, as the rule was written
-  log(`<b>Scorched Earth</b>: ${plName(pl)} pays ${n} fire mana and the ground burns around ${coord(r,c)} for ${turns} turn${turns>1?"s":""} (${area.length} tiles).`,"event");
+  G.fires=G.fires||[];for(const [rr,cc] of area)G.fires.push({r:rr,c:cc,until:G.moon.round+turns,scorch:true,by:pl,turns});   // v79d: 1d3 rounds
+  log(`<b>Scorched Earth</b>: ${plName(pl)} pays ${n} fire mana and the ground burns around ${coord(r,c)} for ${turns} round${turns>1?"s":""} (${area.length} tiles).`,"event");
   notify(null,`Scorched Earth: the ground burns around ${coord(r,c)}.`);
 }
-const scorchAt=(r,c)=>(G.fires||[]).some(f=>f.scorch&&f.r===r&&f.c===c&&(f.untilT!=null?f.untilT>=G.turnNo:f.until>=G.moon.round));
+const scorchAt=(r,c)=>(G.fires||[]).some(f=>f.scorch&&f.r===r&&f.c===c&&(f.until==null||f.until>=G.moon.round));
 /* at the start of a player's turn: each of their stacks in the scorched ground takes one damage on a 4 of 1d4 */
 function scorchTurn(pl){
   for(const {st,r,c} of stacksOf(pl)){if(!scorchAt(r,c)||R(4)!==4)continue;

@@ -1,11 +1,11 @@
 /* ---------------- v35: a deeper fog of war, Venus's reason to help an enemy, the Bank's land ----------------
    Fog: one veil of drifting cloud over every fogged tile, with soft edges that bleed into the tiles you can see, darker at the
    New Moon, silvered at the Full Moon, red under a Blood Moon.
-   Venus (the gift to the enemy, "+1 mana a turn, every enemy +2 maximum"): Venus keeps a ledger. Each round an enemy holding her gift
+   Venus (the gift to the enemy, "+1 mana a round, every enemy +2 maximum"): Venus keeps a ledger. Each round an enemy holding her gift
    doesn't attack the favored side, the favored player gets 1 mana of gratitude (2 at most a round). An enemy who attacks the favored
    side anyway loses the gift for three rounds, and Venus pays the favored player 2 mana for the ingratitude.
    The Bank's land: eight plots, 1 mana each, in the Bank window's Land tab. A plot is a Miner slot no enemy can reach: a Miner there
-   brings 1d2 − 1 mana a turn, like a Miner in an Ace (1d2 under Jupiter). At every Full Moon (every eighth round when the Moon isn't
+   brings 1d2 − 1 mana a round, like a Miner in an Ace (1d2 under Jupiter). At every Full Moon (every eighth round when the Moon isn't
    in the sky) the Bank takes half of what the plots brought in since. Whatever can't be paid becomes mana debt and Debt Collectors
    come for it; miss two pay days in a row and the Bank takes the plots back, and each Miner in them is turned into two Slave cards,
    sold at the Auction for 1 mana each. When the Bank sells something of a player who owes it, the money pays that player's debt. */
@@ -66,12 +66,12 @@ const plotsOf=()=>G.plots||(G.plots=Array.from({length:PLOTS},(_,i)=>({i,owner:n
 const myPlots=pl=>plotsOf().filter(p=>p.owner===pl);
 const payDay=()=>!G.moon.gone?G.moon.i===4:G.moon.round%8===0;
 const handMiners=pl=>G.p[pl].hand.filter(c=>c.unit==="miner");
-/* v38: one plot every two of your turns; a plot the Bank holds with its Miner sells for 3 (plot and Miner together) */
+/* v38: one plot every two rounds; a plot the Bank holds with its Miner sells for 3 (plot and Miner together) */
 const BANK_PLOT_PRICE=3;
 const plotPrice=p=>p.bank&&p.miners.length?BANK_PLOT_PRICE:PLOT_PRICE;
 const plotWait=pl=>{const P=G.p[pl];return P.plotTn==null?0:Math.max(0,P.plotTn+2-tnOf(pl))};   // turns until the next plot can be bought
 function buyPlot(pl,p){const P=G.p[pl];if(p.owner!=null||!bankOpen()||bankBanned(pl)||P.jail)return false;
-  if(plotWait(pl)){if(!P.cpu)flash("One plot every two turns: wait a turn.");return false}
+  if(plotWait(pl)){if(!P.cpu)flash("One plot every two rounds: wait a round.");return false}
   const price=plotPrice(p);if(!canAfford(pl,price)){if(!P.cpu)flash("Not enough mana.");return false}
   spend(pl,price);const withM=p.bank&&p.miners.length;p.owner=pl;p.prod=0;p.bank=false;P.plotTn=tnOf(pl);
   for(const m of p.miners){m.owner=pl;m.plotSince=G.moon.round}
@@ -95,7 +95,7 @@ function plantMiner(pl,p){const m=handMiners(pl)[0];if(!m||p.owner!==pl||p.miner
 /* the Miners work at the start of their owner's turn */
 {const _bt=bankTurn;bankTurn=function(pl){_bt(pl);if(!G.p[pl]||isHorde(pl)||!G.plots)return;let got=0;
   for(const p of myPlots(pl))for(const m of p.miners)if(m.plotSince<G.moon.round){let n=R(2)-(planetUp("jupiter")?0:1);if(n&&G.p[pl].minerX2!=null&&tnOf(pl)<=G.p[pl].minerX2)n*=2;p.prod+=n;got+=n;mineNote(pl,"plot:"+p.i,n)}
-  // v38: Jupiter blesses the land itself: +1 a plot each turn while it is in the sky, +1d2 a plot during its eclipse
+  // v38: Jupiter blesses the land itself: +1 a plot each round while it is in the sky, +1d2 a plot during its eclipse
   const jb=()=>eclipseOn("jupiter")?R(2):planetUp("jupiter")?1:0;let jup=0;for(const p of myPlots(pl)){const n=jb();p.prod+=n;jup+=n;if(n)mineNote(pl,"plot:"+p.i,n)}
   if(jup){got+=jup;log(`Jupiter over the Bank's land: ${plName(pl)}'s plots yield ${jup} more.`)}
   if(got){const n=giveMana(pl,got);log(`${plName(pl)}'s Miners on the Bank's land bring in ${n} mana${n<got?" (the soul pile is full)":""}. The Bank's half is due at the Full Moon.`)}}}
@@ -135,11 +135,11 @@ function landHTML(V){const live=canAct()&&G.phase==="prep"&&G.active===V,P=G.p[V
   const mine=myPlots(V),made=mine.reduce((a,p)=>a+p.prod,0);
   const box=p=>{const own=p.owner,me=own===V;let body;
     const wait=plotWait(V),price=plotPrice(p);
-    if(own==null)body=`<span class="dim">${p.bank&&p.miners.length?`The Bank's, with a Miner`:"For sale"}</span>${live&&open?`<button class="btn sm" data-plot="${p.i}" ${canAfford(V,price)&&!wait?"":"disabled"}>${wait?`Next plot in ${wait} turn${wait>1?"s":""}`:`Buy · ${price} mana`}</button>`:""}`;
+    if(own==null)body=`<span class="dim">${p.bank&&p.miners.length?`The Bank's, with a Miner`:"For sale"}</span>${live&&open?`<button class="btn sm" data-plot="${p.i}" ${canAfford(V,price)&&!wait?"":"disabled"}>${wait?`Next plot in ${wait} round${wait>1?"s":""}`:`Buy · ${price} mana`}</button>`:""}`;
     else if(me)body=p.miners.length?`<span>${unitSVG("miner","#e8c24a",18)} A Miner at work</span><small class="dim">${p.prod} brought in since pay day</small>${live&&open?`<button class="btn ghost sm" data-sell="${p.i}" title="Plot and Miner go to the Bank; rolled after the sale">Sell with its Miner · 2–3 mana</button>`:""}`:`<span class="dim">Yours, empty</span>${live&&hm?`<button class="btn sm" data-plant="${p.i}">Put a Miner from your hand</button>`:`<small class="dim">${hm?"":"No Miner in your hand"}</small>`}`;
     else body=`<span class="dim">Owned by ${plName(own)}</span>${p.miners.length?`<small class="dim">a Miner at work</small>`:""}`;
     return `<div class="plot${me?" mine":own!=null?" taken":""}"><b>Plot ${p.i+1}</b>${body}</div>`};
-  return `<p class="dim">Eight plots of the Bank's land, 1 mana each, one plot every two of your turns. A plot is a Miner slot no enemy can reach: a Miner in it brings 1d2 − 1 mana a turn, like a Miner in an Ace (1d2 under Jupiter); Jupiter in the sky adds 1 a plot each turn, 1d2 during its eclipse. A plot with its Miner sells back to the Bank for 2 to 3 mana (rolled after the sale), which pays your debt first; the Bank sells it on for 3. When a player is out, the Bank takes their land. At every Full Moon (every eighth round without the Moon) the Bank takes half of what your plots brought in since. What you can't pay becomes debt and Debt Collectors come; miss two pay days in a row and the Bank takes the land back and sells each Miner as two Slave cards at the Auction.</p>
+  return `<p class="dim">Eight plots of the Bank's land, 1 mana each, one plot every two rounds. A plot is a Miner slot no enemy can reach: a Miner in it brings 1d2 − 1 mana a round, like a Miner in an Ace (1d2 under Jupiter); Jupiter in the sky adds 1 a plot each round, 1d2 during its eclipse. A plot with its Miner sells back to the Bank for 2 to 3 mana (rolled after the sale), which pays your debt first; the Bank sells it on for 3. When a player is out, the Bank takes their land. At every Full Moon (every eighth round without the Moon) the Bank takes half of what your plots brought in since. What you can't pay becomes debt and Debt Collectors come; miss two pay days in a row and the Bank takes the land back and sells each Miner as two Slave cards at the Auction.</p>
 ${mine.length?`<p>Your plots: ${mine.length}. Brought in since the last pay day: <b>${made}</b>; the Bank's half: <b>${Math.ceil(made/2)}</b>${P.landMiss?` · <span class="neg">${P.landMiss} pay day missed</span>`:""}.</p>`:""}
 <div class="plots">${plotsOf().map(box).join("")}</div>${!open?`<p class="dim">${!bankOpen()?"The Bank is closed.":P.jail?"In Jail: no Bank business.":"No Bank business yet."}</p>`:live?"":`<p class="dim">Land is bought in your own prep phase.</p>`}`}
 function wireLand(el,V,re){el.querySelectorAll("[data-plot]").forEach(b=>b.onclick=()=>{if(!canAct())return;buyPlot(V,plotsOf()[+b.dataset.plot]);re()});

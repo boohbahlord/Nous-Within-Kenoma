@@ -42,7 +42,7 @@ if(window.__EC)Object.assign(window.__EC,{lhSpot:(...a)=>lhSpot(...a),canPlaceW:
 
 /* ---------- two Illusions on an enemy, each for their next turn (their next two on a 3 of 1d3); the target is told ----------
    Blind Hand (2 mana): their hand shows blank and shuffled; they can still play it, blind.
-   Mana Delusion (1d2 + 1 mana): their own mana bar lies by 1d3 either way (rolled again each of their turns), and what it
+   Mana Delusion (1d2 + 1 mana): their own mana bar lies by 1d3 either way (rolled again each round), and what it
    shows is what they can spend: more than they really have goes on credit with the Bank, as debt. */
 const illOf=(k,pl)=>G&&(G[k]||[]).find(x=>x.t===pl&&x.left>0)||null;
 async function pickHandFoe(id,title){const es=enemiesOf(G.active).filter(pl=>!isHorde(pl)&&!isNPC(pl)&&!G.p[pl].out);const t=es.length<=1?es[0]:await ask(G.active,{kind:"player",id,title,players:es});G.histTarget=t;return t}
@@ -54,12 +54,12 @@ SPELLS.push(
   ok:illFoes,run:async()=>{const t=await pickHandFoe("blindh","Blind Hand: whose hand?");if(t==null)return;const d=R(3),n=d===3?2:1;
    G.blindHand=(G.blindHand||[]).filter(x=>x.t!==t);G.blindHand.push({by:G.active,t,left:n});shuffle(G.p[t].hand);
    tray(G.active,"Blind Hand",[{s:3,v:d}],`${n} round${n>1?"s":""}`);log(`<b>Blind Hand</b>: ${plName(G.active)} blinds ${plName(t)}'s hand for ${n} round${n>1?"s":""}.`,"event");
-   notify(t,`Blind Hand: your hand shows blank and shuffled for ${n===2?"your next two turns":"your next turn"}. You can still play it, blind.`)}},
+   notify(t,`Blind Hand: your hand shows blank and shuffled for ${n===2?"the next two rounds":"the next round"}. You can still play it, blind.`)}},
  {id:"mdel",dice:"1d2+1",name:"Mana Delusion",cost:2,school:"Illusion",text:"Choose an enemy: for 1 round their mana bar lies by 1d3 either way (2 rounds on a 3 of 1d3), and they spend by what it shows: more than they have goes on credit, as debt.",
   ok:illFoes,run:async()=>{const t=await pickHandFoe("mdel","Mana Delusion: whose mana?");if(t==null)return;const d=R(3),n=d===3?2:1;
    G.manaDel=(G.manaDel||[]).filter(x=>x.t!==t);G.manaDel.push({by:G.active,t,left:n,off:delOff()});
    tray(G.active,"Mana Delusion",[{s:3,v:d}],`${n} round${n>1?"s":""}`);log(`<b>Mana Delusion</b>: ${plName(G.active)} clouds ${plName(t)}'s mana for ${n} round${n>1?"s":""}.`,"event");
-   notify(t,`Mana Delusion: your mana bar may be lying for ${n===2?"your next two turns":"your next turn"}, and you spend by what it shows.`)}});
+   notify(t,`Mana Delusion: your mana bar may be lying for ${n===2?"the next two rounds":"the next round"}, and you spend by what it shows.`)}});
 SPELL_TEXT.blindh={e:"Choose an enemy: their hand shows blank and shuffled for 1 round (2 on a 3 of 1d3).",l:"They can still play their cards, blind. They are told."};
 SPELL_TEXT.mdel={e:"Choose an enemy: their mana bar lies by 1d3 either way for 1 round (2 on a 3 of 1d3).",l:"They spend by what it shows: more than they really have goes on credit with the Bank. They are told."};
 {const _bt=beginTurn;beginTurn=function(pl){const out=_bt.apply(this,arguments);if(illOf("blindHand",pl))shuffle(G.p[pl].hand);const m=illOf("manaDel",pl);if(m)m.off=delOff();return out}}

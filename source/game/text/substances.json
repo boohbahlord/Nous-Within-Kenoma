@@ -27,18 +27,18 @@
  "jester":{"tag":"The Tree, the Puppets and the BullGoat: a living base that feeds you mana.","pts":[
   "A seven-card hand and seven mana at most.",
   "Every soldier in the deck is a Puppet (its own card, with the score of a 2).",
-  "The Tree of Neither Life Or Death: three hearts, holds six cards, gives 2 mana a turn and grows a Puppet every two rounds.",
+  "The Tree of Neither Life Or Death: three hearts, holds six cards, gives 2 mana a round and grows a Puppet every two rounds.",
   "BullGoat (Conjuring, 3 mana): charges two or three tiles, and comes back as the Goatbull, whose Stomp pins stacks.",
   "Deck of Cards: once a game, while the Tree stands, your deck is full again."]},
  "tiph":{"tag":"The Northern tribe of the Euclids: Traffickers chain souls and sell them.","pts":[
   "Three Traffickers in the deck (8 + 1d8) chain enemy cards that die beside them, three prisoners each.",
   "Life for Sell: put a prisoner up at the Auction; you approve the sale.",
-  "The Blindfold: keep a Delusion three turns longer.",
+  "The Blindfold: keep a Delusion three rounds longer.",
   "Immune to the Leviathan's toll.",
   "Jokers add 1 to their attacks."]},
  "lucifer":{"tag":"Delusions: blind yourself for mana, then blind your enemy and starve them.","pts":[
   "Always the ink and scroll.",
-  "Delusion of Ouroboros: for 2d2 turns you see only as far as your cards reach, but your mana rises to nine and you get 3d2 free mana a turn.",
+  "Delusion of Ouroboros: for 2d2 rounds you see only as far as your cards reach, but your mana rises to nine and you get 3d2 free mana a round.",
   "Delusion of Lucifer: the same on an enemy, and you can pay to stifle its gifts.",
   "Deconjured: no conjuring at the next Full Moon, or for everyone next round.",
   "Pleasure and Joy: your dead return to your deck, or each hit on you steals a mana for you."]},
@@ -50,13 +50,13 @@
  "firm":{"tag":"Master of the sky: it hangs Heavenly Bodies in the moon's place.","pts":[
   "Always the six-pointed star.",
   "Untouched by the Moon's and Saturn's harms, the Leviathan's toll and meteors.",
-  "Starts with a Miner on the moon: 1d2 − 1 mana a turn.",
+  "Starts with a Miner on the moon: 1d2 − 1 mana a round.",
   "Sorcery and Illusion: Blood Moon, Rain and Fog.",
   "Astrology: the Asteroid, and the Heavenly Bodies Mars, the Second Sun, Venus, Jupiter and Mercury."]},
  "yald":{"tag":"The Demiurge: it eats the sky and the dead, and brings Saturn.","pts":[
   "Always the symbol of Saturn.",
   "Night's Judgement: eat the moon (at the New or Full Moon) or any Heavenly Body.",
-  "God Hunger: eat 1d2 cards, twice a turn, for mana or for the hunger.",
-  "At seven hunger, Regurgitate Saturn: every enemy pays each turn, or a Debt Collector rises.",
+  "God Hunger: eat 1d2 cards, twice a round, for mana or for the hunger.",
+  "At seven hunger, Regurgitate Saturn: every enemy pays each round, or a Debt Collector rises.",
   "The Sun Cries: make the Second Sun weep until it becomes the Black Sun."]}
 }

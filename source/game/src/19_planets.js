@@ -38,19 +38,19 @@ function setPlanet(k,by){
   if(OATH_SKY[k])notify(null,`${PLANETS[k].name} is in the sky: anyone can swear its Oath (Astrology).`);
   if(old==="jupiter"){G.jupSale=null}
 }
-/* ---------- the Second Sun: judgement every 2d2 turns ---------- */
+/* ---------- the Second Sun: judgement every 2d2 rounds ---------- */
 async function skyAsync(pl){
   const P=G.p[pl];if(!P||isHorde(pl)||P.out)return;
   if(sunUp()&&P.tribe!=="firm"){
     if(P.sunNext==null){P.sunNext=tnOf(pl)+R(2)+R(2);return}
     if(tnOf(pl)<P.sunNext)return;
     P.sunNext=tnOf(pl)+R(2)+R(2);
-    // v65, the Sun's judgement (the user's): 1d6 mana to the Bank, or 1d2 damage to your stacks, or 1d2 + 1d3 deck cards; or blindness for 1d3 turns
+    // v65, the Sun's judgement (the user's): 1d6 mana to the Bank, or 1d2 damage to your stacks, or 1d2 + 1d3 deck cards; or blindness for 1d3 rounds
     const nM=R(6),nH=R(2),nD=R(2)+R(3),nB=R(3),opts=[];
     if(mana(pl)>=nM)opts.push({id:"mana",label:`Pay ${nM} mana`,sub:"1d6, to the Bank."});
     if(stacksOf(pl).length)opts.push({id:"hurt",label:`${nH} damage to your stacks`,sub:`1d2: ${nH>1?"each blow to a random stack of yours":"one blow to a random stack of yours"}.`});
     opts.push({id:"deck",label:`${nD} cards from your deck${shortNote(pl,nD)}`,sub:"1d2 + 1d3: they burn in the Sun (to the grave). Cards your deck can't give cost 1 mana each."});
-    opts.push({id:"no",label:`Blindness for ${nB} turn${nB>1?"s":""}`,sub:"1d3: you can't see even what is beside you."});
+    opts.push({id:"no",label:`Blindness for ${nB} round${nB>1?"s":""}`,sub:"1d3: you can't see even what is beside you."});
     const ch=opts.length===1?"no":await ask(pl,{kind:"choice",id:"sunjudge",title:`The Second Sun judges ${esc(P.name)}`,options:opts,
       ai:()=>mana(pl)>=nM+2?"mana":P.deck.length>8+nD?"deck":stacksOf(pl).length>3&&opts.some(o=>o.id==="hurt")?"hurt":opts.some(o=>o.id==="mana")?"mana":opts[0].id});
     if(ch!=="hurt"&&typeof planetFX==="function")planetFX("sun");   // v70: the Sun's own sign
@@ -58,10 +58,10 @@ async function skyAsync(pl){
     else if(ch==="hurt"){const hit=[];G.sunHurt=true;try{for(let i=0;i<nH;i++){const L=stacksOf(pl);if(!L.length)break;const x=pick(L);hit.push(coord(x.r,x.c));damage(x.r,x.c,1,false)}}finally{G.sunHurt=false}
       log(`${plName(pl)} offers the Second Sun ${nH} wound${nH>1?"s":""} (${hit.join(", ")}).`);sunPayback(pl,nH)}
     else if(ch==="deck"){let w=0,k=0;for(const c of takeDeck(pl,nD,"the Second Sun")){w+=soulOf(c);toGrave(c,"burn");k++}log(`${plName(pl)} burns ${k} deck card${k>1?"s":""} in the Second Sun.`);sunPayback(pl,w)}
-    else{P.sunBlind=tnOf(pl);P.sunBlindTo=tnOf(pl)+nB-1;G._vis=null;log(`<b>The Second Sun</b> blinds ${plName(pl)} for ${nB} turn${nB>1?"s":""}.`,"event");notify(pl,`${esc(P.name)} is blinded by the Sun for ${nB} turn${nB>1?"s":""}.`)}
+    else{P.sunBlind=tnOf(pl);P.sunBlindTo=tnOf(pl)+nB-1;G._vis=null;log(`<b>The Second Sun</b> blinds ${plName(pl)} for ${nB} round${nB>1?"s":""}.`,"event");notify(pl,`${esc(P.name)} is blinded by the Sun for ${nB} round${nB>1?"s":""}.`)}
     render();
   }
-  // the Black Sun: the Firmament who raised it pays Yaldabaoth every 1d2 of its turns
+  // the Black Sun: the Firmament who raised it pays Yaldabaoth every 1d2 rounds
   if(planetUp("blacksun")&&P.tribe==="firm"&&G.blackBy!=null&&!G.p[G.blackBy].out){
     if(P.blackNext==null)P.blackNext=tnOf(pl)+R(2);
     if(tnOf(pl)>=P.blackNext){P.blackNext=tnOf(pl)+R(2);const Y=G.blackBy,n=R(2);
@@ -70,7 +70,7 @@ async function skyAsync(pl){
       else{let k=0;for(const c of takeDeck(pl,n,"the Black Sun")){c.owner=Y;G.p[Y].deck.push(c);k++}shuffle(G.p[Y].deck);log(`The Black Sun: ${plName(pl)} gives ${plName(Y)} ${k} deck card${k===1?"":"s"}.`,"event")}}
   }
 }
-const sunBlind=pl=>{const P=G.p[pl];if(!P||P.sunBlind==null)return false;const t=tnOf(pl);return t>=P.sunBlind&&t<=(P.sunBlindTo!=null?P.sunBlindTo:P.sunBlind)};   // v65: blind for 1d3 turns
+const sunBlind=pl=>{const P=G.p[pl];if(!P||P.sunBlind==null)return false;const t=tnOf(pl);return t>=P.sunBlind&&t<=(P.sunBlindTo!=null?P.sunBlindTo:P.sunBlind)};   // v65: blind for 1d3 rounds
 
 /* ---------- the start of a turn: Venus and its Oath ---------- */
 function planetTurn(pl){
@@ -81,10 +81,10 @@ function planetTurn(pl){
   if(P.oath==="venus"){P.venusPeace=!P.venusAttacked;P.venusAttacked=false;if(P.venusPeace){const got=giveMana(pl,2);log(`Venus rewards ${plName(pl)}'s peace: ${got} mana and two more maximum this turn.`)}}   // v78j: any sky
   if(planetUp("jupiter")&&(!G.jupSale||G.jupSale.round!==G.moon.round))rollJupSale();
 }
-/* attacking a player under the Oath of Venus costs 1d2 mana and two maximum for 1d3 turns */
+/* attacking a player under the Oath of Venus costs 1d2 mana and two maximum for 1d3 rounds */
 function venusAttack(atk,def){const P=G.p[atk];if(!P||P.oath!=="venus"||isNPC(def))return;
   P.venusAttacked=true;P.venusPeace=false;const d=R(2),t=R(3);payQuiet(atk,Math.min(d,mana(atk)));P.venusPen=tnOf(atk)+t;
-  log(`Venus frowns on ${plName(atk)}'s attack: −${d} mana and two maximum for ${t} turn${t>1?"s":""}.`)}
+  log(`Venus frowns on ${plName(atk)}'s attack: −${d} mana and two maximum for ${t} round${t>1?"s":""}.`)}
 
 /* ---------- Jupiter: sales, cheaper conjuring for its Oath, trades ---------- */
 function rollJupSale(){const cj=SPELLS.filter(s=>s.school==="Conjuring"&&!s.tribe&&s.id!=="maxmana");G.jupSale={round:G.moon.round,ids:shuffle([...cj]).slice(0,2).map(s=>s.id)};
@@ -145,31 +145,31 @@ PRICE.sun=()=>R(3)+R(3);PRICE.venus=()=>R(3)+R(3);PRICE.jupiter=()=>R(3)+R(3);
 const firmPlace=k=>()=>G.moon.gone!==k&&G.moon.gone!=="saturn"&&!(G.eatenP||[]).includes(k);
 SP("mars").school="Astrology";
 SPELLS.push(
- {id:"sun",tribe:"firm",dice:"2d3",name:"Second Sun",cost:4,school:"Astrology",text:"Select your stack with a Joker: the Joker shoots itself (its souls go to your soul pile) and an indigo Second Sun (“King”) takes the moon's place. The fog of war is gone while it burns (Delusions stay). Every 2d2 turns it judges each other player: 1 mana to you, one damage to one of their stacks, or two deck cards; or blindness for that turn. Others can swear the Oath of the Earth. The Leviathan can't lie on it.",
+ {id:"sun",tribe:"firm",dice:"2d3",name:"Second Sun",cost:4,school:"Astrology",text:"Select your stack with a Joker: the Joker shoots itself (its souls go to your soul pile) and an indigo Second Sun (“King”) takes the moon's place. The fog of war is gone while it burns (Delusions stay). Every 2d2 rounds it judges each other player: 1 mana to you, one damage to one of their stacks, or two deck cards; or blindness for that turn. Others can swear the Oath of the Earth. The Leviathan can't lie on it.",
   ok:()=>firmPlace("sun")()&&G.moon.gone!=="blacksun"&&selOwnJoker(),run:async()=>{const s=G.sel,st=selStack();await jokerSuicide(s.r,s.c,st,G.active);setPlanet("sun",G.active);
    log(`<b>The Second Sun</b> rises where the moon was, raised by ${plName(G.active)}.`,"event");
-   popup("The Second Sun",`<p>${plName(G.active)}'s Joker shoots itself and an indigo sun rises in the moon's place. The fog of war burns away.</p><p>Every 2d2 turns the Sun judges each player, who pays 1d6 mana to the Bank, 1d2 damage to their stacks or 1d2 + 1d3 deck cards, or is blind for 1d3 turns. Anyone can swear the <b>Oath of the Earth</b> (Astrology).</p>`,G.active)}},
+   popup("The Second Sun",`<p>${plName(G.active)}'s Joker shoots itself and an indigo sun rises in the moon's place. The fog of war burns away.</p><p>Every 2d2 rounds the Sun judges each player, who pays 1d6 mana to the Bank, 1d2 damage to their stacks or 1d2 + 1d3 deck cards, or is blind for 1d3 rounds. Anyone can swear the <b>Oath of the Earth</b> (Astrology).</p>`,G.active)}},
  {id:"sunfall",tribe:"firm",name:"Second Sun's Fall",cost:0,school:"Astrology",text:"Free. Select a stack: the Sun crashes onto it. Two damage there, one damage on a 2 of 1d2 on every tile around it, one on a 10 of 1d10 on the ring beyond, your own troops too. A Black Sun instead destroys that tile and everything on it for good (and on a 6 of 1d6 every tile around it). The sky is empty afterwards.",
   ok:()=>(sunUp()||planetUp("blacksun"))&&!!selStack(),run:async()=>{const {r,c}=G.sel;SND.gun();sunFall(r,c);if(G.sel&&!at(G.sel.r,G.sel.c))G.sel=null}},
- {id:"venus",tribe:"firm",dice:"2d3",name:"Venus",cost:4,school:"Astrology",text:"Venus (“Harmony”) takes the moon's place. Choose: you (or your teammate) get +2 mana a turn and +2 maximum, or (not in Survival) +1 mana a turn while every enemy gets +2 maximum. Anyone can swear the Oath of Venus.",
+ {id:"venus",tribe:"firm",dice:"2d3",name:"Venus",cost:4,school:"Astrology",text:"Venus (“Harmony”) takes the moon's place. Choose: you (or your teammate) get +2 mana a round and +2 maximum, or (not in Survival) +1 mana a round while every enemy gets +2 maximum. Anyone can swear the Oath of Venus.",
   ok:firmPlace("venus"),run:async()=>{const pl=G.active,mates=[pl,...alliesOf(pl).filter(i=>!isHorde(i))];
-   const opts=[{id:"a",label:"+2 mana a turn and +2 maximum",sub:"for you or a teammate"}];if(!survival())opts.push({id:"b",label:"+1 mana a turn, every enemy +2 maximum",sub:"for you or a teammate"});
+   const opts=[{id:"a",label:"+2 mana a round and +2 maximum",sub:"for you or a teammate"}];if(!survival())opts.push({id:"b",label:"+1 mana a round, every enemy +2 maximum",sub:"for you or a teammate"});
    const mode=await ask(pl,{kind:"choice",id:"venusmode",title:"Venus: which gift?",options:opts,ai:()=>"a"})||"a";
    const target=mates.length===1?pl:await ask(pl,{kind:"player",id:"venustarget",title:"Venus: for whom?",players:mates,ai:()=>pl});
    G.venus={by:pl,mode,target:target??pl};setPlanet("venus",pl);
-   log(`<b>Venus</b> rises for ${plName(G.venus.target)}: ${mode==="a"?"+2 mana a turn and +2 maximum":"+1 mana a turn, and every enemy +2 maximum"}.`,"event")}},
- {id:"jupiter",tribe:"firm",dice:"2d3",name:"Jupiter",cost:4,school:"Astrology",text:"Jupiter (“Fortune”) takes the moon's place. Miners in an Ace's slots bring 1d2 a turn; each round two conjurings are on sale (maybe one mana back); cards can be traded hand to hand at the Auction; a Jester's Sacrificial Suicide brings 1d2 − 1 more. You may get a mana when others buy on sale or trade. Anyone can swear the Oath of Jupiter.",
+   log(`<b>Venus</b> rises for ${plName(G.venus.target)}: ${mode==="a"?"+2 mana a round and +2 maximum":"+1 mana a round, and every enemy +2 maximum"}.`,"event")}},
+ {id:"jupiter",tribe:"firm",dice:"2d3",name:"Jupiter",cost:4,school:"Astrology",text:"Jupiter (“Fortune”) takes the moon's place. Miners in an Ace's slots bring 1d2 a round; each round two conjurings are on sale (maybe one mana back); cards can be traded hand to hand at the Auction; a Jester's Sacrificial Suicide brings 1d2 − 1 more. You may get a mana when others buy on sale or trade. Anyone can swear the Oath of Jupiter.",
   ok:firmPlace("jupiter"),run:async()=>{setPlanet("jupiter",G.active);rollJupSale();log(`<b>Jupiter</b> rises where the moon was, raised by ${plName(G.active)}.`,"event")}},
  {id:"oath_earth",name:"Oath of the Earth",cost:0,school:"Astrology",text:"Free. Swear to the Earth: no necromancy for you, and every Sorcery spell with a dice price rolls its price twice for you and keeps the lower. Cast again to break the Oath.",
   ok:()=>me().tribe!=="firm",run:async()=>{toggleOath("earth")}},
- {id:"oath_venus",name:"Oath of Venus",cost:0,school:"Astrology",text:"Free. Each turn you start without having attacked a player: +2 mana and +2 maximum for that turn. Each attack on a player costs 1d2 mana and two maximum for 1d3 turns. Cast again to break the Oath.",
+ {id:"oath_venus",name:"Oath of Venus",cost:0,school:"Astrology",text:"Free. Each round you start without having attacked a player: +2 mana and +2 maximum for that turn. Each attack on a player costs 1d2 mana and two maximum for 1d3 rounds. Cast again to break the Oath.",
   ok:()=>oathFree("venus"),run:async()=>{toggleOath("venus")}},
  {id:"oath_jupiter",name:"Oath of Jupiter",cost:0,school:"Astrology",text:"Free. Every conjuring costs you one less, except what already costs one, and your mana can fall to −12 instead of −8. Cast again to break the Oath.",
   ok:()=>oathFree("jupiter"),run:async()=>{toggleOath("jupiter")}},
- {id:"cry",tribe:"yald",name:"The Sun Cries",cost:0,school:"Sorcery",text:"Free, once every 1d3 turns, while the Second Sun burns: Yaldabaoth makes it weep. Three times and its flames go out: the Black Sun. Then the Firmament that raised it pays you 1d2 mana or 1d2 deck cards every 1d2 of its turns.",
+ {id:"cry",tribe:"yald",name:"The Sun Cries",cost:0,school:"Sorcery",text:"Free, once every 1d3 rounds, while the Second Sun burns: Yaldabaoth makes it weep. Three times and its flames go out: the Black Sun. Then the Firmament that raised it pays you 1d2 mana or 1d2 deck cards every 1d2 rounds.",
   ok:()=>sunUp()&&tnOf(G.active)>=(me().cryReady||0),run:async()=>{const P=me();P.cryReady=tnOf(G.active)+R(3);G.sunTears=(G.sunTears||0)+1;
    if(G.sunTears>=3){G.moon.gone="blacksun";G.blackBy=G.active;applyMoonTheme();G._vis=null;
-     log(`<b>The Sun cries a third time</b> and its flames go out: <b>the Black Sun</b>.`,"event");popup("The Black Sun",`<p>${plName(G.active)} makes the Second Sun weep a third time. Its flames go out.</p><p>The fog of war returns. The Firmament that raised it now pays Yaldabaoth 1d2 mana or 1d2 deck cards every 1d2 of its turns.</p>`,G.active)}
+     log(`<b>The Sun cries a third time</b> and its flames go out: <b>the Black Sun</b>.`,"event");popup("The Black Sun",`<p>${plName(G.active)} makes the Second Sun weep a third time. Its flames go out.</p><p>The fog of war returns. The Firmament that raised it now pays Yaldabaoth 1d2 mana or 1d2 deck cards every 1d2 rounds.</p>`,G.active)}
    else{log(`<b>The Sun cries</b> (${G.sunTears} of 3): ${plName(G.active)}'s Yaldabaoth dims it.`,"event");applyMoonTheme()}}}
 );
 function toggleOath(k){const P=me();if(P.oath==="saturn"&&P.satLocked){flash("You betrayed Saturn: its Oath holds you now.");return}
@@ -229,9 +229,9 @@ async function aiPlanets(pl,W,cast1){
 
 /* ---------- what the sky says when you hover it ---------- */
 const PNOTE={
-  sun:()=>`The Second Sun burns where the moon was: no fog of war; every 2d2 turns it judges each player`,
+  sun:()=>`The Second Sun burns where the moon was: no fog of war; every 2d2 rounds it judges each player`,
   blacksun:()=>`The Black Sun hangs where the moon was: its flames are out`,
-  venus:()=>`Venus hangs where the moon was${G.venus?`: ${esc(G.p[G.venus.target].name)} gets ${G.venus.mode==="a"?"+2 mana a turn and +2 maximum":"+1 mana a turn, every enemy +2 maximum"}`:""}`,
+  venus:()=>`Venus hangs where the moon was${G.venus?`: ${esc(G.p[G.venus.target].name)} gets ${G.venus.mode==="a"?"+2 mana a round and +2 maximum":"+1 mana a round, every enemy +2 maximum"}`:""}`,
   mercury:()=>`Mercury hangs where the moon was${peaceOn()?": Peace":warOn()?": Total War":": Peace, Total War, Betrayal, bribes"}`,
   jupiter:()=>`Jupiter hangs where the moon was: Ace miners bring 1d2, two conjurings on sale${G.jupSale?` (${G.jupSale.ids.map(id=>SP(id).name).join(", ")})`:""}, trades at the Auction`,
   fallen:()=>`The Second Sun has fallen: the sky is empty`
@@ -239,12 +239,12 @@ const PNOTE={
 function planetInfoHTML(k){
   const V=view(),P=G.p[V],L=[],by=planetBy();
   if(k==="sun"){L.push(`The indigo Second Sun burns in the moon's place${by!=null?`, raised by ${esc(G.p[by].name)}`:""}. The fog of war is gone (a Delusion still blinds). The Leviathan can't lie on it.`);
-    L.push(P.tribe==="firm"?"The Sun doesn't judge you.":`Every 2d2 of your turns it judges you: 1d6 mana to the Bank, 1d2 damage to your stacks, or 1d2 + 1d3 deck cards; or you are blind for 1d3 turns.`);
+    L.push(P.tribe==="firm"?"The Sun doesn't judge you.":`Every 2d2 rounds it judges you: 1d6 mana to the Bank, 1d2 damage to your stacks, or 1d2 + 1d3 deck cards; or you are blind for 1d3 rounds.`);
     L.push(`It has cried ${G.sunTears||0} of 3 times; at three it becomes the Black Sun.`);
     L.push(P.oath==="earth"?"You have sworn the Oath of the Earth: no necromancy, and Sorcery dice prices roll twice for you and keep the lower.":"You can swear the Oath of the Earth (Astrology): no necromancy, cheaper Sorcery dice prices.")}
-  if(k==="blacksun"){L.push("The Black Sun: the Second Sun cried three times and its flames went out. The fog of war is back.");if(G.blackBy!=null)L.push(`The Firmament that raised it pays ${esc(G.p[G.blackBy].name)} 1d2 mana or 1d2 deck cards every 1d2 of its turns.`);L.push("If it falls, it destroys the tile it lands on for good.")}
-  if(k==="venus"){L.push(PNOTE.venus()+".");L.push(P.oath==="venus"?"Your Oath of Venus: +2 mana and +2 maximum each turn you start without having attacked a player; each attack on a player costs 1d2 mana and two maximum for 1d3 turns.":"You can swear the Oath of Venus (Astrology).")}
-  if(k==="jupiter"){L.push("Jupiter hangs in the moon's place. Miners in an Ace's slots bring 1d2 a turn. Each round two conjurings are on sale (maybe a mana back). Hand cards can be traded at the Auction. A Jester's Sacrificial Suicide brings 1d2 − 1 more mana.");
+  if(k==="blacksun"){L.push("The Black Sun: the Second Sun cried three times and its flames went out. The fog of war is back.");if(G.blackBy!=null)L.push(`The Firmament that raised it pays ${esc(G.p[G.blackBy].name)} 1d2 mana or 1d2 deck cards every 1d2 rounds.`);L.push("If it falls, it destroys the tile it lands on for good.")}
+  if(k==="venus"){L.push(PNOTE.venus()+".");L.push(P.oath==="venus"?"Your Oath of Venus: +2 mana and +2 maximum each round you start without having attacked a player; each attack on a player costs 1d2 mana and two maximum for 1d3 rounds.":"You can swear the Oath of Venus (Astrology).")}
+  if(k==="jupiter"){L.push("Jupiter hangs in the moon's place. Miners in an Ace's slots bring 1d2 a round. Each round two conjurings are on sale (maybe a mana back). Hand cards can be traded at the Auction. A Jester's Sacrificial Suicide brings 1d2 − 1 more mana.");
     if(G.jupSale)L.push(`On sale this round: ${G.jupSale.ids.map(id=>SP(id).name).join(" and ")}.`);
     L.push(P.oath==="jupiter"?"Your Oath of Jupiter: every conjuring costs one less, except what already costs one.":"You can swear the Oath of Jupiter (Astrology).")}
   if(k==="mercury"){L.push(`Mercury hangs in the moon's place. Anyone can call a vote for Peace or Total War (everyone must agree), or Buy Peace for two rounds. The Oath of Mercury unlocks Betrayal, Declare War and Bribe the Banker.`);

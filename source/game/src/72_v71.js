@@ -118,11 +118,11 @@ function skyChgLine(){if(!G||!G.moon)return "";const o=SKYCHG(),k=sky();if(skyFi
   const target=o.mode==="bid"?G.skyKeepAt:G.skyEveryN,leftC=Math.max(0,target-(G.skyCyc||0));
   return o.mode==="bid"?`Leaves after ${leftC===0?"this":leftC===1?"its next":`${leftC} more`} cycle${leftC>1?"s":""}, unless bids keep it (${G.skyCyc||0} of ${target} cycles done).`:`Leaves after ${leftC} more cycle${leftC===1?"":"s"} (${G.skyCyc||0} of ${target} done).`}
 {const _ms=moonStrip;moonStrip=function(){const h=_ms.apply(this,arguments),l=skyChgLine();return l?h+`<p class="skychgl">${esc(l)}</p>`:h}}
-/* ---------- v71: things the rules count in turns ---------- */
-{const _bt=beginTurn;beginTurn=function(pl){const out=_bt.apply(this,arguments);
-  if(G.fires)G.fires=G.fires.filter(f=>f.untilT==null||f.untilT>=G.turnNo);   // fire burns out after its turns
-  if(G.peace&&G.peace.untilT!=null&&G.turnNo>G.peace.untilT){G.peace=null;log("<b>Peace ends.</b> The lines are open again.","event");notify(null,"Peace is over.")}   // bought Peace: two turns
-  const B=G.bank;if(B&&B.owes)for(const o of B.owes)if(o.atT!=null&&G.turnNo>=o.atT){o.owed=Math.ceil(o.owed*1.2);o.atT=G.turnNo+R(2)}   // what the Bank owes grows 20% every 1d2 turns
+/* ---------- v79d: what the rules time, they time in rounds: each new round ticks it ---------- */
+{const _nr=newRound;newRound=async function(){const out=await _nr.apply(this,arguments);if(!G||G.over)return out;const r=G.moon.round;
+  if(G.fires)G.fires=G.fires.filter(f=>f.until==null||f.until>=r);   // fire burns out after its rounds
+  const B=G.bank;if(B&&B.owes)for(const o of B.owes){if(o.at==null)o.at=r+R(2);else if(r>=o.at){o.owed=Math.ceil(o.owed*1.2);o.at=r+R(2)}}   // what the Bank owes grows 20% every 1d2 rounds
+  if(G.inflation&&r<=G.inflation.until)G.inflation.add=R(2)-1;   // after the collapse, prices wobble each round
   return out}}
 if(window.__EC)Object.assign(window.__EC,{eclipseW:k=>eclipse(k),venusCycleW:()=>venusCycle(),fullMoonTollW:()=>fullMoonToll(),skyChangeRound:()=>skyChangeRound(),skySwap:(...a)=>skySwap(...a),skyAuction:()=>skyAuction(),skyArrive:()=>skyArrive(),skyChgLine:()=>skyChgLine(),cycleRoundW:()=>cycleRound()});
 

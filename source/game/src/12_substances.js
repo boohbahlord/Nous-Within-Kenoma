@@ -162,19 +162,19 @@ function notify(pl,html){
 
 /* ---------------- Emanation spells ---------------- */
 SPELLS.push(
- {id:"bolt",tribe:"angel",name:"Lightning Strike",cost:0,school:"Sorcery",text:"Free, with three bolts. Select an enemy stack: lightning immobilizes it for 1d2 + 1d2 − 1 of its turns, so it can't move or attack. Against the Leviathan it rolls nothing and simply takes one heart; with nothing selected it strikes a Leviathan on the moon. You earn a bolt for every card you lose while defending against an enemy's attack, and for every card Antony kills.",
+ {id:"bolt",tribe:"angel",name:"Lightning Strike",cost:0,school:"Sorcery",text:"Free, with three bolts. Select an enemy stack: lightning immobilizes it for 1d2 + 1d2 − 1 rounds, so it can't move or attack. Against the Leviathan it rolls nothing and simply takes one heart; with nothing selected it strikes a Leviathan on the moon. You earn a bolt for every card you lose while defending against an enemy's attack, and for every card Antony kills.",
   ok:()=>(me().bolts||0)>=3&&(selEnemy()&&!shielded(selStack().owner)||!selStack()&&!!G.moonLev&&isEnemy(G.moonLev.owner,G.active)),run:async()=>{
    if(await lightningLeviathan())return;
    const st=selStack(),d=rollN(2,2),n=sum(d)-1;st.stun=Math.max(st.stun||0,n);me().bolts=0;
    if(hasK(st,"wall")){const{r,c}=G.sel;wallHit(r,c,2,"Lightning");if(!G.board[r][c])return}
    tray(G.active,"Lightning Strike",d,`immobile ${n}`);SND.zap();
-   log(`<b>Lightning Strike</b>: ${plName(G.active)} strikes ${plName(st.owner)}'s stack on ${coord(G.sel.r,G.sel.c)}; it is immobilized for ${n} of its turns (1d2 + 1d2 − 1: ${d[0].v} + ${d[1].v} − 1).`,"event");
-   notify(G.active,`Lightning strikes ${esc(G.p[st.owner].name)}'s stack on ${coord(G.sel.r,G.sel.c)}: immobile for ${n} turn${n>1?"s":""}.`)}},
+   log(`<b>Lightning Strike</b>: ${plName(G.active)} strikes ${plName(st.owner)}'s stack on ${coord(G.sel.r,G.sel.c)}; it is immobilized for ${n} round${n>1?"s":""} (1d2 + 1d2 − 1: ${d[0].v} + ${d[1].v} − 1).`,"event");
+   notify(G.active,`Lightning strikes ${esc(G.p[st.owner].name)}'s stack on ${coord(G.sel.r,G.sel.c)}: immobile for ${n} round${n>1?"s":""}.`)}},
  {id:"hate",tribe:"satan",name:"Hate",cost:3,school:"Curse",text:"Select an enemy stack: its strongest card takes a red tinge. While that card lives, its stack has disadvantage on every attack and defense, and everyone attacking it has advantage.",
   ok:()=>selEnemy()&&!hated(selStack()),run:async()=>{
    const st=selStack(),c=leadCard(st)||st.cards[0];c.hate=true;const nm=st.down?"the strongest card of a face-down stack":esc(nameOf(c));   // v78j: unseen stays unseen
    log(`<b>Hate</b>: ${plName(G.active)} turns ${nm} on ${coord(G.sel.r,G.sel.c)} red with hatred.`,"event");notify(G.active,`Hate falls on ${nm}.`)}},
- {id:"slaves",tribe:"binah",name:"Slaves",cost:0,school:"Necromancy",text:"Free. Deploy one thrall your Slavemasters captured as a Slave: a rifle of 10 + 1d12 that fires two tiles away in a straight line or one diagonal (from two away a miss costs it nothing), one straight step a turn, no defense, and it stands alone. Place it on an empty tile of your own ground. Ten thralls can wait at most.",
+ {id:"slaves",tribe:"binah",name:"Slaves",cost:0,school:"Necromancy",text:"Free. Deploy one thrall your Slavemasters captured as a Slave: a rifle of 10 + 1d12 that fires two tiles away in a straight line or one diagonal (from two away a miss costs it nothing), one straight step a round, no defense, and it stands alone. Place it on an empty tile of your own ground. Ten thralls can wait at most.",
   ok:()=>(me().thralls||[]).length>0&&!G.placing&&zoneTiles(G.active).some(([r,c])=>!G.board[r][c]),run:deploySlave},
  {id:"deckcards",tribe:"jester",name:"Deck of Cards",cost:6,school:"Conjuring",once:true,text:"Once a game, while your Tree of Neither Life Or Death stands: your deck becomes full again, as it was at the start of the game. The cards still in it go to the grave; your hand stays.",
   ok:()=>!usedOnce("deckcards")&&!!treeOf(G.active),run:async()=>{

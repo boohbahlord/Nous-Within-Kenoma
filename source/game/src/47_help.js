@@ -5,10 +5,10 @@
    the bottom always has a small link back to it. */
 const MK_TLDR=`Your deck is your life and your souls are your mana: you are out when you have nothing left on the field, or no deck, hand and mana at all. Keep your Ace safe on your back line, get Miners working for steady mana, and only fight battles your best card can win.`;
 const MK_BODY=`<p><b>Cards are life and money at once.</b> Every card you draw, place or lose comes out of your deck; every card you sacrifice becomes mana (its soul's worth), but it is one soldier less. You can sacrifice cards from your hand, too: a quick way to pay for a spell.</p>
-<p><b>Mana grows slowly unless you build for it.</b> Miners are the steady income: any number can sit in your Aces (1d2 − 1 mana each, every turn), and one on a crystal tile digs up to 12 mana over time. Spells you pay for go to the Bank, which lends mana and lets you spend on credit, at a price.</p>
+<p><b>Mana grows slowly unless you build for it.</b> Miners are the steady income: any number can sit in your Aces (1d2 − 1 mana each, every round), and one on a crystal tile digs up to 12 mana over time. Spells you pay for go to the Bank, which lends mana and lets you spend on credit, at a price.</p>
 <p><b>Bases hold the line.</b> Aces, Walls, the Tree and Lighthouses are bases: they don't walk, they have hearts, and each holds one stack. Cards inside an Ace, a Wall or the Tree are protected until it falls, and then they fall with it; a Lighthouse's stack fights from inside it and takes the blows first.</p>
 <p><b>The sky changes the rules.</b> The Moon turns once a round and moves prices up and down (the Full and New Moons most of all). Heavenly Bodies can take its place, each with its own cycle, and now and then a rare eclipse brings a strange effect.</p>
-<p><b>The dead come back.</b> Fallen cards go to the grave. Grave Blessing (free, once a turn) rolls dice, and every 6 raises a card from the grave into your hand.</p>`;
+<p><b>The dead come back.</b> Fallen cards go to the grave. Grave Blessing (free, once a round) rolls dice, and every 6 raises a card from the grave into your hand.</p>`;
 const MK_MORE=`<h3>Tell me more</h3><ul class="mklist">
 <li><b>How you win:</b> the last player (or side) with anything on the field and a deck, hand or mana left wins. A player whose mana sinks below −8 is out.</li>
 <li><b>A turn:</b> prep, which starts with drawing (roll a d4 and draw that many, as often as you like, then press Done drawing), then place, move one step, sacrifice and cast; then attack (each stack may attack a neighbor once).</li>
@@ -16,7 +16,7 @@ const MK_MORE=`<h3>Tell me more</h3><ul class="mklist">
 <li><b>Drawing too much hurts:</b> cards past your hand limit go to the grave, and each one takes 1d6 off this round's Grave Blessing.</li>
 <li><b>The Ether</b> (top of the spells) sells new cards: Scouts, Miners, Repairmen, Archers, Aces and more. Conjured cards go into your deck.</li>
 <li><b>Fog of war:</b> you only see near your own cards. Scouts see two tiles out and uncover hidden Assassins and ambushers.</li>
-<li><b>The Bank:</b> a loan gives you mana now, due in half its amount in turns (at least 2); credit lets you cast what you can't afford and turns the rest into debt. Stay below zero for 3 turns and the Debt Collectors come every turn until you pay; every Full Moon the Bank's Credit and Loan Report shows your standing. Hover or hold a word in the Bank for the details.</li></ul>
+<li><b>The Bank:</b> a loan gives you mana now, due in half its amount in rounds (at least 2); credit lets you cast what you can't afford and turns the rest into debt. Stay below zero for 3 rounds and the Debt Collectors come every round until you pay; every Full Moon the Bank's Credit and Loan Report shows your standing. Hover or hold a word in the Bank for the details.</li></ul>
 <p class="mkpoint">Everything else is in the <b>Help</b> index at the bottom of the page: basics, every card, every spell, the sky and the Bank, always there while you play. Hover (or press and hold) anything on the screen for what it does.</p>`;
 const mkHidden=()=>PREF.mkHide==="never"||PREF.mkHide==="next";
 function mountMustKnow(){const h=document.querySelector(".game header");if(!h||$("#mustknow"))return;

@@ -9,7 +9,7 @@
        wins it outright); and the Bank can be robbed, once each, that round.
    Rob the Bank (d20): 20, all the Bank's mana and +5 maximum; 2–19, a stack of 1d4 Grunts from the Bank comes after the robber
      and no more loans, ever; 1, Jail for 2d2 rounds (an easy computer plays for them, no spells), and after Jail no Ether and no
-     Bank for ten turns, and no loans, ever. */
+     Bank for ten rounds, and no loans, ever. */
 
 const SHOP_PL=["moon","mercury","venus","sun","mars","jupiter","saturn","neptune"];   // v71c: Neptune
 const SHOP_NAME={moon:"The Moon",mercury:"Mercury",venus:"Venus",sun:"The Second Sun",mars:"Mars",jupiter:"Jupiter",saturn:"Saturn",neptune:"Neptune"};
@@ -40,7 +40,7 @@ for(const k of SHOP_PL){
 async function buyPlanet(pl,k){
   const S=SH();let venus=null;
   if(k==="venus"){const mates=[pl,...alliesOf(pl).filter(i=>!isHorde(i))];
-    const opts=[{id:"a",label:"+2 mana a turn and +2 maximum",sub:"for you or a teammate"}];if(!survival())opts.push({id:"b",label:"+1 mana a turn, every enemy +2 maximum",sub:"for you or a teammate"});
+    const opts=[{id:"a",label:"+2 mana a round and +2 maximum",sub:"for you or a teammate"}];if(!survival())opts.push({id:"b",label:"+1 mana a round, every enemy +2 maximum",sub:"for you or a teammate"});
     const mode=await ask(pl,{kind:"choice",id:"venusmode",title:"Venus: which gift?",options:opts,ai:()=>"a"})||"a";
     const target=mates.length===1?pl:await ask(pl,{kind:"player",id:"venustarget",title:"Venus: for whom?",players:mates,ai:()=>pl});
     venus={by:pl,mode,target:target??pl}}
@@ -151,9 +151,9 @@ const bankBanned=pl=>!!(G.p[pl]&&G.p[pl].bankBan!=null&&tnOf(pl)<=G.p[pl].bankBa
 const etherBanned=pl=>!!(G.p[pl]&&G.p[pl].etherBan!=null&&tnOf(pl)<=G.p[pl].etherBan);
 const jailLeft=P=>Math.max(1,P.jail.until-Math.max(G.moon.round,P.jail.from+1)+1);   // the round they are caught in is not counted
 const robOk=pl=>!!(G&&G.p[pl]&&(G.mercCyc===G.moon.round&&planetUp("mercury")||oathNow(pl,"mercury"))&&bankOpen()&&G.bank&&G.bank.mana>0&&!isHorde(pl)&&!G.p[pl].jail&&G.p[pl].robbed!==G.moon.round&&!bankBanned(pl));   // v44: nothing to rob from an empty Bank
-SPELLS.push({id:"robbank",name:"Rob the Bank",cost:0,school:"Bank",text:"Free, once, in a round of Mercury's cycle (any round, once a round, under the Oath of Mercury). Roll 1d20. A natural 20: +5 maximum mana, and as much of the Bank\u2019s mana as your soul pile can hold. Not while the Bank is empty. A 1: Jail for 2d2 rounds (an easy computer plays for you, and you cast nothing); after Jail, no Ether and no Bank for ten turns, and no loans ever again. Anything else: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again.",
+SPELLS.push({id:"robbank",name:"Rob the Bank",cost:0,school:"Bank",text:"Free, once, in a round of Mercury's cycle (any round, once a round, under the Oath of Mercury). Roll 1d20. A natural 20: +5 maximum mana, and as much of the Bank\u2019s mana as your soul pile can hold. Not while the Bank is empty. A 1: Jail for 2d2 rounds (an easy computer plays for you, and you cast nothing); after Jail, no Ether and no Bank for ten rounds, and no loans ever again. Anything else: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again.",
   ok:()=>robOk(G.active),run:async()=>{await robBank(G.active)}});
-SPELL_TEXT.robbank={n:"Mercury's cycle, once, in your prep phase. Under the Oath of Mercury: any round, once a round.",e:"Roll 1d20. A natural 20: +5 maximum mana, and as much of the Bank\u2019s mana as your soul pile can hold. The Bank can\u2019t be robbed while it is empty. 2 to 19: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again. A 1: Jail for 2d2 rounds; an easy computer plays for you and you cast nothing.",l:"After Jail: no Ether and no Bank for ten turns, and no loans ever again."};
+SPELL_TEXT.robbank={n:"Mercury's cycle, once, in your prep phase. Under the Oath of Mercury: any round, once a round.",e:"Roll 1d20. A natural 20: +5 maximum mana, and as much of the Bank\u2019s mana as your soul pile can hold. The Bank can\u2019t be robbed while it is empty. 2 to 19: a stack of 1d4 Grunts comes out of the Bank after you, and you can never take a loan again. A 1: Jail for 2d2 rounds; an easy computer plays for you and you cast nothing.",l:"After Jail: no Ether and no Bank for ten rounds, and no loans ever again."};
 const ROB_FAILS=[
   n=>`The vault door ${n} broke open was painted on the wall. The guards laughed for a while before they drew their swords.`,
   n=>`The Banker was counting coins in the dark the whole time. He wrote down ${n}'s face and rang the bell.`,
@@ -185,14 +185,14 @@ function goToJail(pl){
   P.jail={from:G.moon.round,until:G.moon.round+n,cpu:P.cpu||false};P.noLoans=true;P.credit=false;
   if(!P.cpu)G.lastView=pl;P.cpu="easy";
   log(`<b>${plName(pl)} is caught robbing the Bank</b> (a 1) and goes to Jail for ${n} rounds (2d2). An easy computer plays for them; they cast nothing.`,"event");
-  popup("Jail",`<p>${plName(pl)} rolls a 1. The guards were waiting.</p><p>${plName(pl)} is in Jail for <b>${n}</b> rounds (2d2): an easy computer plays their side, and they can't cast anything.</p><p>After Jail: nothing from the Ether and no Bank business for ten turns, and never a loan again.</p>`,pl);
+  popup("Jail",`<p>${plName(pl)} rolls a 1. The guards were waiting.</p><p>${plName(pl)} is in Jail for <b>${n}</b> rounds (2d2): an easy computer plays their side, and they can't cast anything.</p><p>After Jail: nothing from the Ether and no Bank business for ten rounds, and never a loan again.</p>`,pl);
   // a person caught in their own prep phase: the computer takes over at once
   if(G.active===pl)setTimeout(()=>{if(G.waiter&&G.active===pl&&P.jail){const f=G.waiter;G.waiter=null;G.mode=null;G.selHand=null;f()}},500);
 }
 function leaveJail(pl){const P=G.p[pl];if(!P.jail)return;P.cpu=P.jail.cpu;P.jail=null;
   P.etherBan=tnOf(pl)+10;P.bankBan=tnOf(pl)+10;P.noLoans=true;P.credit=false;
-  log(`<b>${plName(pl)} is out of Jail.</b> No Ether and no Bank for ten turns; no loans ever again.`,"event");
-  popup("Out of Jail",`<p>${plName(pl)} walks out of Jail and takes their side back.</p><p>For the next ten turns: nothing from the Ether and no Bank business. And never a loan again.</p>`,pl)}
+  log(`<b>${plName(pl)} is out of Jail.</b> No Ether and no Bank for ten rounds; no loans ever again.`,"event");
+  popup("Out of Jail",`<p>${plName(pl)} walks out of Jail and takes their side back.</p><p>For the next ten rounds: nothing from the Ether and no Bank business. And never a loan again.</p>`,pl)}
 
 /* what Jail, the ban and the robbery's aftermath forbid */
 {const _b=spellBlock;spellBlock=function(sp){const P=G.p[G.active];

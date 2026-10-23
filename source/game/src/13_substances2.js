@@ -6,8 +6,8 @@ const saturnOwner=()=>G.saturnBy==null?"the Bank":esc(G.p[G.saturnBy].name);
 function moonNote(){
   const m=G.moon,L=G.moonLev;
   if(PNOTE[m.gone])return PNOTE[m.gone]();
-  if(m.gone==="mars")return `Mars hangs where the moon was: each turn, a stack of only Grunts and Infantry gets advantage on its next attack on 1–5 of 1d8${L?"; the Leviathan coils on it":""}`;
-  if(m.gone==="saturn")return `Saturn hangs where the moon was: every ${G.saturnBy==null?"player":"enemy of "+saturnOwner()} pays ${1+(G.saturnDebt||0)} at the start of each turn (Binah is exempt)`;
+  if(m.gone==="mars")return `Mars hangs where the moon was: each round, a stack of only Grunts and Infantry gets advantage on its next attack on 1–5 of 1d8${L?"; the Leviathan coils on it":""}`;
+  if(m.gone==="saturn")return `Saturn hangs where the moon was: every ${G.saturnBy==null?"player":"enemy of "+saturnOwner()} pays ${1+(G.saturnDebt||0)} at the start of each round (Binah is exempt)`;
   if(m.gone==="eaten")return "Yaldabaoth ate the moon: the phases have stopped";
   if(m.gone==="off")return "The moon is off for this game";
   if(L)return `The Leviathan (${L.card.hp} heart${L.card.hp===1?"":"s"}) lies on the moon: a toll at every New Moon; attackable only at the New Moon`;
@@ -32,7 +32,7 @@ function deluSees(V,r,c){   // the Delusion's own rule: only what your cards can
 const hiddenFrom=(V,r,c)=>{const st=G.board[r][c];return !!(st&&(totalBlind(V)||isEnemy(st.owner,V)&&!seesTile(V,r,c)||nepHidden(V,st,r,c)))};   // v71c: a stack lost in Neptune's cloud is hidden from its owner   // the blind see nothing, their own cards too
 function applyDelusion(t,by){
   const d=rollN(2,2),n=sum(d);G.p[t].delu={turns:n,maxCut:0,diceCut:0,by};
-  tray(by,by===t?"Delusion of Ouroboros":"Delusion of Lucifer",d,`${n} turns`);
+  tray(by,by===t?"Delusion of Ouroboros":"Delusion of Lucifer",d,`${n} rounds`);
   return n;
 }
 
@@ -43,7 +43,7 @@ function turn2(pl){
   if(P.theft){P.theft=false;log(`${plName(pl)}'s Joyful Theft fades.`)}
   turn3(pl);
   P.hungerUses=0;
-  if(deluded(pl)){   // a Delusion pays: free mana every turn
+  if(deluded(pl)){   // a Delusion pays: free mana every round
     const k=Math.max(0,3-(P.delu.diceCut||0)),d=rollN(k,2);let got=0;
     for(let i=0;i<sum(d)&&mana(pl)<soulCap(pl);i++){const j=G.ether.findIndex(c=>/^\d+$/.test(c.rank));const c=j>=0?G.ether.splice(j,1)[0]:mk(String(2+Math.floor(Math.random()*9)),pick(["S","H","D","C"]));addSoul(pl,c);got++}
     if(k)tray(pl,"Delusion mana",d,`+${got} mana`,true);
@@ -55,7 +55,7 @@ function end2(pl){
   const P=G.p[pl];if(!deluded(pl))return;
   P.delu.turns--;
   if(P.delu.turns>0)return;
-  if(P.delu.blindfold&&!P.delu.extended){P.delu={turns:3,maxCut:0,diceCut:0,by:pl,extended:true};log(`<b>The Blindfold</b>: ${plName(pl)} keeps the Delusion three more turns, and Lucifer's stifling is gone.`,"event");notify(pl,`${esc(P.name)} keeps the Delusion three more turns under the Blindfold.`);return}
+  if(P.delu.blindfold&&!P.delu.extended){P.delu={turns:3,maxCut:0,diceCut:0,by:pl,extended:true};log(`<b>The Blindfold</b>: ${plName(pl)} keeps the Delusion three more rounds, and Lucifer's stifling is gone.`,"event");notify(pl,`${esc(P.name)} keeps the Delusion three more rounds under the Blindfold.`);return}
   P.delu=null;log(`${plName(pl)}'s Delusion lifts: the field is visible again.`);
 }
 async function turnAsync(pl){   // the start of a turn that may ask something: Saturn's tax, the Second Sun's judgement
@@ -110,7 +110,7 @@ function round2(){
   if(G.deconjure&&G.moon.i===4){G.deconjure=false;G.noConjure=true;log("<b>Deconjured</b>: no one can conjure under this Full Moon.","event")}
   else if(G.deconjure&&G.moon.gone)G.deconjure=false;   // v78j: no Moon, no Full Moon to close
   // every Debt Collector still standing raises Saturn's price
-  if(G.moon.gone==="saturn"){const n=G.board.flat().filter(s=>s&&hasK(s,"debt")).length;if(n){G.saturnDebt=(G.saturnDebt||0)+n;log(`Saturn's price rises by ${n}: each enemy now pays ${1+G.saturnDebt} a turn.`)}}
+  if(G.moon.gone==="saturn"){const n=G.board.flat().filter(s=>s&&hasK(s,"debt")).length;if(n){G.saturnDebt=(G.saturnDebt||0)+n;log(`Saturn's price rises by ${n}: each enemy now pays ${1+G.saturnDebt} a round.`)}}
   // the Leviathan's toll at every New Moon
   const L=G.moonLev;
   if(L&&levNew()&&G.moon.round>L.since){
@@ -246,13 +246,13 @@ async function godHunger(){
 
 /* ---------- the spells ---------- */
 SPELLS.push(
- {id:"ouro",tribe:"lucifer",dice:"1d2",name:"Delusion of Ouroboros",cost:1,school:"Illusion",text:"Cast on yourself. For 2d2 of your turns you and your teammates cannot see enemy cards beyond your own cards' reach; meanwhile your mana can go up to nine and you get 3d2 free mana at the start of each turn. Casting it makes the Delusion of Lucifer free this round.",
+ {id:"ouro",tribe:"lucifer",dice:"1d2",name:"Delusion of Ouroboros",cost:1,school:"Illusion",text:"Cast on yourself. For 2d2 rounds you and your teammates cannot see enemy cards beyond your own cards' reach; meanwhile your mana can go up to nine and you get 3d2 free mana at the start of each round. Casting it makes the Delusion of Lucifer free this round.",
   ok:()=>!deluded(G.active),run:async()=>{const n=applyDelusion(G.active,G.active);me().ouroRound=G.moon.round;
-   log(`<b>Delusion of Ouroboros</b>: ${plName(G.active)} blinds themselves for ${n} turns; nine mana at most and 3d2 free mana a turn.`,"event");notify(G.active,`${esc(me().name)} sinks into the Delusion of Ouroboros for ${n} turns.`)}},
- {id:"lucifer",tribe:"lucifer",name:"Delusion of Lucifer",cost:6,school:"Illusion",text:"6 mana, free in a round you cast the Delusion of Ouroboros on yourself. An enemy gets the same Delusion for 2d2 turns: blind beyond their own cards' reach, nine mana at most and 3d2 free mana a turn. Then you can stifle it: every 2 mana, or every 2 cards from your deck, takes one maximum mana or one free die from them while it lasts.",
+   log(`<b>Delusion of Ouroboros</b>: ${plName(G.active)} blinds themselves for ${n} rounds; nine mana at most and 3d2 free mana a round.`,"event");notify(G.active,`${esc(me().name)} sinks into the Delusion of Ouroboros for ${n} rounds.`)}},
+ {id:"lucifer",tribe:"lucifer",name:"Delusion of Lucifer",cost:6,school:"Illusion",text:"6 mana, free in a round you cast the Delusion of Ouroboros on yourself. An enemy gets the same Delusion for 2d2 rounds: blind beyond their own cards' reach, nine mana at most and 3d2 free mana a round. Then you can stifle it: every 2 mana, or every 2 cards from your deck, takes one maximum mana or one free die from them while it lasts.",
   ok:()=>!survival()&&enemiesOf(G.active).some(e=>!isHorde(e)),run:async()=>{
    const t=await pickFoe("lucifer","Delusion of Lucifer: on whom?"),T=G.p[t],n=applyDelusion(t,G.active);
-   log(`<b>Delusion of Lucifer</b>: ${plName(G.active)} blinds ${plName(t)} for ${n} turns.`,"event");notify(G.active,`${esc(T.name)} is blinded by the Delusion of Lucifer for ${n} turns.`);
+   log(`<b>Delusion of Lucifer</b>: ${plName(G.active)} blinds ${plName(t)} for ${n} rounds.`,"event");notify(G.active,`${esc(T.name)} is blinded by the Delusion of Lucifer for ${n} rounds.`);
    const pl=G.active,P=me();
    for(let guard=0;guard<12;guard++){
      const opts=[];const D=T.delu;
@@ -261,11 +261,11 @@ SPELLS.push(
      if(D.diceCut<3&&mana(pl)>=2)opts.push({id:"dicem",label:"Take 1 free die from them (2 mana)"});
      if(D.diceCut<3&&P.deck.length>=2)opts.push({id:"diced",label:"Take 1 free die from them (2 cards from your deck)"});
      if(!opts.length)break;opts.push({id:"done",label:"That's enough"});
-     const ch=await ask(pl,{kind:"choice",id:"stifle",title:`Stifle ${esc(T.name)}: max ${9-D.maxCut}, ${3-D.diceCut}d2 a turn`,options:opts,ai:()=>mana(pl)>=4&&D.diceCut<3?"dicem":P.deck.length>20&&D.maxCut<3?"maxd":"done"});
+     const ch=await ask(pl,{kind:"choice",id:"stifle",title:`Stifle ${esc(T.name)}: max ${9-D.maxCut}, ${3-D.diceCut}d2 a round`,options:opts,ai:()=>mana(pl)>=4&&D.diceCut<3?"dicem":P.deck.length>20&&D.maxCut<3?"maxd":"done"});
      if(ch==null||ch==="done")break;
      if(ch.endsWith("m"))pay(pl,2);else for(let i=0;i<2;i++)toGrave(P.deck.splice(Math.floor(Math.random()*P.deck.length),1)[0],"burn");
      if(ch.startsWith("max"))D.maxCut++;else D.diceCut++;
-     log(`${plName(pl)} stifles ${plName(t)}'s Delusion: ${9-D.maxCut} mana at most, ${3-D.diceCut}d2 a turn.`);
+     log(`${plName(pl)} stifles ${plName(t)}'s Delusion: ${9-D.maxCut} mana at most, ${3-D.diceCut}d2 a round.`);
    }}},
  {id:"deconj",tribe:"lucifer",name:"Deconjured",cost:2,dice:"2 or 2+1d2",school:"Curse",text:"Choose one. Full curse (2 + 1d2 mana, rolled each round): no one can conjure during the next Full Moon, and the grave gives nothing at the next New Moon. Short curse (2 mana): no one, you included, can conjure during the next round.",
   ok:()=>!G.deconjure&&!G.noConjure&&!(G.noConjureRound>=G.moon.round),run:async()=>{   // v78j: the one-round curse ends
@@ -305,23 +305,23 @@ SPELLS.push(
    if(use==="mana"){for(let i=0;i<3&&mana(pl)<soulCap(pl);i++)addSoul(pl,mk(String(2+Math.floor(Math.random()*9)),pick(["S","H","D","C"])))}else P.hunger=(P.hunger||0)+3;
    log(`<b>Night's Judgement</b>: ${plName(pl)} eats the moon${use==="mana"?" for mana":` (hunger ${P.hunger} of 7)`}. The phases stop.`,"event");
    popup("Night's Judgement",`<p>${plName(pl)} eats the moon. It leaves the sky and its phases stop.</p>`,pl)}},
- {id:"hunger",tribe:"yald",dice:"1d2",name:"God Hunger",cost:1,school:"Necromancy",text:"Twice a turn. Eat 1d2 cards from the grave, your own deck, the selected stack on the field, or an enemy's deck (they roll 1d4 against your 1d4; if you lose, you pay them 2 mana). Take the eaten as mana, or feed the hunger with them. Seven eaten bring Saturn.",
+ {id:"hunger",tribe:"yald",dice:"1d2",name:"God Hunger",cost:1,school:"Necromancy",text:"Twice a round. Eat 1d2 cards from the grave, your own deck, the selected stack on the field, or an enemy's deck (they roll 1d4 against your 1d4; if you lose, you pay them 2 mana). Take the eaten as mana, or feed the hunger with them. Seven eaten bring Saturn.",
   ok:()=>(me().hungerUses||0)<2,run:async()=>{me().hungerUses=(me().hungerUses||0)+1;await godHunger()}},
- {id:"saturn",tribe:"yald",name:"Regurgitate Saturn",cost:0,school:"Sorcery",text:"Free, once the hunger reaches seven and the moon is out of the sky. Saturn takes the moon's place: at the start of each of their turns every enemy pays 1 (a hand card, the top deck card or 1 mana) into your soul pile, or refuses and a Debt Collector rises on your ground. Each Debt Collector still standing at a new round raises the price by 1. Binah is exempt.",
+ {id:"saturn",tribe:"yald",name:"Regurgitate Saturn",cost:0,school:"Sorcery",text:"Free, once the hunger reaches seven and the moon is out of the sky. Saturn takes the moon's place: at the start of each round every enemy pays 1 (a hand card, the top deck card or 1 mana) into your soul pile, or refuses and a Debt Collector rises on your ground. Each Debt Collector still standing at a new round raises the price by 1. Binah is exempt.",
   ok:()=>(me().hunger||0)>=7&&!!G.moon.gone&&G.moon.gone!=="saturn",run:async()=>{
    const pl=G.active;if(G.moonLev){const L=G.moonLev;G.moonLev=null;L.card.hp=L.card.maxHp;G.p[L.owner].deck.push(L.card);shuffle(G.p[L.owner].deck)}
    G.p[pl].hunger=Math.max(0,(G.p[pl].hunger||0)-7);   // v78j: the seven eaten are spent
    G.moon.gone="saturn";G.moon.i=-1;G.moon.blood=false;G.saturnBy=pl;G.saturnDebt=0;applyMoonTheme();
    log(`<b>Saturn</b>: ${plName(pl)} regurgitates Saturn where the moon used to be.`,"event");
-   popup("Saturn",`<p>${plName(pl)} regurgitates Saturn into the moon's place. Every enemy now pays the Demiurge at the start of each turn, or a Debt Collector rises.</p><p class="dim">A Debt Collector copies the score of the card it fights, without its advantage.</p>`,pl)}},
+   popup("Saturn",`<p>${plName(pl)} regurgitates Saturn into the moon's place. Every enemy now pays the Demiurge at the start of each round, or a Debt Collector rises.</p><p class="dim">A Debt Collector copies the score of the card it fights, without its advantage.</p>`,pl)}},
  {id:"lifesell",tribe:"tiph",name:"Life for Sell",cost:0,school:"Sorcery",text:"Free. Select your stack with a Trafficker holding prisoners: put one of them up at the Auction, beside the Outer Darkness. Any player can offer mana or cards from the hand for it; you approve the sale.",
   ok:()=>selOwn()&&selStack().cards.some(c=>c.unit==="trafficker"&&(c.prisoners||[]).length),run:async()=>{
    const t=selStack().cards.find(c=>c.unit==="trafficker"&&(c.prisoners||[]).length);
    const i=t.prisoners.length===1?0:await ask(G.active,{kind:"cards",id:"lifesell",title:"Life for Sell: who goes to the Auction?",cards:t.prisoners,box:"plain"});
    const c=t.prisoners.splice(i==null?0:i,1)[0];(G.auction=G.auction||[]).push({card:c,seller:G.active});
    log(`<b>Life for Sell</b>: ${plName(G.active)} puts ${esc(nameOf(c))} up at the Auction.`,"event");notify(G.active,`${esc(nameOf(c))} is up for sale at the Auction.`)}},
- {id:"blindfold",tribe:"tiph",name:"The Blindfold",cost:2,school:"Enchantment",text:"While you are under a Delusion: when it ends, you keep it three more turns, with its blindness, its nine mana and its free dice, and without anything Lucifer paid to stifle it.",
-  ok:()=>deluded(G.active)&&!me().delu.blindfold&&!me().delu.extended,run:async()=>{me().delu.blindfold=true;log(`<b>The Blindfold</b>: ${plName(G.active)} will keep the Delusion three turns longer.`,"event")}}
+ {id:"blindfold",tribe:"tiph",name:"The Blindfold",cost:2,school:"Enchantment",text:"While you are under a Delusion: when it ends, you keep it three more rounds, with its blindness, its nine mana and its free dice, and without anything Lucifer paid to stifle it.",
+  ok:()=>deluded(G.active)&&!me().delu.blindfold&&!me().delu.extended,run:async()=>{me().delu.blindfold=true;log(`<b>The Blindfold</b>: ${plName(G.active)} will keep the Delusion three rounds longer.`,"event")}}
 );
 
 /* ---------- the computer ---------- */
