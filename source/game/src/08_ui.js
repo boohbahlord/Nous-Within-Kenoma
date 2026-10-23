@@ -194,7 +194,7 @@ function render(){
     if(!canAct())return;
     if(!(G.phase==="setup"&&G.setupStep==="more"||G.phase==="prep")){flash(G.phase==="setup"?"Place your Ace and Jack first.":"Cards are placed during setup or the prep phase.");return}
     if(G.placing){flash("Put the Slave down first.");return}
-    const c=P.hand[+b.dataset.h];G.selHand=G.selHand===c?null:c;G.mode=null;render()});
+    const c=P.hand[+b.dataset.h];G.selHand=G.selHand===c?null:c;G.mode=null;G.faceDown=false;render()});   // v78j: the tick is for one card
   $("#hand").querySelectorAll("[data-sh]").forEach(b=>b.onclick=()=>{if(!canAct())return;sacrifice(P.hand[+b.dataset.sh],"hand");render()});
   $("#hand").querySelectorAll("[data-sunh]").forEach(b=>b.onclick=()=>{if(!canAct())return;sacrificeToSun(P.hand[+b.dataset.sunh],"hand");render()});
   $("#mytray").innerHTML=hidden?"":trayHTML(P,V);
@@ -261,7 +261,7 @@ function tileClick(r,c){
   if(live&&G.selHand){if(canPlace(G.selHand,r,c)){place(G.selHand,r,c);render()}else flash("That card can't be placed there.");return}
   if(live&&G.sel&&G.mode==="move"&&moveTargets().some(([a,b])=>a===r&&b===c)){doMove(r,c);render();return}
   if(live&&G.sel&&G.mode==="attack"&&attackTargets().some(([a,b])=>a===r&&b===c)){chooseAttack(G.sel.r,G.sel.c,r,c);return}
-  if(G.comparePick&&G.sel){const a=selStack(),b=hiddenFrom(view(),r,c)?null:G.board[r][c];G.comparePick=false;
+  if(G.comparePick&&G.sel){const a=selStack(),b=hiddenFrom(view(),r,c)||showsBack(view(),r,c)?null:G.board[r][c];G.comparePick=false;   // v78j: nor a face-down one
     if(a&&b&&a!==b){const t=document.querySelector(`.tile[data-r="${r}"][data-c="${c}"]`).getBoundingClientRect();pop(`<div class="cih"><b>Compare</b></div>`+compareHTML(a,b,stackTitle(a,G.sel.r,G.sel.c),stackTitle(b,r,c)),t.left,t.bottom,"info wide")}render();return}
   if(G.busy)return;
   const st=hiddenFrom(view(),r,c)?null:G.board[r][c];

@@ -170,7 +170,7 @@ function attack(r1,c1,r2,c2,mode){
   return attackRun(r1,c1,r2,c2,mode,null);
 }
 function attackRun(r1,c1,r2,c2,mode,forced){
-  const A=G.board[r1][c1],D=G.board[r2][c2],atkPl=A.owner,defPl=D.owner;
+  const A=G.board[r1][c1],D=G.board[r2][c2];if(!A||!D)return;const atkPl=A.owner,defPl=D.owner;
   const opt=forced||attackOptions(r1,c1).find(o=>o.r===r2&&o.c===c2&&(mode==null||o.mode===mode))||{mode:null,ranged:false};
   const w=opt.A?opt.w:weaponOf(A,opt.mode);
   if(w&&w.special==="stomp")return stomp(r1,c1,r2,c2);
@@ -187,7 +187,7 @@ function attackRun(r1,c1,r2,c2,mode,forced){
   if(opt.card&&opt.card.unit==="cannon")opt.card.readyAt=(G.p[atkPl].tn||0)+R(2)+2;   // the Cannon reloads
   G.histTile=`${coord(r1,c1)} → ${coord(r2,c2)}`;
   A.odds=null;D.odds=null;A.attacked=true;G.lastAttack=G.turnNo;venusAttack(atkPl,defPl);
-  if(A.down)ra.parts=["a face-down card "+ra.total];
+  if(A.down){ra.parts=["a face-down card "+ra.total];A.down=false}   // v78j: rule 12.G.5: it flips face up once it attacks
   const wasDown=D.down;if(D.down){D.down=false}   // a face-down stack that is attacked turns face up
   if(A.ambush)A.ambush=false;A.ambushing=false;
   if(G.opts.moonBonus!==false&&!bothSoloJokers){   // the moon lends a die: Full Moon to the attacker, New Moon to the defender
@@ -358,11 +358,12 @@ function eliminate(pl,why){
     log(`<b>${plName(pl)} is eliminated</b>: ${why}.`,"event");
   }
   // what is left of them leaves the table
-  const toOD=G.opts.elimDark;const dump=c=>{if(toOD)toDark(c);else{c.owner=pl;G.grave.push(c)}};
+  const toOD=G.opts.elimDark;const dump=c=>{if(toOD||c.puppet)toDark(c);else{c.owner=pl;toGrave(c,"out")}};   // v78j: toGrave sorts out Emanation cards
   for(const {st,r,c} of stacksOf(pl)){for(const x of st.cards){for(const s of x.captured||[])dump(s);x.captured=[];dump(x)}if(st.captive){dump(st.captive);st.captive=null}G.board[r][c]=null}
   const shared=alliesOf(pl).some(a=>G.p[a].deck===P.deck);
   for(const c of P.hand.splice(0))dump(c);
   if(!shared){for(const c of P.deck.splice(0))dump(c);for(const c of P.souls.splice(0))dump(c)}
   if(!toOD)shuffle(G.grave);
   log(toOD?`${plName(pl)}'s hand and deck fall into the Outer Darkness.`:`${plName(pl)}'s hand and deck go to the grave, and the grave is shuffled.`);
+  if(G.active===pl&&G.waiter){const f=G.waiter;G.waiter=null;stopTimer();f()}   // v78j: out on their own turn: it ends (it waited for a button they no longer have)
 }

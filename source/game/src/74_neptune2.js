@@ -99,7 +99,9 @@ async function nepCall(k){const me_=G.active,r=G.moon.round;
   render()}
 {const _e=eclipse;eclipse=async function(k){if(k==="neptune"&&G.forceNepEc&&typeof eclipsesOff==="function"&&eclipsesOff())return;return _e.apply(this,arguments)}}
 function nepTempRound(){const T=G.nepTemp;if(!T)return;const busy=T.k==="ev"?!!(G.nepEv&&G.moon.round<=G.nepEv.until):!!(G.eclipse&&G.eclipse.k==="neptune");if(busy)return;
-  G.nepTemp=null;if(!T.prev)return;const p=T.prev,held=G.moon.round-p.at;
+  G.nepTemp=null;if(!T.prev)return;
+  if(sky()!=="neptune"){G.nepEv=null;return}   // v78j: another Heavenly Body took the sky meanwhile: it stays
+  const p=T.prev,held=G.moon.round-p.at;
   G.moon.gone=p.gone;G.moon.i=p.i;G.moon.blood=p.blood;for(const f of NEP_SAVE)G[f]=p[f];
   if(G.skySince!=null)G.skySince+=held;if(G.skyArr!=null)G.skyArr+=held;   // its cycle picks up where it paused
   G.nepEv=null;G._vis=null;applyMoonTheme();
@@ -121,7 +123,7 @@ SP("stray").text=[SPELL_TEXT.stray.n,SPELL_TEXT.stray.e,SPELL_TEXT.stray.l].join
 let strayIn=false;
 const strayOn=pl=>{const S=G&&G.strayOn;return !strayIn&&S&&S.t===pl&&S.round===G.moon.round&&G.p[S.by]&&!G.p[S.by].out?S:null};
 {const _gm=giveMana;giveMana=function(pl,n){const S=n>0?strayOn(pl):null;if(!S)return _gm.apply(this,arguments);const d=R(20);if(d!==1&&d!==20)return _gm.apply(this,arguments);
-  strayIn=true;try{if(d===1){_gm(S.by,n);log(`<b>Stray Mana</b>: ${n} mana meant for ${plName(pl)} strays to ${plName(S.by)} (a 1 on 1d20).`,"event");return 0}
+  strayIn=true;try{if(d===1){const got=_gm(S.by,n);log(`<b>Stray Mana</b>: ${n} mana meant for ${plName(pl)} strays to ${plName(S.by)} (a 1 on 1d20).`,"event");return got}   // v78j: what strayed was still paid out
     const out=_gm(pl,n);_gm(S.by,n);log(`<b>Stray Mana</b>: ${plName(S.by)} shares the ${n} mana ${plName(pl)} earns (a 20 on 1d20).`,"event");return out}finally{strayIn=false}}}
 {const _sp=spend;spend=function(pl,n){const S=n>0?strayOn(pl):null;if(!S)return _sp.apply(this,arguments);const d=R(20);if(d!==1&&d!==20)return _sp.apply(this,arguments);
   strayIn=true;try{const out=_sp(pl,n);

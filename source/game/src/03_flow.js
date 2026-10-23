@@ -167,6 +167,7 @@ async function together(players,phases){
 }
 /* one player plays one phase: the computer in code, a person until they press the button (or the timer runs out) */
 async function actPhase(pl,ph){
+  if(G.p[pl].out)return;   // v78j: knocked out earlier in the round
   setActive(pl);G.phase=ph;
   if(G.p[pl].cpu){G.busy=true;render();try{await AI.phase(pl,ph)}catch(e){console.error(e);log("The computer stumbles: "+esc(e.message))}G.busy=false;render();return}
   G.busy=false;render();
@@ -281,7 +282,7 @@ function canPlace(card,r,c){
 function place(card,r,c){
   const P=me(),hi=P.hand.indexOf(card);if(hi>=0)P.hand.splice(hi,1);card.owner=G.active;if(G.placing===card)G.placing=null;
   const st=G.board[r][c];
-  const fd=!!G.faceDown&&(!st||st.down);
+  const fd=!!G.faceDown&&(!st||st.down)&&!isBase(card)&&kind(card)!=="joker"&&G.placing!==card;   // v78j
   if(st){if(st.cards.some(x=>x.unit==="assassin")&&card.unit==="assassin"){card.hp=Math.min(card.hp,1);log("A second Assassin joins: one more heart for the pair.")}st.cards.push(card);if(!fd)st.down=false}
   else G.board[r][c]={owner:G.active,cards:[card],moved:G.phase!=="setup",attacked:false,down:fd};
   if(fd){fogLog(G.active,r,c,`${plName(G.active)} places a card face down.`);log(`${plName(G.active)} places a card face down on ${coord(r,c)}.`);G.selHand=null;G.faceDown=false;if(G.placing===card)G.placing=null;return}
@@ -327,8 +328,10 @@ function doMove(r,c){
   if(t){if(t.cards.some(x=>x.unit==="assassin")&&grp.some(x=>x.unit==="assassin")){for(const a of grp)if(a.unit==="assassin")a.hp=Math.min(a.hp,1);log("A second Assassin joins: one more heart for the pair.")}
     t.cards.push(...grp);t.moved=true;if(!(t.down&&wasDown))t.down=false}
   else G.board[r][c]={owner:st.owner,cards:grp,moved:true,attacked:false,hypo:st.cards.length?0:st.hypo,down:wasDown&&!st.cards.length?true:wasDown};
+  // v78j: a whole stack takes what hangs over its next fight along (Divine or Hexed Odds, Suppress, Dice Plus, Mars)
+  if(!st.cards.length){const to=G.board[r][c];for(const k of ["odds","supp","dplus","mars"])if(st[k]&&!to[k]){to[k]=st[k];st[k]=null}}
   if(!st.cards.length)st.down=false;
-  if(cap)G.board[r][c].captive=cap;
+  if(cap){if(t&&t.captive)freeCaptive({captive:cap},s.r,s.c);else G.board[r][c].captive=cap}   // a stack holds one captive: the newcomer's goes free
   fogLog(st.owner,r,c,`${plName(st.owner)} moves a stack out of sight.`);log(G.board[r][c].down?`${plName(st.owner)} moves a face-down stack from ${coord(s.r,s.c)} to ${coord(r,c)}.`:`${plName(st.owner)} moves ${grp.map(short).join(" ")} from ${coord(s.r,s.c)} to ${coord(r,c)}${t?", onto another stack":""}.`);
   G.sel={r,c,pick:new Set(G.board[r][c].cards.filter(x=>!isBase(x)).map(x=>x.id))};G.mode=null;
   ambushCheck(r,c);
@@ -346,7 +349,7 @@ function sacrifice(card,from){
   if(from==="hand")P.hand.splice(P.hand.indexOf(card),1);
   else{const st=G.board[from.r][from.c];st.cards.splice(st.cards.indexOf(card),1);
     if(card.captured&&card.captured.length){for(const s of card.captured)toGrave(s,"death");card.captured=[]}
-    if(!st.cards.length){G.board[from.r][from.c]=null;G.sel=null}else if(G.sel)G.sel.pick.delete(card.id)}
+    if(vacate(from.r,from.c,st))G.sel=null;else if(G.sel)G.sel.pick.delete(card.id)}
   addSoul(G.active,card);log(`${plName(G.active)} sacrifices ${esc(nameOf(card))} (+${soulOf(card)} mana).`);rainSac(G.active);
   if(from!=="hand")checkWin();
   return true;

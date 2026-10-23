@@ -70,7 +70,7 @@ function blindOptions(r,c){
   return out;
 }
 function blindPick(r1,c1,r2,c2,mode){
-  const st=G.board[r1]&&G.board[r1][c1];if(!st||!fogOn()&&!G.ffog)return null;
+  const st=G.board[r1]&&G.board[r1][c1];if(!st||!fogTile(st.owner,r2,c2))return null;   // v78j: any hidden tile, fog of war on or not
   if(attackOptions(r1,c1).some(o=>o.r===r2&&o.c===c2))return null;
   return blindOptions(r1,c1).find(o=>o.r===r2&&o.c===c2&&(mode==null||o.mode===mode))||null;
 }
