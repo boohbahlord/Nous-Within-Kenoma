@@ -9832,7 +9832,8 @@ if(window.__EC)Object.assign(window.__EC,{grMine,grClean,grPick,faWindow:t=>faWi
    - v59: the mouse wheel scrolls the page, as anywhere else; zooming with it is a choice (off by default) in the note
      under the field, which also lists the controls and has − and + buttons. With it on, the wheel zooms around the pointer.
    - Dragging an empty spot of the field moves it; a stack is still clicked as always. On a touch screen the frame scrolls.
-   - WASD or the arrow keys move it (Shift: faster), Q and E or C and V zoom in and out (Menu: reversed). Not while typing.
+   - WASD or the arrow keys move it (Shift: faster), E zooms in and Q out (Menu: reversed). Not while typing.
+   - v77a: zooming always keeps the middle of what you see in place; held keys move the field smoothly, two at once on a diagonal.
    - Menu, Large Map Controls: the wheel, both reversals and the speed. The section is faded outside a large map. */
 const CAM={z:1,ZMIN:.45,ZMAX:2.2,TILE:64};
 const isLarge=()=>!!(G&&(fsOn()||G.map&&(G.map.large||COLS>9||G.rows>9)));   // v72f: fullscreen uses the same camera (88_fullscreen.js)
@@ -9848,15 +9849,21 @@ function camNote(){const w=camWrap();let n=$("#camnote");
   if(!n){n=document.createElement("div");n.id="camnote";n.className="camnote";w.after(n)}else if(n.previousElementSibling!==w)w.after(n);
   n.hidden=false;const ph=isPhone(),key=(ph?"p":"c")+(PREF.camWheel===true);if(n.dataset.k===key)return;n.dataset.k=key;
   n.innerHTML=`<span class="cz"><button type="button" class="btn ghost sm" data-cz="-1" aria-label="Zoom out">−</button><button type="button" class="btn ghost sm" data-cz="1" aria-label="Zoom in">+</button></span>`+
-    (ph?`<span class="dim">Swipe the field to move it.</span>`:`<span class="dim">Drag an empty spot to move the field · WASD or the arrow keys move it (Shift: faster) · Q and E zoom</span>
+    (ph?`<span class="dim">Swipe the field to move it.</span>`:`<span class="dim">Drag an empty spot to move the field · WASD or the arrow keys move it, two at once for a diagonal (Shift: faster) · E zooms in, Q out</span>
 <label class="cw"><input type="checkbox" id="camWheelBox" ${PREF.camWheel===true?"checked":""}> Zoom with the mouse wheel</label>`);
   n.querySelectorAll("[data-cz]").forEach(b=>b.onclick=()=>camZoom(+b.dataset.cz>0?1.2:1/1.2));
   const cb=n.querySelector("#camWheelBox");if(cb)cb.onchange=()=>{PREF.camWheel=cb.checked;savePrefs();const m=$("#mCamWheel");if(m)m.checked=cb.checked}}
-/* zoom, keeping the spot under the pointer (or the middle of the frame) where it is */
-function camZoom(f,cx,cy){const w=camWrap();if(!w||!isLarge())return;const r=w.getBoundingClientRect(),x=cx==null?r.width/2:cx-r.left,y=cy==null?r.height/2:cy-r.top;
-  const z0=CAM.z,z1=Math.max(CAM.ZMIN,Math.min(CAM.ZMAX,z0*f));if(z1===z0)return;
-  const px=(w.scrollLeft+x)/z0,py=(w.scrollTop+y)/z0;CAM.z=z1;$("#board").style.setProperty("--tw",Math.round(CAM.TILE*z1)+"px");
-  w.scrollLeft=px*z1-x;w.scrollTop=py*z1-y}
+/* v77a: zoom (the keys, − and +, the wheel, a pinch) always keeps the middle of what you see where it is: the middle of the
+   frame's part on the screen. The spot is held in tiles, not pixels: the gaps between tiles don't grow with them. */
+function camMid(w){const r=w.getBoundingClientRect(),l=Math.max(r.left,0),t=Math.max(r.top,0),rr=Math.min(r.right,innerWidth),bb=Math.min(r.bottom,innerHeight);
+  return rr>l&&bb>t?[(l+rr)/2,(t+bb)/2]:[r.left+r.width/2,r.top+r.height/2]}
+function camGrid(){const B=$("#board"),rows=B?B.querySelectorAll(":scope>.row"):[];if(!rows.length)return null;const a=rows[0].querySelectorAll(".tile");if(!a.length)return null;
+  const r0=a[0].getBoundingClientRect(),b=rows.length>1?rows[1].querySelector(".tile"):null;
+  return {x:r0.left,y:r0.top,px:(a.length>1?a[1].getBoundingClientRect().left-r0.left:r0.width)||1,py:(b?b.getBoundingClientRect().top-r0.top:r0.height)||1}}
+function camZoom(f){const w=camWrap();if(!w||!isLarge())return;const z0=CAM.z,z1=Math.max(CAM.ZMIN,Math.min(CAM.ZMAX,z0*f));if(z1===z0)return;
+  const [cx,cy]=camMid(w),g0=camGrid();CAM.z=z1;$("#board").style.setProperty("--tw",Math.round(CAM.TILE*z1)+"px");
+  const g1=g0&&camGrid();if(!g1)return;
+  w.scrollLeft+=g1.x+(cx-g0.x)/g0.px*g1.px-cx;w.scrollTop+=g1.y+(cy-g0.y)/g0.py*g1.py-cy}
 function camPan(dx,dy){const w=camWrap();if(!w||!isLarge())return;w.scrollBy({left:dx,top:dy,behavior:"auto"})}
 function camWire(w){
   w.addEventListener("wheel",e=>{if(!isLarge()||e.ctrlKey)return;
@@ -9871,17 +9878,25 @@ function camWire(w){
   addEventListener("pointerup",()=>{if(!drag)return;drag=null;w.classList.remove("dragging");if(moved)setTimeout(()=>{moved=false},0)});
   w.addEventListener("click",e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false}},true)}   // a drag is not a click on a tile
 const typing=t=>!!(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)));
-document.addEventListener("keydown",e=>{if(!isLarge()||e.ctrlKey||e.metaKey||e.altKey||typing(e.target))return;
-  if(document.querySelector("#ov:not([hidden]) .ovbox, #menu:not([hidden]), #facfg:not([hidden])"))return;
-  const k=e.key.toLowerCase(),step=46*camSpeed()*(e.shiftKey?2.2:1),inv=PREF.camInvKeys?-1:1;
-  const pan={w:[0,-1],arrowup:[0,-1],s:[0,1],arrowdown:[0,1],a:[-1,0],arrowleft:[-1,0],d:[1,0],arrowright:[1,0]}[k];
-  if(pan){e.preventDefault();camPan(pan[0]*step,pan[1]*step);return}
-  const zin=k==="q"||k==="c",zout=k==="e"||k==="v";if(zin||zout){e.preventDefault();camZoom((zin?1:-1)*inv>0?1.15:1/1.15)}});
+/* v77a: a held key moves the field smoothly, two at once on a diagonal (W and A: up and to the left); E zooms in, Q out */
+const CAM_DIR={w:[0,-1],arrowup:[0,-1],s:[0,1],arrowdown:[0,1],a:[-1,0],arrowleft:[-1,0],d:[1,0],arrowright:[1,0]};
+const CAMK=new Set();let camRaf=0,camT=0,camFast=false;
+function camTick(t){camRaf=0;if(!CAMK.size||!isLarge()){camT=0;return}const dt=camT?Math.min(50,t-camT):16;camT=t;let dx=0,dy=0;
+  for(const k of CAMK){dx+=CAM_DIR[k][0];dy+=CAM_DIR[k][1]}
+  if(dx||dy){const n=Math.hypot(dx,dy),v=.9*camSpeed()*(camFast?2.2:1)*dt;camPan(dx/n*v,dy/n*v)}
+  camRaf=requestAnimationFrame(camTick)}
+const camBlocked=()=>!!document.querySelector("#ov:not([hidden]) .ovbox, #menu:not([hidden]), #facfg:not([hidden]), #rbwin:not([hidden])");
+document.addEventListener("keydown",e=>{if(!isLarge()||e.ctrlKey||e.metaKey||e.altKey||typing(e.target)||camBlocked())return;
+  const k=e.key.toLowerCase(),inv=PREF.camInvKeys?-1:1;camFast=e.shiftKey;
+  if(CAM_DIR[k]){e.preventDefault();if(!CAMK.has(k)){CAMK.add(k);if(!camRaf){camT=0;camRaf=requestAnimationFrame(camTick)}}return}
+  const zin=k==="e",zout=k==="q";if(zin||zout){e.preventDefault();camZoom((zin?1:-1)*inv>0?1.15:1/1.15)}});
+document.addEventListener("keyup",e=>{CAMK.delete(e.key.toLowerCase());camFast=e.shiftKey});
+addEventListener("blur",()=>CAMK.clear());
 /* the Menu: Large Map Controls */
 {const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu");if(!m||m.querySelector("#mCam"))return;const anchor=m.querySelector("#mParts")||m.querySelector(".mgrid");if(!anchor)return;
   const on=isLarge(),c=(id,t,v)=>`<label class="farow"><span class="fal"><b>${t}</b></span><input type="checkbox" id="${id}" ${v?"checked":""} ${on?"":"disabled"}></label>`;
   anchor.insertAdjacentHTML("afterend",`<details id="mCam" class="sub${on?"":" faded"}"><summary>Large Map Controls${on?"":" <small>(large maps only)</small>"}</summary>
-<p class="dim">The mouse wheel scrolls the page unless zooming with it is on; drag an empty spot of the field to move it; WASD or the arrow keys move it (Shift: faster); Q and E, or C and V, zoom in and out.</p><div class="facats">
+<p class="dim">The mouse wheel scrolls the page unless zooming with it is on; drag an empty spot of the field to move it; WASD or the arrow keys move it, two at once for a diagonal (Shift: faster); E zooms in and Q out, always around the middle of the screen.</p><div class="facats">
 ${c("mCamWheel","Zoom with the mouse wheel",PREF.camWheel===true)}${c("mCamInvW","Reverse the wheel's zoom",!!PREF.camInvWheel)}${c("mCamInvK","Reverse the keys' zoom",!!PREF.camInvKeys)}</div>
 <label class="f mslide">Moving speed <input type="range" id="mCamSpd" min="40" max="300" step="10" value="${Math.round(camSpeed()*100)}" ${on?"":"disabled"}><b id="mCamSpdV">${Math.round(camSpeed()*100)}%</b></label></details>`);
   const set=(k,v)=>{PREF[k]=v;savePrefs()};
@@ -12583,7 +12598,7 @@ const fsTouchOnly=()=>typeof matchMedia!=="undefined"&&!matchMedia("(any-pointer
 function fsControls(){const o=fsOv("fsctl"),touch=PREF.fsCtlTab?PREF.fsCtlTab==="touch":fsTouchOnly(),ck=(id,on,t,s)=>`<label class="farow"><span class="fal"><b>${t}</b>${s?`<small>${s}</small>`:""}</span><input type="checkbox" id="${id}" ${on?"checked":""}></label>`;
   const L=touch?[["Move the field","swipe it with one finger"],["Zoom","pinch with two fingers"],["Pick a stack or a card","tap it; tap it again to let go"],["A class (Field Automation)","double-tap a stack or a hand card"],
       ["Spells and Selected","the named arrows on the right"],["Dice and the log","the arrow at the bottom left; its ⚙ for more"],["The sky","tap the body at the top left"],["Leave fullscreen","Menu, then Exit fullscreen"]]
-    :[["Move the field",`WASD or the arrow keys (Shift: faster)${PREF.camDrag!==false?", or drag an empty spot":""}; it can go past the edges`],["Zoom",`Q and E (or C and V)${PREF.fsWheel===true?", the mouse wheel":""}, a trackpad's pinch`],["The turn button","Space: Ready, the next phase, End turn"],
+    :[["Move the field",`WASD or the arrow keys, two at once for a diagonal (Shift: faster)${PREF.camDrag!==false?", or drag an empty spot":""}; it can go past the edges`],["Zoom",`E in, Q out${PREF.fsWheel===true?", the mouse wheel":""}, a trackpad's pinch; always around the middle of the screen`],["The turn button","Space: Ready, the next phase, End turn"],
       ["Pick a stack or a card","click it"],["A class (Field Automation)","right-click a stack or a hand card"],["Compare two stacks","drag a card's corner tab onto another stack"],["Spells and Selected","the named arrows on the right"],
       ["Dice and the log","the arrow at the bottom left; its ⚙ for more"],["The sky","hover the body at the top left"],["Leave fullscreen",`Menu, then Exit fullscreen${document.fullscreenElement?"; Esc also leaves the browser's fullscreen (the browser's own key)":"; Esc opens the Menu"}`]];
   o.innerHTML=`<div class="ovbox fscbox" role="dialog" aria-modal="true" aria-labelledby="fsch"><button type="button" class="xclose" id="fscX" aria-label="Close">×</button><h2 id="fsch">Controls</h2>
@@ -12619,7 +12634,7 @@ function fsPause(){if(!G)return;if(!G.opts.online&&!G.paused){G.paused=true;FS.p
 function fsHelp(){const o=fsOv("fshelp");
   o.innerHTML=`<div class="ovbox wide fshbox" role="dialog" aria-modal="true" aria-labelledby="fshh"><button type="button" class="xclose" id="fshX" aria-label="Close">×</button><h2 id="fshh">Help</h2>
 <details class="cinfo fsmk" open><summary>What you must know</summary><p class="mktldr"><b>TLDR</b> ${MK_TLDR}</p><div class="mkbody">${MK_BODY}</div><details class="sub"><summary>Tell me more</summary>${MK_MORE.replace(/<h3>[^<]*<\/h3>/,"")}</details></details>
-<details class="cinfo"><summary>Fullscreen controls</summary><ul class="mklist"><li><b>Zoom:</b> the mouse wheel, a trackpad's pinch, or two fingers.</li><li><b>Move the field:</b> drag an empty spot, swipe with one finger, or WASD and the arrow keys (Q and E zoom too).</li>
+<details class="cinfo"><summary>Fullscreen controls</summary><ul class="mklist"><li><b>Zoom:</b> the mouse wheel, a trackpad's pinch, or two fingers.</li><li><b>Move the field:</b> drag an empty spot, swipe with one finger, or WASD and the arrow keys (E zooms in, Q out).</li>
 <li><b>Spells and Selected:</b> the named arrows on the right open their drawers; they stay open until you close them.</li><li><b>Dice and the log:</b> the arrow under your hand; its ⚙ chooses the last roll, the log's latest line, or both.</li>
 <li><b>The sky:</b> hover or tap the body at the top left for its cycle.</li><li><b>Field Automation:</b> Auto field and its square in the turn bar at the top.</li><li><b>Leave:</b> Menu (top right), Exit fullscreen${document.fullscreenEnabled?", or Esc":""}.</li></ul></details>
 <div id="fshslot"></div></div>`;

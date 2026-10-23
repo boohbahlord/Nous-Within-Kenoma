@@ -2418,3 +2418,6 @@ html.still-glow .dipbar.notify{animation:none}
    of view is skipped until it scrolls in: its size comes from the field's grid, never from what it holds */
 #board .tile{contain:layout paint}
 #board.large .tile{content-visibility:auto}
+/* v77a: no scrollbars in fullscreen (everything still scrolls: the wheel, a swipe, the keys) */
+html.ecfs *{scrollbar-width:none!important}
+html.ecfs ::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
