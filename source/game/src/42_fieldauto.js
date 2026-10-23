@@ -55,7 +55,7 @@ const faClean=c=>{c=c&&typeof c==="object"?c:{};const o=JSON.parse(JSON.stringif
   if(Array.isArray(c.classes)&&typeof clsClean==="function")o.classes=clsClean(c.classes);if(typeof c.classMulti==="boolean")o.classMulti=c.classMulti;   // v72e: the classes travel with the settings to the game
   if(Array.isArray(c.eq))o.eq=c.eq.filter(p=>Array.isArray(p)&&p.length===2&&p.every(k=>o.order.includes(k)&&!o.hout.includes(k)));
   o.grp="normal";o.fLink=true;o.walls=true;o.tIgnoreGI=false;o.tSameGI=false;   // v79g: these settings are gone; they always work this way
-  return o};
+  o.eq=[];return faTgFill(o,c)};   // v79l: no more equals in the ranking; the target types filled in (99j_ranks.js)
 const faMine=()=>faClean(PREF.fa);   // this device's settings
 const faAllowed=()=>!!G&&(G.opts.fieldAuto||"medium")!=="off";
 const faLevel=()=>{const v=G&&G.opts.fieldAuto;return ["easy","medium","hard"].includes(v)?v:"medium"};
@@ -201,11 +201,9 @@ function faPanelHTML(c,pl,pfx){
     h+=sec("Which cards it controls",`<div class="facats">${FA_CATS.map(([k,t,s2])=>row("ctl."+k,c.ctl[k],t,s2)).join("")}${!c.ctl.support?row("ctl.miners",c.ctl.miners,"Miners","Even with Support off"):""}</div>
 <details class="faextra" ${c.extra.length||c.xminus.length?"open":""}><summary>Yes, and… (single kinds of card: + it controls them, − it leaves them to you)</summary>${K.pmChips(FA_KINDS.map(k=>[k,shortInfo(k)]),c.extra,c.xminus,"data-fapm")}</details>`,"fafull");
     /* v52: the two rankings open like the Yes-and lists: ▸ closed is off, ▾ open is on */
-    h+=sec("Hierarchical control",`<details class="faextra fadet" data-fadet="hier" ${c.hier?"open":""}><summary>Rank the principles <small class="dim">(${c.hier?"on":"off"})</small></summary><p class="dim">When they pull apart, the one on the left wins. Press = on two to make them equal: then the field decides between them.</p>`+hierHTML(c.order.filter(k=>!c.hout.includes(k)),c.eq,faHierHTML.pending,k=>FA_PRINC.find(x=>x[0]===k)[1]+(FA_OUT.includes(k)?`<button type="button" class="faout" data-faact="out:${k}" aria-label="Take ${FA_PRINC.find(x=>x[0]===k)[1]} out of the ranking" title="Take it out of the ranking">×</button>`:""),k=>faVal(k,c),"")+
+    h+=sec("Hierarchical control",`<details class="faextra fadet" data-fadet="hier" ${c.hier?"open":""}><summary>Rank the principles <small class="dim">(${c.hier?"on":"off"})</small></summary><p class="dim">When they pull apart, the higher one wins.</p>`+faPrincHTML(c)+
       (c.hout.length?`<p class="fahin">${c.hout.map(k=>`<button type="button" class="btn ghost sm" data-faact="in:${k}" title="Add it to the ranking">+ ${FA_PRINC.find(x=>x[0]===k)[1]}</button>`).join(" ")}<small class="dim">Out of the ranking: ${c.hout.length>1?"they keep":"it keeps"} ${c.hout.length>1?"their":"its"} full weight.</small></p>`:"")+`</details>`,"fafull","",c.hier?FA_CAUTION:"");
-    h+=sec("Target priority",`<details class="faextra fadet" data-fadet="tprio" ${c.tprio?"open":""}><summary>Rank the kinds of card to target <small class="dim">(${c.tprio?"on":"off: every target is weighed by the odds alone"})</small></summary>`+
-      row("tgroup",c.tgroup,"Rank by kinds of card","On: Special, Base, Standard and so on. Off: every single kind, like the King.")+
-      (c.tgroup?kindRankHTML(c.tgorder,"data-tgact",TGROUP_NAMES):hierHTML((c.tSameGI?c.torder.filter(k=>k!=="infantry"):c.torder),c.teq,faHierHTML.tpending,k=>FA_TK.find(x=>x[0]===k)[1],()=>"","t"))+`<p class="dim">The kinds on the left are hunted first.</p>`+`</details>`,"fafull","",c.tprio?FA_CAUTION:"");
+    h+=sec("Target priority",`<details class="faextra fadet" data-fadet="tprio" ${c.tprio?"open":""}><summary>Rank the kinds of card to target <small class="dim">(${c.tprio?"on":"off: every target is weighed by the odds alone"})</small></summary>`+faTgHTML(K,c)+`</details>`,"fafull","",c.tprio?FA_CAUTION:"");   // v79l: as a class has it
     if(c.crys)h+=sec("Crystals",`<details class="faextra" open><summary>More options for Focus on crystals</summary>`+
       row("crysStance",c.crysStance,"Depends on the stance","It guards crystals only while your field defends or holds the center.")+
       row("crysLives",c.crysLives,"Depends on Risk","Careful guards only where it's safe; Normal unless it's badly outnumbered; Reckless, whatever comes.")+
@@ -218,10 +216,6 @@ function faPanelHTML(c,pl,pfx){
   }
   h+=`<p class="dim fanote fafull">Some options aren't the best choice for every situation on your field.</p>`;
   return h}
-/* a ranking: columns with ▲ = ▼; two pressed = become equals */
-function hierHTML(order,eq,pend,label,sub,pre){const pairOf=k=>eq.find(p=>p.includes(k));
-  return `<div class="fahier">${order.map((k,i)=>{const p=pairOf(k);return `<div class="facol${p?" eqpair":pend===k?" eqwait":""}"><span class="farank">${i+1}</span><b>${label(k)}</b><small>${sub(k)}</small>
-<span class="facolbtns"><button type="button" class="btn ghost sm" data-faact="${pre}up:${k}" aria-label="Higher priority" ${i?"":"disabled"}>▲</button><button type="button" class="btn ghost sm" data-faact="${pre}eq:${k}" aria-label="Equal" aria-pressed="${!!p||pend===k}">=</button><button type="button" class="btn ghost sm" data-faact="${pre}down:${k}" aria-label="Lower priority" ${i<order.length-1?"":"disabled"}>▼</button></span></div>`}).join("")}</div>`}
 const faHierHTML={pending:null,tpending:null};
 /* moving in a ranking: blocks of equals move together */
 function hierMove(order,eq,pkey,a,k){

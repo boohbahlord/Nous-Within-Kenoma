@@ -2641,3 +2641,6 @@ html.ecfs #handwrap .hcnttag{display:block;position:absolute;top:-9px;right:10px
 #flash,#notes .note,#kbremind,#fkmode,#fsleft>*,#roundban,.fixednote{overflow-wrap:anywhere;white-space:normal;max-width:calc(100vw - 16px);box-sizing:border-box}
 #flash *,#notes .note *,#kbremind *,#fsleft>* *{white-space:normal!important;overflow-wrap:anywhere}
 html.ecfs #fsleft{min-width:min(320px,calc(100vw - 16px))}   /* a narrow hand box doesn't squeeze the notices into a sliver */
+/* v79l: the principles' ranking, in the classes' style: each row has its value too, so the rows are wider */
+.krank.faprinc{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.krank li{min-width:0}.krank.faprinc li small{font-size:11px;white-space:nowrap}
