@@ -11651,6 +11651,9 @@ Object.assign(SOLIDS,{sphere:"Sphere",heart:"Heart",penta:"Pentagram",cubocta:"C
 
 /* black needs a light edge to read on dark pages */
 const darkCol=c=>typeof c==="string"&&/^#[0-9a-f]{6}$/i.test(c)&&labOf(c)[0]<14;
+/* v77g: and so do its meters (the deck, an enemy's mana and deck lines): a meter in a near-black color is marked, and drawn light */
+{const _r=render;render=function(){rSafe(_r,this,arguments);for(const el of document.querySelectorAll('.deckbar[style*="--pc"],#foe [style*="--pc"],.fsfoe[style*="--pc"]')){
+  const m=/--pc:\s*(#[0-9a-f]{6})/i.exec(el.getAttribute("style")||"");el.classList.toggle("pcdk",!!m&&darkCol(m[1]))}}}
 {const _ss=solidSVG;solidSVG=function(s,color,size){const h=_ss.apply(this,arguments);return darkCol(color)?h.replace('stroke="#000" stroke-opacity=".55"','stroke="#e8e0d4" stroke-opacity=".8"'):h}}
 {const _d=dieSVG;dieSVG=function(d,col){return _d.call(this,d,darkCol(col)?"#a59d92":col)}}
 {const _mk=FX.make;FX.make=function(cls,rect,o){if(o&&darkCol(o.col))o=Object.assign({},o,{col:"#a59d92"});return _mk.call(this,cls,rect,o)}}
