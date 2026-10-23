@@ -6,8 +6,8 @@
 /* a Heavenly Body that starts in the sky keeps out the Emanation it would serve */
 const skyBlocked=sky=>sky==="saturn"?["yald"]:["mars","sun","venus","jupiter","mercury"].includes(sky)?["firm"]:[];
 const isFirm=pl=>!!(G.p[pl]&&G.p[pl].tribe==="firm");
-/* the Leviathan's New Moon: the real New Moon, or every eighth round while it coils on Mars */
-const levNew=()=>G.moon.i===0&&!G.moon.gone||G.moon.gone==="mars"&&G.moon.round%8===1;
+/* the Leviathan's New Moon: the real New Moon, or every eighth round while it coils on a planet (v78j: any it may rise to) */
+const levNew=()=>G.moon.i===0&&!G.moon.gone||["mars","venus","jupiter","mercury"].includes(G.moon.gone)&&G.moon.round%8===1;
 
 /* ---------- the start of a turn: Mars, the moon's Miner, the end of Rain ---------- */
 function skyTurn(pl){

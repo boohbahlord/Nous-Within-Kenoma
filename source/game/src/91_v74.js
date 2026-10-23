@@ -12,8 +12,9 @@ function fsFoesHTML(){const V=view(),E=typeof nepEcState==="function"&&nepEcStat
   const L=G.p.filter(P=>P.i!==V&&!isNPC(P.i));
   return L.map(P=>{const n=P.deck.length,N=Math.max(1,P.start||n||1),m=mana(P.i)-(P.debt||0),cap=soulCap(P.i),act=P.i===G.active&&G.phase!=="setup";
     const pct=x=>Math.max(0,Math.min(100,x*100)).toFixed(0),q=E?"?":null;
-    return `<div class="fsfoe${P.out?" out":""}${act?" act":""}" style="--pc:${P.color}" title="${esc(P.name)}${P.cpu&&P.cpu!=="horde"?" · computer, "+P.cpu:""}">
-<span class="fsfn">${solidSVG(P.solid,P.color,13)}<b>${esc(P.name)}</b>${!isEnemy(P.i,V)?'<i class="fsally">ally</i>':""}${P.out?'<i class="fsout">out</i>':act?'<i class="fsact">▸</i>':""}</span>
+    const nm=E&&E.names&&E.names[P.i]!=null?E.names[P.i]:P.name;   // v78j: Neptune's eclipse lies here too
+    return `<div class="fsfoe${P.out?" out":""}${act?" act":""}" style="--pc:${P.color}" title="${esc(nm)}${!E&&P.cpu&&P.cpu!=="horde"?" · computer, "+P.cpu:""}">
+<span class="fsfn">${solidSVG(P.solid,P.color,13)}<b>${esc(nm)}</b>${!E&&!isEnemy(P.i,V)?'<i class="fsally">ally</i>':""}${P.out?'<i class="fsout">out</i>':act?'<i class="fsact">▸</i>':""}</span>
 ${P.cpu==="horde"?"":`<span class="fsfm" title="Deck ${q||n}"><span class="fsfbar"><i style="width:${q?50:pct(Math.min(n,N)/N)}%"></i></span><em>${q||n}</em></span>
 <span class="fsfm mana" title="Mana ${q||m}/${q||cap}"><span class="fsfbar"><i style="width:${q?50:pct(Math.max(0,m)/Math.max(1,cap))}%"></i></span><em>${q?"?/?":`${m}/${cap}`}</em></span>
 <span class="fsfh" title="Hand">✋${P.hand.length}</span>`}</div>`}).join("")}

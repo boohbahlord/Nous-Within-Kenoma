@@ -52,7 +52,7 @@ function mapPlan(o){
     sides.slice(0,n).forEach((sd,i)=>{const t=five(big?bigEdge(sd).back:edgeTiles(sd,rows,cols));seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:t,zone:t});teams.push(L==="ffa"?i:i%2)});
   }else if(L==="team-same"){
     // v78a: teammates on the same side hold both spawn rows, half the width each (sharing comes only by leave: Diplomacy)
-    const h=Math.floor(cols/2),L1=allc.slice(0,h),R1=allc.slice(h);
+    const h=Math.floor(allc.length/2),L1=allc.slice(0,h),R1=allc.slice(h);   // v78j: half of the columns that spawn
     seats.push(mk2("bottom",L1,2),mk2("top",L1,2),mk2("bottom",R1,2),mk2("top",R1,2));teams.push(0,1,0,1);
   }else if(L==="coop"){
     const h=n-1,w=Math.floor(cols/h);

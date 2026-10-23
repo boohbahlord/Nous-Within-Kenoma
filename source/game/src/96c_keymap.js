@@ -120,7 +120,9 @@ function kmPretty(s){if(!s)return "";const c=kmParse(s);if(c.tap)return c.tap+" 
 const kmShort=s=>kmPretty(s).replace(/^Shift\+/,"⇧").replace(/ \(alone\)$/,"");
 /* the bindings in use */
 const kmState=()=>{const S=PREF.km&&typeof PREF.km==="object"?PREF.km:(PREF.km={});
-  if(typeof S.preset!=="string")S.preset="default";if(!S.map||typeof S.map!=="object")S.map={};if(!Array.isArray(S.mine))S.mine=[];if(S.auto==null)S.auto=true;return S};
+  if(typeof S.preset!=="string")S.preset="default";if(!S.map||typeof S.map!=="object")S.map={};if(!Array.isArray(S.mine))S.mine=[];if(S.auto==null)S.auto=true;
+  if(S.mine.some(p=>!p||typeof p!=="object"||typeof p.id!=="string"||!p.map||typeof p.map!=="object"))S.mine=S.mine.filter(p=>p&&typeof p==="object"&&typeof p.id==="string"&&p.map&&typeof p.map==="object");   // v78j
+  for(const p of S.mine)if(typeof p.name!=="string")p.name="Keys";return S};
 const kmBinds=id=>{const m=kmState().map[id];return Array.isArray(m)?m:KM_ACT[id]?KM_ACT[id].def:[]};
 /* the first binding as words (or all of them, "X or Esc") */
 const kmShow=(id,all)=>{const B=kmBinds(id).filter(Boolean);return B.length?(all?B.map(kmPretty).join(" or "):kmPretty(B[0])):"(no key)"};
@@ -129,6 +131,7 @@ const kmShow4=ids=>{const B=ids.map(id=>kmBinds(id).filter(Boolean)[0]||"");retu
 
 /* ---------- the keys held, and Ctrl or Shift pressed alone ---------- */
 const KM={held:new Map(),alone:null,top:new WeakMap()};
+addEventListener("wheel",()=>{KM.alone=null},{capture:true,passive:true});   // v78j
 addEventListener("keydown",e=>{const n=kmName(e.code,e.key);KM.held.set(e.code,n);KM.alone=(n==="Ctrl"||n==="Shift")&&!e.repeat?n:e.repeat&&KM.alone===n?n:null},true);
 addEventListener("keyup",e=>{KM.held.delete(e.code)},true);
 addEventListener("keyup",()=>{KM.alone=null});   // after every handler has read it
@@ -186,19 +189,20 @@ function kmMeet(a,b,shA,shB){const x=kmParse(a),y=kmParse(b);if(x.tap||y.tap)ret
   if(x.key!==y.key||x.ctrl!==y.ctrl||x.alt!==y.alt||x.meta!==y.meta||x.held.join("+")!==y.held.join("+"))return false;
   return x.shift===y.shift||!x.shift&&shA||!y.shift&&shB}
 /* the binding a new one would take from: same group, or Everywhere against any other */
-function kmClash(id,s){const A=KM_ACT[id];for(const B of KM_ACTS){const b=KM_ACT[B[0]];if(b.id===id||!(b.g===A.g||b.g==="any"||A.g==="any"))continue;
-    const L=kmBinds(b.id);for(let j=0;j<L.length;j++)if(L[j]&&kmMeet(s,L[j],A.shift,b.shift))return {id:b.id,i:j}}
-  return null}
+function kmClashes(id,s){const A=KM_ACT[id],out=[];for(const B of KM_ACTS){const b=KM_ACT[B[0]];if(b.id===id||!(b.g===A.g||b.g==="any"||A.g==="any"))continue;
+    const L=kmBinds(b.id);for(let j=0;j<L.length;j++)if(L[j]&&kmMeet(s,L[j],A.shift,b.shift))out.push({id:b.id,i:j})}
+  return out}   // v78j: all of them
 /* a binding chosen: one that is taken asks first */
 function kmSet(id,i,s){if(s){if(kmBinds(id).some((x,j)=>j!==i&&x===s)){kmPaint();return}
-    if(kmParse(s).tap&&!KM_ACT[id].tap){flash("Ctrl or Shift alone steps through rows, sections and schools only: add a key to it.");kmPaint();return}const c=kmClash(id,s);
-    if(c){kmAsk(`<b>${esc(kmPretty(s))}</b> already does “${esc(KM_ACT[c.id].name)}” (${esc(kmGroupName(KM_ACT[c.id].g))}${KM_ACT[c.id].sub?": "+esc(KM_ACT[c.id].sub):""}). Move it here?`,
-      ()=>{kmPut(c.id,c.i,"");kmPut(id,i,s);kmChanged()},()=>kmPaint());return}}
+    if(kmParse(s).tap&&!KM_ACT[id].tap){flash("Ctrl or Shift alone steps through rows, sections and schools only: add a key to it.");kmPaint();return}const C=kmClashes(id,s);
+    const what=c=>`“${esc(KM_ACT[c.id].name)}” (${esc(kmGroupName(KM_ACT[c.id].g))}${KM_ACT[c.id].sub?": "+esc(KM_ACT[c.id].sub):""})`;
+    if(C.length){kmAsk(`<b>${esc(kmPretty(s))}</b> already does ${C.map(what).join(" and ")}. Move it here?`,
+      ()=>{for(const c of C)kmPut(c.id,c.i,"");kmPut(id,i,s);kmChanged()},()=>kmPaint());return}}
   kmPut(id,i,s);kmChanged()}
 
 /* ---------- a question with Yes and No ---------- */
 function kmAsk(html,yes,no){let w=$("#kmq");if(!w){w=document.createElement("div");w.id="kmq";w.className="faov";document.body.appendChild(w)}
-  w.innerHTML=`<div class="ovbox kmqbox" role="alertdialog" aria-labelledby="kmqp"><p id="kmqp">${html}</p><p class="acts"><button type="button" class="btn" id="kmqY">Yes</button> <button type="button" class="btn ghost" id="kmqN">No</button></p></div>`;
+  w.innerHTML=`<div class="ovbox kmqbox" role="alertdialog" aria-labelledby="kmqp"><p id="kmqp">${html}</p><p class="acts"><button type="button" class="btn" id="kmqY">Yes</button> <button type="button" class="btn ghost" id="kmqN" data-x>No</button></p></div>`;
   w.hidden=false;const done=f=>{w.hidden=true;if(f)f()};$("#kmqY").onclick=()=>done(yes);$("#kmqN").onclick=()=>done(no);w.onclick=e=>{if(e.target===w)done(no)};
   setTimeout(()=>{const b=$("#kmqY");if(b)b.focus()},0)}
 

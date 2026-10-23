@@ -6,13 +6,15 @@ const FX_PARTS=[["moves","Cards moving"],["strikes","Strikes and hits"],["deaths
   ["spells","Spell signs and bursts"],["weather","Weather: rain, wind, lightning, meteors"],["fire","Fire on the field"],["fog","The fog drifting"],["sky","The sky's shimmer"],
   ["glow","Glowing notices"],["blood","The Blood Moon's screen effects"],["banners","Crit Hit and Miss banners"]];
 const FX_PART={slide:"moves",strike:"strikes",hit:"strikes",blunt:"strikes",boom:"strikes",burst:"strikes",smoke:"deaths",skull:"deaths",pour:"mana",fill:"mana",dollar:"mana",pop:"mana",
-  shuffle:"shuffles",wisp:"shuffles",sigil:"spells",symbol:"spells",area:"spells",spell:"spells",meteor:"weather",lightning:"weather",wind:"weather",rain:"weather",flames:"fire",fogroll:"fog"};
+  shuffle:"shuffles",wisp:"shuffles",sigil:"spells",symbol:"spells",area:"spells",meteor:"weather",lightning:"weather",wind:"weather",rain:"weather",flames:"fire",fogroll:"fog"};
 const fxPartOn=k=>!(PREF.fxOff||[]).includes(k);
 /* v59: the fog's drifting is off by default (once, for everyone; it can be switched back on in the Menu). v74f: off again, once
    more for everyone (Performance Settings, "The fog drifting") */
 if((PREF.fogMig|0)<2){PREF.fxOff=[...new Set([...(PREF.fxOff||[]),"fog"])];if(PREF.fxFull&&Array.isArray(PREF.fxFull.off))PREF.fxFull.off=[...new Set([...PREF.fxFull.off,"fog"])];if(Array.isArray(PREF.fxOffEach))PREF.fxOffEach=[...new Set([...PREF.fxOffEach,"fog"])];PREF.fogMig=2;savePrefs()}
-for(const [m,k] of Object.entries(FX_PART)){const f=FX[m];if(typeof f!=="function")continue;FX[m]=function(){if(!fxPartOn(k))return m==="spell"?true:undefined;return f.apply(this,arguments)}}
-{const _cf=castFX;castFX=function(){if(!fxPartOn("spells"))return;return _cf.apply(this,arguments)}}
+for(const [m,k] of Object.entries(FX_PART)){const f=FX[m];if(typeof f!=="function")continue;FX[m]=function(){if(!fxPartOn(k))return;return f.apply(this,arguments)}}
+{const _cf=castFX;castFX=function(sp,pl,sel,fires){if(fxPartOn("spells"))return _cf.apply(this,arguments);
+  // v78j: with the signs and bursts off, the spell's fire and weather still follow their own switches
+  if(FX.flames)(fires||[]).filter(([r,c])=>FX.sees(r,c)).forEach(([r,c],i)=>FX.flames(FX.tile(r,c),i*40));if(FX.spell)FX.spell(sp,sel,pl)}}
 {const _cb=critBanner;critBanner=function(){if(!fxPartOn("banners"))return;return _cb.apply(this,arguments)}}
 {const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);for(const k of ["fog","fire","sky","glow","blood"])document.documentElement.classList.toggle("still-"+k,!fxPartOn(k))}}
 /* the Menu: a fold of switches under the two big ones */

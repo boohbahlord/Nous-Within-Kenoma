@@ -74,7 +74,7 @@ addEventListener("keydown",e=>{if(KB.synth)return;const k=e.key,is=id=>kmIs(e,id
     if(k==="Enter"){const bad=wkBad(WK.typ);if(bad){stop();wkNote(bad+" Type another, or Esc to stop.");return}wkFire(WK.typ,"input","change");const el=WK.typ;setTimeout(()=>{if(WK.typ===el)wkTypeEnd()},0)}
     return}}
   if(typing(e.target))return;
-  const w=kbTop();if(!w){if(WK.adj)wkAdjEnd(false);WK.mv=null;return}
+  const w=kbTop();if(!w){if(WK.adj)wkAdjEnd(true);WK.mv=null;return}   // v78j: keep it
   const plain=!e.ctrlKey&&!e.altKey&&!e.metaKey,up=is("winUp")||is("winRight")||is("winNext"),dn=is("winDown")||is("winLeft")||is("winPrev");
   if(WK.adj){const au=up||plain&&(k==="ArrowUp"||k==="ArrowRight"),ad=dn||plain&&(k==="ArrowDown"||k==="ArrowLeft");
     if(au||ad){stop();wkAdjStep(au?1:-1,e.shiftKey);return}

@@ -324,10 +324,11 @@ function log(html,cls=""){const m=/data-pl="(\d+)"/.exec(html);
 const plName=pl=>`<span class="pn" data-pl="${pl}" style="--pc:${G.p[pl].color}">${esc(G.p[pl].name)}</span>`;
 
 /* where cards go when they leave play */
+const clearMarks=c=>{for(const k of ["fgId","fgStrat","faCrys","faLock","sa","faClass"])delete c[k]};   // v78j
 const freePrisoners=c=>{if(c.prisoners&&c.prisoners.length){const ps=c.prisoners;c.prisoners=[];for(const p of ps)toGrave(p,"death")}};   // v78j
-function toDark(c){freePrisoners(c);if(c.captured&&c.captured.length){for(const s of c.captured)toDark(s);c.captured=[]}c.darkOwner=c.owner;G.dark.push(c)}
+function toDark(c){freePrisoners(c);clearMarks(c);if(c.captured&&c.captured.length){for(const s of c.captured)toDark(s);c.captured=[]}c.darkOwner=c.owner;G.dark.push(c)}
 function toGrave(c,cause){
-  if(!c)return;freePrisoners(c);
+  if(!c)return;freePrisoners(c);clearMarks(c);
   if(c.unit&&UNIT[c.unit].ether){if(c.hp!=null)c.hp=c.maxHp;c.hate=false;c.readyAt=0;c.shieldAt=0;c.shieldOff=0;c.healAt=0;c.repAt=0;c.inSlot=null}   // Ether cards lie in the grave like any card
   else if(c.unit&&c.unit!=="slave"){   // Emanation cards never lie in the grave
     if(c.hp!=null)c.hp=c.maxHp;c.hate=false;

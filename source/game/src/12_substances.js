@@ -83,8 +83,9 @@ function substanceRound(){
   for(const P of G.p){
     if(P.out||P.tribe!=="jester"||G.moon.round%2)continue;
     const t=treeOf(P.i);if(!t)continue;
-    if(t.st.cards.length>6){log(`The Tree is full: no Puppet grows for ${plName(P.i)}.`);continue}
-    const c=mk("2",pick(["S","H","D","C"]));c.puppet=true;c.owner=P.i;t.st.cards.push(c);
+    const c=mk("2",pick(["S","H","D","C"]));c.puppet=true;c.owner=P.i;
+    if(t.st.cards.length>6||!stackLegal([...t.st.cards,c])){log(`The Tree is full: no Puppet grows for ${plName(P.i)}.`);continue}   // v78j: as a stack would hold it
+    t.st.cards.push(c);
     log(`A free Puppet grows in ${plName(P.i)}'s Tree on ${coord(t.r,t.c)}.`);notify(P.i,`A Puppet grows in ${esc(P.name)}'s Tree.`);
   }
 }

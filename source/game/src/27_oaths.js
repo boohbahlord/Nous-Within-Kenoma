@@ -127,7 +127,7 @@ function moonWhisper(){
   setTimeout(()=>{w.className=""},4200)}
 {const _sk=skyCapMod;skyCapMod=function(P){let m=_sk(P);if(P&&G&&moonFullNow()&&P.oath==="moon")m+=2;return m}}
 {const _nm=newMoonGift;newMoonGift=async function(){
-  if(G.noGraveNext&&!G.moon.blood)return _nm();
+  if(G.noGraveNext&&!G.moon.blood){for(const P of G.p)P.moonNoGrave=false;return _nm()}   // v78j
   // a player who broke the Moon's demand gets nothing from this New Moon
   const skip=G.p.filter(P=>P.moonNoGrave&&!P.out);
   if(skip.length){log(`${skip.map(P=>plName(P.i)).join(", ")} get${skip.length===1?"s":""} nothing from this New Moon: no Joker gave itself before the Full Moon.`,"event")}

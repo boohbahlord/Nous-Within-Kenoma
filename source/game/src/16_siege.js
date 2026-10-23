@@ -32,19 +32,19 @@ const lonely=t=>!hasBase(t)&&t.cards.every(c=>c.unit&&(UNIT[c.unit].sup||c.unit=
 const CAPT_ORDER=["cannon","healer","repair","ram","miner"];
 const captureCard=t=>[...t.cards].sort((a,b)=>CAPT_ORDER.indexOf(a.unit)-CAPT_ORDER.indexOf(b.unit))[0];
 function canCapture(A,t){const x=captureCard(t);if(x.unit==="ram")return stackLegal([...A.cards,x]);return !A.captive}
-function takeCaptive(A,x){x.capturedFrom=x.owner;x.owner=A.owner;x.inSlot=null;x.readyAt=0;A.captive=x}
+function takeCaptive(A,x){clearMarks(x);x.capturedFrom=x.owner;x.owner=A.owner;x.inSlot=null;x.readyAt=0;A.captive=x}
 /* v78j: a stack left with no cards leaves its tile, and what it held captive goes free (sacrifices, Teleport, God Hunger
    and the like emptied stacks without it, and the captive was lost) */
 function vacate(r,c,st){if(st.cards.length)return false;G.board[r][c]=null;freeCaptive(st,r,c);return true}
 function freeCaptive(st,r,c){const x=st.captive;if(!x)return;st.captive=null;const o=x.capturedFrom;
-  if(o!=null&&G.p[o]&&!G.p[o].out&&!G.board[r][c]&&!isVoid(r,c)){x.owner=o;x.capturedFrom=null;G.board[r][c]={owner:o,cards:[x],moved:true,attacked:true};log(`The captured ${esc(nameOf(x))} on ${coord(r,c)} breaks free and goes back to ${plName(o)}.`)}
+  if(o!=null&&G.p[o]&&!G.p[o].out&&!G.board[r][c]&&!isVoid(r,c)){clearMarks(x);x.owner=o;x.capturedFrom=null;G.board[r][c]={owner:o,cards:[x],moved:true,attacked:true};log(`The captured ${esc(nameOf(x))} on ${coord(r,c)} breaks free and goes back to ${plName(o)}.`)}
   else{toGrave(x,"death")}}
 function takeSupport(r1,c1,r2,c2,mode){
   const A=G.board[r1][c1],T=G.board[r2][c2],x=captureCard(T),from=T.owner;A.attacked=true;G.lastAttack=G.turnNo;
   if(A.ambush)A.ambush=false;
-  T.cards.splice(T.cards.indexOf(x),1);if(!T.cards.length)G.board[r2][c2]=null;
+  T.cards.splice(T.cards.indexOf(x),1);vacate(r2,c2,T);
   if(mode==="destroy"){log(`<b>${plName(A.owner)}</b> destroys ${plName(from)}'s ${esc(nameOf(x))} on ${coord(r2,c2)}.`,"combat");bury(x,r2,c2,T)}
-  else if(x.unit==="ram"){x.owner=A.owner;A.cards.push(x);log(`<b>${plName(A.owner)}</b> captures ${plName(from)}'s Battering Ram on ${coord(r2,c2)}: it joins the stack on ${coord(r1,c1)}.`,"combat")}
+  else if(x.unit==="ram"){clearMarks(x);x.owner=A.owner;A.cards.push(x);log(`<b>${plName(A.owner)}</b> captures ${plName(from)}'s Battering Ram on ${coord(r2,c2)}: it joins the stack on ${coord(r1,c1)}.`,"combat")}
   else{takeCaptive(A,x);log(`<b>${plName(A.owner)}</b> captures ${plName(from)}'s ${esc(nameOf(x))} on ${coord(r2,c2)} into the capture slot of the stack on ${coord(r1,c1)}.`,"combat")}
   if(!G.board[r2][c2])freeCaptive(T,r2,c2);
   checkWin();return{win:true,line:""};

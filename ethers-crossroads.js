@@ -391,10 +391,11 @@ function log(html,cls=""){const m=/data-pl="(\d+)"/.exec(html);
 const plName=pl=>`<span class="pn" data-pl="${pl}" style="--pc:${G.p[pl].color}">${esc(G.p[pl].name)}</span>`;
 
 /* where cards go when they leave play */
+const clearMarks=c=>{for(const k of ["fgId","fgStrat","faCrys","faLock","sa","faClass"])delete c[k]};   // v78j
 const freePrisoners=c=>{if(c.prisoners&&c.prisoners.length){const ps=c.prisoners;c.prisoners=[];for(const p of ps)toGrave(p,"death")}};   // v78j
-function toDark(c){freePrisoners(c);if(c.captured&&c.captured.length){for(const s of c.captured)toDark(s);c.captured=[]}c.darkOwner=c.owner;G.dark.push(c)}
+function toDark(c){freePrisoners(c);clearMarks(c);if(c.captured&&c.captured.length){for(const s of c.captured)toDark(s);c.captured=[]}c.darkOwner=c.owner;G.dark.push(c)}
 function toGrave(c,cause){
-  if(!c)return;freePrisoners(c);
+  if(!c)return;freePrisoners(c);clearMarks(c);
   if(c.unit&&UNIT[c.unit].ether){if(c.hp!=null)c.hp=c.maxHp;c.hate=false;c.readyAt=0;c.shieldAt=0;c.shieldOff=0;c.healAt=0;c.repAt=0;c.inSlot=null}   // Ether cards lie in the grave like any card
   else if(c.unit&&c.unit!=="slave"){   // Emanation cards never lie in the grave
     if(c.hp!=null)c.hp=c.maxHp;c.hate=false;
@@ -734,7 +735,8 @@ function damage(r,c,n,defending){
     const base=st.cards.find(x=>isBase(x)&&x!==lh)||(lh&&!st.cards.some(x=>x!==lh&&x.unit!=="ram")?lh:null);
     if(base){stealOnDamage(st);base.hp=(base.hp||1)-1;const nm=kind(base)==="ace"?"The Ace":kind(base)==="wall"?"The Wall":kind(base)==="lighthouse"?"The Lighthouse":"The Tree of Neither Life Or Death";
       if(base.hp>0){log(`${nm} loses a heart (${base.hp} left); the cards inside are safe.`);continue}
-      dead.push(...st.cards.splice(0));log(`${nm} falls, and every card inside it dies with it.`);break}
+      const fell=st.cards.splice(0);if(kind(base)==="tree")for(const x of fell)if(x!==base)x.withTree=true;   // v78j
+      dead.push(...fell);log(`${nm} falls, and every card inside it dies with it.`);break}
     // support cards hide behind the fighters; the Battering Ram can't be killed by blows at all
     const fighters=st.cards.filter(x=>!(x.unit&&UNIT[x.unit].sup)&&x!==lh),pool=fighters.length?fighters:st.cards.filter(x=>x.unit!=="ram"&&x!==lh);
     if(!pool.length){log(`The Battering Ram on ${coord(r,c)} can't be harmed by blows: it has to be captured or destroyed.`);break}
@@ -758,6 +760,7 @@ function adjacentJokers(r,c,of){
 const capMana=j=>(j.captured||[]).reduce((a,c)=>a+soulOf(c),0);
 function bury(card,r,c,st){
   const owner=st.owner;
+  if(card.withTree){delete card.withTree;toDark(card);return}   // v78j: what falls with the Tree goes where it goes
   if(card.puppet){toDark(card);log(`A Puppet falls into the Outer Darkness.`);return}   // v48: Puppets always go to the Outer Darkness
   if(econBury(card,r,c,st))return;   // Demon kills are counted; what the Bank's Debt Collectors kill goes to the Ether
   if(card.upgraded){card.maxHp=2;card.upgraded=false}   // an upgraded Ace loses the extra heart when it falls
@@ -826,6 +829,7 @@ function eliminate(pl,why){
   if(!shared){for(const c of P.deck.splice(0))dump(c);for(const c of P.souls.splice(0))dump(c)}
   if(!toOD)shuffle(G.grave);
   log(toOD?`${plName(pl)}'s hand and deck fall into the Outer Darkness.`:`${plName(pl)}'s hand and deck go to the grave, and the grave is shuffled.`);
+  if(G.moonLev&&G.moonLev.owner===pl){const L=G.moonLev;G.moonLev=null;L.card.hp=L.card.maxHp;toDark(L.card);log("With its master gone, the Leviathan falls from the moon into the Outer Darkness.","event")}   // v78j
   if(G.active===pl&&G.waiter){const f=G.waiter;G.waiter=null;stopTimer();f()}   // v78j: out on their own turn: it ends (it waited for a button they no longer have)
 }
 
@@ -1397,10 +1401,14 @@ const AI=(()=>{
   const jit=pl=>1+(Math.random()*2-1)*L(pl).noise;
   const PUSH={atk:1.5,def:.2,dist:1.1,ally:0,k:"push"},OFF={atk:1.3,def:.7,dist:.35,ally:.1,k:"off"},DEF={atk:.8,def:1.35,dist:.06,ally:.35,k:"def"},HORDE={atk:1.5,def:.35,dist:.7,ally:.05,k:"horde"};   // v70c: k names the stance, so a copy (Field Automation mixes its own) is still recognised
   let cache=new Map();
-  const key=st=>st.cards.map(c=>c.id+(c.hp||"")).join(".")+(st.odds||"");
+  const key=st=>st.cards.map(c=>c.id+(c.hp||"")).join(".")+(st.odds||"")+(st.down?"d":"")+(st.supp?"s":"")+(st.mars?"m":"");
+  /* v78j: what the computer knows of an enemy stack: one it sees only the back of counts as that many middling cards */
+  const known=(pl,r,c,E)=>E&&showsBack(pl,r,c)?{...E,cards:E.cards.map(()=>({id:-1,rank:"7",suit:"S",color:"black",owner:E.owner}))}:E;
   function winP(A,D,n,mode){
     const k=key(A)+"|"+key(D)+"|"+(mode||"");if(cache.has(k))return cache.get(k);
-    const w0=weaponOf(A,mode),fa=hasK(A,"satan")?null:netFx(A.odds,hated(A)?"dis":null,hated(D)?"adv":null),fd=hasK(D,"satan")?null:netFx(D.odds,hated(D)?"dis":null);
+    // the same odds as the fight itself: face down (twice at a disadvantage attacking, at an advantage defending), Suppress, Mars
+    const w0=weaponOf(A,mode),fa=hasK(A,"satan")?null:netFx(A.odds,hated(A)?"dis":null,hated(D)?"adv":null,A.down?"dis":null,A.down?"dis":null,A.supp?"dis":null,A.mars?"adv":null),
+      fd=hasK(D,"satan")?null:netFx(D.odds,hated(D)?"dis":null,D.down?"adv":null);
     let w=0;for(let i=0;i<n;i++){const a=rollStack(A,"atk",D,fa,w0),d=rollStack(D,"def",A,fd);if(a.total>d.total)w++}
     let p=w/n;
     // v48: the landing roll: a Crit Miss on 1 (not Puppets), an Assassin's dodge, a Crit Hit on 20 (19 for three Puppets)
@@ -1437,7 +1445,7 @@ const AI=(()=>{
      "groups" goes in small groups. Computers take the game's setting (or each its own way); Field Automation takes the player's. */
   function hillDist(r,c){let F=pcache.get("hill");
     if(!F){F=Array.from({length:G.rows},()=>Array(COLS).fill(99));const q=[];
-      for(let a=HILL[0];a<=HILL[1];a++)for(let b=HILL[0];b<=HILL[1];b++)if(a<G.rows&&b<COLS){F[a][b]=0;q.push([a,b])}
+      for(let [h0,h1]=hillSpan(),a=h0;a<=h1;a++)for(let b=h0;b<=h1;b++)if(a<G.rows&&b<COLS){F[a][b]=0;q.push([a,b])}
       for(let i=0;i<q.length;i++){const [a,b]=q[i];for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){const x=a+dr,y=b+dc;if(x<0||y<0||x>=G.rows||y>=COLS||isVoid(x,y)||F[x][y]<=F[a][b]+1)continue;F[x][y]=F[a][b]+1;q.push([x,y])}}
       pcache.set("hill",F)}
     return F[r][c]>=99?30:F[r][c]}
@@ -1498,7 +1506,7 @@ const AI=(()=>{
     const inReach=(er,ec)=>su?su.some(w=>w.reach==="charge"?(r===er&&Math.abs(c-ec)<=3&&Math.abs(c-ec)>=2)||(c===ec&&Math.abs(r-er)<=3&&Math.abs(r-er)>=2):reaches(w.reach,r,c,er,ec)):adjacent(r,c,er,ec,diag);
     let near=99;
     for(const e of enemyStacks(pl)){
-      const E=e.st,d=walk(r,c,e.r,e.c);near=Math.min(near,d);
+      const E=known(pl,e.r,e.c,e.st),d=walk(r,c,e.r,e.c);near=Math.min(near,d);
       if(hits&&!E.hypo&&!shielded(E.owner)&&inReach(e.r,e.c)){
         const p=winP(SA,E,n);let sc=shot?p*gain(E):p*gain(E)-(1-p)*loss(S);
         const ring=stacksOf(pl).filter(x=>x.st!==S&&adjacent(x.r,x.c,e.r,e.c,false)).length;sc+=ring*(FAX&&FAX.pl===pl&&FAX.ring!=null?FAX.ring:.3);
@@ -1563,7 +1571,7 @@ const AI=(()=>{
       return (Math.min(3,fog*.13)-stacksOf(pl).filter(x=>hasK(x.st,"lighthouse")).length*2.5-(enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=1)?1:0))*jit(pl)}
     if(u==="wall")return ((isFront(pl,r,c)?3:1.5)+(enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=3)?1:0)-stacksOf(pl).filter(x=>hasK(x.st,"wall")).length*1.5)*jit(pl);
     if(u==="miner"){if(t&&hasK(t,"ace"))return (t.cards.filter(x=>x.unit==="miner").length<3?4.5:-1)*jit(pl);if(t)return -1;   // v69: two Miners to an Ace, no more
-      const cr=(G.crystals||[]).filter(x=>!G.board[x.r][x.c]||G.board[x.r][x.c].owner===pl);if(!cr.length)return -1;
+      const cr=(G.crystals||[]).filter(x=>!G.board[x.r][x.c]||G.board[x.r][x.c].owner===pl||!seesTile(pl,x.r,x.c));if(!cr.length)return -1;   // v78j: what it can't see looks free
       return (3.2-Math.min(...cr.map(x=>dist(x.r,x.c,r,c)))*.25-(enemyStacks(pl).some(e=>dist(e.r,e.c,r,c)<=1)?2:0))*jit(pl)}
     if(u==="archer"||u==="cannon")return (t?(hasBase(t)?4+(enemyStacks(pl).some(e=>Math.max(Math.abs(e.r-r),Math.abs(e.c-c))<=3)?1:0):2):(isBack(pl,r,c)?2.2:1.4))*jit(pl);
     if(u==="healer")return (t?2+value(t)/6:-.5)*jit(pl);
@@ -1614,7 +1622,7 @@ const AI=(()=>{
       if(Math.random()<lv.skipMove)return;
       if(FAX&&FAX.pl===pl&&FAX.hold&&FAX.hold(st,o.r,o.c))return;   // v72a: Focus on ambush: an ambusher near the enemy holds its ground
       if(st.cards.every(c=>c.unit==="miner"))return;   // lone Miners have their own errands
-      let grp=st.cards.filter(c=>!isBase(c)&&!c.faLock&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter))&&!(c.unit==="miner"&&crystalAt(o.r,o.c)));   // v71n: a Miner digging a crystal stays at it   // v65: cards locked in place stay   // Miners, Repairmen and shooters stay in their base
+      let grp=st.cards.filter(c=>!isBase(c)&&!(c.faLock&&faOn(pl))&&!(hasBase(st)&&c.unit&&(c.unit==="miner"||c.unit==="repair"||UNIT[c.unit].shooter))&&!(c.unit==="miner"&&crystalAt(o.r,o.c)));   // v71n: a Miner digging a crystal stays at it   // v65: cards locked in place stay   // Miners, Repairmen and shooters stay in their base
       if(!grp.length||st.stun)return;
       if(FAX&&!FAX.ok(grp))return;   // Field Automation: a stack it doesn't control stays where the player put it
       if(!stackLegal(grp)){ // too many to leave together (a full Ace): send out the strongest group that can stand on its own
@@ -1653,7 +1661,8 @@ const AI=(()=>{
       try{
       for(const o of attackOptions(r,c)){
         if(FAX&&!FAX.okAtk(st,o))continue;   // Field Automation: only the cards it controls
-        const r2=o.r,c2=o.c,E=G.board[r2][c2];
+        const r2=o.r,c2=o.c,E=known(pl,r2,c2,G.board[r2][c2]);
+        if(E&&(FAX&&FAX.pl===pl||!G.p[E.owner].cpu)&&(!isEnemy(pl,E.owner)||G.dip&&typeof dipAllied==="function"&&dipAllied(pl,E.owner)))continue;   // v78j
         if(o.mode==="capture"||o.mode==="destroy"||o.mode==="ram"){const sc=(o.mode==="capture"?value(E)+2:o.mode==="ram"?3.5:value(E)*.8+.5)*jit(pl);if(!best||sc>best.sc)best={r,c,r2,c2,sc,p:1,mode:o.mode};continue}
         if(o.mode==="suppress"){if(lvl(pl)!=="easy"&&canAttackFrom({cards:E.cards,attacked:false})&&Math.random()<.12){const sc=.45;if(!best||sc>best.sc)best={r,c,r2,c2,sc,p:1,mode:o.mode}}continue}
         const p0=o.mode==="stomp"?(E.pin?0:.62):winP(o.A||st,E,lv.mc,o.mode),p=o.ranged||o.mode==="stomp"?Math.min(1,p0+(1-p0)*.6):p0;   // a ranged miss (or a failed Stomp) costs nothing
@@ -1700,10 +1709,10 @@ const AI=(()=>{
   async function sacrifices(pl,target,keep){
     const P=G.p[pl];
     while(mana(pl)<target&&P.hand.length>keep){
-      const c=[...P.hand].filter(c=>mana(pl)+soulOf(c)<=soulCap(pl)&&kind(c)!=="ace"&&kind(c)!=="joker"&&canSacCard(c)&&!(c.unit==="scout"&&fogOn()&&scoutsOf(pl).length<2)&&!keepSupport(pl,c)).sort((a,b)=>rate(a)-rate(b))[0];
+      const c=[...P.hand].filter(c=>mana(pl)+soulOf(c)<=soulCap(pl)&&mana(pl)+handSacRange(c)[1]<=surCap(pl)&&kind(c)!=="ace"&&kind(c)!=="joker"&&canSacCard(c)&&!(c.unit==="scout"&&fogOn()&&scoutsOf(pl).length<2)&&!keepSupport(pl,c)).sort((a,b)=>rate(a)-rate(b))[0];
       if(!c)break;
       if(rate(c)>14&&mana(pl)>=2)break;
-      sacrifice(c,"hand");await step();
+      if(sacrifice(c,"hand")===false)break;await step();   // v78j: refused: don't try it again and again
     }
   }
   async function necro(pl){
@@ -2035,7 +2044,7 @@ function askHuman(pl,spec){
 /* v45: a long list of cards to pick from (the grave, a hand, the Outer Darkness) reads like the Ether: tabs by kind of card,
    each kind under its heading, and the same card folded into one button with a count */
 const pickKey=c=>[c.unit||"",c.rank,c.suit||"",c.color||"",c.puppet?"p":"",c.hp!=null?c.hp:""].join("|");
-function pickTabsHTML(groups,n){return `<div class="pktabs" role="tablist"><button type="button" class="pktab on" data-pt="all">All <b>${n}</b></button>${groups.map(([k,l])=>`<button type="button" class="pktab" data-pt="${k}">${k} <b>${l.length}</b></button>`).join("")}</div>`}
+function pickTabsHTML(groups,n){return `<div class="pktabs" role="tablist"><button type="button" class="pktab on" role="tab" aria-selected="true" data-pt="all">All <b>${n}</b></button>${groups.map(([k,l])=>`<button type="button" class="pktab" role="tab" aria-selected="false" data-pt="${k}">${k} <b>${l.length}</b></button>`).join("")}</div>`}
 function pickCardsHTML(cards,opt,extra){const btn=(c,i,n)=>{const x=extra?extra(i):null;return `<span class="ecount${x?" priced":""}"><button class="pk" data-i="${i}" aria-label="${esc(nameOf(c))}${n>1?` (${n})`:""}${x?`, ${x.tag}`:""}" ${x&&x.off?'disabled data-tip="You can\'t afford this one."':""}>${face(c,opt(c))}</button>${n>1?`<b>×${n}</b>`:""}${x?`<small class="pkprice${x.off?" off":""}">${x.tag}</small>`:""}</span>`};
   if(cards.length<=8)return `<div class="pickrow">${cards.map((c,i)=>btn(c,i,1)).join("")}</div>`;
   const idx=new Map(cards.map((c,i)=>[c,i])),groups=pileGroups([...cards]);
@@ -2454,7 +2463,7 @@ ${lookExtras(i,S,n)}
 const val=name=>{const e=document.querySelector(`input[name="${name}"]:checked`);return e&&e.value};
 const chk=(id,label,sub,on)=>`<label class="chk"><input type="checkbox" id="${id}" ${on?"checked":""}> <span><b>${label}</b>${sub?`<small>${sub}</small>`:""}</span></label>`;
 function showStart(){
-  if(G)G.over=true;
+  if(G)G.over=true;try{AUD.setAmb(null)}catch(e){}   // v78j: the eclipse's or the Blood Moon's sound ends with the game
   applyMoonTheme();
   const q0=new URLSearchParams(location.search).get("mode"),q=q0==="cpu"?"local":q0;
   if(!startMode&&MODES.some(m=>m[0]===q))startMode=q;
@@ -2626,8 +2635,10 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
         if(k==="ffa")o.querySelector(".gmn").textContent=n===2?"1v1":"Free For All"});
       $("#teamn").hidden=gm!=="teams";document.querySelectorAll("input[name=oteamn]").forEach(i=>{i.checked=(i.value==="fac")===(L==="factions");const no=i.value==="two"&&n<4;i.disabled=no;i.closest(".opt").classList.toggle("off",no)});
       $("#teamarr").hidden=gm!=="teams"||L==="factions";if(gm==="teams")document.querySelectorAll("input[name=oteamarr]").forEach(i=>{i.checked="team-"+i.value===L;const no=i.value==="same"&&n>4;i.disabled=no;i.closest(".opt").classList.toggle("off",no)})}
-    const key=L+(L==="coop"?n:"");if(key!==curLayout){
-      if(L==="factions"){const F=Math.min(4,Math.max(3,Math.ceil(n/2)));seatsS.forEach((S,i)=>S.team=i%F)}else seatsS.forEach(S=>{S.team=(S.team|0)%2});   // v73d: factions deal the seats out; two sides fold back
+    const key=L+(L==="coop"||L==="factions"?n:"");if(key!==curLayout){   // v78j: factions count the players too
+      if(L==="factions"){const F=Math.min(4,Math.max(3,Math.ceil(n/2)));seatsS.forEach((S,i)=>S.team=i%F)}
+      else if(String(curLayout||"").startsWith("factions"))seatsS.forEach((S,i)=>S.team=i%2);   // out of factions: two even sides
+      else seatsS.forEach(S=>{S.team=(S.team|0)%2});   // v73d: factions deal the seats out; two sides fold back
       curLayout=key;sizeUp()}
     if($("#kothopts")){$("#kothopts").hidden=L!=="koth";{const sm=document.querySelector('input[name=okfield][value=small]');if(sm){const no=n>4;sm.disabled=no;sm.closest(".opt").classList.toggle("off",no);if(no&&sm.checked)document.querySelector('input[name=okfield][value=hill]').checked=true}}SEAT_KOTH_TEAM=$("#okteam").checked;$("#oktug").disabled=!SEAT_KOTH_TEAM;kothMapUp(L)}
     $("#laynote").textContent=mode==="survival"?(n===1?"One survivor holds the bottom of the field.":`${n} survivors share the bottom of the field, and the Horde spawns once for each of you. Any seat can be a computer; people take their turns one after another on this device, and the Horde moves first each round.`):"";
@@ -2678,7 +2689,7 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
   $("#oturns").addEventListener("change",()=>{$("#oturns").dataset.touched=1;turnUp()});
   $("#ocorners").addEventListener("change",()=>$("#ocorners").dataset.touched=1);
   $("#pcount").addEventListener("change",drawSeats);
-  document.querySelectorAll('input[name=obig],input[name=oxsize]').forEach(i=>i.addEventListener("change",()=>crossUp(count())));   // v73c
+  document.querySelectorAll('input[name=obig],input[name=oxsize]').forEach(i=>i.addEventListener("change",()=>{const n=count(),L=layout();crossUp(n,L==="factions"||L.startsWith("team")&&n>4)}));   // v73c; v78j: with the same rule as drawSeats
   document.querySelectorAll('input[name=obig]').forEach(i=>i.addEventListener("change",()=>$("#sizeset").classList.toggle("survbig",mode==="survival"&&val("obig")==="long")));
   $("#odip").addEventListener("change",()=>{$("#odip").dataset.touched=1});   // v73b: the large map has its own size
   document.querySelectorAll('input[name=olayout]').forEach(i=>i.addEventListener("change",drawSeats));
@@ -2739,7 +2750,8 @@ ${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"h
     if($("#onosubs").checked)players.forEach(p=>{p.tribe="plain"});   // v70d: No Emanations: everyone plays by the plain rules
     for(const t of Object.keys(TRIBES))if(t!=="random"&&t!=="plain"&&players.filter(p=>p.tribe===t).length>1){flash(`Only one player can be ${TRIBES[t].name}: no two players share an Emanation.`);return}
     {const picked=players.filter(p=>!TRIBES[p.tribe].color&&p.color!=="random");if(new Set(picked.map(p=>p.color)).size<picked.length){flash("Every player needs a different color.");return}}   // Random finds a free color at the start
-    if(L==="koth"&&$("#okteam").checked){players.forEach((p,i)=>p.team=seatsS[i].team?1:0);if(!players.some(p=>p.team===0)||!players.some(p=>p.team===1)){flash("Each side needs at least one player.");return}}
+    if(L==="koth"&&$("#okteam").checked){players.forEach((p,i)=>p.team=seatsS[i].team?1:0);if(!players.some(p=>p.team===0)||!players.some(p=>p.team===1)){flash("Each side needs at least one player.");return}
+      if(val("okfield")==="cross"&&[0,1].some(t=>players.filter(p=>p.team===t).length>4)){flash("A side holds four players at most on the Cross: two to an arm.");return}}   // v78j
     if(L==="factions"){const fs=new Map();players.forEach((p,i)=>{p.team=seatsS[i].team|0;fs.set(p.team,(fs.get(p.team)||0)+1)});   // v73d
       if(fs.size<3){flash("Faction mode needs players in at least three factions.");return}
       if([...fs.values()].some(v=>v>2)){flash("A faction holds two players at most: they spawn side by side on its own side.");return}}
@@ -2777,6 +2789,10 @@ window.__EC={get G(){return G},startGame,stackLegal,canPlace,nextPhase,render,AI
 const PHONE_Q="(pointer:coarse) and (max-width:1000px), (max-width:600px)";
 const isPhone=()=>typeof matchMedia!=="undefined"&&matchMedia(PHONE_Q).matches;
 const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{}")}catch(e){}
+  if(!p||typeof p!=="object"||Array.isArray(p))p={};   // v78j: an object, whatever is stored
+  for(const k of ["ci","ui","tz","bright","sfxVol","allVol","musicVol","mapOp"])if(k in p){const n=p[k]==null||p[k]===""?NaN:+p[k];if(Number.isFinite(n))p[k]=n;else delete p[k]}   // numbers, not text
+  for(const k of ["fxOff","fxOffEach","shut","subBan","planetBan"])if(k in p&&!Array.isArray(p[k]))delete p[k];   // lists
+  if(p.fxFull!=null&&!(typeof p.fxFull==="object"&&Array.isArray(p.fxFull.off)))delete p.fxFull;
   // v20: full width is the default on a computer screen (once; a later choice sticks)
   if(!p.v20){p.v20=1;if(typeof matchMedia!=="undefined"&&matchMedia("(min-width:901px)").matches)p.full=true}
   // v38: on a phone the Selected box sits above the spells by default (once; a later choice sticks)
@@ -2784,9 +2800,9 @@ const PREF=(()=>{let p={};try{p=JSON.parse(localStorage.getItem("ec-prefs2")||"{
   // v43: the Ether's Crossroads theme is the default (once, for anyone who had never chosen a theme)
   if(!p.v43t){p.v43t=1;if(p.theme==null||p.theme==="")p.theme="darkfantasy"}
   return Object.assign({hand:"below",sel:"bottom",ctl:"bottom",ci:1,ui:1,tz:1,coords:true,full:false,theme:"darkfantasy",lines:true,bright:1},p)})();
-const sfxV=()=>Math.max(0,Math.min(1.5,PREF.sfxVol==null?1:+PREF.sfxVol));   // v43: the sound effects' volume, 0 to 150%
+const sfxV=()=>{const n=PREF.sfxVol==null?1:+PREF.sfxVol;return Number.isFinite(n)?Math.max(0,Math.min(1.5,n)):1};   // v43: the sound effects' volume, 0 to 150%
 /* v78c: All sound scales the effects and the music together; each source of sound has its own volume too (0 to 150%) */
-const volOf=v=>Math.max(0,Math.min(1.5,v==null?1:+v));
+const volOf=v=>{const n=v==null?1:+v;return Number.isFinite(n)?Math.max(0,Math.min(1.5,n)):1};   // v78j: never NaN
 const allV=()=>volOf(PREF.allVol);
 const SND_SRC=[["ui","Buttons and cards"],["table","Placing and moving"],["battle","Battle"],["dice","Dice"],["mana","Mana and decks"],["spells","Spells"],["sky","The sky's sounds"],["amb","Ambience"]];
 const srcV=k=>volOf(PREF.srcVol&&PREF.srcVol[k]);
@@ -2862,7 +2878,7 @@ function confirmLeave(go){
   let box=$("#leavebox");if(!box){box=document.createElement("div");box.id="leavebox";document.body.appendChild(box)}
   box.innerHTML=`<div class="ovbox" role="alertdialog" aria-labelledby="lvq"><button type="button" class="xclose" id="lvx" aria-label="Keep playing">×</button><h2 id="lvq">Are you sure you want to end your game session?</h2><p class="dim">The game in progress will be lost.</p><p class="acts"><button class="btn" id="lvy">End the session</button> <button class="btn ghost" id="lvn">Keep playing</button></p></div>`;
   box.hidden=false;$("#lvn").focus();
-  $("#lvy").onclick=()=>{box.hidden=true;leaving=true;go()};$("#lvn").onclick=$("#lvx").onclick=()=>{box.hidden=true};   // v78g: × (X, Esc) keeps playing too
+  $("#lvy").onclick=()=>{box.hidden=true;leaving=true;go()};$("#lvn").onclick=$("#lvx").onclick=()=>{box.hidden=true;armBackTrap()};   // v78g: × (X, Esc) keeps playing too; v78j: and the Back catch is set again
 }
 function guardLinks(){
   document.querySelectorAll(".game .crumbs a").forEach(a=>a.addEventListener("click",e=>{if(!inGame()||e.ctrlKey||e.metaKey||e.shiftKey)return;e.preventDefault();confirmLeave(()=>{location.href=a.href})}));
@@ -2872,9 +2888,9 @@ let backTrap=false;
 function armBackTrap(){if(backTrap||!inGame())return;try{history.pushState({ecGame:1},"",location.href);backTrap=true}catch(e){}}
 addEventListener("popstate",()=>{if(!backTrap)return;backTrap=false;
   if(!inGame())return;
-  confirmLeave(()=>{history.back()});
-  const keep=$("#lvn");if(keep)keep.addEventListener("click",armBackTrap,{once:true})});
+  confirmLeave(()=>{history.back()})});
 addEventListener("beforeunload",e=>{if(inGame()&&!G.opts.fast&&!leaving){e.preventDefault();e.returnValue=""}});
+{const _sg=startGame;startGame=function(){leaving=false;return _sg.apply(this,arguments)}}   // v78j: each game asks
 {const _rd=render;render=function(){rSafe(_rd,this,arguments);armBackTrap()}}
 
 /* passages from the book, for whoever is waiting */
@@ -2942,7 +2958,7 @@ function mapPlan(o){
     sides.slice(0,n).forEach((sd,i)=>{const t=five(big?bigEdge(sd).back:edgeTiles(sd,rows,cols));seats.push({side:sd,rot:SIDES[sd].rot,fwd:SIDES[sd].fwd,back:t,zone:t});teams.push(L==="ffa"?i:i%2)});
   }else if(L==="team-same"){
     // v78a: teammates on the same side hold both spawn rows, half the width each (sharing comes only by leave: Diplomacy)
-    const h=Math.floor(cols/2),L1=allc.slice(0,h),R1=allc.slice(h);
+    const h=Math.floor(allc.length/2),L1=allc.slice(0,h),R1=allc.slice(h);   // v78j: half of the columns that spawn
     seats.push(mk2("bottom",L1,2),mk2("top",L1,2),mk2("bottom",R1,2),mk2("top",R1,2));teams.push(0,1,0,1);
   }else if(L==="coop"){
     const h=n-1,w=Math.floor(cols/h);
@@ -3144,8 +3160,9 @@ function substanceRound(){
   for(const P of G.p){
     if(P.out||P.tribe!=="jester"||G.moon.round%2)continue;
     const t=treeOf(P.i);if(!t)continue;
-    if(t.st.cards.length>6){log(`The Tree is full: no Puppet grows for ${plName(P.i)}.`);continue}
-    const c=mk("2",pick(["S","H","D","C"]));c.puppet=true;c.owner=P.i;t.st.cards.push(c);
+    const c=mk("2",pick(["S","H","D","C"]));c.puppet=true;c.owner=P.i;
+    if(t.st.cards.length>6||!stackLegal([...t.st.cards,c])){log(`The Tree is full: no Puppet grows for ${plName(P.i)}.`);continue}   // v78j: as a stack would hold it
+    t.st.cards.push(c);
     log(`A free Puppet grows in ${plName(P.i)}'s Tree on ${coord(t.r,t.c)}.`);notify(P.i,`A Puppet grows in ${esc(P.name)}'s Tree.`);
   }
 }
@@ -3419,6 +3436,7 @@ function round2(){
   // Deconjured takes the next Full Moon
   if(G.noConjure&&G.moon.i!==4)G.noConjure=false;
   if(G.deconjure&&G.moon.i===4){G.deconjure=false;G.noConjure=true;log("<b>Deconjured</b>: no one can conjure under this Full Moon.","event")}
+  else if(G.deconjure&&G.moon.gone)G.deconjure=false;   // v78j: no Moon, no Full Moon to close
   // every Debt Collector still standing raises Saturn's price
   if(G.moon.gone==="saturn"){const n=G.board.flat().filter(s=>s&&hasK(s,"debt")).length;if(n){G.saturnDebt=(G.saturnDebt||0)+n;log(`Saturn's price rises by ${n}: each enemy now pays ${1+G.saturnDebt} a turn.`)}}
   // the Leviathan's toll at every New Moon
@@ -3468,7 +3486,7 @@ async function lightningLeviathan(){
 }
 
 /* ---------- the Leviathan on the moon can be attacked at the New Moon ---------- */
-const moonAttackable=st=>!!(G.moonLev&&levNew()&&st&&canAttackFrom(st)&&isEnemy(st.owner,G.moonLev.owner));
+const moonAttackable=st=>!!(G.moonLev&&levNew()&&st&&st.owner===G.active&&canAttackFrom(st)&&isEnemy(st.owner,G.moonLev.owner));   // v78j: your own
 function attackMoon(r,c){
   const A=G.board[r][c],L=G.moonLev,D={owner:L.owner,cards:[L.card]};
   const ra=rollStack(A,"atk",D,hasK(A,"satan")?null:netFx(A.odds,hated(A)?"dis":null),weaponOf(A)),rd=rollStack(D,"def",A,"adv");
@@ -3578,15 +3596,15 @@ SPELLS.push(
      log(`${plName(pl)} stifles ${plName(t)}'s Delusion: ${9-D.maxCut} mana at most, ${3-D.diceCut}d2 a turn.`);
    }}},
  {id:"deconj",tribe:"lucifer",name:"Deconjured",cost:2,dice:"2 or 2+1d2",school:"Curse",text:"Choose one. Full curse (2 + 1d2 mana, rolled each round): no one can conjure during the next Full Moon, and the grave gives nothing at the next New Moon. Short curse (2 mana): no one, you included, can conjure during the next round.",
-  ok:()=>!G.deconjure&&!G.noConjure&&!G.noConjureRound,run:async()=>{
+  ok:()=>!G.deconjure&&!G.noConjure&&!(G.noConjureRound>=G.moon.round),run:async()=>{   // v78j: the one-round curse ends
    const pl=G.active,full=G.prices.deconj||3,extra=full-2,opts=[{id:"short",label:"Short curse (2 mana)",sub:"No one can conjure next round."}];
    if(mana(pl)>=extra&&G.moon.i>=0)opts.unshift({id:"full",label:`Full curse (${full} mana)`,sub:"No conjuring at the next Full Moon, and no grave gift at the next New Moon."});
    const ch=await ask(pl,{kind:"choice",id:"deconj",title:"Deconjured",options:opts,ai:()=>opts[0].id});
    if(ch==="full"){if(extra)pay(pl,extra);G.deconjure=true;G.noGraveNext=true;log(`<b>Deconjured</b>: ${plName(pl)} closes the Ether at the next Full Moon and the grave at the next New Moon.`,"event");notify(pl,"Deconjured: no conjuring at the next Full Moon, no grave gift at the next New Moon.")}
    else{G.noConjureRound=G.moon.round+1;log(`<b>Deconjured</b>: ${plName(pl)} closes the Ether to everyone for the next round.`,"event");notify(pl,"Deconjured: no one can conjure next round.")}}},
  {id:"joy",tribe:"lucifer",name:"Pleasure and Joy",cost:0,dice:"1+1d2 or 1d3−1",school:"Curse",text:"Choose one, until your next turn. Pleasure and Joy (1 + 1d2 mana): your cards glow in your color, and those that are killed go back into your deck instead of the grave. Joyful Theft (1d3 − 1 mana): every damage an enemy deals to your units takes 1 mana from that enemy and gives it to you.",
-  ok:()=>!me().joy&&!me().theft&&mana(G.active)>=Math.min(G.prices.joyA||2,G.prices.joyB||1),run:async()=>{
-   const pl=G.active,a=G.prices.joyA||2,b=G.prices.joyB||1,opts=[];
+  ok:()=>!me().joy&&!me().theft&&mana(G.active)>=Math.min(G.prices.joyA||2,G.prices.joyB!=null?G.prices.joyB:1),run:async()=>{
+   const pl=G.active,a=G.prices.joyA||2,b=G.prices.joyB!=null?G.prices.joyB:1,opts=[];   // v78j: a 0 is free
    if(mana(pl)>=a)opts.push({id:"joy",label:`Pleasure and Joy (${a} mana)`,sub:"Your killed cards go back into your deck."});
    if(mana(pl)>=b)opts.push({id:"theft",label:`Joyful Theft (${b} mana)`,sub:"Every damage dealt to your units steals 1 mana from whoever dealt it."});
    const ch=await ask(pl,{kind:"choice",id:"joy",title:"Pleasure and Joy",options:opts,cancel:"Cancel",ai:()=>opts[opts.length-1].id});
@@ -4175,19 +4193,19 @@ const lonely=t=>!hasBase(t)&&t.cards.every(c=>c.unit&&(UNIT[c.unit].sup||c.unit=
 const CAPT_ORDER=["cannon","healer","repair","ram","miner"];
 const captureCard=t=>[...t.cards].sort((a,b)=>CAPT_ORDER.indexOf(a.unit)-CAPT_ORDER.indexOf(b.unit))[0];
 function canCapture(A,t){const x=captureCard(t);if(x.unit==="ram")return stackLegal([...A.cards,x]);return !A.captive}
-function takeCaptive(A,x){x.capturedFrom=x.owner;x.owner=A.owner;x.inSlot=null;x.readyAt=0;A.captive=x}
+function takeCaptive(A,x){clearMarks(x);x.capturedFrom=x.owner;x.owner=A.owner;x.inSlot=null;x.readyAt=0;A.captive=x}
 /* v78j: a stack left with no cards leaves its tile, and what it held captive goes free (sacrifices, Teleport, God Hunger
    and the like emptied stacks without it, and the captive was lost) */
 function vacate(r,c,st){if(st.cards.length)return false;G.board[r][c]=null;freeCaptive(st,r,c);return true}
 function freeCaptive(st,r,c){const x=st.captive;if(!x)return;st.captive=null;const o=x.capturedFrom;
-  if(o!=null&&G.p[o]&&!G.p[o].out&&!G.board[r][c]&&!isVoid(r,c)){x.owner=o;x.capturedFrom=null;G.board[r][c]={owner:o,cards:[x],moved:true,attacked:true};log(`The captured ${esc(nameOf(x))} on ${coord(r,c)} breaks free and goes back to ${plName(o)}.`)}
+  if(o!=null&&G.p[o]&&!G.p[o].out&&!G.board[r][c]&&!isVoid(r,c)){clearMarks(x);x.owner=o;x.capturedFrom=null;G.board[r][c]={owner:o,cards:[x],moved:true,attacked:true};log(`The captured ${esc(nameOf(x))} on ${coord(r,c)} breaks free and goes back to ${plName(o)}.`)}
   else{toGrave(x,"death")}}
 function takeSupport(r1,c1,r2,c2,mode){
   const A=G.board[r1][c1],T=G.board[r2][c2],x=captureCard(T),from=T.owner;A.attacked=true;G.lastAttack=G.turnNo;
   if(A.ambush)A.ambush=false;
-  T.cards.splice(T.cards.indexOf(x),1);if(!T.cards.length)G.board[r2][c2]=null;
+  T.cards.splice(T.cards.indexOf(x),1);vacate(r2,c2,T);
   if(mode==="destroy"){log(`<b>${plName(A.owner)}</b> destroys ${plName(from)}'s ${esc(nameOf(x))} on ${coord(r2,c2)}.`,"combat");bury(x,r2,c2,T)}
-  else if(x.unit==="ram"){x.owner=A.owner;A.cards.push(x);log(`<b>${plName(A.owner)}</b> captures ${plName(from)}'s Battering Ram on ${coord(r2,c2)}: it joins the stack on ${coord(r1,c1)}.`,"combat")}
+  else if(x.unit==="ram"){clearMarks(x);x.owner=A.owner;A.cards.push(x);log(`<b>${plName(A.owner)}</b> captures ${plName(from)}'s Battering Ram on ${coord(r2,c2)}: it joins the stack on ${coord(r1,c1)}.`,"combat")}
   else{takeCaptive(A,x);log(`<b>${plName(A.owner)}</b> captures ${plName(from)}'s ${esc(nameOf(x))} on ${coord(r2,c2)} into the capture slot of the stack on ${coord(r1,c1)}.`,"combat")}
   if(!G.board[r2][c2])freeCaptive(T,r2,c2);
   checkWin();return{win:true,line:""};
@@ -4855,8 +4873,8 @@ Object.assign(UNIT_ICON,{
 /* a Heavenly Body that starts in the sky keeps out the Emanation it would serve */
 const skyBlocked=sky=>sky==="saturn"?["yald"]:["mars","sun","venus","jupiter","mercury"].includes(sky)?["firm"]:[];
 const isFirm=pl=>!!(G.p[pl]&&G.p[pl].tribe==="firm");
-/* the Leviathan's New Moon: the real New Moon, or every eighth round while it coils on Mars */
-const levNew=()=>G.moon.i===0&&!G.moon.gone||G.moon.gone==="mars"&&G.moon.round%8===1;
+/* the Leviathan's New Moon: the real New Moon, or every eighth round while it coils on a planet (v78j: any it may rise to) */
+const levNew=()=>G.moon.i===0&&!G.moon.gone||["mars","venus","jupiter","mercury"].includes(G.moon.gone)&&G.moon.round%8===1;
 
 /* ---------- the start of a turn: Mars, the moon's Miner, the end of Rain ---------- */
 function skyTurn(pl){
@@ -5102,7 +5120,7 @@ SPELLS.push(
   ok:()=>oathFree("jupiter"),run:async()=>{toggleOath("jupiter")}},
  {id:"cry",tribe:"yald",name:"The Sun Cries",cost:0,school:"Sorcery",text:"Free, once every 1d3 turns, while the Second Sun burns: Yaldabaoth makes it weep. Three times and its flames go out: the Black Sun. Then the Firmament that raised it pays you 1d2 mana or 1d2 deck cards every 1d2 of its turns.",
   ok:()=>sunUp()&&tnOf(G.active)>=(me().cryReady||0),run:async()=>{const P=me();P.cryReady=tnOf(G.active)+R(3);G.sunTears=(G.sunTears||0)+1;
-   if(G.sunTears>=3){G.moon.gone="blacksun";G.blackBy=G.active;applyMoonTheme();G._vis=null;for(const Q of G.p)if(Q.oath==="earth")Q.oath=null;
+   if(G.sunTears>=3){G.moon.gone="blacksun";G.blackBy=G.active;applyMoonTheme();G._vis=null;
      log(`<b>The Sun cries a third time</b> and its flames go out: <b>the Black Sun</b>.`,"event");popup("The Black Sun",`<p>${plName(G.active)} makes the Second Sun weep a third time. Its flames go out.</p><p>The fog of war returns. The Firmament that raised it now pays Yaldabaoth 1d2 mana or 1d2 deck cards every 1d2 of its turns.</p>`,G.active)}
    else{log(`<b>The Sun cries</b> (${G.sunTears} of 3): ${plName(G.active)}'s Yaldabaoth dims it.`,"event");applyMoonTheme()}}}
 );
@@ -5548,7 +5566,7 @@ const SPELL_TEXT={
  // Necromancy
  ritual:{e:"Adds 3d6 to this turn's Grave Blessing for every one you buy.",l:"Cast it before the Grave Blessing, as often as you like. Not when Grave Blessing can't be cast."},
  bless:{e:"Roll 1d6, plus 1d6 for each of your Aces on the field (six at most), plus 3d6 for every Ritual Dice bought this turn. For every 6, raise a card of your choice from the grave into your hand.",l:"Once a turn, before any other mana is spent. Every card you overdrew into the grave takes one of the first six dice away; Ritual Dice aren't cut."},
- suicide:{n:"Select your stack with a Joker.",e:"The Joker shoots itself. The souls it captured go to your soul pile, up to 6 mana; the rest go to the grave.",l:"Only before you spend mana this turn. Under a Blood Moon the Joker and its souls fall into the Outer Darkness instead."},
+ suicide:{n:"Select your stack with a Joker.",e:"The Joker shoots itself. The souls it captured fall into the Outer Darkness and their worth comes to you as mana; the Joker goes back into your deck. (With that rule unticked in setup: the souls go to your soul pile, up to 6 mana, and the rest to the grave.)",l:"Only before you spend mana this turn. Under a Blood Moon the Joker and its souls fall into the Outer Darkness instead."},
  sever:{e:"For this turn, an enemy killed beside your Joker is sent to the Ether instead of being captured. You pay half its conjuring price.",l:"Cast again to disarm it."},
  resur:{e:"Choose a card in the grave and take it into your hand.",l:"Needs room in your hand."},
  libation:{n:"Select one of your stacks, check the cards to pour out, and press Pour.",e:"Each card rolls 1d2. On a 2 you gain its soul's mana; on a 1 it goes to the grave for nothing.",l:"Not under the Full Moon. Once a turn."},
@@ -6188,7 +6206,7 @@ function moonWhisper(){
   setTimeout(()=>{w.className=""},4200)}
 {const _sk=skyCapMod;skyCapMod=function(P){let m=_sk(P);if(P&&G&&moonFullNow()&&P.oath==="moon")m+=2;return m}}
 {const _nm=newMoonGift;newMoonGift=async function(){
-  if(G.noGraveNext&&!G.moon.blood)return _nm();
+  if(G.noGraveNext&&!G.moon.blood){for(const P of G.p)P.moonNoGrave=false;return _nm()}   // v78j
   // a player who broke the Moon's demand gets nothing from this New Moon
   const skip=G.p.filter(P=>P.moonNoGrave&&!P.out);
   if(skip.length){log(`${skip.map(P=>plName(P.i)).join(", ")} get${skip.length===1?"s":""} nothing from this New Moon: no Joker gave itself before the Full Moon.`,"event")}
@@ -6990,7 +7008,7 @@ let bankTab="bank";
   const other=document.createElement("div");other.className="btab p2p";other.dataset.t="p2p";other.innerHTML=p2pHTML(V);
   const n=loanReqsFor(V).length;
   const tabs=document.createElement("div");tabs.className="btabs";tabs.setAttribute("role","tablist");
-  tabs.innerHTML=`<button type="button" class="stab" data-bt="bank">The Bank</button><button type="button" class="stab" data-bt="p2p">Between players${n?` <i class="bang">!</i>`:""}</button><button type="button" class="stab" data-bt="land">Land</button>`;
+  tabs.innerHTML=`<button type="button" role="tab" class="stab" data-bt="bank">The Bank</button><button type="button" role="tab" class="stab" data-bt="p2p">Between players${n?` <i class="bang">!</i>`:""}</button><button type="button" role="tab" class="stab" data-bt="land">Land</button>`;
   const land=document.createElement("div");land.className="btab land";land.dataset.t="land";land.innerHTML=landHTML(V);
   h2.after(tabs);tabs.after(main);main.after(other);other.after(land);
   const show=t=>{bankTab=t;tabs.querySelectorAll("[data-bt]").forEach(b=>{const on=b.dataset.bt===t;b.classList.toggle("on",on);b.setAttribute("aria-selected",on)});main.hidden=t!=="bank";other.hidden=t!=="p2p";land.hidden=t!=="land"};
@@ -7338,7 +7356,7 @@ const AUD=(()=>{
 /* ---------- what plays when ---------- */
 const sndSees=(r,c)=>{const V=view();return !totalBlind(V)&&!fogTile(V,r,c)};
 /* buttons and cards */
-document.addEventListener("click",e=>{if(!G||!e.target.closest)return;
+document.addEventListener("click",e=>{if(!G||G.over||!e.target.closest)return;   // v78j: before and after a game, site.js clicks
   const card=e.target.closest(".cardbtn,.pk,.myscard.back,#board .tile");
   if(card){if(!card.matches(".tile")||card.querySelector(".stack"))AUD.card();return}
   if(e.target.closest("button,summary,label.opt,label.chk,select"))AUD.ui()},true);
@@ -8315,7 +8333,7 @@ async function faRun(pl,ph){if(!faOn(pl)||G.over)return;const was=G.busy;G.busy=
 function setFieldAuto(pl,on,cfg){
   if(!G||!G.p[pl]||isNPC(pl)||!faAllowed())return;if(NET.ctx!=null&&NET.ctx!==pl)return;
   const P=G.p[pl],prev=P.fa||{},c=faClean(cfg);P.fa={on:!!on,cfg:c,rushUntil:prev.rushUntil};
-  if(c.rush>0&&(!prev.cfg||prev.cfg.rush!==c.rush||prev.rushUntil==null||G.moon.round>prev.rushUntil))P.fa.rushUntil=G.moon.round+c.rush-1;
+  if(c.rush>0&&(!prev.cfg||prev.cfg.rush!==c.rush||prev.rushUntil==null||on&&!prev.on))P.fa.rushUntil=G.moon.round+c.rush-1;   // v78j
   if(!c.rush)P.fa.rushUntil=null;
   if(!!prev.on!==!!on){log(`${plName(pl)} ${on?"hands the field to the computer (Field Automation on)":"takes the field back (Field Automation off)"}.`,"event");
 }
@@ -8614,7 +8632,7 @@ function paintSndTop(){const b=$("#sndtop");if(b){b.textContent="Sound: "+(SND.o
   for(const [k] of SND_SRC)show("mSrc_"+k,Math.round(srcV(k)*100))}
 function wireAudioSliders(){const all=$("#mAll"),a=$("#mSfx"),m=$("#mMus");
   if(all)all.oninput=()=>{const v=+all.value/100;if(!v){if(SND.on)SND.toggle()}else{PREF.allVol=v;savePrefs();if(!SND.on)SND.toggle()}paintSndTop();sndVol()};
-  if(a)a.oninput=()=>{const v=+a.value/100;if(!v){if(SND.on)SND.toggle()}else{PREF.sfxVol=v;savePrefs();if(!SND.on)SND.toggle()}paintSndTop();sndVol()};
+  if(a)a.oninput=()=>{const v=+a.value/100;PREF.sfxVol=v;savePrefs();if(v&&!SND.on)SND.toggle();paintSndTop();sndVol()};   // v78j: 0 is the effects alone
   if(m)m.oninput=()=>{const v=+m.value/100;if(!v)PREF.music=false;else{PREF.music=true;PREF.musicVol=v;if(!SND.on)SND.toggle()}savePrefs();paintSndTop();sndVol()};
   for(const [k] of SND_SRC){const s=$("#mSrc_"+k);if(s)s.oninput=()=>{PREF.srcVol=Object.assign({},PREF.srcVol,{[k]:+s.value/100});savePrefs();paintSndTop();sndVol()}}
   paintSndTop()}
@@ -9150,7 +9168,7 @@ function forgiveLoan(L){if(!L||!["open","late"].includes(L.state))return;L.state
 function giftMana(from,to,n){n=Math.min(Math.max(0,Math.round(n)),mana(from));if(n<=0||from===to||!G.p[to]||G.p[to].out)return 0;
   const paid=payQuiet(from,n),got=giveMana(to,paid);log(`${plName(from)} gives ${plName(to)} ${paid} mana${got<paid?` (${got} fit in the soul pile)`:""}.`,"event");return got}
 function giftCard(from,to,id){const P=G.p[from],Q=G.p[to],c=P.hand.find(x=>x.id===id);if(!c||!Q||Q.out||from===to)return false;
-  P.hand.splice(P.hand.indexOf(c),1);c.owner=to;if(Q.hand.length<handCap(to))Q.hand.push(c);else{Q.deck.push(c);shuffle(Q.deck)}
+  P.hand.splice(P.hand.indexOf(c),1);clearMarks(c);c.owner=to;if(Q.hand.length<handCap(to))Q.hand.push(c);else{Q.deck.push(c);shuffle(Q.deck)}
   log(`${plName(from)} gives ${plName(to)} a card.`,"event");notify(to,`${esc(P.name)} gives ${esc(Q.name)} a card.`);return true}
 for(const [name,get,set] of [["forgiveLoan",()=>forgiveLoan,f=>forgiveLoan=f,a=>[a[0].id],a=>[p2pOf().find(x=>x.id===a[0])]],["giftMana",()=>giftMana,f=>giftMana=f],["giftCard",()=>giftCard,f=>giftCard=f]]){
   NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;const args=name==="forgiveLoan"?[a[0].id]:a;
@@ -9219,13 +9237,15 @@ const FX_PARTS=[["moves","Cards moving"],["strikes","Strikes and hits"],["deaths
   ["spells","Spell signs and bursts"],["weather","Weather: rain, wind, lightning, meteors"],["fire","Fire on the field"],["fog","The fog drifting"],["sky","The sky's shimmer"],
   ["glow","Glowing notices"],["blood","The Blood Moon's screen effects"],["banners","Crit Hit and Miss banners"]];
 const FX_PART={slide:"moves",strike:"strikes",hit:"strikes",blunt:"strikes",boom:"strikes",burst:"strikes",smoke:"deaths",skull:"deaths",pour:"mana",fill:"mana",dollar:"mana",pop:"mana",
-  shuffle:"shuffles",wisp:"shuffles",sigil:"spells",symbol:"spells",area:"spells",spell:"spells",meteor:"weather",lightning:"weather",wind:"weather",rain:"weather",flames:"fire",fogroll:"fog"};
+  shuffle:"shuffles",wisp:"shuffles",sigil:"spells",symbol:"spells",area:"spells",meteor:"weather",lightning:"weather",wind:"weather",rain:"weather",flames:"fire",fogroll:"fog"};
 const fxPartOn=k=>!(PREF.fxOff||[]).includes(k);
 /* v59: the fog's drifting is off by default (once, for everyone; it can be switched back on in the Menu). v74f: off again, once
    more for everyone (Performance Settings, "The fog drifting") */
 if((PREF.fogMig|0)<2){PREF.fxOff=[...new Set([...(PREF.fxOff||[]),"fog"])];if(PREF.fxFull&&Array.isArray(PREF.fxFull.off))PREF.fxFull.off=[...new Set([...PREF.fxFull.off,"fog"])];if(Array.isArray(PREF.fxOffEach))PREF.fxOffEach=[...new Set([...PREF.fxOffEach,"fog"])];PREF.fogMig=2;savePrefs()}
-for(const [m,k] of Object.entries(FX_PART)){const f=FX[m];if(typeof f!=="function")continue;FX[m]=function(){if(!fxPartOn(k))return m==="spell"?true:undefined;return f.apply(this,arguments)}}
-{const _cf=castFX;castFX=function(){if(!fxPartOn("spells"))return;return _cf.apply(this,arguments)}}
+for(const [m,k] of Object.entries(FX_PART)){const f=FX[m];if(typeof f!=="function")continue;FX[m]=function(){if(!fxPartOn(k))return;return f.apply(this,arguments)}}
+{const _cf=castFX;castFX=function(sp,pl,sel,fires){if(fxPartOn("spells"))return _cf.apply(this,arguments);
+  // v78j: with the signs and bursts off, the spell's fire and weather still follow their own switches
+  if(FX.flames)(fires||[]).filter(([r,c])=>FX.sees(r,c)).forEach(([r,c],i)=>FX.flames(FX.tile(r,c),i*40));if(FX.spell)FX.spell(sp,sel,pl)}}
 {const _cb=critBanner;critBanner=function(){if(!fxPartOn("banners"))return;return _cb.apply(this,arguments)}}
 {const _ap=applyPrefs;applyPrefs=function(){_ap.apply(this,arguments);for(const k of ["fog","fire","sky","glow","blood"])document.documentElement.classList.toggle("still-"+k,!fxPartOn(k))}}
 /* the Menu: a fold of switches under the two big ones */
@@ -9934,7 +9954,8 @@ function camWire(w){
     if(moved){w.scrollLeft=drag.l-dx;w.scrollTop=drag.t-dy}});
   addEventListener("pointerup",()=>{if(!drag)return;drag=null;w.classList.remove("dragging");if(moved)setTimeout(()=>{moved=false},0)});
   w.addEventListener("click",e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false}},true)}   // a drag is not a click on a tile
-const typing=t=>!!(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)));
+const typing=t=>!!(t&&(t.isContentEditable||t.tagName==="TEXTAREA"||t.tagName==="SELECT"||
+  t.tagName==="INPUT"&&/^(text|search|number|email|password|url|tel|date|time|datetime-local|month|week)$/.test(t.type)));   // v78j: fields you type in
 /* v77a: a held key moves the field smoothly, two at once on a diagonal (W and A: up and to the left); E zooms in, Q out */
 const CAM_DIR={camUp:[0,-1],camDown:[0,1],camLeft:[-1,0],camRight:[1,0]};   // v78b: WASD (the arrow keys move the field's selector, 98b_fieldkeys.js); v78d: as bound
 const CAMK=new Set();let camRaf=0,camT=0,camFast=false;
@@ -9942,7 +9963,7 @@ function camTick(t){camRaf=0;if(!CAMK.size||!isLarge()){camT=0;return}const dt=c
   for(const k of CAMK){dx+=CAM_DIR[k][0];dy+=CAM_DIR[k][1]}
   if(dx||dy){const n=Math.hypot(dx,dy),v=.9*camSpeed()*(camFast?2.2:1)*dt;camPan(dx/n*v,dy/n*v)}
   camRaf=requestAnimationFrame(camTick)}
-const camBlocked=()=>!!document.querySelector("#ov:not([hidden]) .ovbox, #menu:not([hidden]), #facfg:not([hidden]), #rbwin:not([hidden])");
+const camBlocked=()=>!!document.querySelector("#ov:not([hidden]) .ovbox, #menu:not([hidden]), #facfg:not([hidden]), #rbwin:not([hidden])")||!!kbTop();   // v78j: any window
 document.addEventListener("keydown",e=>{if(!isLarge()||typing(e.target)||camBlocked())return;
   const inv=PREF.camInvKeys?-1:1,d=Object.keys(CAM_DIR).find(id=>kmIs(e,id));camFast=e.shiftKey;
   if(d){e.preventDefault();if(!CAMK.has(d)){CAMK.add(d);if(!camRaf){camT=0;camRaf=requestAnimationFrame(camTick)}}return}
@@ -9979,7 +10000,8 @@ if(window.__EC)Object.assign(window.__EC,{camZoom,camPan,isLarge,CAM});
 let SEAT_KOTH_TEAM=true;
 const KOTH_N=25,KOTH_C=12,HILL=[10,14],TEAM_COL=["#d7333b","#4c92e6"];
 const kothOn=()=>!!(G&&G.opts&&G.opts.layout==="koth"&&G.opts.koth);
-const isHill=(r,c)=>r>=HILL[0]&&r<=HILL[1]&&c>=HILL[0]&&c<=HILL[1];
+const hillSpan=()=>G&&G.map&&G.map.hill||HILL;   // v78j: the map carries it
+const isHill=(r,c)=>{const [a,b]=hillSpan();return r>=a&&r<=b&&c>=a&&c<=b};
 
 /* ---------- the field ---------- */
 const KOTH_SPOTS=[{side:"top",r:0,c:0},{side:"top",r:0,c:11},{side:"top",r:0,c:22},{side:"right",r:11,c:23},{side:"bottom",r:23,c:22},{side:"bottom",r:23,c:11},{side:"bottom",r:23,c:0},{side:"left",r:11,c:0}];   // clockwise from the top left
@@ -10019,7 +10041,7 @@ const kothGroup=pl=>G.opts.koth.team?"t"+G.p[pl].team:"p"+pl;
 const kothGroupName=g=>g[0]==="t"?(g==="t0"?"Side A":"Side B"):G.p[+g.slice(1)].name;
 const kothGroupColor=g=>g[0]==="t"?TEAM_COL[+g.slice(1)]||"#ddd":G.p[+g.slice(1)].color;
 function kothHolders(){const h=new Map();
-  for(let r=HILL[0];r<=HILL[1];r++)for(let c=HILL[0];c<=HILL[1];c++){const st=G.board[r][c];if(!st||isNPC(st.owner)||isHorde(st.owner)||!G.p[st.owner]||G.p[st.owner].out)continue;const g=kothGroup(st.owner);h.set(g,(h.get(g)||0)+1)}
+  for(let [h0,h1]=hillSpan(),r=h0;r<=h1;r++)for(let c=h0;c<=h1;c++){const st=G.board[r][c];if(!st||isNPC(st.owner)||isHorde(st.owner)||!G.p[st.owner]||G.p[st.owner].out)continue;const g=kothGroup(st.owner);h.set(g,(h.get(g)||0)+1)}
   return h}
 function kothRound(){const K=G.opts.koth,S=G.koth||(G.koth={score:{},tug:0,last:null});if(G.moon.round<1)return;
   const h=[...kothHolders().keys()],pts=K.double?2:1;
@@ -10030,7 +10052,9 @@ function kothRound(){const K=G.opts.koth,S=G.koth||(G.koth={score:{},tug:0,last:
   if(K.contest&&h.length>1){S.last="The Hill is contested: nobody scores.";log(`<b>King of the Hill</b>: ${S.last}`);return}
   for(const g of h)S.score[g]=(S.score[g]||0)+pts;
   S.last=h.map(g=>`${kothGroupName(g)} +${pts} (${S.score[g]})`).join(", ");log(`<b>King of the Hill</b>: ${S.last}.`,"event");
-  const won=h.filter(g=>S.score[g]>=K.target).sort((a,b)=>S.score[b]-S.score[a])[0];if(won)kothWin(won,`held the Hill to ${S.score[won]} points`)}
+  const top=h.filter(g=>S.score[g]>=K.target).sort((a,b)=>S.score[b]-S.score[a]),won=top[0];
+  if(won&&top.length>1&&S.score[top[1]]===S.score[won]){log(`<b>King of the Hill</b>: ${top.filter(g=>S.score[g]===S.score[won]).map(kothGroupName).join(" and ")} are tied at ${S.score[won]}: the Hill plays on.`,"event");return}   // v78j
+  if(won)kothWin(won,`held the Hill to ${S.score[won]} points`)}
 function kothWin(g,why){if(G.over)return;const w=g[0]==="t"?alive().find(i=>!isNPC(i)&&G.p[i].team===+g.slice(1)):+g.slice(1);if(w==null)return;end(w,`${kothGroupName(g)} ${why}`)}
 {const _nr=newRound;newRound=async function(){if(kothOn()&&!G.over)try{kothRound()}catch(e){console.error(e)}if(G.over)return;return _nr.apply(this,arguments)}}
 
@@ -10049,7 +10073,7 @@ function kothWin(g,why){if(G.over)return;const w=g[0]==="t"?alive().find(i=>!isN
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(!G)return;let bar=$("#kothbar");
   if(!kothOn()){if(bar)bar.remove();return}
   const K=G.opts.koth,S=G.koth||(G.koth={score:{},tug:0,last:null}),hold=new Map();
-  for(let r=HILL[0];r<=HILL[1];r++)for(let c=HILL[0];c<=HILL[1];c++){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(!t)continue;t.classList.add("hilltile");
+  for(let [h0,h1]=hillSpan(),r=h0;r<=h1;r++)for(let c=h0;c<=h1;c++){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(!t)continue;t.classList.add("hilltile");
     const st=G.board[r][c];if(st&&!isNPC(st.owner)&&G.p[st.owner]){t.style.setProperty("--hc",cbMap(kothGroupColor(kothGroup(st.owner))));t.style.setProperty("--ho",cbMap(G.p[st.owner].color));t.classList.add("held")}}
   for(const [g] of kothHolders())hold.set(g,true);
   if(!bar){bar=document.createElement("div");bar.id="kothbar";const w=$(".camwrap")||$("#board");w.parentNode.insertBefore(bar,w)}
@@ -10166,7 +10190,7 @@ function kothFillEther(decks){const per=kothDeckCounts(),have={};for(const c of 
 const CROWN_SVG=c=>`<svg viewBox="-12 -12 24 24" width="16" height="16" aria-hidden="true"><path d="M-9,6L-10,-6L-4,-1L0,-9L4,-1L10,-6L9,6Z" fill="${c}" stroke="#15100b" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
 function kothMercs(pl){const K=G.opts.koth;if(K.target<100||isNPC(pl)||isHorde(pl)||!G.p[pl]||G.p[pl].out)return;
   const g=kothGroup(pl);if(!kothHolders().has(g)||R(4)!==1)return;
-  const ring=[];for(let r=HILL[0]-2;r<=HILL[1]+2;r++)for(let c=HILL[0]-2;c<=HILL[1]+2;c++){if(isHill(r,c)||isVoid(r,c)||G.board[r][c])continue;ring.push([r,c])}
+  const ring=[],[h0,h1]=hillSpan();for(let r=h0-2;r<=h1+2;r++)for(let c=h0-2;c<=h1+2;c++){if(isHill(r,c)||isVoid(r,c)||G.board[r][c])continue;ring.push([r,c])}
   shuffle(ring);const stacks=Math.min(ring.length,2+R(2)-1);let cards=0;
   for(let i=0;i<stacks;i++){const [r,c]=ring[i],n=1+R(3),cs=Array.from({length:n},()=>{const x=mk(String(1+R(9)),pick(["S","H","D","C"]));x.owner=pl;x.merc=true;return x});
     if(!stackLegal(cs))cs.splice(1);G.board[r][c]={owner:pl,cards:cs,moved:true,attacked:true,merc:g};cards+=cs.length}
@@ -10382,15 +10406,15 @@ function mineSlots(V){const out=[];if(!G||V==null||!G.p[V]||G.phase==="setup")re
     const cr=crystalAt(r,c);if(cr)out.push({k:"cr:"+r+"."+c,kind:"cr",name:"Crystal",at:coord(r,c),sub:`${cr.left} left`,r,c,st,ms,cap:1})}
   for(const p of G.plots||[])if(p.owner===V)out.push({k:"plot:"+p.i,kind:"plot",name:`Plot ${p.i+1}`,at:"land from the Bank",p,ms:p.miners,cap:1});
   const MM=G.moonMiner,ML=G.moonLev,mine=MM&&MM.owner===V,lev=ML&&ML.owner===V;
-  if(mine||lev)out.push({k:"moon",kind:"moon",name:"The Moon",at:lev?"the Leviathan's":"",ms:mine?[MM.card]:[],lev:lev?ML.card:null,cap:1});
+  if(mine||lev&&!G.moon.gone)out.push({k:"moon",kind:"moon",name:"The Moon",at:lev?"the Leviathan's":"",ms:mine?[MM.card]:[],lev:lev?ML.card:null,cap:1});
   return out}
 /* can the Miner picked in the hand go into this slot now? */
 function mineFits(s,V){const m=G&&G.selHand;if(!m||m.unit!=="miner"||G.active!==V||G.phase!=="prep"||!canAct())return false;
   if(s.kind==="ace"||s.kind==="cr")return s.st.owner===V&&stackLegal([...s.st.cards,m]);
   if(s.kind==="plot")return !s.p.miners.length;
-  if(s.kind==="moon")return !!s.lev&&!G.moonMiner;return false}
+  if(s.kind==="moon")return !!s.lev&&!G.moonMiner&&!G.moon.gone;return false}   // v78j
 /* the Moon's mining slot, held by the Leviathan's player */
-function moonPlant(pl){const ML=G.moonLev,m=G.p[pl].hand.find(x=>x.unit==="miner");if(!ML||ML.owner!==pl||G.moonMiner||!m)return false;
+function moonPlant(pl){const ML=G.moonLev,m=G.p[pl].hand.find(x=>x.unit==="miner");if(!ML||ML.owner!==pl||G.moonMiner||!m||G.moon.gone)return false;   // v78j: the Moon must be in the sky
   G.p[pl].hand.splice(G.p[pl].hand.indexOf(m),1);m.owner=pl;G.moonMiner={owner:pl,card:m};G.selHand=null;
   log(`${plName(pl)} sends a Miner up to the Moon, where the Leviathan keeps watch: it mines from the next turn.`);return true}
 NETFN.moonPlant={get:()=>moonPlant,set:f=>moonPlant=f};{const orig=moonPlant;moonPlant=function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:"moonPlant",args:netClean(a),ui:uiSnap(),rid})}}
@@ -10430,7 +10454,7 @@ if(window.__EC)Object.assign(window.__EC,{mineSlots,mineStats,moonPlant:(...a)=>
    picked in the hand, the Repairmen's tiles glow blue ---------- */
 const nearRepair=(pl,r,c)=>stacksOf(pl).some(({st,r:a,c:b})=>st.cards.some(x=>x.unit==="repair")&&(a-r)**2+(b-c)**2<=5);   // a round circle of two
 {const _cp=canPlace;canPlace=function(card,r,c){if(_cp.apply(this,arguments))return true;
-  if(!G||!card||kind(card)!=="wall"||G.phase==="setup"||isVoid(r,c)||G.board[r][c])return false;return nearRepair(G.active,r,c)}}
+  if(!G||!card||kind(card)!=="wall"||G.phase==="setup"||isVoid(r,c)||fogTile(G.active,r,c)||G.board[r][c])return false;return nearRepair(G.active,r,c)}}   // v78j: seen tiles only
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!G.selHand||kind(G.selHand)!=="wall")return;
   for(const {st,r,c} of stacksOf(G.active))if(st.cards.some(x=>x.unit==="repair")){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(t)t.classList.add("repsrc")}}}
 if(INFO.wall)INFO.wall[2]=INFO.wall[2].map(([k,v])=>k==="Moves"?[k,"never; it goes up on any empty tile of your spawn lines, or on any empty tile within two of one of your Repairmen"]:[k,v]);
@@ -11764,13 +11788,13 @@ const crysCfg=pl=>{const s=faState(pl);return faEff(s&&s.cfg)};
 const crysRest=pl=>{const P=G.p[pl];return !!(P&&P.crysOff!=null&&G.moon.round<P.crysOff)};
 const crysMd=(a,b,c,d)=>Math.abs(a-c)+Math.abs(b-d);
 /* the cards of a stack that would set out (not bases, locked cards, Miners, or what keeps an Ace) */
-const crysGrp=st=>st.cards.filter(x=>!isBase(x)&&!x.faLock&&x.unit!=="miner"&&!(hasBase(st)&&x.unit&&(x.unit==="repair"||UNIT[x.unit].shooter)));
+const crysGrp=st=>st.cards.filter(x=>!isBase(x)&&!(x.faLock&&faOn(st.owner))&&x.unit!=="miner"&&!(hasBase(st)&&x.unit&&(x.unit==="repair"||UNIT[x.unit].shooter)));
 const crysFighter=x=>!(x.unit&&UNIT[x.unit]&&UNIT[x.unit].noDef);
 /* the stacks that can go: a fighter among the cards that would set out, all of them under Field Automation, free to move */
 function crysCands(pl,c){return stacksOf(pl).filter(({st})=>{if(st.stun||st.pin)return false;const g=crysGrp(st);return g.length>0&&g.some(crysFighter)&&g.every(x=>faControls(x,c))&&!g.some(x=>x.faCrys)})}
 function crysGuards(pl){const out=[];for(const {st,r,c} of stacksOf(pl)){const cards=st.cards.filter(x=>x.faCrys);if(cards.length)out.push({st,r,c,g:cards[0].faCrys,cards})}return out}
 const crysHasMiner=pl=>{const P=G.p[pl];return [...P.hand,...P.deck].some(x=>x.unit==="miner")||stacksOf(pl).some(({st})=>!hasBase(st)&&st.cards.some(x=>x.unit==="miner"))};
-const crysFree=pl=>(G.crystals||[]).filter(x=>{const t=G.board[x.r][x.c];return !(t&&isEnemy(pl,t.owner))});
+const crysFree=pl=>(G.crystals||[]).filter(x=>{const t=G.board[x.r][x.c];return !(t&&isEnemy(pl,t.owner)&&seesTile(pl,x.r,x.c))});   // v78j: as far as it can see
 const crysKey=(r,c)=>r+"."+c;
 /* a guard stands down when its crystal is gone, its rounds are up, or Focus on crystals is off or resting */
 function crysTidy(pl,c){const off=!c.crys||crysRest(pl);
@@ -11816,7 +11840,7 @@ async function crysPrep(pl){const P=G.p[pl],c=crysCfg(pl);crysTidy(pl,c);if(!c.c
 const crysOn=E=>(G.crystals||[]).find(x=>G.board[x.r]&&G.board[x.r][x.c]===E)||null;
 {const _fc=faCtx;faCtx=function(pl){const ctx=_fc.apply(this,arguments),c=crysCfg(pl);if(!c.crys||crysRest(pl))return ctx;
   const sc=faScales(c,pl),over=!c.crysStance&&!c.crysLives,w=over?8:2.2*sc.crystals,stay=over?2:1;   // with neither, it outweighs everything the ranking does, and once there it holds
-  const foeCr=c.crysFight?(G.crystals||[]).filter(x=>{const t=G.board[x.r][x.c];return t&&isEnemy(pl,t.owner)}):[];
+  const foeCr=c.crysFight?(G.crystals||[]).filter(x=>{const t=G.board[x.r][x.c];return t&&isEnemy(pl,t.owner)&&seesTile(pl,x.r,x.c)}):[];
   const held=new Set(crysGuards(pl).map(gd=>crysKey(gd.g.r,gd.g.c)));
   ctx.crys=(S,r,cc,walk)=>{const g=S.cards.find(x=>x.faCrys&&x.faCrys.on);
     if(g){const d=walk(r,cc,g.faCrys.r,g.faCrys.c);return w*Math.min(d,30)-(d===0?stay:0)}
@@ -12227,7 +12251,7 @@ const rbWinOpen=()=>{const w=$("#rbwin");return !!w&&!w.hidden};
 const rbAbove=()=>{const p=$("#pop");return !!p&&!p.hidden&&p.getClientRects().length>0&&p.innerHTML.trim()!==""};   // a popup over the rule book takes the keys
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&rbWinOpen()&&!rbAbove()){rbClose();e.stopPropagation();e.preventDefault()}},true);
 window.addEventListener("keydown",e=>{if(!rbWinOpen())return;const nx=kmIs(e,"rbNext");if(!nx&&!kmIs(e,"rbPrev"))return;   // v78d: Space and Shift+Space, as bound
-  const a=document.activeElement;if(a&&a.matches&&(a.matches("input[type=search],input[type=text],textarea,select")||a.matches("input[type=checkbox],input[type=radio],summary")&&$("#rbwin").contains(a)))return;   // typing a space; ticking an option or opening a fold in the book
+  const a=document.activeElement;if(a&&a.matches&&(typing(a)||a.matches("input[type=checkbox],input[type=radio],summary")&&$("#rbwin").contains(a)))return;   // v78j: typing()   // typing a space; ticking an option or opening a fold in the book
   if(rbAbove())return;   // a popup over the book: Space is its own
   e.preventDefault();e.stopImmediatePropagation();rbStep("win",nx?1:-1)},true);
 /* the folds: in Help below Further explanations, and at the bottom of the page; each an option */
@@ -12724,9 +12748,11 @@ function fsQuote(){const o=fsOv("fsquote"),q=$("#qtext"),s=$("#qsrc");
   $("#fsqN").onclick=next;$("#fsqX").onclick=()=>{o.hidden=true;const b=$("#fsQuote");if(b)b.focus()}}
 function fsCloseAll(){fsHelpClose();for(const id of ["fsquote","fsctl"]){const o=$("#"+id);if(o)o.hidden=true}fsResume();const m=$("#fsrowM");if(m)m.hidden=true;const mo=$("#moon");if(mo)mo.classList.remove("fsopen")}
 document.addEventListener("keydown",e=>{if(!fsOn()||e.key!=="Escape")return;
-  const q=$("#fsquote"),hp=$("#fshelp"),pz=$("#fspause"),ct=$("#fsctl");if(ct&&!ct.hidden){ct.hidden=true;e.preventDefault();return}
+  const q=$("#fsquote"),hp=$("#fshelp"),pz=$("#fspause");
+  for(const o of [$("#fsctl"),$("#fsrowmore")])if(o&&!o.hidden){o.hidden=true;e.preventDefault();return}   // v78j: and the row's More options
   if(q&&!q.hidden){q.hidden=true;e.preventDefault();return}if(hp&&!hp.hidden){fsHelpClose();e.preventDefault();return}if(pz&&!pz.hidden){fsResume();e.preventDefault();return}
-  if(document.fullscreenElement)return;if(typeof dialogOpen==="function"&&dialogOpen())return;e.preventDefault();fsPause()});   // without the browser's fullscreen, Esc pauses
+  if(document.fullscreenElement)return;if(typeof dialogOpen==="function"&&dialogOpen())return;if(kbTop())return;   // v78j: what is open closes first
+  e.preventDefault();fsPause()});   // without the browser's fullscreen, Esc pauses
 /* the start screen and a new game */
 {const _s=showStart;showStart=function(){if(fsOn())fsExit();return _s.apply(this,arguments)}}
 {const _sg=startGame;startGame=function(){const out=_sg.apply(this,arguments);if(fsOn())requestAnimationFrame(fsFit);return out}}
@@ -12737,6 +12763,8 @@ if(window.__EC)Object.assign(window.__EC,{fsEnter:()=>fsEnter(),fsExit:()=>fsExi
 document.addEventListener("keydown",e=>{if(!kmIs(e,"turn")||!G||G.over)return;   // v78d: Space, as bound
   const a=document.activeElement;if(a&&(a.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))return;
   if(a&&a!==document.body&&a.tagName==="BUTTON"&&!a.closest("#board,#hand"))return;   // a focused button keeps its own Space
+  if(e.repeat){e.preventDefault();return}   // v78j: held down, it fires once
+  if(KB.mode||kbTop())return;   // v78j: a spell list, the hand, a drawer or any window has the keys
   if([...document.querySelectorAll("#ov,#menu,#facfg,#fspause,#fshelp,#fsquote,#fsctl,#pop,#histpop,#rbwin,#clstgwin,#leavebox,.faov")].some(x=>!x.hidden&&x.getClientRects().length&&x.innerHTML.trim()))return;
   const n=$("#next");if(!n||n.disabled||!n.getClientRects().length)return;e.preventDefault();n.click()},true);
 /* v74a: the history of rolls opens above its button when there is no room below (the dice row at the bottom of fullscreen) */
@@ -12796,16 +12824,17 @@ function crossPlan(o){const two=o.big==="cross2",X=o.cross||{},small=X.size==="s
     pt.forEach((t,i)=>{const k=pt.slice(0,i).filter(x=>x===t).length,sd=arms[t?1:0][k%2];seats.push(box(sd,Math.floor(k/2)));teams.push(t?1:0)})}
   else if(two){
     if(n<=2||small){seats.push(arm("bottom"),arm("top"));teams.push(0,1)}
+    else if(L==="team-across"){const order=[box("bottom",0),box("bottom",1),box("top",0),box("top",1)].slice(0,n);seats.push(...order);teams.push(...order.map((_,i)=>i%2))}   // v78j: teammates on opposite arms
     else{const order=[box("bottom",0),box("top",0),box("bottom",1),box("top",1)].slice(0,n);seats.push(...order);teams.push(...order.map((_,i)=>L==="ffa"?i:i%2))}   // teammates share an arm
   }else if(L==="ffa"){(n===3?["bottom","left","right"]:["bottom","left","top","right"]).slice(0,n).forEach((sd,i)=>{seats.push(arm(sd));teams.push(i)})}
   else if(L==="team-same"&&!small){seats.push(box("bottom",0),box("top",0),box("bottom",1),box("top",1));teams.push(0,1,0,1)}
-  else if(L==="team-side"){["bottom","right","left","top"].forEach((sd,i)=>{seats.push(arm(sd));teams.push(i%2)})}   // teammates on arms side by side
+  else if(L==="team-side"||L==="team-same"){["bottom","right","left","top"].forEach((sd,i)=>{seats.push(arm(sd));teams.push(i%2)})}   // teammates on arms side by side (v78j: "same side" too on the small Cross, where an arm holds one)
   else if(L.startsWith("team")){["bottom","left","top","right"].forEach((sd,i)=>{seats.push(arm(sd));teams.push(i%2)})}   // teammates on opposite arms
   else{seats.push(arm("bottom"),arm("top"));teams.push(0,1)}
   return {theme,cols:N,rows:N,mid:true,corners:false,bridge:"left",void:V,seed:(Math.random()*1e9)|0,layout:L,seats,teams,big:o.big,large:true,
     cross:{small,two,hole:!!X.hole,hollow:!!X.hollow&&!small}}}
-{const _mp=mapPlan;mapPlan=function(o){if(o&&(o.big==="cross"||o.big==="cross2")&&o.mode!=="survival"&&o.layout!=="coop"){const M=crossPlan(o);if(o.layout==="koth"){const c=(M.cols-1)/2;HILL[0]=Math.floor(c);HILL[1]=Math.ceil(c)}return M}   // v73d: the Hill is the very middle
-  if(o&&o.layout==="koth"){HILL[0]=10;HILL[1]=14}return _mp.apply(this,arguments)}}
+{const _mp=mapPlan;mapPlan=function(o){if(o&&(o.big==="cross"||o.big==="cross2")&&o.mode!=="survival"&&o.layout!=="coop"){const M=crossPlan(o);if(o.layout==="koth"){const c=(M.cols-1)/2;HILL[0]=Math.floor(c);HILL[1]=Math.ceil(c);M.hill=[HILL[0],HILL[1]]}return M}   // v73d: the Hill is the very middle
+  if(o&&o.layout==="koth"){HILL[0]=10;HILL[1]=14}const M=_mp.apply(this,arguments);if(o&&o.layout==="koth"&&M)M.hill=[HILL[0],HILL[1]];return M}}
 /* off the map is darker on the crosses, so their shape reads at a glance */
 {const _r=render;render=function(){rSafe(_r,this,arguments);const B=$("#board");if(B)B.classList.toggle("bigvoid",!!(G&&G.map&&["plus","round","cross","cross2"].includes(G.map.big)))}}
 /* a large map opens on your own spawn (and on the next player's, when the device changes hands) */
@@ -12865,8 +12894,9 @@ function fsFoesHTML(){const V=view(),E=typeof nepEcState==="function"&&nepEcStat
   const L=G.p.filter(P=>P.i!==V&&!isNPC(P.i));
   return L.map(P=>{const n=P.deck.length,N=Math.max(1,P.start||n||1),m=mana(P.i)-(P.debt||0),cap=soulCap(P.i),act=P.i===G.active&&G.phase!=="setup";
     const pct=x=>Math.max(0,Math.min(100,x*100)).toFixed(0),q=E?"?":null;
-    return `<div class="fsfoe${P.out?" out":""}${act?" act":""}" style="--pc:${P.color}" title="${esc(P.name)}${P.cpu&&P.cpu!=="horde"?" · computer, "+P.cpu:""}">
-<span class="fsfn">${solidSVG(P.solid,P.color,13)}<b>${esc(P.name)}</b>${!isEnemy(P.i,V)?'<i class="fsally">ally</i>':""}${P.out?'<i class="fsout">out</i>':act?'<i class="fsact">▸</i>':""}</span>
+    const nm=E&&E.names&&E.names[P.i]!=null?E.names[P.i]:P.name;   // v78j: Neptune's eclipse lies here too
+    return `<div class="fsfoe${P.out?" out":""}${act?" act":""}" style="--pc:${P.color}" title="${esc(nm)}${!E&&P.cpu&&P.cpu!=="horde"?" · computer, "+P.cpu:""}">
+<span class="fsfn">${solidSVG(P.solid,P.color,13)}<b>${esc(nm)}</b>${!E&&!isEnemy(P.i,V)?'<i class="fsally">ally</i>':""}${P.out?'<i class="fsout">out</i>':act?'<i class="fsact">▸</i>':""}</span>
 ${P.cpu==="horde"?"":`<span class="fsfm" title="Deck ${q||n}"><span class="fsfbar"><i style="width:${q?50:pct(Math.min(n,N)/N)}%"></i></span><em>${q||n}</em></span>
 <span class="fsfm mana" title="Mana ${q||m}/${q||cap}"><span class="fsfbar"><i style="width:${q?50:pct(Math.max(0,m)/Math.max(1,cap))}%"></i></span><em>${q?"?/?":`${m}/${cap}`}</em></span>
 <span class="fsfh" title="Hand">✋${P.hand.length}</span>`}</div>`}).join("")}
@@ -13140,7 +13170,10 @@ function dipTrustSet(a,b,v){dipD().trust[a+">"+b]=Math.max(-100,Math.min(100,v))
 const trustTxt=v=>`${v>0?"+":v<0?"−":""}${Math.abs(Math.round(v))}`;
 const trustChip=v=>{const b=trustBand(v);return `<span class="trustchip" style="--tc:${b[2]}" title="Trust: ${b[1]}">${trustTxt(v)} <small>${b[1]}</small></span>`};
 function dipSet(a,b,s,extra){const D=dipD();D.rel[dipKey(a,b)]=Object.assign({s,since:G.moon.round},extra||{});G._vis=null;
-  if(s!=="ally"&&D.deals)D.deals=D.deals.filter(d=>!(d.ft===a&&d.tt===b||d.ft===b&&d.tt===a))}   // v75c: trade deals end with the alliance
+  if(s!=="ally"&&D.deals)D.deals=D.deals.filter(d=>!(d.ft===a&&d.tt===b||d.ft===b&&d.tt===a))   // v75c: trade deals end with the alliance
+  if(s!=="ally"&&G.ss){const A=dipPlayersOf(a),B=dipPlayersOf(b),cross=(x,y)=>A.includes(x)&&B.includes(y)||B.includes(x)&&A.includes(y);   // v78j: and so does leave to spawn
+    for(const k of Object.keys(G.ss.ok)){const [o,g]=k.split(">").map(Number);if(cross(o,g))delete G.ss.ok[k]}
+    G.ss.ask=(G.ss.ask||[]).filter(q=>!cross(q.from,q.to))}}
 /* the betrayer's penalties (8 rounds): the Banker disapproves */
 const dipPenOn=pl=>{const t=teamOf(pl),p=G&&G.dip&&t!=null&&G.dip.pen[t];return !!(p&&G.moon.round<=p.until)};
 
@@ -13191,7 +13224,8 @@ function dipPropose(pl,toT,kind,n,terms){if(!G||!dipOn()||NET.ctx!=null&&NET.ctx
   return true}
 function dipAnswer(pl,id,yes,counter){if(!G||NET.ctx!=null&&NET.ctx!==pl)return false;const D=dipD(),p=D.pend.find(x=>x.id===id);if(!p||p.to!==pl)return false;
   D.pend.splice(D.pend.indexOf(p),1);
-  if(counter&&p.kind==="peace"&&+counter!==p.n){log(`${plName(pl)} answers with ${dipKindTxt("peace",+counter)} instead.`,"event");
+  if(counter&&p.kind==="peace"&&+counter!==p.n){if(dipRel(p.ft,p.tt).s!=="war"){log(`The peace offer to ${plName(pl)} no longer holds: the two sides aren't at war.`,"event");render();return true}   // v78j
+    log(`${plName(pl)} answers with ${dipKindTxt("peace",+counter)} instead.`,"event");
     const hum=dipPlayersOf(p.ft).filter(i=>!G.p[i].cpu);
     if(hum.length&&dipRel(p.ft,p.tt).s==="war"){D.pend.push({id:++D.n,from:pl,ft:p.tt,tt:p.ft,kind:"peace",n:+counter,to:hum[0],round:G.moon.round});render();return true}
     if(aiDipAccept(p.ft,p.tt,"peace",+counter))dipApply("peace",p.tt,p.ft,+counter);else log(`${dipTN(p.ft)} decline${dipPlayersOf(p.ft).length>1?"":"s"} the counter.`,"event");render();return true}
@@ -13660,7 +13694,9 @@ function kmPretty(s){if(!s)return "";const c=kmParse(s);if(c.tap)return c.tap+" 
 const kmShort=s=>kmPretty(s).replace(/^Shift\+/,"⇧").replace(/ \(alone\)$/,"");
 /* the bindings in use */
 const kmState=()=>{const S=PREF.km&&typeof PREF.km==="object"?PREF.km:(PREF.km={});
-  if(typeof S.preset!=="string")S.preset="default";if(!S.map||typeof S.map!=="object")S.map={};if(!Array.isArray(S.mine))S.mine=[];if(S.auto==null)S.auto=true;return S};
+  if(typeof S.preset!=="string")S.preset="default";if(!S.map||typeof S.map!=="object")S.map={};if(!Array.isArray(S.mine))S.mine=[];if(S.auto==null)S.auto=true;
+  if(S.mine.some(p=>!p||typeof p!=="object"||typeof p.id!=="string"||!p.map||typeof p.map!=="object"))S.mine=S.mine.filter(p=>p&&typeof p==="object"&&typeof p.id==="string"&&p.map&&typeof p.map==="object");   // v78j
+  for(const p of S.mine)if(typeof p.name!=="string")p.name="Keys";return S};
 const kmBinds=id=>{const m=kmState().map[id];return Array.isArray(m)?m:KM_ACT[id]?KM_ACT[id].def:[]};
 /* the first binding as words (or all of them, "X or Esc") */
 const kmShow=(id,all)=>{const B=kmBinds(id).filter(Boolean);return B.length?(all?B.map(kmPretty).join(" or "):kmPretty(B[0])):"(no key)"};
@@ -13669,6 +13705,7 @@ const kmShow4=ids=>{const B=ids.map(id=>kmBinds(id).filter(Boolean)[0]||"");retu
 
 /* ---------- the keys held, and Ctrl or Shift pressed alone ---------- */
 const KM={held:new Map(),alone:null,top:new WeakMap()};
+addEventListener("wheel",()=>{KM.alone=null},{capture:true,passive:true});   // v78j
 addEventListener("keydown",e=>{const n=kmName(e.code,e.key);KM.held.set(e.code,n);KM.alone=(n==="Ctrl"||n==="Shift")&&!e.repeat?n:e.repeat&&KM.alone===n?n:null},true);
 addEventListener("keyup",e=>{KM.held.delete(e.code)},true);
 addEventListener("keyup",()=>{KM.alone=null});   // after every handler has read it
@@ -13726,19 +13763,20 @@ function kmMeet(a,b,shA,shB){const x=kmParse(a),y=kmParse(b);if(x.tap||y.tap)ret
   if(x.key!==y.key||x.ctrl!==y.ctrl||x.alt!==y.alt||x.meta!==y.meta||x.held.join("+")!==y.held.join("+"))return false;
   return x.shift===y.shift||!x.shift&&shA||!y.shift&&shB}
 /* the binding a new one would take from: same group, or Everywhere against any other */
-function kmClash(id,s){const A=KM_ACT[id];for(const B of KM_ACTS){const b=KM_ACT[B[0]];if(b.id===id||!(b.g===A.g||b.g==="any"||A.g==="any"))continue;
-    const L=kmBinds(b.id);for(let j=0;j<L.length;j++)if(L[j]&&kmMeet(s,L[j],A.shift,b.shift))return {id:b.id,i:j}}
-  return null}
+function kmClashes(id,s){const A=KM_ACT[id],out=[];for(const B of KM_ACTS){const b=KM_ACT[B[0]];if(b.id===id||!(b.g===A.g||b.g==="any"||A.g==="any"))continue;
+    const L=kmBinds(b.id);for(let j=0;j<L.length;j++)if(L[j]&&kmMeet(s,L[j],A.shift,b.shift))out.push({id:b.id,i:j})}
+  return out}   // v78j: all of them
 /* a binding chosen: one that is taken asks first */
 function kmSet(id,i,s){if(s){if(kmBinds(id).some((x,j)=>j!==i&&x===s)){kmPaint();return}
-    if(kmParse(s).tap&&!KM_ACT[id].tap){flash("Ctrl or Shift alone steps through rows, sections and schools only: add a key to it.");kmPaint();return}const c=kmClash(id,s);
-    if(c){kmAsk(`<b>${esc(kmPretty(s))}</b> already does “${esc(KM_ACT[c.id].name)}” (${esc(kmGroupName(KM_ACT[c.id].g))}${KM_ACT[c.id].sub?": "+esc(KM_ACT[c.id].sub):""}). Move it here?`,
-      ()=>{kmPut(c.id,c.i,"");kmPut(id,i,s);kmChanged()},()=>kmPaint());return}}
+    if(kmParse(s).tap&&!KM_ACT[id].tap){flash("Ctrl or Shift alone steps through rows, sections and schools only: add a key to it.");kmPaint();return}const C=kmClashes(id,s);
+    const what=c=>`“${esc(KM_ACT[c.id].name)}” (${esc(kmGroupName(KM_ACT[c.id].g))}${KM_ACT[c.id].sub?": "+esc(KM_ACT[c.id].sub):""})`;
+    if(C.length){kmAsk(`<b>${esc(kmPretty(s))}</b> already does ${C.map(what).join(" and ")}. Move it here?`,
+      ()=>{for(const c of C)kmPut(c.id,c.i,"");kmPut(id,i,s);kmChanged()},()=>kmPaint());return}}
   kmPut(id,i,s);kmChanged()}
 
 /* ---------- a question with Yes and No ---------- */
 function kmAsk(html,yes,no){let w=$("#kmq");if(!w){w=document.createElement("div");w.id="kmq";w.className="faov";document.body.appendChild(w)}
-  w.innerHTML=`<div class="ovbox kmqbox" role="alertdialog" aria-labelledby="kmqp"><p id="kmqp">${html}</p><p class="acts"><button type="button" class="btn" id="kmqY">Yes</button> <button type="button" class="btn ghost" id="kmqN">No</button></p></div>`;
+  w.innerHTML=`<div class="ovbox kmqbox" role="alertdialog" aria-labelledby="kmqp"><p id="kmqp">${html}</p><p class="acts"><button type="button" class="btn" id="kmqY">Yes</button> <button type="button" class="btn ghost" id="kmqN" data-x>No</button></p></div>`;
   w.hidden=false;const done=f=>{w.hidden=true;if(f)f()};$("#kmqY").onclick=()=>done(yes);$("#kmqN").onclick=()=>done(no);w.onclick=e=>{if(e.target===w)done(no)};
   setTimeout(()=>{const b=$("#kmqY");if(b)b.focus()},0)}
 
@@ -13867,6 +13905,7 @@ function fgTidy(pl){const D=G.p[pl]&&G.p[pl].fg;if(!D)return;
     if(g.k==="guard"){if(!L){fgEnd(pl,gid,"The stack your guards protected is gone: they stand down.");continue}
       for(const x of L.st.cards)if(x.fgId===gid)delete x.fgId}   // a guard that joins the stack it guards is no longer its guard
     if(g.k==="squad"&&g.lead&&!L){fgEnd(pl,gid,"Your squadron's leader fell: the squadron breaks up.");continue}
+    if(g.k==="squad"&&L&&!L.st.cards.some(x=>x.fgId===gid))g.lead=null;   // v78j: it left the squadron
     const n=fgMembers(pl,gid).length;if(!n||g.k==="squad"&&n<2)fgEnd(pl,gid,g.k==="squad"&&n?"Your squadron breaks up: only one stack is left in it.":"")}
   const used=new Set(Object.values(D.g).map(g=>g.sid).filter(Boolean));for(const o of stacksOf(pl))for(const x of o.st.cards)if(x.fgStrat)used.add(x.fgStrat);
   for(const sid of Object.keys(D.s))if(!used.has(sid))delete D.s[sid]}
@@ -13884,7 +13923,7 @@ function fgTidy(pl){const D=G.p[pl]&&G.p[pl].fg;if(!D)return;
 /* ---------- what you do with them (the host does it) ---------- */
 function fgDo(pl,op,a,b,c){if(!G||!G.p[pl]||G.over||NET.ctx!=null&&NET.ctx!==pl||!faAllowed())return false;const D=fgData(pl);
   const at=p=>{if(!Array.isArray(p))return null;const st=G.board[p[0]]&&G.board[p[0]][p[1]];return st&&st.owner===pl?{st,r:p[0],c:p[1]}:null};
-  const mark=(o,gid)=>{for(const x of o.st.cards)if(isBase(x)||!gid)delete x.fgId;else x.fgId=gid};
+  const mark=(o,gid)=>{for(const x of o.st.cards)if(isBase(x)||!gid)delete x.fgId;else{x.fgId=gid;delete x.faCrys}};   // v78j: and off its crystal
   // a squadron's leader that goes leaves it leaderless
   const out=o=>{const was=fgGid(pl,o.st),g=was&&D.g[was];if(g&&g.k==="squad"&&g.lead){const L=fgFind(pl,g.lead);if(L&&L.st===o.st)g.lead=null}mark(o,null)};
   const room=gid=>fgMembers(pl,gid).length<FG_MAX,newG=g=>{const id="g"+(++D.n);D.g[id]=g;return id};
@@ -13914,7 +13953,7 @@ for(const [name,get,set] of [["fgDo",()=>fgDo,f=>fgDo=f]])netAny(name,get,set);
 
 /* ---------- how the field plays them (the automation's per-stack settings, as the classes do) ---------- */
 /* a strategy's settings in place of yours: every card of the stack under it */
-function fgStratCtx(pl,cfg){const over=Object.assign({},faEff(cfg),{ctl:Object.fromEntries(Object.keys(FA_DEF.ctl).map(x=>[x,true])),extra:[],xminus:[]});delete over.classes;
+function fgStratCtx(pl,cfg){const over=Object.assign({},faEff(cfg),{ctl:Object.fromEntries(Object.keys(FA_DEF.ctl).map(x=>[x,true])),extra:[],xminus:[],scope:"full"});delete over.classes;   // v78j: scope
   FA_OVR={pl,cfg:faClean(over)};try{return Object.assign({pl},faCtx(pl))}finally{FA_OVR=null}}
 /* the side the enemy comes from: the near ones weigh most; with none in sight, their ground */
 function fgThreat(pl,r,c,foes){let vr=0,vc=0;for(const e of foes){const d=Math.max(1,Math.abs(e.r-r)+Math.abs(e.c-c));vr+=(e.r-r)/(d*d);vc+=(e.c-c)/(d*d)}
@@ -14123,7 +14162,7 @@ function cnHandCard(w){const P=G&&G.p[view()];if(!P||!w)return null;const k=Stri
 const cnSpells=()=>[...document.querySelectorAll("#spells button.spell")].map(b=>{const sn=b.querySelector(".sn"),c=sn?sn.cloneNode(true):b.cloneNode(true);c.querySelectorAll("small,.bolts,.chips,i,em").forEach(x=>x.remove());
   return {b,name:c.textContent.replace(/\s+/g," ").trim(),off:b.classList.contains("off")||b.disabled}}).filter(s=>s.name);
 /* where a stack can go and what it can hit, now */
-function cnTargets(r,c){if(!G||!canAct())return {move:[],atk:[]};const was=G.sel,wm=G.mode;const st=G.board[r][c];if(!st||st.owner!==view())return {move:[],atk:[]};
+function cnTargets(r,c){if(!G||!canAct())return {move:[],atk:[]};const was=G.sel,wm=G.mode;const st=G.board[r][c];if(!st||st.owner!==view()||st.sat)return {move:[],atk:[]};   // v78j: not Saturn's Puppets
   try{tileSel(r,c);return {move:G.phase==="prep"?moveTargets():[],atk:G.phase==="attack"?attackTargets():[]}}finally{G.sel=was;G.mode=wm}}
 /* select a stack the way a click does (without moving the one selected before) */
 function tileSel(r,c){const st=G.board[r][c];if(!st)return;let pk=st.cards.filter(x=>!isBase(x)&&!(hasBase(st)&&(x.unit==="miner"||x.unit==="repair")));
@@ -14162,7 +14201,7 @@ function cnSuggest(text){const t=text.replace(/^\s+/,""),parts=t.split(/\s+/),la
 
 /* ---------- running a line ---------- */
 function cnSay(t,bad){const o=$("#cmdline .cnout");if(o){o.textContent=t;o.classList.toggle("bad",!!bad)}if(bad){CN.err=true;AUD.ui()}}
-function cnRun(line){line=String(line||"").trim();if(!line)return;
+function cnRun(line){line=String(line||"").trim();if(!line||G&&G.passing)return;
   if(CN.mode==="chat"&&!line.startsWith("/")){if(NET.role){chatSend(line);cnSay("Sent.")}else cnSay("The chat is for online games.",true);return}
   line=line.replace(/^\//,"");if(CN.hist[CN.hist.length-1]!==line){CN.hist.push(line);if(CN.hist.length>30)CN.hist.shift()}
   const w=line.split(/\s+/),cmd=cnCmd(w[0]),arg=w.slice(1);
@@ -14216,7 +14255,7 @@ function cnSelect(f){if(G.sel&&G.sel.r===f.r&&G.sel.c===f.c){cnSay(`${cnName(f.r
   if(G.phase==="setup"||G.selHand){tileClick(f.r,f.c);cnSay(cnName(f.r,f.c)+".");return}
   G.sel=null;G.mode=null;tileClick(f.r,f.c);if(typeof fkSet==="function")fkSet(f.r,f.c);
   const st=G.board[f.r][f.c];cnSay(st?`${cnName(f.r,f.c)}: ${cnStackHint(st)}${st.owner===view()?"":" (not yours)"}.`:`${cnName(f.r,f.c)} is empty.`)}
-function cnMove(f,rest){const st=G.board[f.r][f.c];if(!st||st.owner!==view()){cnSay(`No stack of yours on ${cnName(f.r,f.c)}.`,true);return}if(!canAct()){cnSay("Not your move now.",true);return}
+function cnMove(f,rest){const st=G.board[f.r][f.c];if(!st||st.owner!==view()){cnSay(`No stack of yours on ${cnName(f.r,f.c)}.`,true);return}if(st.sat){cnSay("Saturn's Puppets move on their own.",true);return}if(!canAct()){cnSay("Not your move now.",true);return}
   const k=rest.toLowerCase().trim(),dn=CN_DIRS.find(d=>d[0]===(CN_DIRALIAS[k.replace(/\s+/g,"")]||k));let to=cnTile(rest.trim());
   if(!to&&dn){to=cnStep(f.r,f.c,dn[1]);if(!to){cnSay("The field ends that way.",true);return}}
   if(!to){cnSay(`Where to? A tile, or up, down, left, right, up left…`,true);return}
@@ -14230,7 +14269,7 @@ function cnAttack(f,to,n){const T=cnTargets(f.r,f.c);if(!T.atk.some(([a,b])=>a==
   if(n){cnSay(`It has ${opts.length} way${opts.length>1?"s":""} to attack there.`,true);return}
   render();chooseAttack(f.r,f.c,to.r,to.c);cnSay(`${cnName(f.r,f.c)} attacks ${cnName(to.r,to.c)}.`)}
 /* a step toward the nearest enemy, or back toward your base (or your own ground) */
-function cnLean(f,fwd){const st=G.board[f.r][f.c],V=view();if(!st||st.owner!==V){cnSay(`No stack of yours on ${cnName(f.r,f.c)}.`,true);return}
+function cnLean(f,fwd){const st=G.board[f.r][f.c],V=view();if(!st||st.owner!==V){cnSay(`No stack of yours on ${cnName(f.r,f.c)}.`,true);return}if(st.sat){cnSay("Saturn's Puppets move on their own.",true);return}
   const T=cnTargets(f.r,f.c).move.filter(([a,b])=>!G.board[a][b]);if(!T.length){cnSay("It can't move now.",true);return}
   const goal=fwd?AI.enemyStacks(V).map(e=>[e.r,e.c]):stacksOf(V).filter(o=>hasBase(o.st)&&o.st!==st).map(o=>[o.r,o.c]);const g=goal.length?goal:zoneTiles(V);
   const d=(a,b)=>Math.min(...g.map(([x,y])=>Math.max(Math.abs(a-x),Math.abs(b-y))));const now=d(f.r,f.c);
@@ -14255,7 +14294,7 @@ function cnBar(){let el=$("#cmdline");if(el)return el;el=document.createElement(
       if(CN.frozen)CN.sel=((CN.sel+(e.shiftKey?-1:1))%n+n)%n;CN.frozen=true;inp.value=CN.sugs[CN.sel].text;cnPaintSugs();return}
     if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();const n=CN.sugs.length;if(!n)return;CN.sel=((CN.sel+(e.key==="ArrowDown"?1:-1))%n+n)%n;CN.nav=true;cnPaintSugs()}});
   return el}
-function cnFill(){if(CN.frozen)return;CN.sugs=cnSuggest($("#cmdline .cnin").value);CN.sel=0;cnPaintSugs()}
+function cnFill(){if(CN.frozen)return;CN.sugs=G&&G.passing?[]:cnSuggest($("#cmdline .cnin").value);CN.sel=0;cnPaintSugs()}
 function cnPaintSugs(){const el=$("#cmdline");if(!el)return;const ul=el.querySelector(".cnsug"),n=CN.sugs.length,top=Math.max(0,Math.min(CN.sel-3,n-8)),show=CN.sugs.slice(top,top+8);
   ul.innerHTML=show.map((s,i)=>`<li role="option" aria-selected="${top+i===CN.sel}" class="${top+i===CN.sel?"on":""}" data-cn="${top+i}"><b>${esc(s.label)}</b>${s.hint?` <small>${esc(s.hint)}</small>`:""}</li>`).join("")+(n>8?`<li class="cnmore dim">${n} in all</li>`:"");
   ul.hidden=!n;
@@ -14267,16 +14306,20 @@ function cnPaint(){const el=cnBar(),chat=CN.mode==="chat",inp=el.querySelector("
   el.querySelector(".cnnote").textContent=`Esc closes · ${chat?"":"Tab completes, ↑ ↓ choose · "}${kmShow("consoleSwap")} opens the ${chat?"command line":"chat"} instead`;
   const log=el.querySelector(".cnchat");log.hidden=!chat;
   if(chat)log.innerHTML=(NET.chat||[]).slice(-6).map(m=>`<li><b>${esc(m.from)}</b> ${esc(m.text)}</li>`).join("")||'<li class="dim">Nothing yet.</li>'}
-function cnOpen(mode){if(!G)return;if(mode)CN.mode=mode;if(CN.mode==="chat"&&!NET.role){CN.mode="cmd";flash("The chat is for online games: here is the command line.")}
+function cnOpen(mode){if(!G||G.passing)return;if(mode)CN.mode=mode;if(CN.mode==="chat"&&!NET.role){CN.mode="cmd";flash("The chat is for online games: here is the command line.")}
   const el=cnBar(),ht=$("#helptoast");if(ht)ht.hidden=true;CN.open=true;el.hidden=false;cnPaint();el.querySelector(".cnout").textContent="";
   const inp=el.querySelector(".cnin");inp.value="";CN.frozen=false;CN.nav=false;cnFill();setTimeout(()=>inp.focus(),0);
   if(CN.mode==="chat"){NET.unread=0;if(typeof chatPaint==="function")chatPaint()}}
 function cnMode(m){CN.mode=m;cnOpen()}
 function cnClose(){const el=$("#cmdline");CN.open=false;if(el){el.hidden=true;const i=el.querySelector(".cnin");if(i)i.blur()}}
 function cnSwap(){cnOpen(CN.mode==="cmd"?"chat":"cmd")}
+/* v78j: the game's own answer to a line (a refusal shows in the flash) is the line's answer too; red when nothing changed */
+{const sig=()=>[G.phase,G.active,G.turnNo,G.setupStep,!!G.passing,G.sel?G.sel.r+","+G.sel.c:"",G.board.map(r=>r.map(s=>s?s.owner+":"+s.cards.length:"").join()).join("/")].join("|");
+ const _run=cnRun;cnRun=function(){if(!G)return _run.apply(this,arguments);const was=sig(),head=G.log[0];let said=null;const _f=flash;flash=function(t){said=t;return _f.apply(this,arguments)};
+  try{return _run.apply(this,arguments)}finally{flash=_f;if(said&&G&&!CN.err)cnSay(said,G.log[0]===head&&sig()===was)}}}
 /* the chat's new lines show while it is open */
 {const _ca=chatAdd;chatAdd=function(){const out=_ca.apply(this,arguments);if(CN.open&&CN.mode==="chat"){NET.unread=0;cnPaint()}return out}}
-{const _r=render;render=function(){rSafe(_r,this,arguments);if(CN.open&&(!G||G.over))cnClose()}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(CN.open&&(!G||G.over||G.passing))cnClose()}}   // v78j: and when the device is passed
 
 if(window.__EC)Object.assign(window.__EC,{CN,cnRun:l=>cnRun(l),cnSuggest:t=>cnSuggest(t),cnOpen:m=>cnOpen(m)});
 
@@ -14390,12 +14433,13 @@ const KB_DO=[
 /* Ctrl or Shift pressed alone in the spells: the next or the previous school */
 document.addEventListener("keyup",e=>{if(!G||!kbSpellMode()||kbTop()||typing(e.target))return;
   if(kmTap(e,"spSchoolNext"))kbSchool(KB.sc+1);else if(kmTap(e,"spSchoolPrev"))kbSchool(KB.sc-1)});
-document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(e.target))return;
+document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(e.target)&&!(e.target.tagName==="SELECT"&&(e.key==="Escape"||kmIs(e,"close"))))return;   // v78j: Esc leaves a list
   const is=id=>kmIs(e,id),stop=()=>{e.preventDefault();e.stopImmediatePropagation()};
   if(G&&!G.over&&!kmModOnly(e))kbRemind();
-  if(is("keys")){stop();kbKeysWin();return}
+  const aboveMenu=id=>{const m=$("#menu"),w=$("#"+id);if(w)w.style.zIndex=m&&!m.hidden?"126":""};   // v78j: the Menu is 125
+  if(is("keys")){stop();kbKeysWin();aboveMenu("kbkeys");return}
   if(is("music")){stop();if(typeof musicSync==="function"){PREF.music=PREF.music===false;savePrefs();musicSync();flash(PREF.music===false?"Music off.":"Music on.")}return}
-  if(is("rulebook")){stop();rbWin();return}
+  if(is("rulebook")){stop();rbWin();aboveMenu("rbwin");return}
   /* closing: the window on top first (its ×), then the spells or the hand; Esc for the windows that have no Esc of their own */
   if(is("close")){if(kbTop()){stop();kbClose()}else if(KB.mode){stop();kbModeOff()}return}
   if(e.key==="Escape"){const w=kbTop();
@@ -14412,7 +14456,7 @@ document.addEventListener("keydown",e=>{if(KB.synth||e.defaultPrevented||typing(
     if(is("hNext")||is("hPrev")){stop();if(H.length){KB.h=(KB.h+(is("hNext")?1:-1)+H.length)%H.length;kbPaint();H[KB.h].scrollIntoView({block:"nearest",inline:"nearest"})}return}
     if(is("hPick")){stop();if(H[KB.h])H[KB.h].click();kbPaint();return}
     if(is("hInfo")){stop();const ci=H[KB.h]&&H[KB.h].querySelector(".ci");if(ci)ci.click();return}}
-  const a=KB_DO.find(([id])=>is(id));if(a&&a[1]()!==false)stop();
+  const a=KB_DO.find(([id])=>is(id));if(a&&e.repeat){stop();return}if(a&&a[1]()!==false)stop();   // v78j: one press, one action (held, a window flickered open and shut)
 },true);
 /* v78a: O shows every key in a window; once a game, the first key pressed brings a note saying so */
 function kbKeysWin(){let w=$("#kbkeys");if(!w){w=document.createElement("div");w.id="kbkeys";w.className="faov";document.body.appendChild(w)}
@@ -14522,7 +14566,7 @@ addEventListener("keydown",e=>{if(KB.synth)return;const k=e.key,is=id=>kmIs(e,id
     if(k==="Enter"){const bad=wkBad(WK.typ);if(bad){stop();wkNote(bad+" Type another, or Esc to stop.");return}wkFire(WK.typ,"input","change");const el=WK.typ;setTimeout(()=>{if(WK.typ===el)wkTypeEnd()},0)}
     return}}
   if(typing(e.target))return;
-  const w=kbTop();if(!w){if(WK.adj)wkAdjEnd(false);WK.mv=null;return}
+  const w=kbTop();if(!w){if(WK.adj)wkAdjEnd(true);WK.mv=null;return}   // v78j: keep it
   const plain=!e.ctrlKey&&!e.altKey&&!e.metaKey,up=is("winUp")||is("winRight")||is("winNext"),dn=is("winDown")||is("winLeft")||is("winPrev");
   if(WK.adj){const au=up||plain&&(k==="ArrowUp"||k==="ArrowRight"),ad=dn||plain&&(k==="ArrowDown"||k==="ArrowLeft");
     if(au||ad){stop();wkAdjStep(au?1:-1,e.shiftKey);return}
@@ -14632,7 +14676,7 @@ function fkMenu(){let el=null;if(KB.mode==="hand"){el=kbHand()[KB.h]}else{const 
   const t=el.querySelector(".stack")||el;t.dispatchEvent(new MouseEvent("contextmenu",{bubbles:true,cancelable:true,clientX:x,clientY:y,view:window}))}
 /* P: the other players' boxes */
 const fkBoxes=()=>[...document.querySelectorAll(fsOn()?".fsfoe":"#foe>.pbox,#foe>div[style*='--pc']")].filter(e=>e.getClientRects().length);
-function fkPlayers(d){const B=fkBoxes();if(!B.length){flash("No other player's box to read.");return}FK.pm=true;FK.p=FK.pm&&FK.p!=null?((FK.p+d)%B.length+B.length)%B.length:0;FK.pi=-1;fkPaint();
+function fkPlayers(d){const B=fkBoxes();if(!B.length){flash("No other player's box to read.");return}const was=FK.pm;FK.pm=true;FK.p=was&&FK.p!=null?((FK.p+d)%B.length+B.length)%B.length:0;FK.pi=-1;fkPaint();   // v78j
   B[FK.p].scrollIntoView({block:"nearest"});
   wkNote(`${B[FK.p].getAttribute("title")||B[FK.p].textContent.trim().split(/\s{2,}|\n/)[0].slice(0,60)} · C and V read the box, Enter its history, ${kmShow("plNext")} the next player, ${kmShow("close")} stops`)}
 function fkPart(d){const b=fkBoxes()[FK.p];if(!b)return;const parts=[...b.children].filter(e=>e.getClientRects().length&&e.textContent.trim());if(!parts.length)return;
@@ -14733,7 +14777,7 @@ function setBuild(){const m=$("#menu"),box=m&&m.querySelector(".ovbox");if(!box|
   /* Controls: the large map's fold above the keyboard's, which stays at the very bottom */
   const cam=box.querySelector("#mCam"),keys=box.querySelector(".kbfold");
   P.ctl.appendChild(mk("p","dim","How you move around the table with the mouse, the wheel and the keys."));
-  const km=mk("div","kmpanel");P.ctl.appendChild(km);kmMount(km);
+  const km=mk("div","kmpanel");P.ctl.appendChild(km);rSafe(kmMount,null,[km]);   // v78j: a fault in it can't take the Menu down
   if(cam)P.ctl.appendChild(cam);if(keys)P.ctl.appendChild(keys);
   /* Performance */
   const net=box.querySelector(".perfnet");if(net){const h=net.querySelector(".perfh");if(h)h.remove();sect(P.perf,"Connection",net)}

@@ -95,7 +95,7 @@ function forgiveLoan(L){if(!L||!["open","late"].includes(L.state))return;L.state
 function giftMana(from,to,n){n=Math.min(Math.max(0,Math.round(n)),mana(from));if(n<=0||from===to||!G.p[to]||G.p[to].out)return 0;
   const paid=payQuiet(from,n),got=giveMana(to,paid);log(`${plName(from)} gives ${plName(to)} ${paid} mana${got<paid?` (${got} fit in the soul pile)`:""}.`,"event");return got}
 function giftCard(from,to,id){const P=G.p[from],Q=G.p[to],c=P.hand.find(x=>x.id===id);if(!c||!Q||Q.out||from===to)return false;
-  P.hand.splice(P.hand.indexOf(c),1);c.owner=to;if(Q.hand.length<handCap(to))Q.hand.push(c);else{Q.deck.push(c);shuffle(Q.deck)}
+  P.hand.splice(P.hand.indexOf(c),1);clearMarks(c);c.owner=to;if(Q.hand.length<handCap(to))Q.hand.push(c);else{Q.deck.push(c);shuffle(Q.deck)}
   log(`${plName(from)} gives ${plName(to)} a card.`,"event");notify(to,`${esc(P.name)} gives ${esc(Q.name)} a card.`);return true}
 for(const [name,get,set] of [["forgiveLoan",()=>forgiveLoan,f=>forgiveLoan=f,a=>[a[0].id],a=>[p2pOf().find(x=>x.id===a[0])]],["giftMana",()=>giftMana,f=>giftMana=f],["giftCard",()=>giftCard,f=>giftCard=f]]){
   NETFN[name]={get,set,any:true};const orig=get();set(function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;const args=name==="forgiveLoan"?[a[0].id]:a;

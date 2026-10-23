@@ -50,7 +50,7 @@ function cnHandCard(w){const P=G&&G.p[view()];if(!P||!w)return null;const k=Stri
 const cnSpells=()=>[...document.querySelectorAll("#spells button.spell")].map(b=>{const sn=b.querySelector(".sn"),c=sn?sn.cloneNode(true):b.cloneNode(true);c.querySelectorAll("small,.bolts,.chips,i,em").forEach(x=>x.remove());
   return {b,name:c.textContent.replace(/\s+/g," ").trim(),off:b.classList.contains("off")||b.disabled}}).filter(s=>s.name);
 /* where a stack can go and what it can hit, now */
-function cnTargets(r,c){if(!G||!canAct())return {move:[],atk:[]};const was=G.sel,wm=G.mode;const st=G.board[r][c];if(!st||st.owner!==view())return {move:[],atk:[]};
+function cnTargets(r,c){if(!G||!canAct())return {move:[],atk:[]};const was=G.sel,wm=G.mode;const st=G.board[r][c];if(!st||st.owner!==view()||st.sat)return {move:[],atk:[]};   // v78j: not Saturn's Puppets
   try{tileSel(r,c);return {move:G.phase==="prep"?moveTargets():[],atk:G.phase==="attack"?attackTargets():[]}}finally{G.sel=was;G.mode=wm}}
 /* select a stack the way a click does (without moving the one selected before) */
 function tileSel(r,c){const st=G.board[r][c];if(!st)return;let pk=st.cards.filter(x=>!isBase(x)&&!(hasBase(st)&&(x.unit==="miner"||x.unit==="repair")));
@@ -89,7 +89,7 @@ function cnSuggest(text){const t=text.replace(/^\s+/,""),parts=t.split(/\s+/),la
 
 /* ---------- running a line ---------- */
 function cnSay(t,bad){const o=$("#cmdline .cnout");if(o){o.textContent=t;o.classList.toggle("bad",!!bad)}if(bad){CN.err=true;AUD.ui()}}
-function cnRun(line){line=String(line||"").trim();if(!line)return;
+function cnRun(line){line=String(line||"").trim();if(!line||G&&G.passing)return;
   if(CN.mode==="chat"&&!line.startsWith("/")){if(NET.role){chatSend(line);cnSay("Sent.")}else cnSay("The chat is for online games.",true);return}
   line=line.replace(/^\//,"");if(CN.hist[CN.hist.length-1]!==line){CN.hist.push(line);if(CN.hist.length>30)CN.hist.shift()}
   const w=line.split(/\s+/),cmd=cnCmd(w[0]),arg=w.slice(1);
@@ -143,7 +143,7 @@ function cnSelect(f){if(G.sel&&G.sel.r===f.r&&G.sel.c===f.c){cnSay(`${cnName(f.r
   if(G.phase==="setup"||G.selHand){tileClick(f.r,f.c);cnSay(cnName(f.r,f.c)+".");return}
   G.sel=null;G.mode=null;tileClick(f.r,f.c);if(typeof fkSet==="function")fkSet(f.r,f.c);
   const st=G.board[f.r][f.c];cnSay(st?`${cnName(f.r,f.c)}: ${cnStackHint(st)}${st.owner===view()?"":" (not yours)"}.`:`${cnName(f.r,f.c)} is empty.`)}
-function cnMove(f,rest){const st=G.board[f.r][f.c];if(!st||st.owner!==view()){cnSay(`No stack of yours on ${cnName(f.r,f.c)}.`,true);return}if(!canAct()){cnSay("Not your move now.",true);return}
+function cnMove(f,rest){const st=G.board[f.r][f.c];if(!st||st.owner!==view()){cnSay(`No stack of yours on ${cnName(f.r,f.c)}.`,true);return}if(st.sat){cnSay("Saturn's Puppets move on their own.",true);return}if(!canAct()){cnSay("Not your move now.",true);return}
   const k=rest.toLowerCase().trim(),dn=CN_DIRS.find(d=>d[0]===(CN_DIRALIAS[k.replace(/\s+/g,"")]||k));let to=cnTile(rest.trim());
   if(!to&&dn){to=cnStep(f.r,f.c,dn[1]);if(!to){cnSay("The field ends that way.",true);return}}
   if(!to){cnSay(`Where to? A tile, or up, down, left, right, up left…`,true);return}
@@ -157,7 +157,7 @@ function cnAttack(f,to,n){const T=cnTargets(f.r,f.c);if(!T.atk.some(([a,b])=>a==
   if(n){cnSay(`It has ${opts.length} way${opts.length>1?"s":""} to attack there.`,true);return}
   render();chooseAttack(f.r,f.c,to.r,to.c);cnSay(`${cnName(f.r,f.c)} attacks ${cnName(to.r,to.c)}.`)}
 /* a step toward the nearest enemy, or back toward your base (or your own ground) */
-function cnLean(f,fwd){const st=G.board[f.r][f.c],V=view();if(!st||st.owner!==V){cnSay(`No stack of yours on ${cnName(f.r,f.c)}.`,true);return}
+function cnLean(f,fwd){const st=G.board[f.r][f.c],V=view();if(!st||st.owner!==V){cnSay(`No stack of yours on ${cnName(f.r,f.c)}.`,true);return}if(st.sat){cnSay("Saturn's Puppets move on their own.",true);return}
   const T=cnTargets(f.r,f.c).move.filter(([a,b])=>!G.board[a][b]);if(!T.length){cnSay("It can't move now.",true);return}
   const goal=fwd?AI.enemyStacks(V).map(e=>[e.r,e.c]):stacksOf(V).filter(o=>hasBase(o.st)&&o.st!==st).map(o=>[o.r,o.c]);const g=goal.length?goal:zoneTiles(V);
   const d=(a,b)=>Math.min(...g.map(([x,y])=>Math.max(Math.abs(a-x),Math.abs(b-y))));const now=d(f.r,f.c);
@@ -182,7 +182,7 @@ function cnBar(){let el=$("#cmdline");if(el)return el;el=document.createElement(
       if(CN.frozen)CN.sel=((CN.sel+(e.shiftKey?-1:1))%n+n)%n;CN.frozen=true;inp.value=CN.sugs[CN.sel].text;cnPaintSugs();return}
     if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();const n=CN.sugs.length;if(!n)return;CN.sel=((CN.sel+(e.key==="ArrowDown"?1:-1))%n+n)%n;CN.nav=true;cnPaintSugs()}});
   return el}
-function cnFill(){if(CN.frozen)return;CN.sugs=cnSuggest($("#cmdline .cnin").value);CN.sel=0;cnPaintSugs()}
+function cnFill(){if(CN.frozen)return;CN.sugs=G&&G.passing?[]:cnSuggest($("#cmdline .cnin").value);CN.sel=0;cnPaintSugs()}
 function cnPaintSugs(){const el=$("#cmdline");if(!el)return;const ul=el.querySelector(".cnsug"),n=CN.sugs.length,top=Math.max(0,Math.min(CN.sel-3,n-8)),show=CN.sugs.slice(top,top+8);
   ul.innerHTML=show.map((s,i)=>`<li role="option" aria-selected="${top+i===CN.sel}" class="${top+i===CN.sel?"on":""}" data-cn="${top+i}"><b>${esc(s.label)}</b>${s.hint?` <small>${esc(s.hint)}</small>`:""}</li>`).join("")+(n>8?`<li class="cnmore dim">${n} in all</li>`:"");
   ul.hidden=!n;
@@ -194,15 +194,19 @@ function cnPaint(){const el=cnBar(),chat=CN.mode==="chat",inp=el.querySelector("
   el.querySelector(".cnnote").textContent=`Esc closes · ${chat?"":"Tab completes, ↑ ↓ choose · "}${kmShow("consoleSwap")} opens the ${chat?"command line":"chat"} instead`;
   const log=el.querySelector(".cnchat");log.hidden=!chat;
   if(chat)log.innerHTML=(NET.chat||[]).slice(-6).map(m=>`<li><b>${esc(m.from)}</b> ${esc(m.text)}</li>`).join("")||'<li class="dim">Nothing yet.</li>'}
-function cnOpen(mode){if(!G)return;if(mode)CN.mode=mode;if(CN.mode==="chat"&&!NET.role){CN.mode="cmd";flash("The chat is for online games: here is the command line.")}
+function cnOpen(mode){if(!G||G.passing)return;if(mode)CN.mode=mode;if(CN.mode==="chat"&&!NET.role){CN.mode="cmd";flash("The chat is for online games: here is the command line.")}
   const el=cnBar(),ht=$("#helptoast");if(ht)ht.hidden=true;CN.open=true;el.hidden=false;cnPaint();el.querySelector(".cnout").textContent="";
   const inp=el.querySelector(".cnin");inp.value="";CN.frozen=false;CN.nav=false;cnFill();setTimeout(()=>inp.focus(),0);
   if(CN.mode==="chat"){NET.unread=0;if(typeof chatPaint==="function")chatPaint()}}
 function cnMode(m){CN.mode=m;cnOpen()}
 function cnClose(){const el=$("#cmdline");CN.open=false;if(el){el.hidden=true;const i=el.querySelector(".cnin");if(i)i.blur()}}
 function cnSwap(){cnOpen(CN.mode==="cmd"?"chat":"cmd")}
+/* v78j: the game's own answer to a line (a refusal shows in the flash) is the line's answer too; red when nothing changed */
+{const sig=()=>[G.phase,G.active,G.turnNo,G.setupStep,!!G.passing,G.sel?G.sel.r+","+G.sel.c:"",G.board.map(r=>r.map(s=>s?s.owner+":"+s.cards.length:"").join()).join("/")].join("|");
+ const _run=cnRun;cnRun=function(){if(!G)return _run.apply(this,arguments);const was=sig(),head=G.log[0];let said=null;const _f=flash;flash=function(t){said=t;return _f.apply(this,arguments)};
+  try{return _run.apply(this,arguments)}finally{flash=_f;if(said&&G&&!CN.err)cnSay(said,G.log[0]===head&&sig()===was)}}}
 /* the chat's new lines show while it is open */
 {const _ca=chatAdd;chatAdd=function(){const out=_ca.apply(this,arguments);if(CN.open&&CN.mode==="chat"){NET.unread=0;cnPaint()}return out}}
-{const _r=render;render=function(){rSafe(_r,this,arguments);if(CN.open&&(!G||G.over))cnClose()}}
+{const _r=render;render=function(){rSafe(_r,this,arguments);if(CN.open&&(!G||G.over||G.passing))cnClose()}}   // v78j: and when the device is passed
 
 if(window.__EC)Object.assign(window.__EC,{CN,cnRun:l=>cnRun(l),cnSuggest:t=>cnSuggest(t),cnOpen:m=>cnOpen(m)});

@@ -17,13 +17,13 @@ const crysCfg=pl=>{const s=faState(pl);return faEff(s&&s.cfg)};
 const crysRest=pl=>{const P=G.p[pl];return !!(P&&P.crysOff!=null&&G.moon.round<P.crysOff)};
 const crysMd=(a,b,c,d)=>Math.abs(a-c)+Math.abs(b-d);
 /* the cards of a stack that would set out (not bases, locked cards, Miners, or what keeps an Ace) */
-const crysGrp=st=>st.cards.filter(x=>!isBase(x)&&!x.faLock&&x.unit!=="miner"&&!(hasBase(st)&&x.unit&&(x.unit==="repair"||UNIT[x.unit].shooter)));
+const crysGrp=st=>st.cards.filter(x=>!isBase(x)&&!(x.faLock&&faOn(st.owner))&&x.unit!=="miner"&&!(hasBase(st)&&x.unit&&(x.unit==="repair"||UNIT[x.unit].shooter)));
 const crysFighter=x=>!(x.unit&&UNIT[x.unit]&&UNIT[x.unit].noDef);
 /* the stacks that can go: a fighter among the cards that would set out, all of them under Field Automation, free to move */
 function crysCands(pl,c){return stacksOf(pl).filter(({st})=>{if(st.stun||st.pin)return false;const g=crysGrp(st);return g.length>0&&g.some(crysFighter)&&g.every(x=>faControls(x,c))&&!g.some(x=>x.faCrys)})}
 function crysGuards(pl){const out=[];for(const {st,r,c} of stacksOf(pl)){const cards=st.cards.filter(x=>x.faCrys);if(cards.length)out.push({st,r,c,g:cards[0].faCrys,cards})}return out}
 const crysHasMiner=pl=>{const P=G.p[pl];return [...P.hand,...P.deck].some(x=>x.unit==="miner")||stacksOf(pl).some(({st})=>!hasBase(st)&&st.cards.some(x=>x.unit==="miner"))};
-const crysFree=pl=>(G.crystals||[]).filter(x=>{const t=G.board[x.r][x.c];return !(t&&isEnemy(pl,t.owner))});
+const crysFree=pl=>(G.crystals||[]).filter(x=>{const t=G.board[x.r][x.c];return !(t&&isEnemy(pl,t.owner)&&seesTile(pl,x.r,x.c))});   // v78j: as far as it can see
 const crysKey=(r,c)=>r+"."+c;
 /* a guard stands down when its crystal is gone, its rounds are up, or Focus on crystals is off or resting */
 function crysTidy(pl,c){const off=!c.crys||crysRest(pl);
@@ -69,7 +69,7 @@ async function crysPrep(pl){const P=G.p[pl],c=crysCfg(pl);crysTidy(pl,c);if(!c.c
 const crysOn=E=>(G.crystals||[]).find(x=>G.board[x.r]&&G.board[x.r][x.c]===E)||null;
 {const _fc=faCtx;faCtx=function(pl){const ctx=_fc.apply(this,arguments),c=crysCfg(pl);if(!c.crys||crysRest(pl))return ctx;
   const sc=faScales(c,pl),over=!c.crysStance&&!c.crysLives,w=over?8:2.2*sc.crystals,stay=over?2:1;   // with neither, it outweighs everything the ranking does, and once there it holds
-  const foeCr=c.crysFight?(G.crystals||[]).filter(x=>{const t=G.board[x.r][x.c];return t&&isEnemy(pl,t.owner)}):[];
+  const foeCr=c.crysFight?(G.crystals||[]).filter(x=>{const t=G.board[x.r][x.c];return t&&isEnemy(pl,t.owner)&&seesTile(pl,x.r,x.c)}):[];
   const held=new Set(crysGuards(pl).map(gd=>crysKey(gd.g.r,gd.g.c)));
   ctx.crys=(S,r,cc,walk)=>{const g=S.cards.find(x=>x.faCrys&&x.faCrys.on);
     if(g){const d=walk(r,cc,g.faCrys.r,g.faCrys.c);return w*Math.min(d,30)-(d===0?stay:0)}

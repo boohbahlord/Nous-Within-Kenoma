@@ -36,7 +36,10 @@ function dipTrustSet(a,b,v){dipD().trust[a+">"+b]=Math.max(-100,Math.min(100,v))
 const trustTxt=v=>`${v>0?"+":v<0?"−":""}${Math.abs(Math.round(v))}`;
 const trustChip=v=>{const b=trustBand(v);return `<span class="trustchip" style="--tc:${b[2]}" title="Trust: ${b[1]}">${trustTxt(v)} <small>${b[1]}</small></span>`};
 function dipSet(a,b,s,extra){const D=dipD();D.rel[dipKey(a,b)]=Object.assign({s,since:G.moon.round},extra||{});G._vis=null;
-  if(s!=="ally"&&D.deals)D.deals=D.deals.filter(d=>!(d.ft===a&&d.tt===b||d.ft===b&&d.tt===a))}   // v75c: trade deals end with the alliance
+  if(s!=="ally"&&D.deals)D.deals=D.deals.filter(d=>!(d.ft===a&&d.tt===b||d.ft===b&&d.tt===a))   // v75c: trade deals end with the alliance
+  if(s!=="ally"&&G.ss){const A=dipPlayersOf(a),B=dipPlayersOf(b),cross=(x,y)=>A.includes(x)&&B.includes(y)||B.includes(x)&&A.includes(y);   // v78j: and so does leave to spawn
+    for(const k of Object.keys(G.ss.ok)){const [o,g]=k.split(">").map(Number);if(cross(o,g))delete G.ss.ok[k]}
+    G.ss.ask=(G.ss.ask||[]).filter(q=>!cross(q.from,q.to))}}
 /* the betrayer's penalties (8 rounds): the Banker disapproves */
 const dipPenOn=pl=>{const t=teamOf(pl),p=G&&G.dip&&t!=null&&G.dip.pen[t];return !!(p&&G.moon.round<=p.until)};
 
@@ -87,7 +90,8 @@ function dipPropose(pl,toT,kind,n,terms){if(!G||!dipOn()||NET.ctx!=null&&NET.ctx
   return true}
 function dipAnswer(pl,id,yes,counter){if(!G||NET.ctx!=null&&NET.ctx!==pl)return false;const D=dipD(),p=D.pend.find(x=>x.id===id);if(!p||p.to!==pl)return false;
   D.pend.splice(D.pend.indexOf(p),1);
-  if(counter&&p.kind==="peace"&&+counter!==p.n){log(`${plName(pl)} answers with ${dipKindTxt("peace",+counter)} instead.`,"event");
+  if(counter&&p.kind==="peace"&&+counter!==p.n){if(dipRel(p.ft,p.tt).s!=="war"){log(`The peace offer to ${plName(pl)} no longer holds: the two sides aren't at war.`,"event");render();return true}   // v78j
+    log(`${plName(pl)} answers with ${dipKindTxt("peace",+counter)} instead.`,"event");
     const hum=dipPlayersOf(p.ft).filter(i=>!G.p[i].cpu);
     if(hum.length&&dipRel(p.ft,p.tt).s==="war"){D.pend.push({id:++D.n,from:pl,ft:p.tt,tt:p.ft,kind:"peace",n:+counter,to:hum[0],round:G.moon.round});render();return true}
     if(aiDipAccept(p.ft,p.tt,"peace",+counter))dipApply("peace",p.tt,p.ft,+counter);else log(`${dipTN(p.ft)} decline${dipPlayersOf(p.ft).length>1?"":"s"} the counter.`,"event");render();return true}

@@ -110,7 +110,7 @@ const rbWinOpen=()=>{const w=$("#rbwin");return !!w&&!w.hidden};
 const rbAbove=()=>{const p=$("#pop");return !!p&&!p.hidden&&p.getClientRects().length>0&&p.innerHTML.trim()!==""};   // a popup over the rule book takes the keys
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&rbWinOpen()&&!rbAbove()){rbClose();e.stopPropagation();e.preventDefault()}},true);
 window.addEventListener("keydown",e=>{if(!rbWinOpen())return;const nx=kmIs(e,"rbNext");if(!nx&&!kmIs(e,"rbPrev"))return;   // v78d: Space and Shift+Space, as bound
-  const a=document.activeElement;if(a&&a.matches&&(a.matches("input[type=search],input[type=text],textarea,select")||a.matches("input[type=checkbox],input[type=radio],summary")&&$("#rbwin").contains(a)))return;   // typing a space; ticking an option or opening a fold in the book
+  const a=document.activeElement;if(a&&a.matches&&(typing(a)||a.matches("input[type=checkbox],input[type=radio],summary")&&$("#rbwin").contains(a)))return;   // v78j: typing()   // typing a space; ticking an option or opening a fold in the book
   if(rbAbove())return;   // a popup over the book: Space is its own
   e.preventDefault();e.stopImmediatePropagation();rbStep("win",nx?1:-1)},true);
 /* the folds: in Help below Further explanations, and at the bottom of the page; each an option */

@@ -34,15 +34,15 @@ function mineSlots(V){const out=[];if(!G||V==null||!G.p[V]||G.phase==="setup")re
     const cr=crystalAt(r,c);if(cr)out.push({k:"cr:"+r+"."+c,kind:"cr",name:"Crystal",at:coord(r,c),sub:`${cr.left} left`,r,c,st,ms,cap:1})}
   for(const p of G.plots||[])if(p.owner===V)out.push({k:"plot:"+p.i,kind:"plot",name:`Plot ${p.i+1}`,at:"land from the Bank",p,ms:p.miners,cap:1});
   const MM=G.moonMiner,ML=G.moonLev,mine=MM&&MM.owner===V,lev=ML&&ML.owner===V;
-  if(mine||lev)out.push({k:"moon",kind:"moon",name:"The Moon",at:lev?"the Leviathan's":"",ms:mine?[MM.card]:[],lev:lev?ML.card:null,cap:1});
+  if(mine||lev&&!G.moon.gone)out.push({k:"moon",kind:"moon",name:"The Moon",at:lev?"the Leviathan's":"",ms:mine?[MM.card]:[],lev:lev?ML.card:null,cap:1});
   return out}
 /* can the Miner picked in the hand go into this slot now? */
 function mineFits(s,V){const m=G&&G.selHand;if(!m||m.unit!=="miner"||G.active!==V||G.phase!=="prep"||!canAct())return false;
   if(s.kind==="ace"||s.kind==="cr")return s.st.owner===V&&stackLegal([...s.st.cards,m]);
   if(s.kind==="plot")return !s.p.miners.length;
-  if(s.kind==="moon")return !!s.lev&&!G.moonMiner;return false}
+  if(s.kind==="moon")return !!s.lev&&!G.moonMiner&&!G.moon.gone;return false}   // v78j
 /* the Moon's mining slot, held by the Leviathan's player */
-function moonPlant(pl){const ML=G.moonLev,m=G.p[pl].hand.find(x=>x.unit==="miner");if(!ML||ML.owner!==pl||G.moonMiner||!m)return false;
+function moonPlant(pl){const ML=G.moonLev,m=G.p[pl].hand.find(x=>x.unit==="miner");if(!ML||ML.owner!==pl||G.moonMiner||!m||G.moon.gone)return false;   // v78j: the Moon must be in the sky
   G.p[pl].hand.splice(G.p[pl].hand.indexOf(m),1);m.owner=pl;G.moonMiner={owner:pl,card:m};G.selHand=null;
   log(`${plName(pl)} sends a Miner up to the Moon, where the Leviathan keeps watch: it mines from the next turn.`);return true}
 NETFN.moonPlant={get:()=>moonPlant,set:f=>moonPlant=f};{const orig=moonPlant;moonPlant=function(...a){if(NET.role!=="guest")return orig.apply(this,a);const rid=++NET.rid;sendHost({t:"cmd",fn:"moonPlant",args:netClean(a),ui:uiSnap(),rid})}}
@@ -82,7 +82,7 @@ if(window.__EC)Object.assign(window.__EC,{mineSlots,mineStats,moonPlant:(...a)=>
    picked in the hand, the Repairmen's tiles glow blue ---------- */
 const nearRepair=(pl,r,c)=>stacksOf(pl).some(({st,r:a,c:b})=>st.cards.some(x=>x.unit==="repair")&&(a-r)**2+(b-c)**2<=5);   // a round circle of two
 {const _cp=canPlace;canPlace=function(card,r,c){if(_cp.apply(this,arguments))return true;
-  if(!G||!card||kind(card)!=="wall"||G.phase==="setup"||isVoid(r,c)||G.board[r][c])return false;return nearRepair(G.active,r,c)}}
+  if(!G||!card||kind(card)!=="wall"||G.phase==="setup"||isVoid(r,c)||fogTile(G.active,r,c)||G.board[r][c])return false;return nearRepair(G.active,r,c)}}   // v78j: seen tiles only
 {const _r=render;render=function(){rSafe(_r,this,arguments);if(!G||!G.selHand||kind(G.selHand)!=="wall")return;
   for(const {st,r,c} of stacksOf(G.active))if(st.cards.some(x=>x.unit==="repair")){const t=document.querySelector(`#board .tile[data-r="${r}"][data-c="${c}"]`);if(t)t.classList.add("repsrc")}}}
 if(INFO.wall)INFO.wall[2]=INFO.wall[2].map(([k,v])=>k==="Moves"?[k,"never; it goes up on any empty tile of your spawn lines, or on any empty tile within two of one of your Repairmen"]:[k,v]);

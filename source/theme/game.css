@@ -1974,9 +1974,9 @@ html.cvd:not(.th-office) [style*="--pc:#0072b2"],html.cvd:not(.th-office) [style
 html.cvd .pn,html.cvd .note,html.cvd #pop h2{color:var(--pct,var(--pc))}
 html.cvd.th-office .pn{color:color-mix(in oklab,var(--pc) 45%,#000)}
 
-/* v71j: Data saving and Poor connection in the game: no book passages, no music controls (there is no music) */
-html.lite #quotes,html.lite #pMusic,html.lite #pMusicV{display:none!important}
-html.lite #menu label.mslide:has(#mMus){display:none}
+/* v71j: Data saving and Poor connection in the game: no book passages. v78j: the music stays, with its controls (it is made in
+   the page, nothing to download) */
+html.lite #quotes{display:none!important}
 /* v71l: Minimize computer animation in the Menu: the Effects slider's step names stay on one line; switches it overrides fade */
 #menu .mslides label.f.mslide:has(#mFxLvl){grid-template-columns:minmax(6.5em,9em) auto minmax(90px,220px) auto max-content}
 #menu #mFxLvlV{white-space:nowrap}

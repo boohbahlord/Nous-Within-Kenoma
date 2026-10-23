@@ -108,6 +108,7 @@ function round2(){
   // Deconjured takes the next Full Moon
   if(G.noConjure&&G.moon.i!==4)G.noConjure=false;
   if(G.deconjure&&G.moon.i===4){G.deconjure=false;G.noConjure=true;log("<b>Deconjured</b>: no one can conjure under this Full Moon.","event")}
+  else if(G.deconjure&&G.moon.gone)G.deconjure=false;   // v78j: no Moon, no Full Moon to close
   // every Debt Collector still standing raises Saturn's price
   if(G.moon.gone==="saturn"){const n=G.board.flat().filter(s=>s&&hasK(s,"debt")).length;if(n){G.saturnDebt=(G.saturnDebt||0)+n;log(`Saturn's price rises by ${n}: each enemy now pays ${1+G.saturnDebt} a turn.`)}}
   // the Leviathan's toll at every New Moon
@@ -157,7 +158,7 @@ async function lightningLeviathan(){
 }
 
 /* ---------- the Leviathan on the moon can be attacked at the New Moon ---------- */
-const moonAttackable=st=>!!(G.moonLev&&levNew()&&st&&canAttackFrom(st)&&isEnemy(st.owner,G.moonLev.owner));
+const moonAttackable=st=>!!(G.moonLev&&levNew()&&st&&st.owner===G.active&&canAttackFrom(st)&&isEnemy(st.owner,G.moonLev.owner));   // v78j: your own
 function attackMoon(r,c){
   const A=G.board[r][c],L=G.moonLev,D={owner:L.owner,cards:[L.card]};
   const ra=rollStack(A,"atk",D,hasK(A,"satan")?null:netFx(A.odds,hated(A)?"dis":null),weaponOf(A)),rd=rollStack(D,"def",A,"adv");
@@ -267,15 +268,15 @@ SPELLS.push(
      log(`${plName(pl)} stifles ${plName(t)}'s Delusion: ${9-D.maxCut} mana at most, ${3-D.diceCut}d2 a turn.`);
    }}},
  {id:"deconj",tribe:"lucifer",name:"Deconjured",cost:2,dice:"2 or 2+1d2",school:"Curse",text:"Choose one. Full curse (2 + 1d2 mana, rolled each round): no one can conjure during the next Full Moon, and the grave gives nothing at the next New Moon. Short curse (2 mana): no one, you included, can conjure during the next round.",
-  ok:()=>!G.deconjure&&!G.noConjure&&!G.noConjureRound,run:async()=>{
+  ok:()=>!G.deconjure&&!G.noConjure&&!(G.noConjureRound>=G.moon.round),run:async()=>{   // v78j: the one-round curse ends
    const pl=G.active,full=G.prices.deconj||3,extra=full-2,opts=[{id:"short",label:"Short curse (2 mana)",sub:"No one can conjure next round."}];
    if(mana(pl)>=extra&&G.moon.i>=0)opts.unshift({id:"full",label:`Full curse (${full} mana)`,sub:"No conjuring at the next Full Moon, and no grave gift at the next New Moon."});
    const ch=await ask(pl,{kind:"choice",id:"deconj",title:"Deconjured",options:opts,ai:()=>opts[0].id});
    if(ch==="full"){if(extra)pay(pl,extra);G.deconjure=true;G.noGraveNext=true;log(`<b>Deconjured</b>: ${plName(pl)} closes the Ether at the next Full Moon and the grave at the next New Moon.`,"event");notify(pl,"Deconjured: no conjuring at the next Full Moon, no grave gift at the next New Moon.")}
    else{G.noConjureRound=G.moon.round+1;log(`<b>Deconjured</b>: ${plName(pl)} closes the Ether to everyone for the next round.`,"event");notify(pl,"Deconjured: no one can conjure next round.")}}},
  {id:"joy",tribe:"lucifer",name:"Pleasure and Joy",cost:0,dice:"1+1d2 or 1d3−1",school:"Curse",text:"Choose one, until your next turn. Pleasure and Joy (1 + 1d2 mana): your cards glow in your color, and those that are killed go back into your deck instead of the grave. Joyful Theft (1d3 − 1 mana): every damage an enemy deals to your units takes 1 mana from that enemy and gives it to you.",
-  ok:()=>!me().joy&&!me().theft&&mana(G.active)>=Math.min(G.prices.joyA||2,G.prices.joyB||1),run:async()=>{
-   const pl=G.active,a=G.prices.joyA||2,b=G.prices.joyB||1,opts=[];
+  ok:()=>!me().joy&&!me().theft&&mana(G.active)>=Math.min(G.prices.joyA||2,G.prices.joyB!=null?G.prices.joyB:1),run:async()=>{
+   const pl=G.active,a=G.prices.joyA||2,b=G.prices.joyB!=null?G.prices.joyB:1,opts=[];   // v78j: a 0 is free
    if(mana(pl)>=a)opts.push({id:"joy",label:`Pleasure and Joy (${a} mana)`,sub:"Your killed cards go back into your deck."});
    if(mana(pl)>=b)opts.push({id:"theft",label:`Joyful Theft (${b} mana)`,sub:"Every damage dealt to your units steals 1 mana from whoever dealt it."});
    const ch=await ask(pl,{kind:"choice",id:"joy",title:"Pleasure and Joy",options:opts,cancel:"Cancel",ai:()=>opts[opts.length-1].id});
