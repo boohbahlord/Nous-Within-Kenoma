@@ -20,7 +20,8 @@ const kbVis=el=>!el.hidden&&el.getClientRects().length>0&&el.innerHTML.trim()!==
 function kbTop(){let best=null,bz=-1e9;for(const el of document.querySelectorAll(KB_WINS)){if(!kbVis(el))continue;const z=+getComputedStyle(el).zIndex||0;if(z>=bz){bz=z;best=el}}return best}
 function kbEsc(){KB.synth=true;try{document.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",code:"Escape",bubbles:true,cancelable:true}))}finally{KB.synth=false}}
 /* close the window on top: its × when it has one, else what Esc does for it */
-function kbClose(){const w=kbTop();if(!w)return false;const x=[...w.querySelectorAll(".xclose,[data-x],[data-rbclose],button[aria-label^='Close']")].find(b=>b.getClientRects().length);
+function kbClose(){const w=kbTop();if(!w)return false;if(w.id==="clsmenu"){w.hidden=true;return true}   // v78s: the right-click menu too
+  const x=[...w.querySelectorAll(".xclose,[data-x],[data-rbclose],button[aria-label^='Close']")].find(b=>b.getClientRects().length);
   if(x)x.click();else kbEsc();return true}
 const kbShow=el=>{if(!el)return;if(!fsOn())el.scrollIntoView({block:"center",behavior:"smooth"});el.classList.add("spping");setTimeout(()=>el.classList.remove("spping"),1600)};
 /* the camera on a tile: the large map's frame, or the page */

@@ -5,8 +5,9 @@
      stack does it at once. Up to nine stacks guard one. A green line runs from each guard to it, ending in an arrow.
      Guards keep one or two tiles from it, on the side the enemy comes from and beside its way rather than in it; they
      move after it, so they follow it, and strike first at what comes near it, turning bold while it is threatened.
-   - Guard an area…, then click a tile: the stack holds the ground within four tiles of it and fights what comes in.
-     A dashed green circle shows the area; up to nine stacks guard one.
+   - Guard an area…, then click a tile: the stack holds the ground within two tiles of it and fights what comes in.
+     A light dashed green circle shows the area; up to nine stacks guard one. (v78s: a guard's right-click menu makes the
+     area wider or smaller, from its own tile only up to six tiles around it, and stays open while you do.)
    - A squadron, up to nine stacks: New squadron…, then click the stacks to bring in (Esc or Done when finished); Join the
      selected stack's squadron; Add stacks…; Promote to Leader; Disband. Blue lines join it and it keeps together; with a
      leader they become arrows pointing at it, the leader moves first and the rest keep within two tiles of it.
@@ -18,7 +19,8 @@
    default) or leave it. Only you see the lines. The group is marked on its cards (x.fgId, so it goes wherever they go; a
    stack's own strategy rides on its strongest card, x.fgStrat); the groups and the strategies they play by are kept with
    the player (G.p[pl].fg), so the host plays them. */
-const FG_MAX=9,FG_AREA=4;
+const FG_MAX=9,FG_RAD=2,FG_RADMAX=6;   // v78s: an area's radius in tiles: 2 unless changed (0, its own tile only, to 6)
+const fgRad=g=>g&&Number.isInteger(g.rad)?Math.max(0,Math.min(FG_RADMAX,g.rad)):FG_RAD;
 const fgData=pl=>{const P=G.p[pl];if(!P.fg||typeof P.fg!=="object")P.fg={n:0,g:{},s:{}};return P.fg};
 const fgFull=pl=>faOn(pl)&&(faState(pl).cfg||{}).scope!=="soft";
 const fgCheb=(a,b,c,d)=>Math.max(Math.abs(a-c),Math.abs(b-d));
@@ -79,6 +81,8 @@ function fgDo(pl,op,a,b,c){if(!G||!G.p[pl]||G.over||NET.ctx!=null&&NET.ctx!==pl|
   else if(op==="leave"){if(!o||!fgGid(pl,o.st))return false;out(o)}
   else if(op==="disband"){if(!D.g[a])return false;fgEnd(pl,a,"")}
   else if(op==="dismiss"){if(!o)return false;for(const id of Object.keys(D.g)){const g=D.g[id],X=g.k==="guard"&&fgFind(pl,g.lead);if(X&&X.st===o.st)fgEnd(pl,id,"")}}
+  else if(op==="rad"){const gid=o&&fgGid(pl,o.st),g=gid&&D.g[gid];if(!g||g.k!=="area")return false;   // v78s: the area wider or smaller
+    const r=Math.max(0,Math.min(FG_RADMAX,fgRad(g)+(b>0?1:-1)));if(r===fgRad(g))return false;g.rad=r}
   else if(op==="strat"){if(!o)return false;const gid=fgGid(pl,o.st);let sid=null;
     if(c&&typeof c==="object"){sid="s"+(++D.n);D.s[sid]={name:stName(b)||"Strategy",cfg:stCfg(c)}}
     if(gid)D.g[gid].sid=sid;
@@ -107,10 +111,12 @@ function fgShape(pl,gid,g,base,role){const cx=Object.assign({},base,{pl}),foes=A
     cx.gainMul=E=>{const e=pos.get(E);if(!e)return gm(E);const d=fgCheb(e.r,e.c,L0.r,L0.c);return gm(E)*(d<=1?3.2:d<=2?2.4:d<=3?1.5:1)};
     if(foes.some(e=>fgCheb(e.r,e.c,L0.r,L0.c)<=4)){cx.W=faMix(base.W,FA_OFF,.65);cx.thrAdj=(base.thrAdj||0)-.12}   // threatened: bold
     return cx}
-  if(g.k==="area"){const [ar,ac]=g.at,inA=(r,c)=>Math.hypot(r-ar,c-ac)<=FG_AREA+.3;
-    pull((S,r,c)=>{const d=Math.hypot(r-ar,c-ac);return d>FG_AREA+.3?2.6*(d-FG_AREA)+1:.12*d});
-    cx.gainMul=E=>{const e=pos.get(E);return gm(E)*(e?(inA(e.r,e.c)?2.2:.55):1)};
-    if(foes.some(e=>inA(e.r,e.c))){cx.W=faMix(base.W,FA_OFF,.55);cx.thrAdj=(base.thrAdj||0)-.08}
+  if(g.k==="area"){const [ar,ac]=g.at,R=fgRad(g),inA=(r,c)=>Math.hypot(r-ar,c-ac)<=R+.3;
+    pull((S,r,c)=>{const d=Math.hypot(r-ar,c-ac);return d>R+.3?2.6*(d-R)+1:.12*d});
+    // v78s: a guard caught outside its area fights the enemies in its way back (nearer the area than it is, within two tiles of it)
+    const away=fgMembers(pl,gid).filter(m=>!inA(m.r,m.c)),inWay=e=>away.some(m=>Math.hypot(e.r-ar,e.c-ac)<Math.hypot(m.r-ar,m.c-ac)&&fgCheb(e.r,e.c,m.r,m.c)<=2);
+    cx.gainMul=E=>{const e=pos.get(E);return gm(E)*(e?(inA(e.r,e.c)?2.2:inWay(e)?2.4:.55):1)};
+    if(foes.some(e=>inA(e.r,e.c))||away.length&&foes.some(inWay)){cx.W=faMix(base.W,FA_OFF,.55);cx.thrAdj=(base.thrAdj||0)-.08}
     return cx}
   /* a squadron: the leader leads (not too far ahead of the rest); the others keep within two tiles of it, or (no leader) of one another */
   if(role==="L"){pull((S,r,c)=>{const M=fgMembers(pl,gid).filter(o=>!S.cards.some(x=>o.st.cards.includes(x)));if(!M.length)return 0;
@@ -141,6 +147,7 @@ function fgItems(o){const V=view(),D=G.p[V].fg||{g:{},s:{}},gid=fgGid(V,o.st),g=
   const b=(op,t,on)=>`<button type="button" role="menuitem" data-fg="${op}"${on?' class="on"':""}>${t}</button>`;
   let h=`<p class="clsmh">Field Automation group</p>`;
   if(g){h+=`<p class="fgnow">${esc(fgName(V,gid,g,o))}</p>`;
+    if(g.k==="area"){const r=fgRad(g);h+=`<p class="fgrad">Area: ${r?`${r} tile${r>1?"s":""} around ${coord(g.at[0],g.at[1])}`:`${coord(g.at[0],g.at[1])} only`}</p><div class="fgradb">${b("rad+","Wider area (+1 tile)").replace("<button",r>=FG_RADMAX?"<button disabled":"<button")}${b("rad-","Smaller area (−1 tile)").replace("<button",r<=0?"<button disabled":"<button")}</div>`}
     if(g.k==="squad"){if(!(g.lead&&o.st.cards.some(x=>x.id===g.lead.h)))h+=b("lead","Promote to Leader");if(fgMembers(V,gid).length<FG_MAX)h+=b("add","Add stacks…")}
     h+=b("leave","Leave group");if(g.k==="squad")h+=b("disband","Disband the squadron")}
   if(fgCanJoin(o.st)){
@@ -151,11 +158,14 @@ function fgItems(o){const V=view(),D=G.p[V].fg||{g:{},s:{}},gid=fgGid(V,o.st),g=
   const L=stList();if(L.length&&fgCanJoin(o.st)){const cur=g?g.sid:(o.st.cards.find(x=>x.fgStrat)||{}).fgStrat,curName=cur&&D.s[cur]?D.s[cur].name:null;
     h+=`<p class="clsmh">Strategy for ${g?"the group":"this stack"}</p>`+b("strat:","Your own settings",!curName)+L.map(s=>b("strat:"+s.id,esc(s.name),curName===s.name)).join("")}
   return h}
-function fgWire(m,o){m.querySelectorAll("[data-fg]").forEach(btn=>btn.onclick=()=>{m.hidden=true;fgUse(btn.dataset.fg,o)})}
+function fgWire(m,o){m.querySelectorAll("[data-fg]").forEach(btn=>btn.onclick=()=>{
+  if(btn.dataset.fg==="rad+"||btn.dataset.fg==="rad-"){fgDo(view(),"rad",[o.r,o.c],btn.dataset.fg==="rad+"?1:-1);   // v78s: the menu stays open while the area changes
+    const box=m.querySelector(".fgmenu");if(box)box.innerHTML=fgItems(o);else m.innerHTML=fgItems(o);fgWire(m,o);const again=m.querySelector(`[data-fg="${btn.dataset.fg}"]:not([disabled])`)||m.querySelector('[data-fg^="rad"]:not([disabled])');if(again)again.focus({preventScroll:true});return}
+  m.hidden=true;fgUse(btn.dataset.fg,o)})}
 function fgUse(op,o){const V=view(),gid=fgGid(V,o.st),here=[o.r,o.c];
   if(op==="guardsel"){const L=selStack();if(!L)return;if(!fgGuardRoom(V,L)){flash("Nine stacks already guard that one.");return}fgDo(V,"guard",here,[G.sel.r,G.sel.c]);flash("It guards the selected stack.")}
   else if(op==="guard")fgPick({op,from:here,text:"Click the stack it should guard"});
-  else if(op==="area")fgPick({op,from:here,text:"Click the middle of the area it should guard (four tiles around it)"});
+  else if(op==="area")fgPick({op,from:here,text:"Click the middle of the area it should guard (two tiles around it; its right-click menu makes it wider or smaller)"});
   else if(op==="squad")fgPick({op,from:here,list:[],text:"Click the stacks to bring into the squadron (up to nine)"});
   else if(op==="add")fgPick({op,from:here,gid,text:"Click the stacks to add to the squadron"});
   else if(op==="joinsel"){const sg=fgGid(V,selStack());if(fgMembers(V,sg).length>=FG_MAX){flash("A squadron holds nine stacks at most.");return}fgDo(V,"join",here,sg)}
@@ -224,7 +234,7 @@ function fgTree(M){const out=[],inT=[M[0]];const rest=M.slice(1);while(rest.leng
 function fgSVG(){const B=$("#board");if(!B||!G)return;const V=view(),D=V!=null&&G.p[V]&&G.p[V].fg,items=[];const old=B.querySelector(":scope>svg.fagroups");
   if(D&&!G.over&&fgFull(V))for(const [gid,g] of Object.entries(D.g)){const M=fgMembers(V,gid);
     if(g.k==="guard"){const L=fgFind(V,g.lead);if(L)for(const m of M)if(m.st!==L.st)items.push(["gd",m.r,m.c,L.r,L.c])}
-    else if(g.k==="area"){items.push(["ar",g.at[0],g.at[1]]);for(const m of M)items.push(["al",m.r,m.c,g.at[0],g.at[1]])}
+    else if(g.k==="area"){items.push(["ar",g.at[0],g.at[1],fgRad(g)]);for(const m of M)items.push(["al",m.r,m.c,g.at[0],g.at[1]])}
     else{const L=g.lead?fgFind(V,g.lead):null;if(L){for(const m of M)if(m.st!==L.st)items.push(["sl",m.r,m.c,L.r,L.c])}else if(M.length>1)for(const [a,b] of fgTree(M))items.push(["sq",a.r,a.c,b.r,b.c])}}
   if(!items.length){if(old)old.remove();fgSig="";return}
   const sig=JSON.stringify([items,B.offsetWidth,B.offsetHeight]);if(old&&sig===fgSig)return;fgSig=sig;
@@ -235,7 +245,7 @@ function fgSVG(){const B=$("#board");if(!B||!G)return;const V=view(),D=V!=null&&
     return `<line class="fgu ${cls}" x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}"/><line class="fgl ${cls}" x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}"${arrow?` marker-end="url(#${arrow})"`:""}/>`};
   for(const it of items){const a=at(it[1],it[2]);if(!a)continue;
     if(it[0]==="ar"){const n=at(it[1],it[2]+1)||at(it[1],it[2]-1),pitch=n?Math.abs(n.x-a.x):a.s*1.08;
-      out+=`<circle class="fgc" cx="${f(a.x)}" cy="${f(a.y)}" r="${f(pitch*(FG_AREA+.5))}"/><circle class="fgcd" cx="${f(a.x)}" cy="${f(a.y)}" r="${f(a.s*.46)}"/>`;
+      out+=`<circle class="fgc" cx="${f(a.x)}" cy="${f(a.y)}" r="${f(pitch*(it[3]+.5))}"/><circle class="fgcd" cx="${f(a.x)}" cy="${f(a.y)}" r="${f(a.s*.46)}"/>`;
       continue}
     const b=at(it[3],it[4]);if(!b)continue;
     out+=it[0]==="gd"?line("gd",a,b,"fgag"):it[0]==="al"?line("al",a,b,null):it[0]==="sl"?line("sq",a,b,"fgab"):line("sq",a,b,null)}

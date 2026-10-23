@@ -150,6 +150,7 @@ const banCycle=()=>{const k=G.moon.gone;return k&&cycleNow(k)?`${banBody(k).repl
 {const _nr=newRound;newRound=async function(){const out=await _nr.apply(this,arguments);
   if(G&&!G.over){const sub=[];
     if(survival()){const H=hordeIx(),none=H<0||!stacksOf(H).length,coming=G.round>=(G.hordeNextR==null?4:G.hordeNextR);if(none&&!coming)sub.push(G.round<=3?"Grace period · the Horde gathers":"Grace · no Horde this round")}
+    if(!G.moon.gone&&(G.moon.i===0||G.moon.i===4))sub.push(G.moon.blood?"A Blood Moon":MOON[G.moon.i]);   // v78s: the New Moon and the Full Moon are told too
     try{const c=banCycle();if(c)sub.push(c)}catch(e){console.error(e)}
     if(G.eclipse&&G.eclipse.round===G.moon.round)sub.push(`The eclipse of ${banBody(G.eclipse.k==="saturn"&&G.eclipse.what?"saturn":G.eclipse.k)}`);
     roundBanner(banRound(),sub.join(" · "))}

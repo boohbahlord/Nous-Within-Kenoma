@@ -1856,9 +1856,9 @@ html.cardsym .cf.v61 .hearts,html.cardsym .stack.v61 .bhp{top:calc(24px * var(--
 .farow.faalways small{display:block;color:var(--dim);font-weight:400}
 /* v70d: the round's number, large and faint in the middle of the screen */
 #roundban{position:fixed;inset:0;z-index:90;display:grid;place-content:center;justify-items:center;pointer-events:none;opacity:0;text-align:center}
-#roundban .rbr{font-family:"Grenze Gotisch","Old English Text MT",serif;font-size:clamp(22px,3.4vw,40px);color:#efe2c8;opacity:.45;letter-spacing:.06em}
-#roundban .rbn{font-family:"Grenze Gotisch","Old English Text MT",serif;font-size:clamp(96px,17vw,230px);line-height:.95;color:#efe2c8;opacity:.3;text-shadow:0 0 40px #000}
-#roundban .rbs{font-family:"Grenze Gotisch","Old English Text MT",serif;font-size:clamp(18px,2.8vw,32px);color:#efe2c8;opacity:.5;margin-top:6px}
+#roundban .rbr{font-family:"Grenze Gotisch","Old English Text MT",serif;font-size:clamp(22px,3.4vw,40px);color:#efe2c8;opacity:.85;letter-spacing:.06em}
+#roundban .rbn{font-family:"Grenze Gotisch","Old English Text MT",serif;font-size:clamp(96px,17vw,230px);line-height:.95;color:#efe2c8;opacity:.8;text-shadow:0 0 40px #000,0 0 6px #000}
+#roundban .rbs{font-family:"Grenze Gotisch","Old English Text MT",serif;font-size:clamp(18px,2.8vw,32px);color:#efe2c8;opacity:.95;margin-top:6px;text-shadow:0 0 10px #000}
 #roundban.go{animation:roundban 4.6s ease-in-out forwards}
 @keyframes roundban{0%{opacity:0}28%{opacity:1}68%{opacity:1}100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){#roundban.go{animation:roundbanR 3.6s steps(1,end) forwards}@keyframes roundbanR{0%{opacity:1}100%{opacity:0}}}
@@ -2553,7 +2553,7 @@ svg.fagroups .gd{stroke:#52d685}
 svg.fagroups .al{stroke:#52d685;stroke-dasharray:3 6}
 svg.fagroups .fgl.al{stroke-width:1.6;stroke-opacity:.6}
 svg.fagroups .sq{stroke:#6aaeff}
-svg.fagroups .fgc{fill:#52d6850d;stroke:#52d685;stroke-opacity:.6;stroke-width:1.8;stroke-dasharray:8 7}
+svg.fagroups .fgc{fill:#52d68505;stroke:#52d685;stroke-opacity:.32;stroke-width:1.2;stroke-dasharray:6 8}   /* v78s: light, so the field shows through */
 svg.fagroups .fgcd{fill:none;stroke:#52d685;stroke-opacity:.85;stroke-width:2}
 #clsmenu .fgnow{margin:0 8px 4px;font-size:12px;color:var(--amber-hi)}
 #clsmenu .fgmenu{border-top:1px solid var(--rule);margin-top:4px;padding-top:2px;display:flex;flex-direction:column;gap:2px}
@@ -2591,3 +2591,7 @@ details[open]>summary,[data-fold][aria-expanded="true"]{text-shadow:0 0 6px colo
 .kbfoc{scroll-margin:56px 0}
 .kbifo{outline:2px dashed #8fd3ff!important;outline-offset:5px!important}
 #minepanel .mslot.kbmine{outline:2px solid var(--amber-hi);outline-offset:2px;box-shadow:0 0 12px color-mix(in oklab,var(--amber-hi) 60%,transparent)}   /* v78s: the slot chosen by keys */
+#clsmenu .fgrad{margin:4px 10px 2px;font-size:12px;color:var(--dim)}
+#clsmenu .fgradb{display:flex;gap:4px;padding:0 6px 4px}#clsmenu .fgradb button{flex:1}#clsmenu .fgradb button[disabled]{opacity:.4;cursor:default}
+html.ecfs #notes{top:calc(var(--fsctlb,104px) + 8px)}   /* v78s: in fullscreen the notes come down from the middle of the top, under the turn bar and the meters */
+#roundban.go{background:radial-gradient(ellipse 46% 34% at 50% 50%,#000000a8,#00000060 60%,transparent 78%)}   /* v78s: a dark band behind it, so it reads over any field (it was too faint to notice) */
