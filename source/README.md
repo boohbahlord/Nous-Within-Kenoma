@@ -3,7 +3,10 @@
 The live site files at the repo root are BUILT from this folder. Edit here, then rebuild.
 
 Build:  cd source && python3 -I build_all.py    -> writes everything into source/site/
-Deploy: copy the files from source/site/ to the repo root (GitHub Pages serves the root).
+Deploy: cd source && python3 -I deploy.py        -> copies source/site/ to the repo root (GitHub Pages serves the root)
+
+The site, at the repo root: index.html and 404.html (old addresses land on their new place), and the folders
+book/ (the chapters), art/ (the art page and pictures), game/ (Ether's Crossroads), assets/ (site.css, site.js, fonts, icons).
 
 - game/src/NN_*.js   game modules, concatenated in filename order into ethers-crossroads.js
 - game/text/         rules page text (rules_modes.html), substances.json, rules.css

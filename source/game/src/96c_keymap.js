@@ -22,6 +22,8 @@ const KM_ACTS=[
   ["spellbar","table","Shortcuts","The spell bar at the bottom",["F"]],
   ["spelllist","table","Shortcuts","The spell list",["Shift+F"]],
   ["hand","table","Shortcuts","Pick from the hand",["G"]],
+  ["hCycPrev","table","Shortcuts","The card before in your hand (starts picking from the hand)",["Shift+Q"]],   // v79j
+  ["hCycNext","table","Shortcuts","The card after in your hand (starts picking from the hand)",["Shift+E"]],
   ["mineFold","table","Shortcuts","Fold or unfold the mining slots above the hand",["Shift+G"]],
   ["sacrifice","table","Shortcuts","Sacrifice the hand card you picked",["Backspace","Delete"]],
   ["bank","table","Shortcuts","The Bank",["B"]],
@@ -105,7 +107,7 @@ const kmGroupName=g=>(KM_GROUPS.find(x=>x[0]===g)||["",""])[1];
 /* v79b: each action's short name, said to the left of its key wherever a key is shown (the lists, the notes, the
    letters on the buttons), and the same name heads its line in the settings' Key bindings, so it can be found there */
 const KM_LABEL={close:"Close",keys:"Every key",rulebook:"Open Rule book",music:"Music on/off",
-  turn:"Next phase / End turn",roll:"Roll the draw",spellbar:"Open spell bar",spelllist:"Open spell list",hand:"Pick from hand",mineFold:"Mining slots open/close",sacrifice:"Sacrifice card",
+  turn:"Next phase / End turn",roll:"Roll the draw",spellbar:"Open spell bar",spelllist:"Open spell list",hand:"Pick from hand",hCycPrev:"Previous hand card",hCycNext:"Next hand card",mineFold:"Mining slots open/close",sacrifice:"Sacrifice card",
   bank:"Open Bank",ether:"Open Ether",dip:"Open Diplomacy",faset:"Automation settings",log:"Open log",dice:"Open dice",fullscreen:"Fullscreen on/off",
   hints:"Key letters on/off",bfsOn:"Browser fullscreen on",bfsOff:"Browser fullscreen off",pageUp:"Scroll page up",pageDown:"Scroll page down",
   console:"Open command line",consoleSwap:"Chat / command line",

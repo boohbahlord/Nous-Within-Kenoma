@@ -2,7 +2,8 @@
 import json, html, os, re, shutil
 
 OUT = 'site'
-SITE_V = '71'   # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+SITE_V = '72'   # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+if os.path.isdir(OUT): shutil.rmtree(OUT)   # v79j: a clean build (the files end up in folders at the end)
 os.makedirs(OUT, exist_ok=True)
 shutil.copy('theme/site.js', f'{OUT}/site.js')
 shutil.copy('theme/ec-music.js', f'{OUT}/ec-music.js')
@@ -229,4 +230,47 @@ _cut = [f'{os.path.basename(f)}:{i}' for f in sorted(glob.glob('game/src/*.js'))
         for m in re.finditer(r'//\s*v\d+[a-z]?\b', l) if _code.search(l[m.end():])]
 if _cut:
     sys.stderr.write('code after a // note (commented out): ' + ', '.join(_cut) + '\n'); sys.exit(1)
-print('built', len(os.listdir(OUT)), 'files')
+
+# ---------------------------------------------------------------- v79j: the site in folders
+# Everything above is built flat; here each file goes to its folder and every reference between files (href, src, url(),
+# the strings in the scripts) is rewritten to the new place. index.html stays at the root, where GitHub Pages starts.
+#   book/  the chapters and their list · art/  the art page and the pictures · game/  Ether's Crossroads
+#   assets/  what every page shares: site.css, site.js, the fonts, the icon, the dark fantasy backdrop
+def _folder(f):
+    if f.startswith('chapter') and f.endswith('.html'): return 'book'
+    if f in ('art.html', 'kenoma-art.jpg', 'in-denial.jpg', 'forgetting-hell.png') or re.match(r'art-\d+\.jpg$', f): return 'art'
+    if f.startswith('ethers-crossroads') or f in ('ec-music.js', 'banker.png'): return 'game'
+    return 'assets'
+FOLDER = {f: _folder(f) for f in os.listdir(OUT) if f != 'index.html'}
+where = lambda f: f'{FOLDER[f]}/{f}' if f in FOLDER else f
+_names = sorted([*FOLDER, 'index.html'], key=len, reverse=True)
+_ref = re.compile(r'(?<![\w./-])(' + '|'.join(map(re.escape, _names)) + r')(?=[?#"\'`)\s,;]|$)')
+def _fix(text, home):
+    return _ref.sub(lambda m: os.path.relpath(where(m.group(1)), home or '.').replace(os.sep, '/'), text)
+for d in set(FOLDER.values()): os.makedirs(f'{OUT}/{d}', exist_ok=True)
+for f in [*FOLDER, 'index.html']:
+    src, dst = f'{OUT}/{f}', f'{OUT}/{where(f)}'
+    if f.endswith(('.html', '.css', '.js')):
+        t = _fix(open(src, encoding='utf8').read(), FOLDER.get(f, ''))
+        if dst != src: os.remove(src)
+        open(dst, 'w', encoding='utf8').write(t)
+    elif dst != src: shutil.move(src, dst)
+# the old addresses (before the folders, and the pages that are gone) land where they belong now, or on the front page
+_moved = json.dumps({f: where(f) for f in FOLDER if f.endswith('.html')})
+open(f'{OUT}/404.html', 'w').write('''<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Nous Within Kenoma</title>
+<script>(function(){var M=''' + _moved + ''',p=location.pathname,i=p.lastIndexOf("/"),d=p.slice(0,i+1).replace(/(book|art|game|assets)[/]$/,""),f=p.slice(i+1),to=M[f];
+location.replace(d+(to||"index.html")+(to?location.search+location.hash:""))})()</script>
+<p style="font-family:monospace;padding:24px">This page has moved. <a href="/Nous-Within-Kenoma/">Nous Within Kenoma</a></p>
+''')
+# every reference must point at a file that is there
+_bad = []
+for root, _, files in os.walk(OUT):
+    for f in files:
+        if not f.endswith(('.html', '.css')): continue
+        t = open(f'{root}/{f}', encoding='utf8').read()
+        for m in re.finditer(r'(?:href|src)="([^"#?:]+)|url\(["\']?([^"\')?#:]+)', t):
+            u = m.group(1) or m.group(2)
+            if u and not u.startswith(('/', 'data', 'javascript', '%')) and not os.path.exists(os.path.normpath(f'{root}/{u}')): _bad.append(f'{os.path.relpath(root, OUT)}/{f} → {u}')
+if _bad:
+    sys.stderr.write('broken references:\n  ' + '\n  '.join(sorted(set(_bad))[:40]) + '\n'); sys.exit(1)
+print('built', sum(len(fs) for _, _, fs in os.walk(OUT)), 'files in', ', '.join(sorted({*FOLDER.values()})) + ' and the root')
