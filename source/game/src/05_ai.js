@@ -236,7 +236,7 @@ const AI=(()=>{
   async function moves(pl,W){
     const lv=L(pl);
     const order=isHorde(pl)?stacksOf(pl).sort((a,b)=>stackRate(b.st)-stackRate(a.st)):stacksOf(pl).sort((a,b)=>{const na=Math.min(99,...enemyStacks(pl).map(e=>dist(a.r,a.c,e.r,e.c))),nb=Math.min(99,...enemyStacks(pl).map(e=>dist(b.r,b.c,e.r,e.c)));return na-nb});
-    if(FAX&&FAX.pl===pl&&FAX.clsOf){const lo=st=>{const k=FAX.clsOf(st);return k&&k.lowPrio?1:0};order.sort((a,b)=>lo(a.st)-lo(b.st))}   // v72e: a low-priority class moves last
+    if(FAX&&FAX.pl===pl&&FAX.clsOf){const lo=st=>{const k=FAX.clsOf(st);return k?(k.lowPrio?1:0)+(k.late?2:0):0};order.sort((a,b)=>lo(a.st)-lo(b.st))}   // v72e: a low-priority class moves last; v78e: guards and a squadron's followers after everyone
     if(FAX&&FAX.pl===pl&&FAX.first)order.sort((a,b)=>FAX.first(b.st)-FAX.first(a.st));   // v71n: a crystal's guard sets out before anyone can join it
     for(const o of order){
       if(G.over)return;
