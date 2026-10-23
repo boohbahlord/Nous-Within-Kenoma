@@ -174,11 +174,9 @@ html.th-darkfantasy{--ground:#0d0a0e;--well:#1b161cea;--deep:#100c11ee;--text:#d
   background:linear-gradient(#0a070bb3,#0a070bcc),url(dark-fantasy.png) center/cover fixed;image-rendering:pixelated}
 html.th-darkfantasy body{image-rendering:auto}
 /* v78c: Ether's Ten: the same dungeon in blue, loosely after Ten (white on indigo): grey and blue panels, gold and silver */
-html.th-darkfantasy.th-eten{--ground:#0a0b16;--well:#15172bea;--deep:#0c0d1cee;--text:#dcdeea;--dim:#a3a6c0;--rule:#2e3478;
-  background:linear-gradient(#060814c4,#060814db),linear-gradient(#26357a,#0e1438),url(dark-fantasy.png) center/cover;background-blend-mode:normal,color,normal;background-attachment:fixed}
+html.th-darkfantasy.th-eten{--ground:#0a0b16;--well:#15172bea;--deep:#0c0d1cee;--text:#dcdeea;--dim:#a3a6c0;--rule:#2e3478;}   /* v78r: the picture shows as in the default, with no colour wash: only the UI changes colour */
 /* v78c: Ether's Kenoma: the same dungeon in Kenoma's burnt amber and orange */
-html.th-darkfantasy.th-eken{--ground:#150d07;--well:#23160dea;--deep:#120a05ee;--text:#f1d5a8;--dim:#c6a074;--amber:#e9a157;--amber-hi:#ffc98a;--rule:#5c3418;
-  background:linear-gradient(#120803bd,#120803d4),linear-gradient(#a8541a,#4a1e06),url(dark-fantasy.png) center/cover;background-blend-mode:normal,color,normal;background-attachment:fixed}
+html.th-darkfantasy.th-eken{--ground:#150d07;--well:#23160dea;--deep:#120a05ee;--text:#f1d5a8;--dim:#c6a074;--amber:#e9a157;--amber-hi:#ffc98a;--rule:#5c3418;}   /* v78r: the picture shows as in the default, with no colour wash: only the UI changes colour */
 /* Office: white paper, light grey panels, a blue ribbon accent; inspired by an office suite, not a copy of one */
 html.th-office{--ground:#d9dadd;--well:#e6e7ea;--deep:#cfd1d5;--text:#232427;--dim:#575b61;--amber:#2b579a;--amber-hi:#1a3f78;--rule:#b3b6bb;--string:#b3b6bb;color-scheme:light}
 .crumbs .arrows a{margin:0 2px}
