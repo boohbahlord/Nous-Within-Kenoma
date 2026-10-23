@@ -2149,7 +2149,7 @@ html.ecfs main.game #controls .btn{padding:4px 10px;font-size:13px}
 /* bottom left: the hand, and the thin row under it */
 html.ecfs main.game #handwrap{position:fixed;left:8px;bottom:calc(var(--fsrowh,30px) + 10px);z-index:12;max-width:min(62vw,760px);margin:0;padding:5px 8px;
   background:color-mix(in oklab,var(--deep) 84%,transparent);border:1px solid var(--rule)}
-html.ecfs main.game #hand{flex-wrap:nowrap;overflow-x:auto;gap:7px;padding-bottom:2px;scrollbar-width:thin}
+html.ecfs main.game #hand{flex-wrap:nowrap;overflow-x:auto;gap:7px;padding:11px 10px 8px;margin:-5px -8px -6px;scrollbar-width:thin}   /* v78r: room in the scrolling row for a picked card's glow on every side */
 html.ecfs main.game #hand>*{flex:none}
 #fsui{display:none}
 html.ecfs #fsui{display:block}
