@@ -2633,6 +2633,7 @@ html.drawdark #board>.drawveil{opacity:.82}
 #controls .phl{display:inline-flex;align-items:center}#controls .phl .phico{width:22px;height:22px;margin-right:6px;vertical-align:middle}
 /* v79c: the hand's count out of its most */
 #handh .hcnt{margin-left:8px;font-size:.85em;color:var(--dim);letter-spacing:.06em}
+#handh .sacoff{margin-left:10px;font-size:.78em;color:#e3a46e;letter-spacing:.03em;font-style:italic;cursor:help}   /* v79h: why the sacrifice buttons are gone */
 #handh .hcnt.over,#handwrap .hcnttag.over{color:#ff7b6b}
 #handwrap{position:relative}#handwrap .hcnttag{display:none}
 html.ecfs #handwrap .hcnttag{display:block;position:absolute;top:-9px;right:10px;z-index:3;font:600 11px/1 var(--mono);letter-spacing:.08em;color:var(--amber-hi);background:#000a;border:1px solid var(--rule);padding:3px 6px;pointer-events:auto}

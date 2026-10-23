@@ -9,7 +9,7 @@ Deploy: copy the files from source/site/ to the repo root (GitHub Pages serves t
 - game/text/         rules page text (rules_modes.html), substances.json, rules.css
 - theme/             site.css, site.js, game.css (game.css -> ethers-crossroads.css)
 - assets/            images and fonts copied as-is
-- codex/, edits/, nwk/, chapters_all.json   lore pages, chapter edits, character web / cosmos maps
+- edits/, chapters_all.json   chapter edits
 - game_pages.py      builds the 3 game pages; the ?v=NN cache tag lives here
 - make_parts.py      old zip-maker for manual uploads (not needed with direct repo access)
 - tools/             headless AI-vs-AI sims (node simp.js ..., needs `npm install playwright`)

@@ -46,8 +46,12 @@ const landLeft=l=>Math.max(0,l.untilT-tnOf(l.owner));
 function landOwnSide(pl,r,c){const S=seat(pl);if(!S||!S.back||!S.back.length)return true;const [br,bc]=S.back[0],[fr,fc]=S.fwd;
   const depth=(r-br)*fr+(c-bc)*fc,full=(fr?(fr>0?G.rows-1-br:br):0)+(fc?(fc>0?COLS-1-bc:bc):0);   // how far forward, out of the whole field
   return depth<=Math.ceil(full/2)}
+/* v79h: land is bought only where your side's own cards see (yours and your teammates'): what a spell or the sky uncovers
+   (Bird's Eye, the Second Sun burning the fog away) doesn't count. With no fog of war in the game, anywhere. */
+function landSeen(pl,r,c){if(G.opts.fog===false)return true;if(totalBlind(pl))return false;const ff=firmFog(pl);if(ff&&ff.blind)return false;
+  return visionMap(pl).own.some(x=>inSight(x,r,c,ff))}
 const landFree=pl=>{const t=[];if(typeof kothOn==="function"&&kothOn())return t;
-  for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(midTile(r,c)&&!G.board[r][c]&&!landAt(r,c)&&!(typeof flagAt==="function"&&flagAt(r,c))&&(pl==null||landOwnSide(pl,r,c)))t.push([r,c]);return t};
+  for(let r=0;r<G.rows;r++)for(let c=0;c<COLS;c++)if(midTile(r,c)&&!G.board[r][c]&&!landAt(r,c)&&!(typeof flagAt==="function"&&flagAt(r,c))&&(pl==null||landOwnSide(pl,r,c)&&landSeen(pl,r,c)))t.push([r,c]);return t};
 {const _bt=beginTurn;beginTurn=function(pl){const out=_bt.apply(this,arguments);
   for(const l of [...(G.lands||[])])if(l.owner===pl&&l.untilT!=null&&tnOf(pl)>=l.untilT){G.lands.splice(G.lands.indexOf(l),1);
     log(`${plName(pl)}'s land on ${coord(l.r,l.c)} goes back to the Bank after ${LAND_TURNS} rounds (a base on it stays a spawn point until it falls).`)}
@@ -61,6 +65,7 @@ function landWhy(pl,txt){const t=String(txt||"").trim().toUpperCase();if(!t)retu
   if(isVoid(r,c)||tileRole(r,c)==="water")return `${t} isn't ground anyone can stand on.`;
   if(!midTile(r,c))return `${t} is home ground, not the middle.`;
   if(!landOwnSide(pl,r,c))return `${t} is past the midline: land must be on your side of it.`;
+  if(!landSeen(pl,r,c))return `${t} is in the fog: land can only be bought where your side's own cards see (not what a spell uncovers).`;
   if(landAt(r,c))return `${t} is already someone's land.`;
   if(G.board[r][c])return `Something stands on ${t}: land must be empty.`;
   if(typeof flagAt==="function"&&flagAt(r,c))return `${t} is already a spawn point.`;
@@ -79,7 +84,7 @@ function buyLand(pl,r,c){const P=G.p[pl];if(!bankOpen()||G.phase!=="prep"||G.act
   if(card.unit&&UNIT[card.unit].solo==="alone")return false;if(kind(card)==="joker"&&!st.cards.some(x=>x.color===card.color))return false;
   return stackLegal([...st.cards,card])}}
 {const _pl=place;place=function(card,r,c){const l=landAt(r,c),pl=G.active;const out=_pl.apply(this,arguments);
-  const st=G.board[r][c];if(l&&l.owner===pl&&st&&!st.cards.some(isBase)){const fee=R(2)-1;if(fee){spend(pl,fee);log(`The Bank charges ${plName(pl)} ${fee} mana for a card on its land.`)}}
+  const st=G.board[r][c];if(l&&l.owner===pl&&st&&!st.cards.some(isBase)){const fee=R(2)-1;if(fee){const was=G.spent;spend(pl,fee);G.spent=was;log(`The Bank charges ${plName(pl)} ${fee} mana for a card on its land.`)}}
   return out}}
 function landHTML_(r,c,under){const l=landAt(r,c);if(!l)return "";const P=G.p[l.owner];
   return `<span class="landmk${under?" under":""}" style="--fc:${P.color}" data-tip="${esc(P.name)}'s land from the Bank: a spawn point for any card but a Wall, ${landLeft(l)} more of ${esc(P.name)}'s turns (counting the current one). A card without a base here costs 1d2 − 1.">$</span>`}
