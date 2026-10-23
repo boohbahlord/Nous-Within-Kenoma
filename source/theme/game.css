@@ -2503,7 +2503,7 @@ kbd{font:600 11px/1 var(--mono,monospace);background:#1e150d;border:1px solid #6
 .kbplp{background:#f1d27a22;outline:1px dashed #f1d27a99}
 #fkmode{position:fixed;left:12px;bottom:12px;z-index:62;background:#120c08e8;border:1px solid #6e5323;border-radius:5px;padding:5px 9px;font-size:11.5px;color:#cbb994;pointer-events:none}
 #fkmode b{color:var(--amber)}
-html.ecfs #fkmode{bottom:auto;top:132px}
+html.ecfs #fkmode{left:8px;bottom:calc(var(--fsrowh,30px) + 16px + var(--fshandh,150px))}   /* v78s: in fullscreen it sits on top of the hand's box, clear of the other players' lines */
 .kbactbox ol.kbacts{list-style:none;margin:8px 0;padding:0;display:grid;gap:5px}
 .kbactbox ol.kbacts button{width:100%;text-align:left;display:flex;gap:9px;align-items:center;padding:6px 8px;background:#1b130c;border:1px solid #4a3620;border-radius:5px;color:#efe2c8;cursor:pointer;font:inherit}
 .kbactbox ol.kbacts button:hover,.kbactbox ol.kbacts button.kbfoc{border-color:var(--amber)}

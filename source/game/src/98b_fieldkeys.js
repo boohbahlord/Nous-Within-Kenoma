@@ -61,6 +61,11 @@ function fkAct(how){const p=FK.tgt||FK.cur;if(!p)return;const live=canAct(),s=G.
   if(how==="atk"){flash(s?"No attack on that tile.":"Select a stack of yours first.");return}
   if(how==="move"){flash(s?"It can't go there.":"Select a stack of yours first.");return}
   FK.tgt=null;tileClick(p.r,p.c);fkFollow()}
+/* v78s: something waits for a tile (a card picked from the hand, a spell's target): the selector goes to the nearest
+   highlighted tile, so the arrows (or WASD) move it and Enter uses it */
+function fkToTargets(){const T=[...document.querySelectorAll("#board .tile.tplace,#board .tile.tmove,#board .tile.tatk,#board .tile.taim")];if(!T.length)return false;
+  let best=T[0];if(FK.cur){let bd=1e9;for(const t of T){const d=Math.abs(+t.dataset.r-FK.cur.r)+Math.abs(+t.dataset.c-FK.cur.c);if(d<bd){bd=d;best=t}}}
+  fkSet(+best.dataset.r,+best.dataset.c);return true}
 function fkFollow(){if(G.sel){FK.cur={r:G.sel.r,c:G.sel.c};fkCenter(G.sel.r,G.sel.c)}fkPaint()}
 /* Y: the actions of what you selected, numbered */
 function fkActItems(){const box=$("#selbox");if(!box)return [];return [...box.querySelectorAll("button,input[type=checkbox],summary")].filter(e=>e.getClientRects().length&&!e.disabled)}
