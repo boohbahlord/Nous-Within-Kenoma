@@ -199,7 +199,7 @@ function leaveJail(pl){const P=G.p[pl];if(!P.jail)return;P.cpu=P.jail.cpu;P.jail
   if(P&&P.jail)return `In Jail: no spells for ${jailLeft(P)} more round${jailLeft(P)===1?"":"s"}.`;
   if(banOn()&&sp.school===G.mban.school)return `Mercury's ban: no ${G.mban.school} spells until the end of round ${G.mban.until}.`;
   if(P&&sp.school==="Conjuring"&&etherBanned(G.active))return `Out of Jail: no Ether until your turn ${P.etherBan+1}.`;
-  if(P&&sp.id==="gamble"&&bankBanned(G.active))return `Out of Jail: no Bank until your turn ${P.bankBan+1}.`;
+  if(P&&["gamble","gamble2","bribe"].includes(sp.id)&&bankBanned(G.active))return `Out of Jail: no Bank until your turn ${P.bankBan+1}.`;
   return _b(sp)}}
 {const _ll=loanLimit;loanLimit=function(pl){const P=G.p[pl];if(P&&(P.noLoans||P.jail||bankBanned(pl)))return 0;return _ll(pl)}}
 {const _ca=canAfford;canAfford=function(pl,n){const P=G.p[pl];if(P&&(P.noLoans||P.jail||bankBanned(pl)))return mana(pl)>=n;return _ca(pl,n)}}
@@ -221,7 +221,7 @@ function leaveJail(pl){const P=G.p[pl];if(!P.jail)return;P.cpu=P.jail.cpu;P.jail
 {const _id=inDrawer;inDrawer=function(s,V){if(s.shop||s.id==="robbank")return true;return _id(s,V)}}
 /* Rob the Bank sits under the Bank, in dark red, while it can be done */
 {const _rs=renderSpells;renderSpells=function(live){_rs(live);const bs=$("#bankslot");if(!bs||!G)return;const V=view();
-  if(G.mercCyc===G.moon.round&&planetUp("mercury")&&bankOpen()&&!survival()){const sp=SP("robbank"),ok=live&&G.active===V&&spellReady(sp);
+  if((G.mercCyc===G.moon.round&&planetUp("mercury")||oathNow(V,"mercury"))&&bankOpen()&&!survival()){const sp=SP("robbank"),ok=live&&G.active===V&&spellReady(sp);
     const done=G.p[V].robbed===G.moon.round;
     bs.insertAdjacentHTML("beforeend",`<button class="spell robbank ${ok?"":"off"}" id="robBank" data-sp="robbank"><span class="sn">Rob the Bank<small class="dc">1d20</small>${done?`<small class="left">tried</small>`:""}</span><em>free</em></button>`);
     $("#robBank").onclick=async()=>{if(!canAct())return;await cast(SP("robbank"));render()}}}}

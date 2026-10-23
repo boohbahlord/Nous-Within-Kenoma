@@ -3,7 +3,7 @@
 function priceLabel(s,round){
   const P=round?G.roundPrices||{}:G.prices||{};
   if(s.id==="deconj")return `2 / ${P.deconj??"2+1d2"} mana`;
-  if(s.id==="joy")return `${P.joyA??"1+1d2"} / ${P.joyB??"1d3−1"} mana`;
+  if(s.id==="joy")return round?`${P.joyA??"1+1d2"} / ${P.joyB??"1d3−1"} mana`:`${joyPrice("A")} / ${joyPrice("B")} mana`;   // v78j: as charged
   if(round)return P[s.id]!=null?P[s.id]:s.dice;
   const c=spellCost(s);return c?c+" mana":"free";
 }

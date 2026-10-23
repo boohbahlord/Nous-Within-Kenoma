@@ -171,8 +171,8 @@ SPELLS.push(
    notify(G.active,`Lightning strikes ${esc(G.p[st.owner].name)}'s stack on ${coord(G.sel.r,G.sel.c)}: immobile for ${n} turn${n>1?"s":""}.`)}},
  {id:"hate",tribe:"satan",name:"Hate",cost:3,school:"Curse",text:"Select an enemy stack: its strongest card takes a red tinge. While that card lives, its stack has disadvantage on every attack and defense, and everyone attacking it has advantage.",
   ok:()=>selEnemy()&&!hated(selStack()),run:async()=>{
-   const st=selStack(),c=leadCard(st)||st.cards[0];c.hate=true;
-   log(`<b>Hate</b>: ${plName(G.active)} turns ${esc(nameOf(c))} on ${coord(G.sel.r,G.sel.c)} red with hatred.`,"event");notify(G.active,`Hate falls on ${esc(nameOf(c))}.`)}},
+   const st=selStack(),c=leadCard(st)||st.cards[0];c.hate=true;const nm=st.down?"the strongest card of a face-down stack":esc(nameOf(c));   // v78j: unseen stays unseen
+   log(`<b>Hate</b>: ${plName(G.active)} turns ${nm} on ${coord(G.sel.r,G.sel.c)} red with hatred.`,"event");notify(G.active,`Hate falls on ${nm}.`)}},
  {id:"slaves",tribe:"binah",name:"Slaves",cost:0,school:"Necromancy",text:"Free. Deploy one thrall your Slavemasters captured as a Slave: a rifle of 10 + 1d12 that fires two tiles away in a straight line or one diagonal (from two away a miss costs it nothing), one straight step a turn, no defense, and it stands alone. Place it on an empty tile of your own ground. Ten thralls can wait at most.",
   ok:()=>(me().thralls||[]).length>0&&!G.placing&&zoneTiles(G.active).some(([r,c])=>!G.board[r][c]),run:deploySlave},
  {id:"deckcards",tribe:"jester",name:"Deck of Cards",cost:6,school:"Conjuring",once:true,text:"Once a game, while your Tree of Neither Life Or Death stands: your deck becomes full again, as it was at the start of the game. The cards still in it go to the grave; your hand stays.",
@@ -203,7 +203,7 @@ async function aiSubstance(pl,W){
   const P=G.p[pl],lv=P.cpu;if(G.over)return;
   const cast1=async(id,r,c)=>{const sp=SP(id);const old=G.sel;G.sel=r==null?null:{r,c,pick:new Set()};
     const ok=spellReady(sp);if(!ok){G.sel=old;return false}await cast(sp);G.sel=null;render();await sleep(420);return true};
-  const foes=enemiesOf(pl).flatMap(stacksOf),mine=stacksOf(pl);
+  const foes=enemiesOf(pl).flatMap(stacksOf).filter(e=>seesTile(pl,e.r,e.c)),mine=stacksOf(pl);   // v78j: what it can see
   const near=(e,k)=>mine.some(m=>Math.abs(m.r-e.r)+Math.abs(m.c-e.c)<=k);
   await aiSubstance2(pl,W,cast1,foes,mine,near);
   await aiFog(pl,W,cast1);

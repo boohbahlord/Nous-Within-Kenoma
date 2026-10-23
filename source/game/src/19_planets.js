@@ -24,8 +24,8 @@ function skyCapMod(P){if(!G||!P)return 0;let m=0;const pl=P.i;
   if(planetUp("venus")){const V=G.venus;
     const x=G.eclipse&&G.eclipse.k==="venus"?2:1;   // an eclipse of Venus doubles its gifts
     if(V&&V.mode==="a"&&V.target===pl)m+=2*x;
-    if(V&&V.mode==="b"&&V.by!=null&&isEnemy(V.by,pl))m+=2*x;
-    if(P.oath==="venus"){if(P.venusPeace)m+=2;if(P.venusPen&&tnOf(pl)<=P.venusPen)m-=2}}
+    if(V&&V.mode==="b"&&V.by!=null&&isEnemy(V.by,pl))m+=2*x}
+  if(P.oath==="venus"){if(P.venusPeace)m+=2;if(P.venusPen&&tnOf(pl)<=P.venusPen)m-=2}   // v78j: the Oath holds under any sky
   if(G.jupMax&&G.jupMax[pl]&&G.moon.round<=G.jupMax.until)m+=G.jupMax[pl];   // a Jupiter eclipse (Prompt 10c)
   return m}
 
@@ -77,12 +77,12 @@ function planetTurn(pl){
   const P=G.p[pl];if(!P||isHorde(pl))return;
   if(planetUp("venus")){const V=G.venus;
     if(V&&V.target===pl){const n=(V.mode==="a"?2:1)*(eclipseOn("venus")?2:1),got=giveMana(pl,n);if(got)log(`Venus gives ${plName(pl)} ${got} mana.`)}
-    if(P.oath==="venus"){P.venusPeace=!P.venusAttacked;P.venusAttacked=false;if(P.venusPeace){const got=giveMana(pl,2);log(`Venus rewards ${plName(pl)}'s peace: ${got} mana and two more maximum this turn.`)}}
   }
+  if(P.oath==="venus"){P.venusPeace=!P.venusAttacked;P.venusAttacked=false;if(P.venusPeace){const got=giveMana(pl,2);log(`Venus rewards ${plName(pl)}'s peace: ${got} mana and two more maximum this turn.`)}}   // v78j: any sky
   if(planetUp("jupiter")&&(!G.jupSale||G.jupSale.round!==G.moon.round))rollJupSale();
 }
 /* attacking a player under the Oath of Venus costs 1d2 mana and two maximum for 1d3 turns */
-function venusAttack(atk,def){const P=G.p[atk];if(!P||P.oath!=="venus"||!planetUp("venus")||isNPC(def))return;
+function venusAttack(atk,def){const P=G.p[atk];if(!P||P.oath!=="venus"||isNPC(def))return;
   P.venusAttacked=true;P.venusPeace=false;const d=R(2),t=R(3);payQuiet(atk,Math.min(d,mana(atk)));P.venusPen=tnOf(atk)+t;
   log(`Venus frowns on ${plName(atk)}'s attack: −${d} mana and two maximum for ${t} turn${t>1?"s":""}.`)}
 
@@ -91,7 +91,7 @@ function rollJupSale(){const cj=SPELLS.filter(s=>s.school==="Conjuring"&&!s.trib
   log(`Jupiter's sale this round: ${G.jupSale.ids.map(id=>SP(id).name).join(" and ")} (maybe one mana off).`)}
 const onJupSale=id=>planetUp("jupiter")&&G.jupSale&&G.jupSale.ids.includes(id);
 function jupiterCost(sp,c){
-  if(!planetUp("jupiter")||sp.school!=="Conjuring"||c<=1)return c;
+  if(sp.school!=="Conjuring"||c<=1)return c;   // v78j: the Oath holds under any sky
   if(oathOf(G.active)==="jupiter")c-=1;   // the Oath of Jupiter: one less, but nothing that costs one already
   return Math.max(1,c)}
 /* after a purchase: Jupiter's sale may or may not pay off; the Heavenly Body's master may get a mana */

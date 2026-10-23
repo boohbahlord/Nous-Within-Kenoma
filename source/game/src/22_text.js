@@ -91,7 +91,7 @@ for(const s of SPELLS){const t=SPELL_TEXT[s.id];if(t)s.text=[t.n,t.e,t.l].filter
 function priceWords(s){
   if(s.id==="hypo")return "3, plus 1 for each card past the first";
   const now=G&&G.prices&&G.prices[s.id]!=null?G.prices[s.id]:null;
-  if(s.id==="clair"||s.id==="naked"){if(G&&newPrices())return "6 mana (New Moon)";if(G&&fullPrices())return s.id==="clair"?"2 mana (Full Moon)":"free (Full Moon)"}
+  if(s.id==="clair"||s.id==="naked"){if(G&&newPrices())return "6 mana (New Moon)";if(G&&fullPrices())return s.id==="clair"?"2 mana (Full Moon)":G.moon.blood?"1 mana (Blood Moon)":"free (Full Moon)"}
   if(s.fire)return `${s.dice} mana, rolled each round${now!=null?` · ${now} fire now`:""}`;
   if(s.dice)return `${s.dice}, rolled each round${now!=null?` · ${now?now+" mana":"free"} now`:""}`;
   const c=G?spellCost(s):s.cost;return c?c+" mana":"free";

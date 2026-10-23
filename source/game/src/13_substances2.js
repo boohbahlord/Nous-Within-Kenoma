@@ -275,13 +275,15 @@ SPELLS.push(
    if(ch==="full"){if(extra)pay(pl,extra);G.deconjure=true;G.noGraveNext=true;log(`<b>Deconjured</b>: ${plName(pl)} closes the Ether at the next Full Moon and the grave at the next New Moon.`,"event");notify(pl,"Deconjured: no conjuring at the next Full Moon, no grave gift at the next New Moon.")}
    else{G.noConjureRound=G.moon.round+1;log(`<b>Deconjured</b>: ${plName(pl)} closes the Ether to everyone for the next round.`,"event");notify(pl,"Deconjured: no one can conjure next round.")}}},
  {id:"joy",tribe:"lucifer",name:"Pleasure and Joy",cost:0,dice:"1+1d2 or 1d3−1",school:"Curse",text:"Choose one, until your next turn. Pleasure and Joy (1 + 1d2 mana): your cards glow in your color, and those that are killed go back into your deck instead of the grave. Joyful Theft (1d3 − 1 mana): every damage an enemy deals to your units takes 1 mana from that enemy and gives it to you.",
-  ok:()=>!me().joy&&!me().theft&&mana(G.active)>=Math.min(G.prices.joyA||2,G.prices.joyB!=null?G.prices.joyB:1),run:async()=>{
-   const pl=G.active,a=G.prices.joyA||2,b=G.prices.joyB!=null?G.prices.joyB:1,opts=[];   // v78j: a 0 is free
-   if(mana(pl)>=a)opts.push({id:"joy",label:`Pleasure and Joy (${a} mana)`,sub:"Your killed cards go back into your deck."});
-   if(mana(pl)>=b)opts.push({id:"theft",label:`Joyful Theft (${b} mana)`,sub:"Every damage dealt to your units steals 1 mana from whoever dealt it."});
+  ok:()=>!me().joy&&!me().theft&&canAfford(G.active,Math.min(joyPrice("A"),joyPrice("B"))),run:async()=>{
+   const pl=G.active,P=G.p[pl],a=joyPrice("A"),b=joyPrice("B"),opts=[];
+   if(canAfford(pl,a))opts.push({id:"joy",label:`Pleasure and Joy (${a?a+" mana":"free"})`,sub:"Your killed cards go back into your deck."});
+   if(canAfford(pl,b))opts.push({id:"theft",label:`Joyful Theft (${b?b+" mana":"free"})`,sub:"Every damage dealt to your units steals 1 mana from whoever dealt it."});
    const ch=await ask(pl,{kind:"choice",id:"joy",title:"Pleasure and Joy",options:opts,cancel:"Cancel",ai:()=>opts[opts.length-1].id});
-   if(ch==="joy"){if(a)pay(pl,a);me().joy=true;log(`<b>Pleasure and Joy</b>: ${plName(pl)}'s cards glow; their dead return to the deck until the next turn.`,"event")}
-   else if(ch==="theft"){if(b)pay(pl,b);me().theft=true;log(`<b>Joyful Theft</b>: until ${plName(pl)}'s next turn, every damage to their units costs the attacker 1 mana.`,"event")}}},
+   const n=ch==="joy"?a:ch==="theft"?b:null;if(n==null)return;
+   if(n){G.spentOther=true;spend(pl,n)}   // v78j: paid like any spell (to the Bank; no Grave Blessing after)
+   if(ch==="joy"){P.joy=true;log(`<b>Pleasure and Joy</b>: ${plName(pl)}'s cards glow; their dead return to the deck until the next turn.`,"event")}
+   else{P.theft=true;log(`<b>Joyful Theft</b>: until ${plName(pl)}'s next turn, every damage to their units costs the attacker 1 mana.`,"event")}}},
  {id:"lev",tribe:"leviathan",name:"Rise to the Moon",cost:0,school:"Sorcery",text:"Free, only at the New Moon, while your Leviathan is on the field. The Leviathan leaves the field for the moon. From the next New Moon on, every enemy pays its toll each New Moon: 2d4 random deck cards, 2 random cards from the hand and 1 mana, all into the Outer Darkness. On the moon your mana can rise by one for every card in the Outer Darkness (twelve at most). It can be attacked only at the New Moon, and defends there with advantage.",
   ok:()=>(G.moon.i===0&&!G.moon.gone||G.moon.gone==="mars")&&!G.moonLev&&stacksOf(G.active).some(x=>hasK(x.st,"leviathan")),run:async()=>{
    const x=stacksOf(G.active).find(x=>hasK(x.st,"leviathan")),c=x.st.cards.find(k=>k.unit==="leviathan");
@@ -308,6 +310,7 @@ SPELLS.push(
  {id:"saturn",tribe:"yald",name:"Regurgitate Saturn",cost:0,school:"Sorcery",text:"Free, once the hunger reaches seven and the moon is out of the sky. Saturn takes the moon's place: at the start of each of their turns every enemy pays 1 (a hand card, the top deck card or 1 mana) into your soul pile, or refuses and a Debt Collector rises on your ground. Each Debt Collector still standing at a new round raises the price by 1. Binah is exempt.",
   ok:()=>(me().hunger||0)>=7&&!!G.moon.gone&&G.moon.gone!=="saturn",run:async()=>{
    const pl=G.active;if(G.moonLev){const L=G.moonLev;G.moonLev=null;L.card.hp=L.card.maxHp;G.p[L.owner].deck.push(L.card);shuffle(G.p[L.owner].deck)}
+   G.p[pl].hunger=Math.max(0,(G.p[pl].hunger||0)-7);   // v78j: the seven eaten are spent
    G.moon.gone="saturn";G.moon.i=-1;G.moon.blood=false;G.saturnBy=pl;G.saturnDebt=0;applyMoonTheme();
    log(`<b>Saturn</b>: ${plName(pl)} regurgitates Saturn where the moon used to be.`,"event");
    popup("Saturn",`<p>${plName(pl)} regurgitates Saturn into the moon's place. Every enemy now pays the Demiurge at the start of each turn, or a Debt Collector rises.</p><p class="dim">A Debt Collector copies the score of the card it fights, without its advantage.</p>`,pl)}},

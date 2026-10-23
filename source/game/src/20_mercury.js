@@ -43,13 +43,15 @@ function sendHome(pl){
 function startPeace(rounds,why,turns){
   const r=G.moon.round;G.peace=turns?{untilT:G.turnNo+turns}:{until:r+rounds-1};G.war=null;
   for(const pl of realPlayers())sendHome(pl);
+  G.sel=null;G.mode=null;   // v78j: what was selected may have gone home
   // every wound heals; every curse and enchantment ends
-  for(const row of G.board)for(const st of row){if(!st)continue;st.odds=null;st.hypo=0;st.supp=null;for(const c of st.cards){if(c.maxHp)c.hp=c.maxHp;c.hate=false}}
+  for(const row of G.board)for(const st of row){if(!st)continue;st.odds=null;st.hypo=0;st.supp=null;st.dplus=null;for(const c of st.cards){if(c.maxHp)c.hp=c.maxHp;c.hate=false}}
   for(const P of G.p){P.shield=false;P.joy=false;P.theft=false}
   // three cards from the grave to everyone, one at a time around the table
   let given=0;for(let k=0;k<3;k++)for(const pl of realPlayers()){if(!G.grave.length)break;const c=G.grave.splice(Math.floor(Math.random()*G.grave.length),1)[0];c.owner=pl;const P=G.p[pl];if(P.hand.length<handCap(pl))P.hand.push(c);else{P.deck.push(c);shuffle(P.deck)}given++}
-  log(`<b>Peace</b> (${why}) for ${rounds} rounds: everyone goes home, every wound heals, curses and enchantments end${given?`, and the grave hands out ${given} card${given>1?"s":""}`:""}. No one may cross into another player's lines or attack another player.`,"event");
-  popup("Peace",`<p>${why}. For ${rounds} rounds no player can attack another or step into another player's lines.</p><p>Every stack out on the field went home (what had no room went back into the deck), every card with hearts healed, curses and enchantments ended, and everyone drew three cards from the grave, one at a time.</p>`);
+  const long=turns?`${turns} turns`:`${rounds} rounds`;   // v78j: Buy Peace counts turns
+  log(`<b>Peace</b> (${why}) for ${long}: everyone goes home, every wound heals, curses and enchantments end${given?`, and the grave hands out ${given} card${given>1?"s":""}`:""}. No one may cross into another player's lines or attack another player.`,"event");
+  popup("Peace",`<p>${why}. For ${long} no player can attack another or step into another player's lines.</p><p>Every stack out on the field went home (what had no room went back into the deck), every card with hearts healed, curses and enchantments ended, and everyone drew three cards from the grave, one at a time.</p>`);
   G._vis=null;applyMoonTheme();
 }
 function startWar(rounds,why){
@@ -139,7 +141,8 @@ function mercuryCost(sp,c){
   if(eclipseOn("jupiter")&&sp.school==="Conjuring")c=Math.max(1,c-1);
   const P=G.p[G.active];if(P&&P.freeCurses&&P.freeCurses.left>0&&sp.school==="Curse"&&!P.freeCurses.used.includes(sp.id))c=0;
   return c}
-function mercuryBought(sp){const P=me();if(P.freeCurses&&P.freeCurses.left>0&&sp.school==="Curse"&&!P.freeCurses.used.includes(sp.id)){P.freeCurses.left--;P.freeCurses.used.push(sp.id);log(`Mars's gift: ${esc(sp.name)} is free (${P.freeCurses.left} left).`)}}
+function mercuryBought(sp){const P=me();if(sp.id==="joy"&&!P.joy&&!P.theft)return;   // v78j: a cancelled Pleasure and Joy uses no gift
+  if(P.freeCurses&&P.freeCurses.left>0&&sp.school==="Curse"&&!P.freeCurses.used.includes(sp.id)){P.freeCurses.left--;P.freeCurses.used.push(sp.id);log(`Mars's gift: ${esc(sp.name)} is free (${P.freeCurses.left} left).`)}}
 
 /* ---------- spells ---------- */
 PRICE.mercury=()=>R(3)+R(3);PRICE.buypeace=()=>R(2)+R(2)+R(2)+R(2);PRICE.betray=()=>R(2)+R(3)+R(3);PRICE.warnow=()=>R(2)+R(3)+R(3);PRICE.bribe=()=>R(2)+R(3)+R(3);
@@ -164,7 +167,7 @@ SPELLS.push(
  {id:"warnow",dice:"1d2+2d3",name:"Declare War",cost:6,school:"Astrology",text:"Oath of Mercury, without a vote: Total War for 1d2 rounds.",
   ok:()=>oathOf(G.active)==="mercury"&&!warOn(),run:async()=>{startWar(R(2),`declared by ${esc(me().name)}`)}},
  {id:"bribe",dice:"1d2+2d3",name:"Bribe the Banker",cost:6,school:"Astrology",text:"Oath of Mercury. Pick a player: every spell costs them one more for 3d2 − 1 rounds. The bribe costs 1d2 + 2d3 now and again at the start of every round; it ends when you can't pay.",
-  ok:()=>oathOf(G.active)==="mercury"&&bankOpen(),run:async()=>{const t=await pickFoe("bribe","Bribe the Banker against whom?");if(t==null)return;const rounds=R(2)+R(2)+R(2)-1;
+  ok:()=>oathOf(G.active)==="mercury"&&bankOpen()&&foeAny(),run:async()=>{const t=await pickFoe("bribe","Bribe the Banker against whom?");if(t==null)return;const rounds=R(2)+R(2)+R(2)-1;
    (G.bribes=G.bribes||[]).push({by:G.active,target:t,until:G.moon.round+rounds-1,paid:G.moon.round});G.histTarget=t;
    log(`<b>Bribe</b>: ${plName(G.active)} pays the Banker to squeeze ${plName(t)} for ${rounds} rounds.`,"event")}}
 );
