@@ -159,3 +159,21 @@
     w.querySelector("[data-n='0']").focus()}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",show);else show();
 })();
+/* v78t: Display (bottom right, on a computer, on every page but the game): "Fill the screen" lets the page's text use the whole
+   width of the window instead of a column in the middle */
+(function(){
+  const KEY="nwk-fill",root=document.documentElement;
+  let on=false;try{on=localStorage.getItem(KEY)==="on"}catch(e){}
+  const pc=()=>!!(window.matchMedia&&matchMedia("(any-pointer:fine)").matches&&innerWidth>=900);
+  function apply(){root.classList.toggle("fillscreen",on&&pc())}
+  apply();
+  function build(){if(document.querySelector("main.game")||document.getElementById("nwkdisp"))return;   // the game has its own Display bar
+    const d=document.createElement("div");d.id="nwkdisp";
+    d.innerHTML='<button type="button" class="nwkdispb" aria-expanded="false">Display ▴</button><div class="nwkdispm" hidden><label><input type="checkbox"'+(on?" checked":"")+'> Fill the screen</label><p>The text uses the whole width of the window, not a column in the middle.</p></div>';
+    document.body.appendChild(d);const b=d.querySelector(".nwkdispb"),m=d.querySelector(".nwkdispm"),c=d.querySelector("input");
+    b.addEventListener("click",()=>{m.hidden=!m.hidden;b.setAttribute("aria-expanded",!m.hidden);b.textContent=m.hidden?"Display ▴":"Display ▾"});
+    c.addEventListener("change",()=>{on=c.checked;try{localStorage.setItem(KEY,on?"on":"off")}catch(e){}apply()});
+    document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!m.hidden){m.hidden=true;b.textContent="Display ▴";b.setAttribute("aria-expanded","false")}});
+    const vis=()=>{d.hidden=!pc();apply()};vis();addEventListener("resize",vis)}
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",build);else build();
+})();

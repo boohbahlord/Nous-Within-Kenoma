@@ -258,3 +258,13 @@ html.dys *{text-transform:none!important;font-style:normal!important}
 html.dys :is(h1,h2,h3,h4,h5,legend,summary,.label,.stab){letter-spacing:.04em!important}
 /* v78g: room at the end of the Ether's Crossroads pages, so the fixed music and static corners never cover the last line */
 html.ecpage main:not(.game){margin-bottom:max(64px,calc(52px + env(safe-area-inset-bottom,0px)))}
+/* v78t: Display: fill the screen (computers only; never on the game page) */
+#nwkdisp{position:fixed;right:max(10px,env(safe-area-inset-right,0px));bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 34px);z-index:51;font-family:var(--mono);font-size:11px}
+#nwkdisp[hidden]{display:none}
+#nwkdisp .nwkdispb{font:inherit;font-weight:200;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);background:color-mix(in oklab,var(--deep) 85%,transparent);border:1px solid var(--rule);padding:5px 9px;cursor:pointer;float:right}
+#nwkdisp .nwkdispb:hover,#nwkdisp .nwkdispb:focus-visible{color:var(--amber-hi);border-color:var(--amber);outline:none}
+#nwkdisp .nwkdispm{position:absolute;right:0;bottom:calc(100% + 6px);width:240px;background:var(--deep);border:1px solid var(--amber);padding:10px 12px;color:var(--text);box-shadow:0 6px 20px #000a}
+#nwkdisp .nwkdispm[hidden]{display:none}
+#nwkdisp .nwkdispm label{display:flex;gap:8px;align-items:center;cursor:pointer;font-size:13px}
+#nwkdisp .nwkdispm p{margin:6px 0 0;color:var(--dim);font-size:11.5px;line-height:1.4}
+html.fillscreen main:not(.game){max-width:none!important;margin-left:0;margin-right:0;padding-left:max(28px,4vw);padding-right:max(28px,4vw)}
