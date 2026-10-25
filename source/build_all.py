@@ -161,9 +161,10 @@ idx = head('Nous Within Kenoma') + f'''<main class="wide" style="max-width:1060p
   <p style="color:var(--dim);margin:0 0 34px;font-size:15px">Gnostic-inspired syncretic short stories</p>
   <h2 class="label">Sample Chapters</h2>
   <nav class="cards"><a class="card" href="chapters.html">Read Nous Within Kenoma<span>Book in progress: {len(C)} chapters</span></a></nav>
-  <h2 class="label">Game</h2>
+  <h2 class="label">Games</h2>
   <nav class="cards">
     <a class="card" href="ethers-crossroads.html">Ether's Crossroads<span>A strategy card game, loosely based on the book</span></a>
+    <a class="card" href="https://boohbahlord.github.io/DuckFriends/">Duck Friends<span>A party game for friends</span></a>
   </nav>
 </div>
 <div>
@@ -268,7 +269,7 @@ for root, _, files in os.walk(OUT):
     for f in files:
         if not f.endswith(('.html', '.css')): continue
         t = open(f'{root}/{f}', encoding='utf8').read()
-        for m in re.finditer(r'(?:href|src)="([^"#?:]+)|url\(["\']?([^"\')?#:]+)', t):
+        for m in re.finditer(r'(?:href|src)="(?![a-z]+:)([^"#?:]+)|url\(["\']?([^"\')?#:]+)', t):
             u = m.group(1) or m.group(2)
             if u and not u.startswith(('/', 'data', 'javascript', '%')) and not os.path.exists(os.path.normpath(f'{root}/{u}')): _bad.append(f'{os.path.relpath(root, OUT)}/{f} → {u}')
 if _bad:
