@@ -37,7 +37,7 @@ function wireRankDrags(root){if(!root)return;
     const sc=sp?sp.school:b.closest("[data-school]")?.dataset.school;const col=sc&&SCHOOL_COL[sc];
     if(col&&b.style.getPropertyValue("--sc")!==col){b.style.setProperty("--sc",col);b.classList.add("schooled")}})}}
 
-/* ---------- Quiet Eyes, v60 (the user's rule): for each enemy's next turn, and only that turn, the enemy sees only the tiles
+/* ---------- Quiet Eyes, v60 (my rule): for each enemy's next turn, and only that turn, the enemy sees only the tiles
    its own side stands on; everything else is fog. Scouts don't see through it. 2 mana, once; no upkeep. ---------- */
 const quietNow=V=>V!=null&&!!G&&G.active===V&&(G.quiet||[]).some(q=>q.v2&&(q.now||[]).includes(V));
 {const sp=SP("quiet");if(sp){delete sp.dice;

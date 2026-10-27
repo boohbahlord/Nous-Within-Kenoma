@@ -19,7 +19,7 @@ function stSend(from,to,name,cfg){if(!G||!G.p[from]||!G.p[to]||G.p[to].cpu||isNP
   log(`${plName(from)} sends ${plName(to)} an automated strategy, “${esc(stName(name))}”.`);render();return true}
 function stTake(pl,i){if(!G||!G.p[pl]||NET.ctx!=null&&NET.ctx!==pl)return false;const L=G.p[pl].stInbox||[];if(i<0||i>=L.length)return false;L.splice(i,1);render();return true}
 for(const [name,get,set] of [["stSend",()=>stSend,f=>stSend=f],["stTake",()=>stTake,f=>stTake=f]])netAny(name,get,set);
-/* v73f: a copy's name: the name and the first number not taken (Jackal → Jackal1, again → Jackal2; Jackal2 → Jackal21) */
+/* v73f: a copy's name: the name and the first number not taken (Anna → Anna1, again → Anna2; Anna2 → Anna21) */
 function copyName(name,names){const has=new Set(names);for(let k=1;;k++){const n=name+k;if(!has.has(n))return n}}
 /* the fold */
 function stHTML(){const L=stList(),V=G?view():null,sel=L.find(x=>x.id===stUI.sel)||null,on=PREF.stratOn,m=stUI.mode,inbox=G&&V!=null&&G.p[V]&&G.p[V].stInbox||[];

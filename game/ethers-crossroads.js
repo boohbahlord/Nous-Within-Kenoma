@@ -5091,7 +5091,7 @@ async function skyAsync(pl){
     if(P.sunNext==null){P.sunNext=tnOf(pl)+R(2)+R(2);return}
     if(tnOf(pl)<P.sunNext)return;
     P.sunNext=tnOf(pl)+R(2)+R(2);
-    // v65, the Sun's judgement (the user's): 1d6 mana to the Bank, or 1d2 damage to your stacks, or 1d2 + 1d3 deck cards; or blindness for 1d3 rounds
+    // v65, the Sun's judgement (mine): 1d6 mana to the Bank, or 1d2 damage to your stacks, or 1d2 + 1d3 deck cards; or blindness for 1d3 rounds
     const nM=R(6),nH=R(2),nD=R(2)+R(3),nB=R(3),opts=[];
     if(mana(pl)>=nM)opts.push({id:"mana",label:`Pay ${nM} mana`,sub:"1d6, to the Bank."});
     if(stacksOf(pl).length)opts.push({id:"hurt",label:`${nH} damage to your stacks`,sub:`1d2: ${nH>1?"each blow to a random stack of yours":"one blow to a random stack of yours"}.`});
@@ -10407,7 +10407,7 @@ function wireRankDrags(root){if(!root)return;
     const sc=sp?sp.school:b.closest("[data-school]")?.dataset.school;const col=sc&&SCHOOL_COL[sc];
     if(col&&b.style.getPropertyValue("--sc")!==col){b.style.setProperty("--sc",col);b.classList.add("schooled")}})}}
 
-/* ---------- Quiet Eyes, v60 (the user's rule): for each enemy's next turn, and only that turn, the enemy sees only the tiles
+/* ---------- Quiet Eyes, v60 (my rule): for each enemy's next turn, and only that turn, the enemy sees only the tiles
    its own side stands on; everything else is fog. Scouts don't see through it. 2 mana, once; no upkeep. ---------- */
 const quietNow=V=>V!=null&&!!G&&G.active===V&&(G.quiet||[]).some(q=>q.v2&&(q.now||[]).includes(V));
 {const sp=SP("quiet");if(sp){delete sp.dice;
@@ -10512,7 +10512,7 @@ const WILD_USE={
   trafficker:"Enemies that die beside it become prisoners (three at most); sell them with Life for Sell."};
 for(const [u,t] of Object.entries(WILD_USE))if(INFO[u]&&Array.isArray(INFO[u][2])&&!INFO[u][2].some(r=>r[0]==="Use"))INFO[u][2].unshift(["Use",t]);
 
-/* ---------- Mining slots (the user's design) ----------
+/* ---------- Mining slots (my design) ----------
    A row of small slots below the field, the hand, the Grave and Ether row and the dice: one for each of your Aces (two Miners),
    each crystal one of your stacks stands on, each plot of the Bank's land you hold, and the Moon (when your Miner is on it,
    or your Leviathan is: then the Moon's mining slot is yours). Pick a Miner in your hand, then a lit slot: the Miner goes
@@ -10597,7 +10597,7 @@ const mapStep=()=>{const v=PREF.mapStep;return v==null?3:Math.max(0,Math.min(3,v
 {const _sg=startGame;startGame=function(){const out=_sg.apply(this,arguments);try{window.ECMusic&&ECMusic.setLobby&&ECMusic.setLobby(false)}catch(e){}return out}}
 {const _ss=showStart;showStart=function(){const out=_ss.apply(this,arguments);try{window.ECMusic&&ECMusic.setLobby&&ECMusic.setLobby(true)}catch(e){}return out}}
 
-/* ---------------- v63: cheat mode (the user's design) ----------------
+/* ---------------- v63: cheat mode (my design) ----------------
    - Off by default; a switch in the setup's Rules tab asks "Are you sure?" first ("Yes, I understand"); it works in any mode.
      Online rooms show that the host has it on, and every player sees "Cheat mode" on the screen.
    - A Cheat button beside the Configure button, and a Cheats fold below Configure Automation (its own switch hides it; it is
@@ -12453,7 +12453,7 @@ function stSend(from,to,name,cfg){if(!G||!G.p[from]||!G.p[to]||G.p[to].cpu||isNP
   log(`${plName(from)} sends ${plName(to)} an automated strategy, “${esc(stName(name))}”.`);render();return true}
 function stTake(pl,i){if(!G||!G.p[pl]||NET.ctx!=null&&NET.ctx!==pl)return false;const L=G.p[pl].stInbox||[];if(i<0||i>=L.length)return false;L.splice(i,1);render();return true}
 for(const [name,get,set] of [["stSend",()=>stSend,f=>stSend=f],["stTake",()=>stTake,f=>stTake=f]])netAny(name,get,set);
-/* v73f: a copy's name: the name and the first number not taken (Jackal → Jackal1, again → Jackal2; Jackal2 → Jackal21) */
+/* v73f: a copy's name: the name and the first number not taken (Anna → Anna1, again → Anna2; Anna2 → Anna21) */
 function copyName(name,names){const has=new Set(names);for(let k=1;;k++){const n=name+k;if(!has.has(n))return n}}
 /* the fold */
 function stHTML(){const L=stList(),V=G?view():null,sel=L.find(x=>x.id===stUI.sel)||null,on=PREF.stratOn,m=stUI.mode,inbox=G&&V!=null&&G.p[V]&&G.p[V].stInbox||[];
@@ -13279,7 +13279,7 @@ if(window.__EC)Object.assign(window.__EC,{handSeers:V=>handSeers(V),spNotes:V=>s
 /* ---------- v73b: Survival's maps ----------
    - The large map is Survival's default: 6 wide and 10 long. The Horde holds the top two lines. Each survivor spawns in a box
      3 wide and 2 deep at the bottom: two boxes side by side, then a second row of boxes on top of them. Survival takes four
-     survivors at most, so the field never widens (v77c: the user's choice; survBoxes can still lay out more). One survivor
+     survivors at most, so the field never widens (v77c: my choice; survBoxes can still lay out more). One survivor
      holds the whole back line (six tiles).
    - The standard (small) sizes are only offered while every survivor gets the same five or more spawn tiles behind the
      midline: two survivors 6 or 8 wide, three 9 wide; four always need the large map. */

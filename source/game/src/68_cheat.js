@@ -1,4 +1,4 @@
-/* ---------------- v63: cheat mode (the user's design) ----------------
+/* ---------------- v63: cheat mode (my design) ----------------
    - Off by default; a switch in the setup's Rules tab asks "Are you sure?" first ("Yes, I understand"); it works in any mode.
      Online rooms show that the host has it on, and every player sees "Cheat mode" on the screen.
    - A Cheat button beside the Configure button, and a Cheats fold below Configure Automation (its own switch hides it; it is
