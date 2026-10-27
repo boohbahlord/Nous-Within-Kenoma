@@ -16,7 +16,7 @@ const WILD_USE={
   trafficker:"Enemies that die beside it become prisoners (three at most); sell them with Life for Sell."};
 for(const [u,t] of Object.entries(WILD_USE))if(INFO[u]&&Array.isArray(INFO[u][2])&&!INFO[u][2].some(r=>r[0]==="Use"))INFO[u][2].unshift(["Use",t]);
 
-/* ---------- Mining slots (the user's design) ----------
+/* ---------- Mining slots (my design) ----------
    A row of small slots below the field, the hand, the Grave and Ether row and the dice: one for each of your Aces (two Miners),
    each crystal one of your stacks stands on, each plot of the Bank's land you hold, and the Moon (when your Miner is on it,
    or your Leviathan is: then the Moon's mining slot is yours). Pick a Miner in your hand, then a lit slot: the Miner goes

@@ -45,7 +45,7 @@ async function skyAsync(pl){
     if(P.sunNext==null){P.sunNext=tnOf(pl)+R(2)+R(2);return}
     if(tnOf(pl)<P.sunNext)return;
     P.sunNext=tnOf(pl)+R(2)+R(2);
-    // v65, the Sun's judgement (the user's): 1d6 mana to the Bank, or 1d2 damage to your stacks, or 1d2 + 1d3 deck cards; or blindness for 1d3 rounds
+    // v65, the Sun's judgement (mine): 1d6 mana to the Bank, or 1d2 damage to your stacks, or 1d2 + 1d3 deck cards; or blindness for 1d3 rounds
     const nM=R(6),nH=R(2),nD=R(2)+R(3),nB=R(3),opts=[];
     if(mana(pl)>=nM)opts.push({id:"mana",label:`Pay ${nM} mana`,sub:"1d6, to the Bank."});
     if(stacksOf(pl).length)opts.push({id:"hurt",label:`${nH} damage to your stacks`,sub:`1d2: ${nH>1?"each blow to a random stack of yours":"one blow to a random stack of yours"}.`});
