@@ -10,153 +10,672 @@
    The Bank bar and the Auction glow with a small "!" when something waits for you. The Bank's cards wear a top hat. */
 
 /* ---------- the top hat ---------- */
-{const _sp=solidPath;solidPath=function(s){if(s==="tophat")return "M-9.5,5.6Q0,8.8 9.5,5.6Q0,3.4 -9.5,5.6Z M-5.6,4.7L-5,-7.6Q0,-9.4 5,-7.6L5.6,4.7 M-5.4,1.3Q0,2.6 5.4,1.3";return _sp(s)}}
-{const _an=addNPCs;addNPCs=function(){_an.apply(this,arguments);const b=npcIx("bank");if(b>=0)G.p[b].solid="tophat"}}
+{
+  const _sp = solidPath;
+  solidPath = function (s) {
+    if (s === "tophat")
+      return "M-9.5,5.6Q0,8.8 9.5,5.6Q0,3.4 -9.5,5.6Z M-5.6,4.7L-5,-7.6Q0,-9.4 5,-7.6L5.6,4.7 M-5.4,1.3Q0,2.6 5.4,1.3";
+    return _sp(s);
+  };
+}
+{
+  const _an = addNPCs;
+  addNPCs = function () {
+    _an.apply(this, arguments);
+    const b = npcIx("bank");
+    if (b >= 0) G.p[b].solid = "tophat";
+  };
+}
 
 /* ---------- sacrificing from the hand ---------- */
-const etherPrice=c=>{const v=costOf(c);return typeof v==="number"&&!isNaN(v)?v:soulOf(c)};
-const handSacRange=c=>{const p=etherPrice(c);return p<=1?[p,p]:[p-1,p]};   // v32: a card worth 1 is always worth 1
-const handSacLabel=c=>{const [a,b]=handSacRange(c);return a===b?`+${b}`:`+${a}–${b}`};
-{const _sac=sacrifice;sacrifice=function(card,from){if(from!=="hand")return _sac(card,from);
-  const pl=G.active,P=me(),[,hi]=handSacRange(card);
-  if(mana(pl)+hi>surCap(pl)){flash(`The soul pile holds ${surCap(pl)} mana at most, counting the surplus.`);return false}
-  const p=etherPrice(card),d=p<=1?0:R(2),v=p<=1?p:p-d+1,s=soulOf(card);
-  P.hand.splice(P.hand.indexOf(card),1);
-  if(v>=s){addSoul(pl,card);if(v>s)giveMana(pl,v-s)}else{card.owner=pl;toGrave(card,"spent");if(v)giveMana(pl,v)}
-  if(d)tray(pl,"Sacrifice",[{s:2,v:d}],`+${v}`,true);
-  log(d?`${plName(pl)} sacrifices ${esc(nameOf(card))} from the hand: ${p} − 1d2 (${d}) + 1 = <b>+${v}</b> mana.`:`${plName(pl)} sacrifices ${esc(nameOf(card))} from the hand (+${v} mana).`);
-  P.lastSac={v,t:Date.now()};rainSac(pl);return true}}
+const etherPrice = (c) => {
+  const v = costOf(c);
+  return typeof v === "number" && !isNaN(v) ? v : soulOf(c);
+};
+const handSacRange = (c) => {
+  const p = etherPrice(c);
+  return p <= 1 ? [p, p] : [p - 1, p];
+}; // v32: a card worth 1 is always worth 1
+const handSacLabel = (c) => {
+  const [a, b] = handSacRange(c);
+  return a === b ? `+${b}` : `+${a}–${b}`;
+};
+{
+  const _sac = sacrifice;
+  sacrifice = function (card, from) {
+    if (from !== "hand") return _sac(card, from);
+    const pl = G.active,
+      P = me(),
+      [, hi] = handSacRange(card);
+    if (mana(pl) + hi > surCap(pl)) {
+      flash(
+        `The soul pile holds ${surCap(pl)} mana at most, counting the surplus.`,
+      );
+      return false;
+    }
+    const p = etherPrice(card),
+      d = p <= 1 ? 0 : R(2),
+      v = p <= 1 ? p : p - d + 1,
+      s = soulOf(card);
+    P.hand.splice(P.hand.indexOf(card), 1);
+    if (v >= s) {
+      addSoul(pl, card);
+      if (v > s) giveMana(pl, v - s);
+    } else {
+      card.owner = pl;
+      toGrave(card, "spent");
+      if (v) giveMana(pl, v);
+    }
+    if (d) tray(pl, "Sacrifice", [{ s: 2, v: d }], `+${v}`, true);
+    log(
+      d
+        ? `${plName(pl)} sacrifices ${esc(nameOf(card))} from the hand: ${p} − 1d2 (${d}) + 1 = <b>+${v}</b> mana.`
+        : `${plName(pl)} sacrifices ${esc(nameOf(card))} from the hand (+${v} mana).`,
+    );
+    P.lastSac = { v, t: Date.now() };
+    rainSac(pl);
+    return true;
+  };
+}
 
 /* ---------- Resurrection: the grave is shuffled first ---------- */
-{const s=SP("resur");if(s){const run=s.run;s.run=async()=>{shuffle(G.grave);log("The grave is shuffled before the Resurrection.");render();return run()}}
-  if(SPELL_TEXT.resur)SPELL_TEXT.resur.e="The grave is shuffled, then you choose one card from it and bring it back into your hand."}
+{
+  const s = SP("resur");
+  if (s) {
+    const run = s.run;
+    s.run = async () => {
+      shuffle(G.grave);
+      log("The grave is shuffled before the Resurrection.");
+      render();
+      return run();
+    };
+  }
+  if (SPELL_TEXT.resur)
+    SPELL_TEXT.resur.e =
+      "The grave is shuffled, then you choose one card from it and bring it back into your hand.";
+}
 
 /* ---------- the Bank's Debt Collectors pay debts with what they kill ---------- */
-const goodCard=c=>!/^\d+$/.test(c.rank||"")&&!(c.unit&&!UNIT[c.unit].ether)&&!c.puppet;
-{const _eb=econBury;econBury=function(card,r,c,st){
-  const F=G.fight,bk=npcIx("bank"),killer=F?(st===F.D?F.atkPl:st===F.A?F.defPl:null):null;
-  if(!F||bk<0||killer!==bk||card.wave||card.unit&&!UNIT[card.unit].ether)return _eb(card,r,c,st);
-  const victim=st.owner,V=G.p[victim],BS=st===F.D?F.A:F.D,v=soulOf(card);let paid="";
-  const L=BS&&BS.loan!=null?(G.p2p||[]).find(x=>x.id===BS.loan&&x.state==="late"):null;
-  if(L){giveMana(L.to,Math.min(v,L.owed));L.owed=Math.max(0,L.owed-v);paid=`, and its worth (${v}) goes to ${plName(L.to)} for the loan${L.owed?` (${L.owed} still owed)`:" (paid off)"}`;if(!L.owed)loanSettled(L)}
-  else if(V&&V.debt>0){const k=Math.min(V.debt,v);V.debt-=k;if(!V.debt)V.debtAt=null;bankAdd(v);paid=`, and its worth pays ${k} of ${plName(victim)}'s debt${V.debt?` (−${V.debt} left)`:" (debt cleared)"}`}
-  else{bankAdd(v);paid=`; the Bank books its worth (${v})`}
-  card.owner=null;if(card.hp!=null)card.hp=card.maxHp;
-  if(goodCard(card)&&R(4)===4){const price=Math.max(1,etherPrice(card)-R(2));(G.auction=G.auction||[]).push({card,seller:bk,bank:true,price,from:victim,id:(G.auctN=(G.auctN||0)+1)});
-    log(`The Bank's Debt Collector takes ${esc(nameOf(card))}${paid}. The Bank puts it up at the Auction for ${price} mana.`,"event");notify(bk,`A bargain at the Auction: ${esc(nameOf(card))} for ${price} mana.`)}
-  else{G.ether.push(card);log(`The Bank's Debt Collector takes ${esc(nameOf(card))} into the Ether${paid}.`)}
-  return true}}
+const goodCard = (c) =>
+  !/^\d+$/.test(c.rank || "") && !(c.unit && !UNIT[c.unit].ether) && !c.puppet;
+{
+  const _eb = econBury;
+  econBury = function (card, r, c, st) {
+    const F = G.fight,
+      bk = npcIx("bank"),
+      killer = F ? (st === F.D ? F.atkPl : st === F.A ? F.defPl : null) : null;
+    if (
+      !F ||
+      bk < 0 ||
+      killer !== bk ||
+      card.wave ||
+      (card.unit && !UNIT[card.unit].ether)
+    )
+      return _eb(card, r, c, st);
+    const victim = st.owner,
+      V = G.p[victim],
+      BS = st === F.D ? F.A : F.D,
+      v = soulOf(card);
+    let paid = "";
+    const L =
+      BS && BS.loan != null
+        ? (G.p2p || []).find((x) => x.id === BS.loan && x.state === "late")
+        : null;
+    if (L) {
+      giveMana(L.to, Math.min(v, L.owed));
+      L.owed = Math.max(0, L.owed - v);
+      paid = `, and its worth (${v}) goes to ${plName(L.to)} for the loan${L.owed ? ` (${L.owed} still owed)` : " (paid off)"}`;
+      if (!L.owed) loanSettled(L);
+    } else if (V && V.debt > 0) {
+      const k = Math.min(V.debt, v);
+      V.debt -= k;
+      if (!V.debt) V.debtAt = null;
+      bankAdd(v);
+      paid = `, and its worth pays ${k} of ${plName(victim)}'s debt${V.debt ? ` (−${V.debt} left)` : " (debt cleared)"}`;
+    } else {
+      bankAdd(v);
+      paid = `; the Bank books its worth (${v})`;
+    }
+    card.owner = null;
+    if (card.hp != null) card.hp = card.maxHp;
+    if (goodCard(card) && R(4) === 4) {
+      const price = Math.max(1, etherPrice(card) - R(2));
+      (G.auction = G.auction || []).push({
+        card,
+        seller: bk,
+        bank: true,
+        price,
+        from: victim,
+        id: (G.auctN = (G.auctN || 0) + 1),
+      });
+      log(
+        `The Bank's Debt Collector takes ${esc(nameOf(card))}${paid}. The Bank puts it up at the Auction for ${price} mana.`,
+        "event",
+      );
+      notify(
+        bk,
+        `A bargain at the Auction: ${esc(nameOf(card))} for ${price} mana.`,
+      );
+    } else {
+      G.ether.push(card);
+      log(
+        `The Bank's Debt Collector takes ${esc(nameOf(card))} into the Ether${paid}.`,
+      );
+    }
+    return true;
+  };
+}
 
 /* ---------- the Auction: the Bank's bargains are bought outright ---------- */
-async function buyBankItem(pl,it){const P=G.p[pl];if(!G.auction.includes(it))return false;
-  if(!canAfford(pl,it.price)){if(!P.cpu)flash("Not enough mana.");return false}
-  spend(pl,it.price);G.auction.splice(G.auction.indexOf(it),1);const c=it.card;c.owner=pl;if(c.hp!=null)c.hp=c.maxHp;
-  if(P.hand.length<handCap(pl))P.hand.push(c);else{P.deck.push(c);shuffle(P.deck)}
-  log(`<b>The Auction</b>: ${plName(pl)} buys ${esc(nameOf(c))} from the Bank for ${it.price} mana (the Ether asks ${etherPrice(c)}).`,"event");render();return true}
-{const _mo=makeOffer;makeOffer=async function(it,auto){if(it&&it.bank)return buyBankItem(G.active,it);return _mo(it,auto)}}
-{const _va=viewAuction;viewAuction=function(){_va();const V=view(),P=G.p[V],live=canAct()&&G.phase==="prep";P.auctSeen=G.auctV||0;render();
-  (G.auction||[]).forEach((it,i)=>{if(!it.bank)return;const box=$("#ov").querySelectorAll(".auct .aitem")[i];if(!box)return;const info=box.querySelector("div");
-    info.innerHTML=`<b>${esc(nameOf(it.card))}</b><br><span class="dim">sold by the Bank · <b>${it.price}</b> mana (the Ether asks ${etherPrice(it.card)})</span>${live?`<br><button class="btn sm" data-bbuy="${i}" ${canAfford(V,it.price)?"":"disabled"}>Buy for ${it.price} mana</button>`:""}`});
-  const note=$("#ov .ovbox p.dim");if(note&&(G.auction||[]).some(it=>it.bank))note.textContent="Tiphareth of Kether sells the souls its Traffickers chained: offer mana or cards from your hand, and the seller has to approve. The Bank sells what its Debt Collectors took, for less than the Ether: buy it outright.";
-  $("#ov").querySelectorAll("[data-bbuy]").forEach(b=>b.onclick=async()=>{if(!canAct())return;await buyBankItem(G.active,G.auction[+b.dataset.bbuy]);viewAuction()})}}
+async function buyBankItem(pl, it) {
+  const P = G.p[pl];
+  if (!G.auction.includes(it)) return false;
+  if (!canAfford(pl, it.price)) {
+    if (!P.cpu) flash("Not enough mana.");
+    return false;
+  }
+  spend(pl, it.price);
+  G.auction.splice(G.auction.indexOf(it), 1);
+  const c = it.card;
+  c.owner = pl;
+  if (c.hp != null) c.hp = c.maxHp;
+  if (P.hand.length < handCap(pl)) P.hand.push(c);
+  else {
+    P.deck.push(c);
+    shuffle(P.deck);
+  }
+  log(
+    `<b>The Auction</b>: ${plName(pl)} buys ${esc(nameOf(c))} from the Bank for ${it.price} mana (the Ether asks ${etherPrice(c)}).`,
+    "event",
+  );
+  render();
+  return true;
+}
+{
+  const _mo = makeOffer;
+  makeOffer = async function (it, auto) {
+    if (it && it.bank) return buyBankItem(G.active, it);
+    return _mo(it, auto);
+  };
+}
+{
+  const _va = viewAuction;
+  viewAuction = function () {
+    _va();
+    const V = view(),
+      P = G.p[V],
+      live = canAct() && G.phase === "prep";
+    P.auctSeen = G.auctV || 0;
+    render();
+    (G.auction || []).forEach((it, i) => {
+      if (!it.bank) return;
+      const box = $("#ov").querySelectorAll(".auct .aitem")[i];
+      if (!box) return;
+      const info = box.querySelector("div");
+      info.innerHTML = `<b>${esc(nameOf(it.card))}</b><br><span class="dim">sold by the Bank · <b>${it.price}</b> mana (the Ether asks ${etherPrice(it.card)})</span>${live ? `<br><button class="btn sm" data-bbuy="${i}" ${canAfford(V, it.price) ? "" : "disabled"}>Buy for ${it.price} mana</button>` : ""}`;
+    });
+    const note = $("#ov .ovbox p.dim");
+    if (note && (G.auction || []).some((it) => it.bank))
+      note.textContent =
+        "Tiphareth of Kether sells the souls its Traffickers chained: offer mana or cards from your hand, and the seller has to approve. The Bank sells what its Debt Collectors took, for less than the Ether: buy it outright.";
+    $("#ov")
+      .querySelectorAll("[data-bbuy]")
+      .forEach(
+        (b) =>
+          (b.onclick = async () => {
+            if (!canAct()) return;
+            await buyBankItem(G.active, G.auction[+b.dataset.bbuy]);
+            viewAuction();
+          }),
+      );
+  };
+}
 
 /* ---------- loans between players ---------- */
-const P2P_DUE=4,P2P_MIN=2,P2P_MAX=12;
-const p2pOf=()=>G.p2p||(G.p2p=[]);
-const p2pWhere=()=>typeof dipOn==="function"&&dipOn()?"Diplomacy, under the Bank":"the Bank window";   // v75c: with Diplomacy on, loans between players live there
-const lenders=pl=>alive().filter(i=>i!==pl&&!isHorde(i)&&!G.p[i].jail);
-const loanReqsFor=V=>p2pOf().filter(L=>L.to===V&&L.state==="ask");
-function askLoan(from,to,n){n=Math.round(+n);if(!(n>=1)||!G.p[to]||to===from)return null;   // v78i: a whole number, whoever sends it
-  if(p2pOf().some(L=>L.from===from&&L.to===to&&["ask","offer","open","late"].includes(L.state))){if(!G.p[from].cpu)flash(`You already have a loan or a request with ${G.p[to].name}.`);return null}
-  const L={id:(G.p2pN=(G.p2pN||0)+1),from,to,n,owed:n,state:"ask",round:G.moon.round};p2pOf().push(L);
-  log(`${plName(from)} asks ${plName(to)} for a loan of ${n} mana.`,"event");
-  if(G.p[to].cpu)answerLoan(L,aiLend(L),2+R(6)+R(4));
-  else notify(to,`${esc(G.p[from].name)} asks ${esc(G.p[to].name)} for a loan of ${n} mana (${p2pWhere()}).`);
-  return L}
-function aiLend(L){const m=mana(L.to);if(m<L.n+3)return false;if(!isEnemy(L.from,L.to))return true;return m>=L.n+6&&Math.random()<.4}
+const P2P_DUE = 4,
+  P2P_MIN = 2,
+  P2P_MAX = 12;
+const p2pOf = () => G.p2p || (G.p2p = []);
+const p2pWhere = () =>
+  typeof dipOn === "function" && dipOn()
+    ? "Diplomacy, under the Bank"
+    : "the Bank window"; // v75c: with Diplomacy on, loans between players live there
+const lenders = (pl) =>
+  alive().filter((i) => i !== pl && !isHorde(i) && !G.p[i].jail);
+const loanReqsFor = (V) =>
+  p2pOf().filter((L) => L.to === V && L.state === "ask");
+function askLoan(from, to, n) {
+  n = Math.round(+n);
+  if (!(n >= 1) || !G.p[to] || to === from) return null; // v78i: a whole number, whoever sends it
+  if (
+    p2pOf().some(
+      (L) =>
+        L.from === from &&
+        L.to === to &&
+        ["ask", "offer", "open", "late"].includes(L.state),
+    )
+  ) {
+    if (!G.p[from].cpu)
+      flash(`You already have a loan or a request with ${G.p[to].name}.`);
+    return null;
+  }
+  const L = {
+    id: (G.p2pN = (G.p2pN || 0) + 1),
+    from,
+    to,
+    n,
+    owed: n,
+    state: "ask",
+    round: G.moon.round,
+  };
+  p2pOf().push(L);
+  log(`${plName(from)} asks ${plName(to)} for a loan of ${n} mana.`, "event");
+  if (G.p[to].cpu) answerLoan(L, aiLend(L), 2 + R(6) + R(4));
+  else
+    notify(
+      to,
+      `${esc(G.p[from].name)} asks ${esc(G.p[to].name)} for a loan of ${n} mana (${p2pWhere()}).`,
+    );
+  return L;
+}
+function aiLend(L) {
+  const m = mana(L.to);
+  if (m < L.n + 3) return false;
+  if (!isEnemy(L.from, L.to)) return true;
+  return m >= L.n + 6 && Math.random() < 0.4;
+}
 /* v46: the lender sets when the loan is due (2 to 12 rounds); the borrower then sees the terms and takes the
    loan or turns it down. A loan grows by 1d2 every 3 of the borrower's turns until it is paid. */
-function answerLoan(L,yes,due){
-  if(L.state!=="ask")return;
-  if(!yes){L.state="no";log(`${plName(L.to)} refuses to lend ${plName(L.from)} ${L.n} mana.`);notify(L.from,`${esc(G.p[L.to].name)} refuses the loan.`);return}
-  if(mana(L.to)<L.n){if(!G.p[L.to].cpu)flash(`You hold only ${mana(L.to)} mana.`);return}
-  due=Math.max(P2P_MIN,Math.min(P2P_MAX,Math.round(+due||P2P_DUE)));L.state="offer";L.dueN=due;render();
-  loanOffer(L,due)}   // the borrower's answer comes later; the lender's click is done
-async function loanOffer(L,due){
-  const ok=await ask(L.from,{kind:"yesno",id:"loanterms",title:`${esc(G.p[L.to].name)} will lend you ${L.n} mana`,
-    text:`You must pay it back within <b>${due}</b> rounds. It grows by 1d2 every 3 rounds until it is paid. If it isn't paid in time, what you can't pay is taken from your souls, and the Bank sends Debt Collectors after you for the rest; what they take goes to ${esc(G.p[L.to].name)}.`,
-    yes:"Take the loan",no:"No, thanks",ai:()=>due>=3||mana(L.from)<=0});
-  if(L.state!=="offer")return;
-  if(!ok){L.state="no";L.declined=true;log(`${plName(L.from)} turns down ${plName(L.to)}'s terms (due in ${due} rounds).`);notify(L.to,`${esc(G.p[L.from].name)} turns down the loan.`);render();return}
-  if(mana(L.to)<L.n){L.state="no";log(`${plName(L.to)} no longer holds ${L.n} mana: the loan falls through.`);render();return}
-  const paid=payQuiet(L.to,L.n),got=giveMana(L.from,paid);L.state="open";L.owed=paid;L.due=tnOf(L.from)+due;L.intAt=tnOf(L.from)+3;
-  log(`<b>${plName(L.to)} lends ${plName(L.from)} ${paid} mana</b>${got<paid?` (${got} fit in the soul pile)`:""}: due in ${due} rounds, growing by 1d2 every 3 rounds; if it isn't paid, the Bank collects.`,"event");
-  notify(L.from,`${esc(G.p[L.to].name)} lends ${esc(G.p[L.from].name)} ${paid} mana.`);render()}
-function repayLoan(L,k){k=Math.min(k,L.owed,mana(L.from));if(k<=0)return 0;const paid=payQuiet(L.from,k);giveMana(L.to,Math.min(paid,L.owed));L.owed=Math.max(0,L.owed-paid);   // v78j: overpaid mana is lost
-  log(`${plName(L.from)} pays ${plName(L.to)} back ${paid} mana${L.owed?` (${L.owed} still owed)`:"; the loan is settled"}.`);if(!L.owed)loanSettled(L);return paid}
-const loanCollectorsOff=L=>{const bk=npcIx("bank");if(bk>=0)for(const x of stacksOf(bk))if(x.st.loan===L.id)G.board[x.r][x.c]=null};
-function loanSettled(L){L.state="done";L.owed=0;loanCollectorsOff(L);
-  log(`The loan from ${plName(L.to)} to ${plName(L.from)} is settled.`)}
-function sendLoanCollectors(L){const bk=npcIx("bank");if(bk<0)return 0;let n=0;const k=R(2);
-  for(const t of freeTilesNear(L.from,true).slice(0,k)){G.board[t[0]][t[1]]={owner:bk,cards:[mkUnit("debt",bk)],moved:true,attacked:true,hunt:L.from,loan:L.id};n++}return n}
+function answerLoan(L, yes, due) {
+  if (L.state !== "ask") return;
+  if (!yes) {
+    L.state = "no";
+    log(`${plName(L.to)} refuses to lend ${plName(L.from)} ${L.n} mana.`);
+    notify(L.from, `${esc(G.p[L.to].name)} refuses the loan.`);
+    return;
+  }
+  if (mana(L.to) < L.n) {
+    if (!G.p[L.to].cpu) flash(`You hold only ${mana(L.to)} mana.`);
+    return;
+  }
+  due = Math.max(P2P_MIN, Math.min(P2P_MAX, Math.round(+due || P2P_DUE)));
+  L.state = "offer";
+  L.dueN = due;
+  render();
+  loanOffer(L, due);
+} // the borrower's answer comes later; the lender's click is done
+async function loanOffer(L, due) {
+  const ok = await ask(L.from, {
+    kind: "yesno",
+    id: "loanterms",
+    title: `${esc(G.p[L.to].name)} will lend you ${L.n} mana`,
+    text: `You must pay it back within <b>${due}</b> rounds. It grows by 1d2 every 3 rounds until it is paid. If it isn't paid in time, what you can't pay is taken from your souls, and the Bank sends Debt Collectors after you for the rest; what they take goes to ${esc(G.p[L.to].name)}.`,
+    yes: "Take the loan",
+    no: "No, thanks",
+    ai: () => due >= 3 || mana(L.from) <= 0,
+  });
+  if (L.state !== "offer") return;
+  if (!ok) {
+    L.state = "no";
+    L.declined = true;
+    log(
+      `${plName(L.from)} turns down ${plName(L.to)}'s terms (due in ${due} rounds).`,
+    );
+    notify(L.to, `${esc(G.p[L.from].name)} turns down the loan.`);
+    render();
+    return;
+  }
+  if (mana(L.to) < L.n) {
+    L.state = "no";
+    log(`${plName(L.to)} no longer holds ${L.n} mana: the loan falls through.`);
+    render();
+    return;
+  }
+  const paid = payQuiet(L.to, L.n),
+    got = giveMana(L.from, paid);
+  L.state = "open";
+  L.owed = paid;
+  L.due = tnOf(L.from) + due;
+  L.intAt = tnOf(L.from) + 3;
+  log(
+    `<b>${plName(L.to)} lends ${plName(L.from)} ${paid} mana</b>${got < paid ? ` (${got} fit in the soul pile)` : ""}: due in ${due} rounds, growing by 1d2 every 3 rounds; if it isn't paid, the Bank collects.`,
+    "event",
+  );
+  notify(
+    L.from,
+    `${esc(G.p[L.to].name)} lends ${esc(G.p[L.from].name)} ${paid} mana.`,
+  );
+  render();
+}
+function repayLoan(L, k) {
+  k = Math.min(k, L.owed, mana(L.from));
+  if (k <= 0) return 0;
+  const paid = payQuiet(L.from, k);
+  giveMana(L.to, Math.min(paid, L.owed));
+  L.owed = Math.max(0, L.owed - paid); // v78j: overpaid mana is lost
+  log(
+    `${plName(L.from)} pays ${plName(L.to)} back ${paid} mana${L.owed ? ` (${L.owed} still owed)` : "; the loan is settled"}.`,
+  );
+  if (!L.owed) loanSettled(L);
+  return paid;
+}
+const loanCollectorsOff = (L) => {
+  const bk = npcIx("bank");
+  if (bk >= 0)
+    for (const x of stacksOf(bk))
+      if (x.st.loan === L.id) G.board[x.r][x.c] = null;
+};
+function loanSettled(L) {
+  L.state = "done";
+  L.owed = 0;
+  loanCollectorsOff(L);
+  log(`The loan from ${plName(L.to)} to ${plName(L.from)} is settled.`);
+}
+function sendLoanCollectors(L) {
+  const bk = npcIx("bank");
+  if (bk < 0) return 0;
+  let n = 0;
+  const k = R(2);
+  for (const t of freeTilesNear(L.from, true).slice(0, k)) {
+    G.board[t[0]][t[1]] = {
+      owner: bk,
+      cards: [mkUnit("debt", bk)],
+      moved: true,
+      attacked: true,
+      hunt: L.from,
+      loan: L.id,
+    };
+    n++;
+  }
+  return n;
+}
 /* a loan comes due at the start of the borrower's turn */
-{const _bt=bankTurn;bankTurn=function(pl){_bt(pl);const tn=tnOf(pl);
-  for(const L of p2pOf()){
-    if(["ask","offer","open","late"].includes(L.state)&&(G.p[L.from].out||G.p[L.to].out)){L.state="void";loanCollectorsOff(L);continue}   // v78j: and its collectors go
-    if(L.from!==pl)continue;
-    if(["open","late"].includes(L.state)&&L.owed>0&&L.intAt!=null&&tn>=L.intAt){const add=R(2);L.owed+=add;L.intAt=tn+3;log(`Interest: ${plName(pl)}'s loan from ${plName(L.to)} grows by ${add} (1d2) to ${L.owed}.`)}
-    // v71e: never taken by itself: due, a reminder; still open a round later, the Debt Collectors
-    if(L.state==="open"&&tn>=L.due&&!L.told&&L.owed>0){L.told=true;log(`${plName(pl)}'s loan from ${plName(L.to)} is due: ${L.owed} mana, to be paid at the Bank (Repay).`,"event");
-      notify(pl,`Your loan from ${esc(G.p[L.to].name)} is due: ${L.owed} mana. Pay it ${typeof dipOn==="function"&&dipOn()?"in Diplomacy (Repay)":"at the Bank (Repay)"} this turn, or the Debt Collectors come.`)}
-    else if(L.state==="open"&&tn>L.due&&L.owed>0){L.state="late";const n=sendLoanCollectors(L);
-        log(`<b>${plName(pl)} hasn't paid back ${plName(L.to)}</b>: ${L.owed} mana is still owed. The Bank sends ${n} Debt Collector${n===1?"":"s"} after ${plName(pl)}; what they take goes to ${plName(L.to)}.`,"event");
-        popup("A loan is not paid",`<p>${plName(pl)} owes ${plName(L.to)} ${L.owed} mana, a round past its due.</p><p>The Bank sends Debt Collectors after ${plName(pl)}. Whatever they kill goes to the Ether, and its worth goes to ${plName(L.to)} until the loan is paid.</p>`,L.to)}
-    else if(L.state==="late"){const bk=npcIx("bank");if(bk>=0&&!stacksOf(bk).some(x=>x.st.loan===L.id))sendLoanCollectors(L)}
-  }}}
+{
+  const _bt = bankTurn;
+  bankTurn = function (pl) {
+    _bt(pl);
+    const tn = tnOf(pl);
+    for (const L of p2pOf()) {
+      if (
+        ["ask", "offer", "open", "late"].includes(L.state) &&
+        (G.p[L.from].out || G.p[L.to].out)
+      ) {
+        L.state = "void";
+        loanCollectorsOff(L);
+        continue;
+      } // v78j: and its collectors go
+      if (L.from !== pl) continue;
+      if (
+        ["open", "late"].includes(L.state) &&
+        L.owed > 0 &&
+        L.intAt != null &&
+        tn >= L.intAt
+      ) {
+        const add = R(2);
+        L.owed += add;
+        L.intAt = tn + 3;
+        log(
+          `Interest: ${plName(pl)}'s loan from ${plName(L.to)} grows by ${add} (1d2) to ${L.owed}.`,
+        );
+      }
+      // v71e: never taken by itself: due, a reminder; still open a round later, the Debt Collectors
+      if (L.state === "open" && tn >= L.due && !L.told && L.owed > 0) {
+        L.told = true;
+        log(
+          `${plName(pl)}'s loan from ${plName(L.to)} is due: ${L.owed} mana, to be paid at the Bank (Repay).`,
+          "event",
+        );
+        notify(
+          pl,
+          `Your loan from ${esc(G.p[L.to].name)} is due: ${L.owed} mana. Pay it ${typeof dipOn === "function" && dipOn() ? "in Diplomacy (Repay)" : "at the Bank (Repay)"} this turn, or the Debt Collectors come.`,
+        );
+      } else if (L.state === "open" && tn > L.due && L.owed > 0) {
+        L.state = "late";
+        const n = sendLoanCollectors(L);
+        log(
+          `<b>${plName(pl)} hasn't paid back ${plName(L.to)}</b>: ${L.owed} mana is still owed. The Bank sends ${n} Debt Collector${n === 1 ? "" : "s"} after ${plName(pl)}; what they take goes to ${plName(L.to)}.`,
+          "event",
+        );
+        popup(
+          "A loan is not paid",
+          `<p>${plName(pl)} owes ${plName(L.to)} ${L.owed} mana, a round past its due.</p><p>The Bank sends Debt Collectors after ${plName(pl)}. Whatever they kill goes to the Ether, and its worth goes to ${plName(L.to)} until the loan is paid.</p>`,
+          L.to,
+        );
+      } else if (L.state === "late") {
+        const bk = npcIx("bank");
+        if (bk >= 0 && !stacksOf(bk).some((x) => x.st.loan === L.id))
+          sendLoanCollectors(L);
+      }
+    }
+  };
+}
 /* the computer borrows when it is poor, and answers a person's request at once (see askLoan) */
-{const _ab=aiBank;aiBank=async function(pl,W,cast1){await _ab(pl,W,cast1);const P=G.p[pl];if(P.jail||G.over)return;
-  for(const L of p2pOf())if(L.from===pl&&["open","late"].includes(L.state)&&L.owed>0&&(mana(pl)>=L.owed+3||(L.state==="late"||tnOf(pl)>=L.due)&&mana(pl)>0))repayLoan(L,L.owed);   // v71e: paid by choice, so the computer chooses to
-  for(const L of loanReqsFor(pl))answerLoan(L,aiLend(L),2+R(6)+R(4));
-  if(mana(pl)<=1&&Math.random()<.08){const t=lenders(pl).filter(i=>!isEnemy(pl,i)||Math.random()<.3).sort((a,b)=>mana(b)-mana(a))[0];if(t!=null&&mana(t)>=4)askLoan(pl,t,1+R(3))}}}
+{
+  const _ab = aiBank;
+  aiBank = async function (pl, W, cast1) {
+    await _ab(pl, W, cast1);
+    const P = G.p[pl];
+    if (P.jail || G.over) return;
+    for (const L of p2pOf())
+      if (
+        L.from === pl &&
+        ["open", "late"].includes(L.state) &&
+        L.owed > 0 &&
+        (mana(pl) >= L.owed + 3 ||
+          ((L.state === "late" || tnOf(pl) >= L.due) && mana(pl) > 0))
+      )
+        repayLoan(L, L.owed); // v71e: paid by choice, so the computer chooses to
+    for (const L of loanReqsFor(pl)) answerLoan(L, aiLend(L), 2 + R(6) + R(4));
+    if (mana(pl) <= 1 && Math.random() < 0.08) {
+      const t = lenders(pl)
+        .filter((i) => !isEnemy(pl, i) || Math.random() < 0.3)
+        .sort((a, b) => mana(b) - mana(a))[0];
+      if (t != null && mana(t) >= 4) askLoan(pl, t, 1 + R(3));
+    }
+  };
+}
 
 /* ---------- the Bank window: a tab for loans between players ---------- */
-function p2pHTML(V){
-  const live=canAct()&&G.phase==="prep"&&G.active===V,P=G.p[V],tt=n=>`${n} round${n===1?"":"s"}`,L=p2pOf();
-  const reqs=loanReqsFor(V).map(x=>`<li><b>${plName(x.from)}</b> asks you for <b>${x.n}</b> mana. <label class="ldue">Due in <select data-ldue="${x.id}">${Array.from({length:P2P_MAX-P2P_MIN+1},(_,i)=>P2P_MIN+i).map(n=>`<option ${n===P2P_DUE?"selected":""}>${n}</option>`).join("")}</select> rounds</label> <button class="btn sm" data-lend="${x.id}" ${mana(V)>=x.n&&!G.busy?"":"disabled"}>Lend ${x.n}</button> <button class="btn ghost sm" data-nolend="${x.id}">Refuse</button></li>`).join("");
-  const mine=L.filter(x=>x.from===V&&["ask","offer","open","late","no"].includes(x.state)&&(x.state!=="no"||x.round>=G.moon.round-1)).map(x=>`<li>${x.state==="ask"?`You asked ${plName(x.to)} for ${x.n}: waiting.`:x.state==="offer"?`${plName(x.to)} offers ${x.n}, due in ${x.dueN} rounds: waiting for your answer.`:x.state==="no"?`${plName(x.to)} refused your request.`:`You owe ${plName(x.to)} <b>${x.owed}</b>${x.state==="late"?` <span class="neg">late: the Bank's Debt Collectors are after you</span>`:` · due in ${tt(Math.max(0,x.due-tnOf(V)))} · grows 1d2 every 3 rounds`}${live&&mana(V)?` <button class="btn sm" data-repay="${x.id}">Pay back ${Math.min(mana(V),x.owed)}</button>`:""}`}</li>`).join("");
-  const lent=L.filter(x=>x.to===V&&["open","late"].includes(x.state)).map(x=>`<li>${plName(x.from)} owes you <b>${x.owed}</b>${x.state==="late"?" (late: the Bank is collecting for you)":` · due in ${tt(Math.max(0,x.due-tnOf(x.from)))}`}</li>`).join("");
-  const who=lenders(V);
-  const form=live&&!P.jail&&who.length?`<p class="p2pask"><label>Ask <select id="p2pTo">${who.map(i=>`<option value="${i}">${esc(G.p[i].name)}</option>`).join("")}</select></label> <label>for <select id="p2pN">${[1,2,3,4,5,6,7,8].map(n=>`<option>${n}</option>`).join("")}</select> mana</label> <button class="btn sm" id="p2pGo">Ask for a loan</button></p><p class="dim">The lender sets when it is due (2 to 12 rounds), and you see the terms before you take it. It grows by 1d2 every 3 rounds until it is paid. If it isn't paid in time, what you can't pay is taken from your souls, and the Bank's Debt Collectors come for the rest; what they take goes to the lender.</p>`:`<p class="dim">${P.jail?"In Jail: no loans.":"You can ask for a loan in your own prep phase."}</p>`;
-  return `${reqs?`<h3>Asked of you</h3><ul class="p2pl">${reqs}</ul>`:""}${mine?`<h3>Your loans</h3><ul class="p2pl">${mine}</ul>`:""}${lent?`<h3>What others owe you</h3><ul class="p2pl">${lent}</ul>`:""}<h3>Ask another player</h3>${form}`}
-let bankTab="bank";
-{const _ob=openBank;openBank=function(){_ob();const box=$("#ov .ovbox.bank");if(!box||!G)return;const V=view();
-  const h2=box.querySelector("h2"),close=box.querySelector("#mcancel").closest("p");
-  const main=document.createElement("div");main.className="btab";main.dataset.t="bank";
-  while(h2.nextSibling&&h2.nextSibling!==close)main.appendChild(h2.nextSibling);
-  const other=document.createElement("div");other.className="btab p2p";other.dataset.t="p2p";other.innerHTML=p2pHTML(V);
-  const n=loanReqsFor(V).length;
-  const tabs=document.createElement("div");tabs.className="btabs";tabs.setAttribute("role","tablist");
-  tabs.innerHTML=`<button type="button" role="tab" class="stab" data-bt="bank">The Bank</button><button type="button" role="tab" class="stab" data-bt="p2p">Between players${n?` <i class="bang">!</i>`:""}</button><button type="button" role="tab" class="stab" data-bt="land">Land</button>`;
-  const land=document.createElement("div");land.className="btab land";land.dataset.t="land";land.innerHTML=landHTML(V);
-  h2.after(tabs);tabs.after(main);main.after(other);other.after(land);
-  const show=t=>{bankTab=t;tabs.querySelectorAll("[data-bt]").forEach(b=>{const on=b.dataset.bt===t;b.classList.toggle("on",on);b.setAttribute("aria-selected",on)});main.hidden=t!=="bank";other.hidden=t!=="p2p";land.hidden=t!=="land"};
-  tabs.querySelectorAll("[data-bt]").forEach(b=>b.onclick=()=>show(b.dataset.bt));show(n?"p2p":bankTab);
-  const re=()=>{render();openBank()};wireLand(land,V,re);
-  other.querySelectorAll("[data-lend]").forEach(b=>b.onclick=()=>{const L=p2pOf().find(x=>x.id===+b.dataset.lend);const d=other.querySelector(`[data-ldue="${b.dataset.lend}"]`);if(L)answerLoan(L,true,d?+d.value:P2P_DUE);re()});
-  other.querySelectorAll("[data-nolend]").forEach(b=>b.onclick=()=>{const L=p2pOf().find(x=>x.id===+b.dataset.nolend);if(L)answerLoan(L,false);re()});
-  other.querySelectorAll("[data-repay]").forEach(b=>b.onclick=()=>{const L=p2pOf().find(x=>x.id===+b.dataset.repay);if(L)repayLoan(L,L.owed);re()});
-  if($("#p2pGo"))$("#p2pGo").onclick=()=>{askLoan(V,+$("#p2pTo").value,+$("#p2pN").value);bankTab="p2p";re()}}}
+function p2pHTML(V) {
+  const live = canAct() && G.phase === "prep" && G.active === V,
+    P = G.p[V],
+    tt = (n) => `${n} round${n === 1 ? "" : "s"}`,
+    L = p2pOf();
+  const reqs = loanReqsFor(V)
+    .map(
+      (x) =>
+        `<li><b>${plName(x.from)}</b> asks you for <b>${x.n}</b> mana. <label class="ldue">Due in <select data-ldue="${x.id}">${Array.from(
+          { length: P2P_MAX - P2P_MIN + 1 },
+          (_, i) => P2P_MIN + i,
+        )
+          .map(
+            (n) => `<option ${n === P2P_DUE ? "selected" : ""}>${n}</option>`,
+          )
+          .join(
+            "",
+          )}</select> rounds</label> <button class="btn sm" data-lend="${x.id}" ${mana(V) >= x.n && !G.busy ? "" : "disabled"}>Lend ${x.n}</button> <button class="btn ghost sm" data-nolend="${x.id}">Refuse</button></li>`,
+    )
+    .join("");
+  const mine = L.filter(
+    (x) =>
+      x.from === V &&
+      ["ask", "offer", "open", "late", "no"].includes(x.state) &&
+      (x.state !== "no" || x.round >= G.moon.round - 1),
+  )
+    .map(
+      (x) =>
+        `<li>${x.state === "ask" ? `You asked ${plName(x.to)} for ${x.n}: waiting.` : x.state === "offer" ? `${plName(x.to)} offers ${x.n}, due in ${x.dueN} rounds: waiting for your answer.` : x.state === "no" ? `${plName(x.to)} refused your request.` : `You owe ${plName(x.to)} <b>${x.owed}</b>${x.state === "late" ? ` <span class="neg">late: the Bank's Debt Collectors are after you</span>` : ` · due in ${tt(Math.max(0, x.due - tnOf(V)))} · grows 1d2 every 3 rounds`}${live && mana(V) ? ` <button class="btn sm" data-repay="${x.id}">Pay back ${Math.min(mana(V), x.owed)}</button>` : ""}`}</li>`,
+    )
+    .join("");
+  const lent = L.filter((x) => x.to === V && ["open", "late"].includes(x.state))
+    .map(
+      (x) =>
+        `<li>${plName(x.from)} owes you <b>${x.owed}</b>${x.state === "late" ? " (late: the Bank is collecting for you)" : ` · due in ${tt(Math.max(0, x.due - tnOf(x.from)))}`}</li>`,
+    )
+    .join("");
+  const who = lenders(V);
+  const form =
+    live && !P.jail && who.length
+      ? `<p class="p2pask"><label>Ask <select id="p2pTo">${who.map((i) => `<option value="${i}">${esc(G.p[i].name)}</option>`).join("")}</select></label> <label>for <select id="p2pN">${[1, 2, 3, 4, 5, 6, 7, 8].map((n) => `<option>${n}</option>`).join("")}</select> mana</label> <button class="btn sm" id="p2pGo">Ask for a loan</button></p><p class="dim">The lender sets when it is due (2 to 12 rounds), and you see the terms before you take it. It grows by 1d2 every 3 rounds until it is paid. If it isn't paid in time, what you can't pay is taken from your souls, and the Bank's Debt Collectors come for the rest; what they take goes to the lender.</p>`
+      : `<p class="dim">${P.jail ? "In Jail: no loans." : "You can ask for a loan in your own prep phase."}</p>`;
+  return `${reqs ? `<h3>Asked of you</h3><ul class="p2pl">${reqs}</ul>` : ""}${mine ? `<h3>Your loans</h3><ul class="p2pl">${mine}</ul>` : ""}${lent ? `<h3>What others owe you</h3><ul class="p2pl">${lent}</ul>` : ""}<h3>Ask another player</h3>${form}`;
+}
+let bankTab = "bank";
+{
+  const _ob = openBank;
+  openBank = function () {
+    _ob();
+    const box = $("#ov .ovbox.bank");
+    if (!box || !G) return;
+    const V = view();
+    const h2 = box.querySelector("h2"),
+      close = box.querySelector("#mcancel").closest("p");
+    const main = document.createElement("div");
+    main.className = "btab";
+    main.dataset.t = "bank";
+    while (h2.nextSibling && h2.nextSibling !== close)
+      main.appendChild(h2.nextSibling);
+    const other = document.createElement("div");
+    other.className = "btab p2p";
+    other.dataset.t = "p2p";
+    other.innerHTML = p2pHTML(V);
+    const n = loanReqsFor(V).length;
+    const tabs = document.createElement("div");
+    tabs.className = "btabs";
+    tabs.setAttribute("role", "tablist");
+    tabs.innerHTML = `<button type="button" role="tab" class="stab" data-bt="bank">The Bank</button><button type="button" role="tab" class="stab" data-bt="p2p">Between players${n ? ` <i class="bang">!</i>` : ""}</button><button type="button" role="tab" class="stab" data-bt="land">Land</button>`;
+    const land = document.createElement("div");
+    land.className = "btab land";
+    land.dataset.t = "land";
+    land.innerHTML = landHTML(V);
+    h2.after(tabs);
+    tabs.after(main);
+    main.after(other);
+    other.after(land);
+    const show = (t) => {
+      bankTab = t;
+      tabs.querySelectorAll("[data-bt]").forEach((b) => {
+        const on = b.dataset.bt === t;
+        b.classList.toggle("on", on);
+        b.setAttribute("aria-selected", on);
+      });
+      main.hidden = t !== "bank";
+      other.hidden = t !== "p2p";
+      land.hidden = t !== "land";
+    };
+    tabs
+      .querySelectorAll("[data-bt]")
+      .forEach((b) => (b.onclick = () => show(b.dataset.bt)));
+    show(n ? "p2p" : bankTab);
+    const re = () => {
+      render();
+      openBank();
+    };
+    wireLand(land, V, re);
+    other.querySelectorAll("[data-lend]").forEach(
+      (b) =>
+        (b.onclick = () => {
+          const L = p2pOf().find((x) => x.id === +b.dataset.lend);
+          const d = other.querySelector(`[data-ldue="${b.dataset.lend}"]`);
+          if (L) answerLoan(L, true, d ? +d.value : P2P_DUE);
+          re();
+        }),
+    );
+    other.querySelectorAll("[data-nolend]").forEach(
+      (b) =>
+        (b.onclick = () => {
+          const L = p2pOf().find((x) => x.id === +b.dataset.nolend);
+          if (L) answerLoan(L, false);
+          re();
+        }),
+    );
+    other.querySelectorAll("[data-repay]").forEach(
+      (b) =>
+        (b.onclick = () => {
+          const L = p2pOf().find((x) => x.id === +b.dataset.repay);
+          if (L) repayLoan(L, L.owed);
+          re();
+        }),
+    );
+    if ($("#p2pGo"))
+      $("#p2pGo").onclick = () => {
+        askLoan(V, +$("#p2pTo").value, +$("#p2pN").value);
+        bankTab = "p2p";
+        re();
+      };
+  };
+}
 
 /* ---------- notices: the Bank bar and the Auction ---------- */
-{const _bb=bankBarHTML;bankBarHTML=function(){const h=_bb();if(!h||!G)return h;const n=dipOn()?0:loanReqsFor(view()).length;   // with Diplomacy, the flag under the Bank carries it
-  return n?h.replace('class="bankbar"','class="bankbar notify"').replace("</button>",`<i class="bang" aria-label="${n} loan request${n>1?"s":""}">!</i></button>`):h}}
-{const _rd=render;render=function(){rSafe(_rd,this,arguments);if(!G)return;
-  const n=(G.auction||[]).length;if(n>(G._auctLen||0))G.auctV=(G.auctV||0)+1;G._auctLen=n;
-  const a=$("#seeauct"),V=view(),P=G.p[V];if(!a||!P)return;
-  const fresh=n&&(P.auctSeen||0)<(G.auctV||0)&&G.auction.some(it=>it.seller!==V);
-  a.classList.toggle("notify",!!fresh);if(fresh&&!a.querySelector(".bang"))a.insertAdjacentHTML("beforeend",`<i class="bang" aria-label="new at the Auction">!</i>`)}}
+{
+  const _bb = bankBarHTML;
+  bankBarHTML = function () {
+    const h = _bb();
+    if (!h || !G) return h;
+    const n = dipOn() ? 0 : loanReqsFor(view()).length; // with Diplomacy, the flag under the Bank carries it
+    return n
+      ? h
+          .replace('class="bankbar"', 'class="bankbar notify"')
+          .replace(
+            "</button>",
+            `<i class="bang" aria-label="${n} loan request${n > 1 ? "s" : ""}">!</i></button>`,
+          )
+      : h;
+  };
+}
+{
+  const _rd = render;
+  render = function () {
+    rSafe(_rd, this, arguments);
+    if (!G) return;
+    const n = (G.auction || []).length;
+    if (n > (G._auctLen || 0)) G.auctV = (G.auctV || 0) + 1;
+    G._auctLen = n;
+    const a = $("#seeauct"),
+      V = view(),
+      P = G.p[V];
+    if (!a || !P) return;
+    const fresh =
+      n &&
+      (P.auctSeen || 0) < (G.auctV || 0) &&
+      G.auction.some((it) => it.seller !== V);
+    a.classList.toggle("notify", !!fresh);
+    if (fresh && !a.querySelector(".bang"))
+      a.insertAdjacentHTML(
+        "beforeend",
+        `<i class="bang" aria-label="new at the Auction">!</i>`,
+      );
+  };
+}
 /* the computer buys the Bank's bargains too */
-{const _ap=aiPlanets;aiPlanets=async function(pl,W,cast1){await _ap(pl,W,cast1);if(G.over||G.p[pl].jail)return;
-  for(const it of [...(G.auction||[])])if(it.bank&&mana(pl)>=it.price+3&&AI.value({cards:[it.card]})>2.5&&Math.random()<.6){await buyBankItem(pl,it);break}}}
+{
+  const _ap = aiPlanets;
+  aiPlanets = async function (pl, W, cast1) {
+    await _ap(pl, W, cast1);
+    if (G.over || G.p[pl].jail) return;
+    for (const it of [...(G.auction || [])])
+      if (
+        it.bank &&
+        mana(pl) >= it.price + 3 &&
+        AI.value({ cards: [it.card] }) > 2.5 &&
+        Math.random() < 0.6
+      ) {
+        await buyBankItem(pl, it);
+        break;
+      }
+  };
+}
 
-if(window.__EC)Object.assign(window.__EC,{askLoan,answerLoan,repayLoan,buyBankItem,handSacRange,econBury:(...a)=>econBury(...a),sacrifice:(...a)=>sacrifice(...a),bankTurn:pl=>bankTurn(pl),p2pOf,openBank:()=>openBank()});
+if (window.__EC)
+  Object.assign(window.__EC, {
+    askLoan,
+    answerLoan,
+    repayLoan,
+    buyBankItem,
+    handSacRange,
+    econBury: (...a) => econBury(...a),
+    sacrifice: (...a) => sacrifice(...a),
+    bankTurn: (pl) => bankTurn(pl),
+    p2pOf,
+    openBank: () => openBank(),
+  });

@@ -1,62 +1,105 @@
 {
- "random":{"tag":"One of the Emanations, picked when the game starts.","pts":[]},
- "beginner":{"tag":"The learning Emanation: a bigger hand, an early army, and one free shield.","pts":[
-  "Eight starting cards, eight mana at most and an eight-card hand.",
-  "A second Ace and a Joker in hand, and three Grunts already on the field.",
-  "Scouts, an Assassin, Archers, a Wall, Repairmen and a Battering Ram in the deck; a Miner in the first Ace.",
-  "Archers cost 1 mana, and a free Scout comes every Full Moon.",
-  "Please Don't Hurt Me: once a game, none of your stacks can be attacked until your next turn.",
-  "The only Emanation more than one player can pick."]},
- "angel":{"tag":"Antony's mech: Samson fights, and Antony rises from his corpse.","pts":[
-  "Always Bone white with the cracked mask.",
-  "Samson in the deck: two hearts, defense 12, with the Slugshot Cannon, the Arm Blade and the Mech Slam.",
-  "When Samson falls, Antony takes his tile: two hearts, 12 + 6d4 to attack, 12 to defend.",
-  "A bolt for every card you lose defending and every card Antony kills. Three bolts cast Lightning Strike, which pins a stack.",
-  "Three of Swords costs 1 mana."]},
- "satan":{"tag":"One overwhelming card, and a curse that turns a stack against itself.","pts":[
-  "Always dark crimson with the claw.",
-  "The Satan card: three hearts, 6d12 to attack and defend, no modifiers, never stacks.",
-  "Hate (Curse, 3 mana): an enemy stack's strongest card turns red; the stack fights at disadvantage and its attackers at advantage.",
-  "When Satan falls, he falls into the Outer Darkness."]},
- "binah":{"tag":"The Southern tribe of the Euclids: Slavemasters capture, and Slaves shoot.","pts":[
-  "Three Slavemasters in the deck (8 + 1d8, they stack like Infantry).",
-  "Enemy soldiers killed in a Slavemaster's fight become your thralls, ten at most.",
-  "Slaves (Necromancy, free): a thrall stands up as a Slave, a rifle of 10 + 1d12 at two tiles.",
-  "Jokers add 3 to their attacks.",
-  "Never pays Saturn."]},
- "jester":{"tag":"The Tree, the Puppets and the BullGoat: a living base that feeds you mana.","pts":[
-  "A seven-card hand and seven mana at most.",
-  "Every soldier in the deck is a Puppet (its own card, with the score of a 2).",
-  "The Tree of Neither Life Or Death: three hearts, holds six cards, gives 2 mana a round and grows a Puppet every two rounds.",
-  "BullGoat (Conjuring, 3 mana): charges two or three tiles, and comes back as the Goatbull, whose Stomp pins stacks.",
-  "Deck of Cards: once a game, while the Tree stands, your deck is full again."]},
- "tiph":{"tag":"The Northern tribe of the Euclids: Traffickers chain souls and sell them.","pts":[
-  "Three Traffickers in the deck (8 + 1d8) chain enemy cards that die beside them, three prisoners each.",
-  "Life for Sell: put a prisoner up at the Auction; you approve the sale.",
-  "The Blindfold: keep a Delusion three rounds longer.",
-  "Immune to the Leviathan's toll.",
-  "Jokers add 1 to their attacks."]},
- "lucifer":{"tag":"Delusions: blind yourself for mana, then blind your enemy and starve them.","pts":[
-  "Always the ink and scroll.",
-  "Delusion of Ouroboros: for 2d2 rounds you see only as far as your cards reach, but your mana rises to nine and you get 3d2 free mana a round.",
-  "Delusion of Lucifer: the same on an enemy, and you can pay to stifle its gifts.",
-  "Deconjured: no conjuring at the next Full Moon, or for everyone next round.",
-  "Pleasure and Joy: your dead return to your deck, or each hit on you steals a mana for you."]},
- "leviathan":{"tag":"The black serpent: it rises onto the moon and takes a toll every New Moon.","pts":[
-  "The Leviathan card: three hearts, 6d4 + 1d2 + 6, never stacks. What it kills falls into the Outer Darkness.",
-  "Rise to the Moon (at the New Moon): every enemy pays 2d4 deck cards, 2 hand cards and 1 mana each New Moon after.",
-  "On the moon your maximum mana grows with the Outer Darkness, twelve at most, and it can be attacked only at the New Moon.",
-  "Exile: one of your Jokers sends the souls it captured into the Outer Darkness."]},
- "firm":{"tag":"Master of the sky: it hangs Heavenly Bodies in the moon's place.","pts":[
-  "Always the six-pointed star.",
-  "Untouched by the Moon's and Saturn's harms, the Leviathan's toll and meteors.",
-  "Starts with a Miner on the moon: 1d2 − 1 mana a round.",
-  "Sorcery and Illusion: Blood Moon, Rain and Fog.",
-  "Astrology: the Asteroid, and the Heavenly Bodies Mars, the Second Sun, Venus, Jupiter and Mercury."]},
- "yald":{"tag":"The Demiurge: it eats the sky and the dead, and brings Saturn.","pts":[
-  "Always the symbol of Saturn.",
-  "Night's Judgement: eat the moon (at the New or Full Moon) or any Heavenly Body.",
-  "God Hunger: eat 1d2 cards, twice a round, for mana or for the hunger.",
-  "At seven hunger, Regurgitate Saturn: every enemy pays each round, or a Debt Collector rises.",
-  "The Sun Cries: make the Second Sun weep until it becomes the Black Sun."]}
+  "random": {
+    "tag": "One of the Emanations, picked when the game starts.",
+    "pts": []
+  },
+  "beginner": {
+    "tag": "The learning Emanation: a bigger hand, an early army, and one free shield.",
+    "pts": [
+      "Eight starting cards, eight mana at most and an eight-card hand.",
+      "A second Ace and a Joker in hand, and three Grunts already on the field.",
+      "Scouts, an Assassin, Archers, a Wall, Repairmen and a Battering Ram in the deck; a Miner in the first Ace.",
+      "Archers cost 1 mana, and a free Scout comes every Full Moon.",
+      "Please Don't Hurt Me: once a game, none of your stacks can be attacked until your next turn.",
+      "The only Emanation more than one player can pick."
+    ]
+  },
+  "angel": {
+    "tag": "Antony's mech: Samson fights, and Antony rises from his corpse.",
+    "pts": [
+      "Always Bone white with the cracked mask.",
+      "Samson in the deck: two hearts, defense 12, with the Slugshot Cannon, the Arm Blade and the Mech Slam.",
+      "When Samson falls, Antony takes his tile: two hearts, 12 + 6d4 to attack, 12 to defend.",
+      "A bolt for every card you lose defending and every card Antony kills. Three bolts cast Lightning Strike, which pins a stack.",
+      "Three of Swords costs 1 mana."
+    ]
+  },
+  "satan": {
+    "tag": "One overwhelming card, and a curse that turns a stack against itself.",
+    "pts": [
+      "Always dark crimson with the claw.",
+      "The Satan card: three hearts, 6d12 to attack and defend, no modifiers, never stacks.",
+      "Hate (Curse, 3 mana): an enemy stack's strongest card turns red; the stack fights at disadvantage and its attackers at advantage.",
+      "When Satan falls, he falls into the Outer Darkness."
+    ]
+  },
+  "binah": {
+    "tag": "The Southern tribe of the Euclids: Slavemasters capture, and Slaves shoot.",
+    "pts": [
+      "Three Slavemasters in the deck (8 + 1d8, they stack like Infantry).",
+      "Enemy soldiers killed in a Slavemaster's fight become your thralls, ten at most.",
+      "Slaves (Necromancy, free): a thrall stands up as a Slave, a rifle of 10 + 1d12 at two tiles.",
+      "Jokers add 3 to their attacks.",
+      "Never pays Saturn."
+    ]
+  },
+  "jester": {
+    "tag": "The Tree, the Puppets and the BullGoat: a living base that feeds you mana.",
+    "pts": [
+      "A seven-card hand and seven mana at most.",
+      "Every soldier in the deck is a Puppet (its own card, with the score of a 2).",
+      "The Tree of Neither Life Or Death: three hearts, holds six cards, gives 2 mana a round and grows a Puppet every two rounds.",
+      "BullGoat (Conjuring, 3 mana): charges two or three tiles, and comes back as the Goatbull, whose Stomp pins stacks.",
+      "Deck of Cards: once a game, while the Tree stands, your deck is full again."
+    ]
+  },
+  "tiph": {
+    "tag": "The Northern tribe of the Euclids: Traffickers chain souls and sell them.",
+    "pts": [
+      "Three Traffickers in the deck (8 + 1d8) chain enemy cards that die beside them, three prisoners each.",
+      "Life for Sell: put a prisoner up at the Auction; you approve the sale.",
+      "The Blindfold: keep a Delusion three rounds longer.",
+      "Immune to the Leviathan's toll.",
+      "Jokers add 1 to their attacks."
+    ]
+  },
+  "lucifer": {
+    "tag": "Delusions: blind yourself for mana, then blind your enemy and starve them.",
+    "pts": [
+      "Always the ink and scroll.",
+      "Delusion of Ouroboros: for 2d2 rounds you see only as far as your cards reach, but your mana rises to nine and you get 3d2 free mana a round.",
+      "Delusion of Lucifer: the same on an enemy, and you can pay to stifle its gifts.",
+      "Deconjured: no conjuring at the next Full Moon, or for everyone next round.",
+      "Pleasure and Joy: your dead return to your deck, or each hit on you steals a mana for you."
+    ]
+  },
+  "leviathan": {
+    "tag": "The black serpent: it rises onto the moon and takes a toll every New Moon.",
+    "pts": [
+      "The Leviathan card: three hearts, 6d4 + 1d2 + 6, never stacks. What it kills falls into the Outer Darkness.",
+      "Rise to the Moon (at the New Moon): every enemy pays 2d4 deck cards, 2 hand cards and 1 mana each New Moon after.",
+      "On the moon your maximum mana grows with the Outer Darkness, twelve at most, and it can be attacked only at the New Moon.",
+      "Exile: one of your Jokers sends the souls it captured into the Outer Darkness."
+    ]
+  },
+  "firm": {
+    "tag": "Master of the sky: it hangs Heavenly Bodies in the moon's place.",
+    "pts": [
+      "Always the six-pointed star.",
+      "Untouched by the Moon's and Saturn's harms, the Leviathan's toll and meteors.",
+      "Starts with a Miner on the moon: 1d2 − 1 mana a round.",
+      "Sorcery and Illusion: Blood Moon, Rain and Fog.",
+      "Astrology: the Asteroid, and the Heavenly Bodies Mars, the Second Sun, Venus, Jupiter and Mercury."
+    ]
+  },
+  "yald": {
+    "tag": "The Demiurge: it eats the sky and the dead, and brings Saturn.",
+    "pts": [
+      "Always the symbol of Saturn.",
+      "Night's Judgement: eat the moon (at the New or Full Moon) or any Heavenly Body.",
+      "God Hunger: eat 1d2 cards, twice a round, for mana or for the hunger.",
+      "At seven hunger, Regurgitate Saturn: every enemy pays each round, or a Debt Collector rises.",
+      "The Sun Cries: make the Second Sun weep until it becomes the Black Sun."
+    ]
+  }
 }

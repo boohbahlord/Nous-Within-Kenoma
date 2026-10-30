@@ -1,39 +1,573 @@
 /* ---------------- card and spell info ---------------- */
-const INFO={
- grunt:["Grunt","2 to 6",[["Score","its number + 1d6 on attack; its number alone on defense (+1d6 with a Queen)"],["Dice Max / MSV","6 / 24: four Grunts stack together"],["Soul","1 mana"],["Conjure","Soldier Conjure, 1 mana"],["Moves","one tile straight per round"]],"The foot soldiers. Every card in a stack is one more hit it can take, and damage always removes the lowest card first."],
- infantry:["Infantry","7 to 10",[["Score","its number + 1d8 on attack; its number alone on defense (+1d8 with a Queen)"],["Dice Max / MSV","8 / 24: three Infantry stack together"],["Soul","1 mana"],["Conjure","Soldier Conjure, 1 mana"],["Moves","one tile straight per round"]],"Heavier soldiers. They mix with Grunts, Jacks, Kings and Queens as long as the stacking formula holds."],
- jack:["Jack (Knight)","J",[["Score","10 + 1d12 on attack"],["Defense","cannot defend: a Jack adds nothing to its stack's defense"],["Dice Max / MSV","12 / 24: stacks with two Grunts or one Infantry"],["Moves","two tiles straight, or one diagonal, when only Jacks move"],["Attacks","a stack of only Jacks may also attack diagonally"],["Soul","1 mana · Jack Conjure, 1 mana"]],"Every player opens the game with a Jack inside their Ace. Move it out to fight."],
- queen:["Queen","Q",[["Score","0, no die of her own"],["Gift","everyone stacked with her rolls their dice on defense as well as attack"],["King","a King stacked with her takes no penalty for rolling a 1"],["Limits","one Queen per stack; no Dice Max or MSV; she cannot attack alone"],["Soul","2 mana · Queen Conjure, 2 mana"]],"The heart of a defensive stack. Pair her with a King to bunker down."],
- king:["King","K",[["Score","11 + 1d20 on attack"],["Rolls","a 20 deals double damage (or takes none on a failed attack); a 1 deals no damage on a win and takes two on a loss, unless a Queen is with him"],["Alone","cannot attack"],["Defeated in defense","every card stacked with him dies"],["Dice Max / MSV","20 / 28: lower cards adopt his MSV"],["Soul","2 mana · King Conjure, 2 mana · can't be sacrificed from a stack"]],"The strongest attacker, and the most dangerous to lose."],
- ace:["Ace","A",[["Defense","11 + 1d20 when attacked; cards inside it don't roll on defense"],["Hearts","two: the first hit takes a heart and the cards inside are safe; when the last heart goes, the Ace and every card inside it are destroyed. On a roll of 1 it deals no damage back"],["Limits","cannot move or attack; only on an empty backline tile; holds one stack (up to six cards) that could stand on the field by itself; Scouts, Healers, Repairmen and Miners ride along"],["Grave Blessing","+1d6 for each Ace you have on the field"],["Soul","3 mana · Ace Conjure, 3 mana · can't be sacrificed on the field, except to the Full Moon"],["Opening","each player starts with an Ace from their deck on a backline tile of their choice, holding a Jack"]],"A fortress and a grave-caller. Hard computers stack Aces to roll more Grave Blessing dice."],
- joker:["Joker (Necromancer)","Joker",[["Score","alone, copies the score and die of the enemy's leading card; Jokers can't kill Jokers"],["Spawns","only onto your stack holding a card of the same color (red or black)"],["Soul Capture","enemies that die on the 8 tiles around it, or its own tile, are held inside it, up to 6 mana of souls"],["Held souls","it keeps them until it dies (it and its souls go to the grave, unless an enemy Joker beside it steals them) or until Sacrificial Suicide moves them to your soul pile"],["Blood Moon","a Joker that shoots itself under a Blood Moon sends itself and every soul it held to the Outer Darkness"],["Survival","Horde Jokers capture your souls; when one shoots itself those cards go to the Outer Darkness and you lose 1 mana"],["Soul","1 mana · Joker Conjure, 2 mana"]],"The necromancer of the deck, and the only way to turn kills into mana."],
- samson:["Samson (Angel Machine)","Samson",[["Hearts","two: he loses one each time he takes damage, and falls at none"],["Slugshot Cannon","3d20, at an enemy two tiles away in a straight line or one diagonal; from two away a miss costs him nothing"],["Arm Blade","12 + 3d8, up close"],["Mech Slam","16 + 1d4, up close"],["Defense","12"],["Moves","one tile straight, or one or two diagonal"],["Stacks","with nothing but an Ace"],["Falls","Antony rises from his heart on the same tile, and Samson wanders through Limbo"]],"The Angel Machine's mech suit. Its deck holds one."],
- antony:["Antony (Angel Machine)","Antony",[["Hearts","two"],["Score","12 + 6d4 on attack, 12 on defense"],["Moves","like Samson"],["Bolts","every card he kills charges a bolt for Lightning Strike"],["Falls","he goes missing: his card is found under Unknown in the Outer Darkness"]],"The angel who was lodged in Samson's heart."],
- satan:["Satan","Satan",[["Hearts","three"],["Score","6d12 on attack and on defense, with no modifiers: no moon bonus, no odds, no Hate"],["Stacks","never"],["Falls","into the Outer Darkness"]],"Satan's own card, one in his deck."],
- tree:["Tree of Neither Life Or Death (Jester Fool)","Tree",[["Hearts","three; it cannot defend itself"],["Holds","one stack, like an Ace (up to six cards that could stand on the field by themselves), but never Kings or tens"],["Gives","+2 mana at the start of each round, and a free Puppet inside it every two rounds"],["Falls","into the Outer Darkness, with every card in it"]],"In the Jester's starting hand. Place it on an empty tile of your ground."],
- puppet:["Puppet (Jester Fool)","?",[["Score","the score of a 2: 2 + 1d6 on attack"],["Deck","every soldier in the Jester's deck is a Puppet, and the Tree grows one every two rounds"]],"Strings and wood."],
- bullgoat:["BullGoat (Jester Fool)","BullGoat",[["Hearts","two"],["Gore","10 + 1d20, up close"],["Charge","10 + 2d20 at an enemy two or three tiles away in a straight line with nothing between; the BullGoat ends next to its target"],["Defense","10"],["Stacks","never"],["Conjure","3 mana, into your hand"]],"The Jester's beast."],
- slavemaster:["Slavemaster (Binah)","SM",[["Score","8 + 1d8 on attack, stacks like an Infantry"],["Capture","enemy soldiers killed in its fights become your thralls, ten at most"]],"Three in Binah's deck."],
- slave:["Slave (Binah)","Slave",[["Rifle","10 + 1d12, at an enemy two tiles away in a straight line or one diagonal; from two away a miss costs nothing"],["Defense","none"],["Moves","one tile straight"],["Stacks","never"],["Deploy","the free Slaves spell (Necromancy) puts one thrall down on an empty tile of your ground"]],"A captured soldier with a chip in its head."],
- leviathan:["The Leviathan","Leviathan",[["Hearts","three"],["Score","6d4 + 1d2 + 6 on attack and on defense; no Queen bonus"],["Stacks","never"],["Kills","whatever it kills falls into the Outer Darkness"],["The moon","Rise to the Moon (free, New Moon only) lifts it onto the moon: a toll on every enemy each New Moon after, and +1 mana cap for you per card in the Outer Darkness (twelve at most)"],["On the moon","any enemy unit can attack it, but only at the New Moon, and it defends with advantage"],["Lightning","Antony's lightning needs no roll: it takes one heart"],["Falls","into the Outer Darkness, forever"]],"The black serpent, one in the Leviathan's deck."],
- trafficker:["Trafficker (Tiphareth of Kether)","Trafficker",[["Score","8 + 1d8 on attack, stacks like an Infantry"],["Chains","any enemy card that dies on the eight tiles around it, three prisoners at most"],["Life for Sell","puts a prisoner up at the Auction"],["Falls","its prisoners go free into the grave"]],"Three in Tiphareth of Kether's deck."],
- debt:["Debt Collector (Yaldabaoth)","Collector",[["Score","copies the leading card of whatever it fights, natural value and die, without its advantage"],["Rises","when an enemy refuses to pay Saturn"],["Price","each one still standing at a new round raises Saturn's price by 1"]],"Saturn's warden."],
- goatbull:["Goatbull (Jester Fool)","Goatbull",[["Comes back","when the BullGoat dies it goes back into the deck, and is drawn again as the Goatbull"],["Hearts","two"],["Horns","10d2 + 1d10, up close"],["Charge","10 + 2d20 at an enemy exactly two tiles away in a straight line with nothing between; it closes the gap"],["Stomp","an ability check: its 1d20 with advantage against the target's 1d20 with disadvantage (Samson rolls plain). Win: the stack is Behooved, pinned for 2d2 rounds (1d2 on a tie), and can't move or attack. A 16 or more that the target doesn't match deals 1 damage; each later pinned round checks again and needs 5 less (11, then 6…)"],["Attacked","a Goatbull attacked while it pins loses its advantage in every later check"],["Falls","into the Outer Darkness"]],"The BullGoat, turned around."],
- scout:["Scout (support)","Scout",[["Sight","two tiles out through the fog of war, in a diamond (straight two, diagonal one); everything it sees, Assassins, ambushers, face-down cards and enemy Scouts included, is uncovered"],["Hidden","enemies see it only from right beside it, or with their own Scout in sight of it"],["Fights","never: no attack and no defense"],["Moves","one tile straight, two diagonal, or two forward or back"],["Comes","two in every deck; one with your opening Ace, and one with a later Ace while you have no Scout on the field (none for Lucifer & Ouroboros); the rest wait in the Ether for 1 mana"]],"A horse and a rider who sees far."],
- assassin:["Assassin (special)","Assassin",[["Hearts","two (a pair of Assassins has three)"],["Attack","10 + 1d12, the roll of a Jack"],["Defense","8, like an Infantry"],["Hidden","enemies see it only from right beside it, or with a Scout in sight of it"],["Moves","one tile straight, two diagonal, or two forward or back"],["Ambush","it can wait in ambush and strike, with advantage, any enemy that steps beside it"],["Stacks","with one other Assassin, nothing else"],["Conjure","2d2 + 1 mana; four per deck wait in the Ether"]],"The dagger in the dark."],
- archer:["Archer (standard)","Archer",[["Bow","1d20 + 1d10 at a stack exactly two tiles away, straight or diagonal (not the tiles right beside it); a miss costs it nothing"],["Suppress","instead of a shot: the target has disadvantage on its next attack, unless it waits out 1d2 rounds; the Archer then rests 1d2 rounds"],["Defense","none"],["Stacks","alone, with a Queen, or inside an Ace, the Tree or a Wall; never with another Archer"],["Conjure","1d2 mana; eight per deck wait in the Ether"]],"A bow and an arrow."],
- cannon:["Cannon (standard)","Cannon",[["Fire","2d20 at a stack up to three tiles away in any direction, once every 1d2 + 2 rounds; a miss costs it nothing"],["Against bases","two damage to a Wall; it can't take an Ace's last heart, and the Tree takes nothing from it"],["Defense","none; it can be captured when it stands alone"],["Moves","one step"],["Stacks","alone, or inside a base, where it still fires"],["Conjure","6 mana; one per deck"]],"Slow, loud and heavy."],
- healer:["Healer (support)","Healer",[["Shield","a blue shield over its stack turns one whole blow without anyone dying, then comes back in 1d4 rounds"],["Heal","one heart back to a card in its stack or beside it (not a base); then it waits 1d2 + 2 rounds, and the shield is down for 3 rounds"],["Either or","while the shield is broken it can't heal"],["Fights","never; it dies last in its stack, and can be captured when it stands alone"],["Stacks","with anything but a Queen; one per stack"],["Conjure","2 + 1d3 mana; four per deck"]],"The medical cross."],
- repair:["Repairman (support)","Repairman",[["Repair","one heart back to a Wall, an Ace or the Tree in his stack or beside it; then he rests 1d3 + 1 rounds, and while he rests nothing fires from that base and it can't be repaired again"],["Strengthen","the Tree at full hearts goes up one, five at most"],["Upgrade","an Ace gets one more heart, once; he gives his life for it and goes to the grave"],["Fights","never; he dies last in his stack and can be captured when he stands alone"],["Conjure","2 mana; four per deck"]],"A hammer."],
- ram:["Battering Ram (support)","Ram",[["Ram","two damage to an enemy Wall right beside it, no roll; useless against Aces and the Tree"],["Crew","needs one or two Grunts, Infantry or Puppets in its stack; with nobody to push it, it can't move or ram"],["Can't die","blows never kill it: an enemy beside a lone Ram captures it (it joins a stack of soldiers that has room) or destroys it"],["Conjure","3 mana; four per deck"]],"A log on a frame."],
- miner:["Miner (support)","Miner",[["In an Ace","as many Miners as you like: each brings 1d2 − 1 mana at the start of every round, from the round after it moves in"],["Crystal","on a crystal tile it digs: 1d2 each round, and on a 2 it takes 1 + 1d3 of the crystal's 12 mana"],["In the open","1d6 − 5: one mana on a 6"],["First to fall","when its stack takes damage, the Miner goes first; an attacker beside it with a free capture slot takes it instead, and the blow still lands"],["Moves","one step"],["Stacks","two in an Ace, one with any other stack"],["Conjure","2 mana; four per deck"]],"A pickaxe."],
- wall:["Wall (base)","Wall",[["Hearts","five; the cards inside are safe until it falls, then they all die with it"],["Defense","10"],["Holds","one stack, like an Ace (up to six cards that could stand on the field by themselves); only ranged cards (Archers, Cannons) fire from it, one shot a round"],["Moves","never; it goes up on any empty tile of your spawn lines"],["Hard hits","charges do double damage to it; Battering Rams and Cannons two; Lightning Strike two"],["Healing","a Healer can't heal it; a Repairman can"],["Conjure","4 mana; four per deck"]],"A fort wall."]
+const INFO = {
+  grunt: [
+    "Grunt",
+    "2 to 6",
+    [
+      [
+        "Score",
+        "its number + 1d6 on attack; its number alone on defense (+1d6 with a Queen)",
+      ],
+      ["Dice Max / MSV", "6 / 24: four Grunts stack together"],
+      ["Soul", "1 mana"],
+      ["Conjure", "Soldier Conjure, 1 mana"],
+      ["Moves", "one tile straight per round"],
+    ],
+    "The foot soldiers. Every card in a stack is one more hit it can take, and damage always removes the lowest card first.",
+  ],
+  infantry: [
+    "Infantry",
+    "7 to 10",
+    [
+      [
+        "Score",
+        "its number + 1d8 on attack; its number alone on defense (+1d8 with a Queen)",
+      ],
+      ["Dice Max / MSV", "8 / 24: three Infantry stack together"],
+      ["Soul", "1 mana"],
+      ["Conjure", "Soldier Conjure, 1 mana"],
+      ["Moves", "one tile straight per round"],
+    ],
+    "Heavier soldiers. They mix with Grunts, Jacks, Kings and Queens as long as the stacking formula holds.",
+  ],
+  jack: [
+    "Jack (Knight)",
+    "J",
+    [
+      ["Score", "10 + 1d12 on attack"],
+      ["Defense", "cannot defend: a Jack adds nothing to its stack's defense"],
+      ["Dice Max / MSV", "12 / 24: stacks with two Grunts or one Infantry"],
+      ["Moves", "two tiles straight, or one diagonal, when only Jacks move"],
+      ["Attacks", "a stack of only Jacks may also attack diagonally"],
+      ["Soul", "1 mana · Jack Conjure, 1 mana"],
+    ],
+    "Every player opens the game with a Jack inside their Ace. Move it out to fight.",
+  ],
+  queen: [
+    "Queen",
+    "Q",
+    [
+      ["Score", "0, no die of her own"],
+      [
+        "Gift",
+        "everyone stacked with her rolls their dice on defense as well as attack",
+      ],
+      ["King", "a King stacked with her takes no penalty for rolling a 1"],
+      [
+        "Limits",
+        "one Queen per stack; no Dice Max or MSV; she cannot attack alone",
+      ],
+      ["Soul", "2 mana · Queen Conjure, 2 mana"],
+    ],
+    "The heart of a defensive stack. Pair her with a King to bunker down.",
+  ],
+  king: [
+    "King",
+    "K",
+    [
+      ["Score", "11 + 1d20 on attack"],
+      [
+        "Rolls",
+        "a 20 deals double damage (or takes none on a failed attack); a 1 deals no damage on a win and takes two on a loss, unless a Queen is with him",
+      ],
+      ["Alone", "cannot attack"],
+      ["Defeated in defense", "every card stacked with him dies"],
+      ["Dice Max / MSV", "20 / 28: lower cards adopt his MSV"],
+      [
+        "Soul",
+        "2 mana · King Conjure, 2 mana · can't be sacrificed from a stack",
+      ],
+    ],
+    "The strongest attacker, and the most dangerous to lose.",
+  ],
+  ace: [
+    "Ace",
+    "A",
+    [
+      [
+        "Defense",
+        "11 + 1d20 when attacked; cards inside it don't roll on defense",
+      ],
+      [
+        "Hearts",
+        "two: the first hit takes a heart and the cards inside are safe; when the last heart goes, the Ace and every card inside it are destroyed. On a roll of 1 it deals no damage back",
+      ],
+      [
+        "Limits",
+        "cannot move or attack; only on an empty backline tile; holds one stack (up to six cards) that could stand on the field by itself; Scouts, Healers, Repairmen and Miners ride along",
+      ],
+      ["Grave Blessing", "+1d6 for each Ace you have on the field"],
+      [
+        "Soul",
+        "3 mana · Ace Conjure, 3 mana · can't be sacrificed on the field, except to the Full Moon",
+      ],
+      [
+        "Opening",
+        "each player starts with an Ace from their deck on a backline tile of their choice, holding a Jack",
+      ],
+    ],
+    "A fortress and a grave-caller. Hard computers stack Aces to roll more Grave Blessing dice.",
+  ],
+  joker: [
+    "Joker (Necromancer)",
+    "Joker",
+    [
+      [
+        "Score",
+        "alone, copies the score and die of the enemy's leading card; Jokers can't kill Jokers",
+      ],
+      [
+        "Spawns",
+        "only onto your stack holding a card of the same color (red or black)",
+      ],
+      [
+        "Soul Capture",
+        "enemies that die on the 8 tiles around it, or its own tile, are held inside it, up to 6 mana of souls",
+      ],
+      [
+        "Held souls",
+        "it keeps them until it dies (it and its souls go to the grave, unless an enemy Joker beside it steals them) or until Sacrificial Suicide moves them to your soul pile",
+      ],
+      [
+        "Blood Moon",
+        "a Joker that shoots itself under a Blood Moon sends itself and every soul it held to the Outer Darkness",
+      ],
+      [
+        "Survival",
+        "Horde Jokers capture your souls; when one shoots itself those cards go to the Outer Darkness and you lose 1 mana",
+      ],
+      ["Soul", "1 mana · Joker Conjure, 2 mana"],
+    ],
+    "The necromancer of the deck, and the only way to turn kills into mana.",
+  ],
+  samson: [
+    "Samson (Angel Machine)",
+    "Samson",
+    [
+      [
+        "Hearts",
+        "two: he loses one each time he takes damage, and falls at none",
+      ],
+      [
+        "Slugshot Cannon",
+        "3d20, at an enemy two tiles away in a straight line or one diagonal; from two away a miss costs him nothing",
+      ],
+      ["Arm Blade", "12 + 3d8, up close"],
+      ["Mech Slam", "16 + 1d4, up close"],
+      ["Defense", "12"],
+      ["Moves", "one tile straight, or one or two diagonal"],
+      ["Stacks", "with nothing but an Ace"],
+      [
+        "Falls",
+        "Antony rises from his heart on the same tile, and Samson wanders through Limbo",
+      ],
+    ],
+    "The Angel Machine's mech suit. Its deck holds one.",
+  ],
+  antony: [
+    "Antony (Angel Machine)",
+    "Antony",
+    [
+      ["Hearts", "two"],
+      ["Score", "12 + 6d4 on attack, 12 on defense"],
+      ["Moves", "like Samson"],
+      ["Bolts", "every card he kills charges a bolt for Lightning Strike"],
+      [
+        "Falls",
+        "he goes missing: his card is found under Unknown in the Outer Darkness",
+      ],
+    ],
+    "The angel who was lodged in Samson's heart.",
+  ],
+  satan: [
+    "Satan",
+    "Satan",
+    [
+      ["Hearts", "three"],
+      [
+        "Score",
+        "6d12 on attack and on defense, with no modifiers: no moon bonus, no odds, no Hate",
+      ],
+      ["Stacks", "never"],
+      ["Falls", "into the Outer Darkness"],
+    ],
+    "Satan's own card, one in his deck.",
+  ],
+  tree: [
+    "Tree of Neither Life Or Death (Jester Fool)",
+    "Tree",
+    [
+      ["Hearts", "three; it cannot defend itself"],
+      [
+        "Holds",
+        "one stack, like an Ace (up to six cards that could stand on the field by themselves), but never Kings or tens",
+      ],
+      [
+        "Gives",
+        "+2 mana at the start of each round, and a free Puppet inside it every two rounds",
+      ],
+      ["Falls", "into the Outer Darkness, with every card in it"],
+    ],
+    "In the Jester's starting hand. Place it on an empty tile of your ground.",
+  ],
+  puppet: [
+    "Puppet (Jester Fool)",
+    "?",
+    [
+      ["Score", "the score of a 2: 2 + 1d6 on attack"],
+      [
+        "Deck",
+        "every soldier in the Jester's deck is a Puppet, and the Tree grows one every two rounds",
+      ],
+    ],
+    "Strings and wood.",
+  ],
+  bullgoat: [
+    "BullGoat (Jester Fool)",
+    "BullGoat",
+    [
+      ["Hearts", "two"],
+      ["Gore", "10 + 1d20, up close"],
+      [
+        "Charge",
+        "10 + 2d20 at an enemy two or three tiles away in a straight line with nothing between; the BullGoat ends next to its target",
+      ],
+      ["Defense", "10"],
+      ["Stacks", "never"],
+      ["Conjure", "3 mana, into your hand"],
+    ],
+    "The Jester's beast.",
+  ],
+  slavemaster: [
+    "Slavemaster (Binah)",
+    "SM",
+    [
+      ["Score", "8 + 1d8 on attack, stacks like an Infantry"],
+      [
+        "Capture",
+        "enemy soldiers killed in its fights become your thralls, ten at most",
+      ],
+    ],
+    "Three in Binah's deck.",
+  ],
+  slave: [
+    "Slave (Binah)",
+    "Slave",
+    [
+      [
+        "Rifle",
+        "10 + 1d12, at an enemy two tiles away in a straight line or one diagonal; from two away a miss costs nothing",
+      ],
+      ["Defense", "none"],
+      ["Moves", "one tile straight"],
+      ["Stacks", "never"],
+      [
+        "Deploy",
+        "the free Slaves spell (Necromancy) puts one thrall down on an empty tile of your ground",
+      ],
+    ],
+    "A captured soldier with a chip in its head.",
+  ],
+  leviathan: [
+    "The Leviathan",
+    "Leviathan",
+    [
+      ["Hearts", "three"],
+      ["Score", "6d4 + 1d2 + 6 on attack and on defense; no Queen bonus"],
+      ["Stacks", "never"],
+      ["Kills", "whatever it kills falls into the Outer Darkness"],
+      [
+        "The moon",
+        "Rise to the Moon (free, New Moon only) lifts it onto the moon: a toll on every enemy each New Moon after, and +1 mana cap for you per card in the Outer Darkness (twelve at most)",
+      ],
+      [
+        "On the moon",
+        "any enemy unit can attack it, but only at the New Moon, and it defends with advantage",
+      ],
+      ["Lightning", "Antony's lightning needs no roll: it takes one heart"],
+      ["Falls", "into the Outer Darkness, forever"],
+    ],
+    "The black serpent, one in the Leviathan's deck.",
+  ],
+  trafficker: [
+    "Trafficker (Tiphareth of Kether)",
+    "Trafficker",
+    [
+      ["Score", "8 + 1d8 on attack, stacks like an Infantry"],
+      [
+        "Chains",
+        "any enemy card that dies on the eight tiles around it, three prisoners at most",
+      ],
+      ["Life for Sell", "puts a prisoner up at the Auction"],
+      ["Falls", "its prisoners go free into the grave"],
+    ],
+    "Three in Tiphareth of Kether's deck.",
+  ],
+  debt: [
+    "Debt Collector (Yaldabaoth)",
+    "Collector",
+    [
+      [
+        "Score",
+        "copies the leading card of whatever it fights, natural value and die, without its advantage",
+      ],
+      ["Rises", "when an enemy refuses to pay Saturn"],
+      [
+        "Price",
+        "each one still standing at a new round raises Saturn's price by 1",
+      ],
+    ],
+    "Saturn's warden.",
+  ],
+  goatbull: [
+    "Goatbull (Jester Fool)",
+    "Goatbull",
+    [
+      [
+        "Comes back",
+        "when the BullGoat dies it goes back into the deck, and is drawn again as the Goatbull",
+      ],
+      ["Hearts", "two"],
+      ["Horns", "10d2 + 1d10, up close"],
+      [
+        "Charge",
+        "10 + 2d20 at an enemy exactly two tiles away in a straight line with nothing between; it closes the gap",
+      ],
+      [
+        "Stomp",
+        "an ability check: its 1d20 with advantage against the target's 1d20 with disadvantage (Samson rolls plain). Win: the stack is Behooved, pinned for 2d2 rounds (1d2 on a tie), and can't move or attack. A 16 or more that the target doesn't match deals 1 damage; each later pinned round checks again and needs 5 less (11, then 6…)",
+      ],
+      [
+        "Attacked",
+        "a Goatbull attacked while it pins loses its advantage in every later check",
+      ],
+      ["Falls", "into the Outer Darkness"],
+    ],
+    "The BullGoat, turned around.",
+  ],
+  scout: [
+    "Scout (support)",
+    "Scout",
+    [
+      [
+        "Sight",
+        "two tiles out through the fog of war, in a diamond (straight two, diagonal one); everything it sees, Assassins, ambushers, face-down cards and enemy Scouts included, is uncovered",
+      ],
+      [
+        "Hidden",
+        "enemies see it only from right beside it, or with their own Scout in sight of it",
+      ],
+      ["Fights", "never: no attack and no defense"],
+      ["Moves", "one tile straight, two diagonal, or two forward or back"],
+      [
+        "Comes",
+        "two in every deck; one with your opening Ace, and one with a later Ace while you have no Scout on the field (none for Lucifer & Ouroboros); the rest wait in the Ether for 1 mana",
+      ],
+    ],
+    "A horse and a rider who sees far.",
+  ],
+  assassin: [
+    "Assassin (special)",
+    "Assassin",
+    [
+      ["Hearts", "two (a pair of Assassins has three)"],
+      ["Attack", "10 + 1d12, the roll of a Jack"],
+      ["Defense", "8, like an Infantry"],
+      [
+        "Hidden",
+        "enemies see it only from right beside it, or with a Scout in sight of it",
+      ],
+      ["Moves", "one tile straight, two diagonal, or two forward or back"],
+      [
+        "Ambush",
+        "it can wait in ambush and strike, with advantage, any enemy that steps beside it",
+      ],
+      ["Stacks", "with one other Assassin, nothing else"],
+      ["Conjure", "2d2 + 1 mana; four per deck wait in the Ether"],
+    ],
+    "The dagger in the dark.",
+  ],
+  archer: [
+    "Archer (standard)",
+    "Archer",
+    [
+      [
+        "Bow",
+        "1d20 + 1d10 at a stack exactly two tiles away, straight or diagonal (not the tiles right beside it); a miss costs it nothing",
+      ],
+      [
+        "Suppress",
+        "instead of a shot: the target has disadvantage on its next attack, unless it waits out 1d2 rounds; the Archer then rests 1d2 rounds",
+      ],
+      ["Defense", "none"],
+      [
+        "Stacks",
+        "alone, with a Queen, or inside an Ace, the Tree or a Wall; never with another Archer",
+      ],
+      ["Conjure", "1d2 mana; eight per deck wait in the Ether"],
+    ],
+    "A bow and an arrow.",
+  ],
+  cannon: [
+    "Cannon (standard)",
+    "Cannon",
+    [
+      [
+        "Fire",
+        "2d20 at a stack up to three tiles away in any direction, once every 1d2 + 2 rounds; a miss costs it nothing",
+      ],
+      [
+        "Against bases",
+        "two damage to a Wall; it can't take an Ace's last heart, and the Tree takes nothing from it",
+      ],
+      ["Defense", "none; it can be captured when it stands alone"],
+      ["Moves", "one step"],
+      ["Stacks", "alone, or inside a base, where it still fires"],
+      ["Conjure", "6 mana; one per deck"],
+    ],
+    "Slow, loud and heavy.",
+  ],
+  healer: [
+    "Healer (support)",
+    "Healer",
+    [
+      [
+        "Shield",
+        "a blue shield over its stack turns one whole blow without anyone dying, then comes back in 1d4 rounds",
+      ],
+      [
+        "Heal",
+        "one heart back to a card in its stack or beside it (not a base); then it waits 1d2 + 2 rounds, and the shield is down for 3 rounds",
+      ],
+      ["Either or", "while the shield is broken it can't heal"],
+      [
+        "Fights",
+        "never; it dies last in its stack, and can be captured when it stands alone",
+      ],
+      ["Stacks", "with anything but a Queen; one per stack"],
+      ["Conjure", "2 + 1d3 mana; four per deck"],
+    ],
+    "The medical cross.",
+  ],
+  repair: [
+    "Repairman (support)",
+    "Repairman",
+    [
+      [
+        "Repair",
+        "one heart back to a Wall, an Ace or the Tree in his stack or beside it; then he rests 1d3 + 1 rounds, and while he rests nothing fires from that base and it can't be repaired again",
+      ],
+      ["Strengthen", "the Tree at full hearts goes up one, five at most"],
+      [
+        "Upgrade",
+        "an Ace gets one more heart, once; he gives his life for it and goes to the grave",
+      ],
+      [
+        "Fights",
+        "never; he dies last in his stack and can be captured when he stands alone",
+      ],
+      ["Conjure", "2 mana; four per deck"],
+    ],
+    "A hammer.",
+  ],
+  ram: [
+    "Battering Ram (support)",
+    "Ram",
+    [
+      [
+        "Ram",
+        "two damage to an enemy Wall right beside it, no roll; useless against Aces and the Tree",
+      ],
+      [
+        "Crew",
+        "needs one or two Grunts, Infantry or Puppets in its stack; with nobody to push it, it can't move or ram",
+      ],
+      [
+        "Can't die",
+        "blows never kill it: an enemy beside a lone Ram captures it (it joins a stack of soldiers that has room) or destroys it",
+      ],
+      ["Conjure", "3 mana; four per deck"],
+    ],
+    "A log on a frame.",
+  ],
+  miner: [
+    "Miner (support)",
+    "Miner",
+    [
+      [
+        "In an Ace",
+        "as many Miners as you like: each brings 1d2 − 1 mana at the start of every round, from the round after it moves in",
+      ],
+      [
+        "Crystal",
+        "on a crystal tile it digs: 1d2 each round, and on a 2 it takes 1 + 1d3 of the crystal's 12 mana",
+      ],
+      ["In the open", "1d6 − 5: one mana on a 6"],
+      [
+        "First to fall",
+        "when its stack takes damage, the Miner goes first; an attacker beside it with a free capture slot takes it instead, and the blow still lands",
+      ],
+      ["Moves", "one step"],
+      ["Stacks", "two in an Ace, one with any other stack"],
+      ["Conjure", "2 mana; four per deck"],
+    ],
+    "A pickaxe.",
+  ],
+  wall: [
+    "Wall (base)",
+    "Wall",
+    [
+      [
+        "Hearts",
+        "five; the cards inside are safe until it falls, then they all die with it",
+      ],
+      ["Defense", "10"],
+      [
+        "Holds",
+        "one stack, like an Ace (up to six cards that could stand on the field by themselves); only ranged cards (Archers, Cannons) fire from it, one shot a round",
+      ],
+      ["Moves", "never; it goes up on any empty tile of your spawn lines"],
+      [
+        "Hard hits",
+        "charges do double damage to it; Battering Rams and Cannons two; Lightning Strike two",
+      ],
+      ["Healing", "a Healer can't heal it; a Repairman can"],
+      ["Conjure", "4 mana; four per deck"],
+    ],
+    "A fort wall.",
+  ],
 };
-function infoHTML(){
-  const tabs=Object.keys(INFO).map((k,i)=>`<button class="itab ${i===0?"on":""}" data-k="${k}">${INFO[k][0]}</button>`).join("");
-  const spells=SCHOOLS.map(sc=>`<h4>${sc}</h4><dl>`+SPELLS.filter(s=>s.school===sc).sort((a,b)=>(a.tribe?1:0)-(b.tribe?1:0)||(a.cost||0)-(b.cost||0)||a.name.localeCompare(b.name)).map(s=>{const t=SPELL_TEXT[s.id]||{e:s.text};
-    return `<dt>${esc(s.name)} <span>${s.id==="hypo"?"3 + 1 per extra card":s.dice?s.dice+", rolled each round":s.cost?s.cost+" mana":"free"}${s.tribe&&TRIBES[s.tribe]?` · ${esc(TRIBES[s.tribe].name)}`:""}</span></dt><dd>${t.n?`<i>${esc(t.n)}</i> `:""}${esc(t.e)}${t.l?` <small>${esc(t.l)}</small>`:""}</dd>`}).join("")+"</dl>").join("");
-  const subs=Object.entries(TRIBES).filter(([k,t])=>k!=="random"&&!t.hidden).map(([k,t])=>`<dt>${esc(t.name)}</dt><dd>${esc(t.sub)}${t.pts&&t.pts.length?`<ul>${t.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>`:""}</dd>`).join("");
+function infoHTML() {
+  const tabs = Object.keys(INFO)
+    .map(
+      (k, i) =>
+        `<button class="itab ${i === 0 ? "on" : ""}" data-k="${k}">${INFO[k][0]}</button>`,
+    )
+    .join("");
+  const spells = SCHOOLS.map(
+    (sc) =>
+      `<h4>${sc}</h4><dl>` +
+      SPELLS.filter((s) => s.school === sc)
+        .sort(
+          (a, b) =>
+            (a.tribe ? 1 : 0) - (b.tribe ? 1 : 0) ||
+            (a.cost || 0) - (b.cost || 0) ||
+            a.name.localeCompare(b.name),
+        )
+        .map((s) => {
+          const t = SPELL_TEXT[s.id] || { e: s.text };
+          return `<dt>${esc(s.name)} <span>${s.id === "hypo" ? "3 + 1 per extra card" : s.dice ? s.dice + ", rolled each round" : s.cost ? s.cost + " mana" : "free"}${s.tribe && TRIBES[s.tribe] ? ` · ${esc(TRIBES[s.tribe].name)}` : ""}</span></dt><dd>${t.n ? `<i>${esc(t.n)}</i> ` : ""}${esc(t.e)}${t.l ? ` <small>${esc(t.l)}</small>` : ""}</dd>`;
+        })
+        .join("") +
+      "</dl>",
+  ).join("");
+  const subs = Object.entries(TRIBES)
+    .filter(([k, t]) => k !== "random" && !t.hidden)
+    .map(
+      ([k, t]) =>
+        `<dt>${esc(t.name)}</dt><dd>${esc(t.sub)}${t.pts && t.pts.length ? `<ul>${t.pts.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>` : ""}</dd>`,
+    )
+    .join("");
   return `<details class="cinfo basics"><summary>Basics explained</summary>
 <details class="sub"><summary>What am I doing?</summary><p>You command an army of cards on a small field. Each of your turns has three phases: <b>draw</b> (roll a d4 and draw that many, or skip), <b>prep</b> (place cards from your hand on your own spawn lines, move each stack one step, sacrifice cards for mana, cast spells) and <b>attack</b> (each of your stacks may attack an enemy stack next to it once). A fight compares two scores: the attacker's best card plus its die against the defender's best card. The loser takes a damage, which removes its lowest card. You win when the enemy has nothing left on the field, or no deck, hand or mana at all.</p><p>Your Ace starts on your back line with a Jack inside it. Aces are bases: they can't move or attack, they hold one stack (up to six cards that could stand together on the field), and they have two hearts. When an Ace falls, everything in it falls too.</p></details>
 <details class="sub"><summary>What matters on the screen?</summary><ul>
@@ -60,132 +594,402 @@ ${bankExplainHTML()}
 ${skyExplainHTML()}
 </details>`;
 }
-function infoBody(k){const [t,rk,rows,note]=INFO[k];return `<h4>${t} <span class="bl">${rk}</span></h4><table>${rows.map(([a,b])=>`<tr><th>${a}</th><td>${b}</td></tr>`).join("")}</table><p class="dim">${note}</p>`}
-function mountInfo(){
-  const box=$("#info");if(!box)return;box.innerHTML=infoHTML();$("#ibody").innerHTML=infoBody("grunt");
-  box.querySelectorAll(".itab").forEach(b=>b.onclick=()=>{box.querySelectorAll(".itab").forEach(x=>x.classList.toggle("on",x===b));$("#ibody").innerHTML=infoBody(b.dataset.k)});
+function infoBody(k) {
+  const [t, rk, rows, note] = INFO[k];
+  return `<h4>${t} <span class="bl">${rk}</span></h4><table>${rows.map(([a, b]) => `<tr><th>${a}</th><td>${b}</td></tr>`).join("")}</table><p class="dim">${note}</p>`;
+}
+function mountInfo() {
+  const box = $("#info");
+  if (!box) return;
+  box.innerHTML = infoHTML();
+  $("#ibody").innerHTML = infoBody("grunt");
+  box.querySelectorAll(".itab").forEach(
+    (b) =>
+      (b.onclick = () => {
+        box
+          .querySelectorAll(".itab")
+          .forEach((x) => x.classList.toggle("on", x === b));
+        $("#ibody").innerHTML = infoBody(b.dataset.k);
+      }),
+  );
 }
 
 /* ---------------- start screen ---------------- */
-const MODES=[
- ["local","Standard","Local play: against computers, together on this device, or both. Up to four people, and computers (Easy, Medium or Hard) in any other seat. 1v1, free-for-all, two against two, or up to 8 in King of the Hill. With more than one person the board turns to whoever is playing, and the screen goes dark while you pass it."],
- ["survival","Survival","1 to 4 players hold the line against a Horde that comes in waves and grows with each one. Count the rounds you last."]];
-let startMode=null;
-const LAYOUTS={
- duel:["1v1","Two players, one army at each end of the field. Needs exactly 2 players."],
- ffa:["Free-for-all","Everyone for themselves, one player to each edge of the field. Needs 3 or 4 players."],
- "team-side":["2v2, side by side","Teammates hold two neighboring edges. Needs 4 players."],
- "team-across":["2v2, across","Teammates face each other from opposite edges, with the enemy on both flanks. Needs 4 players."],
- "team-same":["2v2, same side","Laid out like 1v1: each team shares one end of the field, half its columns each. Needs 4 players."],
- koth:["King of the Hill","A 25 by 25 night field around a glowing Hill: hold it to score. 2 to 8 players, in teams by default."],
- factions:["Factions","Three or four teams (Red, Blue, Green, Yellow) of one or two players each; teammates spawn side by side on their own side."]};
-const LAYNEED={duel:[2],ffa:[3,4],"team-side":[4,5,6,7,8],"team-across":[4,5,6,7,8],"team-same":[4],koth:[2,3,4,5,6,7,8],factions:[3,4,5,6,7,8]};   // v73d: more than 4 in two teams on the Cross; factions
-const LAYDEF={2:"duel",3:"ffa",4:"ffa",5:"koth",6:"koth",7:"koth",8:"koth"};
+const MODES = [
+  [
+    "local",
+    "Standard",
+    "Local play: against computers, together on this device, or both. Up to four people, and computers (Easy, Medium or Hard) in any other seat. 1v1, free-for-all, two against two, or up to 8 in King of the Hill. With more than one person the board turns to whoever is playing, and the screen goes dark while you pass it.",
+  ],
+  [
+    "survival",
+    "Survival",
+    "1 to 4 players hold the line against a Horde that comes in waves and grows with each one. Count the rounds you last.",
+  ],
+];
+let startMode = null;
+const LAYOUTS = {
+  duel: [
+    "1v1",
+    "Two players, one army at each end of the field. Needs exactly 2 players.",
+  ],
+  ffa: [
+    "Free-for-all",
+    "Everyone for themselves, one player to each edge of the field. Needs 3 or 4 players.",
+  ],
+  "team-side": [
+    "2v2, side by side",
+    "Teammates hold two neighboring edges. Needs 4 players.",
+  ],
+  "team-across": [
+    "2v2, across",
+    "Teammates face each other from opposite edges, with the enemy on both flanks. Needs 4 players.",
+  ],
+  "team-same": [
+    "2v2, same side",
+    "Laid out like 1v1: each team shares one end of the field, half its columns each. Needs 4 players.",
+  ],
+  koth: [
+    "King of the Hill",
+    "A 25 by 25 night field around a glowing Hill: hold it to score. 2 to 8 players, in teams by default.",
+  ],
+  factions: [
+    "Factions",
+    "Three or four teams (Red, Blue, Green, Yellow) of one or two players each; teammates spawn side by side on their own side.",
+  ],
+};
+const LAYNEED = {
+  duel: [2],
+  ffa: [3, 4],
+  "team-side": [4, 5, 6, 7, 8],
+  "team-across": [4, 5, 6, 7, 8],
+  "team-same": [4],
+  koth: [2, 3, 4, 5, 6, 7, 8],
+  factions: [3, 4, 5, 6, 7, 8],
+}; // v73d: more than 4 in two teams on the Cross; factions
+const LAYDEF = {
+  2: "duel",
+  3: "ffa",
+  4: "ffa",
+  5: "koth",
+  6: "koth",
+  7: "koth",
+  8: "koth",
+};
 /* v73d: the game is Free For All, Teams or King of the Hill; with Teams, where teammates spawn is its own choice (the layouts above stay underneath) */
-const GMODES=[["ffa","Free For All","Everyone for themselves, one player to each edge or arm (1v1 with two players)."],["teams","Teams","Two teams, or 3 or 4 factions: choose below. Two teams need 4 players (up to 8 on the Cross)."],
-  ["koth","King of the Hill","Hold the glowing Hill to score. 2 to 8 players, in teams by default."]];
-const TEAMN=[["two","Two teams","Red against Blue; choose where teammates spawn below. 4 players, or 5 to 8 on the Cross (two to an arm)."],["fac","Factions","Three or four teams: Red, Blue, Green and Yellow, one or two players each. Teammates always spawn side by side on their own side. On the Cross or the 10 by 10 map."]];
-const TEAMARR=[["same","Side by side","Teammates spawn next to each other at one end of the field (on the Cross, both on one arm)."],["across","Opposite","Teammates face each other from opposite edges or arms, with the enemy on both flanks."],
-  ["side","On neighboring edges","Teammates hold two edges (or arms) that meet at a corner."]];
-function seatForm(i,S,mode,L,taken){taken=taken||new Set();
-  const n=i+1,fac=L==="factions",tm=L.startsWith("team")||fac||L==="koth"&&SEAT_KOTH_TEAM,tname=t=>fac?["Red","Blue","Green","Yellow"][t]||"Red":t?"Side B":"Side A",
-    team=tm?`<span class="sidetag s${S.team}"${fac?` style="--tc:${SIDE_COL[S.team|0][1]}"`:""}>${tname(S.team|0)}</span>`:"";
-  const you=!!S.you;   // v60: "You" is a tag in your own color beside your seat's name (v70d: when you are the only person at the table)
-  const type=`<label class="f">Plays as <select data-seat="${i}" data-k="type">${[["human",S.noHuman?"Human (four on this device already)":"Human"],["easy","Computer · Easy"],["medium","Computer · Medium"],["hard","Computer · Hard"]].map(([v,t])=>`<option value="${v}" ${S.type===v?"selected":""} ${v==="human"&&S.noHuman?"disabled":""}>${t}</option>`).join("")}</select></label>`+(S.type&&S.type!=="human"?`<label class="f">Style <select data-seat="${i}" data-k="arch" title="${esc(AI.ARCH[S.arch]?AI.ARCH[S.arch].sub:"Each computer gets one of the styles at random.")}">${[["random","Random (default)"],...Object.entries(AI.ARCH).map(([k,a])=>[k,a.name])].map(([v,t])=>`<option value="${v}" ${(S.arch||"random")===v?"selected":""}>${t}</option>`).join("")}</select></label>`:"");   // v69: the computer's playstyle
-  const pcol=TRIBES[S.tribe]&&TRIBES[S.tribe].color||(S.color==="random"?"#c9a274":S.color);
-  const T0=TRIBES[S.tribe]||{},scol=T0.color||S.color,ssol=T0.solid||S.solid,
-    lsum=`<span class="dim lsum">· ${esc(S.noSubs?"No Emanation":T0.name||"Random")} ${scol&&scol!=="random"?`<i class="lsw" style="background:${scol}"></i>`:`<i class="lsw rnd">?</i>`}${ssol&&ssol!=="random"&&SOLIDS[ssol]?`<i class="lso">${solidSVG(ssol,scol&&scol!=="random"?scol:"#f3d6a6",14)}</i>`:""}</span>`;
-  return `<fieldset class="pf seat${you?" isyou":""}" style="--pc:${pcol}"><legend>P${i+1}${you?' <b class="youtag">You</b>':""} ${team}</legend>
+const GMODES = [
+  [
+    "ffa",
+    "Free For All",
+    "Everyone for themselves, one player to each edge or arm (1v1 with two players).",
+  ],
+  [
+    "teams",
+    "Teams",
+    "Two teams, or 3 or 4 factions: choose below. Two teams need 4 players (up to 8 on the Cross).",
+  ],
+  [
+    "koth",
+    "King of the Hill",
+    "Hold the glowing Hill to score. 2 to 8 players, in teams by default.",
+  ],
+];
+const TEAMN = [
+  [
+    "two",
+    "Two teams",
+    "Red against Blue; choose where teammates spawn below. 4 players, or 5 to 8 on the Cross (two to an arm).",
+  ],
+  [
+    "fac",
+    "Factions",
+    "Three or four teams: Red, Blue, Green and Yellow, one or two players each. Teammates always spawn side by side on their own side. On the Cross or the 10 by 10 map.",
+  ],
+];
+const TEAMARR = [
+  [
+    "same",
+    "Side by side",
+    "Teammates spawn next to each other at one end of the field (on the Cross, both on one arm).",
+  ],
+  [
+    "across",
+    "Opposite",
+    "Teammates face each other from opposite edges or arms, with the enemy on both flanks.",
+  ],
+  [
+    "side",
+    "On neighboring edges",
+    "Teammates hold two edges (or arms) that meet at a corner.",
+  ],
+];
+function seatForm(i, S, mode, L, taken) {
+  taken = taken || new Set();
+  const n = i + 1,
+    fac = L === "factions",
+    tm = L.startsWith("team") || fac || (L === "koth" && SEAT_KOTH_TEAM),
+    tname = (t) =>
+      fac
+        ? ["Red", "Blue", "Green", "Yellow"][t] || "Red"
+        : t
+          ? "Side B"
+          : "Side A",
+    team = tm
+      ? `<span class="sidetag s${S.team}"${fac ? ` style="--tc:${SIDE_COL[S.team | 0][1]}"` : ""}>${tname(S.team | 0)}</span>`
+      : "";
+  const you = !!S.you; // v60: "You" is a tag in your own color beside your seat's name (v70d: when you are the only person at the table)
+  const type =
+    `<label class="f">Plays as <select data-seat="${i}" data-k="type">${[
+      ["human", S.noHuman ? "Human (four on this device already)" : "Human"],
+      ["easy", "Computer · Easy"],
+      ["medium", "Computer · Medium"],
+      ["hard", "Computer · Hard"],
+    ]
+      .map(
+        ([v, t]) =>
+          `<option value="${v}" ${S.type === v ? "selected" : ""} ${v === "human" && S.noHuman ? "disabled" : ""}>${t}</option>`,
+      )
+      .join("")}</select></label>` +
+    (S.type && S.type !== "human"
+      ? `<label class="f">Style <select data-seat="${i}" data-k="arch" title="${esc(AI.ARCH[S.arch] ? AI.ARCH[S.arch].sub : "Each computer gets one of the styles at random.")}">${[["random", "Random (default)"], ...Object.entries(AI.ARCH).map(([k, a]) => [k, a.name])].map(([v, t]) => `<option value="${v}" ${(S.arch || "random") === v ? "selected" : ""}>${t}</option>`).join("")}</select></label>`
+      : ""); // v69: the computer's playstyle
+  const pcol =
+    (TRIBES[S.tribe] && TRIBES[S.tribe].color) ||
+    (S.color === "random" ? "#c9a274" : S.color);
+  const T0 = TRIBES[S.tribe] || {},
+    scol = T0.color || S.color,
+    ssol = T0.solid || S.solid,
+    lsum = `<span class="dim lsum">· ${esc(S.noSubs ? "No Emanation" : T0.name || "Random")} ${scol && scol !== "random" ? `<i class="lsw" style="background:${scol}"></i>` : `<i class="lsw rnd">?</i>`}${ssol && ssol !== "random" && SOLIDS[ssol] ? `<i class="lso">${solidSVG(ssol, scol && scol !== "random" ? scol : "#f3d6a6", 14)}</i>` : ""}</span>`;
+  return `<fieldset class="pf seat${you ? " isyou" : ""}" style="--pc:${pcol}"><legend>P${i + 1}${you ? ' <b class="youtag">You</b>' : ""} ${team}</legend>
 <div class="srow"><label class="f">Name <input data-seat="${i}" data-k="name" value="${esc(S.name)}" maxlength="20"></label>${type}</div>
-<details class="look" ${S.open?"open":""}><summary>${tm?"Team, Emanation, color and symbol":"Emanation, color and symbol"} ${lsum}</summary>
-${tm?`<div class="f"><span>${fac?"Faction":"Team"}</span><div class="opts">${(fac?[0,1,2,3]:[0,1]).map(t=>`<label class="opt"><input type="radio" name="tm${n}" data-seat="${i}" data-k="team" value="${t}" ${S.team===t?"checked":""}><span>${tname(t)}<small>${fac?"One or two players a faction; at least three factions.":`${t?"Plays against Side A.":"Plays against Side B."} ${L==="koth"?"Each side needs at least one player.":"Each side needs two players (up to four on the Cross)."}`}</small></span></label>`).join("")}</div></div>`:""}
-${S.noSubs?`<p class="dim fixednote">No Emanations (the Table option): everyone plays by the plain rules.</p>`:`<div class="f"><span>Emanation</span><div class="opts subs">${Object.entries(TRIBES).filter(([k,t])=>!t.hidden).map(([k,t])=>{const off=t.soon||taken.has(k)&&k!==S.tribe;return `<label class="opt${off?" off":""}"><input type="radio" name="tr${n}" data-seat="${i}" data-k="tribe" value="${k}" ${k===S.tribe?"checked":""} ${off?"disabled":""}><span>${t.solid?`<i class="subsym">${solidSVG(t.solid,t.color||"#f3d6a6",18)}</i>`:""}${t.name}<small>${taken.has(k)&&k!==S.tribe?"Another player has it: no two players share an Emanation.":t.sub}</small></span></label>`}).join("")}</div></div>`}
-${(()=>{const T=TRIBES[S.tribe]||{};
-  const acc=c0=>`<div class="f"><span>Accent</span><div class="opts swatches accents">${ACCENTS.map(([v,nm])=>`<label class="sw" title="${nm}${v==="auto"?" (a light shade of the color)":""}"><input type="radio" name="ac${n}" data-seat="${i}" data-k="accent" value="${v}" ${v===(S.accent||"auto")?"checked":""}><span style="--pc:${v==="auto"?accentOf(c0&&c0!=="random"?c0:"#c9a274","auto"):v}"></span><em>${nm}</em></label>`).join("")}</div></div><p class="dim acnote">The accent is the thin frame around each of your cards, and the glow on the card you have selected.</p>`;   // v61: the frame of your cards (v71: and the selection glow)
-  if(T.color)return `<p class="dim fixednote">${esc(T.name)} always plays in its own color and symbol: ${solidSVG(T.solid,T.color,20)}</p>`+acc(T.color);
-  const tc0=S.takenC||[],tcOf=h=>{const x=tc0.find(([c])=>S.alikeOk?c===h:colorNear(c,h));return x?x[1]:null},tc=Object.fromEntries(COLORS.map(([,h])=>[h,tcOf(h)]).filter(x=>x[1]));   // v71: a color another seat holds, or one like it, can't be picked
-  const colors=`<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm,hex])=>`<label class="sw${tc[hex]&&hex!==S.color?" off":""}" title="${nm}${tc[hex]&&hex!==S.color?` (too like ${esc(tc[hex])}'s color)`:""}"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="${hex}" ${hex===S.color?"checked":""} ${tc[hex]&&hex!==S.color?"disabled":""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}<label class="sw swrand" title="Random: a color nobody else has"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="random" ${S.color==="random"?"checked":""}><span>?</span><em>Random</em></label></div></div>`;
-  if(T.solid)return colors+acc(S.color)+`<p class="dim fixednote">${esc(T.name)} always bears its own symbol: ${solidSVG(T.solid,S.color,20)}</p>`;
-  return colors+acc(S.color)+`<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(SOLIDS).map(([k,nm])=>`<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="${k}" ${k===S.solid?"checked":""}><span>${solidSVG(k,"#f3d6a6",28)}<em>${nm}</em></span></label>`).join("")}<label class="so-opt" title="Random: a symbol nobody else has"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="random" ${S.solid==="random"?"checked":""}><span><b class="sorand">?</b><em>Random</em></span></label></div></div>`;
+<details class="look" ${S.open ? "open" : ""}><summary>${tm ? "Team, Emanation, color and symbol" : "Emanation, color and symbol"} ${lsum}</summary>
+${tm ? `<div class="f"><span>${fac ? "Faction" : "Team"}</span><div class="opts">${(fac ? [0, 1, 2, 3] : [0, 1]).map((t) => `<label class="opt"><input type="radio" name="tm${n}" data-seat="${i}" data-k="team" value="${t}" ${S.team === t ? "checked" : ""}><span>${tname(t)}<small>${fac ? "One or two players a faction; at least three factions." : `${t ? "Plays against Side A." : "Plays against Side B."} ${L === "koth" ? "Each side needs at least one player." : "Each side needs two players (up to four on the Cross)."}`}</small></span></label>`).join("")}</div></div>` : ""}
+${
+  S.noSubs
+    ? `<p class="dim fixednote">No Emanations (the Table option): everyone plays by the plain rules.</p>`
+    : `<div class="f"><span>Emanation</span><div class="opts subs">${Object.entries(
+        TRIBES,
+      )
+        .filter(([k, t]) => !t.hidden)
+        .map(([k, t]) => {
+          const off = t.soon || (taken.has(k) && k !== S.tribe);
+          return `<label class="opt${off ? " off" : ""}"><input type="radio" name="tr${n}" data-seat="${i}" data-k="tribe" value="${k}" ${k === S.tribe ? "checked" : ""} ${off ? "disabled" : ""}><span>${t.solid ? `<i class="subsym">${solidSVG(t.solid, t.color || "#f3d6a6", 18)}</i>` : ""}${t.name}<small>${taken.has(k) && k !== S.tribe ? "Another player has it: no two players share an Emanation." : t.sub}</small></span></label>`;
+        })
+        .join("")}</div></div>`
+}
+${(() => {
+  const T = TRIBES[S.tribe] || {};
+  const acc = (c0) =>
+    `<div class="f"><span>Accent</span><div class="opts swatches accents">${ACCENTS.map(([v, nm]) => `<label class="sw" title="${nm}${v === "auto" ? " (a light shade of the color)" : ""}"><input type="radio" name="ac${n}" data-seat="${i}" data-k="accent" value="${v}" ${v === (S.accent || "auto") ? "checked" : ""}><span style="--pc:${v === "auto" ? accentOf(c0 && c0 !== "random" ? c0 : "#c9a274", "auto") : v}"></span><em>${nm}</em></label>`).join("")}</div></div><p class="dim acnote">The accent is the thin frame around each of your cards, and the glow on the card you have selected.</p>`; // v61: the frame of your cards (v71: and the selection glow)
+  if (T.color)
+    return (
+      `<p class="dim fixednote">${esc(T.name)} always plays in its own color and symbol: ${solidSVG(T.solid, T.color, 20)}</p>` +
+      acc(T.color)
+    );
+  const tc0 = S.takenC || [],
+    tcOf = (h) => {
+      const x = tc0.find(([c]) => (S.alikeOk ? c === h : colorNear(c, h)));
+      return x ? x[1] : null;
+    },
+    tc = Object.fromEntries(
+      COLORS.map(([, h]) => [h, tcOf(h)]).filter((x) => x[1]),
+    ); // v71: a color another seat holds, or one like it, can't be picked
+  const colors = `<div class="f"><span>Color</span><div class="opts swatches">${COLORS.map(([nm, hex]) => `<label class="sw${tc[hex] && hex !== S.color ? " off" : ""}" title="${nm}${tc[hex] && hex !== S.color ? ` (too like ${esc(tc[hex])}'s color)` : ""}"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="${hex}" ${hex === S.color ? "checked" : ""} ${tc[hex] && hex !== S.color ? "disabled" : ""}><span style="--pc:${hex}"></span><em>${nm}</em></label>`).join("")}<label class="sw swrand" title="Random: a color nobody else has"><input type="radio" name="co${n}" data-seat="${i}" data-k="color" value="random" ${S.color === "random" ? "checked" : ""}><span>?</span><em>Random</em></label></div></div>`;
+  if (T.solid)
+    return (
+      colors +
+      acc(S.color) +
+      `<p class="dim fixednote">${esc(T.name)} always bears its own symbol: ${solidSVG(T.solid, S.color, 20)}</p>`
+    );
+  return (
+    colors +
+    acc(S.color) +
+    `<div class="f"><span>Symbol</span><div class="opts solids">${Object.entries(
+      SOLIDS,
+    )
+      .map(
+        ([k, nm]) =>
+          `<label class="so-opt" title="${nm}"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="${k}" ${k === S.solid ? "checked" : ""}><span>${solidSVG(k, "#f3d6a6", 28)}<em>${nm}</em></span></label>`,
+      )
+      .join(
+        "",
+      )}<label class="so-opt" title="Random: a symbol nobody else has"><input type="radio" name="so${n}" data-seat="${i}" data-k="solid" value="random" ${S.solid === "random" ? "checked" : ""}><span><b class="sorand">?</b><em>Random</em></span></label></div></div>`
+  );
 })()}
-${lookExtras(i,S,n)}
+${lookExtras(i, S, n)}
 </details></fieldset>`;
 }
-const val=name=>{const e=document.querySelector(`input[name="${name}"]:checked`);return e&&e.value};
-const chk=(id,label,sub,on)=>`<label class="chk"><input type="checkbox" id="${id}" ${on?"checked":""}> <span><b>${label}</b>${sub?`<small>${sub}</small>`:""}</span></label>`;
-function showStart(){
-  if(G)G.over=true;try{AUD.setAmb(null)}catch(e){}   // v78j: the eclipse's or the Blood Moon's sound ends with the game
-  stopTimer();closeEther();closeDrawer();   // v78j: and its timer and drawers
+const val = (name) => {
+  const e = document.querySelector(`input[name="${name}"]:checked`);
+  return e && e.value;
+};
+const chk = (id, label, sub, on) =>
+  `<label class="chk"><input type="checkbox" id="${id}" ${on ? "checked" : ""}> <span><b>${label}</b>${sub ? `<small>${sub}</small>` : ""}</span></label>`;
+function showStart() {
+  if (G) G.over = true;
+  try {
+    AUD.setAmb(null);
+  } catch (e) {} // v78j: the eclipse's or the Blood Moon's sound ends with the game
+  stopTimer();
+  closeEther();
+  closeDrawer(); // v78j: and its timer and drawers
   applyMoonTheme();
-  const q0=new URLSearchParams(location.search).get("mode"),q=q0==="cpu"?"local":q0;
-  if(!startMode&&MODES.some(m=>m[0]===q))startMode=q;
-  if(!startMode){
-    ovShow(`<div class="ovbox setup"><button type="button" class="xclose" id="modeX" aria-label="Close: back to the Ether's Crossroads page">×</button><div class="shead"><h2>New game</h2><p class="dim">Choose how to play.</p></div><div class="modes">${MODES.map(([k,t,s])=>`<button class="mode" data-m="${k}"><b>${t}</b><span>${s}</span></button>`).join("")}</div></div>`);
-    document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{startMode=b.dataset.m;showStart()});$("#modeX").onclick=()=>{location.href="ethers-crossroads.html"};return;
+  const q0 = new URLSearchParams(location.search).get("mode"),
+    q = q0 === "cpu" ? "local" : q0;
+  if (!startMode && MODES.some((m) => m[0] === q)) startMode = q;
+  if (!startMode) {
+    ovShow(
+      `<div class="ovbox setup"><button type="button" class="xclose" id="modeX" aria-label="Close: back to the Ether's Crossroads page">×</button><div class="shead"><h2>New game</h2><p class="dim">Choose how to play.</p></div><div class="modes">${MODES.map(([k, t, s]) => `<button class="mode" data-m="${k}"><b>${t}</b><span>${s}</span></button>`).join("")}</div></div>`,
+    );
+    document.querySelectorAll("[data-m]").forEach(
+      (b) =>
+        (b.onclick = () => {
+          startMode = b.dataset.m;
+          showStart();
+        }),
+    );
+    $("#modeX").onclick = () => {
+      location.href = "ethers-crossroads.html";
+    };
+    return;
   }
-  const mode=startMode,M=MODES.find(m=>m[0]===mode);
-  const seatsS=[0,1,2,3,4,5,6,7].map(i=>({name:`P${i+1}`,type:i===0?"human":"medium",
-    tribe:"random",color:"random",solid:"random",team:i%2,named:false}));   // v71m: color and symbol start on Random
-  let curLayout=null;
-  const counts=mode==="survival"?[1,2,3,4]:mode==="online"?[2,3,4]:[2,3,4,5,6,7,8];
-  const forms=`<fieldset class="pf"><legend>Table</legend>
-<label class="f">${mode==="survival"?"Players against the Horde":"Players"} <select id="pcount">${counts.map(c=>`<option value="${c}" ${c===counts[0]?"selected":""}>${c}</option>`).join("")}</select></label>
-<div class="f" id="layoutf" ${mode==="survival"?"hidden":""}><span>Game</span><div class="opts gmodes">${GMODES.map(([k,t,d],i)=>`<label class="opt" data-gm="${k}"><input type="radio" name="ogmode" value="${k}" ${i===0?"checked":""}><span><b class="gmn">${t}</b><small>${d}</small></span></label>`).join("")}</div>
-<div class="f" id="teamn" hidden><span>Teams</span><div class="opts">${TEAMN.map(([k,t,d],i)=>`<label class="opt"><input type="radio" name="oteamn" value="${k}" ${i===0?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
-<div class="f" id="teamarr" hidden><span>Teammates spawn</span><div class="opts">${TEAMARR.map(([k,t,d],i)=>`<label class="opt"><input type="radio" name="oteamarr" value="${k}" ${i===0?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
-<div hidden>${Object.entries(LAYOUTS).map(([k,[t,d]],i)=>`<label class="opt" data-lay="${k}"><input type="radio" name="olayout" value="${k}" ${i===0?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
+  const mode = startMode,
+    M = MODES.find((m) => m[0] === mode);
+  const seatsS = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => ({
+    name: `P${i + 1}`,
+    type: i === 0 ? "human" : "medium",
+    tribe: "random",
+    color: "random",
+    solid: "random",
+    team: i % 2,
+    named: false,
+  })); // v71m: color and symbol start on Random
+  let curLayout = null;
+  const counts =
+    mode === "survival"
+      ? [1, 2, 3, 4]
+      : mode === "online"
+        ? [2, 3, 4]
+        : [2, 3, 4, 5, 6, 7, 8];
+  const forms = `<fieldset class="pf"><legend>Table</legend>
+<label class="f">${mode === "survival" ? "Players against the Horde" : "Players"} <select id="pcount">${counts.map((c) => `<option value="${c}" ${c === counts[0] ? "selected" : ""}>${c}</option>`).join("")}</select></label>
+<div class="f" id="layoutf" ${mode === "survival" ? "hidden" : ""}><span>Game</span><div class="opts gmodes">${GMODES.map(([k, t, d], i) => `<label class="opt" data-gm="${k}"><input type="radio" name="ogmode" value="${k}" ${i === 0 ? "checked" : ""}><span><b class="gmn">${t}</b><small>${d}</small></span></label>`).join("")}</div>
+<div class="f" id="teamn" hidden><span>Teams</span><div class="opts">${TEAMN.map(([k, t, d], i) => `<label class="opt"><input type="radio" name="oteamn" value="${k}" ${i === 0 ? "checked" : ""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
+<div class="f" id="teamarr" hidden><span>Teammates spawn</span><div class="opts">${TEAMARR.map(([k, t, d], i) => `<label class="opt"><input type="radio" name="oteamarr" value="${k}" ${i === 0 ? "checked" : ""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
+<div hidden>${Object.entries(LAYOUTS)
+    .map(
+      ([k, [t, d]], i) =>
+        `<label class="opt" data-lay="${k}"><input type="radio" name="olayout" value="${k}" ${i === 0 ? "checked" : ""}><span>${t}<small>${d}</small></span></label>`,
+    )
+    .join("")}</div></div>
 <p class="dim" id="laynote"></p>
-${chk("oalike","Allow colors that look alike","Players may pick a color close to another player's (never the very same one). Off by default: a color too like another player's can't be picked.",false)}
-${chk("onosubs","No Emanations","Every player plays by the plain rules, with no Emanation's advantages or drawbacks. On by default in Survival.",mode==="survival")}
+${chk("oalike", "Allow colors that look alike", "Players may pick a color close to another player's (never the very same one). Off by default: a color too like another player's can't be picked.", false)}
+${chk("onosubs", "No Emanations", "Every player plays by the plain rules, with no Emanation's advantages or drawbacks. On by default in Survival.", mode === "survival")}
 <div id="kothopts" hidden><div class="f"><span>King of the Hill</span><div class="opts">
-${chk("okteam","Team mode","Players form two sides, Side A and Side B (not necessarily even). Off: everyone for themselves.",true)}
-${chk("oktug","Tug of war","Team mode only. One shared bar from −25 to +25: holding the Hill pulls it your side's way; when both sides hold it, it stops. Pull it all the way to win.",false)}
-${chk("okdouble","Double points","Every point counts twice.",false)}
-${chk("okcontest","Contest","When more than one side holds the Hill, nobody scores.",false)}</div></div>
-<div class="f" id="okfieldf"><span>Field</span><div class="opts">${[["hill","The Hill (default)","The 25 by 25 night field around a glowing Hill."],["cross","The Cross","The Hill is the very middle of the Cross's diamond (2 by 2). Up to 8 players: one to an arm, then two."],["small","The Small Cross","The Hill is the center tile of the Small Cross. Up to 4 players, one to an arm."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="okfield" value="${v}" ${v==="hill"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
-<div class="f"><span>Points to win</span><div class="opts">${[["30","30"],["50","50 (default)"],["100","Marathon: 100","Holding the Hill can raise mercenaries for your side."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="oktarget" value="${v}" ${v==="50"?"checked":""}><span>${t}${d?`<small>${d}</small>`:""}</span></label>`).join("")}</div></div>
+${chk("okteam", "Team mode", "Players form two sides, Side A and Side B (not necessarily even). Off: everyone for themselves.", true)}
+${chk("oktug", "Tug of war", "Team mode only. One shared bar from −25 to +25: holding the Hill pulls it your side's way; when both sides hold it, it stops. Pull it all the way to win.", false)}
+${chk("okdouble", "Double points", "Every point counts twice.", false)}
+${chk("okcontest", "Contest", "When more than one side holds the Hill, nobody scores.", false)}</div></div>
+<div class="f" id="okfieldf"><span>Field</span><div class="opts">${[
+    [
+      "hill",
+      "The Hill (default)",
+      "The 25 by 25 night field around a glowing Hill.",
+    ],
+    [
+      "cross",
+      "The Cross",
+      "The Hill is the very middle of the Cross's diamond (2 by 2). Up to 8 players: one to an arm, then two.",
+    ],
+    [
+      "small",
+      "The Small Cross",
+      "The Hill is the center tile of the Small Cross. Up to 4 players, one to an arm.",
+    ],
+  ]
+    .map(
+      ([v, t, d]) =>
+        `<label class="opt"><input type="radio" name="okfield" value="${v}" ${v === "hill" ? "checked" : ""}><span>${t}<small>${d}</small></span></label>`,
+    )
+    .join("")}</div></div>
+<div class="f"><span>Points to win</span><div class="opts">${[
+    ["30", "30"],
+    ["50", "50 (default)"],
+    [
+      "100",
+      "Marathon: 100",
+      "Holding the Hill can raise mercenaries for your side.",
+    ],
+  ]
+    .map(
+      ([v, t, d]) =>
+        `<label class="opt"><input type="radio" name="oktarget" value="${v}" ${v === "50" ? "checked" : ""}><span>${t}${d ? `<small>${d}</small>` : ""}</span></label>`,
+    )
+    .join("")}</div></div>
 <div class="f"><span>Spawns</span><div class="opts"><label class="opt"><input type="radio" name="oknear" value="" checked><span>Apart (default)<small>Far enough from enemies, but not as far as possible.</small></span></label><label class="opt"><input type="radio" name="oknear" value="near"><span>Next to enemies<small>Everyone spawns closer to enemies than to teammates.</small></span></label></div></div>
-<div class="f"><span>Computers take the Hill</span><div class="opts">${[["each","Each its own way (default)","Every computer picks one of the three ways for the game."],["army","Gather an army first","They build a big army, then march on the Hill together."],["straight","Straight there","Every card heads for the Hill at once."],["groups","In small groups","Groups of two or three set out one after another."]].map(([v,t,d],i)=>`<label class="opt"><input type="radio" name="okcpu" value="${v}" ${i?"":"checked"}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
+<div class="f"><span>Computers take the Hill</span><div class="opts">${[
+    [
+      "each",
+      "Each its own way (default)",
+      "Every computer picks one of the three ways for the game.",
+    ],
+    [
+      "army",
+      "Gather an army first",
+      "They build a big army, then march on the Hill together.",
+    ],
+    ["straight", "Straight there", "Every card heads for the Hill at once."],
+    [
+      "groups",
+      "In small groups",
+      "Groups of two or three set out one after another.",
+    ],
+  ]
+    .map(
+      ([v, t, d], i) =>
+        `<label class="opt"><input type="radio" name="okcpu" value="${v}" ${i ? "" : "checked"}><span>${t}<small>${d}</small></span></label>`,
+    )
+    .join("")}</div></div>
 <p class="dim">Other ways to win still count. The Hill is never in the fog; sight is a circle of 2 (Scouts: 4, and they move 3 in any direction); meteors fall more often.</p></div></fieldset><div id="seats"></div>`;
-  const rules=`<fieldset class="pf"><legend>Turns</legend>
+  const rules = `<fieldset class="pf"><legend>Turns</legend>
 <label class="f">Turn order <select id="oturns"><option value="classic">Classic</option><option value="prep">Draw and prep together</option><option value="all">Every phase together</option></select></label>
 <p class="dim" id="turnnote"></p>
 <label class="f">Phase timer <select id="otimer"><option value="0" selected>Off (default)</option><option value="30">30 seconds</option><option value="60">60 seconds (draw phase 30)</option><option value="90">90 seconds (draw phase 30)</option></select></label>
 <p class="dim">When the timer runs out the game moves on to the next phase. During setup it places your cards for you, the way a Medium computer would.</p>
 <label class="f">Computer speed <select id="ospeed"><option value="slow">Slow</option><option value="normal" selected>Normal (default)</option><option value="fast">Fast</option></select></label>
 </fieldset>
-<fieldset class="pf" id="dipset" hidden><legend>Diplomacy</legend>${chk("odip","Diplomacy","A flag under the Bank opens Diplomacy between the sides: Peace (no attacks for 1 to 4 rounds) and Alliances (shared vision, friendly spells, surrounding together; no shared win), and the computers' trust. Everyone starts at war. On by default in Factions; an option in Free For All.",false)}</fieldset>
+<fieldset class="pf" id="dipset" hidden><legend>Diplomacy</legend>${chk("odip", "Diplomacy", "A flag under the Bank opens Diplomacy between the sides: Peace (no attacks for 1 to 4 rounds) and Alliances (shared vision, friendly spells, surrounding together; no shared win), and the computers' trust. Everyone starts at war. On by default in Factions; an option in Free For All.", false)}</fieldset>
 <fieldset class="pf" id="elimset" hidden><legend>When a player falls</legend><div class="opts">
 <label class="opt"><input type="radio" name="oelim" value="grave" checked><span>To the grave (default)<small>Their deck and hand go to the grave, and the grave is shuffled.</small></span></label>
 <label class="opt"><input type="radio" name="oelim" value="dark"><span>To the Outer Darkness<small>Their deck and hand are gone for good.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Field</legend>
-${chk("ocrys","Crystals (default)","A crystal cluster rises in the middle of the field every 1d6 + 4 rounds (Headquarters opens with one). A Miner standing on it digs out its 12 mana.",true)}
-${chk("ofog","Fog of war (default)","Each card sees only the eight tiles around it (a Scout two tiles out, in a diamond); ranged cards can fire blind into the fog. Assassins, ambushers and Scouts stay hidden until you stand right beside them.",true)}
-${chk("obarb","Demons (default)","Every 4 + 1d12 rounds (never while one still stands) a crimson band of Grunts, Infantry or Jacks (sometimes with an Ace) takes the middle of the field and fights everyone. Whoever kills the most earns an Ether sale; a big band can earn debt forgiveness.",true)}
+${chk("ocrys", "Crystals (default)", "A crystal cluster rises in the middle of the field every 1d6 + 4 rounds (Headquarters opens with one). A Miner standing on it digs out its 12 mana.", true)}
+${chk("ofog", "Fog of war (default)", "Each card sees only the eight tiles around it (a Scout two tiles out, in a diamond); ranged cards can fire blind into the fog. Assassins, ambushers and Scouts stay hidden until you stand right beside them.", true)}
+${chk("obarb", "Demons (default)", "Every 4 + 1d12 rounds (never while one still stands) a crimson band of Grunts, Infantry or Jacks (sometimes with an Ace) takes the middle of the field and fights everyone. Whoever kills the most earns an Ether sale; a big band can earn debt forgiveness.", true)}
 <label class="f">Hole in the middle <select id="ohole"><option value="0" selected>None (default)</option><option value="1">One or two tiles</option><option value="2">Doubled</option><option value="3">Tripled</option></select></label>
 <p class="dim">An empty pit in the center of the field, never on the River map and never in anyone's lines; it only grows where there is room.</p>
-${chk("olock","Optional Ace rule","Cards inside an Ace must match its color.",false)}
-${chk("oetheron","The Ether (default)","Off: nothing can be conjured or bought from the Ether in this game (Conjuring spells that bring a soul from the Ether, the Ether shop, mystery buys), and the Ether holds nothing.",true)}
-${chk("ojkdark","Sacrificial Suicide: souls to the Outer Darkness (default)","A Joker that shoots itself sends the souls it captured into the Outer Darkness (their worth still comes to you as mana), and the Joker goes back into your deck. Off: the souls join your soul pile and the Joker goes to the grave.",true)}
+${chk("olock", "Optional Ace rule", "Cards inside an Ace must match its color.", false)}
+${chk("oetheron", "The Ether (default)", "Off: nothing can be conjured or bought from the Ether in this game (Conjuring spells that bring a soul from the Ether, the Ether shop, mystery buys), and the Ether holds nothing.", true)}
+${chk("ojkdark", "Sacrificial Suicide: souls to the Outer Darkness (default)", "A Joker that shoots itself sends the souls it captured into the Outer Darkness (their worth still comes to you as mana), and the Joker goes back into your deck. Off: the souls join your soul pile and the Joker goes to the grave.", true)}
 </fieldset>
 <fieldset class="pf"><legend>Cheats</legend>
-${chk("ocheat","Cheat mode","Off by default. Free magic, infinite mana, every spell, blocks, rare events and spawns on demand, and no victory or loss, from a Cheat button beside Configure. Every player sees that it is on.",false)}
+${chk("ocheat", "Cheat mode", "Off by default. Free magic, infinite mana, every spell, blocks, rare events and spawns on demand, and no victory or loss, from a Cheat button beside Configure. Every player sees that it is on.", false)}
 </fieldset>
 <fieldset class="pf"><legend>Mana</legend>
-<label class="f">Starting mana <select id="omana"><option value="3d2" selected>3d2 (default)</option><option value="1d6">1d6</option><option value="none">None</option>${[1,2,3,4,5,6].map(n=>`<option value="${n}">${n}</option>`).join("")}</select></label>
-${chk("obank","The Bank opens with mana","The Bank starts with (2 × players)d2 mana to lend. Off by default: it fills up from the mana spent on spells.",false)}
-${chk("oeach","Each player rolls their own","On by default with half a deck; off by default otherwise, when one roll sets the same starting mana for everyone.",false)}
+<label class="f">Starting mana <select id="omana"><option value="3d2" selected>3d2 (default)</option><option value="1d6">1d6</option><option value="none">None</option>${[1, 2, 3, 4, 5, 6].map((n) => `<option value="${n}">${n}</option>`).join("")}</select></label>
+${chk("obank", "The Bank opens with mana", "The Bank starts with (2 × players)d2 mana to lend. Off by default: it fills up from the mana spent on spells.", false)}
+${chk("oeach", "Each player rolls their own", "On by default with half a deck; off by default otherwise, when one roll sets the same starting mana for everyone.", false)}
 <p class="dim">Starting souls come from the Ether as soldier souls, worth 1 mana each.</p>
 </fieldset>
 <fieldset class="pf"><legend>Heavenly Bodies</legend>
 <p class="dim">The starting Heavenly Body is chosen in the Map tab.</p>
-${chk("omoon","Moon combat bonus","Every attack adds 1d2 at the Full Moon, and every defense adds 1d2 at the New Moon.",true)}
-${chk("opshop","Heavenly Body shop","Any of the eight Heavenly Bodies can be bought for the sky (Astrology) for 7 + 1d3 + 1d12 mana, rolled every round. It rises at the start of the next round; then no Heavenly Body can be bought for six rounds.",true)}
-${chk("oatk","Spells in the attack phase","Enchantments, curses, sorcery and illusions can also be cast while attacking. Necromancy, conjuring and sacrifices stay in prep.",false)}
-${chk("oblood","Eclipse mode (the Blood Moon for the moon)","With the moon: the game opens on a Blood Moon; each deck is shuffled and two thirds of it go to the grave; each player starts with a Joker in hand. With a Heavenly Body in the sky: the game opens under that Heavenly Body's eclipse. Then every cycle event is an eclipse: every Full Moon is a Blood Moon, and every Heavenly Body is eclipsed when its cycle comes round.",false)}
-<div class="subchk" id="oeclallw" hidden>${chk("oeclall","Always in eclipse","The eclipse never passes: the Moon stays a Blood Moon at every phase, and any other Heavenly Body stays eclipsed for as long as it hangs in the sky (a new one is eclipsed from the next round).",false)}</div>
-${chk("ocycev","Cycle events (default)","Each Heavenly Body's cycle event when its cycle comes round: the Full Moon's toll, the cycles of Venus, Mercury, Mars, Jupiter and Saturn, and the Second Sun's judgements.",true)}
-${chk("oeclipse","Eclipses (default)","Now and then a Heavenly Body is eclipsed, with its own strange effect.",true)}
+${chk("omoon", "Moon combat bonus", "Every attack adds 1d2 at the Full Moon, and every defense adds 1d2 at the New Moon.", true)}
+${chk("opshop", "Heavenly Body shop", "Any of the eight Heavenly Bodies can be bought for the sky (Astrology) for 7 + 1d3 + 1d12 mana, rolled every round. It rises at the start of the next round; then no Heavenly Body can be bought for six rounds.", true)}
+${chk("oatk", "Spells in the attack phase", "Enchantments, curses, sorcery and illusions can also be cast while attacking. Necromancy, conjuring and sacrifices stay in prep.", false)}
+${chk("oblood", "Eclipse mode (the Blood Moon for the moon)", "With the moon: the game opens on a Blood Moon; each deck is shuffled and two thirds of it go to the grave; each player starts with a Joker in hand. With a Heavenly Body in the sky: the game opens under that Heavenly Body's eclipse. Then every cycle event is an eclipse: every Full Moon is a Blood Moon, and every Heavenly Body is eclipsed when its cycle comes round.", false)}
+<div class="subchk" id="oeclallw" hidden>${chk("oeclall", "Always in eclipse", "The eclipse never passes: the Moon stays a Blood Moon at every phase, and any other Heavenly Body stays eclipsed for as long as it hangs in the sky (a new one is eclipsed from the next round).", false)}</div>
+${chk("ocycev", "Cycle events (default)", "Each Heavenly Body's cycle event when its cycle comes round: the Full Moon's toll, the cycles of Venus, Mercury, Mars, Jupiter and Saturn, and the Second Sun's judgements.", true)}
+${chk("oeclipse", "Eclipses (default)", "Now and then a Heavenly Body is eclipsed, with its own strange effect.", true)}
 </fieldset>
 <fieldset class="pf" id="skychg"><legend>How the sky changes</legend>
 <label class="f">The sky changes <select id="oskychg"><option value="bid" selected>By bidding (default)</option><option value="never">Never by itself</option><option value="cycles">Every few cycles</option><option value="rounds">Every few rounds</option></select></label>
@@ -193,251 +997,1126 @@ ${chk("oeclipse","Eclipses (default)","Now and then a Heavenly Body is eclipsed,
 <div id="skyevery" hidden>
 <div class="f"><span>How many</span><div class="opts"><label class="opt"><input type="radio" name="oskyhow" value="n" checked><span>A number</span></label><label class="opt"><input type="radio" name="oskyhow" value="dice"><span>Dice<small>Rolled again for every new Heavenly Body; 100 at most.</small></span></label></div></div>
 <p class="skynum" id="skyn"><button type="button" class="mstep" data-sk="n" data-d="-1" aria-label="fewer">◀</button> <b id="oskyn">4</b> <button type="button" class="mstep" data-sk="n" data-d="1" aria-label="more">▶</button> <span class="dim" id="oskyunit">cycles</span></p>
-<p class="skynum" id="skyd" hidden><button type="button" class="mstep" data-sk="dn" data-d="-1" aria-label="fewer dice">◀</button> <b id="oskydn">2</b> <button type="button" class="mstep" data-sk="dn" data-d="1" aria-label="more dice">▶</button> d <select id="oskyds">${[2,3,4,6,8,10,12,20,100].map(v=>`<option value="${v}" ${v===6?"selected":""}>${v}</option>`).join("")}</select> <span class="dim" id="oskydtot"></span></p>
-${chk("oskyrand","A random start","Every few rounds only. Each new Heavenly Body begins at a random point of its cycle, so it can land right on its event.",false)}
+<p class="skynum" id="skyd" hidden><button type="button" class="mstep" data-sk="dn" data-d="-1" aria-label="fewer dice">◀</button> <b id="oskydn">2</b> <button type="button" class="mstep" data-sk="dn" data-d="1" aria-label="more dice">▶</button> d <select id="oskyds">${[2, 3, 4, 6, 8, 10, 12, 20, 100].map((v) => `<option value="${v}" ${v === 6 ? "selected" : ""}>${v}</option>`).join("")}</select> <span class="dim" id="oskydtot"></span></p>
+${chk("oskyrand", "A random start", "Every few rounds only. Each new Heavenly Body begins at a random point of its cycle, so it can land right on its event.", false)}
 </div>
 </fieldset>`;
-  const display=`<fieldset class="pf"><legend>Your hand</legend><div class="opts">
-<label class="opt"><input type="radio" name="dhand" value="below" ${PREF.hand!=="side"?"checked":""}><span>Under your deck (default)<small>Right below your own bars, with your dice box.</small></span></label>
-<label class="opt"><input type="radio" name="dhand" value="side" ${PREF.hand==="side"?"checked":""}><span>Beside the field<small>In the right-hand column, above the spells.</small></span></label></div></fieldset>
+  const display = `<fieldset class="pf"><legend>Your hand</legend><div class="opts">
+<label class="opt"><input type="radio" name="dhand" value="below" ${PREF.hand !== "side" ? "checked" : ""}><span>Under your deck (default)<small>Right below your own bars, with your dice box.</small></span></label>
+<label class="opt"><input type="radio" name="dhand" value="side" ${PREF.hand === "side" ? "checked" : ""}><span>Beside the field<small>In the right-hand column, above the spells.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Selected stack box</legend><div class="opts">
-<label class="opt"><input type="radio" name="dsel" value="bottom" ${PREF.sel!=="top"?"checked":""}><span>Below the spells${isPhone()?"":" (default)"}<small>At the bottom of the right-hand column.</small></span></label>
-<label class="opt"><input type="radio" name="dsel" value="top" ${PREF.sel==="top"?"checked":""}><span>Above the spells${isPhone()?" (default on a phone)":""}<small>At the top of the right-hand column.</small></span></label></div></fieldset>
+<label class="opt"><input type="radio" name="dsel" value="bottom" ${PREF.sel !== "top" ? "checked" : ""}><span>Below the spells${isPhone() ? "" : " (default)"}<small>At the bottom of the right-hand column.</small></span></label>
+<label class="opt"><input type="radio" name="dsel" value="top" ${PREF.sel === "top" ? "checked" : ""}><span>Above the spells${isPhone() ? " (default on a phone)" : ""}<small>At the top of the right-hand column.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Turn buttons</legend><div class="opts">
-<label class="opt"><input type="radio" name="dctl" value="bottom" ${PREF.ctl!=="top"?"checked":""}><span>Under the field (default)<small>Roll, next phase and end turn sit in a bar right below the board, on the page.</small></span></label>
-<label class="opt"><input type="radio" name="dctl" value="top" ${PREF.ctl==="top"?"checked":""}><span>At the top<small>Beside the moon and the phases.</small></span></label></div></fieldset>
+<label class="opt"><input type="radio" name="dctl" value="bottom" ${PREF.ctl !== "top" ? "checked" : ""}><span>Under the field (default)<small>Roll, next phase and end turn sit in a bar right below the board, on the page.</small></span></label>
+<label class="opt"><input type="radio" name="dctl" value="top" ${PREF.ctl === "top" ? "checked" : ""}><span>At the top<small>Beside the moon and the phases.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Tile names</legend><div class="opts">
-<label class="opt"><input type="radio" name="dcoord" value="0" ${PREF.coords?"":"checked"}><span>Off<small>Like a chessboard without its letters and numbers.</small></span></label>
-<label class="opt"><input type="radio" name="dcoord" value="1" ${PREF.coords?"checked":""}><span>On (default)<small>Each tile shows its name in a corner: columns A, B, C from the left, rows 1, 2, 3 from the bottom.</small></span></label></div>
+<label class="opt"><input type="radio" name="dcoord" value="0" ${PREF.coords ? "" : "checked"}><span>Off<small>Like a chessboard without its letters and numbers.</small></span></label>
+<label class="opt"><input type="radio" name="dcoord" value="1" ${PREF.coords ? "checked" : ""}><span>On (default)<small>Each tile shows its name in a corner: columns A, B, C from the left, rows 1, 2, 3 from the bottom.</small></span></label></div>
 <p class="dim">Tile names are always used in the dice box history, either way.</p></fieldset>
 <fieldset class="pf pc-only"><legend>Page width</legend><div class="opts">
-<label class="opt"><input type="radio" name="dfull" value="0" ${PREF.full?"":"checked"}><span>Standard<small>The page keeps the width of the rest of the site.</small></span></label>
-<label class="opt"><input type="radio" name="dfull" value="1" ${PREF.full?"checked":""}><span>Full width (default)<small>The page fills the whole width of a wide screen, and the field grows with it. The default on a computer.</small></span></label></div></fieldset>
+<label class="opt"><input type="radio" name="dfull" value="0" ${PREF.full ? "" : "checked"}><span>Standard<small>The page keeps the width of the rest of the site.</small></span></label>
+<label class="opt"><input type="radio" name="dfull" value="1" ${PREF.full ? "checked" : ""}><span>Full width (default)<small>The page fills the whole width of a wide screen, and the field grows with it. The default on a computer.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Animations</legend><div class="opts">
-<label class="opt"><input type="checkbox" id="danimc" ${PREF.fxCards!==false?"checked":""}><span>Card animations (on by default)<small>Moves, strikes, wounds, deaths (a white skull rises), sacrifices, mana and shuffles.</small></span></label>
-<label class="opt"><input type="checkbox" id="danimm" ${PREF.fxMagic!==false?"checked":""}><span>Magic and other animations (on by default)<small>Spells, the sky, fire and weather, and the drifting fog. Off, the fog of war stands still.</small></span></label></div>
+<label class="opt"><input type="checkbox" id="danimc" ${PREF.fxCards !== false ? "checked" : ""}><span>Card animations (on by default)<small>Moves, strikes, wounds, deaths (a white skull rises), sacrifices, mana and shuffles.</small></span></label>
+<label class="opt"><input type="checkbox" id="danimm" ${PREF.fxMagic !== false ? "checked" : ""}><span>Magic and other animations (on by default)<small>Spells, the sky, fire and weather, and the drifting fog. Off, the fog of war stands still.</small></span></label></div>
 <p class="dim">Turning animations off helps slower phones. Also in the game's Menu.</p></fieldset>
 <fieldset class="pf"><legend>Accessibility</legend><div class="opts">
-<label class="opt"><input type="checkbox" id="ddys" ${PREF.dys?"checked":""}><span>Dyslexic mode (off by default)<small>Clear sans-serif letters in place of the Old English and the thin typewriter letters, more room between letters, words and lines, and no capitals-only or slanted text. On every Ether's Crossroads page, only on this device.</small></span></label>
-<label class="opt"><input type="checkbox" id="dcb" ${PREF.cb?"checked":""}><span>Colorblind-safe colors (off by default)<small>Every player shows in a color that red-green and blue-yellow colorblind eyes can tell apart, the nearest to the one they picked. Their cards and stacks carry a faint pattern of their own and always show their symbol, and the tiles you can move to, place on or attack are marked in colors and patterns those eyes tell apart. Only on this device.</small></span></label></div></fieldset>
+<label class="opt"><input type="checkbox" id="ddys" ${PREF.dys ? "checked" : ""}><span>Dyslexic mode (off by default)<small>Clear sans-serif letters in place of the Old English and the thin typewriter letters, more room between letters, words and lines, and no capitals-only or slanted text. On every Ether's Crossroads page, only on this device.</small></span></label>
+<label class="opt"><input type="checkbox" id="dcb" ${PREF.cb ? "checked" : ""}><span>Colorblind-safe colors (off by default)<small>Every player shows in a color that red-green and blue-yellow colorblind eyes can tell apart, the nearest to the one they picked. Their cards and stacks carry a faint pattern of their own and always show their symbol, and the tiles you can move to, place on or attack are marked in colors and patterns those eyes tell apart. Only on this device.</small></span></label></div></fieldset>
 <fieldset class="pf"><legend>Colors</legend><div class="opts">
-<label class="opt"><input type="checkbox" id="dpat" ${PREF.pat===false?"":"checked"}><span>Card patterns (on by default)<small>Each player's cards and stacks carry a faint pattern of their own: each seat picks one, or Random.</small></span></label></div></fieldset>
-<fieldset class="pf"><legend>Connection</legend><div class="opts">${NET_NAMES.map((t,i)=>`<label class="opt"><input type="radio" name="dnet" value="${i}" ${netLvl()===i?"checked":""}><span>${t}${i?"":" (default)"}<small>${NET_SUBS[i]}</small></span></label>`).join("")}</div>
+<label class="opt"><input type="checkbox" id="dpat" ${PREF.pat === false ? "" : "checked"}><span>Card patterns (on by default)<small>Each player's cards and stacks carry a faint pattern of their own: each seat picks one, or Random.</small></span></label></div></fieldset>
+<fieldset class="pf"><legend>Connection</legend><div class="opts">${NET_NAMES.map((t, i) => `<label class="opt"><input type="radio" name="dnet" value="${i}" ${netLvl() === i ? "checked" : ""}><span>${t}${i ? "" : " (default)"}<small>${NET_SUBS[i]}</small></span></label>`).join("")}</div>
 <p class="dim">How much the game loads and sends, on this device. Also in the Menu and the Display bar.</p></fieldset>
 <fieldset class="pf"><legend>Background lines</legend><div class="opts">
-<label class="opt"><input type="radio" name="dlines" value="1" ${PREF.lines!==false?"checked":""}><span>On (default)<small>Thin black lines across the page behind everything, and now and then a black bar.</small></span></label>
-<label class="opt"><input type="radio" name="dlines" value="0" ${PREF.lines===false?"checked":""}><span>Off<small>A plain background, on every page of the site.</small></span></label></div></fieldset>
-<fieldset class="pf"><legend>Brightness</legend><label class="f">Brightness <select id="dbright">${[.7,.8,.9,1,1.1,1.2,1.3].map(v=>`<option value="${v}" ${Math.abs((PREF.bright||1)-v)<.01?"selected":""}>${Math.round(v*100)}%${v===1?" (default)":""}</option>`).join("")}</select></label><p class="dim">For the whole site. Also in the game's Menu.</p></fieldset>
-<fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(THEMES).map(([k,[n]])=>`<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme===k?"checked":""}><span>${n}<small>${({darkfantasy:"The default: an old dungeon in grey and crimson, gold and silver.",etherten:"The default\u2019s dungeon in blue, after Ten: grey and blue, gold and silver.",etherkenoma:"The default\u2019s dungeon in Kenoma\u2019s burnt amber and orange.","":"The burnt amber of the rest of the site.",dull:"The burnt amber, duller and less orange, with a faint yellow tint.",office:"Soft grey pages and panels with a blue accent, like an office suite; easy on the eyes.",officedark:"The Office theme in charcoal, for the night.",earth:"A night druid\u2019s grove: dark soil, moss and lichen gold.",jester:"Black, after chapter 26.",ten:"White on indigo, after chapters 1–4.",satan:"Crimson, after chapter 23."})[k]}</small></span></label>`).join("")}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, text size, hand position, tile names, page width and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
-  const suitSel=`<div id="suitpick" hidden><p class="dim">${mode==="survival"?"You pick; the other two suits wait in the Ether.":"P1 picks; P2 gets the other two suits."}</p>
+<label class="opt"><input type="radio" name="dlines" value="1" ${PREF.lines !== false ? "checked" : ""}><span>On (default)<small>Thin black lines across the page behind everything, and now and then a black bar.</small></span></label>
+<label class="opt"><input type="radio" name="dlines" value="0" ${PREF.lines === false ? "checked" : ""}><span>Off<small>A plain background, on every page of the site.</small></span></label></div></fieldset>
+<fieldset class="pf"><legend>Brightness</legend><label class="f">Brightness <select id="dbright">${[0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3].map((v) => `<option value="${v}" ${Math.abs((PREF.bright || 1) - v) < 0.01 ? "selected" : ""}>${Math.round(v * 100)}%${v === 1 ? " (default)" : ""}</option>`).join("")}</select></label><p class="dim">For the whole site. Also in the game's Menu.</p></fieldset>
+<fieldset class="pf"><legend>Page theme</legend><div class="opts">${Object.entries(
+    THEMES,
+  )
+    .map(
+      ([k, [n]]) =>
+        `<label class="opt"><input type="radio" name="dtheme" value="${k}" ${PREF.theme === k ? "checked" : ""}><span>${n}<small>${{ darkfantasy: "The default: an old dungeon in grey and crimson, gold and silver.", etherten: "The default\u2019s dungeon in blue, after Ten: grey and blue, gold and silver.", etherkenoma: "The default\u2019s dungeon in Kenoma\u2019s burnt amber and orange.", "": "The burnt amber of the rest of the site.", dull: "The burnt amber, duller and less orange, with a faint yellow tint.", office: "Soft grey pages and panels with a blue accent, like an office suite; easy on the eyes.", officedark: "The Office theme in charcoal, for the night.", earth: "A night druid\u2019s grove: dark soil, moss and lichen gold.", jester: "Black, after chapter 26.", ten: "White on indigo, after chapters 1–4.", satan: "Crimson, after chapter 23." }[k]}</small></span></label>`,
+    )
+    .join(
+      "",
+    )}</div><p class="dim">A Blood Moon overrides the theme while it lasts. Card icon size, interface size, text size, hand position, tile names, page width and theme can also be changed at the bottom of the screen during play.</p></fieldset>`;
+  const suitSel = `<div id="suitpick" hidden><p class="dim">${mode === "survival" ? "You pick; the other two suits wait in the Ether." : "P1 picks; P2 gets the other two suits."}</p>
 <label class="f">Red suit <select id="osuitR"><option value="H">♥ Hearts</option><option value="D">♦ Diamonds</option></select></label>
 <label class="f">Black suit <select id="osuitB"><option value="S">♠ Spades</option><option value="C">♣ Clubs</option></select></label></div>`;
-  const deckTab=`<fieldset class="pf" id="decksset"><legend>Decks</legend>
+  const deckTab = `<fieldset class="pf" id="decksset"><legend>Decks</legend>
 <div class="f"><span>Decks per player</span><div class="opts">
-${[["half","Half a deck","One red and one black suit and one Joker. In 1v1 the two players split one deck; in 2v2 each team splits one (the default there)."],["1","One deck (default)","All four suits and both Jokers."],["2","Two decks","Two of every card. Set Specials and Aces to Half below."],["3","Three decks","Three of every card. Specials and Aces at Half suits it too."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="odeckper" value="${v}" ${v==="1"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>
+${[
+  [
+    "half",
+    "Half a deck",
+    "One red and one black suit and one Joker. In 1v1 the two players split one deck; in 2v2 each team splits one (the default there).",
+  ],
+  ["1", "One deck (default)", "All four suits and both Jokers."],
+  ["2", "Two decks", "Two of every card. Set Specials and Aces to Half below."],
+  [
+    "3",
+    "Three decks",
+    "Three of every card. Specials and Aces at Half suits it too.",
+  ],
+]
+  .map(
+    ([v, t, d]) =>
+      `<label class="opt"><input type="radio" name="odeckper" value="${v}" ${v === "1" ? "checked" : ""}><span>${t}<small>${d}</small></span></label>`,
+  )
+  .join("")}</div></div>
 <div class="f" id="suitmode" hidden><span>Suits (half a deck, 1v1)</span><div class="opts"><label class="opt"><input type="radio" name="osuitmode" value="random" checked><span>Random (default)<small>Each player is dealt one red and one black suit at random.</small></span></label><label class="opt"><input type="radio" name="osuitmode" value="choose"><span>Choose<small>Pick the two suits below.</small></span></label></div>${suitSel}</div>
 <div class="f"><span>Ether decks per player</span><div class="opts">
-${[["same","Same as the players","As many decks' worth of Scouts, Assassins, Archers, Healers, Repairmen, Walls, Rams, Miners and Cannons as the players hold decks."],["half","Half a deck each",""],["1",`One deck each${startMode==="survival"?"":" (default)"}`,"The Ether holds a deck of its own for every player: its Scouts, Assassins, Archers, Healers, Repairmen, Walls, Rams, Miners and Cannons."],["2","Two decks each",""],["3","Three decks each",""],["inf",`Infinite${startMode==="survival"?" (default here)":""}`,"Every card the Ether holds comes back the moment it is taken: it never runs out. The default in Survival."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="oetherper" value="${v}" ${v===(startMode==="survival"?"inf":"1")?"checked":""}><span>${t}${d?`<small>${d}</small>`:""}</span></label>`).join("")}</div></div>
+${[
+  [
+    "same",
+    "Same as the players",
+    "As many decks' worth of Scouts, Assassins, Archers, Healers, Repairmen, Walls, Rams, Miners and Cannons as the players hold decks.",
+  ],
+  ["half", "Half a deck each", ""],
+  [
+    "1",
+    `One deck each${startMode === "survival" ? "" : " (default)"}`,
+    "The Ether holds a deck of its own for every player: its Scouts, Assassins, Archers, Healers, Repairmen, Walls, Rams, Miners and Cannons.",
+  ],
+  ["2", "Two decks each", ""],
+  ["3", "Three decks each", ""],
+  [
+    "inf",
+    `Infinite${startMode === "survival" ? " (default here)" : ""}`,
+    "Every card the Ether holds comes back the moment it is taken: it never runs out. The default in Survival.",
+  ],
+]
+  .map(
+    ([v, t, d]) =>
+      `<label class="opt"><input type="radio" name="oetherper" value="${v}" ${v === (startMode === "survival" ? "inf" : "1") ? "checked" : ""}><span>${t}${d ? `<small>${d}</small>` : ""}</span></label>`,
+  )
+  .join("")}</div></div>
 <p class="dim">With two decks per player (or three), set Specials and Aces to Half: everyone then starts with half the specials and bases, and the rest wait in the Ether.</p>
-<div id="teamdecks" hidden>${chk("oshare","Shared team deck","Team games. Teammates draw from one deck and spend from one soul pile, but keep their own hands.",false)}</div>
+<div id="teamdecks" hidden>${chk("oshare", "Shared team deck", "Team games. Teammates draw from one deck and spend from one soul pile, but keep their own hands.", false)}</div>
 </fieldset>
 <fieldset class="pf"><legend>Specials and Aces (Jacks, Queens, Kings, Jokers and Aces)</legend><div class="opts">
-${[["none","None","Only your opening Ace and its Jack. Every other special waits in the Ether to be conjured."],["half","Half (default)","The Jacks, Queens and Kings of half your suits, picked at random (one red and one black suit with a full deck), and one more Ace and one Joker. Every other special waits in the Ether."],["all","All","Every special of your suits is in your deck."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="ospecials" value="${v}" ${v==="half"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
-${chk("ojoker","At least one Joker","With None or All: every player's deck holds at least one Joker, taken from the Ether if needed. Half always holds one.",true)}
-${chk("ominer","A Miner in every deck","One Miner, taken from the Ether, shuffled into every player's deck.",true)}
+${[
+  [
+    "none",
+    "None",
+    "Only your opening Ace and its Jack. Every other special waits in the Ether to be conjured.",
+  ],
+  [
+    "half",
+    "Half (default)",
+    "The Jacks, Queens and Kings of half your suits, picked at random (one red and one black suit with a full deck), and one more Ace and one Joker. Every other special waits in the Ether.",
+  ],
+  ["all", "All", "Every special of your suits is in your deck."],
+]
+  .map(
+    ([v, t, d]) =>
+      `<label class="opt"><input type="radio" name="ospecials" value="${v}" ${v === "half" ? "checked" : ""}><span>${t}<small>${d}</small></span></label>`,
+  )
+  .join("")}</div>
+${chk("ojoker", "At least one Joker", "With None or All: every player's deck holds at least one Joker, taken from the Ether if needed. Half always holds one.", true)}
+${chk("ominer", "A Miner in every deck", "One Miner, taken from the Ether, shuffled into every player's deck.", true)}
 <p class="dim" id="decksum"></p>
 </fieldset>`;
-  const mapTab=`<fieldset class="pf"><legend>Battle map</legend><div class="opts">
+  const mapTab = `<fieldset class="pf"><legend>Battle map</legend><div class="opts">
 <label class="opt"><input type="radio" name="omap" value="random"><span>Random<small>One of the four maps below, picked at the start.</small></span></label>
-${["keep","sahel","forest","dungeon"].map(k=>`<label class="opt"><input type="radio" name="omap" value="${k}"><span>${MAPS[k].name}<small>${MAPS[k].sub}</small></span></label>`).join("")}
+${["keep", "sahel", "forest", "dungeon"].map((k) => `<label class="opt"><input type="radio" name="omap" value="${k}"><span>${MAPS[k].name}<small>${MAPS[k].sub}</small></span></label>`).join("")}
 <span class="optgroup">Special Maps</span>
-${["river","none"].filter(k=>!(mode==="survival"&&k==="river")).map(k=>`<label class="opt"><input type="radio" name="omap" value="${k}" ${k==="none"?"checked":""}><span>${MAPS[k].name}${k==="none"?" (default)":""}<small>${MAPS[k].sub}</small></span></label>`).join("")}</div>
+${["river", "none"]
+  .filter((k) => !(mode === "survival" && k === "river"))
+  .map(
+    (k) =>
+      `<label class="opt"><input type="radio" name="omap" value="${k}" ${k === "none" ? "checked" : ""}><span>${MAPS[k].name}${k === "none" ? " (default)" : ""}<small>${MAPS[k].sub}</small></span></label>`,
+  )
+  .join("")}</div>
 <div class="f" id="bridgeopt" hidden><span>Bridge</span><div class="opts"><label class="opt"><input type="radio" name="obridge" value="left" checked><span>Left<small>Two tiles wide, on the left of the river.</small></span></label><label class="opt"><input type="radio" name="obridge" value="right"><span>Right<small>Two tiles wide, on the right.</small></span></label></div></div>
 </fieldset>
 <fieldset class="pf"><legend>Starting Heavenly Body</legend>
-<div class="opts skyopts">${SKY_OPTS.map(([v,nm,txt],i)=>`<label class="opt sky-${v}"><input type="radio" name="omoonon" value="${v}" ${i?"":"checked"}><span>${nm}<small>${txt}</small>${SKY_FORM[v==="on"?"moon":v]?`<em class="skyform">${SKY_FORM[v==="on"?"moon":v]}</em>`:""}</span></label>`).join("")}</div>
+<div class="opts skyopts">${SKY_OPTS.map(([v, nm, txt], i) => `<label class="opt sky-${v}"><input type="radio" name="omoonon" value="${v}" ${i ? "" : "checked"}><span>${nm}<small>${txt}</small>${SKY_FORM[v === "on" ? "moon" : v] ? `<em class="skyform">${SKY_FORM[v === "on" ? "moon" : v]}</em>` : ""}</span></label>`).join("")}</div>
 </fieldset>
 <fieldset class="pf" id="sizeset"><legend>Size</legend>
-<div id="sizeduel"><p class="dim">On a phone, 5 wide is the largest size that stays easy to read.</p><div class="f"><span>Width</span><div class="opts">${[5,6,7].map(w=>`<label class="opt"><input type="radio" name="ocols" value="${w}" ${w===6?"checked":""}><span>${w} wide${w===6?" (default)":""}</span></label>`).join("")}</div></div>
-${mode==="survival"?'<p class="dim">Survival always uses the midline: the field is 5 tall.</p>':`<div class="f"><span>Height</span><div class="opts">${[[4,"4 tall","No midline"],[5,"5 tall","One midline"],[6,"6 tall (default)","Two midlines"]].map(([h,t,d])=>`<label class="opt"><input type="radio" name="orowsd" value="${h}" ${h===6?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div></div>`}
-</div>${chk("ocorners","Cut off the corners","The four corner tiles are removed from play. On by default for free-for-all and the 2v2 layouts on the edges.",false)}
+<div id="sizeduel"><p class="dim">On a phone, 5 wide is the largest size that stays easy to read.</p><div class="f"><span>Width</span><div class="opts">${[5, 6, 7].map((w) => `<label class="opt"><input type="radio" name="ocols" value="${w}" ${w === 6 ? "checked" : ""}><span>${w} wide${w === 6 ? " (default)" : ""}</span></label>`).join("")}</div></div>
+${
+  mode === "survival"
+    ? '<p class="dim">Survival always uses the midline: the field is 5 tall.</p>'
+    : `<div class="f"><span>Height</span><div class="opts">${[
+        [4, "4 tall", "No midline"],
+        [5, "5 tall", "One midline"],
+        [6, "6 tall (default)", "Two midlines"],
+      ]
+        .map(
+          ([h, t, d]) =>
+            `<label class="opt"><input type="radio" name="orowsd" value="${h}" ${h === 6 ? "checked" : ""}><span>${t}<small>${d}</small></span></label>`,
+        )
+        .join("")}</div></div>`
+}
+</div>${chk("ocorners", "Cut off the corners", "The four corner tiles are removed from play. On by default for free-for-all and the 2v2 layouts on the edges.", false)}
 <div id="sizeother" class="sizesel" hidden></div>
-${mode==="survival"?`<div class="f" id="bigset"><span>Large maps</span><div class="opts">${[["","Standard","The sizes above: only while every survivor gets at least five spawn tiles (four survivors always need the large map)."],["long","10 long, 6 wide (default)","The Horde holds the top two lines. Each survivor spawns in a box 3 wide and 2 deep at the bottom: two side by side, then a second row of boxes on top of them. One survivor holds the whole back line."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="obig" value="${v}" ${v==="long"?"checked":""}><span>${t}<small>${d}</small></span></label>`).join("")}</div><p class="dim">Large maps scroll inside a frame: the mouse wheel zooms, dragging an empty spot or WASD moves it, and E zooms in, Q out (always around the middle of the screen). The Menu has Large Map Controls.</p></div>`:`<div class="f" id="bigset"><span>Large maps</span><div class="opts">${[["","Standard (default)","The sizes above."],["long","10 long, 6 wide","1v1, or 2v2 with each team on one short end."],["sq","10 by 10","Any layout."],["cross","Cross","A real cross: four arms around a diamond middle; one player at the end of each arm."],["cross2","Two-armed Cross","The Cross with only its top and bottom arms; up to 4 players, two to an arm."],["plus","Cross Map 2","The 10 by 10 plus: arms 4 wide; everyone spawns at the end of an arm."]].map(([v,t,d])=>`<label class="opt"><input type="radio" name="obig" value="${v}" ${v?"":"checked"}><span>${t}<small>${d}</small></span></label>`).join("")}</div>
+${
+  mode === "survival"
+    ? `<div class="f" id="bigset"><span>Large maps</span><div class="opts">${[
+        [
+          "",
+          "Standard",
+          "The sizes above: only while every survivor gets at least five spawn tiles (four survivors always need the large map).",
+        ],
+        [
+          "long",
+          "10 long, 6 wide (default)",
+          "The Horde holds the top two lines. Each survivor spawns in a box 3 wide and 2 deep at the bottom: two side by side, then a second row of boxes on top of them. One survivor holds the whole back line.",
+        ],
+      ]
+        .map(
+          ([v, t, d]) =>
+            `<label class="opt"><input type="radio" name="obig" value="${v}" ${v === "long" ? "checked" : ""}><span>${t}<small>${d}</small></span></label>`,
+        )
+        .join(
+          "",
+        )}</div><p class="dim">Large maps scroll inside a frame: the mouse wheel zooms, dragging an empty spot or WASD moves it, and E zooms in, Q out (always around the middle of the screen). The Menu has Large Map Controls.</p></div>`
+    : `<div class="f" id="bigset"><span>Large maps</span><div class="opts">${[
+        ["", "Standard (default)", "The sizes above."],
+        [
+          "long",
+          "10 long, 6 wide",
+          "1v1, or 2v2 with each team on one short end.",
+        ],
+        ["sq", "10 by 10", "Any layout."],
+        [
+          "cross",
+          "Cross",
+          "A real cross: four arms around a diamond middle; one player at the end of each arm.",
+        ],
+        [
+          "cross2",
+          "Two-armed Cross",
+          "The Cross with only its top and bottom arms; up to 4 players, two to an arm.",
+        ],
+        [
+          "plus",
+          "Cross Map 2",
+          "The 10 by 10 plus: arms 4 wide; everyone spawns at the end of an arm.",
+        ],
+      ]
+        .map(
+          ([v, t, d]) =>
+            `<label class="opt"><input type="radio" name="obig" value="${v}" ${v ? "" : "checked"}><span>${t}<small>${d}</small></span></label>`,
+        )
+        .join("")}</div>
 <div id="crossopts" class="crossopts" hidden><div class="f"><span>Cross size</span><div class="opts"><label class="opt"><input type="radio" name="oxsize" value="std" checked><span>Standard (default)<small>Arms 6 by 6 around a diamond (a square about 14 on a side, turned on its point). With teams of two, teammates can share an arm.</small></span></label><label class="opt"><input type="radio" name="oxsize" value="small"><span>Small<small>Arms 3 by 3 around a diamond 6 on a side. One player to an arm: up to 4 (2 on the two-armed Cross).</small></span></label></div></div>
-${chk("oxhole","A hole in the very middle","The center of the diamond can't be played on: 2 by 2 (1 tile on the small Cross).",false)}${chk("oxhollow","Hollow tiles around the middle","Four hollows, 2 by 2 each, out on the diagonals of the middle (one tile from the hole and one from the diamond's edge), can't be played on. Standard size only.",false)}</div><p class="dim">Large maps scroll inside a frame: the mouse wheel zooms, dragging an empty spot or WASD moves it, and E zooms in, Q out (always around the middle of the screen). The Menu has Large Map Controls.</p></div>`}
+${chk("oxhole", "A hole in the very middle", "The center of the diamond can't be played on: 2 by 2 (1 tile on the small Cross).", false)}${chk("oxhollow", "Hollow tiles around the middle", "Four hollows, 2 by 2 each, out on the diagonals of the middle (one tile from the hole and one from the diamond's edge), can't be played on. Standard size only.", false)}</div><p class="dim">Large maps scroll inside a frame: the mouse wheel zooms, dragging an empty spot or WASD moves it, and E zooms in, Q out (always around the middle of the screen). The Menu has Large Map Controls.</p></div>`
+}
 <p class="dim mapnote" id="rivernote" hidden>The River map is always 7 wide and 5 tall with the midline, and keeps its corners.</p>
 
 </fieldset>
-${mode==="survival"?"":`<fieldset class="pf"><legend>Victory</legend>${chk("ohq","Headquarters","Each side opens with two Aces as bases, and troops can only be spawned inside your Aces. The only ways to win are destroying every enemy base or an economic victory.",false)}</fieldset>`}`;
-  const tabs=[["players","Players",forms],["map","Map",mapTab],["deck","Deck",deckTab],["rules","Rules",rules],["display","Display",display]];
+${mode === "survival" ? "" : `<fieldset class="pf"><legend>Victory</legend>${chk("ohq", "Headquarters", "Each side opens with two Aces as bases, and troops can only be spawned inside your Aces. The only ways to win are destroying every enemy base or an economic victory.", false)}</fieldset>`}`;
+  const tabs = [
+    ["players", "Players", forms],
+    ["map", "Map", mapTab],
+    ["deck", "Deck", deckTab],
+    ["rules", "Rules", rules],
+    ["display", "Display", display],
+  ];
   ovShow(`<div class="ovbox setup"><div class="shead"><h2>${M[1]}</h2><p class="dim">${M[2]}</p></div>
-<div class="stabs" role="tablist">${tabs.map(([k,t],i)=>`<button type="button" role="tab" class="stab ${i?"":"on"}" data-t="${k}" aria-selected="${!i}">${t}</button>`).join("")}</div>
-${tabs.map(([k,,h],i)=>`<div class="spanel" data-p="${k}" role="tabpanel" ${i?"hidden":""}><div class="scols">${h}</div></div>`).join("")}
-<p class="acts sfoot"><button class="btn" id="go">${mode==="survival"?"Raise your Ace":"Roll for the opening"}</button> <button class="btn ghost" id="back">← Other modes</button> <a class="dim" href="ethers-crossroads-rules.html#modes">How the modes work</a></p></div>`);
-  document.querySelectorAll(".stab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".stab").forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-selected",x===b)});document.querySelectorAll(".spanel").forEach(p=>p.hidden=p.dataset.p!==b.dataset.t)});
-  const count=()=>+$("#pcount").value;
-  const layout=()=>{const n=count();if(mode==="survival")return n===1?"duel":"coop";const v=val("olayout");return v&&LAYNEED[v].includes(n)?v:LAYDEF[n]};
-  const humans=()=>seatsS.slice(0,count()).filter(S=>S.type==="human").length;
-  const drawSeats=()=>{
-    const n=count(),L=layout();
-    if(mode!=="survival"){
-      document.querySelectorAll("#layoutf [data-lay]").forEach(o=>{const ok=LAYNEED[o.dataset.lay].includes(n);o.classList.toggle("off",!ok);const inp=o.querySelector("input");inp.disabled=!ok;inp.checked=o.dataset.lay===L});
-      const gm=L==="koth"?"koth":L.startsWith("team")||L==="factions"?"teams":"ffa";   // v73d: the Game choice follows the layout underneath
-      document.querySelectorAll("#layoutf [data-gm]").forEach(o=>{const k=o.dataset.gm,ok=k==="koth"||(k==="teams"?n>=3:n<=4),inp=o.querySelector("input");inp.disabled=!ok;o.classList.toggle("off",!ok);inp.checked=k===gm;
-        if(k==="ffa")o.querySelector(".gmn").textContent=n===2?"1v1":"Free For All"});
-      $("#teamn").hidden=gm!=="teams";document.querySelectorAll("input[name=oteamn]").forEach(i=>{i.checked=(i.value==="fac")===(L==="factions");const no=i.value==="two"&&n<4;i.disabled=no;i.closest(".opt").classList.toggle("off",no)});
-      $("#teamarr").hidden=gm!=="teams"||L==="factions";if(gm==="teams")document.querySelectorAll("input[name=oteamarr]").forEach(i=>{i.checked="team-"+i.value===L;const no=i.value==="same"&&n>4;i.disabled=no;i.closest(".opt").classList.toggle("off",no)})}
-    const key=L+(L==="coop"||L==="factions"?n:"");if(key!==curLayout){   // v78j: factions count the players too
-      if(L==="factions"){const F=Math.min(4,Math.max(3,Math.ceil(n/2)));seatsS.forEach((S,i)=>S.team=i%F)}
-      else if(String(curLayout||"").startsWith("factions"))seatsS.forEach((S,i)=>S.team=i%2);   // out of factions: two even sides
-      else seatsS.forEach(S=>{S.team=(S.team|0)%2});   // v73d: factions deal the seats out; two sides fold back
-      curLayout=key;sizeUp()}
-    if($("#kothopts")){$("#kothopts").hidden=L!=="koth";{const sm=document.querySelector('input[name=okfield][value=small]');if(sm){const no=n>4;sm.disabled=no;sm.closest(".opt").classList.toggle("off",no);if(no&&sm.checked)document.querySelector('input[name=okfield][value=hill]').checked=true}}SEAT_KOTH_TEAM=$("#okteam").checked;$("#oktug").disabled=!SEAT_KOTH_TEAM;kothMapUp(L)}
-    $("#laynote").textContent=mode==="survival"?(n===1?"One survivor holds the bottom of the field.":`${n} survivors share the bottom of the field, and the Horde spawns once for each of you. Any seat can be a computer; people take their turns one after another on this device, and the Horde moves first each round.`):"";
-    const blk=skyBlocked(val("omoonon")),hum=humans(),ns=$("#onosubs")&&$("#onosubs").checked,alike=!!($("#oalike")&&$("#oalike").checked),near=(a,b)=>alike?a===b:colorNear(a,b);
-    seatsS.forEach((S,i)=>{S.you=i===0&&S.type==="human"&&hum===1&&!NET.inSetup;S.noHuman=S.type!=="human"&&hum>=4;S.noSubs=ns;S.alikeOk=alike});   // v70d: four people on one device at most
+<div class="stabs" role="tablist">${tabs.map(([k, t], i) => `<button type="button" role="tab" class="stab ${i ? "" : "on"}" data-t="${k}" aria-selected="${!i}">${t}</button>`).join("")}</div>
+${tabs.map(([k, , h], i) => `<div class="spanel" data-p="${k}" role="tabpanel" ${i ? "hidden" : ""}><div class="scols">${h}</div></div>`).join("")}
+<p class="acts sfoot"><button class="btn" id="go">${mode === "survival" ? "Raise your Ace" : "Roll for the opening"}</button> <button class="btn ghost" id="back">← Other modes</button> <a class="dim" href="ethers-crossroads-rules.html#modes">How the modes work</a></p></div>`);
+  document.querySelectorAll(".stab").forEach(
+    (b) =>
+      (b.onclick = () => {
+        document.querySelectorAll(".stab").forEach((x) => {
+          x.classList.toggle("on", x === b);
+          x.setAttribute("aria-selected", x === b);
+        });
+        document
+          .querySelectorAll(".spanel")
+          .forEach((p) => (p.hidden = p.dataset.p !== b.dataset.t));
+      }),
+  );
+  const count = () => +$("#pcount").value;
+  const layout = () => {
+    const n = count();
+    if (mode === "survival") return n === 1 ? "duel" : "coop";
+    const v = val("olayout");
+    return v && LAYNEED[v].includes(n) ? v : LAYDEF[n];
+  };
+  const humans = () =>
+    seatsS.slice(0, count()).filter((S) => S.type === "human").length;
+  const drawSeats = () => {
+    const n = count(),
+      L = layout();
+    if (mode !== "survival") {
+      document.querySelectorAll("#layoutf [data-lay]").forEach((o) => {
+        const ok = LAYNEED[o.dataset.lay].includes(n);
+        o.classList.toggle("off", !ok);
+        const inp = o.querySelector("input");
+        inp.disabled = !ok;
+        inp.checked = o.dataset.lay === L;
+      });
+      const gm =
+        L === "koth"
+          ? "koth"
+          : L.startsWith("team") || L === "factions"
+            ? "teams"
+            : "ffa"; // v73d: the Game choice follows the layout underneath
+      document.querySelectorAll("#layoutf [data-gm]").forEach((o) => {
+        const k = o.dataset.gm,
+          ok = k === "koth" || (k === "teams" ? n >= 3 : n <= 4),
+          inp = o.querySelector("input");
+        inp.disabled = !ok;
+        o.classList.toggle("off", !ok);
+        inp.checked = k === gm;
+        if (k === "ffa")
+          o.querySelector(".gmn").textContent =
+            n === 2 ? "1v1" : "Free For All";
+      });
+      $("#teamn").hidden = gm !== "teams";
+      document.querySelectorAll("input[name=oteamn]").forEach((i) => {
+        i.checked = (i.value === "fac") === (L === "factions");
+        const no = i.value === "two" && n < 4;
+        i.disabled = no;
+        i.closest(".opt").classList.toggle("off", no);
+      });
+      $("#teamarr").hidden = gm !== "teams" || L === "factions";
+      if (gm === "teams")
+        document.querySelectorAll("input[name=oteamarr]").forEach((i) => {
+          i.checked = "team-" + i.value === L;
+          const no = i.value === "same" && n > 4;
+          i.disabled = no;
+          i.closest(".opt").classList.toggle("off", no);
+        });
+    }
+    const key = L + (L === "coop" || L === "factions" ? n : "");
+    if (key !== curLayout) {
+      // v78j: factions count the players too
+      if (L === "factions") {
+        const F = Math.min(4, Math.max(3, Math.ceil(n / 2)));
+        seatsS.forEach((S, i) => (S.team = i % F));
+      } else if (String(curLayout || "").startsWith("factions"))
+        seatsS.forEach((S, i) => (S.team = i % 2)); // out of factions: two even sides
+      else
+        seatsS.forEach((S) => {
+          S.team = (S.team | 0) % 2;
+        }); // v73d: factions deal the seats out; two sides fold back
+      curLayout = key;
+      sizeUp();
+    }
+    if ($("#kothopts")) {
+      $("#kothopts").hidden = L !== "koth";
+      {
+        const sm = document.querySelector("input[name=okfield][value=small]");
+        if (sm) {
+          const no = n > 4;
+          sm.disabled = no;
+          sm.closest(".opt").classList.toggle("off", no);
+          if (no && sm.checked)
+            document.querySelector("input[name=okfield][value=hill]").checked =
+              true;
+        }
+      }
+      SEAT_KOTH_TEAM = $("#okteam").checked;
+      $("#oktug").disabled = !SEAT_KOTH_TEAM;
+      kothMapUp(L);
+    }
+    $("#laynote").textContent =
+      mode === "survival"
+        ? n === 1
+          ? "One survivor holds the bottom of the field."
+          : `${n} survivors share the bottom of the field, and the Horde spawns once for each of you. Any seat can be a computer; people take their turns one after another on this device, and the Horde moves first each round.`
+        : "";
+    const blk = skyBlocked(val("omoonon")),
+      hum = humans(),
+      ns = $("#onosubs") && $("#onosubs").checked,
+      alike = !!($("#oalike") && $("#oalike").checked),
+      near = (a, b) => (alike ? a === b : colorNear(a, b));
+    seatsS.forEach((S, i) => {
+      S.you = i === 0 && S.type === "human" && hum === 1 && !NET.inSetup;
+      S.noHuman = S.type !== "human" && hum >= 4;
+      S.noSubs = ns;
+      S.alikeOk = alike;
+    }); // v70d: four people on one device at most
     // v71: no two seats share a color; an Emanation's own color (Satan's crimson) takes Crimson from the others, and a seat that held it moves
     // v71e: and no two alike (colorNear): a color too close to another seat's can't be picked
-    const colOf=Q=>!ns&&TRIBES[Q.tribe]&&TRIBES[Q.tribe].color||(Q.color&&Q.color!=="random"?Q.color:null);
-    const takenBy=i=>seatsS.slice(0,n).map((Q,j)=>j===i?null:[colOf(Q),Q.name||`P${j+1}`]).filter(x=>x&&x[0]);
-    seatsS.slice(0,n).forEach((S,i)=>{if(!ns&&TRIBES[S.tribe]&&TRIBES[S.tribe].color||!S.color||S.color==="random")return;
-      const fixedBy=seatsS.slice(0,n).some((Q,j)=>j!==i&&!ns&&TRIBES[Q.tribe]&&TRIBES[Q.tribe].color&&near(TRIBES[Q.tribe].color,S.color));
-      if(fixedBy){const t=takenBy(i),free=COLORS.map(c=>c[1]).find(c=>!t.some(([h])=>near(h,c)));if(free)S.color=free}});
-    seatsS.slice(0,n).forEach((S,i)=>{S.takenC=takenBy(i)});
-    $("#seats").innerHTML=seatsS.slice(0,n).map((S,i)=>seatForm(i,S,mode,L,new Set([...blk,...seatsS.slice(0,n).filter((Q,j)=>j!==i&&Q.tribe!=="random"&&Q.tribe!=="beginner").map(Q=>Q.tribe)]))).join("");
-    $("#seats").querySelectorAll("details.look").forEach((d,i)=>d.addEventListener("toggle",()=>{seatsS[i].open=d.open}));   // v60: each seat's fold stays as it was left
-    $("#seats").querySelectorAll("[data-seat]").forEach(el=>el.addEventListener(el.tagName==="INPUT"&&el.type==="text"?"input":"change",()=>{
-      const S=seatsS[+el.dataset.seat],k=el.dataset.k;S[k]=el.type==="checkbox"?el.checked:el.value;if(k==="name")S.named=true;
-      if(k==="color"){S.lookSet=true;el.closest(".seat").style.setProperty("--pc",el.value);drawSeats();return}   // v61: the accents follow the color
-      if(k==="tribe"||k==="color"||k==="solid")S.lookSet=true;
-      if(k==="type"){if(el.value==="human"&&humans()>4){S.type="medium";flash("Four people can play on one device at most.");drawSeats();return}
-        if(!S.lookSet){S.tribe="random";S.color="random";S.solid="random"}
-        drawSeats();return}
-      if(k==="team"){S.team=+el.value;drawSeats()}
-      if(k==="tribe"){S.open=true;drawSeats()}
-    }));
-    const big=["ffa","team-side","team-across"].includes(L);
-    $("#sizeduel").hidden=L!=="duel";
-    if(!$("#ocorners").dataset.touched)$("#ocorners").checked=big;
+    const colOf = (Q) =>
+      (!ns && TRIBES[Q.tribe] && TRIBES[Q.tribe].color) ||
+      (Q.color && Q.color !== "random" ? Q.color : null);
+    const takenBy = (i) =>
+      seatsS
+        .slice(0, n)
+        .map((Q, j) => (j === i ? null : [colOf(Q), Q.name || `P${j + 1}`]))
+        .filter((x) => x && x[0]);
+    seatsS.slice(0, n).forEach((S, i) => {
+      if (
+        (!ns && TRIBES[S.tribe] && TRIBES[S.tribe].color) ||
+        !S.color ||
+        S.color === "random"
+      )
+        return;
+      const fixedBy = seatsS
+        .slice(0, n)
+        .some(
+          (Q, j) =>
+            j !== i &&
+            !ns &&
+            TRIBES[Q.tribe] &&
+            TRIBES[Q.tribe].color &&
+            near(TRIBES[Q.tribe].color, S.color),
+        );
+      if (fixedBy) {
+        const t = takenBy(i),
+          free = COLORS.map((c) => c[1]).find(
+            (c) => !t.some(([h]) => near(h, c)),
+          );
+        if (free) S.color = free;
+      }
+    });
+    seatsS.slice(0, n).forEach((S, i) => {
+      S.takenC = takenBy(i);
+    });
+    $("#seats").innerHTML = seatsS
+      .slice(0, n)
+      .map((S, i) =>
+        seatForm(
+          i,
+          S,
+          mode,
+          L,
+          new Set([
+            ...blk,
+            ...seatsS
+              .slice(0, n)
+              .filter(
+                (Q, j) =>
+                  j !== i && Q.tribe !== "random" && Q.tribe !== "beginner",
+              )
+              .map((Q) => Q.tribe),
+          ]),
+        ),
+      )
+      .join("");
+    $("#seats")
+      .querySelectorAll("details.look")
+      .forEach((d, i) =>
+        d.addEventListener("toggle", () => {
+          seatsS[i].open = d.open;
+        }),
+      ); // v60: each seat's fold stays as it was left
+    $("#seats")
+      .querySelectorAll("[data-seat]")
+      .forEach((el) =>
+        el.addEventListener(
+          el.tagName === "INPUT" && el.type === "text" ? "input" : "change",
+          () => {
+            const S = seatsS[+el.dataset.seat],
+              k = el.dataset.k;
+            S[k] = el.type === "checkbox" ? el.checked : el.value;
+            if (k === "name") S.named = true;
+            if (k === "color") {
+              S.lookSet = true;
+              el.closest(".seat").style.setProperty("--pc", el.value);
+              drawSeats();
+              return;
+            } // v61: the accents follow the color
+            if (k === "tribe" || k === "color" || k === "solid")
+              S.lookSet = true;
+            if (k === "type") {
+              if (el.value === "human" && humans() > 4) {
+                S.type = "medium";
+                flash("Four people can play on one device at most.");
+                drawSeats();
+                return;
+              }
+              if (!S.lookSet) {
+                S.tribe = "random";
+                S.color = "random";
+                S.solid = "random";
+              }
+              drawSeats();
+              return;
+            }
+            if (k === "team") {
+              S.team = +el.value;
+              drawSeats();
+            }
+            if (k === "tribe") {
+              S.open = true;
+              drawSeats();
+            }
+          },
+        ),
+      );
+    const big = ["ffa", "team-side", "team-across"].includes(L);
+    $("#sizeduel").hidden = L !== "duel";
+    if (!$("#ocorners").dataset.touched) $("#ocorners").checked = big;
     optsUp();
-    const need=L==="factions"?["cross","sq"]:L.startsWith("team")&&n>4?["cross"]:null;   // v73d: factions and big teams need room for their sides
-    if(mode==="survival"){const std=document.querySelector('input[name=obig][value=""]'),ok=survStdOk(n);if(std){std.disabled=!ok;std.closest(".opt").classList.toggle("off",!ok);if(!ok&&std.checked)document.querySelector('input[name=obig][value=long]').checked=true}   // v73b: no small field without five spawn tiles each
-      const lg=val("obig")==="long";$("#sizeset").classList.toggle("survbig",lg)}
-    else{document.querySelectorAll('input[name=obig]').forEach(i=>{const no=L==="coop"||i.value==="long"&&!(L==="duel"||L==="team-same")||!!need&&!need.includes(i.value)||val("omap")==="river"&&L==="duel"&&i.value!=="";   // v78j: River keeps its own size
-      i.disabled=no;i.closest(".opt").classList.toggle("off",no);if(no&&i.checked)document.querySelector(`input[name=obig][value="${need?need[0]:""}"]`).checked=true});
-    if(need&&!need.includes(val("obig")||""))document.querySelector(`input[name=obig][value="${need[0]}"]`).checked=true;crossUp(n,!!need)}
-    document.querySelectorAll('input[name=omap][value=river]').forEach(i=>{i.disabled=L!=="duel";i.closest(".opt").classList.toggle("off",i.disabled);if(i.disabled&&i.checked)document.querySelector('input[name=omap][value=none]').checked=true});
-    $("#teamdecks").hidden=!L.startsWith("team");
-    if(!$("#decksset").dataset.touched){const d=L.startsWith("team")?"half":"1";document.querySelectorAll('input[name=odeckper]').forEach(i=>i.checked=i.value===d)}   // v70d: one deck each, half a deck each in 2v2
-    $("#elimset").hidden=(mode==="survival"?n:n)<(mode==="survival"?2:3);
-    {const on=mode!=="survival"&&(L==="ffa"||L==="factions");$("#dipset").hidden=!on;if(!$("#odip").dataset.touched)$("#odip").checked=L==="factions"}   // v75b: Diplomacy
-    turnUp();mapUp&&mapUp();sumUp();
+    const need =
+      L === "factions"
+        ? ["cross", "sq"]
+        : L.startsWith("team") && n > 4
+          ? ["cross"]
+          : null; // v73d: factions and big teams need room for their sides
+    if (mode === "survival") {
+      const std = document.querySelector('input[name=obig][value=""]'),
+        ok = survStdOk(n);
+      if (std) {
+        std.disabled = !ok;
+        std.closest(".opt").classList.toggle("off", !ok);
+        if (!ok && std.checked)
+          document.querySelector("input[name=obig][value=long]").checked = true;
+      } // v73b: no small field without five spawn tiles each
+      const lg = val("obig") === "long";
+      $("#sizeset").classList.toggle("survbig", lg);
+    } else {
+      document.querySelectorAll("input[name=obig]").forEach((i) => {
+        const no =
+          L === "coop" ||
+          (i.value === "long" && !(L === "duel" || L === "team-same")) ||
+          (!!need && !need.includes(i.value)) ||
+          (val("omap") === "river" && L === "duel" && i.value !== ""); // v78j: River keeps its own size
+        i.disabled = no;
+        i.closest(".opt").classList.toggle("off", no);
+        if (no && i.checked)
+          document.querySelector(
+            `input[name=obig][value="${need ? need[0] : ""}"]`,
+          ).checked = true;
+      });
+      if (need && !need.includes(val("obig") || ""))
+        document.querySelector(`input[name=obig][value="${need[0]}"]`).checked =
+          true;
+      crossUp(n, !!need);
+    }
+    document.querySelectorAll("input[name=omap][value=river]").forEach((i) => {
+      i.disabled = L !== "duel";
+      i.closest(".opt").classList.toggle("off", i.disabled);
+      if (i.disabled && i.checked)
+        document.querySelector("input[name=omap][value=none]").checked = true;
+    });
+    $("#teamdecks").hidden = !L.startsWith("team");
+    if (!$("#decksset").dataset.touched) {
+      const d = L.startsWith("team") ? "half" : "1";
+      document
+        .querySelectorAll("input[name=odeckper]")
+        .forEach((i) => (i.checked = i.value === d));
+    } // v70d: one deck each, half a deck each in 2v2
+    $("#elimset").hidden =
+      (mode === "survival" ? n : n) < (mode === "survival" ? 2 : 3);
+    {
+      const on = mode !== "survival" && (L === "ffa" || L === "factions");
+      $("#dipset").hidden = !on;
+      if (!$("#odip").dataset.touched) $("#odip").checked = L === "factions";
+    } // v75b: Diplomacy
+    turnUp();
+    mapUp && mapUp();
+    sumUp();
   };
-  const turnUp=()=>{
-    const t=$("#oturns"),many=humans()>1;
-    if(many){t.value="classic";t.disabled=true;$("#turnnote").textContent="With more than one person on this device, play is always turn by turn."}
-    else{t.disabled=false;if(!t.dataset.touched)t.value="prep";
-      $("#turnnote").textContent=t.value==="classic"?"Each player draws, preps and attacks before the next player goes.":t.value==="prep"?"Everyone draws together (press Done drawing), then preps; when everyone is done, each player attacks in turn.":"Every phase is played together; each goes on when everyone is done."}
+  const turnUp = () => {
+    const t = $("#oturns"),
+      many = humans() > 1;
+    if (many) {
+      t.value = "classic";
+      t.disabled = true;
+      $("#turnnote").textContent =
+        "With more than one person on this device, play is always turn by turn.";
+    } else {
+      t.disabled = false;
+      if (!t.dataset.touched) t.value = "prep";
+      $("#turnnote").textContent =
+        t.value === "classic"
+          ? "Each player draws, preps and attacks before the next player goes."
+          : t.value === "prep"
+            ? "Everyone draws together (press Done drawing), then preps; when everyone is done, each player attacks in turn."
+            : "Every phase is played together; each goes on when everyone is done.";
+    }
   };
-  $("#oturns").addEventListener("change",()=>{$("#oturns").dataset.touched=1;turnUp()});
-  $("#ocorners").addEventListener("change",()=>$("#ocorners").dataset.touched=1);
-  $("#pcount").addEventListener("change",drawSeats);
-  document.querySelectorAll('input[name=obig],input[name=oxsize]').forEach(i=>i.addEventListener("change",()=>{const n=count(),L=layout();crossUp(n,L==="factions"||L.startsWith("team")&&n>4)}));   // v73c; v78j: with the same rule as drawSeats
-  document.querySelectorAll('input[name=obig]').forEach(i=>i.addEventListener("change",()=>$("#sizeset").classList.toggle("survbig",mode==="survival"&&val("obig")==="long")));
+  $("#oturns").addEventListener("change", () => {
+    $("#oturns").dataset.touched = 1;
+    turnUp();
+  });
+  $("#ocorners").addEventListener(
+    "change",
+    () => ($("#ocorners").dataset.touched = 1),
+  );
+  $("#pcount").addEventListener("change", drawSeats);
+  document
+    .querySelectorAll("input[name=obig],input[name=oxsize]")
+    .forEach((i) =>
+      i.addEventListener("change", () => {
+        const n = count(),
+          L = layout();
+        crossUp(n, L === "factions" || (L.startsWith("team") && n > 4));
+      }),
+    ); // v73c; v78j: with the same rule as drawSeats
+  document
+    .querySelectorAll("input[name=obig]")
+    .forEach((i) =>
+      i.addEventListener("change", () =>
+        $("#sizeset").classList.toggle(
+          "survbig",
+          mode === "survival" && val("obig") === "long",
+        ),
+      ),
+    );
   /* v78j: an option that would do nothing in this setup isn't offered (large maps keep their corners, the Cross maps have
      holes of their own, Survival has no Demons, no Bank and no middle hole) */
-  const optsUp=()=>{const L=layout(),bigMap=val("obig")||"",off=(id,no)=>{const i=$("#"+id);if(!i)return;i.disabled=no;const l=i.closest("label");if(l)l.classList.toggle("off",no)};
-    off("ocorners",L==="coop"||!!bigMap);off("oxhole",mode==="survival"||/^(cross|plus)$/.test(bigMap));off("obarb",mode==="survival");off("obank",mode==="survival")};
-  document.querySelectorAll('input[name=obig]').forEach(i=>i.addEventListener("change",optsUp));
-  $("#odip").addEventListener("change",()=>{$("#odip").dataset.touched=1});   // v73b: the large map has its own size
-  document.querySelectorAll('input[name=olayout]').forEach(i=>i.addEventListener("change",drawSeats));
-  const pickLay=k=>{const i=document.querySelector(`input[name=olayout][value="${k}"]`);if(i)i.checked=true;drawSeats()};   // v73d: Game and Teammates spawn set the layout underneath
-  const teamLay=()=>{const n=count();if(n<4||val("oteamn")==="fac")return "factions";const a=val("oteamarr")||"same";return "team-"+(a==="same"&&n>4?"across":a)};
-  document.querySelectorAll('input[name=ogmode]').forEach(i=>i.addEventListener("change",()=>{const n=count();pickLay(i.value==="koth"?"koth":i.value==="teams"?teamLay():n===2?"duel":"ffa")}));
-  document.querySelectorAll('input[name=oteamarr],input[name=oteamn]').forEach(i=>i.addEventListener("change",()=>pickLay(teamLay())));
-  let mapUp=null;
-  function sizeUp(){
-    const L=layout(),box=$("#sizeother"),n=count();box.hidden=L==="duel";if(L==="duel"){box.innerHTML="";return}
-    const sel=(id,label,opts,def)=>`<label class="f">${label} <select id="${id}">${opts.map(v=>`<option value="${v}" ${v===def?"selected":""}>${v}${v===def?" (default)":""}</option>`).join("")}</select></label>`;
-    const rng=(a,b)=>Array.from({length:b-a+1},(_,i)=>a+i);
-    if(L==="ffa"||L==="team-side"||L==="team-across")box.innerHTML=sel("osize","Size (tiles on each side)",rng(5,9),7)+'<p class="dim">The field is square so every edge is the same. On a phone, 7 is the largest size that stays easy to read.</p>';
-    else if(L==="factions"||L==="koth")box.innerHTML=`<p class="dim">${L==="koth"?"King of the Hill has its own field: its size is in the King of the Hill options.":"Factions play on a 10 by 10 field, or on the Cross when you pick it under Large maps."}</p>`;
-    else if(L==="team-same")box.innerHTML=sel("ocols2","Width",[6,7,8],6)+sel("orows2","Height",[4,5,6],6)+'<p class="dim">Each team holds two lines at one end. Height 4 has no midline, 5 has one line between the teams, and 6 has two.</p>';
-    else{const h=n,W=SURV_STD_W[h]||[],dc=W.includes(h===2?6:9)?(h===2?6:9):W[0],dr=h===2?5:6;   // v73b: only widths that give every survivor the same five or more tiles
-      box.innerHTML=W.length?sel("ocols2","Width",W,dc)+sel("orows2","Height",[5,6],dr)+'<p class="dim">With the standard sizes the survivors split the bottom two lines; the Horde holds the top two.</p>':'<p class="dim">Four survivors play on the large map: the standard sizes leave fewer than five spawn tiles each.</p>'}
-  }
-  const sumUp=()=>{
-    const per=val("odeckper")||"1",half=per==="half",m=half?0:+per,sp=val("ospecials"),js=$("#ojoker").checked,L=layout(),N=Math.max(1,count());
-    if(!$("#oeach").dataset.touched)$("#oeach").checked=half;
-    $("#suitmode").hidden=!(half&&L==="duel");$("#suitpick").hidden=$("#suitmode").hidden||val("osuitmode")!=="choose";
-    const s=half?2:4*m,j=half?1:2*m,nd=Math.max(1,Math.round(s/4)),mi=$("#ominer").checked?1:0;
-    const keptSp=sp==="all"?4*s+j-2:sp==="half"?3*s/2-1+2*nd:(js?1:0),deck=9*s+keptSp+2+mi,outPer=4*s+j-2-keptSp;   // v74d: Half: the J Q K of half the suits (less the opening Jack), and an Ace and a Joker per deck
-    const ep=val("oetherper")||"1",ef=ep==="same"?(half?.5:m):ep==="half"?.5:ep==="inf"?1:+ep,ne=Math.max(1,Math.round(ef*Math.max(N,L==="duel"?2:1)));
-    const ether=outPer*N+41*ne-(2+mi)*N+(half&&mode==="survival"&&N===1?26:0);
-    $("#decksum").textContent=`Each player's deck starts with ${deck} cards (${sp==="half"?`${3*s/2-1} Jacks, Queens and Kings, ${nd===1?"an Ace and a Joker":`${nd} Aces and ${nd} Jokers`}, `:""}two Scouts${mi?" and a Miner":""} among them), plus the opening Ace and Jack on the field. ${$("#oetheron")&&!$("#oetheron").checked?"The Ether is off: nothing can be conjured.":`The Ether starts with about ${ether} souls to conjure${ep==="inf"?", and every one comes back when taken":""}.`}`;
+  const optsUp = () => {
+    const L = layout(),
+      bigMap = val("obig") || "",
+      off = (id, no) => {
+        const i = $("#" + id);
+        if (!i) return;
+        i.disabled = no;
+        const l = i.closest("label");
+        if (l) l.classList.toggle("off", no);
+      };
+    off("ocorners", L === "coop" || !!bigMap);
+    off("oxhole", mode === "survival" || /^(cross|plus)$/.test(bigMap));
+    off("obarb", mode === "survival");
+    off("obank", mode === "survival");
   };
-  $("#oeach").addEventListener("change",()=>$("#oeach").dataset.touched=1);
-  document.querySelectorAll('input[name=odeckper],input[name=oetherper],input[name=ospecials],input[name=osuitmode],#ojoker,#ominer,#oetheron').forEach(i=>i.addEventListener("change",()=>{if(i.name==="odeckper")$("#decksset").dataset.touched=1;sumUp()}));sumUp();
-  $("#onosubs").addEventListener("change",drawSeats);$("#oalike").addEventListener("change",drawSeats);
-  const SKY_NOTE={bid:"Every 2 + 1d2 − 1 completed cycles, the Heavenly Body announces it is leaving. Players bid mana to keep it for one more cycle, or to see it go; the highest bid wins (an Oath of that Heavenly Body adds half again to a bid on a 2 of 1d2). If nobody bids to keep it, a new Heavenly Body takes the sky.",never:"The Heavenly Body stays until a spell, the shop or an Emanation changes it.",cycles:"After this many of its cycles, a new Heavenly Body takes the sky.",rounds:"After this many rounds, a new Heavenly Body takes the sky, wherever it is in its cycle."};
-  const skyUp=()=>{const m=$("#oskychg").value,ev=m==="cycles"||m==="rounds",dice=val("oskyhow")==="dice";$("#skychgnote").textContent=SKY_NOTE[m];
-    $("#skyevery").hidden=!ev;$("#oskyunit").textContent=m==="rounds"?"rounds":"cycles";$("#skyn").hidden=dice;$("#skyd").hidden=!dice;
-    $("#oskyrand").closest("label").hidden=m!=="rounds";const dn=+$("#oskydn").textContent,ds=+$("#oskyds").value;
-    if(dn*ds>100){$("#oskydn").textContent=Math.max(1,Math.floor(100/ds))}$("#oskydtot").textContent=`(${$("#oskydn").textContent}d${ds}: ${$("#oskydn").textContent} to ${+$("#oskydn").textContent*ds} ${m==="rounds"?"rounds":"cycles"})`};
-  $("#skychg").querySelectorAll("[data-sk]").forEach(b=>b.onclick=()=>{const k=b.dataset.sk,el=k==="n"?$("#oskyn"):$("#oskydn"),ds=+$("#oskyds").value,max=k==="n"?100:Math.max(1,Math.floor(100/ds));
-    el.textContent=Math.max(1,Math.min(max,+el.textContent+ +b.dataset.d));skyUp()});
-  /* v71q: Eclipse mode shows Always in eclipse, and keeps Eclipses on */
-  const eclUp=()=>{const on=$("#oblood").checked,e=$("#oeclipse");$("#oeclallw").hidden=!on;if(!on)$("#oeclall").checked=false;
-    if(e){if(on)e.checked=true;e.disabled=on;e.closest("label").classList.toggle("off",on);e.closest("label").title=on?"Eclipse mode keeps eclipses on.":""}};
-  $("#oblood").addEventListener("change",eclUp);eclUp();
-  ["#oskychg","#oskyds"].forEach(q=>$(q).addEventListener("change",skyUp));document.querySelectorAll('input[name=oskyhow]').forEach(i=>i.addEventListener("change",skyUp));skyUp();
-  function skyChangeOpts(){const m=$("#oskychg").value;return {mode:m,dice:val("oskyhow")==="dice",n:+$("#oskyn").textContent,dn:+$("#oskydn").textContent,ds:+$("#oskyds").value,rand:m==="rounds"&&$("#oskyrand").checked}}
-  mapUp=()=>{const rv=val("omap")==="river";$("#bridgeopt").hidden=!rv;$("#rivernote").hidden=!rv;
-    document.querySelectorAll('#sizeduel input').forEach(i=>i.disabled=rv);};
-  document.querySelectorAll('input[name=omap]').forEach(i=>i.addEventListener("change",()=>drawSeats()));   // v78j: the sizes too (River keeps its own); drawSeats calls mapUp
-  document.querySelectorAll('input[name=omoonon]').forEach(i=>i.addEventListener("change",()=>{for(const S of seatsS)if(skyBlocked(val("omoonon")).includes(S.tribe))S.tribe="random";drawSeats()}));drawSeats();
-  $("#back").onclick=()=>{startMode=null;history.replaceState(null,"",location.pathname);showStart()};
-  $("#go").onclick=()=>{
-    const n=count(),L=layout();
-    let players=seatsS.slice(0,n).map((S,i)=>{
-      const cpu=S.type==="human"?null:S.type;
-      let name=(S.name.trim()||`P${i+1}`).slice(0,20);
-      return{name,tribe:S.tribe,color:S.color,solid:S.solid,accent:S.accent||"auto",pattern:S.pattern||"random",sheen:!!S.sheen,cpu,arch:cpu&&cpu!=="horde"?S.arch||"random":null};
-    });
-    const blk=skyBlocked(val("omoonon")),bad=players.find(p=>blk.includes(p.tribe));if(bad){flash(`${TRIBES[bad.tribe].name} can't be played with that Heavenly Body in the sky.`);return}
-    if($("#onosubs").checked)players.forEach(p=>{p.tribe="plain"});   // v70d: No Emanations: everyone plays by the plain rules
-    for(const t of Object.keys(TRIBES))if(t!=="random"&&t!=="plain"&&players.filter(p=>p.tribe===t).length>1){flash(`Only one player can be ${TRIBES[t].name}: no two players share an Emanation.`);return}
-    {const picked=players.filter(p=>!TRIBES[p.tribe].color&&p.color!=="random");if(new Set(picked.map(p=>p.color)).size<picked.length){flash("Every player needs a different color.");return}}   // Random finds a free color at the start
-    if(L==="koth"&&$("#okteam").checked){players.forEach((p,i)=>p.team=seatsS[i].team?1:0);if(!players.some(p=>p.team===0)||!players.some(p=>p.team===1)){flash("Each side needs at least one player.");return}
-      if(val("okfield")==="cross"&&[0,1].some(t=>players.filter(p=>p.team===t).length>4)){flash("A side holds four players at most on the Cross: two to an arm.");return}}   // v78j
-    if(L==="factions"){const fs=new Map();players.forEach((p,i)=>{p.team=seatsS[i].team|0;fs.set(p.team,(fs.get(p.team)||0)+1)});   // v73d
-      if(fs.size<3){flash("Faction mode needs players in at least three factions.");return}
-      if([...fs.values()].some(v=>v>2)){flash("A faction holds two players at most: they spawn side by side on its own side.");return}}
-    else if(L.startsWith("team")&&n>4){players.forEach((p,i)=>p.team=seatsS[i].team?1:0);const a=players.filter(p=>!p.team).length;
-      if(!a||a===n){flash("Each side needs at least one player.");return}if(a>4||n-a>4){flash("A team holds four players at most on the Cross: two to an arm.");return}}
-    else if(L.startsWith("team")){ // seats alternate sides: A, B, A, B
-      const A=players.filter((p,i)=>!seatsS[i].team),B=players.filter((p,i)=>seatsS[i].team);
-      if(A.length!==2){flash("Each side needs two players.");return}
-      players=[A[0],B[0],A[1],B[1]];
+  document
+    .querySelectorAll("input[name=obig]")
+    .forEach((i) => i.addEventListener("change", optsUp));
+  $("#odip").addEventListener("change", () => {
+    $("#odip").dataset.touched = 1;
+  }); // v73b: the large map has its own size
+  document
+    .querySelectorAll("input[name=olayout]")
+    .forEach((i) => i.addEventListener("change", drawSeats));
+  const pickLay = (k) => {
+    const i = document.querySelector(`input[name=olayout][value="${k}"]`);
+    if (i) i.checked = true;
+    drawSeats();
+  }; // v73d: Game and Teammates spawn set the layout underneath
+  const teamLay = () => {
+    const n = count();
+    if (n < 4 || val("oteamn") === "fac") return "factions";
+    const a = val("oteamarr") || "same";
+    return "team-" + (a === "same" && n > 4 ? "across" : a);
+  };
+  document.querySelectorAll("input[name=ogmode]").forEach((i) =>
+    i.addEventListener("change", () => {
+      const n = count();
+      pickLay(
+        i.value === "koth"
+          ? "koth"
+          : i.value === "teams"
+            ? teamLay()
+            : n === 2
+              ? "duel"
+              : "ffa",
+      );
+    }),
+  );
+  document
+    .querySelectorAll("input[name=oteamarr],input[name=oteamn]")
+    .forEach((i) => i.addEventListener("change", () => pickLay(teamLay())));
+  let mapUp = null;
+  function sizeUp() {
+    const L = layout(),
+      box = $("#sizeother"),
+      n = count();
+    box.hidden = L === "duel";
+    if (L === "duel") {
+      box.innerHTML = "";
+      return;
     }
-    if(mode==="survival")players.push({name:"The Horde",color:HORDE_COLOR,solid:pick(Object.keys(SOLIDS).filter(s=>!players.some(p=>p.solid===s)))||"dodeca",cpu:"horde"});
-    PREF.hand=val("dhand")||PREF.hand;PREF.sel=val("dsel")||PREF.sel;PREF.ctl=val("dctl")||PREF.ctl;PREF.theme=val("dtheme")??PREF.theme;PREF.coords=val("dcoord")==="1";PREF.full=val("dfull")==="1";PREF.lines=val("dlines")!=="0";if($("#danimc")){PREF.fxCards=$("#danimc").checked;PREF.fxMagic=$("#danimm").checked}PREF.bright=+($("#dbright")||{}).value||1;savePrefs();applyPrefs();
-    startGame({mode,players,mid:mode==="survival"||(val("orowsd")?+val("orowsd")>4:true),aceLock:$("#olock").checked,jokerDark:!$("#ojkdark")||$("#ojkdark").checked,etherOff:!!$("#oetheron")&&!$("#oetheron").checked,fog:$("#ofog").checked,crystals:$("#ocrys").checked,barbarians:$("#obarb").checked,cheat:!!($("#ocheat")&&$("#ocheat").checked),hole:+$("#ohole").value,bankStart:$("#obank").checked,bloodStart:$("#oblood").checked&&(val("omoonon")||"on")==="on",eclipseStart:$("#oblood").checked&&!["on","off"].includes(val("omoonon")||"on"),
-      map:L==="koth"?"hill":val("omap"),big:L==="koth"?(["cross","small"].includes(val("okfield"))?"cross":""):val("obig")||"",cross:L==="koth"?{size:val("okfield")==="small"?"small":"std"}:crossOpts(),factions:L==="factions",koth:L==="koth"?{team:$("#okteam").checked,tug:$("#okteam").checked&&$("#oktug").checked,double:$("#okdouble").checked,contest:$("#okcontest").checked,target:+val("oktarget")||50,near:val("oknear")==="near",cpu:val("okcpu")||"each"}:null,cols:L==="duel"?+val("ocols"):$("#ocols2")?+$("#ocols2").value:undefined,rows:$("#orows2")?+$("#orows2").value:L==="duel"&&val("orowsd")?+val("orowsd"):undefined,size:$("#osize")?+$("#osize").value:undefined,corners:$("#ocorners").checked,bridge:val("obridge"),hq:!!($("#ohq")&&$("#ohq").checked),
-      deckPer:val("odeckper")||"1",etherPer:val("oetherper")||"1",noSubs:$("#onosubs").checked,specials:val("ospecials"),jokerSure:$("#ojoker").checked,deckMiner:$("#ominer").checked,suits:val("odeckper")==="half"&&L==="duel"&&val("osuitmode")==="choose"?[$("#osuitR").value,$("#osuitB").value]:null,
-      startMana:$("#omana").value,manaEach:$("#oeach").checked,moonBonus:$("#omoon").checked,moon:val("omoonon")||"on",cycleEvents:$("#ocycev").checked,alikeOk:!!($("#oalike")&&$("#oalike").checked),eclipses:$("#oeclipse").checked||$("#oblood").checked,eclipseMode:$("#oblood").checked,eclipseAlways:$("#oblood").checked&&!!($("#oeclall")&&$("#oeclall").checked),skyChange:skyChangeOpts(),atkSpells:$("#oatk").checked,pshop:$("#opshop")?$("#opshop").checked:true,
-      layout:L,diplomacy:!$("#dipset").hidden&&$("#odip").checked,turns:$("#oturns").value,timer:+$("#otimer").value,cpuSpeed:$("#ospeed").value,elimDark:val("oelim")==="dark",shareDeck:$("#oshare").checked});
+    const sel = (id, label, opts, def) =>
+      `<label class="f">${label} <select id="${id}">${opts.map((v) => `<option value="${v}" ${v === def ? "selected" : ""}>${v}${v === def ? " (default)" : ""}</option>`).join("")}</select></label>`;
+    const rng = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+    if (L === "ffa" || L === "team-side" || L === "team-across")
+      box.innerHTML =
+        sel("osize", "Size (tiles on each side)", rng(5, 9), 7) +
+        '<p class="dim">The field is square so every edge is the same. On a phone, 7 is the largest size that stays easy to read.</p>';
+    else if (L === "factions" || L === "koth")
+      box.innerHTML = `<p class="dim">${L === "koth" ? "King of the Hill has its own field: its size is in the King of the Hill options." : "Factions play on a 10 by 10 field, or on the Cross when you pick it under Large maps."}</p>`;
+    else if (L === "team-same")
+      box.innerHTML =
+        sel("ocols2", "Width", [6, 7, 8], 6) +
+        sel("orows2", "Height", [4, 5, 6], 6) +
+        '<p class="dim">Each team holds two lines at one end. Height 4 has no midline, 5 has one line between the teams, and 6 has two.</p>';
+    else {
+      const h = n,
+        W = SURV_STD_W[h] || [],
+        dc = W.includes(h === 2 ? 6 : 9) ? (h === 2 ? 6 : 9) : W[0],
+        dr = h === 2 ? 5 : 6; // v73b: only widths that give every survivor the same five or more tiles
+      box.innerHTML = W.length
+        ? sel("ocols2", "Width", W, dc) +
+          sel("orows2", "Height", [5, 6], dr) +
+          '<p class="dim">With the standard sizes the survivors split the bottom two lines; the Horde holds the top two.</p>'
+        : '<p class="dim">Four survivors play on the large map: the standard sizes leave fewer than five spawn tiles each.</p>';
+    }
+  }
+  const sumUp = () => {
+    const per = val("odeckper") || "1",
+      half = per === "half",
+      m = half ? 0 : +per,
+      sp = val("ospecials"),
+      js = $("#ojoker").checked,
+      L = layout(),
+      N = Math.max(1, count());
+    if (!$("#oeach").dataset.touched) $("#oeach").checked = half;
+    $("#suitmode").hidden = !(half && L === "duel");
+    $("#suitpick").hidden =
+      $("#suitmode").hidden || val("osuitmode") !== "choose";
+    const s = half ? 2 : 4 * m,
+      j = half ? 1 : 2 * m,
+      nd = Math.max(1, Math.round(s / 4)),
+      mi = $("#ominer").checked ? 1 : 0;
+    const keptSp =
+        sp === "all"
+          ? 4 * s + j - 2
+          : sp === "half"
+            ? (3 * s) / 2 - 1 + 2 * nd
+            : js
+              ? 1
+              : 0,
+      deck = 9 * s + keptSp + 2 + mi,
+      outPer = 4 * s + j - 2 - keptSp; // v74d: Half: the J Q K of half the suits (less the opening Jack), and an Ace and a Joker per deck
+    const ep = val("oetherper") || "1",
+      ef =
+        ep === "same"
+          ? half
+            ? 0.5
+            : m
+          : ep === "half"
+            ? 0.5
+            : ep === "inf"
+              ? 1
+              : +ep,
+      ne = Math.max(1, Math.round(ef * Math.max(N, L === "duel" ? 2 : 1)));
+    const ether =
+      outPer * N +
+      41 * ne -
+      (2 + mi) * N +
+      (half && mode === "survival" && N === 1 ? 26 : 0);
+    $("#decksum").textContent =
+      `Each player's deck starts with ${deck} cards (${sp === "half" ? `${(3 * s) / 2 - 1} Jacks, Queens and Kings, ${nd === 1 ? "an Ace and a Joker" : `${nd} Aces and ${nd} Jokers`}, ` : ""}two Scouts${mi ? " and a Miner" : ""} among them), plus the opening Ace and Jack on the field. ${$("#oetheron") && !$("#oetheron").checked ? "The Ether is off: nothing can be conjured." : `The Ether starts with about ${ether} souls to conjure${ep === "inf" ? ", and every one comes back when taken" : ""}.`}`;
+  };
+  $("#oeach").addEventListener(
+    "change",
+    () => ($("#oeach").dataset.touched = 1),
+  );
+  document
+    .querySelectorAll(
+      "input[name=odeckper],input[name=oetherper],input[name=ospecials],input[name=osuitmode],#ojoker,#ominer,#oetheron",
+    )
+    .forEach((i) =>
+      i.addEventListener("change", () => {
+        if (i.name === "odeckper") $("#decksset").dataset.touched = 1;
+        sumUp();
+      }),
+    );
+  sumUp();
+  $("#onosubs").addEventListener("change", drawSeats);
+  $("#oalike").addEventListener("change", drawSeats);
+  const SKY_NOTE = {
+    bid: "Every 2 + 1d2 − 1 completed cycles, the Heavenly Body announces it is leaving. Players bid mana to keep it for one more cycle, or to see it go; the highest bid wins (an Oath of that Heavenly Body adds half again to a bid on a 2 of 1d2). If nobody bids to keep it, a new Heavenly Body takes the sky.",
+    never:
+      "The Heavenly Body stays until a spell, the shop or an Emanation changes it.",
+    cycles: "After this many of its cycles, a new Heavenly Body takes the sky.",
+    rounds:
+      "After this many rounds, a new Heavenly Body takes the sky, wherever it is in its cycle.",
+  };
+  const skyUp = () => {
+    const m = $("#oskychg").value,
+      ev = m === "cycles" || m === "rounds",
+      dice = val("oskyhow") === "dice";
+    $("#skychgnote").textContent = SKY_NOTE[m];
+    $("#skyevery").hidden = !ev;
+    $("#oskyunit").textContent = m === "rounds" ? "rounds" : "cycles";
+    $("#skyn").hidden = dice;
+    $("#skyd").hidden = !dice;
+    $("#oskyrand").closest("label").hidden = m !== "rounds";
+    const dn = +$("#oskydn").textContent,
+      ds = +$("#oskyds").value;
+    if (dn * ds > 100) {
+      $("#oskydn").textContent = Math.max(1, Math.floor(100 / ds));
+    }
+    $("#oskydtot").textContent =
+      `(${$("#oskydn").textContent}d${ds}: ${$("#oskydn").textContent} to ${+$("#oskydn").textContent * ds} ${m === "rounds" ? "rounds" : "cycles"})`;
+  };
+  $("#skychg")
+    .querySelectorAll("[data-sk]")
+    .forEach(
+      (b) =>
+        (b.onclick = () => {
+          const k = b.dataset.sk,
+            el = k === "n" ? $("#oskyn") : $("#oskydn"),
+            ds = +$("#oskyds").value,
+            max = k === "n" ? 100 : Math.max(1, Math.floor(100 / ds));
+          el.textContent = Math.max(
+            1,
+            Math.min(max, +el.textContent + +b.dataset.d),
+          );
+          skyUp();
+        }),
+    );
+  /* v71q: Eclipse mode shows Always in eclipse, and keeps Eclipses on */
+  const eclUp = () => {
+    const on = $("#oblood").checked,
+      e = $("#oeclipse");
+    $("#oeclallw").hidden = !on;
+    if (!on) $("#oeclall").checked = false;
+    if (e) {
+      if (on) e.checked = true;
+      e.disabled = on;
+      e.closest("label").classList.toggle("off", on);
+      e.closest("label").title = on ? "Eclipse mode keeps eclipses on." : "";
+    }
+  };
+  $("#oblood").addEventListener("change", eclUp);
+  eclUp();
+  ["#oskychg", "#oskyds"].forEach((q) =>
+    $(q).addEventListener("change", skyUp),
+  );
+  document
+    .querySelectorAll("input[name=oskyhow]")
+    .forEach((i) => i.addEventListener("change", skyUp));
+  skyUp();
+  function skyChangeOpts() {
+    const m = $("#oskychg").value;
+    return {
+      mode: m,
+      dice: val("oskyhow") === "dice",
+      n: +$("#oskyn").textContent,
+      dn: +$("#oskydn").textContent,
+      ds: +$("#oskyds").value,
+      rand: m === "rounds" && $("#oskyrand").checked,
+    };
+  }
+  mapUp = () => {
+    const rv = val("omap") === "river";
+    $("#bridgeopt").hidden = !rv;
+    $("#rivernote").hidden = !rv;
+    document
+      .querySelectorAll("#sizeduel input")
+      .forEach((i) => (i.disabled = rv));
+  };
+  document
+    .querySelectorAll("input[name=omap]")
+    .forEach((i) => i.addEventListener("change", () => drawSeats())); // v78j: the sizes too (River keeps its own); drawSeats calls mapUp
+  document.querySelectorAll("input[name=omoonon]").forEach((i) =>
+    i.addEventListener("change", () => {
+      for (const S of seatsS)
+        if (skyBlocked(val("omoonon")).includes(S.tribe)) S.tribe = "random";
+      drawSeats();
+    }),
+  );
+  drawSeats();
+  $("#back").onclick = () => {
+    startMode = null;
+    history.replaceState(null, "", location.pathname);
+    showStart();
+  };
+  $("#go").onclick = () => {
+    const n = count(),
+      L = layout();
+    let players = seatsS.slice(0, n).map((S, i) => {
+      const cpu = S.type === "human" ? null : S.type;
+      let name = (S.name.trim() || `P${i + 1}`).slice(0, 20);
+      return {
+        name,
+        tribe: S.tribe,
+        color: S.color,
+        solid: S.solid,
+        accent: S.accent || "auto",
+        pattern: S.pattern || "random",
+        sheen: !!S.sheen,
+        cpu,
+        arch: cpu && cpu !== "horde" ? S.arch || "random" : null,
+      };
+    });
+    const blk = skyBlocked(val("omoonon")),
+      bad = players.find((p) => blk.includes(p.tribe));
+    if (bad) {
+      flash(
+        `${TRIBES[bad.tribe].name} can't be played with that Heavenly Body in the sky.`,
+      );
+      return;
+    }
+    if ($("#onosubs").checked)
+      players.forEach((p) => {
+        p.tribe = "plain";
+      }); // v70d: No Emanations: everyone plays by the plain rules
+    for (const t of Object.keys(TRIBES))
+      if (
+        t !== "random" &&
+        t !== "plain" &&
+        players.filter((p) => p.tribe === t).length > 1
+      ) {
+        flash(
+          `Only one player can be ${TRIBES[t].name}: no two players share an Emanation.`,
+        );
+        return;
+      }
+    {
+      const picked = players.filter(
+        (p) => !TRIBES[p.tribe].color && p.color !== "random",
+      );
+      if (new Set(picked.map((p) => p.color)).size < picked.length) {
+        flash("Every player needs a different color.");
+        return;
+      }
+    } // Random finds a free color at the start
+    if (L === "koth" && $("#okteam").checked) {
+      players.forEach((p, i) => (p.team = seatsS[i].team ? 1 : 0));
+      if (
+        !players.some((p) => p.team === 0) ||
+        !players.some((p) => p.team === 1)
+      ) {
+        flash("Each side needs at least one player.");
+        return;
+      }
+      if (
+        val("okfield") === "cross" &&
+        [0, 1].some((t) => players.filter((p) => p.team === t).length > 4)
+      ) {
+        flash("A side holds four players at most on the Cross: two to an arm.");
+        return;
+      }
+    } // v78j
+    if (L === "factions") {
+      const fs = new Map();
+      players.forEach((p, i) => {
+        p.team = seatsS[i].team | 0;
+        fs.set(p.team, (fs.get(p.team) || 0) + 1);
+      }); // v73d
+      if (fs.size < 3) {
+        flash("Faction mode needs players in at least three factions.");
+        return;
+      }
+      if ([...fs.values()].some((v) => v > 2)) {
+        flash(
+          "A faction holds two players at most: they spawn side by side on its own side.",
+        );
+        return;
+      }
+    } else if (L.startsWith("team") && n > 4) {
+      players.forEach((p, i) => (p.team = seatsS[i].team ? 1 : 0));
+      const a = players.filter((p) => !p.team).length;
+      if (!a || a === n) {
+        flash("Each side needs at least one player.");
+        return;
+      }
+      if (a > 4 || n - a > 4) {
+        flash("A team holds four players at most on the Cross: two to an arm.");
+        return;
+      }
+    } else if (L.startsWith("team")) {
+      // seats alternate sides: A, B, A, B
+      const A = players.filter((p, i) => !seatsS[i].team),
+        B = players.filter((p, i) => seatsS[i].team);
+      if (A.length !== 2) {
+        flash("Each side needs two players.");
+        return;
+      }
+      players = [A[0], B[0], A[1], B[1]];
+    }
+    if (mode === "survival")
+      players.push({
+        name: "The Horde",
+        color: HORDE_COLOR,
+        solid:
+          pick(
+            Object.keys(SOLIDS).filter(
+              (s) => !players.some((p) => p.solid === s),
+            ),
+          ) || "dodeca",
+        cpu: "horde",
+      });
+    PREF.hand = val("dhand") || PREF.hand;
+    PREF.sel = val("dsel") || PREF.sel;
+    PREF.ctl = val("dctl") || PREF.ctl;
+    PREF.theme = val("dtheme") ?? PREF.theme;
+    PREF.coords = val("dcoord") === "1";
+    PREF.full = val("dfull") === "1";
+    PREF.lines = val("dlines") !== "0";
+    if ($("#danimc")) {
+      PREF.fxCards = $("#danimc").checked;
+      PREF.fxMagic = $("#danimm").checked;
+    }
+    PREF.bright = +($("#dbright") || {}).value || 1;
+    savePrefs();
+    applyPrefs();
+    startGame({
+      mode,
+      players,
+      mid: mode === "survival" || (val("orowsd") ? +val("orowsd") > 4 : true),
+      aceLock: $("#olock").checked,
+      jokerDark: !$("#ojkdark") || $("#ojkdark").checked,
+      etherOff: !!$("#oetheron") && !$("#oetheron").checked,
+      fog: $("#ofog").checked,
+      crystals: $("#ocrys").checked,
+      barbarians: $("#obarb").checked,
+      cheat: !!($("#ocheat") && $("#ocheat").checked),
+      hole: +$("#ohole").value,
+      bankStart: $("#obank").checked,
+      bloodStart: $("#oblood").checked && (val("omoonon") || "on") === "on",
+      eclipseStart:
+        $("#oblood").checked && !["on", "off"].includes(val("omoonon") || "on"),
+      map: L === "koth" ? "hill" : val("omap"),
+      big:
+        L === "koth"
+          ? ["cross", "small"].includes(val("okfield"))
+            ? "cross"
+            : ""
+          : val("obig") || "",
+      cross:
+        L === "koth"
+          ? { size: val("okfield") === "small" ? "small" : "std" }
+          : crossOpts(),
+      factions: L === "factions",
+      koth:
+        L === "koth"
+          ? {
+              team: $("#okteam").checked,
+              tug: $("#okteam").checked && $("#oktug").checked,
+              double: $("#okdouble").checked,
+              contest: $("#okcontest").checked,
+              target: +val("oktarget") || 50,
+              near: val("oknear") === "near",
+              cpu: val("okcpu") || "each",
+            }
+          : null,
+      cols:
+        L === "duel"
+          ? +val("ocols")
+          : $("#ocols2")
+            ? +$("#ocols2").value
+            : undefined,
+      rows: $("#orows2")
+        ? +$("#orows2").value
+        : L === "duel" && val("orowsd")
+          ? +val("orowsd")
+          : undefined,
+      size: $("#osize") ? +$("#osize").value : undefined,
+      corners: $("#ocorners").checked,
+      bridge: val("obridge"),
+      hq: !!($("#ohq") && $("#ohq").checked),
+      deckPer: val("odeckper") || "1",
+      etherPer: val("oetherper") || "1",
+      noSubs: $("#onosubs").checked,
+      specials: val("ospecials"),
+      jokerSure: $("#ojoker").checked,
+      deckMiner: $("#ominer").checked,
+      suits:
+        val("odeckper") === "half" &&
+        L === "duel" &&
+        val("osuitmode") === "choose"
+          ? [$("#osuitR").value, $("#osuitB").value]
+          : null,
+      startMana: $("#omana").value,
+      manaEach: $("#oeach").checked,
+      moonBonus: $("#omoon").checked,
+      moon: val("omoonon") || "on",
+      cycleEvents: $("#ocycev").checked,
+      alikeOk: !!($("#oalike") && $("#oalike").checked),
+      eclipses: $("#oeclipse").checked || $("#oblood").checked,
+      eclipseMode: $("#oblood").checked,
+      eclipseAlways:
+        $("#oblood").checked && !!($("#oeclall") && $("#oeclall").checked),
+      skyChange: skyChangeOpts(),
+      atkSpells: $("#oatk").checked,
+      pshop: $("#opshop") ? $("#opshop").checked : true,
+      layout: L,
+      diplomacy: !$("#dipset").hidden && $("#odip").checked,
+      turns: $("#oturns").value,
+      timer: +$("#otimer").value,
+      cpuSpeed: $("#ospeed").value,
+      elimDark: val("oelim") === "dark",
+      shareDeck: $("#oshare").checked,
+    });
   };
 }
-function startGame(opts){
-  ovHide();newGame(opts);applyMoonTheme();render();
-  opening().catch(e=>{console.error(e);log("Error: "+esc(e.message))});
+function startGame(opts) {
+  ovHide();
+  newGame(opts);
+  applyMoonTheme();
+  render();
+  opening().catch((e) => {
+    console.error(e);
+    log("Error: " + esc(e.message));
+  });
 }
-document.addEventListener("DOMContentLoaded",()=>{
-  mountInfo();mountBar();applyPrefs();guardLinks();mountQuotes();showStart();
-  $("#moon").addEventListener("click",()=>{if(G&&canAct()&&G.phase==="attack"&&G.sel&&moonAttackable(selStack())){attackMoon(G.sel.r,G.sel.c);G.mode=null;if(G.sel&&!G.board[G.sel.r][G.sel.c])G.sel=null;render()}});
-  if($("#menubtn"))$("#menubtn").onclick=()=>openMenu();   // v70d: the menu's settings work before a game too
-  $("#newgame").onclick=()=>confirmLeave(()=>{startMode=null;showStart()});
+document.addEventListener("DOMContentLoaded", () => {
+  mountInfo();
+  mountBar();
+  applyPrefs();
+  guardLinks();
+  mountQuotes();
+  showStart();
+  $("#moon").addEventListener("click", () => {
+    if (
+      G &&
+      canAct() &&
+      G.phase === "attack" &&
+      G.sel &&
+      moonAttackable(selStack())
+    ) {
+      attackMoon(G.sel.r, G.sel.c);
+      G.mode = null;
+      if (G.sel && !G.board[G.sel.r][G.sel.c]) G.sel = null;
+      render();
+    }
+  });
+  if ($("#menubtn")) $("#menubtn").onclick = () => openMenu(); // v70d: the menu's settings work before a game too
+  $("#newgame").onclick = () =>
+    confirmLeave(() => {
+      startMode = null;
+      showStart();
+    });
 });
-window.__EC={get G(){return G},startGame,stackLegal,canPlace,nextPhase,render,AI,SP,cast,SPELLS,hordeSpawn,roman,moonSVG,
-  force(o){G.forceMoon=o},jokerSuicide,mk,damage,mkUnit,attack,attackOptions,doMove,seesTile,fogTile,ambushCheck,siegeTurn,siegeEnd,spawnCrystal,spawnBarbarians,meteor,collapse,takeLoan,repay,bankTurn,econRound,effMana:p=>effMana(p),spend,openBank,mysteryGen,skyTurn,firmFog,setPlanet,sunFall,planetTurn,skyAsync,tradeCard,eclipse:k=>eclipse(k),startPeace:(a,b)=>startPeace(a,b),startWar:(a,b)=>startWar(a,b)};
+window.__EC = {
+  get G() {
+    return G;
+  },
+  startGame,
+  stackLegal,
+  canPlace,
+  nextPhase,
+  render,
+  AI,
+  SP,
+  cast,
+  SPELLS,
+  hordeSpawn,
+  roman,
+  moonSVG,
+  force(o) {
+    G.forceMoon = o;
+  },
+  jokerSuicide,
+  mk,
+  damage,
+  mkUnit,
+  attack,
+  attackOptions,
+  doMove,
+  seesTile,
+  fogTile,
+  ambushCheck,
+  siegeTurn,
+  siegeEnd,
+  spawnCrystal,
+  spawnBarbarians,
+  meteor,
+  collapse,
+  takeLoan,
+  repay,
+  bankTurn,
+  econRound,
+  effMana: (p) => effMana(p),
+  spend,
+  openBank,
+  mysteryGen,
+  skyTurn,
+  firmFog,
+  setPlanet,
+  sunFall,
+  planetTurn,
+  skyAsync,
+  tradeCard,
+  eclipse: (k) => eclipse(k),
+  startPeace: (a, b) => startPeace(a, b),
+  startWar: (a, b) => startWar(a, b),
+};

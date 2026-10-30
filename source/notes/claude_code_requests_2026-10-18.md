@@ -1,12 +1,14 @@
 # Requests made in the Claude Code session (2026-10-18), verbatim, then a sorted digest with status
+
 Standing principles still apply: ui_overhaul_sheet.md Part B (playability, organization/consistent geometry, English, information
 on demand, scale-safe text, desktop gets room, keep what was good, care in details, one card system, finish parts properly).
 The earlier to-do list (B1–B9, L1–L10, M1–M3, O1–O3, R1–R4) is in next_requests_2026-10-18.md; all of it is built (v38–v40).
 
 ## Verbatim, in the order given
+
 1. > While you're doing this, you can add the clicking buttons on the ui for the game menu, like when you select things, to the rest of the site, it provides further feedback.
 2. > Also let me know if your new chenages will be deployed by yourself or if i have to find somewhere to approve it / … you can upload the changes whenever idc
-   (Standing permission: Claude merges finished batches into main itself, so they go live.)
+   > (Standing permission: Claude merges finished batches into main itself, so they go live.)
 3. > we can make the scout see only two blocks out in a diamond shape... I think that will be much better, u can add that to your goals
    > the default "Substance" selection should be Beginner for everyone.
 4. > The ability to overdraw should be limited once it happened once, so that way players don't misclick or grief a game by fast suicide in the heat of the moment
@@ -67,37 +69,42 @@ The earlier to-do list (B1–B9, L1–L10, M1–M3, O1–O3, R1–R4) is in next
     >
     > I think ALL of Ether's Crossroads pages should have this color scheme. The first song you set for dark fantasy is what plays on all the pages within Ether's crossroads on the website. Furthermore, there should be a volume setting with changes in volume by 5% or maybe 1%, and it can go over 100% up to 150%, since we are making it quieter. The songs in game will all randomize. Like i said, the Dark Fantasy theme is the default now, but, we will rename that theme to "Ether's Crossroads"
 
-14. Field Libation glitch (during v44):
+12. Field Libation glitch (during v44):
     > a glitch, when i clicked field libation, it would let me do it as much i wanted after i clicked it once despite it being once a turn, and then the X over every card and the ability to "pour" them wouldn't go away
-15. Too many Scouts (during v44):
+13. Too many Scouts (during v44):
+
     > i also dont know why there are so mnay scouts in the game, it feels like the deck should only have two scouts and yet there are scouts littering the grave yard and i have way too much out on the field. Is this because of the enemy spam buying them? maybe. but if there are four per deck and i am beginner and have extra that might contribute, idk. u can take a look at it and fix it if neeed be.
 
-16. Free Jack Conjure (during v45):
+14. Free Jack Conjure (during v45):
     > I dont know why there was a free jack conjure. It should of been that the Jack is operating under the 1d2-1 mana thing if there is a sell, sure, but also, it is supposed to be only one free per turn if they even ended up for free in the ether, because then it is just a matter of spam buying all of them before other players notice.
-17. Free Scout in the Ether (during v45):
+15. Free Scout in the Ether (during v45):
+
     > the scout in my game was free in the ether is why partly maybe, just like the jack i complained about, that cant be like that. Like i said, idk why the fuck the ether has things for free because it is the moon and it should sell for 1 mana at the lowest. Maybe if it was a special event then maybe some might be free if the rules say so, but it is only one free per turn IF i even allowed that.
 
-18. Sort the grave and similar lists (during v45):
+16. Sort the grave and similar lists (during v45):
     > The grave should allow players to sort through it by kinds or type in a way similar to the Ether so they arent scrolling through an entire deck, same for when selling things to the banker or anything else similiar
-19. Resurrection (during v45):
+17. Resurrection (during v45):
     > The resurrection spell should allow a preview of the grave when you click it without spending, and it's cost is also added into the mana worth of the card ur resurrecting. The spell should then cost 1d2 PLUS the worth of the card you ressurect, that is it's cost in mana, depending on the turn.
-20. King of the Hill later (during v45):
+18. King of the Hill later (during v45):
     > let's put the note for king of the hill into a note and leave it there, we dont have to do it today, i want to delay that update for later
-21. > where is the one screen that shows me your plan u had ?
+19. > where is the one screen that shows me your plan u had ?
 
-22. The Bank's rules (asked first as questions, 2026-10-18):
+20. The Bank's rules (asked first as questions, 2026-10-18):
     > Whenever a player gets a loan or credit, it takes one mana from the bank for every mana they get. The player should not be able to get credit the next round after going negative, and after that first round, they have to wait the amount of turns they spent in mana from credit. Furthermore, the loan will not be able to be done more then once a round, and it cannot be done again until the first loan is paid off. If the loan isn't paid off in the amount of rounds numbered in the mana loaned (so 6 rounds for 12 mana loaned for example), then the players is unable to draw credit until the debt is paid off once they failed that. The debt still grows 1d2 mana every 3 turns. This should be the new rule about debt: If a player has -6 mana for more than 1d3+1 turns then that automatically summons debt collectors, like 1d3 at least or whatever it was before. They keep spawning to attack the character that owes the bank every turn until the debt is paid off. Remember the debt collectors take mana in the form of the cards they damage. Before we implement this, help me understand anything I'm missing or something like that. What are other bank rules? The bank rules confuse me rn for loans when i read the info, specifically near the end when the engllish looks bad...
-23. The Bank's rules, final:
+21. The Bank's rules, final:
     > implement the limits i talked about and let a player go only to -8 in debt, the bank can only go -8 in debt too now. If everyone is -3 mana including the bank, then that causes the economic collapse event. The debt collectors should target anyone who causes them to spawn in the first place, and they spawn when debt is left unpaid for three turns instead of four, and it should spawn 1d2 of them every turn until the debt is paid off by everyone, in the order of who owes the most debt first. If two are guilty of this, then that dice roll for how often the spawn is rolled twice. Loans are due for players by the one who accepts the loan, and the player who requested the loan gets a pop up message asking if they still want to do the loan (because they have to review how many turns it is owed in. The player could decide if it is 2 turns to 12 turns. Just provide a limit of how often loans can be done per turns and how many turns till they can be done again. With credit, you can let a player spend themselves into they lose without limiting it.
-24. > remember to do the new songs as well, but idc ab the pixel maps rn you can defer that
+22. > remember to do the new songs as well, but idc ab the pixel maps rn you can defer that
 
 ## Digest
+
 Done and live:
+
 - C1 Site-wide click sound (v38). C2 Scout: 2-tile diamond; Beginner default (v39). C3 Overdraw: no more draw rolls in a turn after
   one overdraws (v39). C4 Fog: light, flowing, no square per tile (v39). C5 Rob the Bank: a natural 20 empties the Bank; overflow
   in a stash (v39). C6 Increase Max Mana costs 4 (v39).
 
 Built in v41 (all of the following):
+
 - D1 Log: a fold-down on PC too, closed by default (phones already have it).
 - FA Field Automation (only the cards on the field: moves, attacks, ambush, stance; never the hand, placement, spells, sacrifices):
   - FA1 A small toggle button in the turn bar (by Sound and End turn), PC and phone. Turning it on asks "Are you sure?" with an
@@ -105,27 +112,27 @@ Built in v41 (all of the following):
   - FA2 Setup (Rules tab): "Field Automation" — Off for everyone (the button doesn't show), or its skill: Easy / Medium (default) / Hard.
     Online, the host's setting is the setting for everyone.
   - FA3 A small square beside the button opens "Configure field automation". Order of the window (my choice, top to bottom):
-      1. Simple mode ("Give me the simple version"), three presets that hide the detail: Mostly automatic, Fully automatic
-         (decides stance itself, the default), Hands-on (Control Center: you set the stance, little else changes).
-         (User's words: "Give me stupid version". Label kept plain English; the user's name for it is noted here.)
-      2. Attack: always on, can't be removed: the field attacks enemies in sight when it makes sense.
-      3. Stance: Automatic (default: the bot picks offense, defense or the center as the field changes) / Offensive / Defensive /
-         Control the center.
-      4. Rush the enemy: off, or on for N rounds (a small number with up/down arrows); overrides stance while it lasts.
-      5. Formation: Automatic / Wide (surround, flank, take advantage) / Deep (columns, stack strength even with fewer to stack with).
-      6. Lives: Preserve / Balanced (default) / Throw them in.
-      7. Picking battles: how careful a unit is with the odds (stats vs stats), Careful / Normal / Reckless; Lives ranks above it.
-      8. Ambush: a checkbox (hidden stacks wait in ambush when nothing is in reach).
-      9. Target bases: a checkbox, with "Don't count non-obstructive walls" (a Wall matters only if it blocks the way to a base or a
-         high-value target).
-     10. Which cards it controls: Soldiers (Grunts, Infantry, Puppets…), Specials, Support (if off: Miners separately), Ranged,
-         Wildcards; and "Yes, and…": pick individual kinds of card on top of these (adds, never removes).
-     11. Hierarchical control (optional): the principles above as columns ordered by priority with up/down arrows; an "=" on one
-         turns it yellow, "=" on a second turns both green: equal, unless the bot's reading of the field says one must lead; equals sit
-         below anything ranked above them.
-     12. "Show these controls under the field": a checkbox; when on, a wide fold-down above Basics Explained holds every control,
-         page-wide, no inner scroll; when off it doesn't exist.
-     A note: some options aren't the best choice for every situation on your field.
+    1. Simple mode ("Give me the simple version"), three presets that hide the detail: Mostly automatic, Fully automatic
+       (decides stance itself, the default), Hands-on (Control Center: you set the stance, little else changes).
+       (User's words: "Give me stupid version". Label kept plain English; the user's name for it is noted here.)
+    2. Attack: always on, can't be removed: the field attacks enemies in sight when it makes sense.
+    3. Stance: Automatic (default: the bot picks offense, defense or the center as the field changes) / Offensive / Defensive /
+       Control the center.
+    4. Rush the enemy: off, or on for N rounds (a small number with up/down arrows); overrides stance while it lasts.
+    5. Formation: Automatic / Wide (surround, flank, take advantage) / Deep (columns, stack strength even with fewer to stack with).
+    6. Lives: Preserve / Balanced (default) / Throw them in.
+    7. Picking battles: how careful a unit is with the odds (stats vs stats), Careful / Normal / Reckless; Lives ranks above it.
+    8. Ambush: a checkbox (hidden stacks wait in ambush when nothing is in reach).
+    9. Target bases: a checkbox, with "Don't count non-obstructive walls" (a Wall matters only if it blocks the way to a base or a
+       high-value target).
+    10. Which cards it controls: Soldiers (Grunts, Infantry, Puppets…), Specials, Support (if off: Miners separately), Ranged,
+        Wildcards; and "Yes, and…": pick individual kinds of card on top of these (adds, never removes).
+    11. Hierarchical control (optional): the principles above as columns ordered by priority with up/down arrows; an "=" on one
+        turns it yellow, "=" on a second turns both green: equal, unless the bot's reading of the field says one must lead; equals sit
+        below anything ranked above them.
+    12. "Show these controls under the field": a checkbox; when on, a wide fold-down above Basics Explained holds every control,
+        page-wide, no inner scroll; when off it doesn't exist.
+        A note: some options aren't the best choice for every situation on your field.
 - TH Themes: Office Dark (Office's dark-mode twin); Earth (night druid: dark, earthy, rich); Dark Fantasy (old dungeon: grey and
   crimson UI with gold and silver accents; a detailed, pixelated background drawn in code: stone/cobblestone wall, spell books, tomes,
   candles, a chalice, a statue, a painting of a jester, a torch, dark blood on the wall and floor); with it, quiet old-8-bit dark
@@ -135,6 +142,7 @@ Built in v41 (all of the following):
   server: open rooms are announced over a public relay; private rooms keep the code.
 
 Built in v43 (all of the following):
+
 - MU More dark fantasy songs in the same vein, some slower; quieter overall; a music volume in 5% steps up to 150%; in the game
   the songs play in random order; on the other Ether's Crossroads pages (landing, rules) the first song plays.
 - TH2 The Dark Fantasy theme is renamed "Ether's Crossroads" and becomes the default; every Ether's Crossroads page (landing,
@@ -150,6 +158,7 @@ Built in v43 (all of the following):
     >
     > The part that allows the field automation to be placed below (like under the field where it already is), should be an option at the top of the Configure Automation Menu, and enabling automation automatically places it below the field, so now the player has to uncheck it to get rid of it
 13. > the sound off feature shouldnt be on the turn bar anymore, it can be at the top of the page, and changing it changes the audio slider in the menu accordingly
+
 - FA4 (built v43) Compact Field Automation: options in rows; descriptions inside the boxes on a phone, on hover on a computer;
   "Show under the field" first, and turned on when the automation is turned on.
 - SO (built v43) "Sound: On/Off" at the top of the play page (beside Menu, All Rules, New game), out of the turn bar; the menu has
@@ -157,6 +166,7 @@ Built in v43 (all of the following):
 - The Moon: already in the Heavenly Body shop (Astrology) for everyone, so no new spell was needed.
 
 ## Status (v41)
+
 Done: D1 (log fold on PC), FA1–FA3 (Field Automation: setup option, turn-bar button with confirm, configure window, simple modes,
 every option, hierarchy with equals, under-field panel), RM (titles, descriptions, cap, time zone, open rooms list with a
 self-electing list keeper over PeerJS), TH (Office Dark, Earth, Dark Fantasy with the pixel-art dungeon and chiptune music).
@@ -165,6 +175,7 @@ Not tested against the real PeerJS service from here (no outside network in the 
 were tested with the tab-to-tab stand-in that uses the same logic.
 
 ## Status (v44, 2026-10-18)
+
 - v44 deployed (PR 8): the v44 sheet's steps 1–5 (see v44_sheet_2026-10-18.md).
 - 14 fixed (PR 9): one Pour spends Field Libation for the turn and clears the X marks; cancelling before a Pour gives it back.
 - 15 fixed (PR 10): two Scouts in every deck (the Beginner had four); the opening Ace brings one (the Beginner's brought two);

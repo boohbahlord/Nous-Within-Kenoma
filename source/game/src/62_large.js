@@ -7,78 +7,330 @@
    - WASD moves it (Shift: faster), E zooms in and Q out (Menu: reversed). Not while typing.
    - v77a: zooming always keeps the middle of what you see in place; held keys move the field smoothly, two at once on a diagonal.
    - Menu, Large Map Controls: the wheel, both reversals and the speed. The section is faded outside a large map. */
-const CAM={z:1,ZMIN:.45,ZMAX:2.2,TILE:64};
-const isLarge=()=>!!(G&&(fsOn()||G.map&&(G.map.large||COLS>9||G.rows>9)));   // v72f: fullscreen uses the same camera (88_fullscreen.js)
-const camSpeed=()=>Math.max(.4,Math.min(3,+PREF.camSpeed||1));
-function camWrap(){const B=$("#board");if(!B)return null;let w=B.parentNode&&B.parentNode.classList&&B.parentNode.classList.contains("camwrap")?B.parentNode:null;
-  if(isLarge()&&!w){w=document.createElement("div");w.className="camwrap";B.parentNode.insertBefore(w,B);w.appendChild(B);camWire(w)}
-  if(w){const on=isLarge();w.classList.toggle("on",on);B.classList.toggle("large",on);B.style.setProperty("--tw",Math.round(CAM.TILE*CAM.z)+"px")}
-  return w}
-{const _r=render;render=function(){rSafe(_r,this,arguments);if(G){camWrap();camNote()}}}
+const CAM = { z: 1, ZMIN: 0.45, ZMAX: 2.2, TILE: 64 };
+const isLarge = () =>
+  !!(G && (fsOn() || (G.map && (G.map.large || COLS > 9 || G.rows > 9)))); // v72f: fullscreen uses the same camera (88_fullscreen.js)
+const camSpeed = () => Math.max(0.4, Math.min(3, +PREF.camSpeed || 1));
+function camWrap() {
+  const B = $("#board");
+  if (!B) return null;
+  let w =
+    B.parentNode &&
+    B.parentNode.classList &&
+    B.parentNode.classList.contains("camwrap")
+      ? B.parentNode
+      : null;
+  if (isLarge() && !w) {
+    w = document.createElement("div");
+    w.className = "camwrap";
+    B.parentNode.insertBefore(w, B);
+    w.appendChild(B);
+    camWire(w);
+  }
+  if (w) {
+    const on = isLarge();
+    w.classList.toggle("on", on);
+    B.classList.toggle("large", on);
+    B.style.setProperty("--tw", Math.round(CAM.TILE * CAM.z) + "px");
+  }
+  return w;
+}
+{
+  const _r = render;
+  render = function () {
+    rSafe(_r, this, arguments);
+    if (G) {
+      camWrap();
+      camNote();
+    }
+  };
+}
 /* ---------- the note under a large field: the controls, − and +, and the wheel's zoom switch ---------- */
-function camNote(){const w=camWrap();let n=$("#camnote");
-  if(!w||!isLarge()){if(n)n.hidden=true;return}
-  if(!n){n=document.createElement("div");n.id="camnote";n.className="camnote";w.after(n)}else if(n.previousElementSibling!==w)w.after(n);
-  n.hidden=false;const ph=isPhone(),keys=`Move the field: ${kmShow4(["camUp","camLeft","camDown","camRight"])} (two at once: a diagonal; Shift: faster) · ${kmTipT("zoomIn")} · ${kmTipT("zoomOut")}`,key=(ph?"p":"c")+(PREF.camWheel===true)+keys;if(n.dataset.k===key)return;n.dataset.k=key;
-  n.innerHTML=`<span class="cz"><button type="button" class="btn ghost sm" data-cz="-1" aria-label="Zoom out">−</button><button type="button" class="btn ghost sm" data-cz="1" aria-label="Zoom in">+</button></span>`+
-    (ph?`<span class="dim">Swipe the field to move it.</span>`:`<span class="dim">Drag an empty spot to move the field · ${esc(keys)}</span>
-<label class="cw"><input type="checkbox" id="camWheelBox" ${PREF.camWheel===true?"checked":""}> Zoom with the mouse wheel</label>`);
-  n.querySelectorAll("[data-cz]").forEach(b=>b.onclick=()=>camZoom(+b.dataset.cz>0?1.2:1/1.2));
-  const cb=n.querySelector("#camWheelBox");if(cb)cb.onchange=()=>{PREF.camWheel=cb.checked;savePrefs();const m=$("#mCamWheel");if(m)m.checked=cb.checked}}
+function camNote() {
+  const w = camWrap();
+  let n = $("#camnote");
+  if (!w || !isLarge()) {
+    if (n) n.hidden = true;
+    return;
+  }
+  if (!n) {
+    n = document.createElement("div");
+    n.id = "camnote";
+    n.className = "camnote";
+    w.after(n);
+  } else if (n.previousElementSibling !== w) w.after(n);
+  n.hidden = false;
+  const ph = isPhone(),
+    keys = `Move the field: ${kmShow4(["camUp", "camLeft", "camDown", "camRight"])} (two at once: a diagonal; Shift: faster) · ${kmTipT("zoomIn")} · ${kmTipT("zoomOut")}`,
+    key = (ph ? "p" : "c") + (PREF.camWheel === true) + keys;
+  if (n.dataset.k === key) return;
+  n.dataset.k = key;
+  n.innerHTML =
+    `<span class="cz"><button type="button" class="btn ghost sm" data-cz="-1" aria-label="Zoom out">−</button><button type="button" class="btn ghost sm" data-cz="1" aria-label="Zoom in">+</button></span>` +
+    (ph
+      ? `<span class="dim">Swipe the field to move it.</span>`
+      : `<span class="dim">Drag an empty spot to move the field · ${esc(keys)}</span>
+<label class="cw"><input type="checkbox" id="camWheelBox" ${PREF.camWheel === true ? "checked" : ""}> Zoom with the mouse wheel</label>`);
+  n.querySelectorAll("[data-cz]").forEach(
+    (b) => (b.onclick = () => camZoom(+b.dataset.cz > 0 ? 1.2 : 1 / 1.2)),
+  );
+  const cb = n.querySelector("#camWheelBox");
+  if (cb)
+    cb.onchange = () => {
+      PREF.camWheel = cb.checked;
+      savePrefs();
+      const m = $("#mCamWheel");
+      if (m) m.checked = cb.checked;
+    };
+}
 /* v77a: zoom (the keys, − and +, the wheel, a pinch) always keeps the middle of what you see where it is: the middle of the
    frame's part on the screen. The spot is held in tiles, not pixels: the gaps between tiles don't grow with them. */
-function camMid(w){const r=w.getBoundingClientRect(),l=Math.max(r.left,0),t=Math.max(r.top,0),rr=Math.min(r.right,innerWidth),bb=Math.min(r.bottom,innerHeight);
-  return rr>l&&bb>t?[(l+rr)/2,(t+bb)/2]:[r.left+r.width/2,r.top+r.height/2]}
-function camGrid(){const B=$("#board"),rows=B?B.querySelectorAll(":scope>.row"):[];if(!rows.length)return null;const a=rows[0].querySelectorAll(".tile");if(!a.length)return null;
-  const r0=a[0].getBoundingClientRect(),b=rows.length>1?rows[1].querySelector(".tile"):null;
-  return {x:r0.left,y:r0.top,px:(a.length>1?a[1].getBoundingClientRect().left-r0.left:r0.width)||1,py:(b?b.getBoundingClientRect().top-r0.top:r0.height)||1}}
+function camMid(w) {
+  const r = w.getBoundingClientRect(),
+    l = Math.max(r.left, 0),
+    t = Math.max(r.top, 0),
+    rr = Math.min(r.right, innerWidth),
+    bb = Math.min(r.bottom, innerHeight);
+  return rr > l && bb > t
+    ? [(l + rr) / 2, (t + bb) / 2]
+    : [r.left + r.width / 2, r.top + r.height / 2];
+}
+function camGrid() {
+  const B = $("#board"),
+    rows = B ? B.querySelectorAll(":scope>.row") : [];
+  if (!rows.length) return null;
+  const a = rows[0].querySelectorAll(".tile");
+  if (!a.length) return null;
+  const r0 = a[0].getBoundingClientRect(),
+    b = rows.length > 1 ? rows[1].querySelector(".tile") : null;
+  return {
+    x: r0.left,
+    y: r0.top,
+    px:
+      (a.length > 1 ? a[1].getBoundingClientRect().left - r0.left : r0.width) ||
+      1,
+    py: (b ? b.getBoundingClientRect().top - r0.top : r0.height) || 1,
+  };
+}
 /* v78j: how many screen pixels one of the page's pixels takes (a zoomed page: phones, the interface size) */
-const camZf=w=>w&&w.offsetWidth?w.getBoundingClientRect().width/w.offsetWidth||1:1;
-function camZoom(f){const w=camWrap();if(!w||!isLarge())return;const z0=CAM.z,z1=Math.max(CAM.ZMIN,Math.min(CAM.ZMAX,z0*f));if(z1===z0)return;
-  const [cx,cy]=camMid(w),g0=camGrid();CAM.z=z1;$("#board").style.setProperty("--tw",Math.round(CAM.TILE*z1)+"px");
-  const g1=g0&&camGrid();if(!g1)return;const z=camZf(w);
-  w.scrollLeft+=(g1.x+(cx-g0.x)/g0.px*g1.px-cx)/z;w.scrollTop+=(g1.y+(cy-g0.y)/g0.py*g1.py-cy)/z}
-function camPan(dx,dy){const w=camWrap();if(!w||!isLarge())return;w.scrollBy({left:dx,top:dy,behavior:"auto"})}
-function camWire(w){
-  w.addEventListener("wheel",e=>{if(!isLarge()||e.ctrlKey)return;
-    if(PREF.camWheel!==true){   // the page scrolls, not the field's frame: the mouse over the field never traps the page
-      if(Math.abs(e.deltaX)>Math.abs(e.deltaY))return;e.preventDefault();const k=e.deltaMode===1?16:e.deltaMode===2?innerHeight:1;scrollBy(0,e.deltaY*k);return}
-    e.preventDefault();const dir=(e.deltaY<0?1:-1)*(PREF.camInvWheel?-1:1);camZoom(dir>0?1.12:1/1.12,e.clientX,e.clientY)},{passive:false});
-  let drag=null,moved=false;
-  w.addEventListener("pointerdown",e=>{if(!isLarge()||e.pointerType!=="mouse"||e.button!==0||PREF.camDrag===false)return;if(e.target.closest(".stack,button,.ci,input,select,a"))return;   // v74a: dragging can be turned off (Controls); a stack or a button is clicked, not dragged
-    drag={x:e.clientX,y:e.clientY,l:w.scrollLeft,t:w.scrollTop};moved=false});
-  addEventListener("pointermove",e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>5){moved=true;w.classList.add("dragging")}
-    if(moved){const z=camZf(w);w.scrollLeft=drag.l-dx/z;w.scrollTop=drag.t-dy/z}});   // v78p: in the field's own pixels at any interface size
-  addEventListener("pointerup",()=>{if(!drag)return;drag=null;w.classList.remove("dragging");if(moved)setTimeout(()=>{moved=false},0)});
-  w.addEventListener("click",e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false}},true)}   // a drag is not a click on a tile
-const typing=t=>!!(t&&(t.isContentEditable||t.tagName==="TEXTAREA"||t.tagName==="SELECT"||
-  t.tagName==="INPUT"&&/^(text|search|number|email|password|url|tel|date|time|datetime-local|month|week)$/.test(t.type)));   // v78j: fields you type in
+const camZf = (w) =>
+  w && w.offsetWidth ? w.getBoundingClientRect().width / w.offsetWidth || 1 : 1;
+function camZoom(f) {
+  const w = camWrap();
+  if (!w || !isLarge()) return;
+  const z0 = CAM.z,
+    z1 = Math.max(CAM.ZMIN, Math.min(CAM.ZMAX, z0 * f));
+  if (z1 === z0) return;
+  const [cx, cy] = camMid(w),
+    g0 = camGrid();
+  CAM.z = z1;
+  $("#board").style.setProperty("--tw", Math.round(CAM.TILE * z1) + "px");
+  const g1 = g0 && camGrid();
+  if (!g1) return;
+  const z = camZf(w);
+  w.scrollLeft += (g1.x + ((cx - g0.x) / g0.px) * g1.px - cx) / z;
+  w.scrollTop += (g1.y + ((cy - g0.y) / g0.py) * g1.py - cy) / z;
+}
+function camPan(dx, dy) {
+  const w = camWrap();
+  if (!w || !isLarge()) return;
+  w.scrollBy({ left: dx, top: dy, behavior: "auto" });
+}
+function camWire(w) {
+  w.addEventListener(
+    "wheel",
+    (e) => {
+      if (!isLarge() || e.ctrlKey) return;
+      if (PREF.camWheel !== true) {
+        // the page scrolls, not the field's frame: the mouse over the field never traps the page
+        if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+        e.preventDefault();
+        const k = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1;
+        scrollBy(0, e.deltaY * k);
+        return;
+      }
+      e.preventDefault();
+      const dir = (e.deltaY < 0 ? 1 : -1) * (PREF.camInvWheel ? -1 : 1);
+      camZoom(dir > 0 ? 1.12 : 1 / 1.12, e.clientX, e.clientY);
+    },
+    { passive: false },
+  );
+  let drag = null,
+    moved = false;
+  w.addEventListener("pointerdown", (e) => {
+    if (
+      !isLarge() ||
+      e.pointerType !== "mouse" ||
+      e.button !== 0 ||
+      PREF.camDrag === false
+    )
+      return;
+    if (e.target.closest(".stack,button,.ci,input,select,a")) return; // v74a: dragging can be turned off (Controls); a stack or a button is clicked, not dragged
+    drag = { x: e.clientX, y: e.clientY, l: w.scrollLeft, t: w.scrollTop };
+    moved = false;
+  });
+  addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x,
+      dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 5) {
+      moved = true;
+      w.classList.add("dragging");
+    }
+    if (moved) {
+      const z = camZf(w);
+      w.scrollLeft = drag.l - dx / z;
+      w.scrollTop = drag.t - dy / z;
+    }
+  }); // v78p: in the field's own pixels at any interface size
+  addEventListener("pointerup", () => {
+    if (!drag) return;
+    drag = null;
+    w.classList.remove("dragging");
+    if (moved)
+      setTimeout(() => {
+        moved = false;
+      }, 0);
+  });
+  w.addEventListener(
+    "click",
+    (e) => {
+      if (moved) {
+        e.stopPropagation();
+        e.preventDefault();
+        moved = false;
+      }
+    },
+    true,
+  );
+} // a drag is not a click on a tile
+const typing = (t) =>
+  !!(
+    t &&
+    (t.isContentEditable ||
+      t.tagName === "TEXTAREA" ||
+      t.tagName === "SELECT" ||
+      (t.tagName === "INPUT" &&
+        /^(text|search|number|email|password|url|tel|date|time|datetime-local|month|week)$/.test(
+          t.type,
+        )))
+  ); // v78j: fields you type in
 /* v77a: a held key moves the field smoothly, two at once on a diagonal (W and A: up and to the left); E zooms in, Q out */
-const CAM_DIR={camUp:[0,-1],camDown:[0,1],camLeft:[-1,0],camRight:[1,0]};   // v78b: WASD (the arrow keys move the field's selector, 98b_fieldkeys.js); v78d: as bound
-const CAMK=new Set();let camRaf=0,camT=0,camFast=false;
-function camTick(t){camRaf=0;if(!CAMK.size||!isLarge()){camT=0;return}const dt=camT?Math.min(50,t-camT):16;camT=t;let dx=0,dy=0;
-  for(const k of CAMK){dx+=CAM_DIR[k][0];dy+=CAM_DIR[k][1]}
-  if(dx||dy){const n=Math.hypot(dx,dy),v=.9*camSpeed()*(camFast?2.2:1)*dt;camPan(dx/n*v,dy/n*v)}
-  camRaf=requestAnimationFrame(camTick)}
-const camBlocked=()=>!!document.querySelector("#ov:not([hidden]) .ovbox, #menu:not([hidden]), #facfg:not([hidden]), #rbwin:not([hidden])")||!!kbTop();   // v78j: any window
-document.addEventListener("keydown",e=>{if(!isLarge()||typing(e.target)||camBlocked())return;
-  const inv=PREF.camInvKeys?-1:1,d=Object.keys(CAM_DIR).find(id=>kmIs(e,id));camFast=e.shiftKey;
-  if(d){e.preventDefault();if(!CAMK.has(d)){CAMK.add(d);if(!camRaf){camT=0;camRaf=requestAnimationFrame(camTick)}}return}
-  const zin=kmIs(e,"zoomIn"),zout=kmIs(e,"zoomOut");if(zin||zout){e.preventDefault();camZoom((zin?1:-1)*inv>0?1.15:1/1.15)}});
-document.addEventListener("keyup",e=>{for(const d of [...CAMK])if(kmRel(e,d))CAMK.delete(d);camFast=e.shiftKey});
-addEventListener("blur",()=>CAMK.clear());
+const CAM_DIR = {
+  camUp: [0, -1],
+  camDown: [0, 1],
+  camLeft: [-1, 0],
+  camRight: [1, 0],
+}; // v78b: WASD (the arrow keys move the field's selector, 98b_fieldkeys.js); v78d: as bound
+const CAMK = new Set();
+let camRaf = 0,
+  camT = 0,
+  camFast = false;
+function camTick(t) {
+  camRaf = 0;
+  if (!CAMK.size || !isLarge()) {
+    camT = 0;
+    return;
+  }
+  const dt = camT ? Math.min(50, t - camT) : 16;
+  camT = t;
+  let dx = 0,
+    dy = 0;
+  for (const k of CAMK) {
+    dx += CAM_DIR[k][0];
+    dy += CAM_DIR[k][1];
+  }
+  if (dx || dy) {
+    const n = Math.hypot(dx, dy),
+      v = 0.9 * camSpeed() * (camFast ? 2.2 : 1) * dt;
+    camPan((dx / n) * v, (dy / n) * v);
+  }
+  camRaf = requestAnimationFrame(camTick);
+}
+const camBlocked = () =>
+  !!document.querySelector(
+    "#ov:not([hidden]) .ovbox, #menu:not([hidden]), #facfg:not([hidden]), #rbwin:not([hidden])",
+  ) || !!kbTop(); // v78j: any window
+document.addEventListener("keydown", (e) => {
+  if (!isLarge() || typing(e.target) || camBlocked()) return;
+  const inv = PREF.camInvKeys ? -1 : 1,
+    d = Object.keys(CAM_DIR).find((id) => kmIs(e, id));
+  camFast = e.shiftKey;
+  if (d) {
+    e.preventDefault();
+    if (!CAMK.has(d)) {
+      CAMK.add(d);
+      if (!camRaf) {
+        camT = 0;
+        camRaf = requestAnimationFrame(camTick);
+      }
+    }
+    return;
+  }
+  const zin = kmIs(e, "zoomIn"),
+    zout = kmIs(e, "zoomOut");
+  if (zin || zout) {
+    e.preventDefault();
+    camZoom((zin ? 1 : -1) * inv > 0 ? 1.15 : 1 / 1.15);
+  }
+});
+document.addEventListener("keyup", (e) => {
+  for (const d of [...CAMK]) if (kmRel(e, d)) CAMK.delete(d);
+  camFast = e.shiftKey;
+});
+addEventListener("blur", () => CAMK.clear());
 /* the Menu: Large Map Controls */
-{const _om=openMenu;openMenu=function(){_om.apply(this,arguments);const m=$("#menu");if(!m||m.querySelector("#mCam"))return;const anchor=m.querySelector("#mParts")||m.querySelector(".mgrid");if(!anchor)return;
-  const on=isLarge(),c=(id,t,v)=>`<label class="farow"><span class="fal"><b>${t}</b></span><input type="checkbox" id="${id}" ${v?"checked":""} ${on?"":"disabled"}></label>`;
-  anchor.insertAdjacentHTML("afterend",`<details id="mCam" class="sub${on?"":" faded"}"><summary>Large Map Controls${on?"":" <small>(large maps only)</small>"}</summary>
-<p class="dim">The mouse wheel scrolls the page unless zooming with it is on; drag an empty spot of the field to move it; Move the field: ${esc(kmShow4(["camUp","camLeft","camDown","camRight"]))} (two at once: a diagonal; Shift: faster) · ${esc(kmTipT("zoomIn"))} · ${esc(kmTipT("zoomOut"))}, always around the middle of the screen.</p><div class="facats">
-${c("mCamDrag","Drag an empty spot to move the field",PREF.camDrag!==false)}${c("mCamWheel","Zoom with the mouse wheel",PREF.camWheel===true)}${c("mCamInvW","Reverse the wheel's zoom",!!PREF.camInvWheel)}${c("mCamInvK","Reverse the keys' zoom",!!PREF.camInvKeys)}</div>
-<label class="f mslide">Moving speed <input type="range" id="mCamSpd" min="40" max="300" step="10" value="${Math.round(camSpeed()*100)}" ${on?"":"disabled"}><b id="mCamSpdV">${Math.round(camSpeed()*100)}%</b></label></details>`);
-  const set=(k,v)=>{PREF[k]=v;savePrefs()};
-  $("#mCamDrag").onchange=e=>set("camDrag",e.target.checked);   // v77c: also outside fullscreen (it was only in fullscreen's Controls)
-  $("#mCamWheel").onchange=e=>{set("camWheel",e.target.checked);const n=$("#camnote");if(n)n.dataset.k="";camNote()};$("#mCamInvW").onchange=e=>set("camInvWheel",e.target.checked);$("#mCamInvK").onchange=e=>set("camInvKeys",e.target.checked);
-  $("#mCamSpd").oninput=e=>{set("camSpeed",+e.target.value/100);$("#mCamSpdV").textContent=e.target.value+"%"}}}
+{
+  const _om = openMenu;
+  openMenu = function () {
+    _om.apply(this, arguments);
+    const m = $("#menu");
+    if (!m || m.querySelector("#mCam")) return;
+    const anchor = m.querySelector("#mParts") || m.querySelector(".mgrid");
+    if (!anchor) return;
+    const on = isLarge(),
+      c = (id, t, v) =>
+        `<label class="farow"><span class="fal"><b>${t}</b></span><input type="checkbox" id="${id}" ${v ? "checked" : ""} ${on ? "" : "disabled"}></label>`;
+    anchor.insertAdjacentHTML(
+      "afterend",
+      `<details id="mCam" class="sub${on ? "" : " faded"}"><summary>Large Map Controls${on ? "" : " <small>(large maps only)</small>"}</summary>
+<p class="dim">The mouse wheel scrolls the page unless zooming with it is on; drag an empty spot of the field to move it; Move the field: ${esc(kmShow4(["camUp", "camLeft", "camDown", "camRight"]))} (two at once: a diagonal; Shift: faster) · ${esc(kmTipT("zoomIn"))} · ${esc(kmTipT("zoomOut"))}, always around the middle of the screen.</p><div class="facats">
+${c("mCamDrag", "Drag an empty spot to move the field", PREF.camDrag !== false)}${c("mCamWheel", "Zoom with the mouse wheel", PREF.camWheel === true)}${c("mCamInvW", "Reverse the wheel's zoom", !!PREF.camInvWheel)}${c("mCamInvK", "Reverse the keys' zoom", !!PREF.camInvKeys)}</div>
+<label class="f mslide">Moving speed <input type="range" id="mCamSpd" min="40" max="300" step="10" value="${Math.round(camSpeed() * 100)}" ${on ? "" : "disabled"}><b id="mCamSpdV">${Math.round(camSpeed() * 100)}%</b></label></details>`,
+    );
+    const set = (k, v) => {
+      PREF[k] = v;
+      savePrefs();
+    };
+    $("#mCamDrag").onchange = (e) => set("camDrag", e.target.checked); // v77c: also outside fullscreen (it was only in fullscreen's Controls)
+    $("#mCamWheel").onchange = (e) => {
+      set("camWheel", e.target.checked);
+      const n = $("#camnote");
+      if (n) n.dataset.k = "";
+      camNote();
+    };
+    $("#mCamInvW").onchange = (e) => set("camInvWheel", e.target.checked);
+    $("#mCamInvK").onchange = (e) => set("camInvKeys", e.target.checked);
+    $("#mCamSpd").oninput = (e) => {
+      set("camSpeed", +e.target.value / 100);
+      $("#mCamSpdV").textContent = e.target.value + "%";
+    };
+  };
+}
 
 /* the crit seal over a card on a zoomed-out field is no bigger than its tile allows */
-{const _cb=critBanner;critBanner=function(){_cb.apply(this,arguments);const b=$("#critfx");if(!b)return;b.style.setProperty("--fxs",isLarge()?Math.max(.5,Math.min(1,CAM.TILE*CAM.z/64)).toFixed(2):"1")}}
-if(window.__EC)Object.assign(window.__EC,{camZoom,camPan,isLarge,CAM});
+{
+  const _cb = critBanner;
+  critBanner = function () {
+    _cb.apply(this, arguments);
+    const b = $("#critfx");
+    if (!b) return;
+    b.style.setProperty(
+      "--fxs",
+      isLarge()
+        ? Math.max(0.5, Math.min(1, (CAM.TILE * CAM.z) / 64)).toFixed(2)
+        : "1",
+    );
+  };
+}
+if (window.__EC) Object.assign(window.__EC, { camZoom, camPan, isLarge, CAM });

@@ -1,144 +1,674 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Ether&#x27;s Crossroads · Nous Within Kenoma</title>
-<link rel="icon" type="image/png" href="../assets/favicon.png">
-<link rel="stylesheet" href="../assets/site.css?v=72"><style>/* rules page, v21: substances as blocks, the sky as a table, a short contents line */
-.rules .toc{font-size:13.5px;color:var(--dim);line-height:1.9}
-.rules h4{font-size:14px;color:var(--amber-hi);margin:16px 0 4px;font-weight:400}
-.rules .substs{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:14px;margin:10px 0 14px}
-.rules .subst{border:1px solid var(--rule);border-left:2px solid var(--amber);padding:10px 14px;background:rgba(0,0,0,.18)}
-.rules .subst h4{margin:0 0 2px}
-.rules .subst .tag{margin:0 0 6px;color:var(--text);font-style:italic}
-.rules .subst ul{margin:0 0 6px;font-size:14px}
-.rules .subst details summary{cursor:pointer;color:var(--amber);font-size:13px}
-.rules .subst details p{font-size:13.5px;color:var(--dim)}
-.rules table.skytable td:nth-child(2){white-space:nowrap;color:var(--amber-hi);font-style:italic}
-.rules dl.subtags{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px}
-.rules dl.subtags dt{color:var(--amber-hi)}.rules dl.subtags dd{margin:0}
-@media (max-width:640px){.rules dl.subtags{grid-template-columns:1fr}.rules dl.subtags dd{margin:0 0 6px}}
-/* the rules index, like the site's index pages, and a way back to it */
-.rules .rindex{margin:22px 0 10px}
-.rules .rindex>h2.label{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);border:0;margin:0 0 4px;padding:0}
-.rules ol.toc{padding-left:0}
-.rules ol.toc>li{margin:0}
-.rules ol.toc>li>a{grid-template-columns:4ch minmax(0,1fr)}
-.rules ol.subtoc{list-style:none;margin:0;padding:4px 0 8px calc(4ch + 18px);display:flex;flex-wrap:wrap;gap:4px 16px;border-bottom:1px solid #000;font-size:13.5px}
-.rules ol.subtoc li{margin:0}
-.rules ol.subtoc a{display:inline;padding:0;border:0;border-bottom:1px solid var(--rule);color:var(--dim);background:none}
-.rules ol.subtoc a:hover,.rules ol.subtoc a:focus-visible{color:var(--amber-hi);border-color:var(--amber)}
-.rules h2,.rules h3,.rules .subst{scroll-margin-top:14px}
-a.totop{position:fixed;left:max(12px,env(safe-area-inset-left,0px));bottom:max(52px,calc(44px + env(safe-area-inset-bottom,0px)));z-index:50;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);background:rgba(0,0,0,.78);border:1px solid var(--amber);padding:6px 12px;text-decoration:none}
-a.totop:hover,a.totop:focus-visible{color:#000;background:var(--amber);outline:none}
-a.totop[hidden]{display:none}
-html.lite a.totop{bottom:max(12px,env(safe-area-inset-bottom,0px))}   /* v78g: no music corner in Data saving */
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Ether&#x27;s Crossroads · Nous Within Kenoma</title>
+    <link rel="icon" type="image/png" href="../assets/favicon.png" />
+    <link rel="stylesheet" href="../assets/site.css?v=72" />
+    <style>
+      /* rules page, v21: substances as blocks, the sky as a table, a short contents line */
+      .rules .toc {
+        font-size: 13.5px;
+        color: var(--dim);
+        line-height: 1.9;
+      }
+      .rules h4 {
+        font-size: 14px;
+        color: var(--amber-hi);
+        margin: 16px 0 4px;
+        font-weight: 400;
+      }
+      .rules .substs {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+        gap: 14px;
+        margin: 10px 0 14px;
+      }
+      .rules .subst {
+        border: 1px solid var(--rule);
+        border-left: 2px solid var(--amber);
+        padding: 10px 14px;
+        background: rgba(0, 0, 0, 0.18);
+      }
+      .rules .subst h4 {
+        margin: 0 0 2px;
+      }
+      .rules .subst .tag {
+        margin: 0 0 6px;
+        color: var(--text);
+        font-style: italic;
+      }
+      .rules .subst ul {
+        margin: 0 0 6px;
+        font-size: 14px;
+      }
+      .rules .subst details summary {
+        cursor: pointer;
+        color: var(--amber);
+        font-size: 13px;
+      }
+      .rules .subst details p {
+        font-size: 13.5px;
+        color: var(--dim);
+      }
+      .rules table.skytable td:nth-child(2) {
+        white-space: nowrap;
+        color: var(--amber-hi);
+        font-style: italic;
+      }
+      .rules dl.subtags {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 4px 16px;
+      }
+      .rules dl.subtags dt {
+        color: var(--amber-hi);
+      }
+      .rules dl.subtags dd {
+        margin: 0;
+      }
+      @media (max-width: 640px) {
+        .rules dl.subtags {
+          grid-template-columns: 1fr;
+        }
+        .rules dl.subtags dd {
+          margin: 0 0 6px;
+        }
+      }
+      /* the rules index, like the site's index pages, and a way back to it */
+      .rules .rindex {
+        margin: 22px 0 10px;
+      }
+      .rules .rindex > h2.label {
+        font-size: 13px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--dim);
+        border: 0;
+        margin: 0 0 4px;
+        padding: 0;
+      }
+      .rules ol.toc {
+        padding-left: 0;
+      }
+      .rules ol.toc > li {
+        margin: 0;
+      }
+      .rules ol.toc > li > a {
+        grid-template-columns: 4ch minmax(0, 1fr);
+      }
+      .rules ol.subtoc {
+        list-style: none;
+        margin: 0;
+        padding: 4px 0 8px calc(4ch + 18px);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 16px;
+        border-bottom: 1px solid #000;
+        font-size: 13.5px;
+      }
+      .rules ol.subtoc li {
+        margin: 0;
+      }
+      .rules ol.subtoc a {
+        display: inline;
+        padding: 0;
+        border: 0;
+        border-bottom: 1px solid var(--rule);
+        color: var(--dim);
+        background: none;
+      }
+      .rules ol.subtoc a:hover,
+      .rules ol.subtoc a:focus-visible {
+        color: var(--amber-hi);
+        border-color: var(--amber);
+      }
+      .rules h2,
+      .rules h3,
+      .rules .subst {
+        scroll-margin-top: 14px;
+      }
+      a.totop {
+        position: fixed;
+        left: max(12px, env(safe-area-inset-left, 0px));
+        bottom: max(52px, calc(44px + env(safe-area-inset-bottom, 0px)));
+        z-index: 50;
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--amber);
+        background: rgba(0, 0, 0, 0.78);
+        border: 1px solid var(--amber);
+        padding: 6px 12px;
+        text-decoration: none;
+      }
+      a.totop:hover,
+      a.totop:focus-visible {
+        color: #000;
+        background: var(--amber);
+        outline: none;
+      }
+      a.totop[hidden] {
+        display: none;
+      }
+      html.lite a.totop {
+        bottom: max(12px, env(safe-area-inset-bottom, 0px));
+      } /* v78g: no music corner in Data saving */
 
-/* v65: a wide table scrolls inside itself on a phone instead of widening the page */
-@media (max-width:700px){.rules table{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}}
-/* v72c: rule codes */
-.rcode{display:inline-block;min-width:2.2em;margin-right:.35em;font:400 .78em/1 var(--mono);letter-spacing:.02em;color:var(--dim);text-decoration:none;opacity:.85;vertical-align:.08em}
-a.rcode:hover,a.rcode:focus-visible{color:var(--amber);opacity:1}
-h2 .rcode,h3 .rcode,h4 .rcode{font-size:.72em;margin-right:.5em;color:var(--amber);opacity:.9}
-.rindex .toc .n{font-family:var(--mono)}
-.rcodehelp{margin:-4px 0 10px;font-size:12.5px}
-[data-rcode]:target{outline:1px dashed var(--amber);outline-offset:4px}
-/* v74e: find a rule, and read one section or one part at a time */
-.rtools{margin:6px 0 18px;padding:10px 12px;border:1px solid var(--rule);background:rgba(0,0,0,.18)}
-.rtools .rfind{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.rtools .rfind span{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
-.rtools .rfind input{flex:1 1 240px;min-width:0;font-family:var(--mono);font-size:14px;background:var(--deep,#0d0a08);color:var(--text);border:1px solid var(--rule);padding:7px 9px}
-.rtools .rfind input:focus{outline:1px solid var(--amber);border-color:var(--amber)}
-.rtools .rhits{margin:8px 0 2px;max-height:min(50vh,420px);overflow:auto;border-top:1px solid var(--rule)}
-.rtools .rhits ul{list-style:none;margin:0;padding:0}.rtools .rhits li{padding:5px 0;border-bottom:1px solid #0006}
-.rtools .rhits a{color:var(--text);text-decoration:none;border-bottom:1px solid var(--rule)}.rtools .rhits a:hover,.rtools .rhits a:focus-visible{color:var(--amber-hi);border-color:var(--amber)}
-.rtools .rhits a b{display:inline-block;min-width:3.6em;font:400 .85em var(--mono);color:var(--amber)}
-.rtools .rhits small{display:block;color:var(--dim);font-size:12.5px;line-height:1.45;padding-left:calc(3.6em + 4px)}
-.rtools .rhits mark{background:rgba(214,160,74,.35);color:inherit;padding:0 1px}
-.rtools .rview{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin-top:10px;font-size:13.5px}
-.rtools .rview>span{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
-.rtools .rview label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
-.rules .roff{display:none!important}
-.rpager{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin:14px 0}
-.rpager[hidden]{display:none}
-.rpager .rpbtn{font:inherit;font-size:13px;line-height:1.3;color:var(--text);background:transparent;border:1px solid var(--rule);padding:6px 10px;cursor:pointer;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rpager .rpbtn[data-rp="1"]{text-align:right}
-.rpager .rpbtn b{font:400 .9em var(--mono);color:var(--amber)}
-.rpager .rpbtn:hover:not([disabled]),.rpager .rpbtn:focus-visible{border-color:var(--amber);color:var(--amber-hi);outline:none}
-.rpager .rpbtn[disabled]{opacity:.35;cursor:default}
-.rpager .rpat{font-size:12px;color:var(--dim);text-align:center;white-space:nowrap}.rpager .rpat b{font-family:var(--mono);color:var(--amber)}
-@media (max-width:640px){.rpager{grid-template-columns:1fr 1fr}.rpager .rpat{grid-column:1/3;grid-row:1}}
-/* v78t: each Heavenly Body is one block: its name, Form and how it comes on top, what it does across the whole width below */
-.rules table.skytable,.rules table.skytable tbody{display:block}
-.rules table.skytable tr:first-child{display:none}
-.rules table.skytable tr{display:grid;grid-template-columns:max-content max-content 1fr;gap:4px 16px;align-items:baseline;padding:10px 0;border-top:1px solid #000}
-.rules table.skytable td{border:0;padding:0}
-.rules table.skytable td:nth-child(1){font-weight:600;color:var(--text)}
-.rules table.skytable td:nth-child(3){color:var(--dim);font-size:.92em}
-.rules table.skytable td:nth-child(3)::before{content:"Comes: "}
-.rules table.skytable td:nth-child(4){grid-column:1/-1}
-/* v78t: how to read the rules: each choice a button, the one in use lit */
-.rtools .rview label{padding:4px 10px;border:1px solid var(--rule);border-radius:4px}
-.rtools .rview label:has(input:checked){border-color:var(--amber-hi);color:var(--amber-hi);background:color-mix(in oklab,var(--amber) 16%,transparent);box-shadow:0 0 10px color-mix(in oklab,var(--amber-hi) 35%,transparent)}
-.rtools .rview label input{accent-color:var(--amber)}
-</style><script>try{var P=JSON.parse(localStorage.getItem("ec-prefs2")||"{}"),t=P.theme==null||(!P.v43t&&P.theme==="")?"darkfantasy":P.theme,
-M={darkfantasy:["th-darkfantasy"],etherten:["th-darkfantasy","th-eten"],etherkenoma:["th-darkfantasy","th-eken"],"":["th-rich"],dull:["th-dull","th-rich"],office:["th-office","th-rich"],officedark:["th-officedark","th-rich"],earth:["th-earth","th-rich"],jester:["th-black","th-jester","th-rich"],ten:["th-indigo","th-blue","th-rich"],satan:["th-crimson","th-rich"]};
-(M[t]||[]).forEach(function(c){document.documentElement.classList.add(c)});document.documentElement.classList.add("ecpage")}catch(e){}
-/* v71j: Data saving (1) and Poor connection (2) fetch nothing the page can do without: no fonts (the blackletter becomes the
+      /* v65: a wide table scrolls inside itself on a phone instead of widening the page */
+      @media (max-width: 700px) {
+        .rules table {
+          display: block;
+          max-width: 100%;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+      }
+      /* v72c: rule codes */
+      .rcode {
+        display: inline-block;
+        min-width: 2.2em;
+        margin-right: 0.35em;
+        font: 400 0.78em/1 var(--mono);
+        letter-spacing: 0.02em;
+        color: var(--dim);
+        text-decoration: none;
+        opacity: 0.85;
+        vertical-align: 0.08em;
+      }
+      a.rcode:hover,
+      a.rcode:focus-visible {
+        color: var(--amber);
+        opacity: 1;
+      }
+      h2 .rcode,
+      h3 .rcode,
+      h4 .rcode {
+        font-size: 0.72em;
+        margin-right: 0.5em;
+        color: var(--amber);
+        opacity: 0.9;
+      }
+      .rindex .toc .n {
+        font-family: var(--mono);
+      }
+      .rcodehelp {
+        margin: -4px 0 10px;
+        font-size: 12.5px;
+      }
+      [data-rcode]:target {
+        outline: 1px dashed var(--amber);
+        outline-offset: 4px;
+      }
+      /* v74e: find a rule, and read one section or one part at a time */
+      .rtools {
+        margin: 6px 0 18px;
+        padding: 10px 12px;
+        border: 1px solid var(--rule);
+        background: rgba(0, 0, 0, 0.18);
+      }
+      .rtools .rfind {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .rtools .rfind span {
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--dim);
+      }
+      .rtools .rfind input {
+        flex: 1 1 240px;
+        min-width: 0;
+        font-family: var(--mono);
+        font-size: 14px;
+        background: var(--deep, #0d0a08);
+        color: var(--text);
+        border: 1px solid var(--rule);
+        padding: 7px 9px;
+      }
+      .rtools .rfind input:focus {
+        outline: 1px solid var(--amber);
+        border-color: var(--amber);
+      }
+      .rtools .rhits {
+        margin: 8px 0 2px;
+        max-height: min(50vh, 420px);
+        overflow: auto;
+        border-top: 1px solid var(--rule);
+      }
+      .rtools .rhits ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .rtools .rhits li {
+        padding: 5px 0;
+        border-bottom: 1px solid #0006;
+      }
+      .rtools .rhits a {
+        color: var(--text);
+        text-decoration: none;
+        border-bottom: 1px solid var(--rule);
+      }
+      .rtools .rhits a:hover,
+      .rtools .rhits a:focus-visible {
+        color: var(--amber-hi);
+        border-color: var(--amber);
+      }
+      .rtools .rhits a b {
+        display: inline-block;
+        min-width: 3.6em;
+        font: 400 0.85em var(--mono);
+        color: var(--amber);
+      }
+      .rtools .rhits small {
+        display: block;
+        color: var(--dim);
+        font-size: 12.5px;
+        line-height: 1.45;
+        padding-left: calc(3.6em + 4px);
+      }
+      .rtools .rhits mark {
+        background: rgba(214, 160, 74, 0.35);
+        color: inherit;
+        padding: 0 1px;
+      }
+      .rtools .rview {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 16px;
+        align-items: center;
+        margin-top: 10px;
+        font-size: 13.5px;
+      }
+      .rtools .rview > span {
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--dim);
+      }
+      .rtools .rview label {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        cursor: pointer;
+      }
+      .rules .roff {
+        display: none !important;
+      }
+      .rpager {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 10px;
+        align-items: center;
+        margin: 14px 0;
+      }
+      .rpager[hidden] {
+        display: none;
+      }
+      .rpager .rpbtn {
+        font: inherit;
+        font-size: 13px;
+        line-height: 1.3;
+        color: var(--text);
+        background: transparent;
+        border: 1px solid var(--rule);
+        padding: 6px 10px;
+        cursor: pointer;
+        text-align: left;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .rpager .rpbtn[data-rp="1"] {
+        text-align: right;
+      }
+      .rpager .rpbtn b {
+        font: 400 0.9em var(--mono);
+        color: var(--amber);
+      }
+      .rpager .rpbtn:hover:not([disabled]),
+      .rpager .rpbtn:focus-visible {
+        border-color: var(--amber);
+        color: var(--amber-hi);
+        outline: none;
+      }
+      .rpager .rpbtn[disabled] {
+        opacity: 0.35;
+        cursor: default;
+      }
+      .rpager .rpat {
+        font-size: 12px;
+        color: var(--dim);
+        text-align: center;
+        white-space: nowrap;
+      }
+      .rpager .rpat b {
+        font-family: var(--mono);
+        color: var(--amber);
+      }
+      @media (max-width: 640px) {
+        .rpager {
+          grid-template-columns: 1fr 1fr;
+        }
+        .rpager .rpat {
+          grid-column: 1/3;
+          grid-row: 1;
+        }
+      }
+      /* v78t: each Heavenly Body is one block: its name, Form and how it comes on top, what it does across the whole width below */
+      .rules table.skytable,
+      .rules table.skytable tbody {
+        display: block;
+      }
+      .rules table.skytable tr:first-child {
+        display: none;
+      }
+      .rules table.skytable tr {
+        display: grid;
+        grid-template-columns: max-content max-content 1fr;
+        gap: 4px 16px;
+        align-items: baseline;
+        padding: 10px 0;
+        border-top: 1px solid #000;
+      }
+      .rules table.skytable td {
+        border: 0;
+        padding: 0;
+      }
+      .rules table.skytable td:nth-child(1) {
+        font-weight: 600;
+        color: var(--text);
+      }
+      .rules table.skytable td:nth-child(3) {
+        color: var(--dim);
+        font-size: 0.92em;
+      }
+      .rules table.skytable td:nth-child(3)::before {
+        content: "Comes: ";
+      }
+      .rules table.skytable td:nth-child(4) {
+        grid-column: 1/-1;
+      }
+      /* v78t: how to read the rules: each choice a button, the one in use lit */
+      .rtools .rview label {
+        padding: 4px 10px;
+        border: 1px solid var(--rule);
+        border-radius: 4px;
+      }
+      .rtools .rview label:has(input:checked) {
+        border-color: var(--amber-hi);
+        color: var(--amber-hi);
+        background: color-mix(in oklab, var(--amber) 16%, transparent);
+        box-shadow: 0 0 10px
+          color-mix(in oklab, var(--amber-hi) 35%, transparent);
+      }
+      .rtools .rview label input {
+        accent-color: var(--amber);
+      }
+    </style>
+    <script>
+      try {
+        var P = JSON.parse(localStorage.getItem("ec-prefs2") || "{}"),
+          t =
+            P.theme == null || (!P.v43t && P.theme === "")
+              ? "darkfantasy"
+              : P.theme,
+          M = {
+            darkfantasy: ["th-darkfantasy"],
+            etherten: ["th-darkfantasy", "th-eten"],
+            etherkenoma: ["th-darkfantasy", "th-eken"],
+            "": ["th-rich"],
+            dull: ["th-dull", "th-rich"],
+            office: ["th-office", "th-rich"],
+            officedark: ["th-officedark", "th-rich"],
+            earth: ["th-earth", "th-rich"],
+            jester: ["th-black", "th-jester", "th-rich"],
+            ten: ["th-indigo", "th-blue", "th-rich"],
+            satan: ["th-crimson", "th-rich"],
+          };
+        (M[t] || []).forEach(function (c) {
+          document.documentElement.classList.add(c);
+        });
+        document.documentElement.classList.add("ecpage");
+      } catch (e) {}
+      /* v71j: Data saving (1) and Poor connection (2) fetch nothing the page can do without: no fonts (the blackletter becomes the
    device's own serif). The music plays in every mode (v76b: the songs are made on the device from one small script of
    about 47 KB, cached; nothing more is ever downloaded for it). Otherwise the fonts are preloaded. */
-try{var N=+(P&&P.net)||0,D=document.documentElement,H=document.head;
-if(N>0){D.classList.add("lite");if(P.netBg)D.classList.add("litebg");if(N>1)D.classList.add("poor");var y=document.createElement("style");y.id="litefonts";
-y.textContent='@font-face{font-family:"Grenze Gotisch";font-style:normal;font-weight:500;src:local("Old English Text MT"),local("Times New Roman"),local("Georgia"),local("Noto Serif"),local("DejaVu Serif"),local("Liberation Serif")}';H.appendChild(y)}
-else{var F=function(u){var l=document.createElement("link");l.rel="preload";l.as="font";l.type="font/woff2";l.crossOrigin="anonymous";l.href=u;H.appendChild(l)};
-if(!P.dys)F("../assets/cascadia-code-latin-200-normal.woff2");if(window.EC_BL)F("../assets/grenze-gotisch-latin-500-normal.woff2")}
-var m=document.createElement("script");m.src="ec-music.js?v=72";H.appendChild(m)}catch(e){}/* v72b: Dyslexic mode: clear sans-serif letters in place of the blackletter and the thin monospace */
-try{if(P&&P.dys){D.classList.add("dys");var z=document.createElement("style");z.id="dysfonts";z.textContent='@font-face{font-family:"Grenze Gotisch";font-style:normal;font-weight:500;src:local("Verdana"),local("Tahoma"),local("Segoe UI"),local("Arial"),local("DejaVu Sans"),local("Liberation Sans")}@font-face{font-family:"UnifrakturMaguntia";font-style:normal;font-weight:400;src:local("Verdana"),local("Tahoma"),local("Segoe UI"),local("Arial"),local("DejaVu Sans"),local("Liberation Sans")}';H.appendChild(z)}}catch(e){}
-</script>
-<script src="../assets/site.js?v=72" defer></script>
-</head>
-<body data-static="1" data-fx="strings bars">
-<main class="wrap rules">
-<nav class="crumbs"><a href="../index.html">← Nous Within Kenoma</a></nav>
-<header><span class="num">A card game</span><h1>Ether's Crossroads</h1></header>
-<nav class="cards">
-  <a class="card" href="ethers-crossroads-play.html">Play Game<span>Standard (computers and people on this device), Survival or Online</span></a>
-  <a class="card" href="ethers-crossroads-play.html#settings">Settings<span>The game's look, sound and animations: the same as the Menu in a game</span></a>
-  <a class="card" href="ethers-crossroads-rules.html">All Rules<span>Every rule, spell, moon phase and event</span></a>
-</nav>
-<h2>Getting Started</h2>
-<p>Ether's Crossroads is a card game for two or more players, played with ordinary playing cards and dice. You can play it here in the browser, or at a table with real cards. At a table, every player needs their own deck with both Jokers, and you need a d2, d4, d6, d8, d12 and d20 between you.</p>
-<p>Your cards are your army, and the dice settle every fight. When a card dies it goes to the grave, which everyone shares. When you sacrifice a card it becomes a soul, and souls are the mana you spend on spells. The moon moves one phase every round, and some phases help you while others cost you.</p>
-<h3>Setting up</h3>
-<p>Take the Ace and a Jack out of your deck. Put the Ace on any tile of your spawn lines and the Jack inside it. Shuffle, then draw 2d4 cards. You can never hold more than six.</p>
-<p>Everyone rolls. Whoever rolls highest sets up first, putting any opening cards on their own two lines, and also takes the first turn.</p>
-<h3>Your turn</h3>
-<p>A turn has two phases, prep and then attack.</p>
-<p>Prep starts with drawing. Roll a d4 and draw that many cards, and do it again as often as you like. Cards that don't fit in your hand go to the grave, and then you can't draw again that turn. After drawing you can place cards, move them, sacrifice them and cast spells. Do your sacrificing before you spend anything, because once you spend mana you can't sacrifice again until your next prep.</p>
-<p>In the attack phase each of your stacks can attack once.</p>
-<p>The player who goes first doesn't draw on the first turn of the game.</p>
-<h3>Fights</h3>
-<p>A stack fights with its best card, the card's value plus a die. Piling cards into a stack doesn't add them together, but each card is one more hit the stack can take before it's gone.</p>
-<h3>Souls and mana</h3>
-<p>Your soul pile holds up to six mana. A card sacrificed from the field is worth its soul. A card from your hand is worth its Ether price, minus 1d2, plus 1, and a card that costs 1 is always worth 1. You spend this on spells. Grave Blessing is free once a round and lets you roll to bring the dead back.</p>
-<h3>The moon</h3>
-<p>The New Moon gives cards back from the grave. The Full Moon takes a stack of two, or a card, or 2d2 + 2 mana. Every so often the Full Moon turns into a Blood Moon.</p>
-<h3>Winning</h3>
-<p>You win when the other side has nothing left on the field, or when they finish a turn with no deck, no hand and no souls.</p>
-<p>Everything else is in All Rules, from what each card does to every spell and moon event. Play Game starts a game right here.</p>
-<h2 id="modes">Game Modes</h2>
-<h3>Standard</h3>
-<p>Local play: against computers, together on this device, or both. Up to four people share one device, and every other seat is a computer: you against one to three computers, friends together against computers, or friends against each other, up to eight seats in King of the Hill. Each player picks an Emanation (or the host turns Emanations off), a color and a symbol, which marks every card they own. With more than one person, the board turns to face whoever is playing, and the screen goes dark between turns until the next player confirms they hold the device. Everyone sees every die.</p>
-<h3>The computers</h3>
-<p>The computers are written as plain code rather than a language model. Each round the computer weighs offense against defense from the field and the decks. <b>Easy</b> plays loosely and makes mistakes. <b>Medium</b> is balanced and a real fight. <b>Hard</b> plays the Joker for souls, stacks Aces for the Grave Blessing, keeps its own deck full and eats away at yours.</p>
-<h3>Survival</h3>
-<p>Tower defense for one to four players. You raise your Ace and its Jack, and the Horde comes: after three rounds of grace, a new wave every 1d2 + 2 rounds from a fresh deck, each one a step stronger, with Jacks, Queens and Kings from the sixth wave and Jokers from the eleventh; from then on it brings counter cards (Battering Rams for your Walls) when you lean on something it has no answer to. The Horde has no spells, hand or grave. The moon still turns. You lose when your last card on the field falls, and the round you reach is your score.</p>
-<h3>Emanations</h3>
-<p>An Emanation is what you play as. Each one changes your deck, your spells or your limits. <a href="ethers-crossroads-rules.html#substances">Every Emanation in full</a>.</p>
-<dl class="subtags"><dt>Angel Machine</dt><dd>Antony's mech: Samson fights, and Antony rises from his corpse.</dd><dt>Satan</dt><dd>One overwhelming card, and a curse that turns a stack against itself.</dd><dt>Binah</dt><dd>The Southern tribe of the Euclids: Slavemasters capture, and Slaves shoot.</dd><dt>Jester Fool</dt><dd>The Tree, the Puppets and the BullGoat: a living base that feeds you mana.</dd><dt>Tiphareth of Kether</dt><dd>The Northern tribe of the Euclids: Traffickers chain souls and sell them.</dd><dt>Lucifer &amp; Ouroboros</dt><dd>Delusions: blind yourself for mana, then blind your enemy and starve them.</dd><dt>The Leviathan</dt><dd>The black serpent: it rises onto the moon and takes a toll every New Moon.</dd><dt>The Firmament</dt><dd>Master of the sky: it hangs Heavenly Bodies in the moon's place.</dd><dt>Yaldabaoth</dt><dd>The Demiurge: it eats the sky and the dead, and brings Saturn.</dd></dl>
-<h3>More players, maps and options</h3>
-<p>With three or four players the field is a 7 by 7 square by default: free-for-all, or two against two with teammates side by side, across, or sharing one end. The battle maps are the Keep, the Sahel, the Forest, the Dungeon and the River, all at night. Before a game you can set the field size, the decks, the specials, the starting mana, the sky, the Bank, Demons, crystals, fog of war and more. <a href="ethers-crossroads-rules.html#modes">Every option</a>.</p>
-
-</main>
-</body>
+      try {
+        var N = +(P && P.net) || 0,
+          D = document.documentElement,
+          H = document.head;
+        if (N > 0) {
+          D.classList.add("lite");
+          if (P.netBg) D.classList.add("litebg");
+          if (N > 1) D.classList.add("poor");
+          var y = document.createElement("style");
+          y.id = "litefonts";
+          y.textContent =
+            '@font-face{font-family:"Grenze Gotisch";font-style:normal;font-weight:500;src:local("Old English Text MT"),local("Times New Roman"),local("Georgia"),local("Noto Serif"),local("DejaVu Serif"),local("Liberation Serif")}';
+          H.appendChild(y);
+        } else {
+          var F = function (u) {
+            var l = document.createElement("link");
+            l.rel = "preload";
+            l.as = "font";
+            l.type = "font/woff2";
+            l.crossOrigin = "anonymous";
+            l.href = u;
+            H.appendChild(l);
+          };
+          if (!P.dys) F("../assets/cascadia-code-latin-200-normal.woff2");
+          if (window.EC_BL)
+            F("../assets/grenze-gotisch-latin-500-normal.woff2");
+        }
+        var m = document.createElement("script");
+        m.src = "ec-music.js?v=72";
+        H.appendChild(m);
+      } catch (e) {} /* v72b: Dyslexic mode: clear sans-serif letters in place of the blackletter and the thin monospace */
+      try {
+        if (P && P.dys) {
+          D.classList.add("dys");
+          var z = document.createElement("style");
+          z.id = "dysfonts";
+          z.textContent =
+            '@font-face{font-family:"Grenze Gotisch";font-style:normal;font-weight:500;src:local("Verdana"),local("Tahoma"),local("Segoe UI"),local("Arial"),local("DejaVu Sans"),local("Liberation Sans")}@font-face{font-family:"UnifrakturMaguntia";font-style:normal;font-weight:400;src:local("Verdana"),local("Tahoma"),local("Segoe UI"),local("Arial"),local("DejaVu Sans"),local("Liberation Sans")}';
+          H.appendChild(z);
+        }
+      } catch (e) {}
+    </script>
+    <script src="../assets/site.js?v=72" defer></script>
+  </head>
+  <body data-static="1" data-fx="strings bars">
+    <main class="wrap rules">
+      <nav class="crumbs"><a href="../index.html">← Nous Within Kenoma</a></nav>
+      <header>
+        <span class="num">A card game</span>
+        <h1>Ether's Crossroads</h1>
+      </header>
+      <nav class="cards">
+        <a class="card" href="ethers-crossroads-play.html"
+          >Play Game<span
+            >Standard (computers and people on this device), Survival or
+            Online</span
+          ></a
+        >
+        <a class="card" href="ethers-crossroads-play.html#settings"
+          >Settings<span
+            >The game's look, sound and animations: the same as the Menu in a
+            game</span
+          ></a
+        >
+        <a class="card" href="ethers-crossroads-rules.html"
+          >All Rules<span>Every rule, spell, moon phase and event</span></a
+        >
+      </nav>
+      <h2>Getting Started</h2>
+      <p>
+        Ether's Crossroads is a card game for two or more players, played with
+        ordinary playing cards and dice. You can play it here in the browser, or
+        at a table with real cards. At a table, every player needs their own
+        deck with both Jokers, and you need a d2, d4, d6, d8, d12 and d20
+        between you.
+      </p>
+      <p>
+        Your cards are your army, and the dice settle every fight. When a card
+        dies it goes to the grave, which everyone shares. When you sacrifice a
+        card it becomes a soul, and souls are the mana you spend on spells. The
+        moon moves one phase every round, and some phases help you while others
+        cost you.
+      </p>
+      <h3>Setting up</h3>
+      <p>
+        Take the Ace and a Jack out of your deck. Put the Ace on any tile of
+        your spawn lines and the Jack inside it. Shuffle, then draw 2d4 cards.
+        You can never hold more than six.
+      </p>
+      <p>
+        Everyone rolls. Whoever rolls highest sets up first, putting any opening
+        cards on their own two lines, and also takes the first turn.
+      </p>
+      <h3>Your turn</h3>
+      <p>A turn has two phases, prep and then attack.</p>
+      <p>
+        Prep starts with drawing. Roll a d4 and draw that many cards, and do it
+        again as often as you like. Cards that don't fit in your hand go to the
+        grave, and then you can't draw again that turn. After drawing you can
+        place cards, move them, sacrifice them and cast spells. Do your
+        sacrificing before you spend anything, because once you spend mana you
+        can't sacrifice again until your next prep.
+      </p>
+      <p>In the attack phase each of your stacks can attack once.</p>
+      <p>
+        The player who goes first doesn't draw on the first turn of the game.
+      </p>
+      <h3>Fights</h3>
+      <p>
+        A stack fights with its best card, the card's value plus a die. Piling
+        cards into a stack doesn't add them together, but each card is one more
+        hit the stack can take before it's gone.
+      </p>
+      <h3>Souls and mana</h3>
+      <p>
+        Your soul pile holds up to six mana. A card sacrificed from the field is
+        worth its soul. A card from your hand is worth its Ether price, minus
+        1d2, plus 1, and a card that costs 1 is always worth 1. You spend this
+        on spells. Grave Blessing is free once a round and lets you roll to
+        bring the dead back.
+      </p>
+      <h3>The moon</h3>
+      <p>
+        The New Moon gives cards back from the grave. The Full Moon takes a
+        stack of two, or a card, or 2d2 + 2 mana. Every so often the Full Moon
+        turns into a Blood Moon.
+      </p>
+      <h3>Winning</h3>
+      <p>
+        You win when the other side has nothing left on the field, or when they
+        finish a turn with no deck, no hand and no souls.
+      </p>
+      <p>
+        Everything else is in All Rules, from what each card does to every spell
+        and moon event. Play Game starts a game right here.
+      </p>
+      <h2 id="modes">Game Modes</h2>
+      <h3>Standard</h3>
+      <p>
+        Local play: against computers, together on this device, or both. Up to
+        four people share one device, and every other seat is a computer: you
+        against one to three computers, friends together against computers, or
+        friends against each other, up to eight seats in King of the Hill. Each
+        player picks an Emanation (or the host turns Emanations off), a color
+        and a symbol, which marks every card they own. With more than one
+        person, the board turns to face whoever is playing, and the screen goes
+        dark between turns until the next player confirms they hold the device.
+        Everyone sees every die.
+      </p>
+      <h3>The computers</h3>
+      <p>
+        The computers are written as plain code rather than a language model.
+        Each round the computer weighs offense against defense from the field
+        and the decks. <b>Easy</b> plays loosely and makes mistakes.
+        <b>Medium</b> is balanced and a real fight. <b>Hard</b> plays the Joker
+        for souls, stacks Aces for the Grave Blessing, keeps its own deck full
+        and eats away at yours.
+      </p>
+      <h3>Survival</h3>
+      <p>
+        Tower defense for one to four players. You raise your Ace and its Jack,
+        and the Horde comes: after three rounds of grace, a new wave every 1d2 +
+        2 rounds from a fresh deck, each one a step stronger, with Jacks, Queens
+        and Kings from the sixth wave and Jokers from the eleventh; from then on
+        it brings counter cards (Battering Rams for your Walls) when you lean on
+        something it has no answer to. The Horde has no spells, hand or grave.
+        The moon still turns. You lose when your last card on the field falls,
+        and the round you reach is your score.
+      </p>
+      <h3>Emanations</h3>
+      <p>
+        An Emanation is what you play as. Each one changes your deck, your
+        spells or your limits.
+        <a href="ethers-crossroads-rules.html#substances"
+          >Every Emanation in full</a
+        >.
+      </p>
+      <dl class="subtags">
+        <dt>Angel Machine</dt>
+        <dd>Antony's mech: Samson fights, and Antony rises from his corpse.</dd>
+        <dt>Satan</dt>
+        <dd>
+          One overwhelming card, and a curse that turns a stack against itself.
+        </dd>
+        <dt>Binah</dt>
+        <dd>
+          The Southern tribe of the Euclids: Slavemasters capture, and Slaves
+          shoot.
+        </dd>
+        <dt>Jester Fool</dt>
+        <dd>
+          The Tree, the Puppets and the BullGoat: a living base that feeds you
+          mana.
+        </dd>
+        <dt>Tiphareth of Kether</dt>
+        <dd>
+          The Northern tribe of the Euclids: Traffickers chain souls and sell
+          them.
+        </dd>
+        <dt>Lucifer &amp; Ouroboros</dt>
+        <dd>
+          Delusions: blind yourself for mana, then blind your enemy and starve
+          them.
+        </dd>
+        <dt>The Leviathan</dt>
+        <dd>
+          The black serpent: it rises onto the moon and takes a toll every New
+          Moon.
+        </dd>
+        <dt>The Firmament</dt>
+        <dd>
+          Master of the sky: it hangs Heavenly Bodies in the moon's place.
+        </dd>
+        <dt>Yaldabaoth</dt>
+        <dd>The Demiurge: it eats the sky and the dead, and brings Saturn.</dd>
+      </dl>
+      <h3>More players, maps and options</h3>
+      <p>
+        With three or four players the field is a 7 by 7 square by default:
+        free-for-all, or two against two with teammates side by side, across, or
+        sharing one end. The battle maps are the Keep, the Sahel, the Forest,
+        the Dungeon and the River, all at night. Before a game you can set the
+        field size, the decks, the specials, the starting mana, the sky, the
+        Bank, Demons, crystals, fog of war and more.
+        <a href="ethers-crossroads-rules.html#modes">Every option</a>.
+      </p>
+    </main>
+  </body>
 </html>

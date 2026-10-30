@@ -1,5 +1,7 @@
 # Roadmap answers (user, 2026-10-17) — read with roadmap_spec_2026-10-17.txt
+
 Prompts: 6 fixes+info+menus · 7 fog & stealth · 8 new cards & bases · 9 economy & map events · 10a sky+Firmament · 10b Second Sun, Venus, Jupiter · 10c Mercury, eclipses, AI · then online.
+
 1. Max mana stays 6; "buy max mana" spell raises it, capped at 18.
 2. Surplus: up to triple the max (6 -> 18) for a round; gone at the next round. Negative mana floor -18 (scales with max). (bank = prompt 9)
 3. Fog: every unit sees twice a grunt's reach (2 tiles) unless stated; archers no extra. Scouts see 3; scouts see assassins/face-down within a round radius of 2. Ambush hides the card. Fog on by default.
@@ -10,17 +12,19 @@ Prompts: 6 fixes+info+menus · 7 fog & stealth · 8 new cards & bases · 9 econo
 8. Planets (Mars, Venus, Jupiter, Mercury, Second Sun) placed by the Firmament. Worship = "Oath", a spell in a new "Astrology" category, only while the planet is up. Popup tells players they can make an Oath.
 9. Eclipses: each planet 5% at the start of each round.
 10. Pleasure and Joy option 2 replaced: 1d3-1 mana; each damage an enemy deals to your units steals 1 mana from that enemy. No Jester interaction.
-Extra: Jupiter eclipse doubles everyone's mana (6/6 -> 18/6), surplus gone next round (later).
-New Illusion category (move the Delusions there). Quiet Eyes (illusion, 2 mana per round, 1d2+1 rounds): hides all units unless a scout or adjacent; scouts counter. Bird's Eye (1d2 per round, 1 round): lifts fog fully; not vs Delusions, scouts don't counter Delusions. (prompt 7)
-Advantage stacking: 2 advantages = advantage +2, each more +1; an opposite one cancels one.
-Astrology spell section for planetary spells/Oaths (prompt 10).
+    Extra: Jupiter eclipse doubles everyone's mana (6/6 -> 18/6), surplus gone next round (later).
+    New Illusion category (move the Delusions there). Quiet Eyes (illusion, 2 mana per round, 1d2+1 rounds): hides all units unless a scout or adjacent; scouts counter. Bird's Eye (1d2 per round, 1 round): lifts fog fully; not vs Delusions, scouts don't counter Delusions. (prompt 7)
+    Advantage stacking: 2 advantages = advantage +2, each more +1; an opposite one cancels one.
+    Astrology spell section for planetary spells/Oaths (prompt 10).
 
 ## Status
+
 - Prompt 6 DONE (v13): sac buttons, Deconjured 2 options, P&J 2 options (Joyful Theft), Teleport 1d2-1 + return next turn, BullGoat->Goatbull (Horns/Charge2/Stomp+Behooved), Tree immune to ranged, Beginner shareable/others unique, surplus (3x, fades next round), adv stacking, Ace 2 hearts + base tint, card corner info + drag compare + sel-box stats/compare/browser, moon info hover, status hover on symbol, spell school dropdowns, Illusion school, wide setup, Menu (pauses), moon off option, Basics/Further explanations. Code: game/src/14_info.js.
 - Known gaps: computer never uses Stomp; mana floor/negative and buy-max-mana wait for prompt 9.
 - Next: Prompt 7 (fog of war, scouts, assassins, face-down, ambush, Quiet Eyes, Bird's Eye).
 
 ## Status 2026-10-17
+
 - Prompt 7 DONE as v14: fog of war (Rules tab, default on), Scouts, Assassins (pairs), face-down placement, ambush, Quiet Eyes, Bird's Eye, fog-aware log, computer Stomp + fog play. Next: Prompt 8.
 - Prompt 8 DONE as v15 (game/src/16_siege.js): Archer (bow ring at 2, Suppress), Cannon (≤3, 1d2+2 reload, wall 2, no last Ace heart/Tree), Healer (shield 1d4 rounds / heal 1d2+2, no Queen), Repairman (repair 1d3+1 lock, Tree up to 5, Ace upgrade once kills him), Battering Ram (2 to wall, 1-2 soldier crew, unkillable by blows), Miner (2 Ace slots 1d2-1 from next round, crystal 1+1d3 on 2, open 1d6-5, first to fall / captured), Wall (5 hp def 10, ranged-only firing, charge x2, lightning 2, falls with contents), capture slot + Capture/Destroy + release, crystals (center, 1d6+4 turns, 12 mana, HQ starts with one, option), Field Libation, Ether counts per deck (archer 8, healer/repair/wall/ram/miner 4, cannon 1), Beginner kit. My guesses: Miner 2 mana & 4/deck, Repairman 2 mana, Wall contents die with it, Archer ring = 8 tiles at distance 2, Samson no charge. Next: Prompt 9.
 - Prompt 9 DONE as v16 (game/src/17_econ.js): Bank (spell mana to bank, loans 20%/30% every 1d2 turns due in 4, debt = negative mana paid by incoming souls, floor -3×max instant loss, credit spending, selling cards/thralls, upsell >2 buys two rounds, bank in red: Ether sale -1 + asks richest player for loan, bank debt collectors vs players below -max, collapse at bank -12 & all ≤ -6, banker 0.1% heart attack closes Ether), Gambling, Buy Max Mana (6, cap 18), Mystery Generation in Auction (1d2+2d3), Barbarians NPC (crimson, center, 4+1d12 turns + Blood Moon, sale reward, debt forgiveness, angry banker after 7d2 turns), meteor 1%/round + fire 2 rounds, center hole option (0/1/2 cross/3 square). NPCs are extra G.p entries with cpu "npc" (isHorde true, isNPC). Next: Prompt 10a.
@@ -29,6 +33,7 @@ Astrology spell section for planetary spells/Oaths (prompt 10).
 - Prompt 10c DONE as v19 (game/src/20_mercury.js): Mercury (Firmament 2d3; sky option), Peace Time (vote, 3-4 rounds: send home, heal, clear curses/enchantments, 3 grave cards round-robin, no player attacks, no entering others' lines), Buy Peace (4d2, 2 rounds), Total War (vote, 3-4 rounds: OD kills, +1 mana per kill, curses -1d2+1, teammates attackable with mana per damage), Oath of Mercury → Betrayal (1d2+2d3, permanent team break, 2 rounds OD + mana), Declare War (1d2 rounds), Bribe the Banker (+1 all spells for target 3d2-1 rounds, 1d2+2d3 per round). Eclipses 5%/round per planet + Eclipse mode (Blood Moon mode renamed): sun (show hands/assassins/face-down, 1 OD card back each, mirage, Yald choke if eats sun), jupiter (+2d3-1 max 2 rounds, fill to 2x, bank forgives & doubles, conj sale, miners x2 1d4 turns, yald mana per others' OD), venus (gifts x2, 5-for-5 grave deal), mercury (vote peace 1d2+1 or war, tie→war), mars (strongest OD card escapes, 2 free distinct curses each, Samson 1d2 from Limbo). AI self-preservation: votes by strength, peace when losing, war when strong, rare betrayal, throttled votes. NEXT: online play.
 
 ## Status 2026-10-17 (afternoon) — what happened after 10c, and changes to this plan
+
 - After 10c the plan said "then online". Online play is NOT started. Before it, three things were added:
   1. UI overhaul, Parts 1–4 (notes/ui_overhaul_sheet.md): v20 play screen (spell scroll box, sticky right column, Bank on top,
      Ether shop panel, Grave Blessing auto, X on windows, corner hover info, P1–P4), v21 English pass + Bank help, v22 setup menu,

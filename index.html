@@ -1,38 +1,96 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Nous Within Kenoma</title>
-<link rel="icon" type="image/png" href="assets/favicon.png">
-<link rel="preload" href="assets/cascadia-code-latin-200-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/site.css?v=72">
-<script src="assets/site.js?v=72" defer></script>
-</head>
-<body data-static="1" data-fx="strings bars">
-<main class="wide" style="max-width:1060px">
-<div class="front">
-<div>
-  <h1 style="font-size:clamp(30px,5vw,44px);line-height:1.1;margin:0 0 10px">Nous Within Kenoma</h1>
-  <p style="color:var(--dim);margin:0 0 34px;font-size:15px">Gnostic-inspired syncretic short stories</p>
-  <h2 class="label">Sample Chapters</h2>
-  <nav class="cards"><a class="card" href="book/chapters.html">Read Nous Within Kenoma<span>Book in progress: 49 chapters</span></a></nav>
-  <h2 class="label">Games</h2>
-  <nav class="cards">
-    <a class="card" href="game/ethers-crossroads.html">Ether's Crossroads<span>A strategy card game, loosely based on the book</span></a>
-    <a class="card" href="https://boohbahlord.github.io/DuckFriends/">Duck Friends<span>A party game for friends</span></a>
-  </nav>
-</div>
-<div>
-  <figure style="margin:0"><img src="art/kenoma-art.jpg" alt="Ink drawing of a face in dense, flowing hatch lines" width="999" height="1500" style="display:block;width:100%;height:auto;border:1px solid var(--rule)"></figure>
-  <p style="text-align:right;margin:12px 0 0"><a class="more-art" href="art/art.html">View Additional Art →</a></p>
-</div>
-</div>
-</main>
-<style>
-.front{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.95fr);gap:46px;align-items:start}
-.front h2.label{margin:26px 0 8px;font-weight:200}
-@media (max-width:820px){.front{grid-template-columns:minmax(0,1fr)}}
-</style>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Nous Within Kenoma</title>
+    <link rel="icon" type="image/png" href="assets/favicon.png" />
+    <link
+      rel="preload"
+      href="assets/cascadia-code-latin-200-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="assets/site.css?v=72" />
+    <script src="assets/site.js?v=72" defer></script>
+  </head>
+  <body data-static="1" data-fx="strings bars">
+    <main class="wide" style="max-width: 1060px">
+      <div class="front">
+        <div>
+          <h1
+            style="
+              font-size: clamp(30px, 5vw, 44px);
+              line-height: 1.1;
+              margin: 0 0 10px;
+            "
+          >
+            Nous Within Kenoma
+          </h1>
+          <p style="color: var(--dim); margin: 0 0 34px; font-size: 15px">
+            Gnostic-inspired syncretic short stories
+          </p>
+          <h2 class="label">Sample Chapters</h2>
+          <nav class="cards">
+            <a class="card" href="book/chapters.html"
+              >Read Nous Within Kenoma<span
+                >Book in progress: 49 chapters</span
+              ></a
+            >
+          </nav>
+          <h2 class="label">Games</h2>
+          <nav class="cards">
+            <a class="card" href="game/ethers-crossroads.html"
+              >Ether's Crossroads<span
+                >A strategy card game, loosely based on the book</span
+              ></a
+            >
+            <a class="card" href="https://boohbahlord.github.io/DuckFriends/"
+              >Duck Friends<span>A party game for friends</span></a
+            >
+          </nav>
+        </div>
+        <div>
+          <figure style="margin: 0">
+            <img
+              src="art/kenoma-art.jpg"
+              alt="Ink drawing of a face in dense, flowing hatch lines"
+              width="999"
+              height="1500"
+              style="
+                display: block;
+                width: 100%;
+                height: auto;
+                border: 1px solid var(--rule);
+              "
+            />
+          </figure>
+          <p style="text-align: right; margin: 12px 0 0">
+            <a class="more-art" href="art/art.html">View Additional Art →</a>
+          </p>
+        </div>
+      </div>
+    </main>
+    <style>
+      .front {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
+        gap: 46px;
+        align-items: start;
+      }
+      .front h2.label {
+        margin: 26px 0 8px;
+        font-weight: 200;
+      }
+      @media (max-width: 820px) {
+        .front {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    </style>
+  </body>
 </html>

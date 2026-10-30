@@ -35,6 +35,7 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
 ## 2. The principles
 
 ### 2.1 Playability: the player never hunts
+
 - Everything a turn needs is reachable without scrolling the page on a computer: the board, the hand, the Selected box and
   the spells. Scrolling "over two pages" to reach a selection is "completely unacceptable."
 - Long lists live in **their own box with a scrollbar in the game's style**. The bar grows, shrinks or disappears with the
@@ -48,6 +49,7 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
 - Every window can be closed (see 2.8). A window that can't be closed on a phone is "game breaking."
 
 ### 2.2 Organization: consistent order, consistent geometry, shallow paths
+
 - **Order means something.** Lists are sorted by a rule a player can feel:
   - Spells: by school, cheapest first within each school. The schools' order is fixed. At the top of the list are the Bank,
     then Lazy Hand. Then come Conjuring (the Ether first, Increase Max Mana right below), Astrology, Necromancy (Grave
@@ -76,6 +78,7 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
   > Remember, in menus or options of any window or kind, there should be an order of opertation at play, including in the stacking dimension and coordinate groups of different appearances of things like sliders, box options, dropdown arrows or columns, and checkmark options; as in, they shouldn't be scattered in between, but that options should be grouped with options that share the appearance within their given section, unless there are so many differing kind of options, that the same organization principle being spoken of will then apply to it's section below the heading that differentiates it between other sections, and you can use this principle for the automation menu in a compact and organized manner. It is something i already hold as a principle which i had u apply to the pause menu
 
 ### 2.3 English is a priority
+
 - **Concise, accurate, purposeful.** "All descriptions in the play menu and rules elsewhere should be concise, easy to read, and
   purposeful." To the point, with purpose and clarity.
 - **Correct mechanics and capitalization.** No stray quotation marks, ever. When the author gives quoted text, the quotes are his
@@ -90,21 +93,22 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
   - Warnings are a yellow caution with ⚠, not "We advise against."
 - **Exact game vocabulary.** Use these terms the same way everywhere:
 
-  | Term | Meaning |
-  |---|---|
-  | Turn | One player's turn, broken into phases |
-  | Round | Every player's turn once. The top of the page shows "Round N" only. |
-  | Crit Hit / Crit Miss / Miss / Crit Success | The on-screen landing results (these exact words) |
-  | Heavenly Bodies | The planets as a group |
-  | Form of … | The last line of each planet's info, exactly: Form of Fate (The Moon), Form of Limitation (Saturn), Form of Strife (Mars), Form of Judgement (The Second Sun), Form of Harmony (Venus), Form of Guile (Mercury), Form of Abundance (Jupiter) |
-  | Demons | The former Barbarians |
-  | Tall | The formation formerly called "Deep" |
+  | Term                                       | Meaning                                                                                                                                                                                                                                      |
+  | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | Turn                                       | One player's turn, broken into phases                                                                                                                                                                                                        |
+  | Round                                      | Every player's turn once. The top of the page shows "Round N" only.                                                                                                                                                                          |
+  | Crit Hit / Crit Miss / Miss / Crit Success | The on-screen landing results (these exact words)                                                                                                                                                                                            |
+  | Heavenly Bodies                            | The planets as a group                                                                                                                                                                                                                       |
+  | Form of …                                  | The last line of each planet's info, exactly: Form of Fate (The Moon), Form of Limitation (Saturn), Form of Strife (Mars), Form of Judgement (The Second Sun), Form of Harmony (Venus), Form of Guile (Mercury), Form of Abundance (Jupiter) |
+  | Demons                                     | The former Barbarians                                                                                                                                                                                                                        |
+  | Tall                                       | The formation formerly called "Deep"                                                                                                                                                                                                         |
 
 - **Keep his names.** Spell, card and mode names stay as the author wrote them. If one seems wrong, flag it; don't rename it quietly.
 - **All on-screen info agrees.** If the Bank window, a tooltip and the rules page describe the same rule, they say the same
   thing. "Make sure the info on screen is consistent with eachother."
 
 ### 2.4 Information on demand, not walls of text
+
 - An option tile shows a **name** (one short line at most). The explanation lives in a hover tip on a computer, or a tap or hold
   on a phone that opens info with an X.
 - "Could you imagine if microsoft word did that for their ribbon settings? Where every option within every group tried to fit two
@@ -120,6 +124,7 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
 - **The planet's full info** on click is complete ("not hiding things or being too short") but stays about one short paragraph.
 
 ### 2.5 Type and scale
+
 - **Readability is the only goal of type.** "dont make words that are really large font, i dont like that."
 - **Don't shrink everything either.** Making all text smaller was called out as ignoring what he meant.
 - **The Text Size setting enlarges small text most.** Detail text grows most and headings barely, with hard caps. "The increase
@@ -128,15 +133,17 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
   jumble, run behind other UI or overflow. "Visual order is a necessity."
 - **Fonts:**
 
-  | Font | Use |
-  |---|---|
-  | `--mono` (Cascadia Code) | All UI and reading text |
+  | Font                                      | Use                                                                                                                                                  |
+  | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `--mono` (Cascadia Code)                  | All UI and reading text                                                                                                                              |
   | Blackletter (Grenze Gotisch, class `.bl`) | Spell names (default on, a Display switch turns it off), "Round N," Crit text, "What you must know," spell labels on stacks, King of the Hill titles |
 
   Blackletter is an accent. It is never used for body text.
+
 - **Long names never run across the screen.** Card names wrap or fit their card.
 
 ### 2.6 Space: room on a computer, no dead space anywhere
+
 - A computer gets a **wide layout by default**, and its windows are wide and tall enough not to scroll needlessly. "when a
   desktop can handle more; remember that."
 - **No dead space at the same time.** Windows like the Bank used too-big type and empty areas; the fix is compact and dense,
@@ -145,14 +152,17 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
   On a phone, the controls go below the label.
 
 ### 2.7 A computer and a phone are different products
+
 **A phone's "100%"** is 80% UI size and 90% text size. Phones start smaller because that fixes most problems there.
 
 **Phone defaults:**
+
 - The Selected box goes above the spells (portrait play).
 - The spell box, the log and the book-quote box are folds, closed by default, that glow until first touched.
 - Card-face icons get a phone-only layout so they don't look clustered.
 
 **Phone controls:**
+
 - Touch targets are slightly smaller to reduce fat-fingering, but still easy to hit. This matters most for the card-info corner.
 - The phone's Back button asks before leaving a game.
 - At the start of every game, a window asks which animations to keep. It shows the saved choices, or the defaults if there are
@@ -162,6 +172,7 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
 **A computer gets hover; a phone gets tap or hold.** Every feature has both paths.
 
 ### 2.8 Windows, controls and state
+
 - **Every window has an X at the top right**, plus its close button where it has one.
 - **An X on a question means No.** It never means Yes and never changes anything. For example, the X on Field Automation's
   "Are you sure?" counts as No.
@@ -182,6 +193,7 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
   on What you must know glows.
 
 ### 2.9 Visual style: the game's own, not a template
+
 - **Keep what was good.** The v12-era look is the base: simple bordered rectangles, a dark palette and the mono font. "Do not
   simply redo everything." "Do not use the most popular and basic ui templates IF they aren't within my style and intentions."
   (This beats the generic advice in any design skill.)
@@ -197,18 +209,19 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
     hard-coded where a token exists.
 - **Color coding by spell school** is used for frames, cooldown bars and effects:
 
-  | School | Color | Hex |
-  |---|---|---|
-  | Necromancy | very dark purple-blue | `#4a3d9a` |
-  | Enchantment | gold | `#e3b944` |
-  | Curse | crimson | `#c8202e` |
-  | Sorcery | dark, rich green | `#2f9a5a` |
-  | Illusion | orange | `#ec8a2c` |
-  | Conjuring | mana blue | `#5b48d6` |
-  | Astrology | teal | `#2fb8a8` |
-  | Bank | gold | `#e8c24a` |
+  | School      | Color                 | Hex       |
+  | ----------- | --------------------- | --------- |
+  | Necromancy  | very dark purple-blue | `#4a3d9a` |
+  | Enchantment | gold                  | `#e3b944` |
+  | Curse       | crimson               | `#c8202e` |
+  | Sorcery     | dark, rich green      | `#2f9a5a` |
+  | Illusion    | orange                | `#ec8a2c` |
+  | Conjuring   | mana blue             | `#5b48d6` |
+  | Astrology   | teal                  | `#2fb8a8` |
+  | Bank        | gold                  | `#e8c24a` |
 
   The same school must look the same everywhere. That's why every Necromancy row has the purple frame, not just two of them.
+
 - **Pixel art matches the page background's pixel density.** The battle maps, the banker portrait and the dungeon all use it,
   with crisp pixels and no smoothing.
 - **Card faces follow one system:**
@@ -220,7 +233,9 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
     lettering and gold accents.
 
 ### 2.10 Motion, sound and feedback
+
 **Animations:**
+
 - They stay with what they're about. Effects over cards move with the board and never stay fixed to the screen while the page
   scrolls.
 - They are small, see-through and magical. The crit seal is a glowing outline of a die over the attacked card, not a big
@@ -229,19 +244,23 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
 - They use the school colors. Particular effects stay on one card or tile; area effects cover areas.
 
 **Animation switches:**
+
 - Cards and magic have separate switches, plus switches for particular effects (like drifting fog).
 - With animations off, the fog becomes a still image.
 - Respect reduced motion.
 
 **Fog of war:**
+
 - It flows through the map like mist. It isn't square per tile and isn't too black.
 - The wispy grey-white clouds are liked; keep them.
 
 **Sound:**
+
 - All sounds come from one family and sound like a game: simple onomatopoeia, not realism, and no longer than a few seconds.
 - There is a click sound on every button, site-wide, as feedback.
 
 **Music:**
+
 - It is quiet and never annoying. Volume moves in 5% steps up to 150%.
 - It ducks briefly under cycle sounds without changing the settings.
 - The songs differ in timbre, with a little Silent Hill in them.
@@ -249,6 +268,7 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
 **Shared effects:** field effects that concern several players are shown to all of them.
 
 ### 2.11 Care in the details
+
 - "Certainly on care or details." Small defects (half an outline, a stray capital, a tip covering its subject) count as real
   bugs, not polish.
 - **Check UI changes by eye** at a phone size and a computer size, at the author's settings (Text 180%, UI 80%), and in at least one
@@ -266,6 +286,7 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
   - **Part C:** the plan and its order, plus a status log.
 
   "Dont make your notes forget my requests, and esp their principles."
+
 - **Work in parts. Don't jump ahead** when parts give better UI ("the look of the game matters a ton"). Order the work by logic:
   what's broken comes first, then what every game touches, then looks, then new features. "Do not neglect the order of your logic."
 - **Flag readings.** When a request is ambiguous or cut off, pick the most reasonable reading, build it, and list it under "My
@@ -278,28 +299,28 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
 
 ## 4. Anti-patterns he has already caught (never again)
 
-| What happened | The rule it broke |
-|---|---|
-| Selection panel became "a cluster of jumbled words" at large text | 2.5 scale-safe layouts |
-| Two pages of scrolling to reach the Selected box | 2.1 playability |
-| Planet names shown with quotation marks, some planets with quotes and some without | 2.3 English, 2.11 care |
-| "Buy Mana" as a spell name | 2.3 names that make sense |
-| "Player one (you) play - everyone play this together" floating beside the phases | 2.1 no floating text, 2.3 clarity |
-| Tall-rectangle Substance tiles with a box running sideways below | 2.2 same group, same shape |
-| A card-info corner nobody could find, which also needed a click | 2.4 info on demand, made easy |
-| "i" buttons all over the play menu | 2.4 |
-| Chat that couldn't be closed on a phone | 2.1, 2.8 |
-| Fog solid black and squared per tile | 2.10 |
-| Crit popup big and fixed to the screen | 2.10 |
-| "Turn 14 round 7" in small grey type | 2.3 vocabulary, 2.5 |
-| Bank window with huge type and dead space | 2.5, 2.6 |
-| A Yes-and list snapping shut on the third click | 2.8 |
-| "We advise against" | 2.3 voice |
-| Half-outlined boxes on the front page | 2.9 |
-| Black bars on buttons and UI elements | 2.9 |
-| Office theme too white | 2.9 |
-| Horizontal scrolling in the setup window | 2.1 |
-| Hover tip covering the stat box it referred to | 2.4 |
+| What happened                                                                      | The rule it broke                 |
+| ---------------------------------------------------------------------------------- | --------------------------------- |
+| Selection panel became "a cluster of jumbled words" at large text                  | 2.5 scale-safe layouts            |
+| Two pages of scrolling to reach the Selected box                                   | 2.1 playability                   |
+| Planet names shown with quotation marks, some planets with quotes and some without | 2.3 English, 2.11 care            |
+| "Buy Mana" as a spell name                                                         | 2.3 names that make sense         |
+| "Player one (you) play - everyone play this together" floating beside the phases   | 2.1 no floating text, 2.3 clarity |
+| Tall-rectangle Substance tiles with a box running sideways below                   | 2.2 same group, same shape        |
+| A card-info corner nobody could find, which also needed a click                    | 2.4 info on demand, made easy     |
+| "i" buttons all over the play menu                                                 | 2.4                               |
+| Chat that couldn't be closed on a phone                                            | 2.1, 2.8                          |
+| Fog solid black and squared per tile                                               | 2.10                              |
+| Crit popup big and fixed to the screen                                             | 2.10                              |
+| "Turn 14 round 7" in small grey type                                               | 2.3 vocabulary, 2.5               |
+| Bank window with huge type and dead space                                          | 2.5, 2.6                          |
+| A Yes-and list snapping shut on the third click                                    | 2.8                               |
+| "We advise against"                                                                | 2.3 voice                         |
+| Half-outlined boxes on the front page                                              | 2.9                               |
+| Black bars on buttons and UI elements                                              | 2.9                               |
+| Office theme too white                                                             | 2.9                               |
+| Horizontal scrolling in the setup window                                           | 2.1                               |
+| Hover tip covering the stat box it referred to                                     | 2.4                               |
 
 ---
 
@@ -326,11 +347,11 @@ end of the world for this game." Sloppiness reads as not caring: "If they dont c
 
 ## 6. Reference values (as of v58)
 
-| Setting | Value |
-|---|---|
-| Theme tokens | `theme/site.css` `:root`; per-theme overrides in `html.th-*` classes. Theme list: `THEMES` in `game/src/10_prefs.js`. |
-| Fonts | `--mono` = Cascadia Code (site-wide, weight 200). Blackletter class `.bl` = Grenze Gotisch, with "Old English Text MT" as fallback. |
-| School colors | `SCHOOL_COL` in `game/src/30_cycles.js` |
-| Spell school order | `SCHOOLS` in `04_spells.js`, with Astrology spliced in second in `19_planets.js` |
-| Text Size formula (v20) | `base·(1+(f−1)·w)`, with `w = clamp((18−base)/8, 0, 1)`, capped at 21px; tips grow half as much (`TZ_DAMP`) |
-| Phone folds | `38_mobile.js` (`FOLDS`); the log folds on a computer too, closed by default |
+| Setting                 | Value                                                                                                                               |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Theme tokens            | `theme/site.css` `:root`; per-theme overrides in `html.th-*` classes. Theme list: `THEMES` in `game/src/10_prefs.js`.               |
+| Fonts                   | `--mono` = Cascadia Code (site-wide, weight 200). Blackletter class `.bl` = Grenze Gotisch, with "Old English Text MT" as fallback. |
+| School colors           | `SCHOOL_COL` in `game/src/30_cycles.js`                                                                                             |
+| Spell school order      | `SCHOOLS` in `04_spells.js`, with Astrology spliced in second in `19_planets.js`                                                    |
+| Text Size formula (v20) | `base·(1+(f−1)·w)`, with `w = clamp((18−base)/8, 0, 1)`, capped at 21px; tips grow half as much (`TZ_DAMP`)                         |
+| Phone folds             | `38_mobile.js` (`FOLDS`); the log folds on a computer too, closed by default                                                        |

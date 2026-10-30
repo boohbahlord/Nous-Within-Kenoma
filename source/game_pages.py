@@ -1,17 +1,21 @@
 # ---------------------------------------------------------------- Ether's Crossroads
-_parts = sorted(f for f in os.listdir('game/src') if f.endswith('.js'))
-open(f'{OUT}/ethers-crossroads.js', 'w').write(
+_parts = sorted(f for f in os.listdir("game/src") if f.endswith(".js"))
+open(f"{OUT}/ethers-crossroads.js", "w").write(
     "/* Ether's Crossroads: local play for 2 to 4, versus the computer, and Survival.\n"
     "   Rules follow the written rules; where they leave a gap, the digital reading is listed on the\n"
-    "   All Rules page under \"How the digital table reads the rules\". */\n(function(){\n\"use strict\";\n"
-    + "const SUBST_TEXT=" + open('game/text/substances.json').read().strip() + ";\n"
-    + "\n".join(open('game/src/' + f).read() for f in _parts) + "\n})();\n")
+    '   All Rules page under "How the digital table reads the rules". */\n(function(){\n"use strict";\n'
+    + "const SUBST_TEXT="
+    + open("game/text/substances.json").read().strip()
+    + ";\n"
+    + "\n".join(open("game/src/" + f).read() for f in _parts)
+    + "\n})();\n"
+)
 EC = "Ether's Crossroads"
-ec_cards = '''<nav class="cards">
+ec_cards = """<nav class="cards">
   <a class="card" href="ethers-crossroads-play.html">Play Game<span>Standard (computers and people on this device), Survival or Online</span></a>
   <a class="card" href="ethers-crossroads-play.html#settings">Settings<span>The game's look, sound and animations: the same as the Menu in a game</span></a>
   <a class="card" href="ethers-crossroads-rules.html">All Rules<span>Every rule, spell, moon phase and event</span></a>
-</nav>'''
+</nav>"""
 MODES_HTML = """<h2 id="modes">Game Modes</h2>
 <h3>Standard</h3>
 <p>Local play: against computers, together on this device, or both. Up to four people share one device, and every other seat is a computer: you against one to three computers, friends together against computers, or friends against each other, up to eight seats in King of the Hill. Each player picks an Emanation (or the host turns Emanations off), a color and a symbol, which marks every card they own. With more than one person, the board turns to face whoever is playing, and the screen goes dark between turns until the next player confirms they hold the device. Everyone sees every die.</p>
@@ -26,10 +30,30 @@ MODES_HTML = """<h2 id="modes">Game Modes</h2>
 <p>With three or four players the field is a 7 by 7 square by default: free-for-all, or two against two with teammates side by side, across, or sharing one end. The battle maps are the Keep, the Sahel, the Forest, the Dungeon and the River, all at night. Before a game you can set the field size, the decks, the specials, the starting mana, the sky, the Bank, Demons, crystals, fog of war and more. <a href="ethers-crossroads-rules.html#modes">Every option</a>.</p>
 """
 import json as _json
-_S = _json.load(open('game/text/substances.json'))
-_N = {"angel":"Angel Machine","satan":"Satan","binah":"Binah","jester":"Jester Fool","tiph":"Tiphareth of Kether","lucifer":"Lucifer &amp; Ouroboros","leviathan":"The Leviathan","firm":"The Firmament","yald":"Yaldabaoth"}
-MODES_HTML = MODES_HTML.replace('@@SUBTAGS@@', ''.join(f'<dt>{n}</dt><dd>{_S[k]["tag"]}</dd>' for k, n in _N.items()))
-land = head(EC + ' · Nous Within Kenoma', extra='<style>' + open('game/text/rules.css').read() + '</style>', ec=True) + f'''<main class="wrap rules">
+
+_S = _json.load(open("game/text/substances.json"))
+_N = {
+    "angel": "Angel Machine",
+    "satan": "Satan",
+    "binah": "Binah",
+    "jester": "Jester Fool",
+    "tiph": "Tiphareth of Kether",
+    "lucifer": "Lucifer &amp; Ouroboros",
+    "leviathan": "The Leviathan",
+    "firm": "The Firmament",
+    "yald": "Yaldabaoth",
+}
+MODES_HTML = MODES_HTML.replace(
+    "@@SUBTAGS@@",
+    "".join(f'<dt>{n}</dt><dd>{_S[k]["tag"]}</dd>' for k, n in _N.items()),
+)
+land = (
+    head(
+        EC + " · Nous Within Kenoma",
+        extra="<style>" + open("game/text/rules.css").read() + "</style>",
+        ec=True,
+    )
+    + f"""<main class="wrap rules">
 <nav class="crumbs"><a href="index.html">← Nous Within Kenoma</a></nav>
 <header><span class="num">A card game</span><h1>{EC}</h1></header>
 {ec_cards}
@@ -55,11 +79,14 @@ land = head(EC + ' · Nous Within Kenoma', extra='<style>' + open('game/text/rul
 <p>Everything else is in All Rules, from what each card does to every spell and moon event. Play Game starts a game right here.</p>
 {MODES_HTML}
 </main>
-''' + TAIL
-open(f'{OUT}/ethers-crossroads.html', 'w').write(land)
+"""
+    + TAIL
+)
+open(f"{OUT}/ethers-crossroads.html", "w").write(land)
 
-RULES_CSS = '<style>' + open('game/text/rules.css').read() + '</style>'
-rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="wrap rules">
+RULES_CSS = "<style>" + open("game/text/rules.css").read() + "</style>"
+rules = (
+    head("All Rules · " + EC, extra=RULES_CSS, ec=True) + f"""<main class="wrap rules">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><a href="ethers-crossroads-play.html">Play Game →</a></nav>
 <header><span class="num">{EC}</span><h1>All Rules</h1></header>
 @@RULES_INDEX@@
@@ -271,70 +298,145 @@ rules = head('All Rules · ' + EC, extra=RULES_CSS, ec=True) + f'''<main class="
 <tr><td>Blood Moon</td><td>5% of Full Moons</td><td>New Moon gifts with Full Moon prices and no Full Moon drawbacks. Every card killed goes to the Outer Darkness, and a Joker's suicide sends it and its cards there too. The table turns crimson and glitches.</td></tr>
 </table>
 </main>
-''' + TAIL
-rules = rules.replace('@@RULES_MODES@@', open('game/text/rules_modes.html').read())
+""" + TAIL
+)
+rules = rules.replace("@@RULES_MODES@@", open("game/text/rules_modes.html").read())
 # an index like the site's index pages: every section numbered, with the parts of Game types and rule options under it
 import re as _re
+
+
 def _slug(t):
-    return _re.sub(r'[^a-z0-9]+', '-', _re.sub(r'<[^>]+>', '', t).lower()).strip('-')
+    return _re.sub(r"[^a-z0-9]+", "-", _re.sub(r"<[^>]+>", "", t).lower()).strip("-")
+
+
 _toc = []
+
+
 def _h2(m):
     hid = m.group(1) or _slug(m.group(2))
-    _toc.append([hid, _re.sub(r'<[^>]+>', '', m.group(2)), []])
+    _toc.append([hid, _re.sub(r"<[^>]+>", "", m.group(2)), []])
     return f'<h2 id="{hid}">{m.group(2)}</h2>'
+
+
 rules = _re.sub(r'<h2(?: id="([^"]+)")?>(.*?)</h2>', _h2, rules)
 for m in _re.finditer(r'<h3 id="([^"]+)">(.*?)</h3>', rules):
     for t in reversed(_toc):
         if rules.find(f'id="{t[0]}"') < m.start():
-            t[2].append((m.group(1), _re.sub(r'<[^>]+>', '', m.group(2)))); break
+            t[2].append((m.group(1), _re.sub(r"<[^>]+>", "", m.group(2))))
+            break
 # v72c: every part of the rules gets a code, numbers and letters by turns: 3 (a section), 3.B (its part), 3.B.4 (an entry),
 # 3.B.4.c (an entry under that). Headings share a level's count with the list entries beside them; nested lists get none.
-_L = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+_L = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+
 def _lv(n, depth):
-    return str(n) if depth % 2 == 0 else (_L[(n - 1) % 26] if depth == 1 else _L[(n - 1) % 26].lower())
+    return (
+        str(n)
+        if depth % 2 == 0
+        else (_L[(n - 1) % 26] if depth == 1 else _L[(n - 1) % 26].lower())
+    )
+
+
 _codes = {}
+
+
 def _code_rules(html):
-    out = []; pos = 0; path = []; cnt = [0]; ldepth = 0; hlev = 0; tok = _re.compile(r'<(/?)(h2|h3|h4|ul|ol|li)\b([^>]*)>')
-    level = {'h2': 0, 'h3': 1, 'h4': 2}
+    out = []
+    pos = 0
+    path = []
+    cnt = [0]
+    ldepth = 0
+    hlev = 0
+    tok = _re.compile(r"<(/?)(h2|h3|h4|ul|ol|li)\b([^>]*)>")
+    level = {"h2": 0, "h3": 1, "h4": 2}
     for m in tok.finditer(html):
         close, tag, attrs = m.group(1), m.group(2), m.group(3)
-        if tag in ('ul', 'ol'):
-            if 'class="toc"' in attrs or 'class="subtoc"' in attrs: continue
-            ldepth += -1 if close else 1; continue
-        if close: continue
+        if tag in ("ul", "ol"):
+            if 'class="toc"' in attrs or 'class="subtoc"' in attrs:
+                continue
+            ldepth += -1 if close else 1
+            continue
+        if close:
+            continue
         if tag in level:
-            if 'class="label"' in attrs: continue
+            if 'class="label"' in attrs:
+                continue
             d = level[tag]
-            if d > len(path): d = len(path)   # an h4 straight under an h2 takes the next level
-            path = path[:d]; cnt = cnt[:d + 1]
+            if d > len(path):
+                d = len(path)  # an h4 straight under an h2 takes the next level
+            path = path[:d]
+            cnt = cnt[: d + 1]
             cnt[d] = cnt[d] + 1 if len(cnt) > d else 1
-            path.append(_lv(cnt[d], d)); cnt.append(0)
-            code = '.'.join(path); idm = _re.search(r'id="([^"]+)"', attrs)
+            path.append(_lv(cnt[d], d))
+            cnt.append(0)
+            code = ".".join(path)
+            idm = _re.search(r'id="([^"]+)"', attrs)
             new = f'<{tag}{attrs if idm else attrs + " id=" + chr(34) + "r-" + code.replace(".", "-") + chr(34)} data-rcode="{code}"><span class="rcode">{code}</span> '
-            _codes[idm.group(1) if idm else 'r-' + code.replace('.', '-')] = code
-            out.append(html[pos:m.start()]); out.append(new); pos = m.end(); continue
-        if tag == 'li' and ldepth == 1 and path:
+            _codes[idm.group(1) if idm else "r-" + code.replace(".", "-")] = code
+            out.append(html[pos : m.start()])
+            out.append(new)
+            pos = m.end()
+            continue
+        if tag == "li" and ldepth == 1 and path:
             d = len(path)
-            while len(cnt) <= d: cnt.append(0)
-            cnt[d] += 1; code = '.'.join(path + [_lv(cnt[d], d)]); rid = 'r-' + code.replace('.', '-')
-            out.append(html[pos:m.start()]); out.append(f'<li{attrs} id="{rid}" data-rcode="{code}"><a class="rcode" href="#{rid}" title="Rule {code}: a link to it">{code}</a> '); pos = m.end()
-    out.append(html[pos:]); return ''.join(out)
-_mi = rules.index('<main'); rules = rules[:_mi] + _code_rules(rules[_mi:])
-_idx = '<nav class="rindex" id="index" aria-label="Contents"><h2 class="label">Index</h2><p class="dim rcodehelp">Every rule has a code: a number for each section, a letter for its parts, then numbers and letters by turns (3.B.4). Click a code to link to it.</p><ol class="toc">' + ''.join(
-    f'<li><a href="#{h}"><span class="n">{_codes.get(h, i + 1)}</span><span>{t}</span></a>' + (
-        '<ol class="subtoc">' + ''.join(f'<li><a href="#{a}"><span class="n">{_codes.get(a, "")}</span> {b}</a></li>' for a, b in subs) + '</ol>' if subs else '') + '</li>'
-    for i, (h, t, subs) in enumerate(_toc)) + '</ol></nav>'
-rules = rules.replace('@@RULES_INDEX@@', _idx)
-rules = rules.replace('</main>', '''<a class="totop" href="#index" hidden>↑ Index</a>
+            while len(cnt) <= d:
+                cnt.append(0)
+            cnt[d] += 1
+            code = ".".join(path + [_lv(cnt[d], d)])
+            rid = "r-" + code.replace(".", "-")
+            out.append(html[pos : m.start()])
+            out.append(
+                f'<li{attrs} id="{rid}" data-rcode="{code}"><a class="rcode" href="#{rid}" title="Rule {code}: a link to it">{code}</a> '
+            )
+            pos = m.end()
+    out.append(html[pos:])
+    return "".join(out)
+
+
+_mi = rules.index("<main")
+rules = rules[:_mi] + _code_rules(rules[_mi:])
+_idx = (
+    '<nav class="rindex" id="index" aria-label="Contents"><h2 class="label">Index</h2><p class="dim rcodehelp">Every rule has a code: a number for each section, a letter for its parts, then numbers and letters by turns (3.B.4). Click a code to link to it.</p><ol class="toc">'
+    + "".join(
+        f'<li><a href="#{h}"><span class="n">{_codes.get(h, i + 1)}</span><span>{t}</span></a>'
+        + (
+            '<ol class="subtoc">'
+            + "".join(
+                f'<li><a href="#{a}"><span class="n">{_codes.get(a, "")}</span> {b}</a></li>'
+                for a, b in subs
+            )
+            + "</ol>"
+            if subs
+            else ""
+        )
+        + "</li>"
+        for i, (h, t, subs) in enumerate(_toc)
+    )
+    + "</ol></nav>"
+)
+rules = rules.replace("@@RULES_INDEX@@", _idx)
+rules = rules.replace(
+    "</main>",
+    """<a class="totop" href="#index" hidden>↑ Index</a>
 <script>(function(){var b=document.querySelector(".totop"),i=document.getElementById("index");if(!b||!i)return;
 function f(){b.hidden=i.getBoundingClientRect().bottom>0}addEventListener("scroll",f,{passive:true});f();
 b.addEventListener("click",function(e){e.preventDefault();i.scrollIntoView({behavior:"smooth"});history.replaceState(null,"","#index")})})();</script>
-<script>''' + open('game/text/rules_reader.js').read() + '''</script>
-</main>''', 1)
-open(f'{OUT}/ethers-crossroads-rules.html', 'w').write(rules)
+<script>"""
+    + open("game/text/rules_reader.js").read()
+    + """</script>
+</main>""",
+    1,
+)
+open(f"{OUT}/ethers-crossroads-rules.html", "w").write(rules)
 
 # v71j: EC_BL asks the page's head to preload the blackletter (unless the device saves data)
-play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel="stylesheet" href="ethers-crossroads.css?v=171">', ec=True) + f'''<main class="wide game">
+play = (
+    head(
+        "Play · " + EC,
+        extra='\n<script>window.EC_BL=1</script>\n<link rel="stylesheet" href="ethers-crossroads.css?v=171">',
+        ec=True,
+    )
+    + f"""<main class="wide game">
 <nav class="crumbs"><a href="ethers-crossroads.html">← {EC}</a><span><button class="link" id="menubtn" type="button">Menu</button> · <a href="ethers-crossroads-rules.html">All Rules</a> · <button class="link" id="newgame" type="button">New game</button> · <button class="link" id="sndtop" type="button" aria-pressed="true">Sound: On</button></span></nav>
 <header><span class="num">Play</span><h1>{EC}</h1></header>
 <div class="gtop">
@@ -373,44 +475,69 @@ play = head('Play · ' + EC, extra='\n<script>window.EC_BL=1</script>\n<link rel
 <div id="flash" hidden role="status"></div>
 <script>window.EC_QSRC="ethers-crossroads-quotes.js?v=159"</script>
 <script src="ethers-crossroads.js?v=182"></script>
-''' + TAIL
-open(f'{OUT}/ethers-crossroads-play.html', 'w').write(play)
+"""
+    + TAIL
+)
+open(f"{OUT}/ethers-crossroads-play.html", "w").write(play)
 
 # ---------------------------------------------------------------- quotes for the waiting player
 import random as _rnd, glob as _glob, html as _html, json as _json
+
+
 def _quotes():
     pool = []
-    for f in sorted(_glob.glob(f'{OUT}/chapter-*.html')):
+    for f in sorted(_glob.glob(f"{OUT}/chapter-*.html")):
         s = open(f).read()
-        n = int(re.search(r'chapter-(\d+)', f).group(1))
-        title = _html.unescape(re.search(r'<h1>(.*?)</h1>', s).group(1))
-        body = s[s.index('<article'):s.index('</article>')]
-        paras = [_html.unescape(re.sub('<[^>]+>', '', p)).strip() for p in re.findall(r'<p class="para"[^>]*>(.*?)</p>', body, re.S)]
+        n = int(re.search(r"chapter-(\d+)", f).group(1))
+        title = _html.unescape(re.search(r"<h1>(.*?)</h1>", s).group(1))
+        body = s[s.index("<article") : s.index("</article>")]
+        paras = [
+            _html.unescape(re.sub("<[^>]+>", "", p)).strip()
+            for p in re.findall(r'<p class="para"[^>]*>(.*?)</p>', body, re.S)
+        ]
         good = [p for p in paras if 220 <= len(p) <= 700]
-        if len(good) < 2:   # poems: join each stanza
+        if len(good) < 2:  # poems: join each stanza
             st, cur = [], []
             for cls, p in re.findall(r'<p class="([^"]*)"[^>]*>(.*?)</p>', body, re.S):
-                t = _html.unescape(re.sub('<[^>]+>', '', p)).strip()
-                if 'blank' in cls or not t:
-                    if cur: st.append('\n'.join(cur)); cur = []
-                else: cur.append(t)
-            if cur: st.append('\n'.join(cur))
+                t = _html.unescape(re.sub("<[^>]+>", "", p)).strip()
+                if "blank" in cls or not t:
+                    if cur:
+                        st.append("\n".join(cur))
+                        cur = []
+                else:
+                    cur.append(t)
+            if cur:
+                st.append("\n".join(cur))
             good += [x for x in st if 120 <= len(x) <= 700]
         pool.append((n, title, good))
     total = sum(len(g) for _, _, g in pool)
     rng = _rnd.Random(26)
-    want = {n: (min(len(g), max(2, round(100 * len(g) / total))) if g else 0) for n, _, g in pool}   # every chapter at least two passages where it has them
+    want = {
+        n: (min(len(g), max(2, round(100 * len(g) / total))) if g else 0)
+        for n, _, g in pool
+    }  # every chapter at least two passages where it has them
     while sum(want.values()) > 100:
-        k = max(want, key=lambda n: want[n]); want[k] -= 1
+        k = max(want, key=lambda n: want[n])
+        want[k] -= 1
     while sum(want.values()) < 100:
-        k = max((n for n, _, g in pool if want[n] < len(g)), key=lambda n: len([x for x in pool if x[0] == n][0][2]) - want[n]); want[k] += 1
+        k = max(
+            (n for n, _, g in pool if want[n] < len(g)),
+            key=lambda n: len([x for x in pool if x[0] == n][0][2]) - want[n],
+        )
+        want[k] += 1
     out = []
     for n, title, good in pool:
         k = want[n]
-        if not k: continue
+        if not k:
+            continue
         step = len(good) / k
-        for i in range(k): out.append({'t': good[int(i * step + step / 2)], 'n': n, 'title': title})
+        for i in range(k):
+            out.append({"t": good[int(i * step + step / 2)], "n": n, "title": title})
     return out
+
+
 _Q = _quotes()
-open(f'{OUT}/ethers-crossroads-quotes.js', 'w').write('window.EC_QUOTES=' + _json.dumps(_Q, ensure_ascii=False) + ';\n')
-print('quotes', len(_Q))
+open(f"{OUT}/ethers-crossroads-quotes.js", "w").write(
+    "window.EC_QUOTES=" + _json.dumps(_Q, ensure_ascii=False) + ";\n"
+)
+print("quotes", len(_Q))

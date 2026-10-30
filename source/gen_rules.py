@@ -1,47 +1,139 @@
-import re,json,html
-seg=open('rules_seg_old.html').read()
-lis=re.findall(r'<li><b>([^<]+)</b>(.*?)</li>',seg,re.S)
-D={}
-for n,t in lis:
-    k=n if n not in D else n+'#2'
-    D[k]=t.lstrip(': ').strip()
-def li(name,key=None,text=None):
-    t=text if text is not None else D[key or name]
-    return f'<li><b>{name}</b>: {t}</li>'
-P=lambda tag: re.search(r'<h3>'+tag+r'</h3>\n(<p>.*?</p>)',seg,re.S).group(1)
-surv=re.search(r'<h3>Survival</h3>\n(.*?)\n<h3>Substances</h3>',seg,re.S).group(1)
-S=json.load(open('game/text/substances.json'))
-NAMES={"beginner":"Beginner","angel":"Angel Machine","satan":"Satan","binah":"Binah","jester":"Jester Fool","tiph":"Tiphareth of Kether","lucifer":"Lucifer &amp; Ouroboros","leviathan":"The Leviathan","firm":"The Firmament","yald":"Yaldabaoth"}
-subs=[]
-for k,nm in NAMES.items():
-    detail=D[nm].replace('“Spit the empty full into”','<i>Spit the empty full into</i>')
-    detail=re.sub(r',? ?“[A-Za-z]+”,?','',detail)
-    pts=''.join(f'<li>{html.escape(p,quote=False)}</li>' for p in S[k]['pts'])
-    subs.append(f'<div class="subst" id="sub-{k}"><h4>{nm}</h4><p class="tag">{html.escape(S[k]["tag"],quote=False)}</p><ul>{pts}</ul><details><summary>Every detail</summary><p>{detail}</p></details></div>')
-bank=[
- ('Spending','Every mana spent on a spell goes to the Bank. The Bank lends only what it holds.'),
- ('Loans','20% interest every 1d2 rounds, due in 4 rounds. What isn\'t paid by then becomes <b>mana debt</b>, and your mana shows below zero. Below zero the Bank lends six at most; at minus your maximum, five at most and at 30%.'),
- ('Credit','With <b>Spend on credit</b> ticked, spells you can\'t afford go on your debt. Every soul you gain pays the debt first.'),
- ('The floor','Fall below three times your maximum mana under zero (−18 with a maximum of 6) and you lose at once.'),
- ('Selling','Sell cards from your hand or deck for their conjuring price. They go to the Ether and your deck is reshuffled. Binah can sell thralls for 1 mana each.'),
- ('Upselling','A spell bought more than twice in each of two rounds in a row costs 1d2 − 1 more.'),
- ('A Bank in the red','The Ether goes on sale (1 less), and the Bank asks the richest player for a loan, which it pays back at 20% every two rounds.'),
- ('Debt Collectors','Anyone more than their maximum below zero is hunted by the Bank\'s Debt Collectors (1d3 every 1d3 rounds). What they kill goes to the Ether, and its price to the Bank.'),
- ('Collapse','If the Bank is 12 in the red and every player 6 below zero, it collapses: everyone back to zero, every maximum falls to three, five cards from each deck and one Ace from the field go to the Ether, and prices wobble up for 4d2 rounds.'),
- ('Opening and closing','The Bank can open with (2 × players)d2 mana (off by default). One round in a thousand the Banker dies of a heart attack, and the Bank and the Ether close for good.'),
+import re, json, html
+
+seg = open("rules_seg_old.html").read()
+lis = re.findall(r"<li><b>([^<]+)</b>(.*?)</li>", seg, re.S)
+D = {}
+for n, t in lis:
+    k = n if n not in D else n + "#2"
+    D[k] = t.lstrip(": ").strip()
+
+
+def li(name, key=None, text=None):
+    t = text if text is not None else D[key or name]
+    return f"<li><b>{name}</b>: {t}</li>"
+
+
+P = lambda tag: re.search(r"<h3>" + tag + r"</h3>\n(<p>.*?</p>)", seg, re.S).group(1)
+surv = re.search(r"<h3>Survival</h3>\n(.*?)\n<h3>Substances</h3>", seg, re.S).group(1)
+S = json.load(open("game/text/substances.json"))
+NAMES = {
+    "beginner": "Beginner",
+    "angel": "Angel Machine",
+    "satan": "Satan",
+    "binah": "Binah",
+    "jester": "Jester Fool",
+    "tiph": "Tiphareth of Kether",
+    "lucifer": "Lucifer &amp; Ouroboros",
+    "leviathan": "The Leviathan",
+    "firm": "The Firmament",
+    "yald": "Yaldabaoth",
+}
+subs = []
+for k, nm in NAMES.items():
+    detail = D[nm].replace(
+        "“Spit the empty full into”", "<i>Spit the empty full into</i>"
+    )
+    detail = re.sub(r",? ?“[A-Za-z]+”,?", "", detail)
+    pts = "".join(f"<li>{html.escape(p,quote=False)}</li>" for p in S[k]["pts"])
+    subs.append(
+        f'<div class="subst" id="sub-{k}"><h4>{nm}</h4><p class="tag">{html.escape(S[k]["tag"],quote=False)}</p><ul>{pts}</ul><details><summary>Every detail</summary><p>{detail}</p></details></div>'
+    )
+bank = [
+    (
+        "Spending",
+        "Every mana spent on a spell goes to the Bank. The Bank lends only what it holds.",
+    ),
+    (
+        "Loans",
+        "20% interest every 1d2 rounds, due in 4 rounds. What isn't paid by then becomes <b>mana debt</b>, and your mana shows below zero. Below zero the Bank lends six at most; at minus your maximum, five at most and at 30%.",
+    ),
+    (
+        "Credit",
+        "With <b>Spend on credit</b> ticked, spells you can't afford go on your debt. Every soul you gain pays the debt first.",
+    ),
+    (
+        "The floor",
+        "Fall below three times your maximum mana under zero (−18 with a maximum of 6) and you lose at once.",
+    ),
+    (
+        "Selling",
+        "Sell cards from your hand or deck for their conjuring price. They go to the Ether and your deck is reshuffled. Binah can sell thralls for 1 mana each.",
+    ),
+    (
+        "Upselling",
+        "A spell bought more than twice in each of two rounds in a row costs 1d2 − 1 more.",
+    ),
+    (
+        "A Bank in the red",
+        "The Ether goes on sale (1 less), and the Bank asks the richest player for a loan, which it pays back at 20% every two rounds.",
+    ),
+    (
+        "Debt Collectors",
+        "Anyone more than their maximum below zero is hunted by the Bank's Debt Collectors (1d3 every 1d3 rounds). What they kill goes to the Ether, and its price to the Bank.",
+    ),
+    (
+        "Collapse",
+        "If the Bank is 12 in the red and every player 6 below zero, it collapses: everyone back to zero, every maximum falls to three, five cards from each deck and one Ace from the field go to the Ether, and prices wobble up for 4d2 rounds.",
+    ),
+    (
+        "Opening and closing",
+        "The Bank can open with (2 × players)d2 mana (off by default). One round in a thousand the Banker dies of a heart attack, and the Bank and the Ether close for good.",
+    ),
 ]
-sky_rows=[
- ('The Moon','Form of Fate','The default sky.','Turns one phase a round. The New Moon gives 1d2 grave cards; the Full Moon takes its toll and forbids drawing and necromancy; one Full Moon in twenty is a Blood Moon.'),
- ('Saturn','Form of Limitation','Yaldabaoth, at seven hunger; or the sky from the start.','Every enemy pays 1 each round (a hand card, the top deck card or 1 mana), or a Debt Collector rises. Binah never pays. From the start, its favors go to the Bank.'),
- ('Mars','Form of Strife','The Firmament (2d3); or the sky from the start.','Each round, stacks of only Grunts, Infantry or Puppets get advantage on their next attack on 1–5 of 1d8.'),
- ('The Second Sun','Form of Judgement','The Firmament (2d3, and a Joker shoots itself); or the sky from the start.','No fog of war. Every 2d2 rounds it judges each other player: 1 mana, a wound to one of their stacks, or two deck cards, or blindness for that turn. Three cries from Yaldabaoth turn it into the Black Sun.'),
- ('Venus','Form of Harmony','The Firmament (2d3); or the sky from the start.','+2 mana a round and +2 maximum for the caster or a teammate, or +1 mana a round while every enemy gets +2 maximum.'),
- ('Mercury','Form of Guile','The Firmament (2d3); or the sky from the start.','Votes for Peace or Total War, bought Peace, and, under its Oath, Betrayal, Declare War and Bribe the Banker.'),
- ('Jupiter','Form of Abundance','The Firmament (2d3); or the sky from the start.','Ace miners bring 1d2, two conjurings on sale each round, trades at the Auction, and more mana for a Jester\'s Sacrificial Suicide.'),
+sky_rows = [
+    (
+        "The Moon",
+        "Form of Fate",
+        "The default sky.",
+        "Turns one phase a round. The New Moon gives 1d2 grave cards; the Full Moon takes its toll and forbids drawing and necromancy; one Full Moon in twenty is a Blood Moon.",
+    ),
+    (
+        "Saturn",
+        "Form of Limitation",
+        "Yaldabaoth, at seven hunger; or the sky from the start.",
+        "Every enemy pays 1 each round (a hand card, the top deck card or 1 mana), or a Debt Collector rises. Binah never pays. From the start, its favors go to the Bank.",
+    ),
+    (
+        "Mars",
+        "Form of Strife",
+        "The Firmament (2d3); or the sky from the start.",
+        "Each round, stacks of only Grunts, Infantry or Puppets get advantage on their next attack on 1–5 of 1d8.",
+    ),
+    (
+        "The Second Sun",
+        "Form of Judgement",
+        "The Firmament (2d3, and a Joker shoots itself); or the sky from the start.",
+        "No fog of war. Every 2d2 rounds it judges each other player: 1 mana, a wound to one of their stacks, or two deck cards, or blindness for that turn. Three cries from Yaldabaoth turn it into the Black Sun.",
+    ),
+    (
+        "Venus",
+        "Form of Harmony",
+        "The Firmament (2d3); or the sky from the start.",
+        "+2 mana a round and +2 maximum for the caster or a teammate, or +1 mana a round while every enemy gets +2 maximum.",
+    ),
+    (
+        "Mercury",
+        "Form of Guile",
+        "The Firmament (2d3); or the sky from the start.",
+        "Votes for Peace or Total War, bought Peace, and, under its Oath, Betrayal, Declare War and Bribe the Banker.",
+    ),
+    (
+        "Jupiter",
+        "Form of Abundance",
+        "The Firmament (2d3); or the sky from the start.",
+        "Ace miners bring 1d2, two conjurings on sale each round, trades at the Auction, and more mana for a Jester's Sacrificial Suicide.",
+    ),
 ]
-skyopt='Before a game: the moon (default), no moon, or a planet from the start: Saturn, Mars, the Second Sun, Venus, Mercury or Jupiter. A planet from the start keeps the Firmament out (and Saturn keeps Yaldabaoth out), and its favors go to the Bank. A Leviathan can coil on Mars, Venus or Jupiter, with its toll every eighth round. Hover or tap the sky in a game for what it means for you.'
-merc=D['Mercury'].replace(', “Guile”','').replace('(the Firmament, Astrology, 2d3). Under it','brought by the Firmament (Astrology, 2d3). Under it')
-out=f'''<h2 id="modes">Game types and rule options</h2>
+skyopt = "Before a game: the moon (default), no moon, or a planet from the start: Saturn, Mars, the Second Sun, Venus, Mercury or Jupiter. A planet from the start keeps the Firmament out (and Saturn keeps Yaldabaoth out), and its favors go to the Bank. A Leviathan can coil on Mars, Venus or Jupiter, with its toll every eighth round. Hover or tap the sky in a game for what it means for you."
+merc = (
+    D["Mercury"]
+    .replace(", “Guile”", "")
+    .replace(
+        "(the Firmament, Astrology, 2d3). Under it",
+        "brought by the Firmament (Astrology, 2d3). Under it",
+    )
+)
+out = f"""<h2 id="modes">Game types and rule options</h2>
 <p class="toc">On this part of the page: <a href="#types">Game types</a> · <a href="#substances">Substances</a> · <a href="#setup">Setup options</a> · <a href="#sky">The sky</a> · <a href="#economy">The Bank and the economy</a> · <a href="#siege">Siege, support and mining</a> · <a href="#stealth">Fog and stealth</a> · <a href="#screen">On the screen</a></p>
 <h3 id="types">Game types</h3>
 <h4>Local</h4>
@@ -137,6 +229,6 @@ out=f'''<h2 id="modes">Game types and rule options</h2>
 {li('Menu')}
 {li('Phase timer off')}
 </ul>
-'''
-open('game/text/rules_modes.html','w').write(out)
+"""
+open("game/text/rules_modes.html", "w").write(out)
 print(len(out))

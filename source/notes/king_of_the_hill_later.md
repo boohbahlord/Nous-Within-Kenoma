@@ -20,6 +20,7 @@ The Claimer and Flags (first asked for King of the Hill) were made for every mod
 ## The digest (K1–K12, from the same sheet, Part B)
 
 ### King of the Hill and large maps (a new mode family)
+
 - K1 Map: 25×25, night field, pixel art, brightens under the Second Sun; forests; mountains (void, unplayable) scattered and
   winding around the center with 2×2 gaps; a 5×5 white, translucent, glowing Hill in the middle, never fogged; spawns 2 deep × 3
   wide on every border and corner, with potions at their edges.
@@ -49,5 +50,6 @@ The Claimer and Flags (first asked for King of the Hill) were made for every mod
   controls. The Map tab gets a "Large maps" group; choosing King of the Hill fades every other map out.
 
 ## Readings to confirm with the user when it starts
+
 - Players 2–8 (the request says 5–8 first, later "as long as there are two"), default 6.
 - Teams: each team has a color for its cards and the Hill; each player's own color stays as the outline.

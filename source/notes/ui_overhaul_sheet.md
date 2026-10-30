@@ -21,7 +21,7 @@ card faces in the compare browser).
 >
 > You cannot even find the corner to press on a card, nothing about it feels intuitive, i didnt even believe you put it there till i tried to look for it for almost half a minute.
 >
-> For the Spells, the order the spells go in matter greatly, the idea that we can just put them in whatever english we please and whatever order we please is sloppy. If i dont want to play my game anymore because of ui this bad, then it is more then a red flag, it is the end of the world for this game. This game must have functional ui that is organized, pleasant, tasteful, and is a good expierance. So far, i cant  even test the game because the UI makes it unplayable. I would tire out my hand so badly scrolling up and down just to find the selction menu, the ui clearly shows you have to scroll up and down for over two pages in length just to get to where you need to go. That is completely unacceptable. New thing, in the conjuring tab, there is a spell called Ether, and in Ether, when you click it, the window for all the different things you can buy will pop up, so, it will have all the different kinds of cards in a category. The theme will be the same color as everything else please. When you click the Ether, it will show the type of card name: such as: standard, then it will show the cards and prices in a smiliar rectangular format as the other spells, since this window popup is vertical and on the right side of the screen, and here, you can scroll and say "oh, under standard, here is a soldier."
+> For the Spells, the order the spells go in matter greatly, the idea that we can just put them in whatever english we please and whatever order we please is sloppy. If i dont want to play my game anymore because of ui this bad, then it is more then a red flag, it is the end of the world for this game. This game must have functional ui that is organized, pleasant, tasteful, and is a good expierance. So far, i cant even test the game because the UI makes it unplayable. I would tire out my hand so badly scrolling up and down just to find the selction menu, the ui clearly shows you have to scroll up and down for over two pages in length just to get to where you need to go. That is completely unacceptable. New thing, in the conjuring tab, there is a spell called Ether, and in Ether, when you click it, the window for all the different things you can buy will pop up, so, it will have all the different kinds of cards in a category. The theme will be the same color as everything else please. When you click the Ether, it will show the type of card name: such as: standard, then it will show the cards and prices in a smiliar rectangular format as the other spells, since this window popup is vertical and on the right side of the screen, and here, you can scroll and say "oh, under standard, here is a soldier."
 > It should also have every other kind of option, in order of least to most expensive in proper english. Cci
 > Below the ether spell, there is "Increase Max Mana", because saying "Buy Mana" in a spell is nonsense, the whole list of spells is a list of things you buy, that is much like going to the store and seeing a soda that is called "Buy Soda". This is unacceptable levels of plummeted quality all around.
 >
@@ -44,7 +44,7 @@ card faces in the compare browser).
 > I still feel the start game menu could have a larger screen, and that the boxes can read the information when the mouse hovers over them for desktop, and that mobile can click something for info that appears only for them if that is possible. That way, we dont have huge boxes with words in them as options, it is messy and unprofessional. Could you imagine if microsoft word did that for their ribbing settings? Where every option within every group tried to fit two setences worth of info? That is overwhelming for the user, and also is clustered with shapes that, in expierance, become empty waste of space that clutters the screen. The play menu should be larger with smaller options, in regards to the modes for One on One or 2v2
 > Another engllish detail, why is one using words for it's option (One on One) and the other is using numbers with the v letter for short (2v2), we should call it a 1v1, simply.
 >
-> For the substances, the descriptions are terrible and need to be rewritten to be accurate with concise and purposeful information in proper english. I do not like how the ui wil have it be a tall rectangle, that is disgusting. Furthermore, the box then runs sideways below it, in the same selection too. It justs looks  clumsy, like someone didnt care. If they dont care about the game, that being my game, which this is the impression it gets across, then why would i care?
+> For the substances, the descriptions are terrible and need to be rewritten to be accurate with concise and purposeful information in proper english. I do not like how the ui wil have it be a tall rectangle, that is disgusting. Furthermore, the box then runs sideways below it, in the same selection too. It justs looks clumsy, like someone didnt care. If they dont care about the game, that being my game, which this is the impression it gets across, then why would i care?
 >
 > Special maps doesn't have to be it's own distinction anymore, rather, we simply have the maps share the same selection space, and then have the maps take up less room on the page, they need to also all be the same size, no bullcrap where one is a tall long rectangle or sqaure, and in the same or practically the same section (i.e. maps vs special maps) have a different geometry. This is disorganized. There is already a lot of menus, why make it hard on the player?
 >
@@ -52,17 +52,17 @@ card faces in the compare browser).
 >
 > Let me help you with the names and make a small change (Do not fucking include quotations i swear to god):
 >
-> * The Moon: "Form of Fate"
-> * Saturn: "Form of Limitation"
-> * Mars: "Form of Strife"
-> * The Second Sun: "Form of Judgement"
-> * Venus: "Form of Harmony"
-> * Mercury: "Form of Guile"
-> * Jupiter: "Form of Abundance"
+> - The Moon: "Form of Fate"
+> - Saturn: "Form of Limitation"
+> - Mars: "Form of Strife"
+> - The Second Sun: "Form of Judgement"
+> - Venus: "Form of Harmony"
+> - Mercury: "Form of Guile"
+> - Jupiter: "Form of Abundance"
 >
 > This is an example, not the bullet points, but the forms of the planets, do not include anything outside the quotation or the quotation itself, and that by defacto would obv include not saying anything before the colon, obv. Just only "Form of {Input Here}"
 >
-> Like I said, I think the UI for the play menu can be WIDE and maybe TALLER.  I should have to scroll so much in that box, I dont like that, esp when i am being limited for no reason, when a desktop can handle more; remember that.
+> Like I said, I think the UI for the play menu can be WIDE and maybe TALLER. I should have to scroll so much in that box, I dont like that, esp when i am being limited for no reason, when a desktop can handle more; remember that.
 >
 > Do not make the words ALL smaller, that would be ignoring the details of my implications or even principles extrapolated through a negative theology per se...
 >
@@ -104,11 +104,11 @@ card faces in the compare browser).
 >
 > The other thing is that the top left corner of the custom cards that are beyond a normal card deck we added should have a symbol in the top left (much like the numbers for standard cards or letters for special cards you see):
 >
-> * The top left of the cards under Base category that isn't Ace should be like this: Wall has a "B" in the top left that is in the same art style as the Aces A. The Tree should have a "0" in the top left, in the same font that all of these symbols will share in.
-> * The top left of the Assassin card can have an "S" symbol under special.
-> * The archer can be labeled as "11" for it's top left symbol in the standard, and the cannon can be "12"
-> * For the wildcards... The slavermaster will have an addition symbol "+" in the top left of their card, the slave will have a minus symbol "-" in the top left symbol of their card, the trafficker will have a double negative sign "--". The Leviathan would have an Infinity symbol, or the math symbol for infinity, which i cant type from my keyboard. The bullgoat has a triange in their top left that points up while the goatbull has a triangle that points down. The debt collector or simply collector has a "$" on their top left corner. Satan's card has a upside down cross for their symbol in the top left . Antony has the tenor cleft symbol used in music sheets for his symbol on the top left. Samson will have a symbol that looks like this "/\", emphasis is when i said it looks like it, like it is two lines leaning into one another, like an arrow somewhat, but just the two lines.
-> * The support characters will just have the word "Support" in the top left in small print.
+> - The top left of the cards under Base category that isn't Ace should be like this: Wall has a "B" in the top left that is in the same art style as the Aces A. The Tree should have a "0" in the top left, in the same font that all of these symbols will share in.
+> - The top left of the Assassin card can have an "S" symbol under special.
+> - The archer can be labeled as "11" for it's top left symbol in the standard, and the cannon can be "12"
+> - For the wildcards... The slavermaster will have an addition symbol "+" in the top left of their card, the slave will have a minus symbol "-" in the top left symbol of their card, the trafficker will have a double negative sign "--". The Leviathan would have an Infinity symbol, or the math symbol for infinity, which i cant type from my keyboard. The bullgoat has a triange in their top left that points up while the goatbull has a triangle that points down. The debt collector or simply collector has a "$" on their top left corner. Satan's card has a upside down cross for their symbol in the top left . Antony has the tenor cleft symbol used in music sheets for his symbol on the top left. Samson will have a symbol that looks like this "/\", emphasis is when i said it looks like it, like it is two lines leaning into one another, like an arrow somewhat, but just the two lines.
+> - The support characters will just have the word "Support" in the top left in small print.
 >
 > All of the wildcards and any other card like it now has it's name on the bottom, like the rest of the cards.
 >
@@ -116,8 +116,8 @@ card faces in the compare browser).
 >
 > The number six card should go back to what it was formerly in accordance to the rules.
 
-
 ### RAW DATA — follow-up message after v20 (2026-10-17 09:20), verbatim
+
 > I am pleased and dont noticed any UI issues or detail from the first minute. Maybe there is but i forgot. I actually am really surprised and would even go as far to say that I love what I see here, really.
 >
 > One thing though, in the bank, it says if you get -18 you lose... Make that look better and space it out in the ui to look more presentable, with a much better sentence. Also include a bank help info in the bank section. That would be nice for players wanting to understand the bank. This can be implemented into the next rounds of fixes.
@@ -129,6 +129,7 @@ card faces in the compare browser).
 ## PART B — DIGESTION (for me)
 
 ### Principles I read in this (the patterns behind the complaints)
+
 1. **Playability first.** Essential controls (board, hand, Selected panel, spells) must be reachable without page scrolling on desktop.
    Long lists live in their own scroll boxes with a themed scrollbar that grows/shrinks with the content. Never make the player hunt.
 2. **Organization = consistent order + consistent geometry.** Same-size tiles in a group (maps, substances, sky). Lists in a meaningful
@@ -149,32 +150,35 @@ card faces in the compare browser).
 10. **Don't jump ahead.** Do this in parts, each part finished properly and checked by eye at the user's settings.
 
 ### My order of work (and why this order)
+
 Playability blocks testing everything else, so the play screen comes first. English second (it touches every text, and the setup
 menu's redesign depends on the new short texts). Setup menu third (needs the new texts and the tile/hover-info pattern from part 1).
 Card faces fourth (independent, visual).
 
-### PART 1 — Play screen: playable without scrolling  [status: DONE in v20]
+### PART 1 — Play screen: playable without scrolling [status: DONE in v20]
+
 - [x] 1.1 Wide layout default on desktop; right column wider (scales with screen), stays in view (sticky, viewport height).
 - [x] 1.2 Right column: the Bank bar at the very top, then the spell box (own scroll, themed scrollbar), then Selected (own scroll) —
-        all visible together. Text selection while dragging/scrolling suppressed in the panel.
+      all visible together. Text selection while dragging/scrolling suppressed in the panel.
 - [x] 1.3 Spells sorted by price (cheapest first) within each school; schools keep their order (Necromancy first … Astrology last).
 - [x] 1.4 Ether: one Conjuring entry "Ether" opens a right-side vertical panel: categories (Standard, Special, Support, Base…),
-        each item a rectangle like a spell with its price, cheapest first, proper English. Individual conjure spells leave the list.
-        "Increase Max Mana" sits right below Ether.
+      each item a rectangle like a spell with its price, cheapest first, proper English. Individual conjure spells leave the list.
+      "Increase Max Mana" sits right below Ether.
 - [x] 1.5 Grave Blessing: a toggle on its left; when on, it is cast automatically at the start of each prep phase.
 - [x] 1.6 Static on/off joins the bottom bar (no overlap).
 - [x] 1.7 Text Size: weighted scaling (small text grows most, headings least) with caps; fix the panels that broke at 180%
-        (Selected stats, Bank window, Menu options).
+      (Selected stats, Bank window, Menu options).
 - [x] 1.8 Every window (#ov boxes, Ether panel, Bank, Grave, Ether souls, Outer Darkness, popups) gets a top-right X.
 - [x] 1.9 Card info: hovering the card's top-right corner (a bigger, visible zone) shows the stats at once, no click; mobile: tap the
-        corner, the info has an X.
+      corner, the info has an X.
 - [x] 1.10 Bank: dropdowns faded/disabled when there's nothing to pick; wider window; readable at large text.
 - [x] 1.11 Status line: clear, separate line ("Your turn: prep" / "P2 is playing"; shared phases say so plainly with a short
-        explanation on hover/tap). Nothing floating beside the phase steps.
+      explanation on hover/tap). Nothing floating beside the phase steps.
 - [x] 1.12 Default player names P1–P4 (in game "P1").
 - [x] 1.13 Grave / Ether souls / Outer Darkness windows: grouped by card type, sorted, with counts and an X.
 
-### PART 2 — English everywhere  [status: DONE in v21]
+### PART 2 — English everywhere [status: DONE in v21]
+
 - Planets: names only (The Moon, Saturn, Mars, The Second Sun, Venus, Mercury, Jupiter). The bottom of each planet box (in-game hover/tap
   and setup) reads exactly: Form of Fate / Form of Limitation / Form of Strife / Form of Judgement / Form of Harmony / Form of Guile /
   Form of Abundance. NO quotation marks anywhere. Remove the old "King/No/Fortune" words. Consistent capitalization.
@@ -188,14 +192,16 @@ Card faces fourth (independent, visual).
 - [x] 2.B2 Bank: a help section inside the Bank window (on demand, e.g. a "How the Bank works" fold-out): where spell mana goes, loans,
       interest, due dates, debt, credit, the floor, selling, Barbarians/angry Banker, red Bank, collapse.
 
-### PART 3 — Setup menu  [status: DONE in v22]
+### PART 3 — Setup menu [status: DONE in v22]
+
 - Bigger window (wide and tall on desktop). Small option tiles; info on hover (desktop) / tap-info with X (mobile).
 - Modes/layouts named 1v1, 2v2… (never "One on one").
 - Maps and Special Maps merged into one grid, all tiles the same size.
 - Substances: a grid of same-size tiles (no tall rectangles, nothing running sideways below); description on hover/tap.
 - Sky options compact, names only + Form line in the info.
 
-### PART 4 — Card faces and card rules  [status: DONE in v23]
+### PART 4 — Card faces and card rules [status: DONE in v23]
+
 - One type per card: the Ace is Base only (not Special).
 - Top-left symbols (shared font): Wall "B" (Ace-A style), Tree "0", Assassin "S", Archer "11", Cannon "12", Slavemaster "+",
   Slave "−", Trafficker "−−", Leviathan "∞", BullGoat "▲", Goatbull "▼", Debt Collector "$", Satan inverted cross, Antony tenor clef,
@@ -206,8 +212,10 @@ Card faces fourth (independent, visual).
 - Line weight of unit art matches the standard cards' strokes.
 - Puppets: their own card (stats of a 2, Puppet toy symbol, "?" top-left); the 6 card goes back to a normal 6 everywhere.
 
-### PROMPT 11 (its own prompt, AFTER Parts 2–4) — Mystery Generation reveal + wildcard rarity  [status: DONE in v26]
+### PROMPT 11 (its own prompt, AFTER Parts 2–4) — Mystery Generation reveal + wildcard rarity [status: DONE in v26]
+
 Current code: 17_econ.js mysteryCard() rolls d20 → MYS.common/support/special/rare/legend; mysteryGen() puts 1d3 cards straight into the deck.
+
 - [x] 11.1 Paying for Mystery Generation (in the Auction) opens a new popup instead of silently adding cards.
 - [x] 11.2 The popup shows the cards face down ("three cards", user's words — current rule is 1d3; decide at start: always 3 slots, or show
       the 1d3 actually made. Ask if unclear). Clicking reveals them one at a time, in order, until all are shown. A "Show all" button too. X/Close.
@@ -221,6 +229,7 @@ Current code: 17_econ.js mysteryCard() rolls d20 → MYS.common/support/special/
 - [x] 11.8 Simulate (sims + UI test) for balance and errors; check AI handles the new cards.
 
 ### Decisions log
+
 - v26 Prompt 11 (user 13:32): always THREE cards, face down from the start. Price is a range (3–8, 1d2+2d3) rolled at payment; Pay
   needs the maximum (8) affordable (credit counts). Paid = all three in the deck at once, even if the window is closed. Reveal one by
   one (click) or Turn them all. Log names the three cards with rarity. Tiers (loot-box colors): Common 47.5 gray, Uncommon 23.75 green,

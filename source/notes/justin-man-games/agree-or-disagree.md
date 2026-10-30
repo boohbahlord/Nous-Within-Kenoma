@@ -28,15 +28,15 @@ one thing and the picture another, the picture wins for the board's colors, as a
 
 Seven equal, symmetrical columns, each with its name written inside it:
 
-| # | Answer             | Color        | Hex (from the picture) |
-|---|--------------------|--------------|------------------------|
-| 1 | Strongly disagree  | dark red     | `#880015` |
-| 2 | Disagree           | red          | `#ED1C24` |
-| 3 | Slightly disagree  | orange       | `#FF7F27` |
-| 4 | Neutral            | yellow       | `#FFF200` |
-| 5 | Slightly agree     | light green  | `#75F94D` |
-| 6 | Agree              | green        | `#37D421` |
-| 7 | Strongly agree     | blue         | `#00A2E8` |
+| #   | Answer            | Color       | Hex (from the picture) |
+| --- | ----------------- | ----------- | ---------------------- |
+| 1   | Strongly disagree | dark red    | `#880015`              |
+| 2   | Disagree          | red         | `#ED1C24`              |
+| 3   | Slightly disagree | orange      | `#FF7F27`              |
+| 4   | Neutral           | yellow      | `#FFF200`              |
+| 5   | Slightly agree    | light green | `#75F94D`              |
+| 6   | Agree             | green       | `#37D421`              |
+| 7   | Strongly agree    | blue        | `#00A2E8`              |
 
 - Computer: left to right as above. Phone held upright: the same columns as rows, agree at the top (strongly agree first)
   and disagree at the bottom.

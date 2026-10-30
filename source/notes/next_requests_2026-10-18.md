@@ -1,7 +1,9 @@
 # Requests after v37 — NOT built yet (user 2026-10-18 04:22: "do not make a new version right now")
+
 Purpose: data for the hand-off document (Projects / Claude Code / Cowork). Verbatim below, then a sorted digest.
 
 ## Verbatim
+
 > The whole site shouldn't have black bars on the ui elements or buttons anymore btw, i dont like it. The black lines in the background are fine though and i like them.
 >
 > Maybe in the display option, there is a brightness or gamma setting, only one of the two.
@@ -36,19 +38,21 @@ Purpose: data for the hand-off document (Projects / Claude Code / Cowork). Verba
 > Furthermore, mobile has a scrolling problem where the spells are hard to scroll past because they also have a scrolling screen.
 > I want Mobile to have a slightly different layout and default settings:
 >
-> * Mobile should have their selected cards above the spell by default because they are likely to play in vertical mode.
-> * The icons on the cards look clustered and not visually organized, this should be fixed with it's own code that is ONLY for players on mobile.
-> * The box of spells that shows all the spells should be able to be minimized and shrunken, like a dropdown menu almost, and it should be closed by default and glowing before the mobile player first touches it. This should be the same for the log menu and the book quote generator.
-> * When the player selects a card in mobile, the outline doesn't show all around it. This should be fixed.
-> * In mobile, the ui elements that you can grow and shrink should be 80% for everything and 90% for text, and that should be the mobile's version for 100% (does that make sense?), so that way, they start out with different sizes of things for their format, since it fixes a lot of problems in the expierance for mobile, it is just more pleasant.
-> * In mobile, the names for the cards, like the wildcards for example, will go across the screen in ways they are not meant to.
-> * In mobile, the tabs in the play menu is hidden from the player and they cannot navigate the menu to set up the game settings to play on; as in the options or tabs like "Players", "Map", "Deck", "Rules", and so on.
-> * On mobile, clicking the back arrow on the phone UI quits the game without a yes or no question, and that could be a huge setback for players, so that should also have the usual yes or no popup for them to save them some anger.
+> - Mobile should have their selected cards above the spell by default because they are likely to play in vertical mode.
+> - The icons on the cards look clustered and not visually organized, this should be fixed with it's own code that is ONLY for players on mobile.
+> - The box of spells that shows all the spells should be able to be minimized and shrunken, like a dropdown menu almost, and it should be closed by default and glowing before the mobile player first touches it. This should be the same for the log menu and the book quote generator.
+> - When the player selects a card in mobile, the outline doesn't show all around it. This should be fixed.
+> - In mobile, the ui elements that you can grow and shrink should be 80% for everything and 90% for text, and that should be the mobile's version for 100% (does that make sense?), so that way, they start out with different sizes of things for their format, since it fixes a lot of problems in the expierance for mobile, it is just more pleasant.
+> - In mobile, the names for the cards, like the wildcards for example, will go across the screen in ways they are not meant to.
+> - In mobile, the tabs in the play menu is hidden from the player and they cannot navigate the menu to set up the game settings to play on; as in the options or tabs like "Players", "Map", "Deck", "Rules", and so on.
+> - On mobile, clicking the back arrow on the phone UI quits the game without a yes or no question, and that could be a huge setback for players, so that should also have the usual yes or no popup for them to save them some anger.
 >
 > (The user says this list isn't complete; "The game" was cut off mid-sentence.)
 
 ## Digest, sorted (for the hand-off document and the next builds)
+
 **Bugs (fix first)**
+
 - B1 Mobile: the chat box can't be closed (X and the Chat button both fail) — game-breaking.
 - B2 Fog of war: every unit sees too far (acts like a Scout). Rule: every unit sees only the 8 tiles around it (orthogonal and
   diagonal); the Scout sees farther. Fog darkness too black: more transparent; keep the wispy grey/white clouds.
@@ -62,6 +66,7 @@ Purpose: data for the hand-off document (Projects / Claude Code / Cowork). Verba
 - B9 Mobile: the icons on cards look clustered → a mobile-only card layout.
 
 **Look and settings**
+
 - L1 No black bars on UI elements or buttons anywhere on the site (the black lines in the page background stay, the user likes them).
 - L2 A display option to turn off the black bars and the background lines.
 - L3 One of brightness OR gamma in Display.
@@ -78,16 +83,19 @@ Purpose: data for the hand-off document (Projects / Claude Code / Cowork). Verba
   (dropdown inside dropdown), so each step shows only a few choices — especially for mobile.
 
 **Mobile defaults**
+
 - M1 Selected-stack box above the spells by default (portrait play).
 - M2 Spell box, log and book-quote box: collapsible, closed by default, glowing until first touched.
 - M3 Mobile "100%" = 80% UI size and 90% text size.
 
 **Online**
+
 - O1 A real lobby screen for host and joined players showing what's going on.
 - O2 While the host sets up, joined players can pick their own Substance, color, symbol and name.
 - O3 Joined players get their own Display tab in that window; their saved display settings (cookies) carry over.
 
 **Bank land rules**
+
 - R1 A player can buy a plot at most once every two turns.
 - R2 Selling land: a plot with its Miner can be sold to pay off debt for 2–3 mana (shown as a range, rolled after the sale); the
   Bank keeps that plot and Miner and can sell them for 3 mana.
@@ -95,10 +103,12 @@ Purpose: data for the hand-off document (Projects / Claude Code / Cowork). Verba
 - R4 Jupiter in the sky: +1 mana per bought plot; Jupiter's eclipse: +1d2 per plot.
 
 **Workflow (the user's question this turn)**
+
 - Moving the work to Claude Code / Cowork / Projects with GitHub access; considering more usage/credits or a plan upgrade.
 - The user will send a screenshot of their folder layout (where the zips were saved and extracted before uploading).
 
 ## Status (2026-10-18, Claude Code session)
+
 Built and live: v38 (B1–B9, M1–M3, site-wide click sound), v39 (L1–L10, R1–R4, Scout diamond sight, Beginner default,
 flowing fog, overdraw limit, Rob the Bank empties the Bank, Increase Max Mana 4), v40 (O1–O3 online lobby).
 Extra requests from chat, done: Scout sees 2 tiles out in a diamond; every seat defaults to the Beginner; fog lighter and
