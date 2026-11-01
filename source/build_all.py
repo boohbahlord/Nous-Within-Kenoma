@@ -60,7 +60,7 @@ QUOTES = {23: [(6, 7)], 36: [(46, 48), (52, 58)]}
 ART = {  # file -> (plate label, chapter it appears in or None)
     "art-01.jpg": ("Plate I", None),
     "art-02.jpg": ("Plate II", 33),
-    "art-03.jpg": ("Plate III", 41),
+    "art-03.jpg": ("Plate III", 40),
     "art-04.jpg": ("Plate IV", None),
     "art-05.jpg": ("Plate V", None),
     "art-06.jpg": ("Plate VI", None),
@@ -71,7 +71,7 @@ ART = {  # file -> (plate label, chapter it appears in or None)
     "forgetting-hell.png": ("Forgetting Hell", 24),
 }
 CH_IMG = {
-    41: (0, "art-03.jpg"),
+    40: (0, "art-03.jpg"),
     23: (13, "in-denial.jpg"),
     24: (0, "forgetting-hell.png"),
     8: (5, "art-08.jpg"),
@@ -171,8 +171,8 @@ def render_items(items, pm=False):
 
 BLACK = {26}
 BL_FONT = '\n<link rel="preload" href="grenze-gotisch-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>'
-L4 = {23, 42}
-L3 = {3, 6, 9, 14, 25, 28, 30, 34, 37, 38, 41}
+L4 = {23, 41}
+L3 = {3, 6, 9, 14, 25, 28, 30, 34, 37, 38, 40}
 L2 = {5, 8, 10, 11, 15, 17, 18, 19, 20, 21, 22, 24, 27, 29, 36}
 
 
@@ -181,7 +181,7 @@ def ch_fx(n):
     lvl = min(
         lvl, 2
     )  # 2026-10-19: heavy static (3, 4) brought down to medium; medium has no rolling TV band
-    if n in (51, 52):
+    if n in (50, 51):
         lvl = 2  # I want the grey TV static on VHS Tape and Word, very faint, so the text stays easy to read
     fx = "" if n in (1, 2, 3, 4, 26, 35) else "strings bars"
     theme = (
@@ -193,7 +193,7 @@ def ch_fx(n):
             else (
                 "th-crimson"
                 if n == 23
-                else "th-black" if n == 26 else "th-vhs" if n in (51, 52) else ""
+                else "th-black" if n == 26 else "th-vhs" if n in (50, 51) else ""
             )
         )
     )
@@ -211,7 +211,7 @@ for i, c in enumerate(C):
     body = head(
         f'{n} · {c["title"]} · Nous Within Kenoma', BL_FONT if bl else "", **ch_fx(n)
     )
-    if n == 50:
+    if n == 49:
         # I added a blank line between the head and the body on this page by hand, and I want it kept
         body = body.replace("</head>\n<body", "</head>\n\n<body")
     body += f'<main class="wrap{" blackletter" if bl else ""}">\n'
@@ -252,7 +252,7 @@ land = head("Read · Nous Within Kenoma") + f"""<main class="wrap">
 open(f"{OUT}/chapters.html", "w").write(land)
 
 # ---------------------------------------------------------------- front page
-NW = {41: "forty-one"}
+NW = {40: "forty"}
 idx = head("Nous Within Kenoma") + f"""<main class="wide" style="max-width:1060px">
 <div class="front">
 <div>
