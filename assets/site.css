@@ -170,6 +170,12 @@ h1 {
   hyphens: none;
   overflow-wrap: break-word;
 }
+/* I want the words to flow in their paragraph: the formatter breaks the lines of the page's code at 80 letters, and
+   kept as typed those breaks left words alone on their own lines (worst on a phone). From chapter 5 on (flow) only a
+   paragraph whose spaces I typed on purpose, like the glitch ones (keep), keeps its spacing */
+.chapter.flow p:not(.keep) {
+  white-space: normal;
+}
 .chapter p.para {
   text-indent: var(--ind);
   text-align: justify;
@@ -1464,11 +1470,6 @@ html.th-vhs {
 html.th-vhs ol.toc a,
 html.th-vhs .pager {
   border-color: #464646;
-}
-/* Fill the screen makes the reading text fill the screen too: the paragraphs lose their hard line breaks and flow across the
-   whole width (a paragraph whose spaces I keep, like the glitch ones, stays as it is) */
-html.fillscreen .chapter p.para:not(.keep) {
-  white-space: normal;
 }
 /* the small button that folds the whole Display bar away */
 #nwkdisp #nwkcol {

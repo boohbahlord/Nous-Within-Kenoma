@@ -132,18 +132,6 @@ def picker(cur=None, label="Jump to a chapter"):
     )
 
 
-def wrap_keep(h, width=70):
-    """Break a paragraph into lines of at most `width` letters at its spaces, keeping every run of spaces as typed."""
-    lines, cur = [], ""
-    for w in re.findall(r"\S+ *", h):
-        if cur and len((cur + w).rstrip()) > width:
-            lines.append(cur[:-1] if cur.endswith(" ") else cur)
-            cur = ""
-        cur += w
-    lines.append(cur.rstrip())
-    return "\n          ".join(lines)
-
-
 def render_items(items, pm=False):
     out = []
     for it in items:
@@ -160,17 +148,10 @@ def render_items(items, pm=False):
             h = it["html"].rstrip()
             if pm and "  " in h:
                 # I want the spaces I typed in a glitch paragraph kept as they are: the formatter squeezes every run of
-                # spaces into one, so I wrap the paragraph myself the way it would and tell it to leave this one alone
+                # spaces into one, so I tell it to leave this one alone, on one line (the page keeps its spaces, class keep)
                 out.append(
-                    f'<!-- prettier-ignore -->\n<p class="para keep">\n          {wrap_keep(h.strip())}\n        </p>'
+                    f'<!-- prettier-ignore -->\n<p class="para keep">{h.strip()}</p>'
                 )
-            elif pm and 8 + len('<p class="para">') + len(h) + len("</p>") <= 80:
-                # I want a short paragraph to look like a long one: the formatter wraps a long one onto its own lines, and the
-                # page keeps that spacing (a blank line and the indent), so I write the short one the same way and tell the
-                # formatter to leave it
-                out.append(
-                    f'<!-- prettier-ignore -->\n<p class="para">\n          {h.lstrip()}\n        </p>'
-                )  # (the formatter trims a leading space, so this does too)
             else:
                 out.append(f'<p class="para">{h}</p>')
         elif k == "quote":
@@ -236,7 +217,7 @@ for i, c in enumerate(C):
     body += f'<main class="wrap{" blackletter" if bl else ""}">\n'
     body += f'<nav class="crumbs"><a href="chapters.html">← Nous Within Kenoma</a>{picker(n)}</nav>\n'
     body += f'<header><span class="num">Chapter {n}</span><h1>{esc(c["title"])}</h1></header>\n'
-    body += f'<article class="chapter{" blackletter" if bl else ""}" style="--lh:{c["lh"]};--ind:{c["ind"]}em">\n{render_items(c["items"], n >= 5)}\n</article>\n'
+    body += f'<article class="chapter{" blackletter" if bl else ""}{" flow" if n >= 5 else ""}" style="--lh:{c["lh"]};--ind:{c["ind"]}em">\n{render_items(c["items"], n >= 5)}\n</article>\n'
     body += '<nav class="pager">'
     body += (
         f'<a href="{fname(prev["n"])}">← {prev["n"]} · {esc(prev["title"])}</a>'
