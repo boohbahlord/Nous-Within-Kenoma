@@ -389,7 +389,7 @@ function mountQuotes() {
     last = i;
     const q = Q[i];
     $("#qtext").textContent = q.t;
-    $("#qsrc").textContent = `Chapter ${q.n} · ${q.title}`;
+    $("#qsrc").textContent = `No. ${q.n}: ${q.title}`;
     $("#qtext").parentNode.scrollTop = 0;
   };
   $("#qnext").onclick = show;

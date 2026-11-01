@@ -119,12 +119,12 @@ TITLE = {c["n"]: c["title"] for c in C}
 fname = lambda n: f"chapter-{n:02d}.html"
 
 
-def picker(cur=None, label="Jump to a chapter"):
-    opts = ['<option value="">Choose a chapter…</option>'] if cur is None else []
+def picker(cur=None, label="Jump to a part"):
+    opts = ['<option value="">Choose a part…</option>'] if cur is None else []
     for c in C:
         sel = " selected" if c["n"] == cur else ""
         opts.append(
-            f'<option value="{fname(c["n"])}"{sel}>{c["n"]} · {esc(c["title"])}</option>'
+            f'<option value="{fname(c["n"])}"{sel}>No. {c["n"]}: {esc(c["title"])}</option>'
         )
     return (
         f'<div class="pick"><label for="chap">{label}</label>'
@@ -209,23 +209,25 @@ for i, c in enumerate(C):
     nxt = C[i + 1] if i + 1 < len(C) else None
     bl = n in BLACK
     body = head(
-        f'{n} · {c["title"]} · Nous Within Kenoma', BL_FONT if bl else "", **ch_fx(n)
+        f'No. {n}: {c["title"]} · Nous Within Kenoma', BL_FONT if bl else "", **ch_fx(n)
     )
     if n == 49:
         # I added a blank line between the head and the body on this page by hand, and I want it kept
         body = body.replace("</head>\n<body", "</head>\n\n<body")
     body += f'<main class="wrap{" blackletter" if bl else ""}">\n'
     body += f'<nav class="crumbs"><a href="chapters.html">← Nous Within Kenoma</a>{picker(n)}</nav>\n'
-    body += f'<header><span class="num">Chapter {n}</span><h1>{esc(c["title"])}</h1></header>\n'
+    body += (
+        f'<header><span class="num">No. {n}</span><h1>{esc(c["title"])}</h1></header>\n'
+    )
     body += f'<article class="chapter{" blackletter" if bl else ""}{" flow" if n >= 5 else ""}" style="--lh:{c["lh"]};--ind:{c["ind"]}em">\n{render_items(c["items"], n >= 5)}\n</article>\n'
     body += '<nav class="pager">'
     body += (
-        f'<a href="{fname(prev["n"])}">← {prev["n"]} · {esc(prev["title"])}</a>'
+        f'<a href="{fname(prev["n"])}">← No. {prev["n"]}: {esc(prev["title"])}</a>'
         if prev
-        else '<a href="chapters.html">← All chapters</a>'
+        else '<a href="chapters.html">← All parts</a>'
     )
     body += (
-        f'<a href="{fname(nxt["n"])}">{nxt["n"]} · {esc(nxt["title"])} →</a>'
+        f'<a href="{fname(nxt["n"])}">No. {nxt["n"]}: {esc(nxt["title"])} →</a>'
         if nxt
         else '<a href="index.html">Home →</a>'
     )
@@ -239,11 +241,11 @@ toc = "\n".join(
 land = head("Read · Nous Within Kenoma") + f"""<main class="wrap">
 <nav class="crumbs"><a href="index.html">← Nous Within Kenoma</a></nav>
 <header><span class="num">Nous Within Kenoma</span><h1>Read Nous Within Kenoma</h1></header>
-<section class="notice" aria-label="About these chapters">
+<section class="notice" aria-label="About these parts">
 <p>This book is unfinished. These chapters may still change before the book is complete.</p>
 <p><i>Nous Within Kenoma</i> is a collection of Gnostic-inspired, syncretic short stories that all take place within the same cosmology. The stories are interconnected to differing extents, and some chapters are best read within their larger context.</p>
 </section>
-{picker(None, 'Select a chapter for preview reading')}
+{picker(None, 'Select a part for preview reading')}
 <ol class="toc">
 {toc}
 </ol>
@@ -258,8 +260,8 @@ idx = head("Nous Within Kenoma") + f"""<main class="wide" style="max-width:1060p
 <div>
   <h1 style="font-size:clamp(30px,5vw,44px);line-height:1.1;margin:0 0 10px">Nous Within Kenoma</h1>
   <p style="color:var(--dim);margin:0 0 34px;font-size:15px">Gnostic-inspired syncretic short stories</p>
-  <h2 class="label">Sample Chapters</h2>
-  <nav class="cards"><a class="card" href="chapters.html">Read Nous Within Kenoma<span>Book in progress: {len(C)} chapters</span></a></nav>
+  <h2 class="label">Sample Parts</h2>
+  <nav class="cards"><a class="card" href="chapters.html">Read Nous Within Kenoma<span>Book in progress: {len(C)} parts</span></a></nav>
   <h2 class="label">Games</h2>
   <nav class="cards">
     <a class="card" href="ethers-crossroads.html">Ether's Crossroads<span>A strategy card game, loosely based on the book</span></a>
@@ -288,7 +290,7 @@ DIG = ["in-denial.jpg", "forgetting-hell.png"]
 def fig(f):
     lab, ch = ART[f]
     sub = (
-        f'<span><a href="{fname(ch)}">Chapter {ch} · {esc(TITLE[ch])}</a></span>'
+        f'<span><a href="{fname(ch)}">No. {ch}: {esc(TITLE[ch])}</a></span>'
         if ch
         else ("<span>Front page</span>" if f == "art-01.jpg" else "")
     )
