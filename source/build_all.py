@@ -3,7 +3,7 @@
 import json, html, os, re, shutil
 
 OUT = "site"
-SITE_V = "74"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+SITE_V = "73"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 if os.path.isdir(OUT):
     shutil.rmtree(OUT)  # v79j: a clean build (the files end up in folders at the end)
 os.makedirs(OUT, exist_ok=True)
@@ -193,15 +193,7 @@ def ch_fx(n):
             else (
                 "th-crimson"
                 if n == 23
-                else (
-                    "th-black"
-                    if n == 26
-                    else (
-                        "th-vhs"
-                        if n in (50, 51, 52)
-                        else "th-chalice" if n == 39 else ""
-                    )
-                )
+                else "th-black" if n == 26 else "th-vhs" if n in (50, 51, 52) else ""
             )
         )
     )
