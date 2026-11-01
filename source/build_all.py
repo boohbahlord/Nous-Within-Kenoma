@@ -250,8 +250,8 @@ land = head("Read · Nous Within Kenoma") + f"""<main class="wrap">
 <nav class="crumbs"><a href="index.html">← Nous Within Kenoma</a></nav>
 <header><span class="num">Nous Within Kenoma</span><h1>Read Nous Within Kenoma</h1></header>
 <section class="notice" aria-label="About these parts">
-<p>This book is unfinished. These chapters may still change before the book is complete.</p>
-<p><i>Nous Within Kenoma</i> is a collection of Gnostic-inspired, syncretic short stories that all take place within the same cosmology. The stories are interconnected to differing extents, and some chapters are best read within their larger context.</p>
+<p>This book is unfinished. These stories may still change before the book is complete.</p>
+<p><i>Nous Within Kenoma</i> is a collection of Gnostic-inspired, syncretic short stories that all take place within the same cosmology. The stories are interconnected to differing extents, and some parts are best read within their larger context.</p>
 </section>
 {picker(None, 'Select a part for preview reading')}
 <ol class="toc">
@@ -312,7 +312,7 @@ sep = '<span class="sep">·</span> '  # the space lets a long row wrap after a d
 art = head("Additional Art · Nous Within Kenoma") + f"""<main class="wide">
 <nav class="crumbs"><a href="index.html">← Nous Within Kenoma</a></nav>
 <header><span class="num">Nous Within Kenoma</span><h1>Additional Art</h1></header>
-<p class="intro">Drawings and digital pieces. Hatched faces, grids, strings, towers and smeared light: they help carry the atmosphere of the stories and the cosmos. Pieces that also appear inside a chapter name that chapter beneath them.</p>
+<p class="intro">Drawings and digital pieces. They help carry the atmosphere of the stories.</p>
 <section class="ix" aria-label="Index of art"><h2>Index of Art</h2><table>
 <tr><th><a href="#drawings">Drawings</a></th><td>{sep.join(f'<a href="#{anchor(f)}">{esc(ART[f][0])}</a>' for f in DRAW)}</td></tr>
 <tr><th><a href="#digital">Digital</a></th><td>{sep.join(f'<a href="#{anchor(f)}">{esc(ART[f][0])}</a>' for f in DIG)}</td></tr>
