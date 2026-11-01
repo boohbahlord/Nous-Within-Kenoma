@@ -20,22 +20,12 @@ window.EC_QUOTES = [
     title: "Ten: III; Shoreline Lectures and Sermons from the Snake",
   },
   {
-    t: "Antony hangs without movement of the shafts and gears, from the wires and pumps of the wall crucifix; not even the break of eye contact in his irresponsiveness. Christopher is left with the boundlessness inside him, a feeling he has died before, feeling the loss of the old world.",
+    t: "One more moment of rest, he thinks, just one more... Just a little bit more, then maybe I can. He doesn’t need any of these memories, those he found to be cursed with light and sounds; it is all too hostile. He always tries to snooze the alarm of the Angel in his ear. He wants to slip away, down the swirling promise of wonderland, a white rabbit of a white mask company, unlike the passion and intensity of Antony; he only wants to be carried away by the illusory. Where to? He would not want to know.",
     n: 5,
     title: "Angel Machine",
   },
   {
-    t: "Christopher does not know if there is another way. He sometimes gets this feeling: the very delusion he believes he doesn't have, yet keeps trying to feel, is somehow hiding his oath to what he has forgotten. Where Christopher lives in illusion, his guardian has no understanding, yet tries to pull him out of his ways.",
-    n: 5,
-    title: "Angel Machine",
-  },
-  {
-    t: "“AHHHHH!!!” Curdles and gurgles with the spirit’s will, breaking its vocal cord constraints like an awakened viper. Sixteen sat behind the window night, fifteen, fourteen, thirteen; his life is flashing alongside red spills from children’s eyes. Not before twelve, it never could have been without beginning. He is symbolic of hatred to something he cannot know, and some eyes can only pour blood onto their painful sights, heavily burdened with madness clarity. That childhood was meant to be mentally beaten flat out by wind inheritance, without understanding before, though sight rushes with answers unlike language.",
-    n: 6,
-    title: "As Snakes See",
-  },
-  {
-    t: "He was the alpha and omega of every omen’s haunting, haunting like a black hole’s mystery. The boy, now possessed, shakes at every limb in trembling paranoia of God’s galaxy, larger than its suffering and hatred. This vampire foams out of the mouth with a tribunal crimson glow across his muscles, shaking at every aspect of knowledge installed, downloaded with behind-the-neck whisper speeds, and by silk manic roads.",
+    t: "He sees it. Hive jumps, seconds. Claws pinch through throat-length curtains, like wind through trees. Puncturing demonically as the hatred eyes find him cornered, a rabbit, bounded in leviathan’s choke-fingered grip. The beating snarls, the screaming apeback insanity, beating him godlessly, beating him and hissing as he thunders with concussions. Beating him corner deep, and deeper still. Finger throatshot claws meander deeper, from behind and under the throat, reaching underneath it and into his Adam’s apple, familiar to the Lucifer. This filth only reaches deeper.",
     n: 6,
     title: "As Snakes See",
   },
@@ -498,5 +488,15 @@ window.EC_QUOTES = [
     t: "The breeze blows an allergen and memories, like the whistle through the teeth of skulls. Sweet voice… His sound low but delicate with firm, as if it held her by the string of heart. The silence wails high, up and up, like a rollercoaster. The calm has to give… There is a slight hatred that weighs her down everywhere, at the world with no pardon to its injustice, but it’s real.",
     n: 52,
     title: "Sepulcher",
+  },
+  {
+    t: "The anything-but-flatline of improportionate elderly suspends a moment. Then it scatters the ripping pierce of static in its talk through the head of Kether, “We are the gaze into the end, the regurgitation of a sick God who could not keep down three of ourselves, and our seven hundred and seventy-seven eyes that watch. Our three forms were digested together into one before we were spit out of the bellows of the Lord. From his land of memories we fell as one.”",
+    n: 53,
+    title: "Titan: Three in One",
+  },
+  {
+    t: "The knees wobble and give like a whiplash of snake coils shocked, throwing his hands into a tremble with it. Then the throat is snatched tight in a grip. Kether lets it out in a ripping purge that sounds a heave, “Reading itself! Reading itself! I become the Word! I crawl after legs stolen!” His eye finds the smallest reflection of a still puddle that mirrors his eyes. Seeing into it catches the sight of something… Deep inside, the pupil meets another, seeing itself behind the soul it hides behind. The being writes it down within him, “This Word reads itself.” Lucifer has found the word. The cuts on the left hand disappear.",
+    n: 53,
+    title: "Titan: Three in One",
   },
 ];
