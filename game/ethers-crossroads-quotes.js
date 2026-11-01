@@ -10,22 +10,12 @@ window.EC_QUOTES = [
     title: "Ten: I; kōaḥ",
   },
   {
-    t: "8 of your grounds and 9 of your warmth\nThey buried her eyes, hands, feet, and hips\nThey used to have light in them\nNow rooted in their eternal hatred, slaves to their servitudes\nDeformed Sons and Daughters",
+    t: "Opening mouths and eyes, pouring its dimness blindly, bounding hands\nand feet with deformity, forcing hopes still, shaking shuffling of\ntremoring deficiencies. “You sent yourself to this drowning blindness,\nsent here to breathe the dying memories.”\nMy corrosive breath, heavy burdens with insanity, erupting waves of\nperishment; fading births and fathomless limbo.",
     n: 3,
     title: "Ten: II; Seven Lies",
   },
   {
-    t: "Blindness, choking out my feelings of purity, thrown out into the\ntripwire dream covers of sickened rot bondage, they cover you with the\nsuggestion of a loving father, with the blanket's damage of blackened\nreflections, from broken mirror shards lodged into mimicking mimics.",
-    n: 3,
-    title: "Ten: II; Seven Lies",
-  },
-  {
-    t: "In their heart, they dreamed dreams of dreams, no longer knowing\nwhat's real anymore; they seek comfort in the comforts of their prisons,\nLost in lostness; material bondage.\nTheir light divides further and further, becoming more comatose, more\namnesiac, never knowing they are lost in the lostness; they don't know\nthe place without memories.",
-    n: 4,
-    title: "Ten: III; Shoreline Lectures and Sermons from the Snake",
-  },
-  {
-    t: "He was cast into the outer darkness, of a Mother's mistake, unwanted\nand deformed; he could barely even remember. What remains is merely a\ndecaying afterimage, withering endlessly. This dying memory of his own\nspews forth corruption onto the material plane you have left, this being\nhis creation. He calls himself the first and only God, a blasphemy\nagainst the nameless purity and its indescribable holiness. This Demon\nGod has fashioned your dream, your dead home, his delusion leaving some\nlost forever. Of him is a boastful and envious pride birthed in\ndelusion.",
+    t: "The shore is always stretching, always reaching further into the\nabyss, into the blindness of the outer darkness. It is eternally void;\nthose lost never listen to the warnings of the messengers, prophets,\ndiviners, those with visions and moments of clarity.",
     n: 4,
     title: "Ten: III; Shoreline Lectures and Sermons from the Snake",
   },
@@ -498,5 +488,15 @@ window.EC_QUOTES = [
     t: "Curse continues counting backwards even louder, “Nine! Seven!—” The demon wraps its outside above the knuckle with its insides, but it cannot get lower than the clasp of pipe-lodged fingers. The recoiling into is stopped with force. “Five! Three!—” The manuscript becomes bouqueted, where a geyser of blood shoots out, painting everything around it with the spelling, “Word.” Curse says the first and last number firmly, “One!” The cuticles wilt. Sarah is at the far end of the kitchen, watching from afar in an expression gone frozen and worried.",
     n: 51,
     title: "Word",
+  },
+  {
+    t: "Sobbing at every crow, getting sick at every sewing needle, hurting with every branch tap on the window, and feeling lost at every full moon illumination. The VHS tape never rewound, just left inside, making noises. The broken coffee table, split in half, is covered in scrambles of paper piles: letters towards him, to cope. The wine bottles clutter the kitchen table. The strange but magnetizing man, the fallen angel, dead. Buried under the tree.",
+    n: 52,
+    title: "Sepulcher",
+  },
+  {
+    t: "The breeze blows an allergen and memories, like the whistle through the teeth of skulls. Sweet voice… His sound low but delicate with firm, as if it held her by the string of heart. The silence wails high, up and up, like a rollercoaster. The calm has to give… There is a slight hatred that weighs her down everywhere, at the world with no pardon to its injustice, but it’s real.",
+    n: 52,
+    title: "Sepulcher",
   },
 ];
