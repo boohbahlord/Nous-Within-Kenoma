@@ -3,7 +3,7 @@
 import json, html, os, re, shutil
 
 OUT = "site"
-SITE_V = "72"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+SITE_V = "73"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 if os.path.isdir(OUT):
     shutil.rmtree(OUT)  # v79j: a clean build (the files end up in folders at the end)
 os.makedirs(OUT, exist_ok=True)
@@ -162,7 +162,7 @@ def render_items(items, pm=False):
                 # I want the spaces I typed in a glitch paragraph kept as they are: the formatter squeezes every run of
                 # spaces into one, so I wrap the paragraph myself the way it would and tell it to leave this one alone
                 out.append(
-                    f'<!-- prettier-ignore -->\n<p class="para">\n          {wrap_keep(h.strip())}\n        </p>'
+                    f'<!-- prettier-ignore -->\n<p class="para keep">\n          {wrap_keep(h.strip())}\n        </p>'
                 )
             elif pm and 8 + len('<p class="para">') + len(h) + len("</p>") <= 80:
                 # I want a short paragraph to look like a long one: the formatter wraps a long one onto its own lines, and the
@@ -200,6 +200,8 @@ def ch_fx(n):
     lvl = min(
         lvl, 2
     )  # 2026-10-19: heavy static (3, 4) brought down to medium; medium has no rolling TV band
+    if n in (51, 52):
+        lvl = 2  # I want the grey TV static on VHS Tape and Word, very faint, so the text stays easy to read
     fx = "" if n in (1, 2, 3, 4, 26, 35) else "strings bars"
     theme = (
         "th-indigo th-blue"
@@ -207,7 +209,11 @@ def ch_fx(n):
         else (
             "th-indigo"
             if n == 4
-            else "th-crimson" if n == 23 else "th-black" if n == 26 else ""
+            else (
+                "th-crimson"
+                if n == 23
+                else "th-black" if n == 26 else "th-vhs" if n in (51, 52) else ""
+            )
         )
     )
     return dict(static=lvl, fx=fx, theme=theme)
