@@ -170,6 +170,12 @@ h1 {
   hyphens: none;
   overflow-wrap: break-word;
 }
+/* I want the words to flow in their paragraph: the formatter breaks the lines of the page's code at 80 letters, and
+   kept as typed those breaks left words alone on their own lines (worst on a phone). From chapter 5 on (flow) only a
+   paragraph whose spaces I typed on purpose, like the glitch ones (keep), keeps its spacing */
+.chapter.flow p:not(.keep) {
+  white-space: normal;
+}
 .chapter p.para {
   text-indent: var(--ind);
   text-align: justify;
@@ -1449,4 +1455,32 @@ html.fillscreen main:not(.game) {
   margin-right: 0;
   padding-left: max(28px, 4vw);
   padding-right: max(28px, 4vw);
+}
+/* I want the black and white look on VHS Tape and Word: a dark grey page (not pitch black) with whiter letters */
+html.th-vhs {
+  --ground: #181818;
+  --well: #222;
+  --deep: #111;
+  --text: #f6f6f6;
+  --dim: #c8c8c8;
+  --amber: #ececec;
+  --amber-hi: #fff;
+  --rule: #464646;
+}
+html.th-vhs ol.toc a,
+html.th-vhs .pager {
+  border-color: #464646;
+}
+/* the small button that folds the whole Display bar away */
+#nwkdisp #nwkcol {
+  padding: 5px 7px;
+}
+#nwkdisp.folded {
+  gap: 0;
+  padding: 2px;
+  background: transparent;
+  border-color: transparent;
+}
+#nwkdisp.folded > :not(#nwkcol) {
+  display: none;
 }

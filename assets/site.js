@@ -41,6 +41,8 @@
       H = innerHeight;
     document.querySelector("svg.strings")?.remove();
     if (lookPref().lines === false || lite()) return;
+    // I want Static off to take the thin lines and bars out of a chapter's background too
+    if (!on && LV && document.querySelector("article.chapter")) return;
     const s = el("svg", {
       class: "strings",
       viewBox: `0 0 ${W} ${H}`,
@@ -248,6 +250,7 @@
         localStorage.setItem(KEY, on ? "on" : "off");
       } catch (e) {}
       on ? start() : stop();
+      drawStrings();
       label();
     });
     (document.getElementById("nwkdisp") || body).appendChild(b); // v78u: into the Display bar when there is one
@@ -469,28 +472,55 @@
   apply();
   function build() {
     if (
-      !pc() ||
       document.querySelector("main.game") ||
       document.getElementById("nwkdisp")
     )
       return; // the game has its own Display bar
+    const st = document.querySelector("button.static-toggle");
+    if (!pc() && !st) return; // a phone with no static has nothing to show
     const d = document.createElement("div");
     d.id = "nwkdisp";
     d.innerHTML =
-      '<span id="nwkmore" hidden><button type="button" class="nwktog" id="nwkfill"></button></span><button type="button" class="nwktog" id="nwkdispb" aria-expanded="false" aria-controls="nwkmore">Display ▴</button>';
+      '<span id="nwkmore" hidden><button type="button" class="nwktog" id="nwkfill"></button></span>' +
+      '<button type="button" class="nwktog" id="nwkdispb" aria-expanded="false" aria-controls="nwkmore">Display ▴</button>' +
+      '<button type="button" class="nwktog" id="nwkcol"></button>';
     document.body.appendChild(d);
     const m = d.querySelector("#nwkmore"),
       b = d.querySelector("#nwkdispb"),
-      f = d.querySelector("#nwkfill");
-    const st = document.querySelector("button.static-toggle");
-    if (st) d.appendChild(st); // the static switch joins the bar, as in the game
+      f = d.querySelector("#nwkfill"),
+      c = d.querySelector("#nwkcol");
+    if (!pc()) {
+      m.remove(); // Fill the screen is for a computer
+      b.remove();
+    }
+    if (st) d.insertBefore(st, c); // the static switch joins the bar, as in the game
+    // I want a small button that folds the whole bar away, and it stays folded on the next page
+    let folded = false;
+    try {
+      folded = localStorage.getItem("nwk-bar") === "folded";
+    } catch (e) {}
     const paint = () => {
       f.textContent = "Fill the screen: " + (on ? "On" : "Off");
       f.setAttribute("aria-pressed", on);
       b.textContent = m.hidden ? "Display ▴" : "Display ▾";
       b.setAttribute("aria-expanded", !m.hidden);
+      d.classList.toggle("folded", folded);
+      c.textContent = folded ? "◂" : "▸";
+      c.setAttribute(
+        "aria-label",
+        folded ? "Show the display options" : "Hide the display options",
+      );
+      c.setAttribute("aria-expanded", !folded);
     };
     paint();
+    c.addEventListener("click", () => {
+      folded = !folded;
+      if (folded) m.hidden = true;
+      try {
+        localStorage.setItem("nwk-bar", folded ? "folded" : "open");
+      } catch (e) {}
+      paint();
+    });
     b.addEventListener("click", () => {
       m.hidden = !m.hidden;
       paint();
