@@ -1474,22 +1474,24 @@ html.th-vhs .pager {
 /* Chalice of Tears (chapter 39): I want the page to take the colors named in the chapter in turns (Red's crimson rose,
    Blue's gentian, the purple sky, indigo, scarlet, the sapphire neptune haze and the golden chalice). Each one breathes in
    slowly out of the dark and back out into it before the next. The page stays dark like a dark mode, so it never glares at
-   night; the letters are light, in the opposite color of each one so they always stand out, and the links, borders and
+   night, and the colors are soft (we toned them down from the first try). The letters are lighter than the page and clearly
+   colored, the opposite of each color, set for easy reading (about 11.5 to 1 contrast, never glaring), so all of them
+   change color with the page, and the links, borders and
    buttons take the color of the letters. The static stays light, and the lines and bars stay. */
 @property --ch-ground {
   syntax: "<color>";
   inherits: true;
-  initial-value: #3a0b14;
+  initial-value: #29171a;
 }
 @property --ch-text {
   syntax: "<color>";
   inherits: true;
-  initial-value: #d6e6ff;
+  initial-value: #bcd7fb;
 }
 @property --ch-accent {
   syntax: "<color>";
   inherits: true;
-  initial-value: #8fb6ff;
+  initial-value: #88baff;
 }
 html.th-chalice {
   --ground: var(--ch-ground);
@@ -1509,74 +1511,74 @@ html.th-chalice .pager {
 @keyframes chalice {
   0%,
   100% {
-    --ch-ground: #3a0b14;
-    --ch-text: #d6e6ff;
-    --ch-accent: #8fb6ff;
+    --ch-ground: #29171a;
+    --ch-text: #bcd7fb;
+    --ch-accent: #88baff;
   }
   7.14% {
-    --ch-ground: #100814;
-    --ch-text: #ebe6dc;
-    --ch-accent: #c0bcac;
+    --ch-ground: #0e0b0f;
+    --ch-text: #dad8b9;
+    --ch-accent: #c3c49e;
   }
   14.29% {
-    --ch-ground: #0c1a44;
-    --ch-text: #ffe7b8;
-    --ch-accent: #f0c35a;
+    --ch-ground: #171b29;
+    --ch-text: #f8d877;
+    --ch-accent: #ffcf3d;
   }
   21.43% {
-    --ch-ground: #0c091e;
-    --ch-text: #f6eec0;
-    --ch-accent: #e0d26a;
+    --ch-ground: #0d0b12;
+    --ch-text: #e8e877;
+    --ch-accent: #e7e73d;
   }
   28.57% {
-    --ch-ground: #2a1040;
-    --ch-text: #eef5c8;
-    --ch-accent: #cfe07a;
+    --ch-ground: #231729;
+    --ch-text: #d8f877;
+    --ch-accent: #cfff3d;
   }
   35.71% {
-    --ch-ground: #0e081f;
-    --ch-text: #f6ecc4;
-    --ch-accent: #e7c875;
+    --ch-ground: #0d0a12;
+    --ch-text: #e8e084;
+    --ch-accent: #e7d23d;
   }
   42.86% {
-    --ch-ground: #17124a;
-    --ch-text: #ffe2c0;
-    --ch-accent: #ffb070;
+    --ch-ground: #191729;
+    --ch-text: #f9c991;
+    --ch-accent: #ffa53d;
   }
   50.0% {
-    --ch-ground: #140712;
-    --ch-text: #e6e9e0;
-    --ch-accent: #b7c0b2;
+    --ch-ground: #0f0b0e;
+    --ch-text: #c8d4c5;
+    --ch-accent: #9eba9e;
   }
   57.14% {
-    --ch-ground: #420f08;
-    --ch-text: #cdf0ff;
-    --ch-accent: #6fd0f5;
+    --ch-ground: #291917;
+    --ch-text: #96e0f9;
+    --ch-accent: #3dcfff;
   }
   64.29% {
-    --ch-ground: #100c0f;
-    --ch-text: #e6e4e6;
-    --ch-accent: #b7b5b8;
+    --ch-ground: #0e0d0e;
+    --ch-text: #c9d8de;
+    --ch-accent: #9ebbc6;
   }
   71.43% {
-    --ch-ground: #06263a;
-    --ch-text: #ffd9cc;
-    --ch-accent: #ff9a7a;
+    --ch-ground: #172329;
+    --ch-text: #fcd1c4;
+    --ch-accent: #ffa78c;
   }
   78.57% {
-    --ch-ground: #0c100e;
-    --ch-text: #eedbe6;
-    --ch-accent: #d49ebc;
+    --ch-ground: #0e100e;
+    --ch-text: #edd6e0;
+    --ch-accent: #deb0c6;
   }
   85.71% {
-    --ch-ground: #2e2206;
-    --ch-text: #dedcff;
-    --ch-accent: #a9a3ff;
+    --ch-ground: #292417;
+    --ch-text: #dedbfd;
+    --ch-accent: #beb9ff;
   }
   92.86% {
-    --ch-ground: #170a06;
-    --ch-text: #dae1ff;
-    --ch-accent: #9cacff;
+    --ch-ground: #120d0b;
+    --ch-text: #cdd9fc;
+    --ch-accent: #a3baff;
   }
 }
 /* the small button that folds the whole Display bar away */
