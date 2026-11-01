@@ -128,8 +128,20 @@ def picker(cur=None, label="Jump to a chapter"):
         )
     return (
         f'<div class="pick"><label for="chap">{label}</label>'
-        f'<select id="chap" onchange="if(this.value)location.href=this.value">{"".join(opts)}</select></div>'
+        f'<select id="chap" onchange="if (this.value) location.href = this.value;">{"".join(opts)}</select></div>'
     )
+
+
+def wrap_keep(h, width=70):
+    """Break a paragraph into lines of at most `width` letters at its spaces, keeping every run of spaces as typed."""
+    lines, cur = [], ""
+    for w in re.findall(r"\S+ *", h):
+        if cur and len((cur + w).rstrip()) > width:
+            lines.append(cur[:-1] if cur.endswith(" ") else cur)
+            cur = ""
+        cur += w
+    lines.append(cur.rstrip())
+    return "\n          ".join(lines)
 
 
 def render_items(items, pm=False):
@@ -146,11 +158,19 @@ def render_items(items, pm=False):
             )
         elif k == "para":
             h = it["html"].rstrip()
-            if pm and 8 + len('<p class="para">') + len(h) + len("</p>") <= 80:
+            if pm and "  " in h:
+                # I want the spaces I typed in a glitch paragraph kept as they are: the formatter squeezes every run of
+                # spaces into one, so I wrap the paragraph myself the way it would and tell it to leave this one alone
+                out.append(
+                    f'<!-- prettier-ignore -->\n<p class="para">\n          {wrap_keep(h.strip())}\n        </p>'
+                )
+            elif pm and 8 + len('<p class="para">') + len(h) + len("</p>") <= 80:
                 # I want a short paragraph to look like a long one: the formatter wraps a long one onto its own lines, and the
                 # page keeps that spacing (a blank line and the indent), so I write the short one the same way and tell the
                 # formatter to leave it
-                out.append(f'<!-- prettier-ignore -->\n<p class="para">\n          {h.lstrip()}\n        </p>')   # (the formatter trims a leading space, so this does too)
+                out.append(
+                    f'<!-- prettier-ignore -->\n<p class="para">\n          {h.lstrip()}\n        </p>'
+                )  # (the formatter trims a leading space, so this does too)
             else:
                 out.append(f'<p class="para">{h}</p>')
         elif k == "quote":
@@ -204,6 +224,9 @@ for i, c in enumerate(C):
     body = head(
         f'{n} · {c["title"]} · Nous Within Kenoma', BL_FONT if bl else "", **ch_fx(n)
     )
+    if n == 50:
+        # I added a blank line between the head and the body on this page by hand, and I want it kept
+        body = body.replace("</head>\n<body", "</head>\n\n<body")
     body += f'<main class="wrap{" blackletter" if bl else ""}">\n'
     body += f'<nav class="crumbs"><a href="chapters.html">← Nous Within Kenoma</a>{picker(n)}</nav>\n'
     body += f'<header><span class="num">Chapter {n}</span><h1>{esc(c["title"])}</h1></header>\n'

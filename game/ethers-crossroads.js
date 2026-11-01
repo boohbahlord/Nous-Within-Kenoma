@@ -7365,10 +7365,12 @@
         (b) =>
           (b.onclick = () => {
             if (!canAct()) return;
-            if (!(
-              (G.phase === "setup" && G.setupStep === "more") ||
-              G.phase === "prep"
-            )) {
+            if (
+              !(
+                (G.phase === "setup" && G.setupStep === "more") ||
+                G.phase === "prep"
+              )
+            ) {
               flash(
                 G.phase === "setup"
                   ? "Place your Ace and Jack first."
@@ -48798,12 +48800,14 @@ ${inbox.length ? `<div class="stinbox"><b>Sent to you</b>${inbox.map((x, i) => `
           hunted = cards.filter((x, i) => each[i] >= top - 1e-9);
         const by = [...cards].sort((a, b) => rate(b) - rate(a)),
           maj = hunted.length * 2 > cards.length;
-        if (!(
-          (S.strongest && hunted.includes(by[0])) ||
-          (S.weakest && hunted.includes(by[by.length - 1])) ||
-          (S.minority && !maj) ||
-          (S.majority && maj)
-        ))
+        if (
+          !(
+            (S.strongest && hunted.includes(by[0])) ||
+            (S.weakest && hunted.includes(by[by.length - 1])) ||
+            (S.minority && !maj) ||
+            (S.majority && maj)
+          )
+        )
           return Math.min(v, 1); // not a stack it hunts for that
         const gi = hunted.filter(
           (x) =>
