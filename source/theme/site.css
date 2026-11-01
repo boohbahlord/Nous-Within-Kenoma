@@ -196,6 +196,26 @@ h1 {
 .chapter p.blank {
   height: calc(var(--lh) * 1em);
 }
+/* lines I wrote in Bradley Hand ITC in the manuscript ("Welcome, Old Self" in No. 11): centered, in that hand where the
+   device has it (Windows with Office as Bradley Hand ITC, Apple devices as Bradley Hand), otherwise Caveat, a free
+   handwriting font (SIL Open Font License) that is only downloaded when such a line is on screen; a line's gap above and
+   below, as in the manuscript */
+@font-face {
+  font-family: "NWK Hand";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(caveat-latin-400-normal.woff2) format("woff2");
+  size-adjust: 112%;
+}
+.chapter p.hand {
+  font-family: "Bradley Hand ITC", "Bradley Hand", "NWK Hand", cursive;
+  font-size: 1.45em;
+  font-weight: 400;
+  line-height: 1.3;
+  text-indent: 0;
+  margin: calc(var(--lh) * 0.5em) 0 calc(var(--lh) * 1em);
+}
 .chapter em {
   font-style: italic;
 }
