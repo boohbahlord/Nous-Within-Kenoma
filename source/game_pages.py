@@ -473,7 +473,7 @@ play = (
 </main>
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
-<script>window.EC_QSRC="ethers-crossroads-quotes.js?v=159"</script>
+<script>window.EC_QSRC="ethers-crossroads-quotes.js?v=160"</script>
 <script src="ethers-crossroads.js?v=182"></script>
 """
     + TAIL

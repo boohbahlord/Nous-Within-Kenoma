@@ -1,10 +1,5 @@
 window.EC_QUOTES = [
   {
-    t: "She's calling me\nThat shaky whisper overcome by her heavier breath\nWeight in her shakes, tightened chest\nIn my open ear, feeling, almost moving",
-    n: 1,
-    title: "Ten: Dead Home",
-  },
-  {
     t: "“Don't… No– Please– Don't…”\nPulled into a blackened heat, fed ignorance\nThose invisible warnings\n“You're in a dead home, a dead curtain, go back.”",
     n: 1,
     title: "Ten: Dead Home",
@@ -355,17 +350,12 @@ window.EC_QUOTES = [
     title: "Decans and the Diadem Pharmakon; God’s Children",
   },
   {
-    t: "The deeper descension, every single fractal becoming more comprehendible as I draw near and towards a point inside it. As I go closer, I am dragged through the most alerted shock sickness crawling through hints of being, hinting like metaphysical rape. Without body, the feeling is of every body seen, the totality of which cannot fit in the experience.",
+    t: "Crammered small into flesh now, a ticking time bomb of rot and adrenaline tremors shake shell. I rush through the large square corridors almost bare, where wires above are spraying blue and yellow sparks across the stone architecture. Sprinting through the cold air against a nostril smelling unknown sweet gases amidst dust. I am a human again, but why this thought of which?",
     n: 37,
     title: "YHWH; 25291791441265",
   },
   {
-    t: "I hear it also said, the noise talking in syncopation with myself, and we both keep screaming to make it stop. The dissonance being their broken machine tenor, the sounds ratcheting and fuzzing like four voices in one from him. I look over, the one with the mask and mechanical bloat, it rolls its glassy eyes too, and somehow I feel terror through the fake eyes, almost like a soul inside knows more than me; how is that possible? When the complexity is this much and I cannot bear, to think it can go on further, and that another would want it to end the same, this elder…",
-    n: 37,
-    title: "YHWH; 25291791441265",
-  },
-  {
-    t: "I look at my Christopher, his angelic eyes, like a fallen angel’s almost. I weep, and the death of flesh loosens a little from my mourning. He doesn’t puke this time, I know that now, but how? I just do. I comb his hair, my fingers rolling over his scalp, and my tears spill onto his cheek near me.",
+    t: "God wants me to obey their molestation and answer; this sends waves of lush nausea throughout the intuition of the nous. What if I hung up on God? The glands leak further damp until a palm soak. Patiently, in the slowness between one ring, I think: hanging up is saying no to God’s will? Isn’t it? I remember the power of the fraction I saw, how there are those older than me, don’t they know? God is more powerful than me, I am in their creation after all, and so I think more than twice against the lord reprobate. I know what I can do.",
     n: 37,
     title: "YHWH; 25291791441265",
   },
@@ -400,17 +390,12 @@ window.EC_QUOTES = [
     title: "Words for Reading",
   },
   {
-    t: "The zap cuts his commitment like a razor’s edge, and the obvious finds him. He pushes down and squeezes with his damp hand, and the child-proof cap is gone. He pours all of it out immediately into his hand, and the pills scatter like candy out of a pinata. He gasps with a heartbeat stopping. He swallows the however many in his hand without water; he musters a dry swallow down a parched throat, almost choking. He begins to pick up every little tablet he spilled onto the sleeping bag now.",
+    t: "The other man’s weight falls on top of him, a bullish slam at his soaked squared pecs, and he is almost made into the wall at once; breathlessly filled. He cannot see a face in the black, only the heat and mass of a shape pinning him down. The salty drink of another’s moisture lathers his face and teeth from a swath of palm across his open lips, the other’s fingernail almost rolling under the eye socket. “You won’t take it!” the man with the drug screams at the aggressor, before he sprawls open his jaws like a starving hippo at the meat of hand, biting with a tweaking titanic force.",
     n: 42,
     title: "Pills",
   },
   {
-    t: "He thinks of an idea, before simply saying, “Fuck it.” He opens the medicine cabinet, picks out one of many amber bottles, and pours out its meds into the toilet bowl he just pissed into. He takes his large roll of thick index to push the small metal lever, and the old toilet lazily whirls away its water with a shulking and sheeking suck. He tries dropping the pills he kept warm into the emptied bottle, but they are stuck to the heat of his skin. He uses the brim to both scrape off and catch them, sliding its dull edge underneath them, like peeling dry mud off of rocks. After gathering his flock of tablets, he twists the cap onto the bottle, placing it into his right pocket.",
-    n: 42,
-    title: "Pills",
-  },
-  {
-    t: "Damon picks up the phone and walks out into the hallway, finding the hue of the yellow bathroom light terrifyingly familiar. He feels as if he could shit himself. He stumbles with each wave of fatigue, and the muscles are exuding the fires of a brain burning high with a cold dry extinguisher of a father’s plea. The father speaks again; this time the signal finds itself clear at first, with only faint sharps of grey and white noise cutting itself out, “Son, please, you know I wou—ld—n’tn’t—lie…lie—to you. You can still turn back.”",
+    t: "Damon is riddled in a further high coming on, his heart beating at the ribs’ confinement like a prisoner in a cell, and his clamminess grows stronger than yesterday. The dry breath climbs like barbed wire out of the throat, shallow, breathing in the swirls of a room distant yet close in smells of red metal sludge. He feels like he is caught in the loop of a death factory. He looks down at the barrel of his pistol, wondering… What if? The clicks come quietly from it, his finger squeezing the trigger over and over, every click reminding him of how fucked he is.",
     n: 42,
     title: "Pills",
   },
@@ -445,17 +430,12 @@ window.EC_QUOTES = [
     title: "Probably Nothing",
   },
   {
-    t: "Antony roars back in fatherly grit and grate, as Alice screams in a full voice pitch pierce highly. From the same form, they speak to him together: “Christopher!” He rolls over and through the floor like eight legs broken in stumbling claw crawls, gagging words with terror horns from his mouth, climbing to escape the soul death. Alice says to him again, “Christopher!”",
+    t: "Christopher pauses as the blood stops rolling for a moment, and he sees her. Now his tears are normal, washing the blood away, and his eyes water profusely with his pale and still frown. He speaks like a petrified child riddled in shellshock: “What if I can’t get out?” He pouts like a boy, his face staring off a little distant… Eventually, he looks missing, and she can see it.",
     n: 46,
     title: "Hide & Seek",
   },
   {
-    t: "Alice asks him, and quietly in what feels like a half-minute-long moment, in a head spoken voice over the top of breathless lungs, “Where did you go?” He keeps staring, as the sounds of the Angel machine ratchet and crank with mechanical works, clicks and pumps accelerating. She looks for Christopher with a word spoken still like a tired pond, “Hey.” Nothing said from the cadaver smile, as some kind of evidence show of absence.",
-    n: 46,
-    title: "Hide & Seek",
-  },
-  {
-    t: "Alice yells in voice made splice and splinter, throwing it out: “‘Alice shrieks,’ wait, why did I say that? ‘Alice asks herself.’” She turns like spins, pale in gut gruesome. The word she spoke was many in one, like a cursed abracadabra.",
+    t: "Alice is convinced he is dead, but there it is again, as earlier, those flails slamming up and down like a defibrillator shocking Christopher in human toss. He flicks with alarm gash, and he says it, the words told like someone’s convulsence: “I spit folly like pride! I eat the swallow of thirteen eternities long! Repeating itself! Repeating itself! I repeat!”",
     n: 46,
     title: "Hide & Seek",
   },
@@ -498,5 +478,25 @@ window.EC_QUOTES = [
     t: "Alice stops screaming soon and locks up into silence. The head bobbles over the side of right shoulder with hang, the eyes blight red unto spell. Stooping with diminished chord, she is blank fetal.",
     n: 50,
     title: "The Candle and the Digestive",
+  },
+  {
+    t: "Sarah walks up to her glass pane from inside, its warmth of kitchen light contrasting with the cold dark outside, where the watching avian on the other side of the window holds the look. The eyes look wide shut in their reflection… She has a while, so she contemplates the watcher, looking back into them. The view is a while short.",
+    n: 51,
+    title: "VHS Tape",
+  },
+  {
+    t: "The numbers stack high into a reality known only by Ouroboros, which sends it deeper into a cycle of cycles, where epoch consumes them into itself from the inside—out. The light brings an execution, letting it dance to a hated death song through slither jumps.",
+    n: 51,
+    title: "VHS Tape",
+  },
+  {
+    t: "The electric is back on, and she is laid on the couch next to the yellow-lit lamp, where the TV still speaks from its image of static, fuzzing about wildly in predictability. The couch is a muted dull of grape that sinks a little from her weight. Curse looks down at her, and thinks to himself inside his mind through the voice of a soul, “Sleeping beauty… One day you will hear my voice again, maybe.” He holds her light hands that hang dead heavy in cold. The heart of Curse is steady yet sharp-feeling in precise worry, and so he puts his large index and middle finger at the artery of neck, but nothing… Pulseless as she is, he believes her to be in there.",
+    n: 52,
+    title: "Word",
+  },
+  {
+    t: "Curse continues counting backwards even louder, “Nine! Seven!—” The demon wraps its outside above the knuckle with its insides, but it cannot get lower than the clasp of pipe-lodged fingers. The recoiling into is stopped with force. “Five! Three!—” The manuscript becomes bouqueted, where a geyser of blood shoots out, painting everything around it with the spelling, “Word.” Curse says the first and last number firmly, “One!” The cuticles wilt. Sarah is at the far end of the kitchen, watching from afar in an expression gone frozen and worried.",
+    n: 52,
+    title: "Word",
   },
 ];
