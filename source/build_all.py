@@ -181,8 +181,8 @@ def ch_fx(n):
     lvl = min(
         lvl, 2
     )  # 2026-10-19: heavy static (3, 4) brought down to medium; medium has no rolling TV band
-    if n in (50, 51):
-        lvl = 2  # I want the grey TV static on VHS Tape and Word, very faint, so the text stays easy to read
+    if n in (50, 51, 52):
+        lvl = 2  # I want the grey TV static on VHS Tape, Word and Sepulcher, very faint, so the text stays easy to read
     fx = "" if n in (1, 2, 3, 4, 26, 35) else "strings bars"
     theme = (
         "th-indigo th-blue"
@@ -193,7 +193,7 @@ def ch_fx(n):
             else (
                 "th-crimson"
                 if n == 23
-                else "th-black" if n == 26 else "th-vhs" if n in (50, 51) else ""
+                else "th-black" if n == 26 else "th-vhs" if n in (50, 51, 52) else ""
             )
         )
     )
