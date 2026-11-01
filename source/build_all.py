@@ -132,7 +132,7 @@ def picker(cur=None, label="Jump to a chapter"):
     )
 
 
-def render_items(items):
+def render_items(items, pm=False):
     out = []
     for it in items:
         k = it["k"]
@@ -145,7 +145,14 @@ def render_items(items):
                 f'<figure class="inline-art"><a href="art.html#{anchor(f)}" style="border:0"><img src="{f}" alt="{esc(lab)}, artwork" loading="lazy"></a><figcaption>{esc(lab)}</figcaption></figure>'
             )
         elif k == "para":
-            out.append(f'<p class="para">{it["html"].rstrip()}</p>')
+            h = it["html"].rstrip()
+            if pm and 8 + len('<p class="para">') + len(h) + len("</p>") <= 80:
+                # I want a short paragraph to look like a long one: the formatter wraps a long one onto its own lines, and the
+                # page keeps that spacing (a blank line and the indent), so I write the short one the same way and tell the
+                # formatter to leave it
+                out.append(f'<!-- prettier-ignore -->\n<p class="para">\n          {h.lstrip()}\n        </p>')   # (the formatter trims a leading space, so this does too)
+            else:
+                out.append(f'<p class="para">{h}</p>')
         elif k == "quote":
             out.append(f'<p class="quote">{it["html"]}</p>')
         elif k == "flush":
@@ -200,7 +207,7 @@ for i, c in enumerate(C):
     body += f'<main class="wrap{" blackletter" if bl else ""}">\n'
     body += f'<nav class="crumbs"><a href="chapters.html">← Nous Within Kenoma</a>{picker(n)}</nav>\n'
     body += f'<header><span class="num">Chapter {n}</span><h1>{esc(c["title"])}</h1></header>\n'
-    body += f'<article class="chapter{" blackletter" if bl else ""}" style="--lh:{c["lh"]};--ind:{c["ind"]}em">\n{render_items(c["items"])}\n</article>\n'
+    body += f'<article class="chapter{" blackletter" if bl else ""}" style="--lh:{c["lh"]};--ind:{c["ind"]}em">\n{render_items(c["items"], n >= 5)}\n</article>\n'
     body += '<nav class="pager">'
     body += (
         f'<a href="{fname(prev["n"])}">← {prev["n"]} · {esc(prev["title"])}</a>'
