@@ -3877,7 +3877,10 @@
         "k": "blank"
       },
       {
-        "k": "blank"
+        "k": "line",
+        "al": "center hand",
+        "html": "Welcome, Old Self",
+        "raw": "Welcome, Old Self"
       },
       {
         "k": "para",
