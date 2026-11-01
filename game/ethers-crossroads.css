@@ -7855,7 +7855,7 @@ html.th-office .fawarn {
   right: 8%;
   top: 6%;
   z-index: 2;
-  font: 700 clamp(16px, 2.4vw, 26px)/1 var(--mono);
+  font: 700 clamp(16px, 2.4vw, 26px) / 1 var(--mono);
   color: var(--fc);
   text-shadow:
     0 0 6px #000,
@@ -10375,10 +10375,9 @@ html.lite #quotes {
 }
 /* v71l: Minimize computer animation in the Menu: the Effects slider's step names stay on one line; switches it overrides fade */
 #menu .mslides label.f.mslide:has(#mFxLvl) {
-  grid-template-columns: minmax(6.5em, 9em) auto minmax(
-      90px,
-      220px
-    ) auto max-content;
+  grid-template-columns:
+    minmax(6.5em, 9em) auto minmax(90px, 220px)
+    auto max-content;
 }
 #menu #mFxLvlV {
   white-space: nowrap;
@@ -10388,10 +10387,9 @@ html.lite #quotes {
 }
 @media (max-width: 520px) {
   #menu .mslides label.f.mslide:has(#mFxLvl) {
-    grid-template-columns: minmax(5.5em, 7em) auto minmax(
-        60px,
-        1fr
-      ) auto minmax(3.4em, 7.5em);
+    grid-template-columns:
+      minmax(5.5em, 7em) auto minmax(60px, 1fr)
+      auto minmax(3.4em, 7.5em);
   }
   #menu #mFxLvlV {
     white-space: normal;
@@ -12829,10 +12827,9 @@ html.still-glow .dipbar.notify {
 .diphead,
 .diprow {
   display: grid;
-  grid-template-columns: minmax(120px, 1.1fr) minmax(110px, 0.9fr) minmax(
-      100px,
-      0.7fr
-    ) 2fr;
+  grid-template-columns:
+    minmax(120px, 1.1fr) minmax(110px, 0.9fr) minmax(100px, 0.7fr)
+    2fr;
   gap: 10px;
   align-items: center;
 }
@@ -13490,10 +13487,9 @@ html.ecfs #fkmode {
 }
 @media (max-width: 520px) {
   #menu .setpane[data-pane="aud"] .mslides label.f.mslide {
-    grid-template-columns: minmax(6.5em, 8.5em) auto minmax(
-        60px,
-        1fr
-      ) auto 3.4em;
+    grid-template-columns:
+      minmax(6.5em, 8.5em) auto minmax(60px, 1fr)
+      auto 3.4em;
   }
 }
 /* v78d: key bindings (the settings' Controls tab) */
