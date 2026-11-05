@@ -3,7 +3,7 @@
 import json, html, os, re, shutil
 
 OUT = "site"
-SITE_V = "78"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+SITE_V = "79"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 ICON_V = "2"  # the same for the tab icon (2: the white circle with a line through it, in a black box)
 if os.path.isdir(OUT):
     shutil.rmtree(OUT)  # v79j: a clean build (the files end up in folders at the end)
@@ -184,6 +184,8 @@ def ch_fx(n):
     )  # 2026-10-19: heavy static (3, 4) brought down to medium; medium has no rolling TV band
     if n in (50, 51, 52):
         lvl = 2  # I want the grey TV static on VHS Tape, Word and Sepulcher, very faint, so the text stays easy to read
+    if n == 54:
+        lvl = 2  # Blue to Gray: the static starts at nothing and comes in with the grey (site.js)
     fx = "" if n in (1, 2, 3, 4, 26, 35) else "strings bars"
     theme = (
         "th-indigo th-blue"
@@ -200,7 +202,11 @@ def ch_fx(n):
                     else (
                         "th-vhs"
                         if n in (50, 51, 52)
-                        else "th-chalice" if n == 39 else ""
+                        else (
+                            "th-chalice"
+                            if n == 39
+                            else "th-bluegray" if n == 54 else ""
+                        )
                     )
                 )
             )

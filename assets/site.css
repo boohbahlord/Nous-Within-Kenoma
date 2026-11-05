@@ -1623,3 +1623,183 @@ html.th-chalice .pager {
 #nwkdisp.folded > :not(#nwkcol) {
   display: none;
 }
+/* Blue to Gray (No. 54): I want a beautiful afternoon blue with very blurred, faded white clouds, as undefined as can
+   be, floating through the page's background. After 35 seconds the page slowly turns grey, a messy grey (the clouds go
+   grey in uneven patches), and as it does a fuzzy static comes in and gets worse. Only once the grey has set in do the
+   lines and bars fade in; before that they're completely hidden. The letters stay dark the whole time, so the text
+   reads on the blue, the clouds, the grey and the static. The timing of the static and the lines is in site.js. */
+@property --bg-top {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #5b9be0;
+}
+@property --bg-low {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #a9d1f2;
+}
+@property --cl-a {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #fff;
+}
+@property --cl-b {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #fff;
+}
+@property --cl-o {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0.5;
+}
+@property --bg-ink {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #0b1d33;
+}
+@property --bg-dim {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #163356;
+}
+@property --bg-link {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #0c2b5c;
+}
+@property --bg-rule {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #3d6fa6;
+}
+@property --bg-well {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #b7d6f2;
+}
+html.th-bluegray {
+  --ground: var(--bg-low);
+  --text: var(--bg-ink);
+  --dim: var(--bg-dim);
+  --amber: var(--bg-link);
+  --amber-hi: #000;
+  --rule: var(--bg-rule);
+  --well: var(--bg-well);
+  --deep: color-mix(in srgb, var(--bg-well), #000 12%);
+  color-scheme: light;
+  animation: bluegray 26s ease-in-out 35s both; /* (35 s of blue, then 26 s to the grey) */
+}
+@keyframes bluegray {
+  0% {
+    --bg-top: #5b9be0;
+    --bg-low: #a9d1f2;
+    --cl-a: #fff;
+    --cl-b: #fff;
+    --cl-o: 0.5;
+    --bg-ink: #0b1d33;
+    --bg-dim: #163356;
+    --bg-link: #0c2b5c;
+    --bg-rule: #3d6fa6;
+    --bg-well: #b7d6f2;
+  }
+  45% {
+    --bg-top: #7f93a8;
+    --bg-low: #aab7c2;
+    --cl-a: #c9ccd0;
+    --cl-b: #e6e7e8;
+    --cl-o: 0.62;
+  }
+  100% {
+    --bg-top: #8a8e93;
+    --bg-low: #a6a9ad;
+    --cl-a: #74787d;
+    --cl-b: #c5c7ca;
+    --cl-o: 0.85;
+    --bg-ink: #0e1013;
+    --bg-dim: #23262a;
+    --bg-link: #15181c;
+    --bg-rule: #5a5e63;
+    --bg-well: #b4b6b9;
+  }
+}
+html.th-bluegray ol.toc a,
+html.th-bluegray .pager {
+  border-color: var(--rule);
+}
+html.th-bluegray button.static-toggle {
+  background: color-mix(in srgb, var(--well) 70%, transparent);
+  color: var(--dim);
+}
+/* the sky, behind everything (the static, the lines and the bars come over it) */
+.sky {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+  background: linear-gradient(to bottom, var(--bg-top), var(--bg-low));
+}
+/* each cloud: a few soft white blobs over one another, no edge anywhere, drifting across slowly; every other one takes
+   the darker grey (--cl-a) or the lighter one (--cl-b), so the grey comes in patches */
+.sky i {
+  --c: var(--cl-b);
+  position: absolute;
+  left: 0;
+  top: var(--y);
+  width: var(--w);
+  height: calc(var(--w) * 0.42);
+  opacity: var(--cl-o);
+  background:
+    radial-gradient(
+      closest-side at 30% 58%,
+      color-mix(in srgb, var(--c) 70%, transparent),
+      transparent
+    ),
+    radial-gradient(
+      closest-side at 55% 42%,
+      color-mix(in srgb, var(--c) 80%, transparent),
+      transparent
+    ),
+    radial-gradient(
+      closest-side at 75% 60%,
+      color-mix(in srgb, var(--c) 60%, transparent),
+      transparent
+    );
+  background-size:
+    60% 90%,
+    65% 100%,
+    55% 85%;
+  background-position:
+    0 50%,
+    35% 0,
+    100% 60%;
+  background-repeat: no-repeat;
+  transform: translateX(var(--x));
+  animation: cloud var(--t) linear var(--d) infinite;
+  will-change: transform;
+}
+.sky i:nth-child(odd) {
+  --c: var(--cl-a);
+}
+@keyframes cloud {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100vw);
+  }
+}
+/* the lines and bars: hidden until the grey has set in, then they fade in (site.js adds .bg-lines) */
+html.th-bluegray svg.strings {
+  opacity: 0;
+  transition: opacity 8s ease-in;
+}
+html.th-bluegray.bg-lines svg.strings {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sky i {
+    animation: none;
+  }
+}

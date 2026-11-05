@@ -30,22 +30,12 @@ window.EC_QUOTES = [
     title: "As Snakes See",
   },
   {
-    t: "The rain forever. I swore myself to something else before this. A snake whisper crawled legless across my hospital bed and next to the ear, where the slithering tongue promised me as antichrist. Dreadful now. Nothing more. Like a rabbit to the hole, I imagined there to be something beautiful inside, not the snake’s den; or was it? I blamed them for this purgatory.",
+    t: "Angels wake me, and it’s dark. Their wings stretch wide above me, and I am old to it all. I let their actions pass me by. Every time, their metal glows below the neck, below skin, beeping a familiar pattern I have forgotten. What is it made of? What is that frequency? Nevertheless, they tower above my mandolin weeping heart machine, sewing a soundful weep of give-up. Angels encompass me and put the drive behind my ear, like a slit of a lock; the key slides in, but by a sharp stab. I cannot help myself to their intentions I do not know.",
     n: 7,
     title: "Rebirth",
   },
   {
-    t: "The height of my memory is a long way up. It scares me, but devil teaches me to jump down and die, and I do. I love death. Release me, devil love. I wanna live anew. When I am God, there will be no more suffering. I wanna have us all escape the escape of escape, or whatever it takes to end this evil. I know what it is like to want it all to stop. Maybe this is different than before. When I am given the keys, I will make a new world.",
-    n: 7,
-    title: "Rebirth",
-  },
-  {
-    t: "How does it think? Is that me? I know. A mean while stir-some with something thinkless. So sulking; keep-less in uppity beautiful fall-fulls, and after all of what...? Whatness? I forgot, like it is over null, nulling contentful love muddles in bedtime cell-ground; fucking sick. Contentful fucking sickness. Fucking consented me into? Into what?",
-    n: 8,
-    title: "Keep Yourself",
-  },
-  {
-    t: "Should I stop? No. Of course, I cannot swim on my own. Not without your control can I ever know. I will find you. You promised me you would come back, even when you are dead. I can drown in dissolve, even into finding you. I have been falling until you show me. Maybe this is how.",
+    t: "I forgot with the smiles that we think mean something. Caring about little tendrils and endless pump wires called me. You lift me up and down without grounding me. Forever meaning me to, but without me; without you, there is me, and without me, there is you. I black out too much love; I’ll black out with you. Another forever longness.",
     n: 8,
     title: "Keep Yourself",
   },
@@ -498,5 +488,15 @@ window.EC_QUOTES = [
     t: "The knees wobble and give like a whiplash of snake coils shocked, throwing his hands into a tremble with it. Then the throat is snatched tight in a grip. Kether lets it out in a ripping purge that sounds a heave, “Reading itself! Reading itself! I become the Word! I crawl after legs stolen!” His eye finds the smallest reflection of a still puddle that mirrors his eyes. Seeing into it catches the sight of something… Deep inside, the pupil meets another, seeing itself behind the soul it hides behind. The being writes it down within him, “This Word reads itself.” Lucifer has found the word. The cuts on the left hand disappear.",
     n: 53,
     title: "Titan: Three in One",
+  },
+  {
+    t: "It starts to rain again within that hot humid spring, and the arms give up. I fall in, and not as a human, but as a lost soul remembering a feeling alone. I cry into his collarbone and shoulders. The world almost reacts, not by way of the God, but rather from our own something? Whatever. I am not able to say what it is, and knowing it is kinda unsettling, like roots being pulled up from something inside me to understand. The showers from above pick up a little more, as warm as him.",
+    n: 54,
+    title: "Blue to Gray",
+  },
+  {
+    t: "The sky keeps going, just creating mud with its tears all over, and not leaving. It doesn’t really care if it drowns us by this point. I get a little caught in my head about the weather, and he is already answering, “More than one, actually three of them. PCP, more painkillers, whatever, and your favorite, Ketamine. You like that, Alice?”",
+    n: 54,
+    title: "Blue to Gray",
   },
 ];
