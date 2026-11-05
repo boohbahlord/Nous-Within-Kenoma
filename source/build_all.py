@@ -4,6 +4,7 @@ import json, html, os, re, shutil
 
 OUT = "site"
 SITE_V = "78"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+ICON_V = "2"  # the same for the tab icon (2: the white circle with a line through it, in a black box)
 if os.path.isdir(OUT):
     shutil.rmtree(OUT)  # v79j: a clean build (the files end up in folders at the end)
 os.makedirs(OUT, exist_ok=True)
@@ -44,7 +45,7 @@ def head(title, extra="", static=1, fx="strings bars", theme="", ec=False):
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>{esc(title)}</title>
-<link rel="icon" type="image/png" href="favicon.png">
+<link rel="icon" type="image/png" href="favicon.png?v={ICON_V}">
 {'' if ec else '<link rel="preload" href="cascadia-code-latin-200-normal.woff2" as="font" type="font/woff2" crossorigin>' + chr(10)}<link rel="stylesheet" href="site.css?v={SITE_V}">{extra}{EC_THEME if ec else ''}
 <script src="site.js?v={SITE_V}" defer></script>
 </head>
