@@ -120,6 +120,9 @@
     on = localStorage.getItem(KEY) !== "off";
   } catch (e) {}
   let ALPHA = [0, 0.035, 0.065, 0.1, 0.13][LV] || 0;
+  const SKY = document.documentElement.classList.contains("th-bluegray");
+  let drawnA = 0;
+  if (SKY) ALPHA = 0; // Blue to Gray: no static on the blue; it comes in with the grey (nwkStatic.alpha, below)
   let cv,
     ctx,
     img,
@@ -142,7 +145,7 @@
     img = ctx.createImageData(cv.width, cv.height);
     scan = document.createElement("div");
     scan.className = "scan";
-    scan.style.opacity = (0.25 + LV * 0.12).toFixed(2);
+    scan.style.opacity = SKY ? 0 : (0.25 + LV * 0.12).toFixed(2);
     flash = document.createElement("div");
     flash.className = "flash";
     body.prepend(scan);
@@ -181,7 +184,7 @@
     ctx.putImageData(img, 0, 0);
   }
   function flick(t) {
-    if (t < nextFlick) return;
+    if (t < nextFlick || ALPHA < 0.02) return; // (no flicker while the static is too faint to see)
     const gap = [0, [9000, 16000], [5000, 9000], [2500, 5200], [1800, 4000]][
       LV
     ];
@@ -206,6 +209,7 @@
     raf = requestAnimationFrame(loop);
     if (t - last < 80) return;
     last = t;
+    if (!ALPHA && SKY) return; // (Blue to Gray's blue: nothing to draw yet)
     noise();
     cv.style.opacity = (0.8 + R() * 0.2).toFixed(2);
     if (roll) {
@@ -289,6 +293,15 @@
       }
       if (roll) roll.hidden = LV < 3 || !on;
       if (on) start();
+    },
+    /* any strength between the levels' (Blue to Gray fades its static in with this); the scanlines go with it */
+    alpha(a) {
+      ALPHA = Math.max(0, Math.min(0.13, a));
+      if (scan) scan.style.opacity = Math.min(1, ALPHA / 0.065) * 0.49;
+      if (cv && on && reduce && Math.abs(ALPHA - drawnA) > 0.01) {
+        drawnA = ALPHA;
+        noise();
+      } // (no movement: the one still frame shows the new strength, now and then)
     },
     refresh() {
       if (lite() || !LV) {
@@ -543,4 +556,53 @@
   if (document.readyState === "loading")
     document.addEventListener("DOMContentLoaded", build);
   else build();
+})();
+
+/* Blue to Gray (No. 55): the sky behind the page (site.css draws it and turns it grey from 35 s on), and the rest of the
+   timing. The static fades in while the grey comes and keeps getting worse; once the grey has set in, the lines and bars
+   (hidden until then) fade in, and the static eases back a little so the text stays easy to read. The clock is the
+   page's own, from the moment it opened, the same as the grey's. */
+(function () {
+  const D = document.documentElement;
+  if (!D.classList.contains("th-bluegray")) return;
+  const R = Math.random,
+    GREY = 61, // s: the grey has set in (35 s of blue, then 26 s of turning: site.css)
+    LINES = 72; // s: the lines and bars come
+  function sky() {
+    const s = document.createElement("div");
+    s.className = "sky";
+    s.setAttribute("aria-hidden", "true");
+    for (let i = 0; i < 9; i++) {
+      const c = document.createElement("i"),
+        t = 150 + R() * 130; // (each cloud takes 2.5 to 4.5 minutes to cross)
+      c.style.cssText =
+        `--y:${(R() * 95 - 15).toFixed(1)}%;--w:${(45 + R() * 45).toFixed(1)}vmax;` +
+        `--t:${t.toFixed(0)}s;--d:${(-R() * t).toFixed(0)}s;--x:${(R() * 100 - 30).toFixed(0)}vw`;
+      s.appendChild(c);
+    }
+    document.body.prepend(s);
+  }
+  const seg = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a))),
+    ease = (u) => u * u * (3 - 2 * u);
+  let lines = false;
+  function tick() {
+    const t = performance.now() / 1000,
+      a =
+        0.06 * seg(t, GREY - 14, GREY) ** 2 +
+        0.06 * ease(seg(t, GREY, LINES)) -
+        0.035 * ease(seg(t, LINES, LINES + 8));
+    if (window.nwkStatic && window.nwkStatic.alpha) window.nwkStatic.alpha(a);
+    if (!lines && t >= LINES) {
+      lines = true;
+      D.classList.add("bg-lines");
+    }
+    if (t < LINES + 9) setTimeout(tick, 120);
+  }
+  function go() {
+    sky();
+    tick();
+  }
+  if (document.readyState === "loading")
+    document.addEventListener("DOMContentLoaded", go);
+  else go();
 })();
