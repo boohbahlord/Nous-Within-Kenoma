@@ -1913,6 +1913,9 @@ html.th-vellum h1 {
 html.th-vellum .chapter p.para {
   text-indent: 0;
   hyphens: auto; /* justified without wide gaps between the words */
+  hyphenate-limit-chars: 8 4 4; /* only words of 8 letters or more, at least 4 each side of the break */
+  -webkit-hyphenate-limit-before: 4;
+  -webkit-hyphenate-limit-after: 4;
   display: flow-root; /* a short paragraph still holds its whole initial */
 }
 /* Uncial Antiqua (SIL Open Font License), only for the initials: rounded capitals in the Lombardic manner, an alphabet
@@ -1971,17 +1974,11 @@ html.th-vellum .chapter .ini-b .pen {
   fill: #a3271f;
   stroke: #a3271f;
 }
-/* the rest of the first word in small capitals; blackletter capitals that small can't be read, so they are the
-   initials' rounded capitals, between the words' x-height and their capital height */
-html.th-vellum .chapter .sc {
-  font-family: "NWK Lombardic", "Grenze Gotisch", serif;
-  font-weight: 400;
-  font-variant-caps: all-small-caps; /* drawn small, so a copy of the words still reads as I wrote them */
-  font-size: 1.06em;
-  letter-spacing: 0.03em;
-}
 /* on a phone the initial sinks 2 lines */
 @media (max-width: 520px) {
+  html.th-vellum .chapter p.para {
+    hyphens: manual; /* the lines are short, so no breaking words */
+  }
   html.th-vellum .chapter .ini {
     font-size: 3.353em;
     height: 0.9736em;

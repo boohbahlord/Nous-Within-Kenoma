@@ -284,8 +284,8 @@ def penwork(ch, rng, i):
 
 
 def initial(h, i):
-    """the paragraph's first letter as a Lombardic initial (with any quote mark before it), the rest of its first
-    word in small capitals, as the manuscripts do"""
+    """the paragraph's first letter as a Lombardic initial (with any quote mark before it); the rest of the word
+    stays in the words' own letters (blackletter has no small capitals)"""
     m = re.match(r"((?:&[#\w]+;|[“‘])*)(\w)(\w*)", h)
     if not m or m.group(2).upper() not in LOMBARD:
         return h
@@ -298,7 +298,7 @@ def initial(h, i):
     span = (
         f'<span class="ini ini-{tone}{dsc}">{penwork(ch.upper(), rng, i)}{q}{ch}</span>'
     )
-    return span + (f'<span class="sc">{rest}</span>' if rest else "") + h[m.end() :]
+    return span + rest + h[m.end() :]
 
 
 def render_items(items, pm=False, ini=0):
