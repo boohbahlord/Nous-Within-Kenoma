@@ -3,7 +3,7 @@
 import json, html, os, re, shutil
 
 OUT = "site"
-SITE_V = "83"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+SITE_V = "84"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 ICON_V = "2"  # the same for the tab icon (2: the white circle with a line through it, in a black box)
 if os.path.isdir(OUT):
     shutil.rmtree(OUT)  # v79j: a clean build (the files end up in folders at the end)
@@ -229,7 +229,7 @@ def ch_fx(n):
         "th-indigo th-blue"
         if n in (1, 2, 3)
         else (
-            "th-indigo"
+            "th-indigo th-voices"
             if n == 4
             else (
                 "th-crimson"
@@ -283,7 +283,16 @@ for i, c in enumerate(C):
     body += (
         f'<header><span class="num">No. {n}</span><h1>{esc(c["title"])}</h1></header>\n'
     )
-    body += f'<article class="chapter{" blackletter" if bl else ""}{" flow" if n >= 5 else ""}" style="--lh:{c["lh"]};--ind:{c["ind"]}em">\n{render_items(c["items"], n >= 5, 1 if n in INITIALS else 0)}\n</article>\n'
+    # every part flows now, 1 to 4 too: kept as typed, the formatter's line breaks and indents showed on a phone as
+    # pushed-in first lines and empty gaps (the words of 1 to 4 are untouched)
+    body += f'<article class="chapter{" blackletter" if bl else ""} flow" style="--lh:{c["lh"]};--ind:{c["ind"]}em">\n{render_items(c["items"], n >= 5, 1 if n in INITIALS else 0)}\n</article>\n'
+    if n == 4:
+        # the ending of No. 4, from "Our home was broken backward" to "laid.", in indigo
+        at = body.index('<p class="para">Our home was broken backward')
+        end = body[at:].replace('<p class="para">', '<p class="para indigo">')
+        body = body[:at] + end.replace(
+            '<p class="center">', '<p class="center indigo">'
+        )
     body += '<nav class="pager">'
     body += (
         f'<a href="{fname(prev["n"])}">← No. {prev["n"]}: {esc(prev["title"])}</a>'

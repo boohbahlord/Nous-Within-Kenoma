@@ -1877,3 +1877,17 @@ html.th-vellum .chapter .ini.mid {
     hyphens: manual;
   }
 }
+/* No. 4, Shoreline Lectures and Sermons from the Snake: my questions on the left in red, the voice in the middle in
+   blue, the ending (from "Our home was broken backward" on) in indigo, and no paragraph indent anywhere in it */
+html.th-voices .chapter p {
+  text-indent: 0;
+}
+html.th-voices .chapter p.para {
+  color: #fc8c88; /* red, 8.6:1 */
+}
+html.th-voices .chapter p.center {
+  color: #9ec9fa; /* blue, 11.4:1 */
+}
+html.th-voices .chapter p.indigo {
+  color: #ac9cfc; /* indigo, 8.3:1 */
+}
