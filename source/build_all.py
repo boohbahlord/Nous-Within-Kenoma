@@ -3,7 +3,7 @@
 import json, html, os, re, shutil
 
 OUT = "site"
-SITE_V = "82"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+SITE_V = "83"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 ICON_V = "2"  # the same for the tab icon (2: the white circle with a line through it, in a black box)
 if os.path.isdir(OUT):
     shutil.rmtree(OUT)  # v79j: a clean build (the files end up in folders at the end)
@@ -273,6 +273,11 @@ for i, c in enumerate(C):
     if n == 49:
         # I added a blank line between the head and the body on this page by hand, and I want it kept
         body = body.replace("</head>\n<body", "</head>\n\n<body")
+    if n == 55:
+        # I spelled it "Grey" in the tab's title on this page by hand (ec2b83b), and I want that kept
+        body = body.replace(
+            "<title>No. 55: Blue to Gray ·", "<title>No. 55: Blue to Grey ·"
+        )
     body += f'<main class="wrap{" blackletter" if bl else ""}">\n'
     body += f'<nav class="crumbs"><a href="chapters.html">← Nous Within Kenoma</a>{picker(n)}</nav>\n'
     body += (
