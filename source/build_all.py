@@ -436,12 +436,12 @@ toc = "\n".join(
     f'<li><a href="{fname(c["n"])}"><span class="n">{c["n"]}</span><span>{esc(c["title"])}</span></a></li>'
     for c in C
 )
-land = head("Read · Nous Within Kenoma") + f"""<main class="wrap">
-<nav class="crumbs"><a href="index.html">← Nous Within Kenoma</a></nav>
-<header><span class="num">Nous Within Kenoma</span><h1>Read Nous Within Kenoma</h1></header>
+land = head("Nous Within Kenoma") + f"""<main class="wrap">
+<nav class="crumbs"><a href="index.html">← Homepage</a></nav>
+<header><h1>Nous Within Kenoma</h1></header>
 <section class="notice" aria-label="About these parts">
 <p>This book is unfinished. These stories may still change before the book is complete.</p>
-<p><i>Nous Within Kenoma</i> is a collection of Gnostic-inspired, syncretic short stories that all take place within the same cosmology. The stories are interconnected to differing extents, and some parts are best read within their larger context.</p>
+<p><i>Nous Within Kenoma</i> is a collection of short stories that all take place within the same cosmology. The stories are interconnected to differing extents.</p>
 </section>
 {picker(None, 'Select a part for preview reading')}
 <ol class="toc">
@@ -459,7 +459,7 @@ idx = head("Nous Within Kenoma") + f"""<main class="wide" style="max-width:1060p
   <h1 style="font-size:clamp(30px,5vw,44px);line-height:1.1;margin:0 0 10px">Nous Within Kenoma</h1>
   <p style="color:var(--dim);margin:0 0 34px;font-size:15px">Gnostic-inspired syncretic short stories</p>
   <h2 class="label">Sample Parts</h2>
-  <nav class="cards"><a class="card" href="chapters.html">Read Nous Within Kenoma<span>Book in progress: {len(C)} parts</span></a></nav>
+  <nav class="cards"><a class="card" href="chapters.html">Read the Book<span>In progress: {len(C)} parts</span></a></nav>
   <h2 class="label">Games</h2>
   <nav class="cards">
     <a class="card" href="ethers-crossroads.html">Ether's Crossroads<span>A strategy card game, loosely based on the book</span></a>
