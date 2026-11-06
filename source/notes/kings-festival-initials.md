@@ -4,7 +4,7 @@ Requested by the owner on 2026-11-06 03:13Z: real public-domain scans in place o
 
 ## The initials (source/assets/lombard-<letter>-<colour>.webp)
 
-All 23 come from one book, so they match:
+All of them come from one book, so they match:
 
 - **Gregorius Bock, Scribal Pattern Book**, Swabia, about 1510-1517, on parchment. Yale University, Beinecke Rare Book
   and Manuscript Library, **MS 439**. A model book for scribes; it holds a whole alphabet of red and blue
@@ -14,18 +14,16 @@ All 23 come from one book, so they match:
 - License: **public domain**. The book is about 500 years old; Yale shares its images of public-domain works freely
   (Yale Open Access policy), and the Public Domain Review lists this book's images as public domain.
 
-| Letters | Leaf (Yale's image label) | Which of the three on its row |
-| --- | --- | --- |
-| A red, B red, C red | f. 31r ("30v-31r") | A 2nd, B 1st, C 2nd |
-| D red, E blue, F red | f. 31v ("31v-32r") | 1st of each |
-| G blue, H blue, I blue | f. 32r ("31v-32r") | G 1st, H 2nd, I 1st |
-| K red, L red, M red | f. 32v ("32v-33r") | K 1st, L 2nd, M 1st |
-| N blue, O blue, P red | f. 33r ("32v-33r") | N 1st, O 2nd, P 2nd |
-| Q red, R blue, S blue | f. 33v ("33v-34r") | Q 1st, R 1st, S 2nd |
-| T blue, U blue, W red, W blue | f. 34r ("33v-34r") | T 3rd, U 2nd, W 2nd (red), W 1st (blue) |
-| Y blue | f. 34v ("34v-35r") | 1st |
+| Initial | Paragraph | Leaf (Yale's image label) | Which of the three on its row |
+| --- | --- | --- | --- |
+| T blue, large | "The King of the courtyard…" (the part's opening) | f. 34r ("33v-34r") | 3rd |
+| S red, medium | "Stranger and stranger…" (the circus acts) | f. 33v ("33v-34r") | 3rd |
+| E blue, medium | "Elsewhere, the King is sober…" (the King) | f. 31v ("31v-32r") | 1st |
+| K red, medium | "Knights atop their horses…" (the massacre) | f. 32v ("32v-33r") | 1st |
 
-Paragraphs alternate blue (1st, 3rd, 5th…) and red, as the scribes did; the two W paragraphs use two different Ws.
+Ranked as in the manuscripts (owner, 2026-11-06 05:38Z): one large initial (3 lines) on the first paragraph, medium
+ones (2 lines) on the paragraphs marked `"sec": true` in chapters_all.json, plain text everywhere else. Blue and red in
+turn.
 
 How they were cleaned: each letter was cut from the full-size scan; the vellum around it was taken away by how much ink
 each pixel holds against the vellum next to it (so the show-through from the other side of the leaf stays out), and
