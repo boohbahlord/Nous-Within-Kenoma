@@ -1856,9 +1856,10 @@ html.th-vellum .chapter p.para {
   -webkit-hyphenate-limit-after: 4;
   display: flow-root; /* a short paragraph still holds its whole initial */
 }
-/* the initial: a scanned Lombardic capital (assets/lombard-*.webp, red or blue), sunk 3 lines into the text, the top of
-   the picture level with the top of the first line's capitals and its foot on the third line's baseline; the float is
-   cut to 3 lines so the fourth runs full width */
+/* the initials, ranked as in the manuscripts (build_all.py): a scanned Lombardic capital (assets/lombard-*.webp, red or
+   blue), large (3 lines) on the part's first paragraph and medium (2 lines) where a section starts. The top of the
+   picture is level with the top of the first line's capitals and its foot sits on the last sunk line's baseline; the
+   float stops just short of the next line, so that one runs full width */
 html.th-vellum .chapter .ini {
   float: left;
   width: auto;
@@ -1866,13 +1867,13 @@ html.th-vellum .chapter .ini {
   margin: 0.61em 0.22em 0.48em -0.04em; /* 0.61 + 4.11 + 0.48 = 5.2em, just under 3 lines */
   border: 0;
 }
-/* on a phone it sinks 2 lines, and words are not broken (the lines are short) */
+html.th-vellum .chapter .ini.mid {
+  height: 2.365em; /* the second baseline (2.975em) less the capitals' top */
+  margin-right: 0.16em; /* 0.61 + 2.365 + 0.48 = 3.455em, just under 2 lines */
+}
+/* on a phone words are not broken (the lines are short) */
 @media (max-width: 520px) {
   html.th-vellum .chapter p.para {
     hyphens: manual;
-  }
-  html.th-vellum .chapter .ini {
-    height: 2.365em;
-    margin-bottom: 0.48em; /* 2 lines */
   }
 }

@@ -485,7 +485,7 @@ window.EC_QUOTES = [
     title: "The King's Festival",
   },
   {
-    t: "hattering, his jaws slap and maul the inside of his mouth, and in a gnawing reaction of detestation and loathing, he screams the command, “Demons are afoot! Kill every one who is possessed under the blood of the Moon! Their fault is their own! Slaughter the hateful without mercy!”",
+    t: "Chattering, his jaws slap and maul the inside of his mouth, and in a gnawing reaction of detestation and loathing, he screams the command, “Demons are afoot! Kill every one who is possessed under the blood of the Moon! Their fault is their own! Slaughter the hateful without mercy!”",
     n: 54,
     title: "The King's Festival",
   },
