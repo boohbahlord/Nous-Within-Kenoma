@@ -480,12 +480,12 @@ window.EC_QUOTES = [
     title: "Titan: Three in One",
   },
   {
-    t: "Elsewhere, the King is sober. He is with another, rolling dice over cards, seeing what may come. The dice land on three numbers that total eighteen. The one card they land on shows a man in a blindfold, wrapped in rope. The water in the bowl ripples with a red like obliviation. A messenger knocks at the door. The King almost ignores it, then, after a pause, tells him, “Yes, come in. What is it?”",
+    t: "lsewhere, the King is sober. He is with another, rolling dice over cards, seeing what may come. The dice land on three numbers that total eighteen. The one card they land on shows a man in a blindfold, wrapped in rope. The water in the bowl ripples with a red like obliviation. A messenger knocks at the door. The King almost ignores it, then, after a pause, tells him, “Yes, come in. What is it?”",
     n: 54,
     title: "The King's Festival",
   },
   {
-    t: "Chattering, his jaws slap and maul the inside of his mouth, and in a gnawing reaction of detestation and loathing, he screams the command, “Demons are afoot! Kill every one who is possessed under the blood of the Moon! Their fault is their own! Slaughter the hateful without mercy!”",
+    t: "hattering, his jaws slap and maul the inside of his mouth, and in a gnawing reaction of detestation and loathing, he screams the command, “Demons are afoot! Kill every one who is possessed under the blood of the Moon! Their fault is their own! Slaughter the hateful without mercy!”",
     n: 54,
     title: "The King's Festival",
   },

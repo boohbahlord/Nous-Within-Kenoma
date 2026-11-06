@@ -1804,9 +1804,10 @@ html.th-bluegray.bg-lines svg.strings {
     animation: none;
   }
 }
-/* No. 54, The King's Festival: a page of an old medieval book. Aged vellum, a deep warm umber-tan that darkens and
-   browns toward the edges, uneven in tone with faint stains and foxing spots; iron-gall ink (a brown-black, never pure
-   black), the title in old faded vermilion rubric; a narrow text block with wide margins, like a book page; no static */
+/* No. 54, The King's Festival: a page of an old medieval book. A real photograph of blank aged vellum (a spare leaf of
+   the Towneley Lectionary, about 1550, New York Public Library, public domain), tinted a deep warm umber-tan, the edges
+   only a little darker than the middle; iron-gall ink (a brown-black, never pure black), the title in old faded
+   vermilion rubric; a narrow text block with wide margins, like a book page; no static */
 html.th-vellum {
   --ground: #b8946a;
   --well: #ad8a5f;
@@ -1823,61 +1824,9 @@ html.th-vellum body::before {
   inset: 0;
   z-index: -2;
   pointer-events: none;
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='1000' preserveAspectRatio='none'%3E%3Cfilter id='m' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0035 0.005' numOctaves='5' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.18 0 0 0 0 0.07 0 0 0 1.5 -0.62'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='1000' preserveAspectRatio='none'%3E%3Cfilter id='b' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.022' numOctaves='4' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0.32 0 0 0 0 0.2 0 0 0 0 0.08 0 0 0 0.9 -0.36'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E"),
-    radial-gradient(
-      circle at 18% 27%,
-      rgba(96, 58, 24, 0.22) 0,
-      rgba(96, 58, 24, 0.1) 0.35vmax,
-      transparent 0.6vmax
-    ),
-    radial-gradient(
-      circle at 81% 16%,
-      rgba(96, 58, 24, 0.2) 0,
-      transparent 0.45vmax
-    ),
-    radial-gradient(
-      circle at 74% 63%,
-      rgba(110, 66, 26, 0.18) 0,
-      transparent 0.8vmax
-    ),
-    radial-gradient(
-      circle at 23% 79%,
-      rgba(96, 58, 24, 0.2) 0,
-      transparent 0.4vmax
-    ),
-    radial-gradient(
-      circle at 88% 88%,
-      rgba(96, 58, 24, 0.16) 0,
-      transparent 1.1vmax
-    ),
-    radial-gradient(
-      circle at 9% 56%,
-      rgba(96, 58, 24, 0.14) 0,
-      transparent 0.7vmax
-    ),
-    radial-gradient(
-      circle at 63% 34%,
-      rgba(110, 66, 26, 0.09) 0,
-      transparent 0.3vmax
-    ),
-    radial-gradient(
-      ellipse 24vmax 19vmax at 86% 40%,
-      transparent 78%,
-      rgba(100, 62, 28, 0.1) 86%,
-      transparent 93%
-    ),
-    radial-gradient(
-      ellipse 18vmax 22vmax at 12% 12%,
-      rgba(98, 60, 26, 0.14),
-      transparent 70%
-    ),
-    radial-gradient(ellipse 70% 75% at 50% 44%, #c4a275, #b48f62 58%, #97724a);
-  background-size: 100% 100%; /* one piece across the screen: nothing repeats */
-  background-repeat: no-repeat;
+  background: #ba966c url(vellum.webp) center / cover no-repeat;
 }
-/* the page darkening and browning toward its edges (on a phone, only at the very edges, so the words stay clear) */
+/* the page a little darker toward its edges, never in blotches */
 html.th-vellum body::after {
   content: "";
   position: fixed;
@@ -1885,21 +1834,10 @@ html.th-vellum body::after {
   z-index: -2;
   pointer-events: none;
   background: radial-gradient(
-    ellipse 72% 68% at 50% 46%,
-    transparent 40%,
-    rgba(92, 56, 24, 0.32) 76%,
-    rgba(52, 30, 12, 0.72) 100%
+    ellipse 75% 70% at 50% 48%,
+    transparent 55%,
+    rgba(70, 42, 18, 0.16) 100%
   );
-}
-@media (max-width: 520px) {
-  html.th-vellum body::after {
-    background: radial-gradient(
-      ellipse 110% 75% at 50% 46%,
-      transparent 55%,
-      rgba(92, 56, 24, 0.3) 82%,
-      rgba(52, 30, 12, 0.62) 100%
-    );
-  }
 }
 html.th-vellum .wrap {
   max-width: 600px; /* about 65 letters a line, like a book page */
@@ -1919,73 +1857,23 @@ html.th-vellum .chapter p.para {
   -webkit-hyphenate-limit-after: 4;
   display: flow-root; /* a short paragraph still holds its whole initial */
 }
-/* Uncial Antiqua (SIL Open Font License), only for the initials: rounded capitals in the Lombardic manner, an alphabet
-   apart from the blackletter of the words */
-@font-face {
-  font-family: "NWK Lombardic";
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url(uncial-antiqua-latin-400-normal.woff2) format("woff2");
-}
-/* the initial: flat red or blue, no box; its body sinks 3 lines, its top level with the first line's capitals and its
-   foot on the third line's baseline (worked out from both fonts' measures; the box is cut to 3 lines so the fourth
-   runs full width) */
+/* the initial: a scanned Lombardic capital (assets/lombard-*.webp, red or blue), sunk 3 lines into the text, the top of
+   the picture level with the top of the first line's capitals and its foot on the third line's baseline; the float is
+   cut to 3 lines so the fourth runs full width */
 html.th-vellum .chapter .ini {
-  position: relative;
-  z-index: 0;
   float: left;
-  font-family: "NWK Lombardic", "Grenze Gotisch", serif;
-  font-weight: 400;
-  font-size: 5.845em;
-  line-height: 1;
-  height: 0.9116em;
-  margin: -0.02em 0.07em 0 0;
-  color: #a3271f;
+  width: auto;
+  height: 4.11em; /* the third baseline (4.72em down, at line height 1.745) less the capitals' top (0.61em) */
+  margin: 0.61em 0.22em 0.48em -0.04em; /* 0.61 + 4.11 + 0.48 = 5.2em, just under 3 lines */
+  border: 0;
 }
-html.th-vellum .chapter .ini.dsc {
-  height: 1.21em; /* a letter with a tail (P, Q, F) takes a fourth line */
-}
-html.th-vellum .chapter .ini-b {
-  color: #24407a;
-}
-/* the penwork: hairlines in the other colour, behind the letter (build_all.py draws a different one for each) */
-html.th-vellum .chapter .pen {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 1em;
-  height: 1em;
-  overflow: visible;
-  z-index: -1;
-  fill: #24407a;
-  stroke: #24407a;
-}
-html.th-vellum .chapter .pen > path {
-  fill: none;
-  stroke-width: 1.1px;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-}
-html.th-vellum .chapter .pen > circle {
-  stroke: none;
-}
-html.th-vellum .chapter .ini-b .pen {
-  fill: #a3271f;
-  stroke: #a3271f;
-}
-/* on a phone the initial sinks 2 lines */
+/* on a phone it sinks 2 lines, and words are not broken (the lines are short) */
 @media (max-width: 520px) {
   html.th-vellum .chapter p.para {
-    hyphens: manual; /* the lines are short, so no breaking words */
+    hyphens: manual;
   }
   html.th-vellum .chapter .ini {
-    font-size: 3.353em;
-    height: 0.9736em;
-    margin-top: 0.06em;
-  }
-  html.th-vellum .chapter .ini.dsc {
-    height: 1.494em;
+    height: 2.365em;
+    margin-bottom: 0.48em; /* 2 lines */
   }
 }
