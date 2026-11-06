@@ -283,7 +283,9 @@ for i, c in enumerate(C):
     body += (
         f'<header><span class="num">No. {n}</span><h1>{esc(c["title"])}</h1></header>\n'
     )
-    body += f'<article class="chapter{" blackletter" if bl else ""}{" flow" if n >= 5 else ""}" style="--lh:{c["lh"]};--ind:{c["ind"]}em">\n{render_items(c["items"], n >= 5, 1 if n in INITIALS else 0)}\n</article>\n'
+    # every part flows now, 1 to 4 too: kept as typed, the formatter's line breaks and indents showed on a phone as
+    # pushed-in first lines and empty gaps (the words of 1 to 4 are untouched)
+    body += f'<article class="chapter{" blackletter" if bl else ""} flow" style="--lh:{c["lh"]};--ind:{c["ind"]}em">\n{render_items(c["items"], n >= 5, 1 if n in INITIALS else 0)}\n</article>\n'
     body += '<nav class="pager">'
     body += (
         f'<a href="{fname(prev["n"])}">← No. {prev["n"]}: {esc(prev["title"])}</a>'
