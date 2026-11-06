@@ -1,5 +1,5 @@
 /* Nous Within Kenoma: one theme for every page.
-   Dark burnt-amber ground, light burnt-amber text, Cascadia Code ExtraLight throughout.
+   A near-black ground and burnt amber text, like an amber terminal, Cascadia Code ExtraLight throughout.
    Black hairline strings and screen cracks are drawn behind the page by site.js. */
 @font-face {
   font-family: "Cascadia Code";
@@ -46,14 +46,14 @@
     U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 :root {
-  --ground: #1b110a; /* page: dark burnt amber (v79a: the older colors, a touch more burnt, the yellow kept) */
-  --well: #24170e; /* raised panels */
-  --deep: #140c07; /* sunk panels */
-  --text: #f3d2a3; /* light burnt amber, the reading text (12.9:1 on the page) */
-  --dim: #c79d70; /* secondary text (7.5:1) */
-  --amber: #e8994d; /* accent (8:1) */
-  --amber-hi: #ffc07d; /* hover */
-  --rule: #4d311d; /* hairlines */
+  --ground: #0e0904; /* page: near black with a warm hint, like an amber terminal (v83a: the owner's burnt amber, not brown) */
+  --well: #170e06; /* raised panels */
+  --deep: #090502; /* sunk panels */
+  --text: #ffad4d; /* burnt amber, the reading text, like an amber terminal's letters (10.7:1 on the page) */
+  --dim: #d9893a; /* secondary text, a darker amber (7.2:1) */
+  --amber: #ff8a1f; /* accent, a burnt orange (8.4:1) */
+  --amber-hi: #ffc070; /* hover */
+  --rule: #3d2410; /* hairlines */
   --string: #000; /* background strings and cracks */
   --mono: "Cascadia Code", "Cascadia Mono", Consolas, "Courier New", monospace;
   color-scheme: dark;
