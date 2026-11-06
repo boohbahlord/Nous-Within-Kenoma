@@ -137,7 +137,9 @@ def picker(cur=None, label="Jump to a part"):
 # turn, as the scribes drew them: the letters are scans from one book, Gregorius Bock's pattern book for scribes
 # (Swabia, about 1510; Yale, Beinecke MS 439, public domain), cut out of the vellum (assets/lombard-<letter>-<colour>.webp;
 # where each one comes from: notes/kings-festival-initials.md). Sunk 3 lines into the text on a computer, 2 on a phone
-# (site.css). The rest of the first word stays in the words' own letters (blackletter has no small capitals).
+# (site.css). The rest of the first word stays in the words' own letters (blackletter has no small capitals). A short
+# paragraph (a line of speech, under SHORT letters) opens on a plain letter: a big initial beside one or two lines
+# leaves a hole in the page. Blue and red go in turn over the paragraphs that have one.
 LOMBARD = {
     "t-blue": (183, 320),
     "w-red": (244, 320),
@@ -148,26 +150,24 @@ LOMBARD = {
     "n-blue": (241, 320),
     "m-red": (254, 320),
     "e-blue": (165, 320),
-    "d-red": (202, 320),
-    "r-blue": (240, 320),
-    "q-red": (301, 320),
-    "h-blue": (207, 320),
-    "a-red": (194, 320),
-    "w-blue": (299, 320),
+    "h-red": (209, 320),
+    "a-blue": (192, 320),
     "f-red": (199, 320),
     "g-blue": (194, 320),
     "l-red": (214, 320),
     "u-blue": (204, 320),
     "c-red": (257, 320),
-    "i-blue": (141, 320),
-    "k-red": (211, 320),
-    "y-blue": (213, 320),
+    "k-blue": (184, 320),
+    "y-red": (243, 320),
 }  # each scan's size in pixels
+
+
+SHORT = 200
 
 
 def initial(h, i):
     """the paragraph's first letter as a scanned Lombardic initial (with any quote mark before it), blue for the 1st,
-    3rd, 5th… paragraph and red for the others"""
+    3rd, 5th… initial and red for the others"""
     m = re.match(r"((?:&[#\w]+;|[“‘])*)(\w)(\w*)", h)
     if not m:
         return h
@@ -201,7 +201,10 @@ def render_items(items, pm=False, ini=0):
                     f'<!-- prettier-ignore -->\n<p class="para keep">{h.strip()}</p>'
                 )
             else:
-                if ini:
+                if (
+                    ini
+                    and len(html.unescape(re.sub(r"<[^>]+>", "", h)).strip()) >= SHORT
+                ):
                     h = initial(h, ini)
                     ini += 1
                 out.append(f'<p class="para">{h}</p>')

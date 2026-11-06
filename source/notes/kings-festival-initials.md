@@ -4,7 +4,7 @@ Requested by the owner on 2026-11-06 03:13Z: real public-domain scans in place o
 
 ## The initials (source/assets/lombard-<letter>-<colour>.webp)
 
-All 23 come from one book, so they match:
+All of them come from one book, so they match:
 
 - **Gregorius Bock, Scribal Pattern Book**, Swabia, about 1510-1517, on parchment. Yale University, Beinecke Rare Book
   and Manuscript Library, **MS 439**. A model book for scribes; it holds a whole alphabet of red and blue
@@ -16,16 +16,17 @@ All 23 come from one book, so they match:
 
 | Letters | Leaf (Yale's image label) | Which of the three on its row |
 | --- | --- | --- |
-| A red, B red, C red | f. 31r ("30v-31r") | A 2nd, B 1st, C 2nd |
-| D red, E blue, F red | f. 31v ("31v-32r") | 1st of each |
-| G blue, H blue, I blue | f. 32r ("31v-32r") | G 1st, H 2nd, I 1st |
-| K red, L red, M red | f. 32v ("32v-33r") | K 1st, L 2nd, M 1st |
+| A blue, B red, C red | f. 31r ("30v-31r") | A 1st, B 1st, C 2nd |
+| E blue, F red | f. 31v ("31v-32r") | 1st of each |
+| G blue, H red | f. 32r ("31v-32r") | G 1st, H 1st |
+| K blue, L red, M red | f. 32v ("32v-33r") | K 2nd, L 2nd, M 1st |
 | N blue, O blue, P red | f. 33r ("32v-33r") | N 1st, O 2nd, P 2nd |
-| Q red, R blue, S blue | f. 33v ("33v-34r") | Q 1st, R 1st, S 2nd |
-| T blue, U blue, W red, W blue | f. 34r ("33v-34r") | T 3rd, U 2nd, W 2nd (red), W 1st (blue) |
-| Y blue | f. 34v ("34v-35r") | 1st |
+| S blue | f. 33v ("33v-34r") | 2nd |
+| T blue, U blue, W red | f. 34r ("33v-34r") | T 3rd, U 2nd, W 2nd |
+| Y red | f. 34v ("34v-35r") | 2nd |
 
-Paragraphs alternate blue (1st, 3rd, 5th…) and red, as the scribes did; the two W paragraphs use two different Ws.
+The initials alternate blue and red, as the scribes did. Short paragraphs (lines of speech, under 200 letters: Nos. 10,
+11, 12, 15 and 21 of the part) open on a plain letter (owner, 2026-11-06 04:59Z), so 18 initials are used.
 
 How they were cleaned: each letter was cut from the full-size scan; the vellum around it was taken away by how much ink
 each pixel holds against the vellum next to it (so the show-through from the other side of the leaf stays out), and
