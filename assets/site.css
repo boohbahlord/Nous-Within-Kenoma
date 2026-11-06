@@ -1623,7 +1623,7 @@ html.th-chalice .pager {
 #nwkdisp.folded > :not(#nwkcol) {
   display: none;
 }
-/* Blue to Gray (No. 55): I want a beautiful afternoon blue with very blurred, faded white clouds, as undefined as can
+/* Blue to Gray (No. 54): I want a beautiful afternoon blue with very blurred, faded white clouds, as undefined as can
    be, floating through the page's background. After 35 seconds the page slowly turns grey, a messy grey (the clouds go
    grey in uneven patches), and as it does a fuzzy static comes in and gets worse. Only once the grey has set in do the
    lines and bars fade in; before that they're completely hidden. The letters stay dark the whole time, so the text
@@ -1801,5 +1801,78 @@ html.th-bluegray.bg-lines svg.strings {
 @media (prefers-reduced-motion: reduce) {
   .sky i {
     animation: none;
+  }
+}
+/* No. 54, The King's Festival: a page of an old medieval book. A real photograph of blank aged vellum (a spare leaf of
+   the Towneley Lectionary, about 1550, New York Public Library, public domain), tinted a deep warm umber-tan, the edges
+   only a little darker than the middle; iron-gall ink (a brown-black, never pure black), the title in old faded
+   vermilion rubric; a narrow text block with wide margins, like a book page; no static */
+html.th-vellum {
+  --ground: #b8946a;
+  --well: #ad8a5f;
+  --deep: #8a6840;
+  --text: #2b1d14;
+  --dim: #4a3220;
+  --amber: #862a1c;
+  --amber-hi: #9c3624;
+  --rule: #8a6a45;
+}
+html.th-vellum body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background: #ba966c url(vellum.webp) center / cover no-repeat;
+}
+/* the page a little darker toward its edges, never in blotches */
+html.th-vellum body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 75% 70% at 50% 48%,
+    transparent 55%,
+    rgba(70, 42, 18, 0.16) 100%
+  );
+}
+html.th-vellum .wrap {
+  max-width: 600px; /* about 65 letters a line, like a book page */
+}
+html.th-vellum ol.toc a,
+html.th-vellum .pager {
+  border-color: var(--rule);
+}
+html.th-vellum h1 {
+  color: var(--amber);
+}
+html.th-vellum .chapter p.para {
+  text-indent: 0;
+  hyphens: auto; /* justified without wide gaps between the words */
+  hyphenate-limit-chars: 8 4 4; /* only words of 8 letters or more, at least 4 each side of the break */
+  -webkit-hyphenate-limit-before: 4;
+  -webkit-hyphenate-limit-after: 4;
+  display: flow-root; /* a short paragraph still holds its whole initial */
+}
+/* the initial: a scanned Lombardic capital (assets/lombard-*.webp, red or blue), sunk 3 lines into the text, the top of
+   the picture level with the top of the first line's capitals and its foot on the third line's baseline; the float is
+   cut to 3 lines so the fourth runs full width */
+html.th-vellum .chapter .ini {
+  float: left;
+  width: auto;
+  height: 4.11em; /* the third baseline (4.72em down, at line height 1.745) less the capitals' top (0.61em) */
+  margin: 0.61em 0.22em 0.48em -0.04em; /* 0.61 + 4.11 + 0.48 = 5.2em, just under 3 lines */
+  border: 0;
+}
+/* on a phone it sinks 2 lines, and words are not broken (the lines are short) */
+@media (max-width: 520px) {
+  html.th-vellum .chapter p.para {
+    hyphens: manual;
+  }
+  html.th-vellum .chapter .ini {
+    height: 2.365em;
+    margin-bottom: 0.48em; /* 2 lines */
   }
 }

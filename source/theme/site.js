@@ -558,7 +558,7 @@
   else build();
 })();
 
-/* Blue to Gray (No. 55): the sky behind the page (site.css draws it and turns it grey from 35 s on), and the rest of the
+/* Blue to Gray (No. 54): the sky behind the page (site.css draws it and turns it grey from 35 s on), and the rest of the
    timing. The static fades in while the grey comes and keeps getting worse; once the grey has set in, the lines and bars
    (hidden until then) fade in, and the static eases back a little so the text stays easy to read. The clock is the
    page's own, from the moment it opened, the same as the grey's. */

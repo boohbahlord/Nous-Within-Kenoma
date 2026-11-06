@@ -3,7 +3,7 @@
 import json, html, os, re, shutil
 
 OUT = "site"
-SITE_V = "80"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+SITE_V = "81"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 ICON_V = "2"  # the same for the tab icon (2: the white circle with a line through it, in a black box)
 if os.path.isdir(OUT):
     shutil.rmtree(OUT)  # v79j: a clean build (the files end up in folders at the end)
@@ -133,7 +133,54 @@ def picker(cur=None, label="Jump to a part"):
     )
 
 
-def render_items(items, pm=False):
+# Medieval initials (The King's Festival). I want every paragraph to open on a real Lombardic capital, red and blue in
+# turn, as the scribes drew them: the letters are scans from one book, Gregorius Bock's pattern book for scribes
+# (Swabia, about 1510; Yale, Beinecke MS 439, public domain), cut out of the vellum (assets/lombard-<letter>-<colour>.webp;
+# where each one comes from: notes/kings-festival-initials.md). Sunk 3 lines into the text on a computer, 2 on a phone
+# (site.css). The rest of the first word stays in the words' own letters (blackletter has no small capitals).
+LOMBARD = {
+    "t-blue": (183, 320),
+    "w-red": (244, 320),
+    "s-blue": (159, 320),
+    "p-red": (230, 320),
+    "o-blue": (236, 320),
+    "b-red": (256, 320),
+    "n-blue": (241, 320),
+    "m-red": (254, 320),
+    "e-blue": (165, 320),
+    "d-red": (202, 320),
+    "r-blue": (240, 320),
+    "q-red": (301, 320),
+    "h-blue": (207, 320),
+    "a-red": (194, 320),
+    "w-blue": (299, 320),
+    "f-red": (199, 320),
+    "g-blue": (194, 320),
+    "l-red": (214, 320),
+    "u-blue": (204, 320),
+    "c-red": (257, 320),
+    "i-blue": (141, 320),
+    "k-red": (211, 320),
+    "y-blue": (213, 320),
+}  # each scan's size in pixels
+
+
+def initial(h, i):
+    """the paragraph's first letter as a scanned Lombardic initial (with any quote mark before it), blue for the 1st,
+    3rd, 5th… paragraph and red for the others"""
+    m = re.match(r"((?:&[#\w]+;|[“‘])*)(\w)(\w*)", h)
+    if not m:
+        return h
+    q, ch, rest = m.groups()
+    scan = f"{ch.lower()}-{'blue' if i % 2 else 'red'}"
+    if scan not in LOMBARD:
+        return h
+    w, ht = LOMBARD[scan]
+    img = f'<img class="ini" src="lombard-{scan}.webp" alt="{q}{ch}" width="{w}" height="{ht}">'
+    return img + rest + h[m.end() :]
+
+
+def render_items(items, pm=False, ini=0):
     out = []
     for it in items:
         k = it["k"]
@@ -154,6 +201,9 @@ def render_items(items, pm=False):
                     f'<!-- prettier-ignore -->\n<p class="para keep">{h.strip()}</p>'
                 )
             else:
+                if ini:
+                    h = initial(h, ini)
+                    ini += 1
                 out.append(f'<p class="para">{h}</p>')
         elif k == "quote":
             out.append(f'<p class="quote">{it["html"]}</p>')
@@ -170,7 +220,10 @@ def render_items(items, pm=False):
     return "\n".join(out)
 
 
-BLACK = {26}
+BLACK = {26, 54}
+INITIALS = {
+    54
+}  # parts whose paragraphs each open on a big initial (The King's Festival)
 BL_FONT = '\n<link rel="preload" href="grenze-gotisch-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>'
 L4 = {23, 41}
 L3 = {3, 6, 9, 14, 25, 28, 30, 34, 37, 38, 40}
@@ -184,9 +237,11 @@ def ch_fx(n):
     )  # 2026-10-19: heavy static (3, 4) brought down to medium; medium has no rolling TV band
     if n in (50, 51, 52):
         lvl = 2  # I want the grey TV static on VHS Tape, Word and Sepulcher, very faint, so the text stays easy to read
+    if n == 54:
+        lvl = 0  # The King's Festival: an old book page, no static over the parchment
     if n == 55:
         lvl = 2  # Blue to Gray: the static starts at nothing and comes in with the grey (site.js)
-    fx = "" if n in (1, 2, 3, 4, 26, 35) else "strings bars"
+    fx = "" if n in (1, 2, 3, 4, 26, 35, 54) else "strings bars"
     theme = (
         "th-indigo th-blue"
         if n in (1, 2, 3)
@@ -205,7 +260,11 @@ def ch_fx(n):
                         else (
                             "th-chalice"
                             if n == 39
-                            else "th-bluegray" if n == 55 else ""
+                            else (
+                                "th-vellum"
+                                if n == 54
+                                else "th-bluegray" if n == 55 else ""
+                            )
                         )
                     )
                 )
@@ -224,7 +283,9 @@ for i, c in enumerate(C):
     nxt = C[i + 1] if i + 1 < len(C) else None
     bl = n in BLACK
     body = head(
-        f'No. {n}: {c["title"]} · Nous Within Kenoma', BL_FONT if bl else "", **ch_fx(n)
+        f'No. {n}: {c["title"]} · Nous Within Kenoma',
+        BL_FONT if bl else "",
+        **ch_fx(n),
     )
     if n == 49:
         # I added a blank line between the head and the body on this page by hand, and I want it kept
@@ -234,7 +295,7 @@ for i, c in enumerate(C):
     body += (
         f'<header><span class="num">No. {n}</span><h1>{esc(c["title"])}</h1></header>\n'
     )
-    body += f'<article class="chapter{" blackletter" if bl else ""}{" flow" if n >= 5 else ""}" style="--lh:{c["lh"]};--ind:{c["ind"]}em">\n{render_items(c["items"], n >= 5)}\n</article>\n'
+    body += f'<article class="chapter{" blackletter" if bl else ""}{" flow" if n >= 5 else ""}" style="--lh:{c["lh"]};--ind:{c["ind"]}em">\n{render_items(c["items"], n >= 5, 1 if n in INITIALS else 0)}\n</article>\n'
     body += '<nav class="pager">'
     body += (
         f'<a href="{fname(prev["n"])}">← No. {prev["n"]}: {esc(prev["title"])}</a>'
