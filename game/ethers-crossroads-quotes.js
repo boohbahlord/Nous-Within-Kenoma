@@ -40,22 +40,12 @@ window.EC_QUOTES = [
     title: "Keep Yourself",
   },
   {
-    t: "The corner of the head smacks heavily against the counter. Is it replaying? The thoughts? There is ringing now. Monotone inside. It’s louder. It’s ringing like tinnitus. Kill me. Repeating me to death. Heartlessly smiling with tears. Stay here for me, a while longer, God. I’m killing something; I wanna know how I am, I don’t wanna.",
+    t: "I feel like a monospace letter on a computer screen. I feel like a crying kid that took something. The sun goes down, warm all over my cold. That small window in the abandoned room. It looks like thirty years old, like me. My mom used to own this place.",
     n: 9,
     title: "Good Puppet",
   },
   {
-    t: "Do you ever think there is anyone out there? Beyond this carpetless floor? Beyond the sound of ringing? Beyond everything I do to keep this machine running? I feed it every day to set my body on fire. Where is she? I forgot. Oh. I hope I don’t die yet. I feel so numb; if God isn’t wrestling me, then I am not always paranoid. I’m tired.",
-    n: 9,
-    title: "Good Puppet",
-  },
-  {
-    t: "The awakening witness, this angel, keeps stretching his long arms and grip-strength up and through the clouds, grabbing the spine-rope with screams of suffer, and the volume of his cries erupts lightning down on the Earth, where possessed humans flee in cowardice.",
-    n: 10,
-    title: "The Angel; Prophecy",
-  },
-  {
-    t: "His darkness encapsulated destruction. Clawing away through muscle like dynamite-chunks through stone mountains of God’s design, vein plucks fucking him ugly by harmonic dissonance calculated to the sound of blasphemy. Throat chokes like clonic-hate-spasm vengeance. Bare-knuckles pounding into skull and chest like elephant weight-stomps, primal with chaos of mad apes. An angel’s heart slammed heavy into many skipped beats and arrhythmias countless times; restless curse-beatings pound at the gate of his skin and muscle. Fading life, darkening vision and hope, an almost extinction.",
+    t: "The spear cuts up and through the end of the tongue with a shlicking sound; this is where serpents will be cursed with the opened front half of this mouth muscle. Bleeding sprays out like rain from the cut mouth and tongue, up and towards the rage of this angel’s thirst, where they catch and slurp on the scarlet spilling.",
     n: 10,
     title: "The Angel; Prophecy",
   },
@@ -490,13 +480,23 @@ window.EC_QUOTES = [
     title: "Titan: Three in One",
   },
   {
-    t: "It starts to rain again within that hot humid spring, and the arms give up. I fall in, and not as a human, but as a lost soul remembering a feeling alone. I cry into his collarbone and shoulders. The world almost reacts, not by way of the God, but rather from our own something? Whatever. I am not able to say what it is, and knowing it is kinda unsettling, like roots being pulled up from something inside me to understand. The showers from above pick up a little more, as warm as him.",
+    t: "Elsewhere, the King is sober. He is with another, rolling dice over cards, seeing what may come. The dice land on three numbers that total eighteen. The one card they land on shows a man in a blindfold, wrapped in rope. The water in the bowl ripples with a red like obliviation. A messenger knocks at the door. The King almost ignores it, then, after a pause, tells him, “Yes, come in. What is it?”",
     n: 54,
+    title: "The King's Festival",
+  },
+  {
+    t: "Chattering, his jaws slap and maul the inside of his mouth, and in a gnawing reaction of detestation and loathing, he screams the command, “Demons are afoot! Kill every one who is possessed under the blood of the Moon! Their fault is their own! Slaughter the hateful without mercy!”",
+    n: 54,
+    title: "The King's Festival",
+  },
+  {
+    t: "It starts to rain again within that hot humid spring, and the arms give up. I fall in, and not as a human, but as a lost soul remembering a feeling alone. I cry into his collarbone and shoulders. The world almost reacts, not by way of the God, but rather from our own something? Whatever. I am not able to say what it is, and knowing it is kinda unsettling, like roots being pulled up from something inside me to understand. The showers from above pick up a little more, as warm as him.",
+    n: 55,
     title: "Blue to Gray",
   },
   {
     t: "The sky keeps going, just creating mud with its tears all over, and not leaving. It doesn’t really care if it drowns us by this point. I get a little caught in my head about the weather, and he is already answering, “More than one, actually three of them. PCP, more painkillers, whatever, and your favorite, Ketamine. You like that, Alice?”",
-    n: 54,
+    n: 55,
     title: "Blue to Gray",
   },
 ];
