@@ -1804,19 +1804,18 @@ html.th-bluegray.bg-lines svg.strings {
     animation: none;
   }
 }
-/* No. 54, The King's Festival: a page of an old medieval book. Worn parchment the colour of old calfskin, darker and
-   stained toward its edges, its fibres showing, with brown-black ink, the title in red as the scribes wrote headings,
-   and every paragraph opening on a big initial in gold, red and blue in turn, the words wrapping around it */
+/* No. 54, The King's Festival: a page of an old medieval book. Aged vellum, a deep warm umber-tan that darkens and
+   browns toward the edges, uneven in tone with faint stains and foxing spots; iron-gall ink (a brown-black, never pure
+   black), the title in old faded vermilion rubric; a narrow text block with wide margins, like a book page; no static */
 html.th-vellum {
-  --ground: #e6d3a8;
-  --well: #dcc596;
-  --deep: #c8ab76;
-  --text: #2a1a0c;
-  --dim: #5e4123;
-  --amber: #8f1d12;
-  --amber-hi: #a8281a;
-  --rule: #b49261;
-  --string: #2a1a0c;
+  --ground: #b8946a;
+  --well: #ad8a5f;
+  --deep: #8a6840;
+  --text: #2b1d14;
+  --dim: #4a3220;
+  --amber: #862a1c;
+  --amber-hi: #9c3624;
+  --rule: #8a6a45;
 }
 html.th-vellum body::before {
   content: "";
@@ -1825,40 +1824,85 @@ html.th-vellum body::before {
   z-index: -2;
   pointer-events: none;
   background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' stitchTiles='stitch' baseFrequency='0.7 0.22' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.22 0 0 0 0 0.08 0 0 0 0.42 -0.13'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' stitchTiles='stitch' baseFrequency='0.006' numOctaves='4' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.27 0 0 0 0 0.1 0 0 0 1.1 -0.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='1000' preserveAspectRatio='none'%3E%3Cfilter id='m' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0035 0.005' numOctaves='5' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.18 0 0 0 0 0.07 0 0 0 1.5 -0.62'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='1000' preserveAspectRatio='none'%3E%3Cfilter id='b' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.022' numOctaves='4' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0.32 0 0 0 0 0.2 0 0 0 0 0.08 0 0 0 0.9 -0.36'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E"),
     radial-gradient(
-      ellipse 75% 70% at 50% 45%,
-      transparent 52%,
-      rgba(120, 72, 26, 0.28) 82%,
-      rgba(70, 38, 12, 0.6) 100%
+      circle at 18% 27%,
+      rgba(96, 58, 24, 0.22) 0,
+      rgba(96, 58, 24, 0.1) 0.35vmax,
+      transparent 0.6vmax
     ),
     radial-gradient(
-      circle at 12% 18%,
-      rgba(150, 100, 40, 0.16),
-      transparent 22%
+      circle at 81% 16%,
+      rgba(96, 58, 24, 0.2) 0,
+      transparent 0.45vmax
     ),
     radial-gradient(
-      circle at 86% 72%,
-      rgba(140, 90, 35, 0.14),
-      transparent 26%
+      circle at 74% 63%,
+      rgba(110, 66, 26, 0.18) 0,
+      transparent 0.8vmax
     ),
     radial-gradient(
-      circle at 70% 12%,
-      rgba(255, 246, 220, 0.35),
-      transparent 30%
+      circle at 23% 79%,
+      rgba(96, 58, 24, 0.2) 0,
+      transparent 0.4vmax
     ),
-    linear-gradient(180deg, #ead9b0, #e2cc9c 60%, #d9c08d);
-  background-size:
-    320px 320px,
-    100% 100%,
-    100% 100%,
-    100% 100%,
-    100% 100%,
-    100% 100%,
-    100% 100%; /* the fibres repeat; the stains and the edges are one piece across the screen */
-  background-repeat:
-    repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+    radial-gradient(
+      circle at 88% 88%,
+      rgba(96, 58, 24, 0.16) 0,
+      transparent 1.1vmax
+    ),
+    radial-gradient(
+      circle at 9% 56%,
+      rgba(96, 58, 24, 0.14) 0,
+      transparent 0.7vmax
+    ),
+    radial-gradient(
+      circle at 63% 34%,
+      rgba(110, 66, 26, 0.09) 0,
+      transparent 0.3vmax
+    ),
+    radial-gradient(
+      ellipse 24vmax 19vmax at 86% 40%,
+      transparent 78%,
+      rgba(100, 62, 28, 0.1) 86%,
+      transparent 93%
+    ),
+    radial-gradient(
+      ellipse 18vmax 22vmax at 12% 12%,
+      rgba(98, 60, 26, 0.14),
+      transparent 70%
+    ),
+    radial-gradient(ellipse 70% 75% at 50% 44%, #c4a275, #b48f62 58%, #97724a);
+  background-size: 100% 100%; /* one piece across the screen: nothing repeats */
+  background-repeat: no-repeat;
+}
+/* the page darkening and browning toward its edges (on a phone, only at the very edges, so the words stay clear) */
+html.th-vellum body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 72% 68% at 50% 46%,
+    transparent 40%,
+    rgba(92, 56, 24, 0.32) 76%,
+    rgba(52, 30, 12, 0.72) 100%
+  );
+}
+@media (max-width: 520px) {
+  html.th-vellum body::after {
+    background: radial-gradient(
+      ellipse 110% 75% at 50% 46%,
+      transparent 55%,
+      rgba(92, 56, 24, 0.3) 82%,
+      rgba(52, 30, 12, 0.62) 100%
+    );
+  }
+}
+html.th-vellum .wrap {
+  max-width: 600px; /* about 65 letters a line, like a book page */
 }
 html.th-vellum ol.toc a,
 html.th-vellum .pager {
@@ -1869,37 +1913,82 @@ html.th-vellum h1 {
 }
 html.th-vellum .chapter p.para {
   text-indent: 0;
+  hyphens: auto; /* justified without wide gaps between the words */
   display: flow-root; /* a short paragraph still holds its whole initial */
 }
-/* the initial: a square of gold leaf three lines tall in a dark ink frame, its letter four times the size of the words
-   (build_all.py puts each first letter in span.ini; a real box, so every browser gives it the same size) */
-html.th-vellum .chapter .ini {
-  float: left;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  font-size: 4em;
-  line-height: 1;
-  height: calc(var(--lh) * 0.75em - 0.12em);
-  min-width: calc(var(--lh) * 0.75em - 0.12em);
-  padding: 0.04em 0.08em 0;
-  margin: 0.05em 0.12em 0 0;
-  color: #8f1d12;
-  background:
-    radial-gradient(
-      circle at 30% 25%,
-      rgba(255, 250, 215, 0.75),
-      transparent 45%
-    ),
-    linear-gradient(135deg, #f0d47c, #c4932c 48%, #ecc764 66%, #a9771f);
-  border: 2px solid #3a220e;
-  box-shadow:
-    inset 0 0 0 3px #f3dd92,
-    inset 0 0 0 4px #3a220e,
-    1px 2px 3px rgba(60, 32, 10, 0.35);
+/* Uncial Antiqua (SIL Open Font License), only for the initials: rounded capitals in the Lombardic manner, an alphabet
+   apart from the blackletter of the words */
+@font-face {
+  font-family: "NWK Lombardic";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(uncial-antiqua-latin-400-normal.woff2) format("woff2");
 }
-/* the paragraphs and the blank lines between them take turns, so every other initial is blue, as in the old books */
-html.th-vellum .chapter p.para:nth-child(4n + 3) .ini {
-  color: #1d3a86;
+/* the initial: flat red or blue, no box; its body sinks 3 lines, its top level with the first line's capitals and its
+   foot on the third line's baseline (worked out from both fonts' measures; the box is cut to 3 lines so the fourth
+   runs full width) */
+html.th-vellum .chapter .ini {
+  position: relative;
+  z-index: 0;
+  float: left;
+  font-family: "NWK Lombardic", "Grenze Gotisch", serif;
+  font-weight: 400;
+  font-size: 5.845em;
+  line-height: 1;
+  height: 0.9116em;
+  margin: -0.02em 0.07em 0 0;
+  color: #a3271f;
+}
+html.th-vellum .chapter .ini.dsc {
+  height: 1.21em; /* a letter with a tail (P, Q, F) takes a fourth line */
+}
+html.th-vellum .chapter .ini-b {
+  color: #24407a;
+}
+/* the penwork: hairlines in the other colour, behind the letter (build_all.py draws a different one for each) */
+html.th-vellum .chapter .pen {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1em;
+  height: 1em;
+  overflow: visible;
+  z-index: -1;
+  fill: #24407a;
+  stroke: #24407a;
+}
+html.th-vellum .chapter .pen > path {
+  fill: none;
+  stroke-width: 1.1px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+html.th-vellum .chapter .pen > circle {
+  stroke: none;
+}
+html.th-vellum .chapter .ini-b .pen {
+  fill: #a3271f;
+  stroke: #a3271f;
+}
+/* the rest of the first word in small capitals; blackletter capitals that small can't be read, so they are the
+   initials' rounded capitals, between the words' x-height and their capital height */
+html.th-vellum .chapter .sc {
+  font-family: "NWK Lombardic", "Grenze Gotisch", serif;
+  font-weight: 400;
+  font-variant-caps: all-small-caps; /* drawn small, so a copy of the words still reads as I wrote them */
+  font-size: 1.06em;
+  letter-spacing: 0.03em;
+}
+/* on a phone the initial sinks 2 lines */
+@media (max-width: 520px) {
+  html.th-vellum .chapter .ini {
+    font-size: 3.353em;
+    height: 0.9736em;
+    margin-top: 0.06em;
+  }
+  html.th-vellum .chapter .ini.dsc {
+    height: 1.494em;
+  }
 }

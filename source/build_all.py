@@ -1,6 +1,6 @@
 """Build the whole Nous Within Kenoma site into site/ with one shared theme (theme/site.css + theme/site.js)."""
 
-import json, html, os, re, shutil
+import json, html, math, os, random, re, shutil
 
 OUT = "site"
 SITE_V = "80"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
@@ -133,7 +133,175 @@ def picker(cur=None, label="Jump to a part"):
     )
 
 
-def render_items(items, pm=False, ini=False):
+# Medieval initials (The King's Festival). I want every paragraph to open on a Lombardic capital, as the scribes drew
+# them: a rounded letter from another alphabet than the words (Uncial Antiqua), in flat red or blue in turn, sunk into
+# the text (3 lines on a computer, 2 on a phone; site.css), with thin penwork in the other colour around it: hairlines
+# down the margin, small curls, beads and dots, drawn a little differently for every letter so none look stamped.
+# The sizes of each capital in Uncial Antiqua, in thousandths of its em: (advance, left, right, bottom, top), measured
+# from the font file, so the penwork can sit just outside the letter.
+LOMBARD = {
+    "A": (795, -2, 850, -5, 709),
+    "B": (777, 33, 737, -20, 700),
+    "C": (736, 48, 692, -24, 702),
+    "D": (891, 44, 845, -24, 986),
+    "E": (737, 48, 692, -25, 702),
+    "F": (668, 33, 652, -270, 700),
+    "G": (838, 48, 810, -25, 702),
+    "H": (888, 33, 843, -32, 899),
+    "I": (405, 39, 366, 0, 700),
+    "J": (388, -28, 360, -290, 700),
+    "K": (806, 33, 830, -25, 899),
+    "L": (606, 33, 629, -107, 899),
+    "M": (1278, 50, 1230, 0, 718),
+    "N": (817, 40, 785, 0, 700),
+    "O": (860, 47, 813, -20, 710),
+    "P": (838, 33, 789, -330, 700),
+    "Q": (837, 49, 805, -330, 700),
+    "R": (768, 39, 765, -25, 700),
+    "S": (704, 51, 665, -13, 712),
+    "T": (716, 1, 718, 0, 700),
+    "U": (895, 46, 856, -20, 732),
+    "V": (796, -33, 792, 0, 700),
+    "W": (1110, -31, 1102, 0, 700),
+    "X": (763, -5, 756, -5, 716),
+    "Y": (734, -38, 747, 0, 700),
+    "Z": (700, 29, 671, 0, 700),
+}
+with open("lombardic.json", encoding="utf-8") as f:
+    LOMBARD_PATHS = json.load(
+        f
+    )  # each capital's outline, in the same box (from the font file)
+BASE = 828  # where the letter's baseline falls in its box (line height 1), in thousandths of its em
+
+
+def curl(x, y, r, turn, rng, start=None):
+    """a small spiral of the pen, from (x, y), curling one way (turn 1) or the other (-1), r wide"""
+    a0 = rng.uniform(0, 6.283) if start is None else start
+    cx, cy = x - r * math.cos(a0), y - r * math.sin(a0)
+    pts = []
+    sweep = rng.uniform(4.4, 5.6)
+    for k in range(19):
+        f = k / 18
+        a = a0 + turn * sweep * f
+        rr = r * (1 - 0.62 * f)
+        pts.append(f"{cx + rr * math.cos(a):.0f} {cy + rr * math.sin(a):.0f}")
+    return "M" + " L".join(pts)
+
+
+def penwork(ch, rng, i):
+    """the penwork around one letter, in the letter's own box (1000 = its em): a hairline that follows the letter's
+    outline a little way out (in its bowls too), a tail down the margin with curls and beads, a sprig curling up from
+    its head and a few dots"""
+    adv, x0, x1, y0, y1 = LOMBARD[ch]
+    top, low = BASE - y1, BASE - min(y0, 0)
+    body = (
+        BASE - 700
+    )  # the top of the letter's body, level with the first line's capitals
+    d = rng.randint(30, 40)  # how far out the outline runs
+    g = LOMBARD_PATHS[ch]
+    ring = (
+        f'<mask id="pm{i}" maskUnits="userSpaceOnUse" x="-400" y="-600" width="2200" height="2400">'
+        f'<path d="{g}" fill="#fff" stroke="#fff" stroke-width="{2 * d + 11}" stroke-linejoin="round"/>'
+        f'<path d="{g}" fill="#000" stroke="#000" stroke-width="{2 * d - 11}" stroke-linejoin="round"/></mask>'
+        f'<rect x="-400" y="-600" width="2200" height="2400" mask="url(#pm{i})"/>'
+    )
+    lines, dots = [], []
+    # the tail: from the outline's left side, gently waving down the margin, ending in a curl
+    tx = min(x0, 40) - d - rng.randint(6, 14)
+    ty = body + rng.randint(160, 300)
+    end = low + rng.randint(80, 170)
+    pts, y, k = [f"M{x0 - d + 2} {ty - 40} Q{tx} {ty - 30} {tx} {ty}"], ty, 0
+    while y < end:
+        y = min(end, y + rng.randint(90, 130))
+        k += 1
+        pts.append(
+            f"T{tx + (rng.randint(4, 12) if k % 2 else -rng.randint(4, 12))} {y}"
+        )
+    pts[-1] = f"T{tx} {end}"
+    lines.append(" ".join(pts))
+    lines.append(curl(tx, end, rng.randint(30, 42), 1, rng, start=0))
+    # curls and beads along it: bigger to the margin side, small toward the letter
+    y, side = ty + rng.randint(40, 70), rng.choice((1, -1))
+    while y < end - 70:
+        kind = rng.random()
+        if kind < 0.6:
+            if side < 0:
+                lines.append(
+                    curl(
+                        tx - 2,
+                        y,
+                        rng.randint(15, 26),
+                        rng.choice((1, -1)),
+                        rng,
+                        start=0,
+                    )
+                )
+            else:
+                lines.append(
+                    curl(
+                        tx + 2,
+                        y,
+                        rng.randint(8, 12),
+                        rng.choice((1, -1)),
+                        rng,
+                        start=3.1416,
+                    )
+                )
+        elif kind < 0.85:
+            dots.append((tx - rng.randint(16, 24), y, rng.randint(6, 9)))
+        else:
+            dots += [(tx - 18, y - 12, 5), (tx - 30, y, 5), (tx - 18, y + 12, 5)]
+        y += rng.randint(80, 120)
+        side = -side
+    # the sprig: up from the outline's top left corner, curling back like a fern
+    hy = max(min(top, body) - d - rng.randint(70, 110), -230)
+    hx = x0 - d - rng.randint(20, 50)
+    sx, sy = x0 - d // 2, min(top, body) - d // 2
+    lines.append(f"M{sx} {sy} Q{sx - 10} {hy + 20} {hx + 30} {hy}")
+    lines.append(curl(hx + 30, hy, rng.randint(22, 32), -1, rng, start=0))
+    # and sometimes a second, smaller one leaning over the letter's head
+    if rng.random() < 0.6:
+        mx = x0 + int((x1 - x0) * rng.uniform(0.3, 0.6))
+        my = min(top, body) - d
+        ey = max(my - rng.randint(60, 90), -230)
+        lines.append(f"M{mx} {my} Q{mx + 10} {ey + 25} {mx + 45} {ey}")
+        lines.append(curl(mx + 45, ey, rng.randint(14, 20), 1, rng, start=3.1416))
+    # a few dots above its shoulder
+    dx, dy = x0 + int((x1 - x0) * rng.uniform(0.62, 0.85)), min(
+        top, body
+    ) - d - rng.randint(28, 45)
+    for ox, oy in rng.choice(
+        (((0, 0), (22, 0), (11, -18)), ((0, 0), (17, -13)), ((0, 0),))
+    ):
+        dots.append((dx + ox, dy + oy, rng.randint(6, 8)))
+    return (
+        '<svg class="pen" viewBox="0 0 1000 1000" aria-hidden="true">'
+        + ring
+        + f'<path d="{" ".join(lines)}"/>'
+        + "".join(f'<circle cx="{x}" cy="{y}" r="{r}"/>' for x, y, r in dots)
+        + "</svg>"
+    )
+
+
+def initial(h, i):
+    """the paragraph's first letter as a Lombardic initial (with any quote mark before it), the rest of its first
+    word in small capitals, as the manuscripts do"""
+    m = re.match(r"((?:&[#\w]+;|[“‘])*)(\w)(\w*)", h)
+    if not m or m.group(2).upper() not in LOMBARD:
+        return h
+    q, ch, rest = m.groups()
+    rng = random.Random(f"{ch}{i}")
+    tone = "r" if i % 2 else "b"  # red, blue, red, blue…
+    dsc = (
+        " dsc" if LOMBARD[ch.upper()][3] < -200 else ""
+    )  # a letter with a long tail needs one more line
+    span = (
+        f'<span class="ini ini-{tone}{dsc}">{penwork(ch.upper(), rng, i)}{q}{ch}</span>'
+    )
+    return span + (f'<span class="sc">{rest}</span>' if rest else "") + h[m.end() :]
+
+
+def render_items(items, pm=False, ini=0):
     out = []
     for it in items:
         k = it["k"]
@@ -155,14 +323,8 @@ def render_items(items, pm=False, ini=False):
                 )
             else:
                 if ini:
-                    # I want every paragraph of this part to open on a big medieval initial that the words wrap around:
-                    # its first letter (with any quote mark before it) goes in a box of its own, three lines tall
-                    h = re.sub(
-                        r"^((?:&[#\w]+;|[“‘])*\w)",
-                        r'<span class="ini">\1</span>',
-                        h,
-                        count=1,
-                    )
+                    h = initial(h, ini)
+                    ini += 1
                 out.append(f'<p class="para">{h}</p>')
         elif k == "quote":
             out.append(f'<p class="quote">{it["html"]}</p>')
@@ -180,6 +342,7 @@ def render_items(items, pm=False, ini=False):
 
 
 BLACK = {26, 54}
+INI_FONT = '\n<link rel="preload" href="uncial-antiqua-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>'
 INITIALS = {
     54
 }  # parts whose paragraphs each open on a big initial (The King's Festival)
@@ -196,6 +359,8 @@ def ch_fx(n):
     )  # 2026-10-19: heavy static (3, 4) brought down to medium; medium has no rolling TV band
     if n in (50, 51, 52):
         lvl = 2  # I want the grey TV static on VHS Tape, Word and Sepulcher, very faint, so the text stays easy to read
+    if n == 54:
+        lvl = 0  # The King's Festival: an old book page, no static over the parchment
     if n == 55:
         lvl = 2  # Blue to Gray: the static starts at nothing and comes in with the grey (site.js)
     fx = "" if n in (1, 2, 3, 4, 26, 35, 54) else "strings bars"
@@ -240,7 +405,9 @@ for i, c in enumerate(C):
     nxt = C[i + 1] if i + 1 < len(C) else None
     bl = n in BLACK
     body = head(
-        f'No. {n}: {c["title"]} · Nous Within Kenoma', BL_FONT if bl else "", **ch_fx(n)
+        f'No. {n}: {c["title"]} · Nous Within Kenoma',
+        (BL_FONT if bl else "") + (INI_FONT if n in INITIALS else ""),
+        **ch_fx(n),
     )
     if n == 49:
         # I added a blank line between the head and the body on this page by hand, and I want it kept
@@ -250,7 +417,7 @@ for i, c in enumerate(C):
     body += (
         f'<header><span class="num">No. {n}</span><h1>{esc(c["title"])}</h1></header>\n'
     )
-    body += f'<article class="chapter{" blackletter" if bl else ""}{" flow" if n >= 5 else ""}" style="--lh:{c["lh"]};--ind:{c["ind"]}em">\n{render_items(c["items"], n >= 5, n in INITIALS)}\n</article>\n'
+    body += f'<article class="chapter{" blackletter" if bl else ""}{" flow" if n >= 5 else ""}" style="--lh:{c["lh"]};--ind:{c["ind"]}em">\n{render_items(c["items"], n >= 5, 1 if n in INITIALS else 0)}\n</article>\n'
     body += '<nav class="pager">'
     body += (
         f'<a href="{fname(prev["n"])}">← No. {prev["n"]}: {esc(prev["title"])}</a>'
