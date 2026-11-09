@@ -606,3 +606,113 @@
     document.addEventListener("DOMContentLoaded", go);
   else go();
 })();
+
+/* The Night Never Ends (No. 56): a few lone orange street lights, only their light, sliding away from the left of the
+   page toward a vanishing point on the right, on the horizon (like a one-point perspective drawing: everything
+   recedes from the left side to that point). Two rows, one higher and one lower. Each light in a row is clearly
+   smaller than the one before it (about half), so only a few show at once, never bunched up; the last fades out well
+   before the point. Now and then (rarely) one light flickers. Still, with reduced motion or Data saving: one quiet
+   frame. */
+(function () {
+  const D = document.documentElement;
+  if (!D.classList.contains("th-night")) return;
+  const R = Math.random,
+    still =
+      matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      D.classList.contains("lite"),
+    NEAR = 0.9, // depth where a light comes in, at the left edge of the page
+    STEP = 1.9, // each light in a row is this much further than the one before it (about half the size)
+    SLOTS = 5, // lights in a row from the left edge to where they fade out
+    SLOT_T = 8, // seconds a light takes to move one place on: about 40 s from the left edge to gone
+    ROWS = [
+      { y: -0.3, off: 0 }, // the higher row
+      { y: 0.36, off: 0.5 }, // the lower row, half a place behind
+    ];
+  const cv = document.createElement("canvas");
+  cv.className = "nightlights";
+  cv.setAttribute("aria-hidden", "true");
+  const g = cv.getContext("2d");
+  let W = 0,
+    H = 0,
+    dpr = 1,
+    vx = 0,
+    vy = 0,
+    F = 0,
+    flick = null,
+    nextFlick = 12 + R() * 25;
+  function size() {
+    dpr = Math.min(1.5, devicePixelRatio || 1);
+    W = innerWidth;
+    H = innerHeight;
+    cv.width = Math.round(W * dpr);
+    cv.height = Math.round(H * dpr);
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    vx = W * 0.85; // the vanishing point: on the horizon, near the right
+    vy = H * 0.4;
+    F = Math.min(W, H) * 0.28; // how big a light is for its depth (the first version's sizes)
+  }
+  // one light: a soft orange glow, brightest in the middle, no edge anywhere
+  function glow(x, y, r, a) {
+    if (a <= 0.003 || r < 0.6) return;
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, `rgba(255,170,90,${a})`);
+    gr.addColorStop(0.18, `rgba(244,124,38,${a * 0.85})`);
+    gr.addColorStop(0.5, `rgba(196,82,18,${a * 0.3})`);
+    gr.addColorStop(1, "rgba(150,55,10,0)");
+    g.fillStyle = gr;
+    g.beginPath();
+    g.arc(x, y, r, 0, 6.2832);
+    g.fill();
+  }
+  function draw(t) {
+    g.clearRect(0, 0, W, H);
+    g.globalCompositeOperation = "lighter";
+    const zin = NEAR * 1.25; // fully in by here (at the left edge)
+    ROWS.forEach((row, ri) => {
+      for (let k = 0; k < SLOTS; k++) {
+        const u = (t / SLOT_T + row.off + k) % SLOTS, // 0 at the left edge, SLOTS where it is gone
+          z = NEAR * STEP ** u,
+          q = zin / z, // 1 at the left edge, smaller on toward the point
+          x = vx - (vx - W * 0.02) * q,
+          y = vy + row.y * H * q,
+          r = Math.min(0.42 * Math.min(W, H), (0.6 * F) / z),
+          a =
+            0.5 *
+            Math.min(1, u / 0.35) * // comes in softly at the left edge
+            (1 - u / SLOTS) ** 1.4; // dimmer the further it goes, gone before the point
+        let f = 1;
+        if (flick && flick.row === ri && flick.k === k) {
+          const p = (t - flick.at) / 0.9;
+          if (p >= 0 && p < 1)
+            f = [0.2, 1, 0.35, 0.9, 0.15, 1][Math.floor(p * 6)];
+        }
+        glow(x, y, r, a * f);
+      }
+    });
+    g.globalCompositeOperation = "source-over";
+  }
+  let t0 = null;
+  function frame(now) {
+    if (t0 === null) t0 = now;
+    const t = (now - t0) / 1000;
+    if (t > nextFlick) {
+      flick = { row: R() < 0.5 ? 0 : 1, k: Math.floor(R() * 3), at: t };
+      nextFlick = t + 18 + R() * 30;
+    }
+    draw(t + 40);
+    requestAnimationFrame(frame);
+  }
+  function go() {
+    document.body.prepend(cv);
+    size();
+    addEventListener("resize", () => {
+      size();
+      if (still) draw(40);
+    });
+    if (still) draw(40);
+    else requestAnimationFrame(frame);
+  }
+  if (document.readyState === "loading")
+    document.addEventListener("DOMContentLoaded", go);
+  else go();
+})();

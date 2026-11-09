@@ -3,7 +3,7 @@
 import json, html, os, re, shutil
 
 OUT = "site"
-SITE_V = "85"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+SITE_V = "86"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 ICON_V = "2"  # the same for the tab icon (2: the white circle with a line through it, in a black box)
 if os.path.isdir(OUT):
     shutil.rmtree(OUT)  # v79j: a clean build (the files end up in folders at the end)
@@ -246,7 +246,11 @@ def ch_fx(n):
                             else (
                                 "th-vellum"
                                 if n == 54
-                                else "th-bluegray" if n == 55 else ""
+                                else (
+                                    "th-bluegray"
+                                    if n == 55
+                                    else "th-night" if n == 56 else ""
+                                )
                             )
                         )
                     )
