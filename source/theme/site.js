@@ -607,11 +607,12 @@
   else go();
 })();
 
-/* The Night Never Ends (No. 56): lone orange street lights, only their light, sliding away from the reader toward a
-   vanishing point, like looking far down a road at night. Two rows (higher and lower, both to the left of the road).
-   Each light is a faint soft haze with no edge, never a disc; the rows run on and on into ever smaller, fainter specks,
-   as if the road never ends. Now and then (rarely) one light flickers. Still, with reduced motion or Data saving: one
-   quiet frame. */
+/* The Night Never Ends (No. 56): a few lone orange street lights, only their light, sliding away from the left of the
+   page toward a vanishing point on the right, on the horizon (like a one-point perspective drawing: everything
+   recedes from the left side to that point). Two rows, one higher and one lower. Each light in a row is clearly
+   smaller than the one before it (about half), so only a few show at once, never bunched up; the last fades out well
+   before the point. Now and then (rarely) one light flickers. Still, with reduced motion or Data saving: one quiet
+   frame. */
 (function () {
   const D = document.documentElement;
   if (!D.classList.contains("th-night")) return;
@@ -619,13 +620,13 @@
     still =
       matchMedia("(prefers-reduced-motion: reduce)").matches ||
       D.classList.contains("lite"),
-    NEAR = 1.7, // depth where a light comes in: already a way off
-    FAR = 110, // depth where it is gone, a speck at the vanishing point
-    SPEED = 0.6, // depth per second
-    GAP = 5, // depth between two lights in a row
+    NEAR = 0.9, // depth where a light comes in, at the left edge of the page
+    STEP = 1.9, // each light in a row is this much further than the one before it (about half the size)
+    SLOTS = 5, // lights in a row from the left edge to where they fade out
+    SLOT_T = 8, // seconds a light takes to move one place on: about 40 s from the left edge to gone
     ROWS = [
-      { x: -1.5, y: -0.55, off: 0 },
-      { x: -1.5, y: 0.8, off: GAP / 2 },
+      { y: -0.3, off: 0 }, // the higher row
+      { y: 0.36, off: 0.5 }, // the lower row, half a place behind
     ];
   const cv = document.createElement("canvas");
   cv.className = "nightlights";
@@ -646,34 +647,18 @@
     cv.width = Math.round(W * dpr);
     cv.height = Math.round(H * dpr);
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const wide = W > H;
-    // the vanishing point: on a wide screen out in the right margin, so the far specks stay clear of the words and the
-    // near lights come in through the left margin; on a phone a little right of the middle
-    vx = W * (wide ? 0.84 : 0.62);
-    vy = H * (wide ? 0.36 : 0.3);
-    F = wide ? W * 0.33 : Math.min(W, H) * 0.34;
+    vx = W * 0.85; // the vanishing point: on the horizon, near the right
+    vy = H * 0.4;
+    F = Math.min(W, H) * 0.28; // how big a light is for its depth (the first version's sizes)
   }
-  // one light: a faint orange haze, thickest in the middle and thinning out slowly, so it has no edge to read as a
-  // circle; the far ones are only a soft speck
+  // one light: a soft orange glow, brightest in the middle, no edge anywhere
   function glow(x, y, r, a) {
-    if (a <= 0.004) return;
-    if (r < 2.5) {
-      // the tiniest fade with their size, so the far end thins into the dark instead of drawing a line
-      a *= Math.max(0, (r - 0.5) / 2) ** 1.5;
-      if (a <= 0.004) return;
-      g.fillStyle = `rgba(240,128,44,${a})`;
-      g.beginPath();
-      g.arc(x, y, Math.max(0.8, r), 0, 6.2832);
-      g.fill();
-      return;
-    }
+    if (a <= 0.003 || r < 0.6) return;
     const gr = g.createRadialGradient(x, y, 0, x, y, r);
-    gr.addColorStop(0, `rgba(250,150,70,${a})`);
-    gr.addColorStop(0.12, `rgba(240,128,44,${a * 0.78})`);
-    gr.addColorStop(0.3, `rgba(214,100,30,${a * 0.42})`);
-    gr.addColorStop(0.55, `rgba(180,76,20,${a * 0.14})`);
-    gr.addColorStop(0.8, `rgba(150,60,14,${a * 0.035})`);
-    gr.addColorStop(1, "rgba(130,50,10,0)");
+    gr.addColorStop(0, `rgba(255,170,90,${a})`);
+    gr.addColorStop(0.18, `rgba(244,124,38,${a * 0.85})`);
+    gr.addColorStop(0.5, `rgba(196,82,18,${a * 0.3})`);
+    gr.addColorStop(1, "rgba(150,55,10,0)");
     g.fillStyle = gr;
     g.beginPath();
     g.arc(x, y, r, 0, 6.2832);
@@ -682,20 +667,19 @@
   function draw(t) {
     g.clearRect(0, 0, W, H);
     g.globalCompositeOperation = "lighter";
-    const span = FAR - NEAR;
+    const zin = NEAR * 1.25; // fully in by here (at the left edge)
     ROWS.forEach((row, ri) => {
-      for (let k = 0; k * GAP < span + GAP; k++) {
-        const z = NEAR + ((t * SPEED + row.off + k * GAP) % (span + GAP));
-        if (z > FAR) continue;
-        const s = F / z,
-          x = vx + row.x * s * 2.2,
-          y = vy + row.y * s * 2.2,
-          r = 0.5 * s,
+      for (let k = 0; k < SLOTS; k++) {
+        const u = (t / SLOT_T + row.off + k) % SLOTS, // 0 at the left edge, SLOTS where it is gone
+          z = NEAR * STEP ** u,
+          q = zin / z, // 1 at the left edge, smaller on toward the point
+          x = vx - (vx - W * 0.02) * q,
+          y = vy + row.y * H * q,
+          r = Math.min(0.42 * Math.min(W, H), (0.6 * F) / z),
           a =
-            0.3 *
-            Math.min(1, (z - NEAR) / 1.5) * // comes in softly
-            (NEAR / z) ** 0.28 * // dimmer the further it goes
-            (1 - (z / FAR) ** 3); // and gone at the end
+            0.5 *
+            Math.min(1, u / 0.35) * // comes in softly at the left edge
+            (1 - u / SLOTS) ** 1.4; // dimmer the further it goes, gone before the point
         let f = 1;
         if (flick && flick.row === ri && flick.k === k) {
           const p = (t - flick.at) / 0.9;
@@ -712,7 +696,7 @@
     if (t0 === null) t0 = now;
     const t = (now - t0) / 1000;
     if (t > nextFlick) {
-      flick = { row: R() < 0.5 ? 0 : 1, k: Math.floor(R() * 8), at: t };
+      flick = { row: R() < 0.5 ? 0 : 1, k: Math.floor(R() * 3), at: t };
       nextFlick = t + 18 + R() * 30;
     }
     draw(t + 40);
