@@ -50,22 +50,12 @@ window.EC_QUOTES = [
     title: "The Angel; Prophecy",
   },
   {
-    t: "“So, you’re seeing this?” Ana says while leaning in, her face smushed by her hand she rests upon from the table, her cigarette still lit in the other hand; exhales barely rise above the writing below the dolls. The old record still sings mellotron melodies. Thomas nods.",
+    t: "There is a red house that wasn’t there, a small little red house; it looks to be some kind of clean abandonment. It is alone, and apart from the surroundings, it feels wrong to him. He is called, a misty-eyed walk through the splintering liquid chill. He walks off into the hills. Night wants to fall upon the setting sun, wanting to tackle.",
     n: 11,
     title: "Buttons and Stitches",
   },
   {
-    t: "He sees the light pinched at his lighter, leaving nothing to see. What else is there for him to do now? So he steps out, but the ground is a little lower with each step. He steps down, down, and down… Down until his foot kicks a wall; he backs his other foot up and back, but his heel kicks a surface as well. He takes his arms out wide, but it’s still claustrophobic. Is he trapped?",
-    n: 11,
-    title: "Buttons and Stitches",
-  },
-  {
-    t: "I’m all alone. Use me machine. Blackened heat: my consciousness wrestling my drugs helplessly, tiring itself breathless. I’m sorry, Guardian Angel; I cannot get up and out. I am not the one who becomes anyone but hopefully dead. Back to sleep confinements.",
-    n: 12,
-    title: "Gammacept Isness Blinding",
-  },
-  {
-    t: "I’m a high drone, a car-bound garage shut-in, and limply untelling fume drools. I’m spinal flu titrated with focal-point swerves; with nerve melts emptying me. Phone seen cycle dreams give me hot flesh soup. Hyper thrall fears re-missing into sick-sclerosis. Warm with mind drainage after birth tide spins of gutter-machines who drain me, emptying me. The egoless lullaby fish song swims lost. The ending song always playing in my head, those piano notes of the machine distracting itself.",
+    t: "The penetrating machine can crawl up and into every vein, stretching biology with inseminating love. My machine can fill my lungs, reach into every microcosm vein recursion form, in its dreamlike repetition. My nerve directory trees release nothing, adding up to a brake of spine’s burning unto; better gone. Do you notice God? I won’t let the ancient poison use me on their terms; it’s impossible to use the unaware and missing. The ways of your lies are only less than my own to myself. It is an endless loss to win against someone never trying; no rulership over the one without and releasing.",
     n: 12,
     title: "Gammacept Isness Blinding",
   },
@@ -498,5 +488,15 @@ window.EC_QUOTES = [
     t: "The sky keeps going, just creating mud with its tears all over, and not leaving. It doesn’t really care if it drowns us by this point. I get a little caught in my head about the weather, and he is already answering, “More than one, actually three of them. PCP, more painkillers, whatever, and your favorite, Ketamine. You like that, Alice?”",
     n: 55,
     title: "Blue to Gray",
+  },
+  {
+    t: "The hand… It lays out into a rest on the table of air, where the smoke rises from a bowl of lit substance like a chimney. The man, at a loss for reality, puts down the drug with a drop without knowing it will fall. They are unable to consider the simple. They walk away, over the piles of mouths like a children’s book, before an out is found at the window. Upon exiting into a plunge, the waving branch slap of a tree says hello on the way to the bottom, almost there. The man falls down the twelve-story building from a window of the twelfth floor.",
+    n: 56,
+    title: "Nothing is Wrong",
+  },
+  {
+    t: "When the body splats like a wet balloon made of skin and a body heavy, some crows laughed with their voice of God, who are puppets to a Lord who does not know what he is doing to himself. The strangeness that the creator also doesn’t understand is exactly how everyone looked with their double face, like they understood underneath their look of trauma. Do they pretend to be disturbed…? It could only be a bizarre thought? Right? Just a thought is all? Something very powerful turns the mind on itself, with a realization that must be shut down, and it is cursed as nothing by God.",
+    n: 56,
+    title: "Nothing is Wrong",
   },
 ];
