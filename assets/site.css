@@ -1891,3 +1891,25 @@ html.th-voices .chapter p.center {
 html.th-voices .chapter p.indigo {
   color: #ac9cfc; /* indigo, 8.3:1 */
 }
+/* No. 56, The Night Never Ends: the site's burnt amber on a darker, nearly black page, and behind it a few lone orange
+   street lights, only light with no lamp or post, sliding away toward a vanishing point; site.js draws them */
+html.th-night {
+  --ground: #050302;
+  --well: #0b0603;
+  --deep: #020100;
+  --rule: #2b1709;
+}
+canvas.nightlights {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  pointer-events: none;
+}
+/* a thin dark halo around the letters, so a light passing behind the words never washes them out */
+html.th-night .chapter p {
+  text-shadow:
+    0 0 2px var(--ground),
+    0 0 7px var(--ground);
+}

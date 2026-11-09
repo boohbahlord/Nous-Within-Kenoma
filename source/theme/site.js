@@ -606,3 +606,112 @@
     document.addEventListener("DOMContentLoaded", go);
   else go();
 })();
+
+/* The Night Never Ends (No. 56): a few lone orange street lights, only their light, sliding away from the reader toward
+   a vanishing point, like looking down a road at night. Two rows (higher and lower, both to the left of the road), each
+   light growing smaller and dimmer as it goes, then coming back near once it has gone. Now and then (rarely) one light
+   flickers. Still, with reduced motion or Data saving: one quiet frame. */
+(function () {
+  const D = document.documentElement;
+  if (!D.classList.contains("th-night")) return;
+  const R = Math.random,
+    still =
+      matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      D.classList.contains("lite"),
+    NEAR = 0.9, // depth where a light comes in (big, near)
+    FAR = 22, // depth where it is gone (a speck at the vanishing point)
+    SPEED = 0.55, // depth per second: a light takes about 40 s to go
+    GAP = 6.5, // depth between two lights in a row: only a few at once
+    ROWS = [
+      { x: -1.5, y: -0.55, off: 0 },
+      { x: -1.5, y: 0.8, off: GAP / 2 },
+    ];
+  const cv = document.createElement("canvas");
+  cv.className = "nightlights";
+  cv.setAttribute("aria-hidden", "true");
+  const g = cv.getContext("2d");
+  let W = 0,
+    H = 0,
+    dpr = 1,
+    vx = 0,
+    vy = 0,
+    F = 0,
+    flick = null,
+    nextFlick = 12 + R() * 25;
+  function size() {
+    dpr = Math.min(1.5, devicePixelRatio || 1);
+    W = innerWidth;
+    H = innerHeight;
+    cv.width = Math.round(W * dpr);
+    cv.height = Math.round(H * dpr);
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const wide = W > H;
+    // the vanishing point: on a wide screen out in the right margin, so the far specks stay clear of the words and the
+    // near lights come in through the left margin; on a phone a little right of the middle
+    vx = W * (wide ? 0.84 : 0.62);
+    vy = H * (wide ? 0.36 : 0.3);
+    F = wide ? W * 0.33 : Math.min(W, H) * 0.34;
+  }
+  // one light: a soft orange glow, brightest in the middle, no edge anywhere
+  function glow(x, y, r, a) {
+    if (a <= 0.003 || r < 0.4) return;
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, `rgba(255,170,90,${a})`);
+    gr.addColorStop(0.18, `rgba(244,124,38,${a * 0.85})`);
+    gr.addColorStop(0.5, `rgba(196,82,18,${a * 0.3})`);
+    gr.addColorStop(1, "rgba(150,55,10,0)");
+    g.fillStyle = gr;
+    g.beginPath();
+    g.arc(x, y, r, 0, 6.2832);
+    g.fill();
+  }
+  function draw(t) {
+    g.clearRect(0, 0, W, H);
+    g.globalCompositeOperation = "lighter";
+    const span = FAR - NEAR;
+    ROWS.forEach((row, ri) => {
+      for (let k = 0; k * GAP < span + GAP; k++) {
+        const z = NEAR + ((t * SPEED + row.off + k * GAP) % (span + GAP));
+        if (z > FAR) continue;
+        const s = F / z,
+          x = vx + row.x * s * 2.2,
+          y = vy + row.y * s * 2.2,
+          r = Math.min(0.42 * Math.min(W, H), 0.6 * s),
+          u = (z - NEAR) / span, // 0 near, 1 gone
+          a = 0.55 * Math.min(1, (z - NEAR) / 0.8) * (1 - u) ** 1.3;
+        let f = 1;
+        if (flick && flick.row === ri && flick.k === k) {
+          const p = (t - flick.at) / 0.9;
+          if (p >= 0 && p < 1)
+            f = [0.2, 1, 0.35, 0.9, 0.15, 1][Math.floor(p * 6)];
+        }
+        glow(x, y, r, a * f);
+      }
+    });
+    g.globalCompositeOperation = "source-over";
+  }
+  let t0 = null;
+  function frame(now) {
+    if (t0 === null) t0 = now;
+    const t = (now - t0) / 1000;
+    if (t > nextFlick) {
+      flick = { row: R() < 0.5 ? 0 : 1, k: Math.floor(R() * 3), at: t };
+      nextFlick = t + 18 + R() * 30;
+    }
+    draw(t + 40);
+    requestAnimationFrame(frame);
+  }
+  function go() {
+    document.body.prepend(cv);
+    size();
+    addEventListener("resize", () => {
+      size();
+      if (still) draw(40);
+    });
+    if (still) draw(40);
+    else requestAnimationFrame(frame);
+  }
+  if (document.readyState === "loading")
+    document.addEventListener("DOMContentLoaded", go);
+  else go();
+})();

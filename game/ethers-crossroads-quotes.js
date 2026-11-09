@@ -60,22 +60,12 @@ window.EC_QUOTES = [
     title: "Gammacept Isness Blinding",
   },
   {
-    t: "He traps the nameless souls in this tangled world, leaving the ghosts powerless as crying clay melts. The ghosts weep and beckon for release, begging with a tearful plea in their withering, “Release me, angry God! Release me, O Lord! I try to understand your ways and give myself to you, but I do not understand!”",
+    t: "God hates the miracles of love-kind. The pain of faith without granted knowledge torments, casting followers deeper into the land of memories, bringing their heart into confines of the Archonic cell plans. An ancient one, like a pharaoh, slays their firstborn. Merciless givings to dying mothers over breathless, beaten children of beatless hearts, babies. It is the nature of the parasite, always reaching. After all the eternities, it goes on.",
     n: 13,
     title: "Soothsayings",
   },
   {
-    t: "“I won’t give in! I can’t give in!” Cries of spirits in their ascension, blessing those who suffer most; we cannot imagine the sting of capture in flight… Taken to the outer darkness and punished by vile drunkenness and stupor. By knowledge over twelve eternities of twelve eternities, the curseful chains from the demiurge hide the truth through our flesh and world. If one were to live thirteen of twelve, they too would guard this knowledge with him.",
-    n: 13,
-    title: "Soothsayings",
-  },
-  {
-    t: "A brother approaches, who rejected the Hermit, the brother now teary-eyed. He just looks with a pouting smile that holds back looming fears of all time, saying to him, “I love you, brother. I love you. I’m sorry, man. It’s okay.” His voice breaks constantly, his eyes drowning and red in weep.",
-    n: 14,
-    title: "Chemical Hermit",
-  },
-  {
-    t: "Colors rolling glows cover an empty vacuum of air. Crinkling skin cackles carry sickness to the mind, trancing him into an unfathomable state. Prickly piercing pressures. Electricity dancing a stupid waltz, unsympathetic to autonomic machinery.",
+    t: "The Hermit is in the corner of a small room on brown carpet, yellow-hued familiarly, like a million times in a million times familiar. Maybe without beginning, always ending. He is blue at the feet and the hands, and his veins bulge while the Lucifer is sitting on his heart, yelling, “Repeating! Repeating! I will spill your thoughts through psychotic rambles! They will know!”",
     n: 14,
     title: "Chemical Hermit",
   },
@@ -490,13 +480,23 @@ window.EC_QUOTES = [
     title: "Blue to Gray",
   },
   {
-    t: "The hand… It lays out into a rest on the table of air, where the smoke rises from a bowl of lit substance like a chimney. The man, at a loss for reality, puts down the drug with a drop without knowing it will fall. They are unable to consider the simple. They walk away, over the piles of mouths like a children’s book, before an out is found at the window. Upon exiting into a plunge, the waving branch slap of a tree says hello on the way to the bottom, almost there. The man falls down the twelve-story building from a window of the twelfth floor.",
+    t: "They are in a home without rest. The chemicals are the black nous that hung their souls down deeper to nowhere, a penetrating insanity that talks to itself forever, the bitter walk irritating a mind with nowhere to sit. They made the dirt into a passage towards the lowest emanation that becomes you, where the in becomes an out of itself. The placeless forgives nothing, not even itself, and it even breaks mirrors at the sight of them. The reflection burns the mind of soul within the timeless head, caught in itself, screaming to be let go towards a God made of itself.",
     n: 56,
+    title: "The Night Never Ends",
+  },
+  {
+    t: "Tired of it, he swims upstream through a belt looped at the neck that spins around as the mind’s swirling lostness, calling out through a crushed hourglass throat that bursts with laughter out from rupturing veins. He is caught in the bend of catch that holds onto the pretend of release, taking itself nowhere.",
+    n: 56,
+    title: "The Night Never Ends",
+  },
+  {
+    t: "The hand… It lays out into a rest on the table of air, where the smoke rises from a bowl of lit substance like a chimney. The man, at a loss for reality, puts down the drug with a drop without knowing it will fall. They are unable to consider the simple. They walk away, over the piles of mouths like a children’s book, before an out is found at the window. Upon exiting into a plunge, the waving branch slap of a tree says hello on the way to the bottom, almost there. The man falls down the twelve-story building from a window of the twelfth floor.",
+    n: 57,
     title: "Nothing is Wrong",
   },
   {
     t: "When the body splats like a wet balloon made of skin and a body heavy, some crows laughed with their voice of God, who are puppets to a Lord who does not know what he is doing to himself. The strangeness that the creator also doesn’t understand is exactly how everyone looked with their double face, like they understood underneath their look of trauma. Do they pretend to be disturbed…? It could only be a bizarre thought? Right? Just a thought is all? Something very powerful turns the mind on itself, with a realization that must be shut down, and it is cursed as nothing by God.",
-    n: 56,
+    n: 57,
     title: "Nothing is Wrong",
   },
 ];
