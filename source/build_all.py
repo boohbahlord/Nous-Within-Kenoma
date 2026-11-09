@@ -320,7 +320,7 @@ land = head("Nous Within Kenoma") + f"""<main class="wrap">
 <nav class="crumbs"><a href="index.html">← Homepage</a></nav>
 <header><h1>Nous Within Kenoma</h1></header>
 <section class="notice" aria-label="About these parts">
-<p>This book is unfinished. These stories may still change before the book is complete.</p>
+<p>This book is unfinished. These stories may still change before the book is complete. The writing is in a very much rough state and will be revised once all the chapters are finished soon.</p>
 <p><i>Nous Within Kenoma</i> is a collection of short stories that all take place within the same cosmology. The stories are interconnected to differing extents.</p>
 </section>
 {picker(None, 'Select a part for preview reading')}
