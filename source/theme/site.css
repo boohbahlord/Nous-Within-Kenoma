@@ -1892,6 +1892,56 @@ html.th-voices .chapter p.center {
 html.th-voices .chapter p.indigo {
   color: #ac9cfc; /* indigo, 8.3:1 */
 }
+/* No. 4: "Nine of her parts scattered…" and "His birthless end…" in white, almost faded out, barely there; every 11 s
+   they breathe back in with a stutter, a skip or two, still see-through, only a little easier to see, then fade away */
+html.th-voices .chapter p.center.faint {
+  color: #fff;
+  opacity: 0.07;
+  animation: faint-breath 11s linear infinite;
+}
+html.th-voices .chapter p.center.faint + p.center.faint {
+  animation-delay: 0.18s;
+}
+@keyframes faint-breath {
+  0%,
+  55% {
+    opacity: 0.07;
+  }
+  60% {
+    opacity: 0.2;
+  }
+  61% {
+    opacity: 0.08;
+  }
+  63% {
+    opacity: 0.22;
+  }
+  64% {
+    opacity: 0.12;
+  }
+  65.5% {
+    opacity: 0.27;
+  }
+  80% {
+    opacity: 0.27;
+  }
+  81% {
+    opacity: 0.15;
+  }
+  82% {
+    opacity: 0.25;
+  }
+  92%,
+  100% {
+    opacity: 0.07;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.th-voices .chapter p.center.faint {
+    animation: none;
+    opacity: 0.12;
+  }
+}
 /* No. 56, The Night Never Ends: the site's burnt amber on a darker, nearly black page, and behind it a few lone orange
    street lights, only light with no lamp or post, sliding away toward a vanishing point; site.js draws them */
 html.th-night {

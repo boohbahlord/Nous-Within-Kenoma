@@ -3,7 +3,7 @@
 import json, html, os, re, shutil
 
 OUT = "site"
-SITE_V = "85"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+SITE_V = "86"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 ICON_V = "2"  # the same for the tab icon (2: the white circle with a line through it, in a black box)
 if os.path.isdir(OUT):
     shutil.rmtree(OUT)  # v79j: a clean build (the files end up in folders at the end)
@@ -297,6 +297,11 @@ for i, c in enumerate(C):
         body = body[:at] + end.replace(
             '<p class="center">', '<p class="center indigo">'
         )
+        # the two lines after "What of my Devil God?" in white, almost gone, breathing back in now and then with a skip
+        for line in ("Nine of her parts scattered", "His birthless end"):
+            body = body.replace(
+                f'<p class="center">{line}', f'<p class="center faint">{line}'
+            )
     body += '<nav class="pager">'
     body += (
         f'<a href="{fname(prev["n"])}">← No. {prev["n"]}: {esc(prev["title"])}</a>'

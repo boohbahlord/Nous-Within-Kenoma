@@ -607,10 +607,11 @@
   else go();
 })();
 
-/* The Night Never Ends (No. 56): a few lone orange street lights, only their light, sliding away from the reader toward
-   a vanishing point, like looking down a road at night. Two rows (higher and lower, both to the left of the road), each
-   light growing smaller and dimmer as it goes, then coming back near once it has gone. Now and then (rarely) one light
-   flickers. Still, with reduced motion or Data saving: one quiet frame. */
+/* The Night Never Ends (No. 56): lone orange street lights, only their light, sliding away from the reader toward a
+   vanishing point, like looking far down a road at night. Two rows (higher and lower, both to the left of the road).
+   Each light is a faint soft haze with no edge, never a disc; the rows run on and on into ever smaller, fainter specks,
+   as if the road never ends. Now and then (rarely) one light flickers. Still, with reduced motion or Data saving: one
+   quiet frame. */
 (function () {
   const D = document.documentElement;
   if (!D.classList.contains("th-night")) return;
@@ -618,10 +619,10 @@
     still =
       matchMedia("(prefers-reduced-motion: reduce)").matches ||
       D.classList.contains("lite"),
-    NEAR = 0.9, // depth where a light comes in (big, near)
-    FAR = 22, // depth where it is gone (a speck at the vanishing point)
-    SPEED = 0.55, // depth per second: a light takes about 40 s to go
-    GAP = 6.5, // depth between two lights in a row: only a few at once
+    NEAR = 1.7, // depth where a light comes in: already a way off
+    FAR = 110, // depth where it is gone, a speck at the vanishing point
+    SPEED = 0.6, // depth per second
+    GAP = 5, // depth between two lights in a row
     ROWS = [
       { x: -1.5, y: -0.55, off: 0 },
       { x: -1.5, y: 0.8, off: GAP / 2 },
@@ -652,14 +653,27 @@
     vy = H * (wide ? 0.36 : 0.3);
     F = wide ? W * 0.33 : Math.min(W, H) * 0.34;
   }
-  // one light: a soft orange glow, brightest in the middle, no edge anywhere
+  // one light: a faint orange haze, thickest in the middle and thinning out slowly, so it has no edge to read as a
+  // circle; the far ones are only a soft speck
   function glow(x, y, r, a) {
-    if (a <= 0.003 || r < 0.4) return;
+    if (a <= 0.004) return;
+    if (r < 2.5) {
+      // the tiniest fade with their size, so the far end thins into the dark instead of drawing a line
+      a *= Math.max(0, (r - 0.5) / 2) ** 1.5;
+      if (a <= 0.004) return;
+      g.fillStyle = `rgba(240,128,44,${a})`;
+      g.beginPath();
+      g.arc(x, y, Math.max(0.8, r), 0, 6.2832);
+      g.fill();
+      return;
+    }
     const gr = g.createRadialGradient(x, y, 0, x, y, r);
-    gr.addColorStop(0, `rgba(255,170,90,${a})`);
-    gr.addColorStop(0.18, `rgba(244,124,38,${a * 0.85})`);
-    gr.addColorStop(0.5, `rgba(196,82,18,${a * 0.3})`);
-    gr.addColorStop(1, "rgba(150,55,10,0)");
+    gr.addColorStop(0, `rgba(250,150,70,${a})`);
+    gr.addColorStop(0.12, `rgba(240,128,44,${a * 0.78})`);
+    gr.addColorStop(0.3, `rgba(214,100,30,${a * 0.42})`);
+    gr.addColorStop(0.55, `rgba(180,76,20,${a * 0.14})`);
+    gr.addColorStop(0.8, `rgba(150,60,14,${a * 0.035})`);
+    gr.addColorStop(1, "rgba(130,50,10,0)");
     g.fillStyle = gr;
     g.beginPath();
     g.arc(x, y, r, 0, 6.2832);
@@ -676,9 +690,12 @@
         const s = F / z,
           x = vx + row.x * s * 2.2,
           y = vy + row.y * s * 2.2,
-          r = Math.min(0.42 * Math.min(W, H), 0.6 * s),
-          u = (z - NEAR) / span, // 0 near, 1 gone
-          a = 0.55 * Math.min(1, (z - NEAR) / 0.8) * (1 - u) ** 1.3;
+          r = 0.5 * s,
+          a =
+            0.3 *
+            Math.min(1, (z - NEAR) / 1.5) * // comes in softly
+            (NEAR / z) ** 0.28 * // dimmer the further it goes
+            (1 - (z / FAR) ** 3); // and gone at the end
         let f = 1;
         if (flick && flick.row === ri && flick.k === k) {
           const p = (t - flick.at) / 0.9;
@@ -695,7 +712,7 @@
     if (t0 === null) t0 = now;
     const t = (now - t0) / 1000;
     if (t > nextFlick) {
-      flick = { row: R() < 0.5 ? 0 : 1, k: Math.floor(R() * 3), at: t };
+      flick = { row: R() < 0.5 ? 0 : 1, k: Math.floor(R() * 8), at: t };
       nextFlick = t + 18 + R() * 30;
     }
     draw(t + 40);

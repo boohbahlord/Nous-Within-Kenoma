@@ -480,12 +480,12 @@ window.EC_QUOTES = [
     title: "Blue to Gray",
   },
   {
-    t: "They are in a home without rest. The chemicals are the black nous that hung their souls down deeper to nowhere, a penetrating insanity that talks to itself forever, the bitter walk irritating a mind with nowhere to sit. They made the dirt into a passage towards the lowest emanation that becomes you, where the in becomes an out of itself. The placeless forgives nothing, not even itself, and it even breaks mirrors at the sight of them. The reflection burns the mind of soul within the timeless head, caught in itself, screaming to be let go towards a God made of itself.",
+    t: "They are in a home without rest. Their smothering walls of order within God’s mind itself are the curtain, which hides the synchronicity machinery from the little sanity left. Wanting to leave, they return to climbing high on a ladder whose structure is small as thread and large as everything, both containing one another in a sick joke that climbs down in either direction.",
     n: 56,
     title: "The Night Never Ends",
   },
   {
-    t: "Tired of it, he swims upstream through a belt looped at the neck that spins around as the mind’s swirling lostness, calling out through a crushed hourglass throat that bursts with laughter out from rupturing veins. He is caught in the bend of catch that holds onto the pretend of release, taking itself nowhere.",
+    t: "Kether paces up and down, watching themselves do so through the reflection of glass in family portraits. The surface of ground sneers through the certain sound of what could only be the creaking of floorboards from his steps. The feet are as fast as they are slow with bouts of harsh. He goes out to the far side of the home, seeing the hall move towards.",
     n: 56,
     title: "The Night Never Ends",
   },
