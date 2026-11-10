@@ -730,3 +730,189 @@
     document.addEventListener("DOMContentLoaded", go);
   else go();
 })();
+
+/* Angelic Language (No. 59): the page breaks around the binary. Now and then one of the page's own words (the title,
+   the part number, the links, the labels, the Display buttons) slips into the binary of its letters, the bytes as the
+   chapter writes them, and comes back. The scramble in and out of it is baffle (Cam Wiegert, MIT, assets/baffle.min.js).
+   The bars flicker like a dying tube, a line tears for a moment, the colours drop to grey, and once in a while the whole
+   screen goes black for a blink. It all stays usable: no layer catches a click, a word keeps its box so nothing moves
+   under the pointer, and a word I point at or focus comes back at once. Never more than three flashes a second; the
+   grey and the black come seconds apart. With reduced motion: only now and then a word turns to binary and back, and a
+   slow, rare fade to grey. */
+(function () {
+  const D = document.documentElement;
+  if (!D.classList.contains("th-binary")) return;
+  const R = Math.random,
+    calm = matchMedia("(prefers-reduced-motion: reduce)").matches,
+    pick = (a) => a[Math.floor(R() * a.length)],
+    span = (a, b) => a + R() * (b - a),
+    enc = new TextEncoder();
+  // the binary of a text, byte by byte, eight digits each, a space between: the way the chapter itself is written
+  const bin = (t) =>
+    Array.from(enc.encode(t), (b) => b.toString(2).padStart(8, "0")).join(" ");
+  const WORDS =
+    ".crumbs > a, .pick label, header .num, header h1, .pager a, #nwkdispb, #nwkfill, button.static-toggle";
+  const BARS = ".crumbs, header, .pager, #nwkdisp";
+  const busy = new Map(); // element -> its way back
+
+  function back(el) {
+    const f = busy.get(el);
+    if (f) f();
+  }
+  // a word I point at or focus comes back at once, so it is always readable when it matters
+  ["pointerover", "focusin", "touchstart"].forEach((t) =>
+    document.addEventListener(
+      t,
+      (e) => {
+        for (const el of busy.keys()) if (el.contains(e.target)) back(el);
+      },
+      { passive: true },
+    ),
+  );
+
+  function toBinary() {
+    const all = [...document.querySelectorAll(WORDS)].filter(
+      (el) =>
+        !busy.has(el) &&
+        !el.children.length &&
+        el.textContent.trim() &&
+        el.offsetWidth &&
+        !el.matches(":hover, :focus"),
+    );
+    if (!all.length) return;
+    const el = pick(all),
+      text = el.textContent,
+      style = el.getAttribute("style"),
+      box = el.getBoundingClientRect(),
+      words = text.split(/(\s+)/);
+    // sometimes the whole of it, sometimes only one of its words
+    let shown = bin(text);
+    if (words.length > 2 && R() < 0.5) {
+      const i = 2 * Math.floor((R() * (words.length + 1)) / 2);
+      shown = words.map((w, j) => (j === i ? bin(w) : w)).join("");
+    }
+    el.style.width = box.width + "px";
+    el.style.height = box.height + "px";
+    el.classList.add("gl-bin");
+    if (box.height > 2 * parseFloat(getComputedStyle(el).lineHeight || 0))
+      el.classList.add("gl-wrap");
+    const timers = [];
+    let scr = null;
+    const later = (f, ms) => timers.push(setTimeout(f, ms));
+    const done = () => {
+      timers.forEach(clearTimeout);
+      if (scr) scr.stop();
+      el.textContent = text;
+      el.classList.remove("gl-bin", "gl-wrap");
+      if (style === null) el.removeAttribute("style");
+      else el.setAttribute("style", style);
+      busy.delete(el);
+    };
+    busy.set(el, done);
+    const hold = calm ? span(1800, 3200) : span(450, 1600);
+    if (calm || !window.baffle) {
+      el.textContent = shown;
+      later(done, hold);
+      return;
+    }
+    // the letters shiver into ones and zeros, become the real bytes, then shiver back into the letters
+    scr = baffle(el, { characters: "01", speed: 55 }).start();
+    later(
+      () => {
+        scr.stop();
+        el.textContent = shown;
+      },
+      span(120, 260),
+    );
+    later(() => {
+      el.textContent = text;
+      scr = baffle(el, { characters: "01", speed: 55 }).start().reveal(320);
+    }, hold);
+    later(done, hold + 520);
+  }
+
+  function flicker() {
+    const bars = [...document.querySelectorAll(BARS)];
+    if (!bars.length) return;
+    const el = pick(bars);
+    el.classList.remove("gl-flick");
+    void el.offsetWidth;
+    el.classList.add("gl-flick");
+    setTimeout(() => el.classList.remove("gl-flick"), 900);
+  }
+
+  function tear() {
+    const lines = [
+      ...document.querySelectorAll("header h1, header .num, .crumbs, .pager"),
+    ];
+    if (!lines.length) return;
+    const el = pick(lines);
+    el.classList.add("gl-cut");
+    setTimeout(() => el.classList.remove("gl-cut"), 400);
+  }
+
+  function layer(cls) {
+    const d = document.createElement("div");
+    d.className = cls;
+    d.setAttribute("aria-hidden", "true");
+    d.hidden = true;
+    document.body.appendChild(d);
+    return d;
+  }
+  let grey, black;
+  let quiet = 0; // the grey and the black never come within two seconds of each other
+  function show(d, ms) {
+    d.hidden = false;
+    setTimeout(() => (d.hidden = true), ms);
+    quiet = performance.now() + ms + 2000;
+  }
+  function toGrey() {
+    if (performance.now() < quiet) return false;
+    if (calm) {
+      grey.style.transition = "opacity 1.2s";
+      grey.style.opacity = 0;
+      grey.hidden = false;
+      requestAnimationFrame(() => (grey.style.opacity = 1));
+      setTimeout(() => (grey.style.opacity = 0), 2600);
+      setTimeout(() => (grey.hidden = true), 4000);
+      quiet = performance.now() + 6000;
+      return true;
+    }
+    show(grey, span(160, 700));
+    // now and then it drops to grey twice, half a second apart
+    if (R() < 0.3) setTimeout(() => show(grey, span(120, 300)), 1000);
+    return true;
+  }
+  function blackout() {
+    if (performance.now() < quiet) return false;
+    show(black, span(55, 110));
+    return true;
+  }
+
+  // each kind of break keeps its own rhythm; a hidden tab does nothing
+  function every(f, lo, hi, first) {
+    const next = (ms) =>
+      setTimeout(() => {
+        if (!document.hidden && f() === false) return next(span(1500, 3000));
+        next(span(lo, hi));
+      }, ms);
+    next(first == null ? span(lo, hi) : first);
+  }
+  function go() {
+    grey = layer("gl-grey");
+    black = layer("gl-black");
+    if (calm) {
+      every(toBinary, 6000, 12000, 3000);
+      every(toGrey, 30000, 60000);
+      return;
+    }
+    every(toBinary, 900, 3200, 600);
+    every(flicker, 4000, 11000);
+    every(tear, 5000, 13000);
+    every(toGrey, 9000, 22000, 5000);
+    every(blackout, 14000, 34000, 9000);
+  }
+  if (document.readyState === "loading")
+    document.addEventListener("DOMContentLoaded", go);
+  else go();
+})();

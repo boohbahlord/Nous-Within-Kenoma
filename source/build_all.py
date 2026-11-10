@@ -3,7 +3,7 @@
 import json, html, os, re, shutil
 
 OUT = "site"
-SITE_V = "87"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+SITE_V = "88"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 ICON_V = "2"  # the same for the tab icon (2: the white circle with a line through it, in a black box)
 if os.path.isdir(OUT):
     shutil.rmtree(OUT)  # v79j: a clean build (the files end up in folders at the end)
@@ -211,6 +211,7 @@ BLACK = {26, 54}
 INITIALS = {
     54
 }  # parts whose paragraphs each open on a big initial (The King's Festival)
+BAFFLE = '\n<script src="baffle.min.js?v=1" defer></script>'
 BL_FONT = '\n<link rel="preload" href="grenze-gotisch-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>'
 L4 = {23, 41}
 L3 = {3, 6, 9, 14, 25, 28, 30, 34, 37, 38, 40}
@@ -253,7 +254,11 @@ def ch_fx(n):
                                 else (
                                     "th-bluegray"
                                     if n == 55
-                                    else "th-night" if n == 56 else ""
+                                    else (
+                                        "th-night"
+                                        if n == 56
+                                        else "th-binary" if n == 59 else ""
+                                    )
                                 )
                             )
                         )
@@ -277,10 +282,13 @@ for i, c in enumerate(C):
     prev = C[i - 1] if i else None
     nxt = C[i + 1] if i + 1 < len(C) else None
     bl = n in BLACK
+    fxs = ch_fx(n)
     body = head(
         f'No. {n}: {c["title"]} · Nous Within Kenoma',
-        BL_FONT if bl else "",
-        **ch_fx(n),
+        (BL_FONT if bl else "")
+        # Angelic Language breaks its words into binary with baffle (Cam Wiegert, MIT), before site.js uses it
+        + (BAFFLE if "th-binary" in fxs["theme"] else ""),
+        **fxs,
     )
     if n == 49:
         # I added a blank line between the head and the body on this page by hand, and I want it kept
