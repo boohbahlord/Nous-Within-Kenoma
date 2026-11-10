@@ -70,22 +70,12 @@ window.EC_QUOTES = [
     title: "Chemical Hermit",
   },
   {
-    t: "Warrior eruptions, as he rages aloud to himself in frustration at every layer of resistance. His mech, more than ten feet tall, charging with torque, springs, and compressions launching with ton stomps. His sprinting leaves elephant-like prints through the dirt and grass, larger than dinosaur footprints.",
+    t: "Samson feels the heat increase further throughout the mech armor, and it is creating a boiling feeling below and at the head, mixing with his sticky blood stains across the mouth, nose, and forehead. More bullets ricochet, his visor burnt deeper by hot lead.",
     n: 15,
     title: "Tank Meat",
   },
   {
-    t: "Samson’s right arm grabs at another, crushing his ribs from his ginormous gauntlet, like a screaming orange bursting as a motorcycle’s brake gripped wrongly. The soldier erupts with yells in the death fit before his insides are pulped.",
-    n: 15,
-    title: "Tank Meat",
-  },
-  {
-    t: "One of these is no longer man or woman, barely at all human. They transform into the means necessary. They embrace the nothingness, to know how to sort the sound of the false creator from whispering hints of truth. They are adorned in black that covers their body when outside their solitudal practice.",
-    n: 16,
-    title: "Euclids; Tribes of",
-  },
-  {
-    t: "His tribe trades or traffics in illegal and taboo knowledge, alchemy, chemicals, humans, and artifacts. Their spiritual practice swaying in extremes, or even balance, of pleasure and bondage. Their warriors not slaves, but usually jackal-like in combat, with finesse and ambush; attacking like scorpions, as opposed to the larger-numbered soul-slave grunts of the South.",
+    t: "The young boy stands at 6’2”, with shorter black hair of a slight Roman curl at his crown. He has a long mouth with an expression of strong teeth. His features are seemingly small and inoffensive beyond that, but many call him a rising morning Venus. Long and lean with muscle-enough, he is adorned in dark tattoos of his philosophy, up and down.",
     n: 16,
     title: "Euclids; Tribes of",
   },
@@ -498,5 +488,15 @@ window.EC_QUOTES = [
     t: "When the body splats like a wet balloon made of skin and a body heavy, some crows laughed with their voice of God, who are puppets to a Lord who does not know what he is doing to himself. The strangeness that the creator also doesn’t understand is exactly how everyone looked with their double face, like they understood underneath their look of trauma. Do they pretend to be disturbed…? It could only be a bizarre thought? Right? Just a thought is all? Something very powerful turns the mind on itself, with a realization that must be shut down, and it is cursed as nothing by God.",
     n: 57,
     title: "Nothing is Wrong",
+  },
+  {
+    t: "Kether, in preparation for his journey into the Blindfold, engages in these questions with a violent charge that disregards his self. He tries to leave no rock unturned in his ultimate form of the King, including that rock that is his soul, which thirteen eternities sit atop of, in the reminders feeling illusional. Cascading the self-defense, the walls come down, and the port is open to every kind. His silence is where it happens.",
+    n: 58,
+    title: "Vased Vasal",
+  },
+  {
+    t: "Every sight of glass or metal that shines the dark of another part of the room, it all shows himself poured out. As he spills, so do all those lives he took pleasure in, like God, and now they leave the head they hid inside of, showing themselves to him like a mess of spirit. What remains of Kether’s face becomes another person, made disproportioned into something completely unlike him, and the appearance is ugly to him. What if all those lives spilt out over the floor can see his ugly? The small thought brings out his humanity in the deconstruction; it shutters his eyes if he could find them on his outside of self, but they belong to the him far away in the reflection.",
+    n: 58,
+    title: "Vased Vasal",
   },
 ];
