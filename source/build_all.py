@@ -257,7 +257,13 @@ def ch_fx(n):
                                     else (
                                         "th-night"
                                         if n == 56
-                                        else "th-binary" if n == 59 else ""
+                                        else (
+                                            # Angelic Language keeps No. 56's page (the dark ground and the
+                                            # street lights) with its breaking on top
+                                            "th-night th-binary"
+                                            if n == 59
+                                            else ""
+                                        )
                                     )
                                 )
                             )
