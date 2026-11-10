@@ -607,12 +607,12 @@
   else go();
 })();
 
-/* The Night Never Ends (No. 56): a few lone orange street lights, only their light, sliding away from the left of the
-   page toward a vanishing point on the right, on the horizon (like a one-point perspective drawing: everything
-   recedes from the left side to that point). Two rows, one higher and one lower. Each light in a row is clearly
-   smaller than the one before it (about half), so only a few show at once, never bunched up; the last fades out well
-   before the point. Now and then (rarely) one light flickers. Still, with reduced motion or Data saving: one quiet
-   frame. */
+/* The Night Never Ends (No. 56), and every part after it unless it has a page of its own: a few lone orange street
+   lights, only their light, standing still down a road at night, from the left of the page toward a vanishing point on
+   the right, on the horizon (one-point perspective). Two rows, one higher and one lower; each light in a row about
+   half the size of the one before it, the last ones fading well before the point. The lights don't move: each one
+   breathes, slowly a little brighter and a little dimmer, on its own pattern, never two alike. About once a minute one
+   of them flickers. Still, with reduced motion or Data saving: one quiet frame. */
 (function () {
   const D = document.documentElement;
   if (!D.classList.contains("th-night")) return;
@@ -620,14 +620,24 @@
     still =
       matchMedia("(prefers-reduced-motion: reduce)").matches ||
       D.classList.contains("lite"),
-    NEAR = 0.9, // depth where a light comes in, at the left edge of the page
+    NEAR = 0.9, // the depth of the left edge of the page
     STEP = 1.9, // each light in a row is this much further than the one before it (about half the size)
-    SLOTS = 5, // lights in a row from the left edge to where they fade out
-    SLOT_T = 8, // seconds a light takes to move one place on: about 40 s from the left edge to gone
+    SLOTS = 5, // places in a row, from the left edge to where they fade out
     ROWS = [
-      { y: -0.3, off: 0 }, // the higher row
-      { y: 0.36, off: 0.5 }, // the lower row, half a place behind
-    ];
+      { y: -0.3, at: [0.5, 1.5, 2.5, 3.5] }, // the higher row
+      { y: 0.36, at: [1, 2, 3, 4] }, // the lower row, half a place behind
+    ],
+    // each light's own breath: how long (s), where it starts, how deep (a share of its brightness), and a slower
+    // second swell so the pattern never quite repeats
+    BREATH = ROWS.map((row) =>
+      row.at.map(() => ({
+        p: 5.5 + R() * 6.5,
+        o: R() * 6.2832,
+        d: 0.09 + R() * 0.07,
+        p2: 17 + R() * 14,
+        o2: R() * 6.2832,
+      })),
+    );
   const cv = document.createElement("canvas");
   cv.className = "nightlights";
   cv.setAttribute("aria-hidden", "true");
@@ -638,8 +648,7 @@
     vx = 0,
     vy = 0,
     F = 0,
-    flick = null,
-    nextFlick = 12 + R() * 25;
+    flick = null;
   function size() {
     dpr = Math.min(1.5, devicePixelRatio || 1);
     W = innerWidth;
@@ -667,19 +676,21 @@
   function draw(t) {
     g.clearRect(0, 0, W, H);
     g.globalCompositeOperation = "lighter";
-    const zin = NEAR * 1.25; // fully in by here (at the left edge)
+    const zin = NEAR * 1.25;
     ROWS.forEach((row, ri) => {
-      for (let k = 0; k < SLOTS; k++) {
-        const u = (t / SLOT_T + row.off + k) % SLOTS, // 0 at the left edge, SLOTS where it is gone
-          z = NEAR * STEP ** u,
-          q = zin / z, // 1 at the left edge, smaller on toward the point
+      row.at.forEach((u, k) => {
+        const z = NEAR * STEP ** u,
+          q = zin / z, // about 1 at the left edge, smaller on toward the point
           x = vx - (vx - W * 0.02) * q,
           y = vy + row.y * H * q,
           r = Math.min(0.42 * Math.min(W, H), (0.6 * F) / z),
-          a =
-            0.5 *
-            Math.min(1, u / 0.35) * // comes in softly at the left edge
-            (1 - u / SLOTS) ** 1.4; // dimmer the further it goes, gone before the point
+          b = BREATH[ri][k],
+          breath =
+            1 +
+            b.d *
+              (0.75 * Math.sin((t / b.p) * 6.2832 + b.o) +
+                0.25 * Math.sin((t / b.p2) * 6.2832 + b.o2)),
+          a = 0.5 * (1 - u / SLOTS) ** 1.4 * breath; // dimmer the further it is
         let f = 1;
         if (flick && flick.row === ri && flick.k === k) {
           const p = (t - flick.at) / 0.9;
@@ -687,19 +698,22 @@
             f = [0.2, 1, 0.35, 0.9, 0.15, 1][Math.floor(p * 6)];
         }
         glow(x, y, r, a * f);
-      }
+      });
     });
     g.globalCompositeOperation = "source-over";
   }
-  let t0 = null;
+  let t0 = null,
+    nextFlick = 35 + R() * 40; // the first flicker comes some time in the first minute or so
   function frame(now) {
     if (t0 === null) t0 = now;
     const t = (now - t0) / 1000;
     if (t > nextFlick) {
-      flick = { row: R() < 0.5 ? 0 : 1, k: Math.floor(R() * 3), at: t };
-      nextFlick = t + 18 + R() * 30;
+      // about once a minute, one light, any of them
+      const ri = R() < 0.5 ? 0 : 1;
+      flick = { row: ri, k: Math.floor(R() * ROWS[ri].at.length), at: t };
+      nextFlick = t + 48 + R() * 24;
     }
-    draw(t + 40);
+    draw(t);
     requestAnimationFrame(frame);
   }
   function go() {
@@ -707,9 +721,9 @@
     size();
     addEventListener("resize", () => {
       size();
-      if (still) draw(40);
+      if (still) draw(0);
     });
-    if (still) draw(40);
+    if (still) draw(0);
     else requestAnimationFrame(frame);
   }
   if (document.readyState === "loading")

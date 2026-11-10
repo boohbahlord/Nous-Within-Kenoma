@@ -3,7 +3,7 @@
 import json, html, os, re, shutil
 
 OUT = "site"
-SITE_V = "86"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+SITE_V = "87"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 ICON_V = "2"  # the same for the tab icon (2: the white circle with a line through it, in a black box)
 if os.path.isdir(OUT):
     shutil.rmtree(OUT)  # v79j: a clean build (the files end up in folders at the end)
@@ -258,6 +258,10 @@ def ch_fx(n):
             )
         )
     )
+    if not theme and n > 56:
+        # every part after No. 56 has its page (the dark ground and the breathing street lights) unless I give it a
+        # page of its own above
+        theme = "th-night"
     return dict(static=lvl, fx=fx, theme=theme)
 
 
