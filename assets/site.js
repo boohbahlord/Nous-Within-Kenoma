@@ -731,14 +731,15 @@
   else go();
 })();
 
-/* Angelic Language (No. 59): the page breaks around the binary. Now and then one of the page's own words (the title,
-   the part number, the links, the labels, the Display buttons) slips into the binary of its letters, the bytes as the
-   chapter writes them, and comes back. The scramble in and out of it is baffle (Cam Wiegert, MIT, assets/baffle.min.js).
-   The bars flicker like a dying tube, a line tears for a moment, the colours drop to grey, and once in a while the whole
-   screen goes black for a blink. It all stays usable: no layer catches a click, a word keeps its box so nothing moves
-   under the pointer, and a word I point at or focus comes back at once. Never more than three flashes a second; the
-   grey and the black come seconds apart. With reduced motion: only now and then a word turns to binary and back, and a
-   slow, rare fade to grey. */
+/* Angelic Language (No. 59): the page breaks around the binary, from the moment it opens, and every flicker is very
+   fast. The page's own words (the title, the part number, the links, the labels, the Display buttons) slip into the
+   binary of their letters for a blink, the bytes as the chapter writes them: sometimes only a letter or two, sometimes
+   one word, sometimes all of it. The binary itself flashes, breaks into noise and changes its digits for an instant,
+   and always comes back exactly as written. A part of the page blinks out, a line tears, and once in a while the whole
+   screen goes black for an instant. The scramble into ones and zeros is baffle (Cam Wiegert, MIT,
+   assets/baffle.min.js). It all stays usable: no layer catches a click, a word keeps its box so nothing moves under the
+   pointer, and a word I point at or focus comes back at once. With reduced motion: only now and then a letter turns
+   to binary, or a digit changes, and back. */
 (function () {
   const D = document.documentElement;
   if (!D.classList.contains("th-binary")) return;
@@ -746,14 +747,17 @@
     calm = matchMedia("(prefers-reduced-motion: reduce)").matches,
     pick = (a) => a[Math.floor(R() * a.length)],
     span = (a, b) => a + R() * (b - a),
+    hasBaffle = () => typeof window.baffle === "function",
     enc = new TextEncoder();
   // the binary of a text, byte by byte, eight digits each, a space between: the way the chapter itself is written
   const bin = (t) =>
     Array.from(enc.encode(t), (b) => b.toString(2).padStart(8, "0")).join(" ");
   const WORDS =
     ".crumbs > a, .pick label, header .num, header h1, .pager a, #nwkdispb, #nwkfill, button.static-toggle";
-  const BARS = ".crumbs, header, .pager, #nwkdisp";
-  const busy = new Map(); // element -> its way back
+  // what can blink out: a whole bar, or one thing on it
+  const PARTS =
+    ".crumbs, .pick, header, .pager, #nwkdisp, .crumbs > a, .pick select, header .num, header h1, .pager a, #nwkdisp button";
+  const busy = new Map(); // a word -> its way back
 
   function back(el) {
     const f = busy.get(el);
@@ -770,6 +774,7 @@
     ),
   );
 
+  /* ---------- the page's words ---------- */
   function toBinary() {
     const all = [...document.querySelectorAll(WORDS)].filter(
       (el) =>
@@ -784,12 +789,25 @@
       text = el.textContent,
       style = el.getAttribute("style"),
       box = el.getBoundingClientRect(),
-      words = text.split(/(\s+)/);
-    // sometimes the whole of it, sometimes only one of its words
-    let shown = bin(text);
-    if (words.length > 2 && R() < 0.5) {
-      const i = 2 * Math.floor((R() * (words.length + 1)) / 2);
+      chars = [...text],
+      roll = R();
+    let shown, ms;
+    if (calm || roll < 0.45) {
+      // a letter or two, each one its own byte
+      const at = chars.map((c, i) => i).filter((i) => chars[i].trim()),
+        n = 1 + Math.floor(R() * Math.min(3, at.length)),
+        hit = new Set(Array.from({ length: n }, () => pick(at)));
+      shown = chars.map((c, i) => (hit.has(i) ? bin(c) : c)).join("");
+      ms = calm ? span(500, 900) : span(50, 150);
+    } else if (roll < 0.75) {
+      // one word
+      const words = text.split(/(\s+)/),
+        i = 2 * Math.floor((R() * (words.length + 1)) / 2);
       shown = words.map((w, j) => (j === i ? bin(w) : w)).join("");
+      ms = span(70, 200);
+    } else {
+      shown = bin(text);
+      ms = span(90, 240);
     }
     el.style.width = box.width + "px";
     el.style.height = box.height + "px";
@@ -798,7 +816,7 @@
       el.classList.add("gl-wrap");
     const timers = [];
     let scr = null;
-    const later = (f, ms) => timers.push(setTimeout(f, ms));
+    const later = (f, t) => timers.push(setTimeout(f, t));
     const done = () => {
       timers.forEach(clearTimeout);
       if (scr) scr.stop();
@@ -809,38 +827,120 @@
       busy.delete(el);
     };
     busy.set(el, done);
-    const hold = calm ? span(1800, 3200) : span(450, 1600);
-    if (calm || !window.baffle) {
+    if (calm || roll < 0.45 || !hasBaffle()) {
       el.textContent = shown;
-      later(done, hold);
+      later(done, ms);
       return;
     }
-    // the letters shiver into ones and zeros, become the real bytes, then shiver back into the letters
-    scr = baffle(el, { characters: "01", speed: 55 }).start();
-    later(
-      () => {
-        scr.stop();
-        el.textContent = shown;
-      },
-      span(120, 260),
-    );
+    // a shiver of ones and zeros, the real bytes, a shiver back into the letters
+    scr = baffle(el, { characters: "01", speed: 25 }).start();
+    later(() => {
+      scr.stop();
+      el.textContent = shown;
+    }, 40);
     later(() => {
       el.textContent = text;
-      scr = baffle(el, { characters: "01", speed: 55 }).start().reveal(320);
-    }, hold);
-    later(done, hold + 520);
+      scr = baffle(el, { characters: "01", speed: 25 }).start().reveal(80);
+    }, 40 + ms);
+    later(done, 40 + ms + 160);
   }
 
+  /* ---------- the binary itself ---------- */
+  // each byte in its own span, so one can flash or change; the words stay exactly as written, a space between
+  const bytes = [];
+  function split() {
+    const p = document.querySelector(".chapter p.para");
+    if (!p) return;
+    const words = p.textContent.trim().split(/\s+/);
+    p.textContent = "";
+    words.forEach((w, i) => {
+      if (i) p.appendChild(document.createTextNode(" "));
+      const s = document.createElement("span");
+      s.textContent = w;
+      p.appendChild(s);
+      bytes.push({ el: s, v: w, busy: false });
+    });
+  }
+  function some(n, run) {
+    const free = bytes.filter((b) => !b.busy);
+    if (!free.length) return [];
+    if (run) {
+      const at = Math.floor(R() * Math.max(1, bytes.length - n));
+      return bytes.slice(at, at + n).filter((b) => !b.busy);
+    }
+    return Array.from({ length: n }, () => pick(free)).filter(
+      (b, i, a) => a.indexOf(b) === i,
+    );
+  }
+  function settle(list, t, extra) {
+    list.forEach((b) => (b.busy = true));
+    setTimeout(() => {
+      if (extra) extra();
+      list.forEach((b) => {
+        b.el.textContent = b.v; // always back exactly as written
+        b.el.classList.remove("gl-hot", "gl-gone");
+        b.busy = false;
+      });
+    }, t);
+  }
+  function byteFx() {
+    if (!bytes.length) return;
+    const roll = R();
+    if (calm || roll < 0.4) {
+      // the numbers change: a digit or three flip
+      const list = some(calm ? 1 : 1 + Math.floor(R() * 4));
+      list.forEach((b) => {
+        const d = [...b.v];
+        for (let k = 1 + Math.floor(R() * 3); k--; ) {
+          const i = Math.floor(R() * 8);
+          d[i] = d[i] === "0" ? "1" : "0";
+        }
+        b.el.textContent = d.join("");
+      });
+      settle(list, calm ? span(400, 800) : span(50, 140));
+    } else if (roll < 0.75) {
+      // a flash: a few bytes, scattered or in a row, white hot or gone for an instant
+      const list = some(1 + Math.floor(R() * 6), R() < 0.5),
+        cls = R() < 0.6 ? "gl-hot" : "gl-gone";
+      list.forEach((b) => b.el.classList.add(cls));
+      settle(list, span(40, 110));
+    } else {
+      // a run of bytes breaks into noise and comes back
+      const list = some(3 + Math.floor(R() * 10), true);
+      if (!list.length) return;
+      if (!hasBaffle()) {
+        list.forEach(
+          (b) =>
+            (b.el.textContent = b.v.replace(/./g, () =>
+              R() < 0.5 ? "0" : "1",
+            )),
+        );
+        settle(list, span(80, 180));
+        return;
+      }
+      const scr = baffle(
+        list.map((b) => b.el),
+        { characters: "01", speed: 25 },
+      ).start();
+      setTimeout(() => scr.reveal(70), span(60, 160));
+      settle(list, 300, () => scr.stop());
+    }
+  }
+
+  /* ---------- the page around it ---------- */
   function flicker() {
-    const bars = [...document.querySelectorAll(BARS)];
-    if (!bars.length) return;
-    const el = pick(bars);
-    el.classList.remove("gl-flick");
-    void el.offsetWidth;
-    el.classList.add("gl-flick");
-    setTimeout(() => el.classList.remove("gl-flick"), 900);
+    const parts = [...document.querySelectorAll(PARTS)].filter(
+      (el) => el.offsetWidth,
+    );
+    if (!parts.length) return;
+    for (let k = R() < 0.25 ? 2 : 1; k--; ) {
+      const el = pick(parts);
+      el.classList.remove("gl-flick");
+      void el.offsetWidth;
+      el.classList.add("gl-flick");
+      setTimeout(() => el.classList.remove("gl-flick"), 200);
+    }
   }
-
   function tear() {
     const lines = [
       ...document.querySelectorAll("header h1, header .num, .crumbs, .pager"),
@@ -848,69 +948,40 @@
     if (!lines.length) return;
     const el = pick(lines);
     el.classList.add("gl-cut");
-    setTimeout(() => el.classList.remove("gl-cut"), 400);
+    setTimeout(() => el.classList.remove("gl-cut"), 220);
   }
-
-  function layer(cls) {
-    const d = document.createElement("div");
-    d.className = cls;
-    d.setAttribute("aria-hidden", "true");
-    d.hidden = true;
-    document.body.appendChild(d);
-    return d;
-  }
-  let grey, black;
-  let quiet = 0; // the grey and the black never come within two seconds of each other
-  function show(d, ms) {
-    d.hidden = false;
-    setTimeout(() => (d.hidden = true), ms);
-    quiet = performance.now() + ms + 2000;
-  }
-  function toGrey() {
-    if (performance.now() < quiet) return false;
-    if (calm) {
-      grey.style.transition = "opacity 1.2s";
-      grey.style.opacity = 0;
-      grey.hidden = false;
-      requestAnimationFrame(() => (grey.style.opacity = 1));
-      setTimeout(() => (grey.style.opacity = 0), 2600);
-      setTimeout(() => (grey.hidden = true), 4000);
-      quiet = performance.now() + 6000;
-      return true;
-    }
-    show(grey, span(160, 700));
-    // now and then it drops to grey twice, half a second apart
-    if (R() < 0.3) setTimeout(() => show(grey, span(120, 300)), 1000);
-    return true;
-  }
+  let black;
   function blackout() {
-    if (performance.now() < quiet) return false;
-    show(black, span(55, 110));
-    return true;
+    black.hidden = false;
+    setTimeout(() => (black.hidden = true), span(40, 80));
   }
 
-  // each kind of break keeps its own rhythm; a hidden tab does nothing
+  // each kind of break keeps its own rhythm, starting as soon as the page opens; a hidden tab does nothing
   function every(f, lo, hi, first) {
     const next = (ms) =>
       setTimeout(() => {
-        if (!document.hidden && f() === false) return next(span(1500, 3000));
+        if (!document.hidden) f();
         next(span(lo, hi));
       }, ms);
-    next(first == null ? span(lo, hi) : first);
+    next(first);
   }
   function go() {
-    grey = layer("gl-grey");
-    black = layer("gl-black");
+    split();
+    black = document.createElement("div");
+    black.className = "gl-black";
+    black.setAttribute("aria-hidden", "true");
+    black.hidden = true;
+    document.body.appendChild(black);
     if (calm) {
-      every(toBinary, 6000, 12000, 3000);
-      every(toGrey, 30000, 60000);
+      every(toBinary, 4000, 9000, 800);
+      every(byteFx, 3000, 6000, 1500);
       return;
     }
-    every(toBinary, 900, 3200, 600);
-    every(flicker, 4000, 11000);
-    every(tear, 5000, 13000);
-    every(toGrey, 9000, 22000, 5000);
-    every(blackout, 14000, 34000, 9000);
+    every(toBinary, 350, 1500, 0);
+    every(byteFx, 250, 1000, 60);
+    every(flicker, 900, 3500, 250);
+    every(tear, 3000, 8000, 900);
+    every(blackout, 12000, 30000, 2500);
   }
   if (document.readyState === "loading")
     document.addEventListener("DOMContentLoaded", go);

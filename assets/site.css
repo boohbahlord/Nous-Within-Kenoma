@@ -1964,9 +1964,10 @@ html.th-night .chapter p {
     0 0 7px var(--ground);
 }
 /* No. 59, Angelic Language: the words are binary and the page around them is breaking. site.js makes the page's own
-   words (the title, the links, the labels) slip into binary now and then and come back, the bars flicker, the colours
-   drop to grey for a moment, and once in a while the screen goes black for a blink. None of it ever catches a click:
-   every layer is pointer-events none, and a word I'm pointing at or have focused comes back at once */
+   words (the title, the links, the labels), a few letters of them or a whole one, slip into binary for a blink, makes
+   the binary itself flash, break and change its digits, makes a part of the page blink out, and once in a while the
+   screen goes black for an instant. Every flicker is very fast. None of it ever catches a click: every layer is
+   pointer-events none, and a word I'm pointing at or have focused comes back at once */
 html.th-binary .chapter p.para {
   text-align: left;
   word-spacing: 0.15em;
@@ -1985,42 +1986,42 @@ h1.gl-bin,
   white-space: normal;
   word-break: break-all;
 }
-.gl-grey,
 .gl-black {
   position: fixed;
   inset: 0;
   z-index: 4000;
   pointer-events: none;
-}
-.gl-grey {
-  -webkit-backdrop-filter: grayscale(1);
-  backdrop-filter: grayscale(1);
-}
-.gl-black {
   background: #000;
 }
-/* a dying tube: two dips in most of a second, never faster */
+/* a byte of the binary flashing white hot, or gone for an instant */
+.chapter span.gl-hot {
+  color: #fff6e8;
+  text-shadow: 0 0 6px var(--amber, #ff8a1f);
+}
+.chapter span.gl-gone {
+  opacity: 0;
+}
+/* a part of the page blinks out and back, very fast */
 .gl-flick {
-  animation: gl-flick 0.8s steps(1, end);
+  animation: gl-flick 0.14s steps(1, end);
 }
 @keyframes gl-flick {
   0% {
-    opacity: 0.15;
+    opacity: 0;
   }
-  25% {
+  35% {
     opacity: 1;
   }
-  50% {
-    opacity: 0.4;
+  60% {
+    opacity: 0.2;
   }
-  75%,
   100% {
     opacity: 1;
   }
 }
-/* the line tears: slices of it slide sideways for a moment, with a faint red and blue ghost */
+/* the line tears: slices of it jump sideways for an instant, with a faint red and blue ghost */
 .gl-cut {
-  animation: gl-cut 0.36s steps(1, end);
+  animation: gl-cut 0.16s steps(1, end);
 }
 @keyframes gl-cut {
   0% {
@@ -2030,18 +2031,17 @@ h1.gl-bin,
       3px 0 rgba(255, 60, 40, 0.55),
       -3px 0 rgba(60, 160, 255, 0.45);
   }
-  30% {
+  35% {
     clip-path: inset(40% 0 22% 0);
     transform: translateX(5px);
   }
-  60% {
+  70% {
     clip-path: inset(70% 0 0 0);
     transform: translateX(-3px);
     text-shadow:
       -2px 0 rgba(255, 60, 40, 0.55),
       2px 0 rgba(60, 160, 255, 0.45);
   }
-  85%,
   100% {
     clip-path: none;
     transform: none;
