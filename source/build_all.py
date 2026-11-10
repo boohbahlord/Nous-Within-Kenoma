@@ -62,7 +62,7 @@ ART = {  # file -> (plate label, chapter it appears in or None)
     "art-01.jpg": ("Plate I", None),
     "art-02.jpg": ("Plate II", 33),
     "art-03.jpg": ("Plate III", 40),
-    "art-04.jpg": ("Plate IV", None),
+    "art-04.jpg": ("Plate IV", 58),
     "art-05.jpg": ("Plate V", None),
     "art-06.jpg": ("Plate VI", None),
     "art-07.jpg": ("Plate VII", None),
@@ -77,6 +77,10 @@ CH_IMG = {
     24: (0, "forgetting-hell.png"),
     8: (5, "art-08.jpg"),
     33: (2, "art-02.jpg"),
+    58: (
+        14,
+        "art-04.jpg",
+    ),  # right after the paragraph about the map and schematic, the next one wrapping around it
 }
 anchor = lambda f: "art-" + re.sub(r"[^a-z0-9]+", "-", ART[f][0].lower()).strip("-")
 
