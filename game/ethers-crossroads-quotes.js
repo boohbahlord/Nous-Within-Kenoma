@@ -80,22 +80,12 @@ window.EC_QUOTES = [
     title: "Euclids; Tribes of",
   },
   {
-    t: "Floors lying down with you, sleeping with you. You roll deeper into their cover and blanket, pulling the sheets until you pull the walls down with them. That isn’t enough, is it? So you pull harder, wanting to steal the blanket from others, and you wrap yourself with the ceiling too. Soon enough, you cover yourself with the stars and vast dark of the night sky. You bend the stars down and wrap yourself with them. Cold, no matter how thick the blanket is. You can’t escape the pain. You have to wake up.",
+    t: "You fashioned a dead home made of dead memories you spat out into the void, and you slithered through the rot with pride. You hoarded the trauma you created as lessons to yourself, and fooled everyone to their necessity. You hypnotized yourself with stupidity, by feeding ignorance unto gluttonous foolishness. Your ideas, pleasures, and ideals are of themselves; imperfect.",
     n: 17,
     title: "Kenoma: Cold Under a Blanket of Stars",
   },
   {
-    t: "The fullness will unleash your own kind upon you, a betrayal ensnaring your creation in darkness beyond, and it will never be seen, heard, or felt; I foresee your betrayal, sewn by the fullness from the moon, of numbers in my game’s forbidden power, my talk is of their empty that you cannot know. You can never escape from your innards-self, like your snake son of moon, below your sun yourself, repeating in your folly swallows…",
-    n: 17,
-    title: "Kenoma: Cold Under a Blanket of Stars",
-  },
-  {
-    t: "Daytime musings in empty squalors with secret rite-writes and quiet practices sobering. Patiently finding his carefree touch abundance flooding by sun in night, his nightly malefic bringing a daytime hoof and chew before charge and strike passions of mind in death studies.",
-    n: 18,
-    title: "Kether: Meat Ends of Three Snakes",
-  },
-  {
-    t: "Christopher drinks the end and never begins. He sees a brother and a lover as one; they begin without ending, listening to angels beyond. This terror cannot be named truth, at all costs. He must not escape, or the end is filled with puppets playing with themselves.",
+    t: "“Mix the salt in your hands to a powder, then mix it with the drink below. Return to your folly here again and consume; it is your vomit and tail of your soul’s future and end together. You will never begin but always end,” says the ouroboros by way of gut movements.",
     n: 18,
     title: "Kether: Meat Ends of Three Snakes",
   },
@@ -498,5 +488,15 @@ window.EC_QUOTES = [
     t: "Every sight of glass or metal that shines the dark of another part of the room, it all shows himself poured out. As he spills, so do all those lives he took pleasure in, like God, and now they leave the head they hid inside of, showing themselves to him like a mess of spirit. What remains of Kether’s face becomes another person, made disproportioned into something completely unlike him, and the appearance is ugly to him. What if all those lives spilt out over the floor can see his ugly? The small thought brings out his humanity in the deconstruction; it shutters his eyes if he could find them on his outside of self, but they belong to the him far away in the reflection.",
     n: 58,
     title: "Vased Vasal",
+  },
+  {
+    t: "One spring toy of a genius’s complexity, all apart, scattered like a mechanic’s project. Crows fly in, their swarms plucking with teeth at the parts, fighting over them in a broken chit-chat stut of a rut grind, pitching wails unto a low siren of scream. The birds carry the stiff of artificial. One cranks its head at the glass eye of the toy, peering in with a human’s pupil from its bird head. Their reflections meet. It cawks, and flies out the window into the dark outside. More and more, the avians take off, eventually seeming to all flee.",
+    n: 60,
+    title: "Rebirth II: As the Machine Sees Itself",
+  },
+  {
+    t: "Maybe it’s okay to move? Shafts for arms like metal rise up and around, looking for the hole of the hand as glove to limbs, where they slide into at the ends. It clicks in. The eyeballs are grabbed with a pinch, held by the white gloves, but no head is in sight. The only way to see is to carry them. Many sensors are placed inside the box, picking up even the acceleration as a feeling, though certainly a detached sensation, like anesthesia compared to the human experience. There is even a distant yet numb touch of temperature…",
+    n: 60,
+    title: "Rebirth II: As the Machine Sees Itself",
   },
 ];
