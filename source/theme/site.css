@@ -158,12 +158,12 @@ h1 {
   color: var(--dim);
 }
 /* reading */
-.chapter {
+.part {
   margin-top: 30px;
   --lh: 1.745;
   --ind: 2em;
 }
-.chapter p {
+.part p {
   margin: 0;
   white-space: pre-wrap;
   line-height: var(--lh);
@@ -171,32 +171,35 @@ h1 {
   overflow-wrap: break-word;
 }
 /* I want the words to flow in their paragraph: the formatter breaks the lines of the page's code at 80 letters, and
-   kept as typed those breaks left words alone on their own lines (worst on a phone). From chapter 5 on (flow) only a
+   kept as typed those breaks left words alone on their own lines (worst on a phone). From part 5 on (flow) only a
    paragraph whose spaces I typed on purpose, like the glitch ones (keep), keeps its spacing */
-.chapter.flow p:not(.keep) {
+.part.flow p:not(.keep) {
   white-space: normal;
 }
-.chapter p.para {
+.part p.para {
   text-indent: var(--ind);
   text-align: justify;
 }
-.chapter p.center {
+.part p.para.flush {
+  text-indent: 0;
+}
+.part p.center {
   text-align: center;
 }
-.chapter p.right {
+.part p.right {
   text-align: right;
 }
-.chapter p.left {
+.part p.left {
   text-align: left;
 }
-.chapter p.quote {
+.part p.quote {
   margin: 0 7%;
   text-align: justify;
 }
-.chapter p.blank {
+.part p.blank {
   height: calc(var(--lh) * 1em);
 }
-/* lines I wrote in Bradley Hand ITC in the manuscript ("Welcome, Old Self" in No. 11): centered, in that hand where the
+/* lines I wrote in Bradley Hand ITC in the manuscript ("Welcome, Old Self", in a part no longer in the book): centered, in that hand where the
    device has it (Windows with Office as Bradley Hand ITC, Apple devices as Bradley Hand), otherwise Caveat, a free
    handwriting font (SIL Open Font License) that is only downloaded when such a line is on screen; a line's gap above and
    below, as in the manuscript */
@@ -208,7 +211,7 @@ h1 {
   src: url(caveat-latin-400-normal.woff2) format("woff2");
   size-adjust: 112%;
 }
-.chapter p.hand {
+.part p.hand {
   font-family: "Bradley Hand ITC", "Bradley Hand", "NWK Hand", cursive;
   font-size: 1.45em;
   font-weight: 400;
@@ -216,43 +219,43 @@ h1 {
   text-indent: 0;
   margin: calc(var(--lh) * 0.5em) 0 calc(var(--lh) * 1em);
 }
-/* a line I set big and italic in the manuscript (the number in No. 37): centered, its gap below as tall as one of the
+/* a line I set big and italic in the manuscript (the number in No. 21, YHWH): centered, its gap below as tall as one of the
    page's lines */
-.chapter p.big {
+.part p.big {
   font-size: 1.6em;
   font-style: italic;
   line-height: 1.3;
   text-indent: 0;
   margin: 0 0 calc(var(--lh) * 1em / 1.6);
 }
-.chapter em {
+.part em {
   font-style: italic;
 }
-.chapter figure.inline-art {
+.part figure.inline-art {
   float: left;
   width: min(44%, 330px);
   margin: 8px 24px 14px 0;
   shape-margin: 12px;
 }
-.chapter figure.inline-art img {
+.part figure.inline-art img {
   display: block;
   width: 100%;
   height: auto;
   border: 1px solid var(--rule);
 }
-.chapter figure.inline-art figcaption {
+.part figure.inline-art figcaption {
   font-size: 12px;
   color: var(--dim);
   margin-top: 5px;
   letter-spacing: 0.04em;
 }
-.chapter::after {
+.part::after {
   content: "";
   display: block;
   clear: both;
 }
 @media (max-width: 620px) {
-  .chapter figure.inline-art {
+  .part figure.inline-art {
     float: none;
     width: 100%;
     margin: 0 0 18px;
@@ -264,19 +267,6 @@ h1 {
   font-weight: 500;
   font-display: swap;
   src: url(grenze-gotisch-latin-500-normal.woff2) format("woff2");
-}
-.blackletter h1,
-.chapter.blackletter {
-  font-family: "Grenze Gotisch", "Old English Text MT", serif;
-  font-weight: 500;
-}
-.blackletter h1 {
-  font-size: clamp(28px, 5vw, 40px);
-  letter-spacing: 0.02em;
-}
-.chapter.blackletter {
-  font-size: 21px;
-  letter-spacing: 0.015em;
 }
 .pager {
   display: flex;
@@ -302,7 +292,7 @@ h1 {
   min-width: 0;
   max-width: 100%;
   text-overflow: ellipsis;
-} /* a long chapter title must not widen the page on a phone */
+} /* a long part title must not widen the page on a phone */
 .pick label {
   color: var(--dim);
   font-size: 14px;
@@ -693,7 +683,7 @@ p.intro {
   body {
     font-size: 15px;
   }
-  .chapter p.para {
+  .part p.para {
     text-align: left;
   }
   article.entry p {
@@ -832,7 +822,7 @@ button.static-toggle:focus-visible {
   outline: none;
   opacity: 1;
 }
-/* chapter themes */
+/* part themes */
 html.th-indigo {
   --ground: #0b0a1a;
   --well: #121027;
@@ -1501,7 +1491,7 @@ html.th-vhs ol.toc a,
 html.th-vhs .pager {
   border-color: #464646;
 }
-/* Chalice of Tears (chapter 39): I want the page to take the colors named in the chapter in turns (Red's crimson rose,
+/* Chalice of Tears (No. 23): I want the page to take the colors named in the part in turns (Red's crimson rose,
    Blue's gentian, the purple sky, indigo, scarlet, the sapphire neptune haze and the golden chalice). Each one breathes in
    slowly out of the dark and back out into it before the next. The page stays dark like a dark mode, so it never glares at
    night, and the colors are soft (we toned them down from the first try). The letters are lighter than the page and clearly
@@ -1624,7 +1614,7 @@ html.th-chalice .pager {
 #nwkdisp.folded > :not(#nwkcol) {
   display: none;
 }
-/* Blue to Gray (No. 54): I want a beautiful afternoon blue with very blurred, faded white clouds, as undefined as can
+/* Blue to Grey (No. 35): I want a beautiful afternoon blue with very blurred, faded white clouds, as undefined as can
    be, floating through the page's background. After 35 seconds the page slowly turns grey, a messy grey (the clouds go
    grey in uneven patches), and as it does a fuzzy static comes in and gets worse. Only once the grey has set in do the
    lines and bars fade in; before that they're completely hidden. The letters stay dark the whole time, so the text
@@ -1804,103 +1794,26 @@ html.th-bluegray.bg-lines svg.strings {
     animation: none;
   }
 }
-/* No. 54, The King's Festival: a page of an old medieval book. A real photograph of blank aged vellum (a spare leaf of
-   the Towneley Lectionary, about 1550, New York Public Library, public domain), tinted a deep warm umber-tan, the edges
-   only a little darker than the middle; iron-gall ink (a brown-black, never pure black), the title in old faded
-   vermilion rubric; a narrow text block with wide margins, like a book page; no static */
-html.th-vellum {
-  --ground: #b8946a;
-  --well: #ad8a5f;
-  --deep: #8a6840;
-  --text: #2b1d14;
-  --dim: #4a3220;
-  --amber: #862a1c;
-  --amber-hi: #9c3624;
-  --rule: #8a6a45;
-}
-html.th-vellum body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -2;
-  pointer-events: none;
-  background: #ba966c url(vellum.webp) center / cover no-repeat;
-}
-/* the page a little darker toward its edges, never in blotches */
-html.th-vellum body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -2;
-  pointer-events: none;
-  background: radial-gradient(
-    ellipse 75% 70% at 50% 48%,
-    transparent 55%,
-    rgba(70, 42, 18, 0.16) 100%
-  );
-}
-html.th-vellum .wrap {
-  max-width: 600px; /* about 65 letters a line, like a book page */
-}
-html.th-vellum ol.toc a,
-html.th-vellum .pager {
-  border-color: var(--rule);
-}
-html.th-vellum h1 {
-  color: var(--amber);
-}
-html.th-vellum .chapter p.para {
-  text-indent: 0;
-  hyphens: auto; /* justified without wide gaps between the words */
-  hyphenate-limit-chars: 8 4 4; /* only words of 8 letters or more, at least 4 each side of the break */
-  -webkit-hyphenate-limit-before: 4;
-  -webkit-hyphenate-limit-after: 4;
-  display: flow-root; /* a short paragraph still holds its whole initial */
-}
-/* the initials, ranked as in the manuscripts (build_all.py): a scanned Lombardic capital (assets/lombard-*.webp, red or
-   blue), large (3 lines) on the part's first paragraph and medium (2 lines) where a section starts. The top of the
-   picture is level with the top of the first line's capitals and its foot sits on the last sunk line's baseline; the
-   float stops just short of the next line, so that one runs full width */
-html.th-vellum .chapter .ini {
-  float: left;
-  width: auto;
-  height: 4.11em; /* the third baseline (4.72em down, at line height 1.745) less the capitals' top (0.61em) */
-  margin: 0.61em 0.22em 0.48em -0.04em; /* 0.61 + 4.11 + 0.48 = 5.2em, just under 3 lines */
-  border: 0;
-}
-html.th-vellum .chapter .ini.mid {
-  height: 2.365em; /* the second baseline (2.975em) less the capitals' top */
-  margin-right: 0.16em; /* 0.61 + 2.365 + 0.48 = 3.455em, just under 2 lines */
-}
-/* on a phone words are not broken (the lines are short) */
-@media (max-width: 520px) {
-  html.th-vellum .chapter p.para {
-    hyphens: manual;
-  }
-}
 /* No. 4, Shoreline Lectures and Sermons from the Snake: my questions on the left in red, the voice in the middle in
    blue, the ending (from "Our home was broken backward" on) in indigo, and no paragraph indent anywhere in it */
-html.th-voices .chapter p {
+html.th-voices .part p {
   text-indent: 0;
 }
-html.th-voices .chapter p.para {
+html.th-voices .part p.para {
   color: #fc8c88; /* red, 8.6:1 */
 }
-html.th-voices .chapter p.center {
+html.th-voices .part p.center {
   color: #9ec9fa; /* blue, 11.4:1 */
 }
-html.th-voices .chapter p.indigo {
+html.th-voices .part p.indigo {
   color: #ac9cfc; /* indigo, 8.3:1 */
 }
-/* No. 4: "Nine of her parts scattered…" and "His birthless end…" in white, almost faded out, barely there; every 11 s
-   they breathe back in with a stutter, a skip or two, still see-through, only a little easier to see, then fade away */
-html.th-voices .chapter p.center.faint {
+/* No. 4: the words I typed in white ("it was him.") in white, almost faded out, barely there; every 11 s they breathe
+   back in with a stutter, a skip or two, still see-through, only a little easier to see, then fade away */
+html.th-voices .part .faint {
   color: #fff;
   opacity: 0.07;
   animation: faint-breath 11s linear infinite;
-}
-html.th-voices .chapter p.center.faint + p.center.faint {
-  animation-delay: 0.18s;
 }
 @keyframes faint-breath {
   0%,
@@ -1937,12 +1850,12 @@ html.th-voices .chapter p.center.faint + p.center.faint {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  html.th-voices .chapter p.center.faint {
+  html.th-voices .part .faint {
     animation: none;
     opacity: 0.12;
   }
 }
-/* No. 56, The Night Never Ends: the site's burnt amber on a darker, nearly black page, and behind it a few lone orange
+/* No. 36, The Night Never Ends: the site's burnt amber on a darker, nearly black page, and behind it a few lone orange
    street lights, only light with no lamp or post, sliding away toward a vanishing point; site.js draws them */
 html.th-night {
   --ground: #050302;
@@ -1959,17 +1872,17 @@ canvas.nightlights {
   pointer-events: none;
 }
 /* a thin dark halo around the letters, so a light passing behind the words never washes them out */
-html.th-night .chapter p {
+html.th-night .part p {
   text-shadow:
     0 0 2px var(--ground),
     0 0 7px var(--ground);
 }
-/* No. 59, Angelic Language: the words are binary and the page around them is breaking. site.js makes the page's own
+/* No. 39, Angelic Language: the words are binary and the page around them is breaking. site.js makes the page's own
    words (the title, the links, the labels), a few letters of them or a whole one, slip into binary for a blink, makes
    the binary itself flash, break and change its digits, makes a part of the page blink out, and once in a while the
    screen goes black for an instant. Every flicker is very fast. None of it ever catches a click: every layer is
    pointer-events none, and a word I'm pointing at or have focused comes back at once */
-html.th-binary .chapter p.para {
+html.th-binary .part p.para {
   text-align: left;
   word-spacing: 0.15em;
   hyphens: none;
@@ -1995,11 +1908,11 @@ h1.gl-bin,
   background: #000;
 }
 /* a byte of the binary flashing white hot, or gone for an instant */
-.chapter span.gl-hot {
+.part span.gl-hot {
   color: #fff6e8;
   text-shadow: 0 0 6px var(--amber, #ff8a1f);
 }
-.chapter span.gl-gone {
+.part span.gl-gone {
   opacity: 0;
 }
 /* a part of the page blinks out and back, very fast */
@@ -2054,4 +1967,319 @@ h1.gl-bin,
   .gl-cut {
     animation: none;
   }
+}
+
+/* v90: the book is an old amber terminal, like the cool-retro-term screenshot I picked (look E, all four together): a
+   brown screen with scanlines, curved glass with a band rolling down it and the faintest flicker, IBM Plex Mono for the
+   reading with a soft glow, and the pixel letters of an old DEC terminal (VT323) for the titles, labels and links. Every
+   book page has html.crt; the Ether's Crossroads pages keep their own look. Both fonts: SIL Open Font License */
+@font-face {
+  font-family: "NWK Plex";
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url(ibm-plex-mono-latin-300-normal.woff2) format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "NWK Plex";
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url(ibm-plex-mono-latin-ext-300-normal.woff2) format("woff2");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "NWK Plex";
+  font-style: italic;
+  font-weight: 300;
+  font-display: swap;
+  src: url(ibm-plex-mono-latin-300-italic.woff2) format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "NWK Plex";
+  font-style: italic;
+  font-weight: 300;
+  font-display: swap;
+  src: url(ibm-plex-mono-latin-ext-300-italic.woff2) format("woff2");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "NWK VT";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(vt323-latin-400-normal.woff2) format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "NWK VT";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(vt323-latin-ext-400-normal.woff2) format("woff2");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* the screenshot's amber (not on the parts with colors of their own) */
+html.crt:not(.th-indigo):not(.th-crimson):not(.th-black):not(.th-vhs):not(
+    .th-chalice
+  ):not(.th-bluegray) {
+  --ground: #1a0f04;
+  --crt-center: #3a2209;
+  --crt-edge: #060301;
+  --well: #1f1205;
+  --deep: #0d0702;
+  --text: #ffbb45;
+  --dim: #d58a2c;
+  --amber: #ff9f24;
+  --amber-hi: #ffd56f;
+  --rule: #4a2a0c;
+}
+html.crt {
+  --mono: "NWK Plex", "Cascadia Code", Consolas, monospace;
+  --pix: "NWK VT", "NWK Plex", Consolas, monospace;
+  --crt-center: var(--ground);
+  --crt-edge: #000;
+  --g1: 1px;
+  --g2: 5px;
+  --g3: 14px;
+  --ga: 1;
+  --ha: 0.85;
+  --sl-p: 3px;
+  --sl-a: 0.34;
+  --vig: 0.68;
+  --bez: 10px;
+  background:
+    radial-gradient(
+        ellipse 85% 75% at 50% 42%,
+        var(--crt-center) 0%,
+        var(--ground) 62%,
+        var(--crt-edge) 100%
+      )
+      fixed,
+    var(--ground);
+}
+html.crt body {
+  font-weight: 300;
+  text-shadow:
+    0 0 var(--g1)
+      color-mix(in srgb, var(--text) calc(70% * var(--ga)), transparent),
+    0 0 var(--g2)
+      color-mix(in srgb, var(--amber) calc(55% * var(--ga)), transparent),
+    0 0 var(--g3)
+      color-mix(in srgb, var(--amber) calc(28% * var(--ga)), transparent);
+  animation: crt-flicker 0.11s steps(2) infinite;
+}
+html.crt select,
+html.crt button,
+html.crt input {
+  text-shadow: inherit;
+}
+/* the reading: a quieter glow */
+html.crt .part,
+html.crt .part p {
+  --ga: 0.7;
+  --g2: 4px;
+  --g3: 11px;
+}
+/* the titles, labels and links: the pixel letters. I found them too thick, so they are a little smaller than the reading
+   letters and their glow has no bright core */
+html.crt h1,
+html.crt h2,
+html.crt .kicker,
+html.crt header,
+html.crt nav,
+html.crt label,
+html.crt select,
+html.crt .pager,
+html.crt ol.toc,
+html.crt button,
+html.crt .num {
+  font-family: var(--pix);
+  font-weight: 400;
+  font-size-adjust: 0.5;
+  letter-spacing: 0.03em;
+  text-shadow:
+    0 0 5px color-mix(in srgb, var(--amber) calc(55% * var(--ha)), transparent),
+    0 0 16px color-mix(in srgb, var(--amber) calc(28% * var(--ha)), transparent);
+}
+html.crt h1 {
+  line-height: 1.1;
+}
+/* the glass: dark at the edges, a rounded tube in its case */
+html.crt::before {
+  content: "";
+  position: fixed;
+  inset: var(--bez);
+  z-index: 45;
+  pointer-events: none;
+  border-radius: 34px / 30px;
+  background: radial-gradient(
+    ellipse 120% 105% at 50% 50%,
+    transparent 55%,
+    rgba(0, 0, 0, var(--vig)) 100%
+  );
+  box-shadow:
+    0 0 0 80px #17130e,
+    inset 0 0 0 2px #050301,
+    inset 0 0 70px rgba(0, 0, 0, 0.75);
+}
+/* the scanlines */
+html.crt::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 46;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 calc(var(--sl-p) - 1.6px),
+    rgba(0, 0, 0, var(--sl-a)) calc(var(--sl-p) - 1.6px) var(--sl-p)
+  );
+}
+/* the band rolling down the glass */
+html.crt body::after {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: -30vh;
+  height: 30vh;
+  z-index: 44;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in srgb, var(--amber-hi) 5%, transparent) 55%,
+    color-mix(in srgb, var(--amber-hi) 8%, transparent) 60%,
+    transparent
+  );
+  animation: crt-roll 9s linear infinite;
+}
+@keyframes crt-roll {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(160vh);
+  }
+}
+@keyframes crt-flicker {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.985;
+  }
+}
+/* the switches stay inside the glass */
+html.crt button.static-toggle,
+html.crt #nwkdisp {
+  right: max(calc(var(--bez) + 14px), env(safe-area-inset-right, 0px));
+  bottom: max(calc(var(--bez) + 12px), env(safe-area-inset-bottom, 0px));
+}
+@media (max-width: 520px) {
+  html.crt {
+    --bez: 5px;
+  }
+  html.crt::before {
+    border-radius: 22px / 20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.crt body,
+  html.crt body::after {
+    animation: none;
+  }
+  html.crt body::after {
+    display: none;
+  }
+}
+html.lite.crt body::after {
+  display: none;
+}
+/* No. 33, The Outer Darkness: a red tube */
+html.crt.th-crimson {
+  --ground: #140203;
+  --crt-center: #2c0607;
+  --crt-edge: #050000;
+  --well: #1e0405;
+  --deep: #0b0101;
+  --text: #ff5e4d;
+  --dim: #c8483c;
+  --amber: #ff3a2c;
+  --amber-hi: #ffa092;
+  --rule: #4d100e;
+}
+/* the night parts keep their nearly black page and their street lights */
+html.crt.th-night:not(.th-indigo):not(.th-crimson):not(.th-black):not(
+    .th-vhs
+  ):not(.th-chalice):not(.th-bluegray) {
+  --ground: #050302;
+  --crt-center: #050302;
+  --crt-edge: #000;
+  --well: #0b0603;
+  --deep: #020100;
+  --rule: #2b1709;
+}
+html.crt.th-night .part p {
+  text-shadow:
+    0 0 var(--g1)
+      color-mix(in srgb, var(--text) calc(70% * var(--ga)), transparent),
+    0 0 var(--g2)
+      color-mix(in srgb, var(--amber) calc(55% * var(--ga)), transparent),
+    0 0 2px var(--ground),
+    0 0 7px var(--ground);
+}
+/* the Ten parts, the black part, VHS and Chalice of Tears: their own colors, through the same glass */
+html.crt.th-indigo,
+html.crt.th-black,
+html.crt.th-vhs {
+  --crt-center: color-mix(in srgb, var(--ground), #fff 5%);
+  --crt-edge: color-mix(in srgb, var(--ground), #000 60%);
+}
+html.crt.th-indigo {
+  --amber: #b9b9ff;
+}
+html.crt.th-black {
+  --amber: #e8e8e8;
+}
+html.crt.th-chalice {
+  --crt-center: color-mix(in srgb, var(--ch-ground), #fff 6%);
+  --crt-edge: color-mix(in srgb, var(--ch-ground), #000 65%);
+}
+/* No. 35, Blue to Grey: its sky, its clouds and its grey, on the tube */
+html.crt.th-bluegray {
+  --crt-center: var(--ground);
+  --crt-edge: var(--ground);
+  --ga: 0.35;
+  --ha: 0.35;
+  --sl-a: 0.13;
+  --vig: 0.42;
+}
+html.crt.th-bluegray body,
+html.crt.th-bluegray .part p {
+  text-shadow:
+    0 0 1px color-mix(in srgb, var(--text) 45%, transparent),
+    0 0 6px rgba(255, 255, 255, 0.35);
 }

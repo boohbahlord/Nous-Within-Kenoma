@@ -257,9 +257,9 @@ rules = (
 <h3>Full Moon</h3>
 <ul><li>Each player is asked for a random stack of two cards; with none, a random card from the field; with nothing on the field to take, three cards from their shuffled deck. Given, they go to the soul pile. Refused, it costs 2d2 + 2 mana, which can take you below zero.</li><li>All decks are shuffled.</li><li>No one can draw cards or cast necromancy spells.</li><li>Naked Hand is free and Clairvoyance costs only two mana; both turn a bright grey, the color of the Full Moon.</li></ul>
 <h3>Blood Moon</h3>
-<ul><li>Every Full Moon may turn into a Blood Moon. The moon turns red, and so does every necromancy spell, and the table turns the crimson of the Disturbed Satan chapter and starts to glitch.</li><li>New Moon effects take place: players pick cards from the grave. The Full Moon's drawbacks (the toll, the shuffle, no drawing, no necromancy) are void, but its cheaper prices stay.</li><li>Every card killed during the Blood Moon is sent to the <b>Outer Darkness</b> and can never be returned. A Joker that kills itself during it sends all the cards it held to the Outer Darkness.</li></ul>
+<ul><li>Every Full Moon may turn into a Blood Moon. The moon turns red, and so does every necromancy spell, and the table turns the crimson of the part The Outer Darkness and starts to glitch.</li><li>New Moon effects take place: players pick cards from the grave. The Full Moon's drawbacks (the toll, the shuffle, no drawing, no necromancy) are void, but its cheaper prices stay.</li><li>Every card killed during the Blood Moon is sent to the <b>Outer Darkness</b> and can never be returned. A Joker that kills itself during it sends all the cards it held to the Outer Darkness.</li></ul>
 <h3>The Outer Darkness</h3>
-<p>Cards in the Outer Darkness can be viewed at any time, in a box the red of the Disturbed Satan chapter. Each card carries the symbol of the player it belonged to at the time of its death.</p>
+<p>Cards in the Outer Darkness can be viewed at any time, in a box the red of the part The Outer Darkness. Each card carries the symbol of the player it belonged to at the time of its death.</p>
 <h2 id="digital">How the digital table reads the rules</h2>
 <p>Some rules leave room for the players to decide. Play Game uses these readings:</p>
 <ul>
@@ -473,7 +473,7 @@ play = (
 </main>
 <div id="ov" hidden></div>
 <div id="flash" hidden role="status"></div>
-<script>window.EC_QSRC="ethers-crossroads-quotes.js?v=170"</script>
+<script>window.EC_QSRC="ethers-crossroads-quotes.js?v=171"</script>
 <script src="ethers-crossroads.js?v=183"></script>
 """
     + TAIL
@@ -486,9 +486,9 @@ import random as _rnd, glob as _glob, html as _html, json as _json
 
 def _quotes():
     pool = []
-    for f in sorted(_glob.glob(f"{OUT}/chapter-*.html")):
+    for f in sorted(_glob.glob(f"{OUT}/part-*.html")):
         s = open(f).read()
-        n = int(re.search(r"chapter-(\d+)", f).group(1))
+        n = int(re.search(r"part-(\d+)", f).group(1))
         title = _html.unescape(re.search(r"<h1>(.*?)</h1>", s).group(1))
         body = s[s.index("<article") : s.index("</article>")]
         paras = [
@@ -515,7 +515,7 @@ def _quotes():
     want = {
         n: (min(len(g), max(2, round(100 * len(g) / total))) if g else 0)
         for n, _, g in pool
-    }  # every chapter at least two passages where it has them
+    }  # every part at least two passages where it has them
     while sum(want.values()) > 100:
         k = max(want, key=lambda n: want[n])
         want[k] -= 1

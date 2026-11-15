@@ -805,7 +805,7 @@ fieldset.pf legend {
   font-size: 13.5px;
   max-width: 90vw;
 }
-/* Blood Moon: the page turns to the crimson of chapter 23 and starts to glitch */
+/* Blood Moon: the page turns to the crimson of part 33 (The Outer Darkness) and starts to glitch */
 html.bloodglitch .game #board {
   animation: ecglitch 5.2s infinite;
 }
@@ -1787,7 +1787,7 @@ body:has(.game) {
 #qsrc {
   margin: 0;
 }
-/* ---- Jester theme: black like chapter 26, with blackletter titles ---- */
+/* ---- Jester theme: black like part 18 (The Fool and Traveler), with blackletter titles ---- */
 html.th-jester .game h1,
 html.th-jester .ovbox h2 {
   font-family: "Grenze Gotisch", "Old English Text MT", serif;
