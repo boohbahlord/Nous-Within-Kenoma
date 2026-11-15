@@ -3,7 +3,7 @@
 import json, html, os, re, shutil
 
 OUT = "site"
-SITE_V = "89"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
+SITE_V = "90"  # cache tag for site.css and site.js: raise it whenever they change, so browsers fetch the new ones
 ICON_V = "2"  # the same for the tab icon (2: the white circle with a line through it, in a black box)
 if os.path.isdir(OUT):
     shutil.rmtree(OUT)  # v79j: a clean build (the files end up in folders at the end)
@@ -38,6 +38,7 @@ try{if(P&&P.dys){D.classList.add("dys");var z=document.createElement("style");z.
 
 
 def head(title, extra="", static=1, fx="strings bars", theme="", ec=False):
+    theme = theme if ec else (theme + " crt").strip()  # v90: every book page is the old amber terminal
     cls = f' class="{theme}"' if theme else ""
     return f"""<!doctype html>
 <html lang="en"{cls}>
@@ -46,7 +47,7 @@ def head(title, extra="", static=1, fx="strings bars", theme="", ec=False):
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>{esc(title)}</title>
 <link rel="icon" type="image/png" href="favicon.png?v={ICON_V}">
-{'' if ec else '<link rel="preload" href="cascadia-code-latin-200-normal.woff2" as="font" type="font/woff2" crossorigin>' + chr(10)}<link rel="stylesheet" href="site.css?v={SITE_V}">{extra}{EC_THEME if ec else ''}
+{'' if ec else '<link rel="preload" href="ibm-plex-mono-latin-300-normal.woff2" as="font" type="font/woff2" crossorigin>' + chr(10) + '<link rel="preload" href="vt323-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>' + chr(10)}<link rel="stylesheet" href="site.css?v={SITE_V}">{extra}{EC_THEME if ec else ''}
 <script src="site.js?v={SITE_V}" defer></script>
 </head>
 <body data-static="{static}" data-fx="{fx}">
@@ -55,57 +56,46 @@ def head(title, extra="", static=1, fx="strings bars", theme="", ec=False):
 
 TAIL = "</body>\n</html>\n"
 
-# ---------------------------------------------------------------- chapters
-C = json.load(open("chapters_all.json"))
-QUOTES = {23: [(6, 7)], 36: [(46, 48), (52, 58)]}
-ART = {  # file -> (plate label, chapter it appears in or None)
+# ---------------------------------------------------------------- parts
+# The words of every part come from my manuscript, the .odt, through tools/odt_to_parts.py (parts_all.json): exactly as
+# typed there, paragraph for paragraph and line for line. Nothing here changes a word.
+C = json.load(open("parts_all.json", encoding="utf8"))
+ART = {  # file -> (plate label, the part it appears in or None)
     "art-01.jpg": ("Plate I", None),
-    "art-02.jpg": ("Plate II", 33),
-    "art-03.jpg": ("Plate III", 40),
-    "art-04.jpg": ("Plate IV", 58),
+    "art-02.jpg": ("Plate II", None),
+    "art-03.jpg": ("Plate III", 24),
+    "art-04.jpg": ("Plate IV", 38),
     "art-05.jpg": ("Plate V", None),
     "art-06.jpg": ("Plate VI", None),
     "art-07.jpg": ("Plate VII", None),
     "art-08.jpg": ("Plate VIII", 8),
     "art-09.jpg": ("Plate IX", None),
-    "in-denial.jpg": ("In Denial", 23),
-    "forgetting-hell.png": ("Forgetting Hell", 24),
+    "in-denial.jpg": ("In Denial", 33),
+    "forgetting-hell.png": ("Forgetting Hell", 16),
 }
-CH_IMG = {
-    40: (0, "art-03.jpg"),
-    23: (13, "in-denial.jpg"),
-    24: (0, "forgetting-hell.png"),
-    8: (5, "art-08.jpg"),
-    33: (2, "art-02.jpg"),
-    58: (
-        14,
-        "art-04.jpg",
-    ),  # right after the paragraph about the map and schematic, the next one wrapping around it
+PART_IMG = {  # part -> (the paragraph the picture comes right before: its first words, or 0 for the top; the picture)
+    24: (0, "art-03.jpg"),
+    33: ("The pain, fed.", "in-denial.jpg"),
+    16: (0, "forgetting-hell.png"),
+    8: ("How does it think?", "art-08.jpg"),
+    # right before the paragraph after the one about the map and schematic, that one wrapping around it
+    38: ("When the world was seen in the cup", "art-04.jpg"),
 }
+LH = {2: 1.167}  # a part's line height where it isn't the usual one (No. 2's lines sit close, as in the manuscript)
 anchor = lambda f: "art-" + re.sub(r"[^a-z0-9]+", "-", ART[f][0].lower()).strip("-")
 
 
-def to_html(t):
-    t = html.escape(t, quote=False)
-    return re.sub(r"\*(.+?)\*", r"<em>\1</em>", t)
-
-
-def fix_chapter(c):
+def fix_part(c):
     n = c["n"]
     items = [dict(it) for it in c["items"]]
-    if n >= 5 and os.path.exists(f"edits/e{n:02d}.py"):
-        g = {}
-        exec(open(f"edits/e{n:02d}.py").read(), g)
-        for i, t in g["E"].items():
-            items[i]["html"] = to_html(t)
-    if n in CH_IMG:
-        i, f = CH_IMG[n]
-        items.insert(i, {"k": "img", "f": f})
-    for a, b in reversed(QUOTES.get(n, [])):
-        txt = " ".join(
-            re.sub(r"</?em>", "", items[j]["html"]).strip() for j in range(a, b + 1)
+    if n in PART_IMG:
+        at, f = PART_IMG[n]
+        i = (
+            at
+            if isinstance(at, int)
+            else next(j for j, it in enumerate(items) if it.get("html", "").startswith(at))
         )
-        items[a : b + 1] = [{"k": "quote", "html": "<em>" + txt + "</em>"}]
+        items.insert(i, {"k": "img", "f": f})
     if n >= 5:
         out = []
         for it in items:
@@ -113,15 +103,12 @@ def fix_chapter(c):
                 continue
             out.append(it)
         items = out
-    c = dict(c)
-    c["items"] = items
-    c["ind"] = 2.0  # one first-line indent for every chapter
-    return c
+    return dict(c, items=items, lh=LH.get(n, 1.745), ind=2.0)  # one first-line indent for every part
 
 
-C = [fix_chapter(c) for c in C]
+C = [fix_part(c) for c in C]
 TITLE = {c["n"]: c["title"] for c in C}
-fname = lambda n: f"chapter-{n:02d}.html"
+fname = lambda n: f"part-{n:02d}.html"
 
 
 def picker(cur=None, label="Jump to a part"):
@@ -137,37 +124,7 @@ def picker(cur=None, label="Jump to a part"):
     )
 
 
-# Medieval initials (The King's Festival). I want them ranked, the way the manuscripts did it: one large initial on the
-# part's first paragraph (3 lines), a medium one (2 lines) where a new section starts, and plain text everywhere else, so
-# each initial tells the reader that something has changed. A section start is marked in chapters_all.json with
-# "sec": true on its paragraph. The letters are real scans from one book, Gregorius Bock's pattern book for scribes
-# (Swabia, about 1510; Yale, Beinecke MS 439, public domain), cut out of the vellum (assets/lombard-<letter>-<colour>.webp;
-# where each one comes from: notes/kings-festival-initials.md), blue and red in turn. The rest of the first word stays
-# in the words' own letters (blackletter has no small capitals).
-LOMBARD = {
-    "t-blue": (183, 320),
-    "s-red": (253, 320),
-    "e-blue": (165, 320),
-    "k-red": (211, 320),
-}  # each scan's size in pixels
-
-
-def initial(h, i, size):
-    """the paragraph's first letter as a scanned Lombardic initial (with any quote mark before it), large or medium,
-    blue for the 1st, 3rd, 5th… initial and red for the others"""
-    m = re.match(r"((?:&[#\w]+;|[“‘])*)(\w)(\w*)", h)
-    if not m:
-        return h
-    q, ch, rest = m.groups()
-    scan = f"{ch.lower()}-{'blue' if i % 2 else 'red'}"
-    if scan not in LOMBARD:
-        return h
-    w, ht = LOMBARD[scan]
-    img = f'<img class="ini {size}" src="lombard-{scan}.webp" alt="{q}{ch}" width="{w}" height="{ht}">'
-    return img + rest + h[m.end() :]
-
-
-def render_items(items, pm=False, ini=0):
+def render_items(items, pm=False):
     out = []
     for it in items:
         k = it["k"]
@@ -179,139 +136,74 @@ def render_items(items, pm=False, ini=0):
             out.append(
                 f'<figure class="inline-art"><a href="art.html#{anchor(f)}" style="border:0"><img src="{f}" alt="{esc(lab)}, artwork" loading="lazy"></a><figcaption>{esc(lab)}</figcaption></figure>'
             )
-        elif k == "para":
+        else:
             h = it["html"].rstrip()
             if pm and "  " in h:
                 # I want the spaces I typed in a glitch paragraph kept as they are: the formatter squeezes every run of
                 # spaces into one, so I tell it to leave this one alone, on one line (the page keeps its spaces, class keep)
                 out.append(
-                    f'<!-- prettier-ignore -->\n<p class="para keep">{h.strip()}</p>'
+                    f'<!-- prettier-ignore -->\n<p class="{it["cls"]} keep">{h}</p>'
                 )
             else:
-                if ini and (ini == 1 or it.get("sec")):
-                    h = initial(h, ini, "big" if ini == 1 else "mid")
-                    ini += 1
-                out.append(f'<p class="para">{h}</p>')
-        elif k == "quote":
-            out.append(f'<p class="quote">{it["html"]}</p>')
-        elif k == "flush":
-            out.append(f'<p class="left">{it["html"].rstrip()}</p>')
-        else:
-            al = it["al"]
-            if al == "off":
-                out.append(
-                    f'<p class="left" style="padding-left:{it["off"]}%">{it["html"].rstrip()}</p>'
-                )
-            else:
-                out.append(f'<p class="{al}">{it["html"].rstrip()}</p>')
+                out.append(f'<p class="{it["cls"]}">{h}</p>')
     return "\n".join(out)
 
 
-BLACK = {26, 54}
-INITIALS = {
-    54
-}  # parts whose paragraphs each open on a big initial (The King's Festival)
-BAFFLE = '\n<script src="baffle.min.js?v=1" defer></script>'
-BL_FONT = '\n<link rel="preload" href="grenze-gotisch-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>'
-L4 = {23, 41}
-L3 = {3, 6, 9, 14, 25, 28, 30, 34, 37, 38, 40}
-L2 = {5, 8, 10, 11, 15, 17, 18, 19, 20, 21, 22, 24, 27, 29, 36}
+# how much TV static each part's background has (0 none, 1 light, 2 medium; heavy static was brought down to medium on
+# 2026-10-19 and medium has no rolling TV band)
+STATIC2 = {5, 8, 10, 11, 14, 15, 16, 31, 32}
+STATIC2 |= {3, 6, 9, 13, 17, 19, 21, 22, 24}  # (once heavy)
+STATIC2 |= {25, 33}  # (once heaviest)
+THEME = {
+    1: "th-indigo th-blue",
+    2: "th-indigo th-blue",
+    3: "th-indigo th-blue",
+    4: "th-indigo th-voices",
+    18: "th-black",  # The Fool and Traveler: black and white
+    23: "th-chalice",  # Chalice of Tears: its seven colors in turn
+    29: "th-vhs",  # VHS Tape
+    33: "th-crimson",  # The Outer Darkness: the red screen
+    35: "th-bluegray",  # Blue to Grey: the sky going grey
+    36: "th-night",  # The Night Never Ends: the dark page and the street lights
+    # Angelic Language keeps No. 36's page (the dark ground and the street lights) with its breaking on top
+    39: "th-night th-binary",
+}
+NIGHT_FROM = 36  # every part after The Night Never Ends has its page unless I give it a page of its own above
 
 
-def ch_fx(n):
-    lvl = 0 if n == 35 else 4 if n in L4 else 3 if n in L3 else 2 if n in L2 else 1
-    lvl = min(
-        lvl, 2
-    )  # 2026-10-19: heavy static (3, 4) brought down to medium; medium has no rolling TV band
-    if n in (50, 51, 52):
-        lvl = 2  # I want the grey TV static on VHS Tape, Word and Sepulcher, very faint, so the text stays easy to read
-    if n == 54:
-        lvl = 0  # The King's Festival: an old book page, no static over the parchment
-    if n == 55:
-        lvl = 2  # Blue to Gray: the static starts at nothing and comes in with the grey (site.js)
-    fx = "" if n in (1, 2, 3, 4, 26, 35, 54) else "strings bars"
-    theme = (
-        "th-indigo th-blue"
-        if n in (1, 2, 3)
-        else (
-            "th-indigo th-voices"
-            if n == 4
-            else (
-                "th-crimson"
-                if n == 23
-                else (
-                    "th-black"
-                    if n == 26
-                    else (
-                        "th-vhs"
-                        if n in (50, 51, 52)
-                        else (
-                            "th-chalice"
-                            if n == 39
-                            else (
-                                "th-vellum"
-                                if n == 54
-                                else (
-                                    "th-bluegray"
-                                    if n == 55
-                                    else (
-                                        "th-night"
-                                        if n == 56
-                                        else (
-                                            # Angelic Language keeps No. 56's page (the dark ground and the
-                                            # street lights) with its breaking on top
-                                            "th-night th-binary"
-                                            if n == 59
-                                            else ""
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-        )
-    )
-    if not theme and n > 56:
-        # every part after No. 56 has its page (the dark ground and the breathing street lights) unless I give it a
-        # page of its own above
-        theme = "th-night"
+def part_fx(n):
+    lvl = 2 if n in STATIC2 else 1
+    if n == 20:
+        lvl = 0  # Store: no static
+    if n == 29:
+        lvl = 2  # I want the grey TV static on VHS Tape, very faint, so the text stays easy to read
+    if n == 35:
+        lvl = 2  # Blue to Grey: the static starts at nothing and comes in with the grey (site.js)
+    fx = "" if n in (1, 2, 3, 4, 18, 20) else "strings bars"
+    theme = THEME.get(n, "th-night" if n > NIGHT_FROM else "")
     return dict(static=lvl, fx=fx, theme=theme)
 
 
-for f in os.listdir(OUT):
-    if f.startswith("chapter-") and f.endswith(".html"):
-        os.remove(f"{OUT}/{f}")
+BAFFLE = '\n<script src="baffle.min.js?v=1" defer></script>'
 for i, c in enumerate(C):
     n = c["n"]
     prev = C[i - 1] if i else None
     nxt = C[i + 1] if i + 1 < len(C) else None
-    bl = n in BLACK
-    fxs = ch_fx(n)
+    fxs = part_fx(n)
     body = head(
         f'No. {n}: {c["title"]} · Nous Within Kenoma',
-        (BL_FONT if bl else "")
         # Angelic Language breaks its words into binary with baffle (Cam Wiegert, MIT), before site.js uses it
-        + (BAFFLE if "th-binary" in fxs["theme"] else ""),
+        BAFFLE if "th-binary" in fxs["theme"] else "",
         **fxs,
     )
-    if n == 49:
-        # I added a blank line between the head and the body on this page by hand, and I want it kept
-        body = body.replace("</head>\n<body", "</head>\n\n<body")
-    if n == 55:
-        # I spelled it "Grey" in the tab's title on this page by hand (ec2b83b), and I want that kept
-        body = body.replace(
-            "<title>No. 55: Blue to Gray ·", "<title>No. 55: Blue to Grey ·"
-        )
-    body += f'<main class="wrap{" blackletter" if bl else ""}">\n'
-    body += f'<nav class="crumbs"><a href="chapters.html">← Nous Within Kenoma</a>{picker(n)}</nav>\n'
+    body += '<main class="wrap">\n'
+    body += f'<nav class="crumbs"><a href="parts.html">← Nous Within Kenoma</a>{picker(n)}</nav>\n'
     body += (
         f'<header><span class="num">No. {n}</span><h1>{esc(c["title"])}</h1></header>\n'
     )
-    # every part flows now, 1 to 4 too: kept as typed, the formatter's line breaks and indents showed on a phone as
-    # pushed-in first lines and empty gaps (the words of 1 to 4 are untouched)
-    body += f'<article class="chapter{" blackletter" if bl else ""} flow" style="--lh:{c["lh"]};--ind:{c["ind"]}em">\n{render_items(c["items"], n >= 5, 1 if n in INITIALS else 0)}\n</article>\n'
+    # every part flows: kept as typed, the formatter's line breaks and indents showed on a phone as pushed-in first lines
+    # and empty gaps
+    body += f'<article class="part flow" style="--lh:{c["lh"]};--ind:{c["ind"]}em">\n{render_items(c["items"], n >= 5)}\n</article>\n'
     if n == 4:
         # the ending of No. 4, from "Our home was broken backward" to "laid.", in indigo
         at = body.index('<p class="para">Our home was broken backward')
@@ -319,16 +211,11 @@ for i, c in enumerate(C):
         body = body[:at] + end.replace(
             '<p class="center">', '<p class="center indigo">'
         )
-        # the two lines after "What of my Devil God?" in white, almost gone, breathing back in now and then with a skip
-        for line in ("Nine of her parts scattered", "His birthless end"):
-            body = body.replace(
-                f'<p class="center">{line}', f'<p class="center faint">{line}'
-            )
     body += '<nav class="pager">'
     body += (
         f'<a href="{fname(prev["n"])}">← No. {prev["n"]}: {esc(prev["title"])}</a>'
         if prev
-        else '<a href="chapters.html">← All parts</a>'
+        else '<a href="parts.html">← All parts</a>'
     )
     body += (
         f'<a href="{fname(nxt["n"])}">No. {nxt["n"]}: {esc(nxt["title"])} →</a>'
@@ -346,7 +233,7 @@ land = head("Nous Within Kenoma") + f"""<main class="wrap">
 <nav class="crumbs"><a href="index.html">← Homepage</a></nav>
 <header><h1>Nous Within Kenoma</h1></header>
 <section class="notice" aria-label="About these parts">
-<p>This book is unfinished. These stories may still change before the book is complete. The writing is in a very much rough state and will be revised once all the chapters are finished soon.</p>
+<p>This book is unfinished. These stories may still change before the book is complete. The writing is in a very much rough state and will be revised once all the parts are finished soon.</p>
 <p><i>Nous Within Kenoma</i> is a collection of short stories that all take place within the same cosmology. The stories are interconnected to differing extents.</p>
 </section>
 {picker(None, 'Select a part for preview reading')}
@@ -355,17 +242,16 @@ land = head("Nous Within Kenoma") + f"""<main class="wrap">
 </ol>
 </main>
 """ + TAIL
-open(f"{OUT}/chapters.html", "w").write(land)
+open(f"{OUT}/parts.html", "w").write(land)
 
 # ---------------------------------------------------------------- front page
-NW = {40: "forty"}
 idx = head("Nous Within Kenoma") + f"""<main class="wide" style="max-width:1060px">
 <div class="front">
 <div>
   <h1 style="font-size:clamp(30px,5vw,44px);line-height:1.1;margin:0 0 10px">Nous Within Kenoma</h1>
   <p style="color:var(--dim);margin:0 0 34px;font-size:15px">Gnostic-inspired syncretic short stories</p>
   <h2 class="label">Sample Parts</h2>
-  <nav class="cards"><a class="card" href="chapters.html">Read the Book<span>In progress: {len(C)} parts</span></a></nav>
+  <nav class="cards"><a class="card" href="parts.html">Read the Book<span>In progress: {len(C)} parts</span></a></nav>
   <h2 class="label">Games</h2>
   <nav class="cards">
     <a class="card" href="ethers-crossroads.html">Ether's Crossroads<span>A strategy card game, loosely based on the book</span></a>
@@ -482,10 +368,10 @@ if _cut:
 # ---------------------------------------------------------------- v79j: the site in folders
 # Everything above is built flat; here each file goes to its folder and every reference between files (href, src, url(),
 # the strings in the scripts) is rewritten to the new place. index.html stays at the root, where GitHub Pages starts.
-#   book/  the chapters and their list · art/  the art page and the pictures · game/  Ether's Crossroads
+#   book/  the parts and their list · art/  the art page and the pictures · game/  Ether's Crossroads
 #   assets/  what every page shares: site.css, site.js, the fonts, the icon, the dark fantasy backdrop
 def _folder(f):
-    if f.startswith("chapter") and f.endswith(".html"):
+    if (f.startswith("part-") and f.endswith(".html")) or f == "parts.html":
         return "book"
     if f in (
         "art.html",
@@ -526,7 +412,17 @@ for f in [*FOLDER, "index.html"]:
     elif dst != src:
         shutil.move(src, dst)
 # the old addresses (before the folders, and the pages that are gone) land where they belong now, or on the front page
-_moved = json.dumps({f: where(f) for f in FOLDER if f.endswith(".html")})
+# the chapters became parts on 2026-11-15 (40 of them, numbered anew): each old chapter's address lands on its part, and a
+# chapter that is no longer in the book lands on the list of parts
+OLD = {1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 11, 13: 12, 14: 13, 17: 14, 18: 15, 19: 31, 22: 32}
+OLD |= {23: 33, 24: 16, 25: 17, 26: 18, 28: 19, 35: 20, 36: 10, 37: 21, 38: 22, 39: 23, 40: 24, 41: 25, 42: 26}
+OLD |= {46: 27, 47: 28, 50: 29, 53: 30, 54: 34, 55: 35, 56: 36, 57: 37, 58: 38, 59: 39, 60: 40}
+_gone = {f"chapter-{o:02d}.html": where(fname(OLD[o]) if o in OLD else "parts.html") for o in range(1, 61)}
+_moved = json.dumps(
+    {f: where(f) for f in FOLDER if f.endswith(".html")}
+    | _gone
+    | {"chapters.html": where("parts.html")}
+)
 open(f"{OUT}/404.html", "w").write(
     """<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Nous Within Kenoma</title>
 <script>(function(){var M="""

@@ -41,8 +41,8 @@
       H = innerHeight;
     document.querySelector("svg.strings")?.remove();
     if (lookPref().lines === false || lite()) return;
-    // I want Static off to take the thin lines and bars out of a chapter's background too
-    if (!on && LV && document.querySelector("article.chapter")) return;
+    // I want Static off to take the thin lines and bars out of a part's background too
+    if (!on && LV && document.querySelector("article.part")) return;
     const s = el("svg", {
       class: "strings",
       viewBox: `0 0 ${W} ${H}`,
@@ -122,7 +122,7 @@
   let ALPHA = [0, 0.035, 0.065, 0.1, 0.13][LV] || 0;
   const SKY = document.documentElement.classList.contains("th-bluegray");
   let drawnA = 0;
-  if (SKY) ALPHA = 0; // Blue to Gray: no static on the blue; it comes in with the grey (nwkStatic.alpha, below)
+  if (SKY) ALPHA = 0; // Blue to Grey: no static on the blue; it comes in with the grey (nwkStatic.alpha, below)
   let cv,
     ctx,
     img,
@@ -209,7 +209,7 @@
     raf = requestAnimationFrame(loop);
     if (t - last < 80) return;
     last = t;
-    if (!ALPHA && SKY) return; // (Blue to Gray's blue: nothing to draw yet)
+    if (!ALPHA && SKY) return; // (Blue to Grey's blue: nothing to draw yet)
     noise();
     cv.style.opacity = (0.8 + R() * 0.2).toFixed(2);
     if (roll) {
@@ -294,7 +294,7 @@
       if (roll) roll.hidden = LV < 3 || !on;
       if (on) start();
     },
-    /* any strength between the levels' (Blue to Gray fades its static in with this); the scanlines go with it */
+    /* any strength between the levels' (Blue to Grey fades its static in with this); the scanlines go with it */
     alpha(a) {
       ALPHA = Math.max(0, Math.min(0.13, a));
       if (scan) scan.style.opacity = Math.min(1, ALPHA / 0.065) * 0.49;
@@ -558,7 +558,7 @@
   else build();
 })();
 
-/* Blue to Gray (No. 54): the sky behind the page (site.css draws it and turns it grey from 35 s on), and the rest of the
+/* Blue to Grey (No. 35): the sky behind the page (site.css draws it and turns it grey from 35 s on), and the rest of the
    timing. The static fades in while the grey comes and keeps getting worse; once the grey has set in, the lines and bars
    (hidden until then) fade in, and the static eases back a little so the text stays easy to read. The clock is the
    page's own, from the moment it opened, the same as the grey's. */
@@ -607,7 +607,7 @@
   else go();
 })();
 
-/* The Night Never Ends (No. 56), and every part after it unless it has a page of its own: a few lone orange street
+/* The Night Never Ends (No. 36), and every part after it unless it has a page of its own: a few lone orange street
    lights, only their light, standing still down a road at night, from the left of the page toward a vanishing point on
    the right, on the horizon (one-point perspective). Two rows, one higher and one lower; each light in a row about
    half the size of the one before it, the last ones fading well before the point. The lights don't move: each one
@@ -664,10 +664,10 @@
   function glow(x, y, r, a) {
     if (a <= 0.003 || r < 0.6) return;
     const gr = g.createRadialGradient(x, y, 0, x, y, r);
-    gr.addColorStop(0, `rgba(255,170,90,${a})`);
-    gr.addColorStop(0.18, `rgba(244,124,38,${a * 0.85})`);
-    gr.addColorStop(0.5, `rgba(196,82,18,${a * 0.3})`);
-    gr.addColorStop(1, "rgba(150,55,10,0)");
+    gr.addColorStop(0, `rgba(255,204,118,${a})`);
+    gr.addColorStop(0.18, `rgba(255,164,44,${a * 0.85})`);
+    gr.addColorStop(0.5, `rgba(206,114,22,${a * 0.3})`);
+    gr.addColorStop(1, "rgba(160,82,10,0)");
     g.fillStyle = gr;
     g.beginPath();
     g.arc(x, y, r, 0, 6.2832);
@@ -731,9 +731,9 @@
   else go();
 })();
 
-/* Angelic Language (No. 59): the page breaks around the binary, from the moment it opens, and every flicker is very
+/* Angelic Language (No. 39): the page breaks around the binary, from the moment it opens, and every flicker is very
    fast. The page's own words (the title, the part number, the links, the labels, the Display buttons) slip into the
-   binary of their letters for a blink, the bytes as the chapter writes them: sometimes only a letter or two, sometimes
+   binary of their letters for a blink, the bytes as the part writes them: sometimes only a letter or two, sometimes
    one word, sometimes all of it. The binary itself flashes, breaks into noise and changes its digits for an instant,
    and always comes back exactly as written. A part of the page blinks out, a line tears, and once in a while the whole
    screen goes black for an instant. The scramble into ones and zeros is baffle (Cam Wiegert, MIT,
@@ -749,7 +749,7 @@
     span = (a, b) => a + R() * (b - a),
     hasBaffle = () => typeof window.baffle === "function",
     enc = new TextEncoder();
-  // the binary of a text, byte by byte, eight digits each, a space between: the way the chapter itself is written
+  // the binary of a text, byte by byte, eight digits each, a space between: the way the part itself is written
   const bin = (t) =>
     Array.from(enc.encode(t), (b) => b.toString(2).padStart(8, "0")).join(" ");
   const WORDS =
@@ -849,7 +849,7 @@
   // each byte in its own span, so one can flash or change; the words stay exactly as written, a space between
   const bytes = [];
   function split() {
-    const p = document.querySelector(".chapter p.para");
+    const p = document.querySelector(".part p.para");
     if (!p) return;
     const words = p.textContent.trim().split(/\s+/);
     p.textContent = "";
