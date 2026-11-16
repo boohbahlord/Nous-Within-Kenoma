@@ -45,19 +45,19 @@ window.EC_QUOTES = [
     title: "Ten: III; Shoreline Lectures and Sermons from the Snake",
   },
   {
-    t: "Alice wonders if she can exist any further through every pull of sense, the skin pace with fire from memory's fuel. She feels a jolt of a needle into her arm’s left vein, and she has a moment where the thoughts and touch no longer scream.",
+    t: "Alice wonders if she can exist any further through every pull of sense, the skin pace with fire from memory’s fuel. She feels a jolt of a needle into her arm’s left vein, and she has a moment where the thoughts and touch no longer scream.",
     n: 5,
-    title: "Angel Machine",
+    title: "The Blindfold and her Angel Machine",
   },
   {
-    t: "One more moment of rest, she thinks, just one more... Just a little bit more, then maybe I can. She doesn’t need any of these memories, those she found to be cursed with light and sounds; it is all too hostile. She always tries to snooze the alarm of the Angel in her ear. She wants to slip away, down the swirling promise of wonderland, a white rabbit of a white mask company, unlike the passion and intensity of Antony; she only wants to be carried away by the illusory. Where to? She would not want to know.",
+    t: "The lungs can no longer climb, and it finally all goes beyond distance, with blurry dark and blackened dusk dreams. A man is left with an unblinking woman, her eyes resembling those of a doll. He stares at the death, where love got lost inside itself. He can only think that it isn’t happening to him, that it’s not possible to be left without her, what he thought to be his spiritual half, Alice.",
     n: 5,
-    title: "Angel Machine",
+    title: "The Blindfold and her Angel Machine",
   },
   {
-    t: "The maiden spills open with the wounds of blindness; Alice is covered in pockmarks, her face red with chemical hives. Antony thinks of how many times it has repeated; it tires him. Alice falls into the bottom of the stone. The lenses of Antony’s eyes watch her drag herself again.",
+    t: "Alice begins crawling away, crawling over the resistance of objects that is her own rebound of drugs stifling the inscape. Her senses are engulfed in a storm of twisting stomach knots and a burning sweat. Is this it? The repeating question echoes as reality becomes a horror show of funhouse mirrors to her; even the walls mock her despair. The rapid torque of a heart speeding accompanies a high-pitched ringing in the ears. The only break in her vitals that may come is in that soon-to-be brake-slamming car crash called death, of its Presto blood rhythm eccentricity she hopes will finalize unto a fatal rest.",
     n: 5,
-    title: "Angel Machine",
+    title: "The Blindfold and her Angel Machine",
   },
   {
     t: "The eyes stare back into the boy; his hive eyes scream with a waking rapid eye movement. He sees the insanity-rot flashes, telling him by a hot, stomach-churning suggestion, “DO IT!” The seconds implode without hesitation; no hesitation breaks.",
